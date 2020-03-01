@@ -63,6 +63,7 @@ var startCmd = &cobra.Command{
 		dependenciesCheck := exec.Command(
 			"docker-compose",
 			"exec",
+			"-T",
 			"mediawiki",
 			"php",
 			"maintenance/install.php",
