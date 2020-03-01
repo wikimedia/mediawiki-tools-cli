@@ -90,8 +90,8 @@ var startCmd = &cobra.Command{
 					"update",
 				)
 				out, err := depsCommand.CombinedOutput()
-				fmt.Print(string(out))
 				if err != nil {
+					fmt.Print(string(out))
 					log.Fatal( err )
 					os.Exit( 1 )
 				}
