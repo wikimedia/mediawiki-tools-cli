@@ -69,9 +69,8 @@ var startCmd = &cobra.Command{
 			"maintenance/install.php",
 			"--help",
 		)
-		_, err = dependenciesCheck.CombinedOutput()
-
-		if err != nil {
+		stdoutStderr, _ = dependenciesCheck.CombinedOutput()
+		if strings.Index( string( stdoutStderr ), " dependencies that need to be installed" ) > 0 {
 			fmt.Println( "MediaWiki has some external dependencies that need to be installed")
 			prompt := promptui.Prompt{
 				IsConfirm: true,
