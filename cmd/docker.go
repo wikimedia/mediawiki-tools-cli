@@ -19,8 +19,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/briandowns/spinner"
-	"github.com/spf13/cobra"
 	"github.com/manifoldco/promptui"
+	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/exec"
@@ -31,29 +31,28 @@ import (
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
 	Short: "Provides subcommands for interacting with MediaWiki's docker development environment",
-	RunE: nil,
+	RunE:  nil,
 }
 
 var startCmd = &cobra.Command{
-	Use: "start",
+	Use:   "start",
 	Short: "Start the development environment",
 	Run: func(cmd *cobra.Command, args []string) {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Starting the development environment "
 		s.Start()
-		command := exec.Command( "docker-compose", "up", "-d" )
+		command := exec.Command("docker-compose", "up", "-d")
 		if isLinuxHost() {
 			command.Env = os.Environ()
 			command.Env = append(
 				command.Env,
-				fmt.Sprintf( "MW_DOCKER_UID=%s", string( os.Getuid() ) ),
-				fmt.Sprintf( "MW_DOCKER_GID=%s", string( os.Getgid() ) ))
+				fmt.Sprintf("MW_DOCKER_UID=%s", string(os.Getuid())),
+				fmt.Sprintf("MW_DOCKER_GID=%s", string(os.Getgid())))
 		}
 		stdoutStderr, _ := command.CombinedOutput()
-		fmt.Print( string( stdoutStderr ) )
+		fmt.Print(string(stdoutStderr))
 		s.Stop()
-		handlePortError( stdoutStderr )
-
+		handlePortError(stdoutStderr)
 
 		if composerDependenciesNeedInstallation() {
 			promptToInstallComposerDependencies()
@@ -63,7 +62,7 @@ var startCmd = &cobra.Command{
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if !isInCoreDirectory() {
-			os.Exit( 1 )
+			os.Exit(1)
 		}
 		if isLinuxHost() {
 			// TODO: We should also check the contents for correctness, maybe
@@ -71,7 +70,7 @@ var startCmd = &cobra.Command{
 			// and with correct values.
 			_, err := os.Stat("docker-compose.override.yml")
 			if err != nil {
-				fmt.Println( "Creating docker-compose.override.yml for correct user ID and group ID mapping from host to container")
+				fmt.Println("Creating docker-compose.override.yml for correct user ID and group ID mapping from host to container")
 				var data = `
 version: '3.7'
 services:
@@ -80,12 +79,12 @@ services:
 `
 				file, err := os.Create("docker-compose.override.yml")
 				if err != nil {
-					log.Fatal( err )
+					log.Fatal(err)
 				}
 				defer file.Close()
 				_, err = file.WriteString(data)
 				if err != nil {
-					log.Fatal( err )
+					log.Fatal(err)
 				}
 				file.Sync()
 			}
@@ -94,51 +93,51 @@ services:
 }
 
 var stopCmd = &cobra.Command{
-	Use: "stop",
+	Use:   "stop",
 	Short: "Stop development environment",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if !isInCoreDirectory() {
-			os.Exit( 1 )
+			os.Exit(1)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Stopping development environment "
 		s.Start()
-		command := exec.Command( "docker-compose", "stop" )
+		command := exec.Command("docker-compose", "stop")
 		stdoutStderr, err := command.CombinedOutput()
 		s.Stop()
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("%s\n", stdoutStderr )
+		fmt.Printf("%s\n", stdoutStderr)
 	},
 }
 
 func printSuccess() {
-	portCommand := exec.Command( "docker-compose", "port", "mediawiki", "8080" )
+	portCommand := exec.Command("docker-compose", "port", "mediawiki", "8080")
 	portCommandOutput, _ := portCommand.CombinedOutput()
 	// Replace 0.0.0.0 with localhost
-	fmt.Printf( "Success! View MediaWiki-Docker at http://%s",
-		strings.Replace( string( portCommandOutput ), "0.0.0.0", "localhost", 1 ) )
+	fmt.Printf("Success! View MediaWiki-Docker at http://%s",
+		strings.Replace(string(portCommandOutput), "0.0.0.0", "localhost", 1))
 }
 
 func handlePortError(stdoutStderr []byte) {
-	portError := strings.Index( string( stdoutStderr ), " failed: port is already allocated" )
+	portError := strings.Index(string(stdoutStderr), " failed: port is already allocated")
 	if portError > 0 {
 		// TODO: This breaks if someone set port 80 for example.
-		fmt.Println( string(stdoutStderr ))
-		fmt.Printf( "Port %s is already allocated! \n\nPlease override the port via a .env file, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
-			string(stdoutStderr[portError-4: ] )[0:4] )
-		os.Exit( 1 )
+		fmt.Println(string(stdoutStderr))
+		fmt.Printf("Port %s is already allocated! \n\nPlease override the port via a .env file, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
+			string(stdoutStderr[portError-4:])[0:4])
+		os.Exit(1)
 	}
 }
 
 func promptToInstallComposerDependencies() {
-	fmt.Println( "MediaWiki has some external dependencies that need to be installed")
+	fmt.Println("MediaWiki has some external dependencies that need to be installed")
 	prompt := promptui.Prompt{
 		IsConfirm: true,
-		Label: "Install dependencies now",
+		Label:     "Install dependencies now",
 	}
 	_, err := prompt.Run()
 	if err == nil {
@@ -157,8 +156,8 @@ func promptToInstallComposerDependencies() {
 		out, err := depsCommand.CombinedOutput()
 		if err != nil {
 			fmt.Print(string(out))
-			log.Fatal( err )
-			os.Exit( 1 )
+			log.Fatal(err)
+			os.Exit(1)
 		}
 		s.Stop()
 	}
@@ -176,7 +175,7 @@ func composerDependenciesNeedInstallation() bool {
 		"--help",
 	)
 	stdoutStderr, _ := dependenciesCheck.CombinedOutput()
-	return strings.Index( string( stdoutStderr ), " dependencies that need to be installed" ) > 0
+	return strings.Index(string(stdoutStderr), " dependencies that need to be installed") > 0
 }
 
 func isInCoreDirectory() bool {
@@ -188,18 +187,18 @@ func isInCoreDirectory() bool {
 }
 
 func isLinuxHost() bool {
-	unameCommand := exec.Command( "uname" )
+	unameCommand := exec.Command("uname")
 	stdout, err := unameCommand.CombinedOutput()
 	if err != nil {
-		log.Fatal( err )
-		os.Exit( 1 )
+		log.Fatal(err)
+		os.Exit(1)
 	}
-	return string( stdout ) == "Linux\n"
+	return string(stdout) == "Linux\n"
 }
 
 func init() {
 	rootCmd.AddCommand(dockerCmd)
 
-	dockerCmd.AddCommand( startCmd )
-	dockerCmd.AddCommand( stopCmd )
+	dockerCmd.AddCommand(startCmd)
+	dockerCmd.AddCommand(stopCmd)
 }
