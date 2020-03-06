@@ -44,8 +44,10 @@ var startCmd = &cobra.Command{
 		command := exec.Command( "docker-compose", "up", "-d" )
 		if isLinuxHost() {
 			command.Env = os.Environ()
-			// TODO: Don't hardcode this.
-			command.Env = append(command.Env, "MW_DOCKER_UID=1000", "MW_DOCKER_GID=1000")
+			command.Env = append(
+				command.Env,
+				fmt.Sprintf( "MW_DOCKER_UID=%s", string( os.Getuid() ) ),
+				fmt.Sprintf( "MW_DOCKER_GID=%s", string( os.Getgid() ) ))
 		}
 		stdoutStderr, err := command.CombinedOutput()
 		fmt.Print( string( stdoutStderr ) )
@@ -162,7 +164,6 @@ func isInCoreDirectory() bool {
 	if _, err := os.Stat("README.mediawiki"); err == nil {
 		return true
 	}
-
 	fmt.Println("❌ Please run this command within the root of the MediaWiki core repository.")
 	return false
 }
