@@ -49,71 +49,26 @@ var startCmd = &cobra.Command{
 				fmt.Sprintf( "MW_DOCKER_UID=%s", string( os.Getuid() ) ),
 				fmt.Sprintf( "MW_DOCKER_GID=%s", string( os.Getgid() ) ))
 		}
-		stdoutStderr, err := command.CombinedOutput()
+		stdoutStderr, _ := command.CombinedOutput()
 		fmt.Print( string( stdoutStderr ) )
 		s.Stop()
-		portError := strings.Index( string( stdoutStderr ), " failed: port is already allocated" )
-		if portError > 0 {
-			// TODO: This breaks if someone set port 80 for example.
-			fmt.Println( string(stdoutStderr ))
-			fmt.Printf( "Port %s is already allocated! \n\nPlease override the port via docker-compose.override.yml, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
-				string(stdoutStderr[portError-4: ] )[0:4] )
-			os.Exit( 1 )
+		handlePortError( stdoutStderr )
+
+
+		if composerDependenciesNeedInstallation() {
+			promptToInstallComposerDependencies()
 		}
 
-		// Detect if composer dependencies are not installed and prompt user to install
-		dependenciesCheck := exec.Command(
-			"docker-compose",
-			"exec",
-			"-T",
-			"mediawiki",
-			"php",
-			"maintenance/install.php",
-			"--help",
-		)
-		stdoutStderr, _ = dependenciesCheck.CombinedOutput()
-		if strings.Index( string( stdoutStderr ), " dependencies that need to be installed" ) > 0 {
-			fmt.Println( "MediaWiki has some external dependencies that need to be installed")
-			prompt := promptui.Prompt{
-				IsConfirm: true,
-				Label: "Install dependencies now",
-			}
-			_, err = prompt.Run()
-			if err == nil {
-				s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-				s.Prefix = "Installing Composer dependencies (this may take a few minutes) "
-				s.Start()
-				os.Mkdir("cache", 0700)
-				depsCommand := exec.Command(
-					"docker-compose",
-					"exec",
-					"-T",
-					"mediawiki",
-					"composer",
-					"update",
-				)
-				out, err := depsCommand.CombinedOutput()
-				if err != nil {
-					fmt.Print(string(out))
-					log.Fatal( err )
-					os.Exit( 1 )
-				}
-				s.Stop()
-			}
-		}
-
-		portCommand := exec.Command( "docker-compose", "port", "mediawiki", "8080" )
-		portCommandOutput, err := portCommand.CombinedOutput()
-		// Replace 0.0.0.0 with localhost
-		fmt.Printf( "Success! View MediaWiki-Docker at http://%s",
-			strings.Replace( string( portCommandOutput ), "0.0.0.0", "localhost", 1 ) )
+		printSuccess()
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if !isInCoreDirectory() {
 			os.Exit( 1 )
 		}
 		if isLinuxHost() {
-			// TODO: We need to also check the contents, making a lazy assumption for now.
+			// TODO: We should also check the contents for correctness, maybe
+			// using docker-compose config and asserting that UID/GID mapping is present
+			// and with correct values.
 			_, err := os.Stat("docker-compose.override.yml")
 			if err != nil {
 				fmt.Println( "Creating docker-compose.override.yml for correct user ID and group ID mapping from host to container")
@@ -158,6 +113,70 @@ var stopCmd = &cobra.Command{
 		}
 		fmt.Printf("%s\n", stdoutStderr )
 	},
+}
+
+func printSuccess() {
+	portCommand := exec.Command( "docker-compose", "port", "mediawiki", "8080" )
+	portCommandOutput, _ := portCommand.CombinedOutput()
+	// Replace 0.0.0.0 with localhost
+	fmt.Printf( "Success! View MediaWiki-Docker at http://%s",
+		strings.Replace( string( portCommandOutput ), "0.0.0.0", "localhost", 1 ) )
+}
+
+func handlePortError(stdoutStderr []byte) {
+	portError := strings.Index( string( stdoutStderr ), " failed: port is already allocated" )
+	if portError > 0 {
+		// TODO: This breaks if someone set port 80 for example.
+		fmt.Println( string(stdoutStderr ))
+		fmt.Printf( "Port %s is already allocated! \n\nPlease override the port via a .env file, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
+			string(stdoutStderr[portError-4: ] )[0:4] )
+		os.Exit( 1 )
+	}
+}
+
+func promptToInstallComposerDependencies() {
+	fmt.Println( "MediaWiki has some external dependencies that need to be installed")
+	prompt := promptui.Prompt{
+		IsConfirm: true,
+		Label: "Install dependencies now",
+	}
+	_, err := prompt.Run()
+	if err == nil {
+		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		s.Prefix = "Installing Composer dependencies (this may take a few minutes) "
+		s.Start()
+		os.Mkdir("cache", 0700)
+		depsCommand := exec.Command(
+			"docker-compose",
+			"exec",
+			"-T",
+			"mediawiki",
+			"composer",
+			"update",
+		)
+		out, err := depsCommand.CombinedOutput()
+		if err != nil {
+			fmt.Print(string(out))
+			log.Fatal( err )
+			os.Exit( 1 )
+		}
+		s.Stop()
+	}
+}
+
+func composerDependenciesNeedInstallation() bool {
+	// Detect if composer dependencies are not installed and prompt user to install
+	dependenciesCheck := exec.Command(
+		"docker-compose",
+		"exec",
+		"-T",
+		"mediawiki",
+		"php",
+		"maintenance/install.php",
+		"--help",
+	)
+	stdoutStderr, _ := dependenciesCheck.CombinedOutput()
+	return strings.Index( string( stdoutStderr ), " dependencies that need to be installed" ) > 0
 }
 
 func isInCoreDirectory() bool {
