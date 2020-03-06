@@ -107,7 +107,7 @@ var startCmd = &cobra.Command{
 			strings.Replace( string( portCommandOutput ), "0.0.0.0", "localhost", 1 ) )
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if isInCoreDirectory() == false {
+		if !isInCoreDirectory() {
 			os.Exit( 1 )
 		}
 		if isLinuxHost() {
@@ -139,8 +139,14 @@ services:
 var stopCmd = &cobra.Command{
 	Use: "stop",
 	Short: "Stop development environment",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if !isInCoreDirectory() {
+			os.Exit( 1 )
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		s.Prefix = "Stopping development environment "
 		s.Start()
 		command := exec.Command( "docker-compose", "stop" )
 		stdoutStderr, err := command.CombinedOutput()
