@@ -66,9 +66,7 @@ var startCmd = &cobra.Command{
 		printSuccess()
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if !isInCoreDirectory() {
-			os.Exit(1)
-		}
+		checkIfInCoreDirectory()
 		if isLinuxHost() {
 			// TODO: We should also check the contents for correctness, maybe
 			// using docker-compose config and asserting that UID/GID mapping is present
@@ -127,9 +125,7 @@ var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop development environment",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if !isInCoreDirectory() {
-			os.Exit(1)
-		}
+		checkIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
@@ -212,12 +208,10 @@ func composerDependenciesNeedInstallation() bool {
 	return strings.Index(string(stdoutStderr), " dependencies that need to be installed") > 0
 }
 
-func isInCoreDirectory() bool {
-	if _, err := os.Stat("README.mediawiki"); err == nil {
-		return true
+func checkIfInCoreDirectory() {
+	if _, err := os.Stat("README.mediawiki"); err != nil {
+		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
 	}
-	fmt.Println("❌ Please run this command within the root of the MediaWiki core repository.")
-	return false
 }
 
 func isLinuxHost() bool {
