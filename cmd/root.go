@@ -22,8 +22,6 @@ import (
 	"os"
 )
 
-var cfgFile string
-
 var rootCmd = &cobra.Command{
 	Use:   "mw",
 	Short: "Developer utilities for working with MediaWiki",
