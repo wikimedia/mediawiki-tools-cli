@@ -144,7 +144,10 @@ func promptToInstallComposerDependencies() {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Installing Composer dependencies (this may take a few minutes) "
 		s.Start()
-		os.Mkdir("cache", 0700)
+		err := os.Mkdir("cache", 0700)
+		if err != nil {
+			log.Fatal(err)
+		}
 		depsCommand := exec.Command(
 			"docker-compose",
 			"exec",
