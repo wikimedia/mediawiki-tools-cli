@@ -144,7 +144,7 @@ var stopCmd = &cobra.Command{
 func printSuccess() {
 	portCommand := exec.Command("docker-compose", "port", "mediawiki", "8080")
 	portCommandOutput, _ := portCommand.CombinedOutput()
-	// Replace 0.0.0.0 with localhost
+	// Replace 0.0.0.0 in the output with localhost
 	fmt.Printf("Success! View MediaWiki-Docker at http://%s",
 		strings.Replace(string(portCommandOutput), "0.0.0.0", "localhost", 1))
 }
