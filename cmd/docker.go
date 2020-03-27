@@ -21,6 +21,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"gopkg.in/libgit2/git2go.v28"
 	"log"
 	"os"
 	"os/exec"
@@ -58,6 +59,10 @@ var startCmd = &cobra.Command{
 			promptToInstallComposerDependencies()
 		}
 
+		if !vectorIsPresent() {
+			promptToCloneVector()
+		}
+
 		printSuccess()
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -90,6 +95,32 @@ services:
 			}
 		}
 	},
+}
+
+func vectorIsPresent() bool {
+	info, err := os.Stat("skins/Vector")
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
+}
+
+func promptToCloneVector() {
+	prompt := promptui.Prompt{
+		IsConfirm: true,
+		Label:     "Download and use the Vector skin",
+	}
+	_, err := prompt.Run()
+	if err == nil {
+		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		s.Prefix = "Downloading Vector"
+		s.Start()
+		_, err := git.Clone("https://gerrit.wikimedia.org/r/mediawiki/skins/Vector", "skins/Vector", &git.CloneOptions{})
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.Stop()
+	}
 }
 
 var stopCmd = &cobra.Command{
