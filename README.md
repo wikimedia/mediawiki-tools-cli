@@ -7,6 +7,16 @@ This project contains a command-line interface for interacting with MediaWiki de
 In this initial version there is support for interacting with MediaWiki core's docker-compose development environment,
 with subcommands provided under the `docker` namespace: `mw help docker`.
 
+## Contributing
+
+Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at `~/go/src/cli`.
+
+In the `cli` directory run `go get` to download go package dependencies.
+
+`libgit2` is a system dependency that can be installed on macOS with `brew install libgit2` and on Debian with `apt install libgit2-dev`.
+
+Execute the script with `go run ~/go/src/cli/main.go`
+
 ## Support
 
 * Phabricator: [#MediaWiki-Docker](https://phabricator.wikimedia.org/project/view/4585/)
