@@ -43,10 +43,13 @@ var startCmd = &cobra.Command{
 		s.Prefix = "Starting the development environment "
 		s.Start()
 		command := exec.Command("docker-compose", "up", "-d")
-		stdoutStderr, _ := command.CombinedOutput()
-		fmt.Print(string(stdoutStderr))
+		stdoutStderr, err := command.CombinedOutput()
 		s.Stop()
+		fmt.Print(string(stdoutStderr))
 		handlePortError(stdoutStderr)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		if composerDependenciesNeedInstallation() {
 			promptToInstallComposerDependencies()
@@ -185,10 +188,8 @@ func handlePortError(stdoutStderr []byte) {
 	portError := strings.Index(string(stdoutStderr), " failed: port is already allocated")
 	if portError > 0 {
 		// TODO: This breaks if someone set port 80 for example.
-		fmt.Println(string(stdoutStderr))
-		fmt.Printf("Port %s is already allocated! \n\nPlease override the port via a .env file, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
+		log.Fatal("Port %s is already allocated! \n\nPlease override the port via a .env file, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
 			string(stdoutStderr[portError-4:])[0:4])
-		os.Exit(1)
 	}
 }
 
