@@ -4,7 +4,7 @@ This project contains a command-line interface for interacting with MediaWiki de
 
 ## Docker
 
-In this initial version there is support for interacting with MediaWiki core's docker-compose development environment, 
+In this initial version there is support for interacting with MediaWiki core's docker-compose development environment,
 with subcommands provided under the `docker` namespace: `mw help docker`.
 
 ## Support
