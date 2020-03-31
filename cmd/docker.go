@@ -21,7 +21,6 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"gopkg.in/libgit2/git2go.v28"
 	"log"
 	"os"
 	"os/exec"
@@ -103,7 +102,7 @@ func promptToInstallMediaWiki() {
 	_, err := prompt.Run()
 	if err == nil {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Installing"
+		s.Prefix = "Installing "
 		s.Start()
 
 		command := exec.Command(
@@ -146,9 +145,15 @@ func promptToCloneVector() {
 	_, err := prompt.Run()
 	if err == nil {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Downloading Vector"
+		s.Prefix = "Downloading Vector "
 		s.Start()
-		_, err := git.Clone("https://gerrit.wikimedia.org/r/mediawiki/skins/Vector", "skins/Vector", &git.CloneOptions{})
+		command := exec.Command(
+			"git",
+			"clone",
+			"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
+			"skins/Vector")
+		stdoutStderr, err := command.CombinedOutput()
+		fmt.Printf("%s\n", stdoutStderr)
 		if err != nil {
 			log.Fatal(err)
 		}
