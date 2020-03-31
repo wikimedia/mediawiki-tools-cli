@@ -44,8 +44,9 @@ var startCmd = &cobra.Command{
 		command := exec.Command("docker-compose", "up", "-d")
 		stdoutStderr, err := command.CombinedOutput()
 		s.Stop()
-		fmt.Print(string(stdoutStderr))
+		// If there is a port error, that's the only thing we want to output now.
 		handlePortError(stdoutStderr)
+		fmt.Print(string(stdoutStderr))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -192,8 +193,8 @@ func printSuccess() {
 func handlePortError(stdoutStderr []byte) {
 	portError := strings.Index(string(stdoutStderr), " failed: port is already allocated")
 	if portError > 0 {
-		// TODO: This breaks if someone set port 80 for example.
-		log.Fatal("Port %s is already allocated! \n\nPlease override the port via a .env file, see https://www.mediawiki.org/wiki/MediaWiki-Docker for instructions\n",
+		// TODO: This assumes a port that is four characters long.
+		log.Fatalf("Port %s is already allocated! \n\nPlease override the port via MW_DOCKER_PORT in the .env file\n",
 			string(stdoutStderr[portError-4:])[0:4])
 	}
 }
