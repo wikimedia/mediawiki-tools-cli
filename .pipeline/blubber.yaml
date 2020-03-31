@@ -9,7 +9,6 @@ variants:
     copies: [local]
     apt:
       packages:
-        - libgit2-dev
         - golint
         - git
   test:
