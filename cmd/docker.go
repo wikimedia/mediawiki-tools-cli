@@ -187,7 +187,6 @@ func promptToInstallComposerDependencies() {
 		if err != nil {
 			fmt.Print(string(out))
 			log.Fatal(err)
-			os.Exit(1)
 		}
 		s.Stop()
 	}
@@ -219,7 +218,6 @@ func isLinuxHost() bool {
 	stdout, err := unameCommand.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	return string(stdout) == "Linux\n"
 }
