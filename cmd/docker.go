@@ -63,6 +63,10 @@ var startCmd = &cobra.Command{
 			promptToCloneVector()
 		}
 
+		if !localSettingsIsPresent() {
+			promptToInstallMediaWiki()
+		}
+
 		printSuccess()
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -93,6 +97,41 @@ services:
 			}
 		}
 	},
+}
+
+func promptToInstallMediaWiki() {
+	prompt := promptui.Prompt{
+		IsConfirm: true,
+		Label:     "Install MediaWiki database tables and create LocalSettings.php",
+	}
+	_, err := prompt.Run()
+	if err == nil {
+		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		s.Prefix = "Installing"
+		s.Start()
+
+		command := exec.Command(
+			"docker-compose",
+			"exec",
+			"-T",
+			"mediawiki",
+			"/bin/bash",
+			"/docker/install.sh")
+		stdoutStderr, err := command.CombinedOutput()
+		fmt.Printf("%s\n", stdoutStderr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.Stop()
+	}
+}
+
+func localSettingsIsPresent() bool {
+	info, err := os.Stat("LocalSettings.php")
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
 
 func vectorIsPresent() bool {
