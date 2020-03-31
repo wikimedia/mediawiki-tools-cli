@@ -1,4 +1,5 @@
-/*
+/*Package cmd is used for command line.
+
 Copyright © 2020 Kosta Harlan <kosta@kostaharlan.net>
 
 Licensed under the Apache License, Version 2.0 (the "License");

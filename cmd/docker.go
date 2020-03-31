@@ -1,4 +1,5 @@
-/*
+/*Package cmd is used for command line.
+
 Copyright © 2020 Kosta Harlan <kosta@kostaharlan.net>
 
 This program is free software: you can redistribute it and/or modify

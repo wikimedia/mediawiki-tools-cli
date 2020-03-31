@@ -1,4 +1,5 @@
-/*
+/*Package cmd is used for command line.
+
 Copyright © 2020 Kosta Harlan <kosta@kostaharlan.net>
 
 This program is free software: you can redistribute it and/or modify
@@ -27,6 +28,7 @@ var rootCmd = &cobra.Command{
 	Short: "Developer utilities for working with MediaWiki",
 }
 
+/*Execute the root command*/
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
