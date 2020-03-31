@@ -43,13 +43,6 @@ var startCmd = &cobra.Command{
 		s.Prefix = "Starting the development environment "
 		s.Start()
 		command := exec.Command("docker-compose", "up", "-d")
-		if isLinuxHost() {
-			command.Env = os.Environ()
-			command.Env = append(
-				command.Env,
-				fmt.Sprintf("MW_DOCKER_UID=%s", string(os.Getuid())),
-				fmt.Sprintf("MW_DOCKER_GID=%s", string(os.Getgid())))
-		}
 		stdoutStderr, _ := command.CombinedOutput()
 		fmt.Print(string(stdoutStderr))
 		s.Stop()
