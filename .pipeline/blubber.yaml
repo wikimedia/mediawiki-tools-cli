@@ -1,0 +1,21 @@
+version: v4
+base: docker-registry.wikimedia.org/wikimedia-stretch:latest
+lives:
+  in: /go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli
+
+variants:
+  build:
+    base: docker-registry.wikimedia.org/golang:1.11.5-1
+    copies: [local]
+    apt:
+      packages:
+        - libgit2-dev
+        - golint
+        - git
+  test:
+    includes: [build]
+    runs:
+      environment:
+        GOPATH: '/usr/share/gocode'
+      insecurely: true
+    entrypoint: ['golint']
