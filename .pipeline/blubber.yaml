@@ -18,4 +18,4 @@ variants:
       environment:
         GOPATH: '/usr/share/gocode'
       insecurely: true
-    entrypoint: ['golint']
+    entrypoint: ['golint', './...']
