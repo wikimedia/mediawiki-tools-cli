@@ -16,7 +16,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package main
 
-import "cli/cmd"
+import "gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd"
 
 func main() {
 	cmd.Execute()

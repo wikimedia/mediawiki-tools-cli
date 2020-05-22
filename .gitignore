@@ -1,1 +1,5 @@
 .idea
+/bin
+/.build
+/.lint-*
+/_release
