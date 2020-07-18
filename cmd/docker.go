@@ -18,16 +18,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"io/ioutil"
 	"fmt"
-	"github.com/briandowns/spinner"
-	"github.com/manifoldco/promptui"
-	"github.com/spf13/cobra"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/briandowns/spinner"
+	"github.com/manifoldco/promptui"
+	"github.com/spf13/cobra"
 )
 
 var dockerCmd = &cobra.Command{
