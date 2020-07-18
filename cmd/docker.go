@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"io/ioutil"
 	"fmt"
 	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
@@ -248,7 +249,8 @@ func composerDependenciesNeedInstallation() bool {
 }
 
 func checkIfInCoreDirectory() {
-	if _, err := os.Stat("README.mediawiki"); err != nil {
+	b, err := ioutil.ReadFile(".gitreview")
+	if err != nil || !strings.Contains(string(b), "project=mediawiki/core.git") {
 		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
 	}
 }
