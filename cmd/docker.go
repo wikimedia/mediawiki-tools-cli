@@ -22,13 +22,14 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/exec"
 )
 
 var dockerCmd = &cobra.Command{
@@ -44,7 +45,7 @@ var startCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Starting the development environment "
 		s.Start()
-		command := exec.Command("docker-compose", "up", "-d")
+		command := exec.DockerCompose("up", "-d")
 		stdoutStderr, err := command.CombinedOutput()
 		s.Stop()
 		// If there is a port error, that's the only thing we want to output now.
@@ -109,8 +110,7 @@ func promptToInstallMediaWiki() {
 		s.Prefix = "Installing "
 		s.Start()
 
-		command := exec.Command(
-			"docker-compose",
+		command := exec.DockerCompose(
 			"exec",
 			"-T",
 			"mediawiki",
@@ -175,7 +175,7 @@ var stopCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Stopping development environment "
 		s.Start()
-		command := exec.Command("docker-compose", "stop")
+		command := exec.DockerCompose("stop")
 		stdoutStderr, err := command.CombinedOutput()
 		s.Stop()
 		if err != nil {
@@ -186,7 +186,7 @@ var stopCmd = &cobra.Command{
 }
 
 func printSuccess() {
-	portCommand := exec.Command("docker-compose", "port", "mediawiki", "8080")
+	portCommand := exec.DockerCompose("port", "mediawiki", "8080")
 	portCommandOutput, _ := portCommand.CombinedOutput()
 	// Replace 0.0.0.0 in the output with localhost
 	fmt.Printf("Success! View MediaWiki-Docker at http://%s",
@@ -217,8 +217,7 @@ func promptToInstallComposerDependencies() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		depsCommand := exec.Command(
-			"docker-compose",
+		depsCommand := exec.DockerCompose(
 			"exec",
 			"-T",
 			"mediawiki",
@@ -236,8 +235,7 @@ func promptToInstallComposerDependencies() {
 
 func composerDependenciesNeedInstallation() bool {
 	// Detect if composer dependencies are not installed and prompt user to install
-	dependenciesCheck := exec.Command(
-		"docker-compose",
+	dependenciesCheck := exec.DockerCompose(
 		"exec",
 		"-T",
 		"mediawiki",
