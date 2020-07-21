@@ -18,7 +18,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package exec
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 /*Command passes through to exec.Command for running generic commands*/
@@ -28,6 +30,8 @@ func Command(name string, arg ...string) *exec.Cmd {
 
 /*DockerCompose executes the docker-compose command*/
 func DockerCompose(command string, arg ...string) *exec.Cmd {
-	arg = append([]string{command}, arg...)
+	projectDir, _ := os.Getwd()
+	projectName := "mwcli-" + filepath.Base(projectDir)
+	arg = append([]string{"-p", projectName, command}, arg...)
 	return exec.Command("docker-compose", arg...)
 }
