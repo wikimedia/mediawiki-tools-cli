@@ -29,5 +29,5 @@ Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/medi
 
 ## Support
 
-* Phabricator: [#MediaWiki-Docker](https://phabricator.wikimedia.org/project/view/4585/)
-* IRC: `#mediawiki`
+- Phabricator: [#MediaWiki-Docker](https://phabricator.wikimedia.org/project/view/4585/)
+- IRC: `#mediawiki`
