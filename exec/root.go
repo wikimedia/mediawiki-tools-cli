@@ -31,7 +31,7 @@ func Command(name string, arg ...string) *exec.Cmd {
 /*DockerCompose executes the docker-compose command*/
 func DockerCompose(command string, arg ...string) *exec.Cmd {
 	projectDir, _ := os.Getwd()
-	projectName := "mwcli-" + filepath.Base(projectDir)
+	projectName := "mw-" + filepath.Base(projectDir)
 	arg = append([]string{"-p", projectName, command}, arg...)
 	return exec.Command("docker-compose", arg...)
 }
