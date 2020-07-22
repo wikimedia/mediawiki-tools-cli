@@ -3,3 +3,4 @@
 /.build
 /.lint-*
 /_release
+/vendor
