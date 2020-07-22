@@ -20,7 +20,7 @@ package cmd
 import (
 	"fmt"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/env"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
 
 	"github.com/spf13/cobra"
 )

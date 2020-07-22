@@ -29,7 +29,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/exec"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 )
 
 var dockerCmd = &cobra.Command{
