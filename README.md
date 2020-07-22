@@ -14,13 +14,18 @@ docker-compose development environment, with subcommands provided under the
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
 `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli`.
 
-In the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd` directory run `go get` to download go package dependencies.
+Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd` directory:
 
-Execute the script with `go run ~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd/cli/main.go`
+- run `go mod download` to download the required modules
+- run `go mod vendor` to copy the required modules into a vendor directory for the project
 
-In order to run the script within the MediaWiki directory you'll need to install it `make install`
+Execute the script from any directory with `go run ~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd/cli/main.go`
 
-And then run the build binary `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw`
+### Using a binary
+
+Make a binary by running `make install`
+
+Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw`
 
 ## Support
 
