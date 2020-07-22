@@ -18,6 +18,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package exec
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/briandowns/spinner"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,10 +31,45 @@ func Command(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
-/*DockerCompose executes the docker-compose command*/
-func DockerCompose(command string, arg ...string) *exec.Cmd {
+/*DockerComposeCommand gets a docker-compose command to run*/
+func DockerComposeCommand(command string, arg ...string) *exec.Cmd {
 	projectDir, _ := os.Getwd()
 	projectName := "mw-" + filepath.Base(projectDir)
 	arg = append([]string{"-p", projectName, command}, arg...)
 	return exec.Command("docker-compose", arg...)
+}
+
+/*RunCommand runs a command, handles verbose output and errors, and an optional spinner*/
+func RunCommand(verbose bool, cmd *exec.Cmd, s *spinner.Spinner) (bytes.Buffer, bytes.Buffer, error) {
+	if s != nil {
+		s.Start()
+	}
+	stdout, stderr, err := runCommand(verbose, cmd)
+	if s != nil {
+		s.Stop()
+	}
+	handleCommandRun(verbose, cmd, stdout, stderr, err)
+	return stdout, stderr, err
+}
+
+func runCommand(verbose bool, cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	err := cmd.Run()
+	return stdoutBuf, stderrBuf, err
+}
+
+func handleCommandRun(verbose bool, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
+	if verbose {
+		fmt.Printf("\n%s\n", cmd.String())
+	}
+	if verbose && stdout.String() != "" {
+		fmt.Printf("\n%s\n%s\n", "STDOUT:", stdout.String())
+	}
+	if err != nil {
+		if verbose && stderr.String() != "" {
+			fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
+		}
+	}
 }

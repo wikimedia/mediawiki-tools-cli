@@ -32,6 +32,8 @@ import (
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 )
 
+var Verbose bool
+
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
 	Short: "Provides subcommands for interacting with MediaWiki's Docker development environment",
@@ -44,16 +46,10 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Starting the development environment "
-		s.Start()
-		command := exec.DockerCompose("up", "-d")
-		stdoutStderr, err := command.CombinedOutput()
-		s.Stop()
-		// If there is a port error, that's the only thing we want to output now.
-		handlePortError(stdoutStderr)
-		fmt.Print(string(stdoutStderr))
-		if err != nil {
-			log.Fatal(err)
-		}
+		s.FinalMSG = s.Prefix + "(done)\n"
+		_, stderr, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("up", "-d"), s)
+		handlePortError(stderr.Bytes())
+
 		// TODO: Prompt for composer update command if needed. See T260656
 
 		if !vectorIsPresent() {
@@ -105,20 +101,16 @@ func promptToInstallMediaWiki() {
 	if err == nil {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Installing "
-		s.Start()
-
-		command := exec.DockerCompose(
-			"exec",
-			"-T",
-			"mediawiki",
-			"/bin/bash",
-			"/docker/install.sh")
-		stdoutStderr, err := command.CombinedOutput()
-		fmt.Printf("%s\n", stdoutStderr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		s.Stop()
+		s.FinalMSG = s.Prefix + "(done)\n"
+		exec.RunCommand(
+			Verbose,
+			exec.DockerComposeCommand(
+				"exec",
+				"-T",
+				"mediawiki",
+				"/bin/bash",
+				"/docker/install.sh"),
+			s)
 	}
 }
 
@@ -147,6 +139,7 @@ func promptToCloneVector() {
 	if err == nil {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Downloading Vector "
+		s.FinalMSG = s.Prefix + "(done)\n"
 		s.Start()
 		command := exec.Command(
 			"git",
@@ -171,23 +164,16 @@ var stopCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Stopping development environment "
-		s.Start()
-		command := exec.DockerCompose("stop")
-		stdoutStderr, err := command.CombinedOutput()
-		s.Stop()
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("%s\n", stdoutStderr)
+		s.FinalMSG = s.Prefix + "(done)\n"
+		exec.RunCommand(Verbose, exec.DockerComposeCommand("stop"), s)
 	},
 }
 
 func printSuccess() {
-	portCommand := exec.DockerCompose("port", "mediawiki", "8080")
-	portCommandOutput, _ := portCommand.CombinedOutput()
+	portCommandOutput, _, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
 	// Replace 0.0.0.0 in the output with localhost
 	fmt.Printf("Success! View MediaWiki-Docker at http://%s",
-		strings.Replace(string(portCommandOutput), "0.0.0.0", "localhost", 1))
+		strings.Replace(portCommandOutput.String(), "0.0.0.0", "localhost", 1))
 }
 
 func handlePortError(stdoutStderr []byte) {
@@ -209,23 +195,22 @@ func promptToInstallComposerDependencies() {
 	if err == nil {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Installing Composer dependencies (this may take a few minutes) "
+		s.FinalMSG = s.Prefix + "(done)\n"
 		s.Start()
 		err := os.Mkdir("cache", 0700)
 		if err != nil {
 			log.Fatal(err)
 		}
-		depsCommand := exec.DockerCompose(
-			"exec",
-			"-T",
-			"mediawiki",
-			"composer",
-			"update",
-		)
-		out, err := depsCommand.CombinedOutput()
-		if err != nil {
-			fmt.Print(string(out))
-			log.Fatal(err)
-		}
+
+		exec.RunCommand(Verbose,
+			exec.DockerComposeCommand(
+				"exec",
+				"-T",
+				"mediawiki",
+				"composer",
+				"update",
+			),
+			nil)
 		s.Stop()
 	}
 }
@@ -233,16 +218,18 @@ func promptToInstallComposerDependencies() {
 // FIXME: This check is no good. See T260656
 func composerDependenciesNeedInstallation() bool {
 	// Detect if composer dependencies are not installed and prompt user to install
-	dependenciesCheck := exec.DockerCompose(
-		"exec",
-		"-T",
-		"mediawiki",
-		"php",
-		"maintenance/install.php",
-		"--help",
-	)
-	stdoutStderr, _ := dependenciesCheck.CombinedOutput()
-	return strings.Index(string(stdoutStderr), " dependencies that need to be installed") > 0
+
+	_, stderr, _ := exec.RunCommand(Verbose,
+		exec.DockerComposeCommand(
+			"exec",
+			"-T",
+			"mediawiki",
+			"php",
+			"maintenance/install.php",
+			"--help",
+		),
+		nil)
+	return strings.Index(stderr.String(), " dependencies that need to be installed") > 0
 }
 
 func checkIfInCoreDirectory() {
@@ -262,6 +249,8 @@ func isLinuxHost() bool {
 }
 
 func init() {
+	dockerCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
+
 	rootCmd.AddCommand(dockerCmd)
 
 	dockerCmd.AddCommand(startCmd)
