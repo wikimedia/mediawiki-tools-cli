@@ -32,6 +32,7 @@ import (
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 )
 
+// Verbose mode.
 var Verbose bool
 
 var dockerCmd = &cobra.Command{
@@ -169,6 +170,18 @@ var stopCmd = &cobra.Command{
 	},
 }
 
+var statusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "List development environment status",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		checkIfInCoreDirectory()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		_, stderr, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("ps"), nil)
+		fmt.Printf("%s\n", stderr.String())
+	},
+}
+
 func printSuccess() {
 	portCommandOutput, _, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
 	// Replace 0.0.0.0 in the output with localhost
@@ -255,4 +268,5 @@ func init() {
 
 	dockerCmd.AddCommand(startCmd)
 	dockerCmd.AddCommand(stopCmd)
+	dockerCmd.AddCommand(statusCmd)
 }
