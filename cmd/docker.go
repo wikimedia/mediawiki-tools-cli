@@ -197,7 +197,7 @@ func handlePortError(stdoutStderr []byte) {
 	portError := strings.Index(string(stdoutStderr), " failed: port is already allocated")
 	if portError > 0 {
 		// TODO: This assumes a port that is four characters long.
-		log.Fatalf("Port %s is already allocated! \n\nPlease override the port via MW_DOCKER_PORT in the .env file\n",
+		log.Fatalf("Port %s is already allocated! \n\nPlease override the port via MW_DOCKER_PORT in the .env file\nYou can use the 'docker env' command to do this\nSee `mw docker env --help` for more information.",
 			string(stdoutStderr[portError-4:])[0:4])
 	}
 }
