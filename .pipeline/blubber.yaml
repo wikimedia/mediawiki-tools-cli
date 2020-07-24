@@ -3,7 +3,7 @@ base: docker-registry.wikimedia.org/wikimedia-stretch:latest
 
 variants:
   build:
-    base: docker-registry.wikimedia.org/golang:1.11.5-1
+    base: docker-registry.wikimedia.org/golang:1.13-3
     apt: {packages: [gcc, git, make, golint]}
   test:
     includes: [build]
