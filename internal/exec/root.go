@@ -40,19 +40,19 @@ func DockerComposeCommand(command string, arg ...string) *exec.Cmd {
 }
 
 /*RunCommand runs a command, handles verbose output and errors, and an optional spinner*/
-func RunCommand(verbose bool, cmd *exec.Cmd, s *spinner.Spinner) (bytes.Buffer, bytes.Buffer, error) {
+func RunCommand(verbosity int, cmd *exec.Cmd, s *spinner.Spinner) (bytes.Buffer, bytes.Buffer, error) {
 	if s != nil {
 		s.Start()
 	}
-	stdout, stderr, err := runCommand(verbose, cmd)
+	stdout, stderr, err := runCommand(verbosity, cmd)
 	if s != nil {
 		s.Stop()
 	}
-	handleCommandRun(verbose, cmd, stdout, stderr, err)
+	handleCommandRun(verbosity, cmd, stdout, stderr, err)
 	return stdout, stderr, err
 }
 
-func runCommand(verbose bool, cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
+func runCommand(verbosity int, cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
@@ -60,15 +60,15 @@ func runCommand(verbose bool, cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error)
 	return stdoutBuf, stderrBuf, err
 }
 
-func handleCommandRun(verbose bool, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	if verbose {
+func handleCommandRun(verbosity int, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
+	if verbosity >= 1 {
 		fmt.Printf("\n%s\n", cmd.String())
 	}
-	if verbose && stdout.String() != "" {
+	if verbosity >= 3 && stdout.String() != "" {
 		fmt.Printf("\n%s\n%s\n", "STDOUT:", stdout.String())
 	}
 	if err != nil {
-		if verbose && stderr.String() != "" {
+		if verbosity >= 2 && stderr.String() != "" {
 			fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
 		}
 	}

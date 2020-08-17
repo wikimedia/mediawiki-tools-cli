@@ -33,7 +33,7 @@ import (
 )
 
 // Verbose mode.
-var Verbose bool
+var Verbosity int
 
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
@@ -48,7 +48,7 @@ var startCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Starting the development environment "
 		s.FinalMSG = s.Prefix + "(done)\n"
-		_, stderr, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("up", "-d"), s)
+		_, stderr, _ := exec.RunCommand(Verbosity, exec.DockerComposeCommand("up", "-d"), s)
 		handlePortError(stderr.Bytes())
 
 		if composerDependenciesNeedInstallation() {
@@ -106,7 +106,7 @@ func promptToInstallMediaWiki() {
 		s.Prefix = "Installing "
 		s.FinalMSG = s.Prefix + "(done)\n"
 		exec.RunCommand(
-			Verbose,
+			Verbosity,
 			exec.DockerComposeCommand(
 				"exec",
 				"-T",
@@ -168,7 +168,7 @@ var stopCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Stopping development environment "
 		s.FinalMSG = s.Prefix + "(done)\n"
-		exec.RunCommand(Verbose, exec.DockerComposeCommand("stop"), s)
+		exec.RunCommand(Verbosity, exec.DockerComposeCommand("stop"), s)
 	},
 }
 
@@ -179,13 +179,13 @@ var statusCmd = &cobra.Command{
 		checkIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		stdout, _, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("ps"), nil)
+		stdout, _, _ := exec.RunCommand(Verbosity, exec.DockerComposeCommand("ps"), nil)
 		fmt.Printf("%s\n", stdout.String())
 	},
 }
 
 func printSuccess() {
-	portCommandOutput, _, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
+	portCommandOutput, _, _ := exec.RunCommand(Verbosity, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
 	// Replace 0.0.0.0 in the output with localhost
 	fmt.Printf("Success! View MediaWiki-Docker at http://%s",
 		strings.Replace(portCommandOutput.String(), "0.0.0.0", "localhost", 1))
@@ -217,7 +217,7 @@ func promptToInstallComposerDependencies() {
 			log.Fatal(err)
 		}
 
-		exec.RunCommand(Verbose,
+		exec.RunCommand(Verbosity,
 			exec.DockerComposeCommand(
 				"exec",
 				"-T",
@@ -232,7 +232,7 @@ func promptToInstallComposerDependencies() {
 
 func composerDependenciesNeedInstallation() bool {
 	// Detect if composer dependencies are not installed and prompt user to install
-	_, stderr, err := exec.RunCommand(Verbose,
+	_, stderr, err := exec.RunCommand(Verbosity,
 		exec.DockerComposeCommand(
 			"exec",
 			"-T",
@@ -265,7 +265,7 @@ func isLinuxHost() bool {
 }
 
 func init() {
-	dockerCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
+	dockerCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (0-3)")
 
 	rootCmd.AddCommand(dockerCmd)
 
