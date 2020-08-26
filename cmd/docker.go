@@ -54,10 +54,7 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		if composerDependenciesNeedInstallation() {
-			promptToInstallComposerDependencies()
-		}
+		// TODO: Prompt for composer update command if needed. See T260656
 
 		if !vectorIsPresent() {
 			promptToCloneVector()
@@ -233,6 +230,7 @@ func promptToInstallComposerDependencies() {
 	}
 }
 
+// FIXME: This check is no good. See T260656
 func composerDependenciesNeedInstallation() bool {
 	// Detect if composer dependencies are not installed and prompt user to install
 	dependenciesCheck := exec.DockerCompose(
