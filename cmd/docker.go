@@ -177,8 +177,8 @@ var statusCmd = &cobra.Command{
 		checkIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		_, stderr, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("ps"), nil)
-		fmt.Printf("%s\n", stderr.String())
+		stdout, _, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("ps"), nil)
+		fmt.Printf("%s\n", stdout.String())
 	},
 }
 
