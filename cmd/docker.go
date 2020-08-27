@@ -51,7 +51,9 @@ var startCmd = &cobra.Command{
 		_, stderr, _ := exec.RunCommand(Verbose, exec.DockerComposeCommand("up", "-d"), s)
 		handlePortError(stderr.Bytes())
 
-		// TODO: Prompt for composer update command if needed. See T260656
+		if composerDependenciesNeedInstallation() {
+			promptToInstallComposerDependencies()
+		}
 
 		if !vectorIsPresent() {
 			promptToCloneVector()
@@ -228,21 +230,22 @@ func promptToInstallComposerDependencies() {
 	}
 }
 
-// FIXME: This check is no good. See T260656
 func composerDependenciesNeedInstallation() bool {
 	// Detect if composer dependencies are not installed and prompt user to install
-
-	_, stderr, _ := exec.RunCommand(Verbose,
+	_, stderr, err := exec.RunCommand(Verbose,
 		exec.DockerComposeCommand(
 			"exec",
 			"-T",
 			"mediawiki",
 			"php",
-			"maintenance/install.php",
-			"--help",
+			"-r",
+			"require_once dirname( __FILE__ ) . '/includes/PHPVersionCheck.php'; $phpVersionCheck = new PHPVersionCheck(); $phpVersionCheck->checkVendorExistence();",
 		),
 		nil)
-	return strings.Index(stderr.String(), " dependencies that need to be installed") > 0
+	if err != nil {
+		fmt.Printf("\n%s", stderr.String())
+	}
+	return err != nil
 }
 
 func checkIfInCoreDirectory() {
