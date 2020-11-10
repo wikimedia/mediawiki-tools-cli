@@ -35,6 +35,13 @@ import (
 
 // Verbose mode.
 var Verbosity int
+var Detach bool
+var Privileged bool
+var User string
+var NoTTY bool
+var Index string
+var Env []string
+var Workdir string
 
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
@@ -101,6 +108,49 @@ services:
 				file.Sync()
 			}
 		}
+	},
+}
+
+var execCmd = &cobra.Command{
+	Use:   "exec [service] [command] [args]",
+	Short: "Run a command in the specified container",
+	Args:  cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
+		}
+
+		if Detach {
+			args = append([]string{"-d"}, args...)
+		}
+
+		if Privileged {
+			args = append([]string{"--privileged"}, args...)
+		}
+
+		if User != "" {
+			args = append([]string{"-u", User}, args...)
+		}
+
+		if Index != "" {
+			args = append([]string{fmt.Sprintf("--index=%v", Index)}, args...)
+		}
+
+		for _, keyvar := range Env {
+			args = append([]string{fmt.Sprintf("-e %v", keyvar)}, args...)
+		}
+
+		if Workdir != "" {
+			args = append([]string{fmt.Sprintf("-w %v", Workdir)}, args...)
+		}
+
+		if NoTTY {
+			args = append([]string{"-T"}, args...)
+			exec.RunCommand(options, exec.DockerComposeCommand("exec", args...), nil)
+		} else {
+			exec.RunTTYCommand(options, exec.DockerComposeCommand("exec", args...))
+		}
+
 	},
 }
 
@@ -297,4 +347,13 @@ func init() {
 	dockerCmd.AddCommand(startCmd)
 	dockerCmd.AddCommand(stopCmd)
 	dockerCmd.AddCommand(statusCmd)
+
+	execCmd.Flags().BoolVarP(&Detach, "detach", "d", false, "Detached mode: Run command in the background.")
+	execCmd.Flags().BoolVarP(&Privileged, "privileged", "p", false, "Give extended privileges to the process.")
+	execCmd.Flags().StringVarP(&User, "user", "u", "", "Run the command as this user.")
+	execCmd.Flags().BoolVarP(&NoTTY, "TTY", "T", false, "Disable pseudo-tty allocation. By default a TTY is allocated")
+	execCmd.Flags().StringVarP(&Index, "index", "i", "", "Index of the container if there are multiple instances of a service [default: 1]")
+	execCmd.Flags().StringSliceVarP(&Env, "env", "e", []string{}, "Set environment variables. Can be used multiple times")
+	execCmd.Flags().StringVarP(&Workdir, "workdir", "w", "", "Path to workdir directory for this command.")
+	dockerCmd.AddCommand(execCmd)
 }

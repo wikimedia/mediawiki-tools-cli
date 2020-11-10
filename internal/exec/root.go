@@ -20,6 +20,7 @@ package exec
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,6 +45,22 @@ func DockerComposeCommand(command string, arg ...string) *exec.Cmd {
 	projectName := "mw-" + filepath.Base(projectDir)
 	arg = append([]string{"-p", projectName, command}, arg...)
 	return exec.Command("docker-compose", arg...)
+}
+
+/*RunTTYCommand runs a command in an interactive shell*/
+func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
+	if options.Verbosity >= 2 {
+		fmt.Printf("\n%s\n", cmd.String())
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 /*RunCommand runs a command, handles verbose output and errors, and an optional spinner*/
