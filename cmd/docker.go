@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -48,8 +49,16 @@ var startCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Starting the development environment "
 		s.FinalMSG = s.Prefix + "(done)\n"
-		_, stderr, _ := exec.RunCommand(Verbosity, exec.DockerComposeCommand("up", "-d"), s)
-		handlePortError(stderr.Bytes())
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+			HandleError: handlePortError,
+		}
+		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"), s)
+
+		err := os.MkdirAll("cache", 0700)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		if composerDependenciesNeedInstallation() {
 			promptToInstallComposerDependencies()
@@ -105,8 +114,11 @@ func promptToInstallMediaWiki() {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Installing "
 		s.FinalMSG = s.Prefix + "(done)\n"
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
+		}
 		exec.RunCommand(
-			Verbosity,
+			options,
 			exec.DockerComposeCommand(
 				"exec",
 				"-T",
@@ -143,18 +155,21 @@ func promptToCloneVector() {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Downloading Vector "
 		s.FinalMSG = s.Prefix + "(done)\n"
-		s.Start()
-		command := exec.Command(
+
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
+			HandleError: func(stderr bytes.Buffer, err error) {
+				if err != nil {
+					log.Fatal(err)
+				}
+			},
+		}
+
+		exec.RunCommand(options, exec.Command(
 			"git",
 			"clone",
 			"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
-			"skins/Vector")
-		stdoutStderr, err := command.CombinedOutput()
-		fmt.Printf("%s\n", stdoutStderr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		s.Stop()
+			"skins/Vector"), s)
 	}
 }
 
@@ -168,7 +183,10 @@ var stopCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Stopping development environment "
 		s.FinalMSG = s.Prefix + "(done)\n"
-		exec.RunCommand(Verbosity, exec.DockerComposeCommand("stop"), s)
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
+		}
+		exec.RunCommand(options, exec.DockerComposeCommand("stop"), s)
 	},
 }
 
@@ -179,24 +197,35 @@ var statusCmd = &cobra.Command{
 		checkIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		stdout, _, _ := exec.RunCommand(Verbosity, exec.DockerComposeCommand("ps"), nil)
-		fmt.Printf("%s\n", stdout.String())
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
+		}
+		exec.RunCommand(options, exec.DockerComposeCommand("ps"), nil)
 	},
 }
 
 func printSuccess() {
-	portCommandOutput, _, _ := exec.RunCommand(Verbosity, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
-	// Replace 0.0.0.0 in the output with localhost
-	fmt.Printf("Success! View MediaWiki-Docker at http://%s",
-		strings.Replace(portCommandOutput.String(), "0.0.0.0", "localhost", 1))
+	options := exec.HandlerOptions{
+		Verbosity: Verbosity,
+		HandleStdout: func(stdout bytes.Buffer) {
+			// Replace 0.0.0.0 in the output with localhost
+			fmt.Printf("Success! View MediaWiki-Docker at http://%s",
+				strings.Replace(stdout.String(), "0.0.0.0", "localhost", 1))
+		},
+	}
+	exec.RunCommand(options, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
+
 }
 
-func handlePortError(stdoutStderr []byte) {
+func handlePortError(stderr bytes.Buffer, err error) {
+	stdoutStderr := stderr.Bytes()
 	portError := strings.Index(string(stdoutStderr), " failed: port is already allocated")
 	if portError > 0 {
 		// TODO: This assumes a port that is four characters long.
 		log.Fatalf("Port %s is already allocated! \n\nPlease override the port via MW_DOCKER_PORT in the .env file\nYou can use the 'docker env' command to do this\nSee `mw docker env --help` for more information.",
 			string(stdoutStderr[portError-4:])[0:4])
+	} else if err != nil && stderr.String() != "" {
+		fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
 	}
 }
 
@@ -211,13 +240,10 @@ func promptToInstallComposerDependencies() {
 		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 		s.Prefix = "Installing Composer dependencies (this may take a few minutes) "
 		s.FinalMSG = s.Prefix + "(done)\n"
-		s.Start()
-		err := os.Mkdir("cache", 0700)
-		if err != nil {
-			log.Fatal(err)
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
 		}
-
-		exec.RunCommand(Verbosity,
+		exec.RunCommand(options,
 			exec.DockerComposeCommand(
 				"exec",
 				"-T",
@@ -225,14 +251,16 @@ func promptToInstallComposerDependencies() {
 				"composer",
 				"update",
 			),
-			nil)
-		s.Stop()
+			s)
 	}
 }
 
 func composerDependenciesNeedInstallation() bool {
 	// Detect if composer dependencies are not installed and prompt user to install
-	_, stderr, err := exec.RunCommand(Verbosity,
+	options := exec.HandlerOptions{
+		Verbosity: Verbosity,
+	}
+	err := exec.RunCommand(options,
 		exec.DockerComposeCommand(
 			"exec",
 			"-T",
@@ -242,9 +270,6 @@ func composerDependenciesNeedInstallation() bool {
 			"require_once dirname( __FILE__ ) . '/includes/PHPVersionCheck.php'; $phpVersionCheck = new PHPVersionCheck(); $phpVersionCheck->checkVendorExistence();",
 		),
 		nil)
-	if err != nil {
-		fmt.Printf("\n%s", stderr.String())
-	}
 	return err != nil
 }
 

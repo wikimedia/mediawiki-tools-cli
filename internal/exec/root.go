@@ -20,11 +20,18 @@ package exec
 import (
 	"bytes"
 	"fmt"
-	"github.com/briandowns/spinner"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/briandowns/spinner"
 )
+
+type HandlerOptions struct {
+	Verbosity    int
+	HandleStdout func(stdout bytes.Buffer)
+	HandleError  func(stderr bytes.Buffer, err error)
+}
 
 /*Command passes through to exec.Command for running generic commands*/
 func Command(name string, arg ...string) *exec.Cmd {
@@ -40,19 +47,20 @@ func DockerComposeCommand(command string, arg ...string) *exec.Cmd {
 }
 
 /*RunCommand runs a command, handles verbose output and errors, and an optional spinner*/
-func RunCommand(verbosity int, cmd *exec.Cmd, s *spinner.Spinner) (bytes.Buffer, bytes.Buffer, error) {
+func RunCommand(options HandlerOptions, cmd *exec.Cmd, s *spinner.Spinner) error {
 	if s != nil {
 		s.Start()
 	}
-	stdout, stderr, err := runCommand(verbosity, cmd)
+	stdout, stderr, err := runCommand(cmd)
 	if s != nil {
 		s.Stop()
 	}
-	handleCommandRun(verbosity, cmd, stdout, stderr, err)
-	return stdout, stderr, err
+	handleCommandRun(options, cmd, stdout, stderr, err)
+
+	return err
 }
 
-func runCommand(verbosity int, cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
+func runCommand(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
@@ -60,16 +68,30 @@ func runCommand(verbosity int, cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error
 	return stdoutBuf, stderrBuf, err
 }
 
-func handleCommandRun(verbosity int, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	if verbosity >= 1 {
+func handleCommandRun(options HandlerOptions, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
+	if options.Verbosity >= 2 {
 		fmt.Printf("\n%s\n", cmd.String())
 	}
-	if verbosity >= 3 && stdout.String() != "" {
+	if options.HandleStdout != nil {
+		options.HandleStdout(stdout)
+	} else {
+		handleStdout(stdout)
+	}
+	if options.HandleError != nil {
+		options.HandleError(stderr, err)
+	} else {
+		handleError(stderr, err)
+	}
+}
+
+func handleStdout(stdout bytes.Buffer) {
+	if stdout.String() != "" {
 		fmt.Printf("\n%s\n%s\n", "STDOUT:", stdout.String())
 	}
-	if err != nil {
-		if verbosity >= 2 && stderr.String() != "" {
-			fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
-		}
+}
+
+func handleError(stderr bytes.Buffer, err error) {
+	if err != nil && stderr.String() != "" {
+		fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
 	}
 }
