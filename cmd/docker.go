@@ -223,6 +223,107 @@ func promptToCloneVector() {
 	}
 }
 
+var destroyCmd = &cobra.Command{
+	Use:   "destroy [service...]",
+	Short: "destroys the development environment or specified containers",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		checkIfInCoreDirectory()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		options := exec.HandlerOptions{
+			Verbosity: Verbosity,
+		}
+
+		runArgs := append([]string{"-sfv"}, args...)
+		exec.RunTTYCommand(options, exec.DockerComposeCommand("rm", runArgs...))
+
+		if len(args) == 0 || contains(args, "mediawiki") {
+			renameLocalSettings()
+			deleteCoreCache()
+			deleteCoreVendor()
+		}
+	},
+}
+
+func renameLocalSettings() {
+	const layout = "2006-01-02T15:04:05-0700"
+
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Prefix = "Renaming LocalSettings file "
+	s.FinalMSG = s.Prefix + "(done)\n"
+
+	s.Start()
+	t := time.Now()
+	localSettingsName := "LocalSettings-" + t.Format(layout) + ".php"
+
+	err := os.Rename("LocalSettings.php", localSettingsName)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s.Stop()
+}
+
+func deleteCoreCache() {
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Prefix = "Deleting cache files "
+	s.FinalMSG = s.Prefix + "(done)\n"
+
+	s.Start()
+
+	err := os.Rename("cache/.htaccess", ".htaccess")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.RemoveAll("./cache/")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.Mkdir("cache", 0700)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.Rename(".htaccess", "cache/.htaccess")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s.Stop()
+}
+
+func deleteCoreVendor() {
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Prefix = "Deleting vendor files "
+	s.FinalMSG = s.Prefix + "(done)\n"
+
+	s.Start()
+
+	err := os.RemoveAll("./vendor")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.Mkdir("vendor", 0700)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s.Stop()
+}
+
+func contains(slice []string, s string) bool {
+	for _, i := range slice {
+		if s == i {
+			return true
+		}
+	}
+	return false
+}
+
 var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop development environment",
@@ -347,6 +448,7 @@ func init() {
 	dockerCmd.AddCommand(startCmd)
 	dockerCmd.AddCommand(stopCmd)
 	dockerCmd.AddCommand(statusCmd)
+	dockerCmd.AddCommand(destroyCmd)
 
 	execCmd.Flags().BoolVarP(&Detach, "detach", "d", false, "Detached mode: Run command in the background.")
 	execCmd.Flags().BoolVarP(&Privileged, "privileged", "p", false, "Give extended privileges to the process.")
