@@ -340,7 +340,7 @@ func isLinuxHost() bool {
 }
 
 func init() {
-	dockerCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (0-3)")
+	dockerCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
 
 	rootCmd.AddCommand(dockerCmd)
 
