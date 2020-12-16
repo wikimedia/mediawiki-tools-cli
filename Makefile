@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
-TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64 plan9/amd64
+TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
 
 PACKAGE := gerrit.wikimedia.org/r/mediawiki/tools/cli
 
@@ -34,10 +34,9 @@ install: all
 	$(GO_INSTALL) $(GO_PACKAGES)
 
 release:
-	# TODO: Use mw instead of cli
-	gox -output="$(RELEASE_DIR)/{{.OS}}-{{.Arch}}/{{.Dir}}" -osarch='$(TARGETS)' -ldflags '$(GO_LDFLAGS)' $(GO_PACKAGES)
+	gox -output="$(RELEASE_DIR)/{{.OS}}-{{.Arch}}/mw" -osarch='$(TARGETS)' -ldflags '$(GO_LDFLAGS)' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
-	for f in "$(RELEASE_DIR)"/*/cli; do \
+	for f in "$(RELEASE_DIR)"/*/mw; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
 	done
 
