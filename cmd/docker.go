@@ -20,17 +20,16 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 )
 
 // Verbose mode.
@@ -63,27 +62,14 @@ var startCmd = &cobra.Command{
 		}
 		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"))
 
-		err := os.MkdirAll("cache", 0700)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if composerDependenciesNeedInstallation() {
-			promptToInstallComposerDependencies()
-		}
-
-		if !vectorIsPresent() {
-			promptToCloneVector()
-		}
-
-		if !localSettingsIsPresent() {
-			promptToInstallMediaWiki()
-		}
+		mediawiki.InitialSetup(exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		})
 
 		printSuccess()
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
-		checkIfInCoreDirectory()
+		mediawiki.CheckIfInCoreDirectory()
 		if isLinuxHost() {
 			// TODO: We should also check the contents for correctness, maybe
 			// using docker-compose config and asserting that UID/GID mapping is present
@@ -155,81 +141,11 @@ var execCmd = &cobra.Command{
 	},
 }
 
-func promptToInstallMediaWiki() {
-	prompt := promptui.Prompt{
-		IsConfirm: true,
-		Label:     "Install MediaWiki database tables and create LocalSettings.php",
-	}
-	_, err := prompt.Run()
-	if err == nil {
-		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		Spinner.Prefix = "Installing "
-		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-		options := exec.HandlerOptions{
-			Spinner:   Spinner,
-			Verbosity: Verbosity,
-		}
-		exec.RunCommand(
-			options,
-			exec.DockerComposeCommand(
-				"exec",
-				"-T",
-				"mediawiki",
-				"/bin/bash",
-				"/docker/install.sh"))
-	}
-}
-
-func localSettingsIsPresent() bool {
-	info, err := os.Stat("LocalSettings.php")
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
-func vectorIsPresent() bool {
-	info, err := os.Stat("skins/Vector")
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
-}
-
-func promptToCloneVector() {
-	prompt := promptui.Prompt{
-		IsConfirm: true,
-		Label:     "Download and use the Vector skin",
-	}
-	_, err := prompt.Run()
-	if err == nil {
-		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		Spinner.Prefix = "Downloading Vector "
-		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-
-		options := exec.HandlerOptions{
-			Spinner:   Spinner,
-			Verbosity: Verbosity,
-			HandleError: func(stderr bytes.Buffer, err error) {
-				if err != nil {
-					log.Fatal(err)
-				}
-			},
-		}
-
-		exec.RunCommand(options, exec.Command(
-			"git",
-			"clone",
-			"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
-			"skins/Vector"))
-	}
-}
-
 var destroyCmd = &cobra.Command{
 	Use:   "destroy [service...]",
 	Short: "destroys the development environment or specified containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		checkIfInCoreDirectory()
+		mediawiki.CheckIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
@@ -240,81 +156,11 @@ var destroyCmd = &cobra.Command{
 		exec.RunTTYCommand(options, exec.DockerComposeCommand("rm", runArgs...))
 
 		if len(args) == 0 || contains(args, "mediawiki") {
-			renameLocalSettings()
-			deleteCoreCache()
-			deleteCoreVendor()
+			mediawiki.RenameLocalSettings()
+			mediawiki.DeleteCache()
+			mediawiki.DeleteVendor()
 		}
 	},
-}
-
-func renameLocalSettings() {
-	const layout = "2006-01-02T15:04:05-0700"
-
-	Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	Spinner.Prefix = "Renaming LocalSettings file "
-	Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-
-	Spinner.Start()
-	t := time.Now()
-	localSettingsName := "LocalSettings-" + t.Format(layout) + ".php"
-
-	err := os.Rename("LocalSettings.php", localSettingsName)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	Spinner.Stop()
-}
-
-func deleteCoreCache() {
-	Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	Spinner.Prefix = "Deleting cache files "
-	Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-
-	Spinner.Start()
-
-	err := os.Rename("cache/.htaccess", ".htaccess")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.RemoveAll("./cache/")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.Mkdir("cache", 0700)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.Rename(".htaccess", "cache/.htaccess")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	Spinner.Stop()
-}
-
-func deleteCoreVendor() {
-	Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	Spinner.Prefix = "Deleting vendor files "
-	Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-
-	Spinner.Start()
-
-	err := os.RemoveAll("./vendor")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.Mkdir("vendor", 0700)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	Spinner.Stop()
 }
 
 func contains(slice []string, s string) bool {
@@ -330,7 +176,7 @@ var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop development environment",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		checkIfInCoreDirectory()
+		mediawiki.CheckIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
@@ -348,7 +194,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "List development environment status",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		checkIfInCoreDirectory()
+		mediawiki.CheckIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
@@ -380,56 +226,6 @@ func handlePortError(stderr bytes.Buffer, err error) {
 			string(stdoutStderr[portError-4:])[0:4])
 	} else if err != nil && stderr.String() != "" {
 		fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
-	}
-}
-
-func promptToInstallComposerDependencies() {
-	fmt.Println("MediaWiki has some external dependencies that need to be installed")
-	prompt := promptui.Prompt{
-		IsConfirm: true,
-		Label:     "Install dependencies now",
-	}
-	_, err := prompt.Run()
-	if err == nil {
-		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		Spinner.Prefix = "Installing Composer dependencies (this may take a few minutes) "
-		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-		options := exec.HandlerOptions{
-			Spinner: Spinner,
-			Verbosity: Verbosity,
-		}
-		exec.RunCommand(options,
-			exec.DockerComposeCommand(
-				"exec",
-				"-T",
-				"mediawiki",
-				"composer",
-				"update",
-			))
-	}
-}
-
-func composerDependenciesNeedInstallation() bool {
-	// Detect if composer dependencies are not installed and prompt user to install
-	options := exec.HandlerOptions{
-		Verbosity: Verbosity,
-	}
-	err := exec.RunCommand(options,
-		exec.DockerComposeCommand(
-			"exec",
-			"-T",
-			"mediawiki",
-			"php",
-			"-r",
-			"require_once dirname( __FILE__ ) . '/includes/PHPVersionCheck.php'; $phpVersionCheck = new PHPVersionCheck(); $phpVersionCheck->checkVendorExistence();",
-		))
-	return err != nil
-}
-
-func checkIfInCoreDirectory() {
-	b, err := ioutil.ReadFile(".gitreview")
-	if err != nil || !strings.Contains(string(b), "project=mediawiki/core.git") {
-		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
 	}
 }
 
