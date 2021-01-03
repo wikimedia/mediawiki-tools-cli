@@ -57,10 +57,11 @@ var startCmd = &cobra.Command{
 		Spinner.Prefix = "Starting the development environment "
 		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
+			Spinner:     Spinner,
 			Verbosity:   Verbosity,
 			HandleError: handlePortError,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"), Spinner)
+		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"))
 
 		err := os.MkdirAll("cache", 0700)
 		if err != nil {
@@ -146,7 +147,7 @@ var execCmd = &cobra.Command{
 
 		if NoTTY {
 			args = append([]string{"-T"}, args...)
-			exec.RunCommand(options, exec.DockerComposeCommand("exec", args...), nil)
+			exec.RunCommand(options, exec.DockerComposeCommand("exec", args...))
 		} else {
 			exec.RunTTYCommand(options, exec.DockerComposeCommand("exec", args...))
 		}
@@ -165,6 +166,7 @@ func promptToInstallMediaWiki() {
 		Spinner.Prefix = "Installing "
 		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
+			Spinner:   Spinner,
 			Verbosity: Verbosity,
 		}
 		exec.RunCommand(
@@ -174,8 +176,7 @@ func promptToInstallMediaWiki() {
 				"-T",
 				"mediawiki",
 				"/bin/bash",
-				"/docker/install.sh"),
-			Spinner)
+				"/docker/install.sh"))
 	}
 }
 
@@ -207,6 +208,7 @@ func promptToCloneVector() {
 		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
 		options := exec.HandlerOptions{
+			Spinner:   Spinner,
 			Verbosity: Verbosity,
 			HandleError: func(stderr bytes.Buffer, err error) {
 				if err != nil {
@@ -219,7 +221,7 @@ func promptToCloneVector() {
 			"git",
 			"clone",
 			"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
-			"skins/Vector"), Spinner)
+			"skins/Vector"))
 	}
 }
 
@@ -335,9 +337,10 @@ var stopCmd = &cobra.Command{
 		Spinner.Prefix = "Stopping development environment "
 		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
+			Spinner: Spinner,
 			Verbosity: Verbosity,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("stop"), Spinner)
+		exec.RunCommand(options, exec.DockerComposeCommand("stop"))
 	},
 }
 
@@ -351,7 +354,7 @@ var statusCmd = &cobra.Command{
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("ps"), nil)
+		exec.RunCommand(options, exec.DockerComposeCommand("ps"))
 	},
 }
 
@@ -364,7 +367,7 @@ func printSuccess() {
 				strings.Replace(stdout.String(), "0.0.0.0", "localhost", 1))
 		},
 	}
-	exec.RunCommand(options, exec.DockerComposeCommand("port", "mediawiki", "8080"), nil)
+	exec.RunCommand(options, exec.DockerComposeCommand("port", "mediawiki", "8080"))
 
 }
 
@@ -392,6 +395,7 @@ func promptToInstallComposerDependencies() {
 		Spinner.Prefix = "Installing Composer dependencies (this may take a few minutes) "
 		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
+			Spinner: Spinner,
 			Verbosity: Verbosity,
 		}
 		exec.RunCommand(options,
@@ -401,8 +405,7 @@ func promptToInstallComposerDependencies() {
 				"mediawiki",
 				"composer",
 				"update",
-			),
-			Spinner)
+			))
 	}
 }
 
@@ -419,8 +422,7 @@ func composerDependenciesNeedInstallation() bool {
 			"php",
 			"-r",
 			"require_once dirname( __FILE__ ) . '/includes/PHPVersionCheck.php'; $phpVersionCheck = new PHPVersionCheck(); $phpVersionCheck->checkVendorExistence();",
-		),
-		nil)
+		))
 	return err != nil
 }
 

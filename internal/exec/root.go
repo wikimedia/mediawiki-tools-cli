@@ -29,6 +29,7 @@ import (
 )
 
 type HandlerOptions struct {
+	Spinner      *spinner.Spinner
 	Verbosity    int
 	HandleStdout func(stdout bytes.Buffer)
 	HandleError  func(stderr bytes.Buffer, err error)
@@ -63,14 +64,14 @@ func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
 	}
 }
 
-/*RunCommand runs a command, handles verbose output and errors, and an optional spinner*/
-func RunCommand(options HandlerOptions, cmd *exec.Cmd, Spinner *spinner.Spinner) error {
-	if Spinner != nil {
-		Spinner.Start()
+/*RunCommand runs a command, handles verbose output and errors*/
+func RunCommand(options HandlerOptions, cmd *exec.Cmd) error {
+	if options.Spinner != nil {
+		options.Spinner.Start()
 	}
 	stdout, stderr, err := runCommand(cmd)
-	if Spinner != nil {
-		Spinner.Stop()
+	if options.Spinner != nil {
+		options.Spinner.Stop()
 	}
 	handleCommandRun(options, cmd, stdout, stderr, err)
 
