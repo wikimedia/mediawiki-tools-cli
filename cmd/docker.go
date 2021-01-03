@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"github.com/manifoldco/promptui"
 	"bytes"
 	"fmt"
 	"log"
@@ -28,6 +29,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/docker"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 )
@@ -48,6 +50,15 @@ var dockerCmd = &cobra.Command{
 	RunE:  nil,
 }
 
+func mediawikiOrFatal() mediawiki.MediaWiki {
+	MediaWiki, err := mediawiki.ForCurrentWorkingDirectory()
+	if err != nil {
+		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
+		os.Exit(1);
+	}
+	return MediaWiki
+}
+
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the development environment",
@@ -60,41 +71,88 @@ var startCmd = &cobra.Command{
 			Verbosity:   Verbosity,
 			HandleError: handlePortError,
 		}
+		MediaWiki := mediawikiOrFatal()
+
 		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"))
 
-		mediawiki.InitialSetup(exec.HandlerOptions{
-			Verbosity:   Verbosity,
-		})
-
-		printSuccess()
-	},
-	PreRun: func(cmd *cobra.Command, args []string) {
-		mediawiki.CheckIfInCoreDirectory()
 		if isLinuxHost() {
-			// TODO: We should also check the contents for correctness, maybe
-			// using docker-compose config and asserting that UID/GID mapping is present
-			// and with correct values.
-			_, err := os.Stat("docker-compose.override.yml")
-			if err != nil {
+			fileCreated,err := docker.EnsureDockerComposeUserOverrideExists()
+			if fileCreated {
 				fmt.Println("Creating docker-compose.override.yml for correct user ID and group ID mapping from host to container")
-				var data = `
-version: '3.7'
-services:
-  mediawiki:
-    user: "${MW_DOCKER_UID}:${MW_DOCKER_GID}"
-`
-				file, err := os.Create("docker-compose.override.yml")
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer file.Close()
-				_, err = file.WriteString(data)
-				if err != nil {
-					log.Fatal(err)
-				}
-				file.Sync()
+			}
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
+
+		MediaWiki.EnsureCacheDirectory()
+
+		if docker.MediaWikiComposerDependenciesNeedInstallation(exec.HandlerOptions{Verbosity: Verbosity}) {
+			fmt.Println("MediaWiki has some external dependencies that need to be installed")
+			prompt := promptui.Prompt{
+				IsConfirm: true,
+				Label:     "Install dependencies now",
+			}
+			_, err := prompt.Run()
+			if err == nil {
+				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+				Spinner.Prefix = "Installing Composer dependencies (this may take a few minutes) "
+				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
+
+				options := exec.HandlerOptions{
+					Spinner: Spinner,
+					Verbosity: Verbosity,
+				}
+				docker.MediaWikiComposerUpdate(options)
+			}
+
+		}
+
+		if !MediaWiki.VectorIsPresent() {
+			prompt := promptui.Prompt{
+				IsConfirm: true,
+				Label:     "Download and use the Vector skin",
+			}
+			_, err := prompt.Run()
+			if err == nil {
+				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+				Spinner.Prefix = "Downloading Vector "
+				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
+
+				options := exec.HandlerOptions{
+					Spinner: Spinner,
+					Verbosity: Verbosity,
+					HandleError: func(stderr bytes.Buffer, err error) {
+						if err != nil {
+							log.Fatal(err)
+						}
+					},
+				}
+
+				MediaWiki.GitCloneVector(options)
+			}
+
+		}
+
+		if !MediaWiki.LocalSettingsIsPresent() {
+			prompt := promptui.Prompt{
+				IsConfirm: true,
+				Label:     "Install MediaWiki database tables and create LocalSettings.php",
+			}
+			_, err := prompt.Run()
+			if err == nil {
+				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+				Spinner.Prefix = "Installing "
+				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
+				options := exec.HandlerOptions{
+					Spinner: Spinner,
+					Verbosity: Verbosity,
+				}
+				docker.MediaWikiInstall(options)
+			}
+		}
+
+		printSuccess()
 	},
 }
 
@@ -102,6 +160,9 @@ var execCmd = &cobra.Command{
 	Use:   "exec [service] [command] [args]",
 	Short: "Run a command in the specified container",
 	Args:  cobra.MinimumNArgs(2),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		mediawiki.CheckIfInCoreDirectory()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
@@ -144,10 +205,9 @@ var execCmd = &cobra.Command{
 var destroyCmd = &cobra.Command{
 	Use:   "destroy [service...]",
 	Short: "destroys the development environment or specified containers",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		mediawiki.CheckIfInCoreDirectory()
-	},
 	Run: func(cmd *cobra.Command, args []string) {
+		MediaWiki := mediawikiOrFatal()
+
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
@@ -156,9 +216,9 @@ var destroyCmd = &cobra.Command{
 		exec.RunTTYCommand(options, exec.DockerComposeCommand("rm", runArgs...))
 
 		if len(args) == 0 || contains(args, "mediawiki") {
-			mediawiki.RenameLocalSettings()
-			mediawiki.DeleteCache()
-			mediawiki.DeleteVendor()
+			MediaWiki.RenameLocalSettings()
+			MediaWiki.DeleteCache()
+			MediaWiki.DeleteVendor()
 		}
 	},
 }

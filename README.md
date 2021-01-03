@@ -21,6 +21,14 @@ Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd` directory:
 
 Execute the script from any directory with `go run ~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd/cli/main.go`
 
+### Packages
+
+- `cmd`: Contains the Cobra commands and deals with all CLI user interaction
+- `internal/docker`: Logic interacting with the mediawiki-docker dev environment
+- `internal/env`: Logic interacting with a `.env` file
+- `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc
+- `internal/mediawiki`: Logic interacting with a MediaWiki directory on disk
+
 ### Using a binary
 
 Make a binary by running `make install`
