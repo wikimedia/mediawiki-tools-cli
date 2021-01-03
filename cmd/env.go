@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 
 	"github.com/spf13/cobra"
 )
@@ -29,6 +30,9 @@ var envCmd = &cobra.Command{
 	Use:   "env",
 	Short: "Provides subcommands for interacting with development environment variables",
 	RunE:  nil,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		mediawiki.CheckIfInCoreDirectory()
+	},
 }
 
 var deleteCmd = &cobra.Command{
@@ -36,7 +40,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Deletes an environment variable",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		env.Delete(args[0])
+		env.DotFileForDirectory(mediawiki.Directory()).Delete(args[0])
 	},
 }
 
@@ -45,7 +49,7 @@ var setCmd = &cobra.Command{
 	Short: "Set an environment variable",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		env.Set(args[0], args[1])
+		env.DotFileForDirectory(mediawiki.Directory()).Set(args[0], args[1])
 	},
 }
 
@@ -54,7 +58,7 @@ var getCmd = &cobra.Command{
 	Short: "Get an environment variable",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(env.Get(args[0]))
+		fmt.Println(env.DotFileForDirectory(mediawiki.Directory()).Get(args[0]))
 	},
 }
 
@@ -62,7 +66,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all environment variables",
 	Run: func(cmd *cobra.Command, args []string) {
-		for name, value := range env.List() {
+		for name, value := range env.DotFileForDirectory(mediawiki.Directory()).List() {
 			fmt.Println(name + "=" + value)
 		}
 	},
@@ -72,7 +76,7 @@ var whereCmd = &cobra.Command{
 	Use:   "where",
 	Short: "Output the location of the .env file",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(env.GetPath())
+		fmt.Println(env.DotFileForDirectory(mediawiki.Directory()).Path())
 	},
 }
 

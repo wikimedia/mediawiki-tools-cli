@@ -1,4 +1,4 @@
-/*Package env for interacting with the .env file of the environment
+/*Package env for interacting with a .env file
 
 Copyright © 2020 Addshore
 
@@ -23,54 +23,57 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func ensureDotEnvFile() {
-	if _, err := os.Stat(GetPath()); err != nil {
-		os.OpenFile(GetPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+/*DotFile representation of a .env file*/
+type DotFile string
+
+/*DotFileForDirectory returns a dotFIle for the given directory*/
+func DotFileForDirectory(directory string) DotFile {
+	return DotFile(directory + string(os.PathSeparator) + ".env")
+}
+
+/*Path the path of the .env file*/
+func (f DotFile) Path() string {
+	return string(f)
+}
+
+/*EnsureExists ensures that the .env file exists, creating an empty one if not*/
+func (f DotFile) EnsureExists() {
+	if _, err := os.Stat(f.Path()); err != nil {
+		os.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	}
 }
 
-/*GetProjectPath for the environment*/
-func GetProjectPath() string {
-	projectDir, _ := os.Getwd()
-	return projectDir
-}
-
-/*GetPath for the environment*/
-func GetPath() string {
-	return GetProjectPath() + string(os.PathSeparator) + ".env"
-}
-
-func read() map[string]string {
-	ensureDotEnvFile()
-	envMap, _ := godotenv.Read(GetPath())
+func (f DotFile) read() map[string]string {
+	f.EnsureExists()
+	envMap, _ := godotenv.Read(f.Path())
 	return envMap
 }
 
-func write(envMap map[string]string) {
-	godotenv.Write(envMap, GetPath())
+func (f DotFile) write(envMap map[string]string) {
+	godotenv.Write(envMap,f.Path())
 }
 
 /*Delete a value from the env*/
-func Delete(name string) {
-	envMap := read()
+func (f DotFile) Delete(name string) {
+	envMap := f.read()
 	delete(envMap, name)
-	write(envMap)
+	f.write(envMap)
 }
 
 /*Set a value in the env*/
-func Set(name string, value string) {
-	envMap := read()
+func (f DotFile) Set(name string, value string) {
+	envMap := f.read()
 	envMap[name] = value
-	write(envMap)
+	f.write(envMap)
 }
 
 /*Get a value from the env*/
-func Get(name string) string {
-	envMap := read()
+func (f DotFile) Get(name string) string {
+	envMap := f.read()
 	return envMap[name]
 }
 
 /*List all values from the env*/
-func List() map[string]string {
-	return read()
+func (f DotFile) List() map[string]string {
+	return f.read()
 }

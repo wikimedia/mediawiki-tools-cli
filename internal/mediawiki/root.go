@@ -48,6 +48,13 @@ func InitialSetup( options exec.HandlerOptions) {
 	}
 }
 
+/*Directory the current working directory if it looks like a MediaWiki directory*/
+func Directory() string {
+	CheckIfInCoreDirectory()
+	currentWorkingDirectory, _ := os.Getwd()
+	return currentWorkingDirectory
+}
+
 /*CheckIfInCoreDirectory checks that the current working directory looks like a MediaWiki directory*/
 func CheckIfInCoreDirectory() {
 	b, err := ioutil.ReadFile(".gitreview")
