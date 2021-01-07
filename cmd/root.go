@@ -24,6 +24,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Verbose mode.
+var Verbosity int
+// These vars are currently used by the docker exec command
+var Detach bool
+var Privileged bool
+var User string
+var NoTTY bool
+var Index string
+var Env []string
+var Workdir string
+
 var rootCmd = &cobra.Command{
 	Use:   "mw",
 	Short: "Developer utilities for working with MediaWiki",

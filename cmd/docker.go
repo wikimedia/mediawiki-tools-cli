@@ -34,16 +34,6 @@ import (
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 )
 
-// Verbose mode.
-var Verbosity int
-var Detach bool
-var Privileged bool
-var User string
-var NoTTY bool
-var Index string
-var Env []string
-var Workdir string
-
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
 	Short: "Provides subcommands for interacting with MediaWiki's Docker development environment",
