@@ -53,14 +53,14 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the development environment",
 	Run: func(cmd *cobra.Command, args []string) {
-		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Starting the development environment "
-		s.FinalMSG = s.Prefix + "(done)\n"
+		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		Spinner.Prefix = "Starting the development environment "
+		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 			HandleError: handlePortError,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"), s)
+		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"), Spinner)
 
 		err := os.MkdirAll("cache", 0700)
 		if err != nil {
@@ -161,9 +161,9 @@ func promptToInstallMediaWiki() {
 	}
 	_, err := prompt.Run()
 	if err == nil {
-		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Installing "
-		s.FinalMSG = s.Prefix + "(done)\n"
+		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		Spinner.Prefix = "Installing "
+		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
@@ -175,7 +175,7 @@ func promptToInstallMediaWiki() {
 				"mediawiki",
 				"/bin/bash",
 				"/docker/install.sh"),
-			s)
+			Spinner)
 	}
 }
 
@@ -202,9 +202,9 @@ func promptToCloneVector() {
 	}
 	_, err := prompt.Run()
 	if err == nil {
-		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Downloading Vector "
-		s.FinalMSG = s.Prefix + "(done)\n"
+		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		Spinner.Prefix = "Downloading Vector "
+		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
@@ -219,7 +219,7 @@ func promptToCloneVector() {
 			"git",
 			"clone",
 			"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
-			"skins/Vector"), s)
+			"skins/Vector"), Spinner)
 	}
 }
 
@@ -248,11 +248,11 @@ var destroyCmd = &cobra.Command{
 func renameLocalSettings() {
 	const layout = "2006-01-02T15:04:05-0700"
 
-	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	s.Prefix = "Renaming LocalSettings file "
-	s.FinalMSG = s.Prefix + "(done)\n"
+	Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	Spinner.Prefix = "Renaming LocalSettings file "
+	Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
-	s.Start()
+	Spinner.Start()
 	t := time.Now()
 	localSettingsName := "LocalSettings-" + t.Format(layout) + ".php"
 
@@ -262,15 +262,15 @@ func renameLocalSettings() {
 		log.Fatal(err)
 	}
 
-	s.Stop()
+	Spinner.Stop()
 }
 
 func deleteCoreCache() {
-	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	s.Prefix = "Deleting cache files "
-	s.FinalMSG = s.Prefix + "(done)\n"
+	Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	Spinner.Prefix = "Deleting cache files "
+	Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
-	s.Start()
+	Spinner.Start()
 
 	err := os.Rename("cache/.htaccess", ".htaccess")
 	if err != nil {
@@ -292,15 +292,15 @@ func deleteCoreCache() {
 		log.Fatal(err)
 	}
 
-	s.Stop()
+	Spinner.Stop()
 }
 
 func deleteCoreVendor() {
-	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	s.Prefix = "Deleting vendor files "
-	s.FinalMSG = s.Prefix + "(done)\n"
+	Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	Spinner.Prefix = "Deleting vendor files "
+	Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
-	s.Start()
+	Spinner.Start()
 
 	err := os.RemoveAll("./vendor")
 	if err != nil {
@@ -312,7 +312,7 @@ func deleteCoreVendor() {
 		log.Fatal(err)
 	}
 
-	s.Stop()
+	Spinner.Stop()
 }
 
 func contains(slice []string, s string) bool {
@@ -331,13 +331,13 @@ var stopCmd = &cobra.Command{
 		checkIfInCoreDirectory()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Stopping development environment "
-		s.FinalMSG = s.Prefix + "(done)\n"
+		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		Spinner.Prefix = "Stopping development environment "
+		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("stop"), s)
+		exec.RunCommand(options, exec.DockerComposeCommand("stop"), Spinner)
 	},
 }
 
@@ -388,9 +388,9 @@ func promptToInstallComposerDependencies() {
 	}
 	_, err := prompt.Run()
 	if err == nil {
-		s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		s.Prefix = "Installing Composer dependencies (this may take a few minutes) "
-		s.FinalMSG = s.Prefix + "(done)\n"
+		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		Spinner.Prefix = "Installing Composer dependencies (this may take a few minutes) "
+		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
@@ -402,7 +402,7 @@ func promptToInstallComposerDependencies() {
 				"composer",
 				"update",
 			),
-			s)
+			Spinner)
 	}
 }
 

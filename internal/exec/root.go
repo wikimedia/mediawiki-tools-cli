@@ -64,13 +64,13 @@ func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
 }
 
 /*RunCommand runs a command, handles verbose output and errors, and an optional spinner*/
-func RunCommand(options HandlerOptions, cmd *exec.Cmd, s *spinner.Spinner) error {
-	if s != nil {
-		s.Start()
+func RunCommand(options HandlerOptions, cmd *exec.Cmd, Spinner *spinner.Spinner) error {
+	if Spinner != nil {
+		Spinner.Start()
 	}
 	stdout, stderr, err := runCommand(cmd)
-	if s != nil {
-		s.Stop()
+	if Spinner != nil {
+		Spinner.Stop()
 	}
 	handleCommandRun(options, cmd, stdout, stderr, err)
 
