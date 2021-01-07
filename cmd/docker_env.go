@@ -18,63 +18,15 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"fmt"
-
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
-
-	"github.com/spf13/cobra"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/cmd"
 )
 
-var dockerEnvCmd = &cobra.Command{
-	Use:   "env",
-	Short: "Provides subcommands for interacting with development environment variables",
-	RunE:  nil,
-}
-
-var dockerEnvDeleteCmd = &cobra.Command{
-	Use:   "delete [name]",
-	Short: "Deletes an environment variable",
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		env.DotFileForDirectory(mediawikiOrFatal().Directory()).Delete(args[0])
-	},
-}
-
-var dockerEnvSetCmd = &cobra.Command{
-	Use:   "set [name] [value]",
-	Short: "Set an environment variable",
-	Args:  cobra.MinimumNArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
-		env.DotFileForDirectory(mediawikiOrFatal().Directory()).Set(args[0], args[1])
-	},
-}
-
-var dockerEnvGetCmd = &cobra.Command{
-	Use:   "get [name]",
-	Short: "Get an environment variable",
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(env.DotFileForDirectory(mediawikiOrFatal().Directory()).Get(args[0]))
-	},
-}
-
-var dockerEnvListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all environment variables",
-	Run: func(cmd *cobra.Command, args []string) {
-		for name, value := range env.DotFileForDirectory(mediawikiOrFatal().Directory()).List() {
-			fmt.Println(name + "=" + value)
-		}
-	},
-}
-
-var dockerEnvWhereCmd = &cobra.Command{
-	Use:   "where",
-	Short: "Output the location of the .env file",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(env.DotFileForDirectory(mediawikiOrFatal().Directory()).Path())
-	},
-}
+var dockerEnvCmd = cmd.Env("Provides subcommands for interacting with development environment variables");
+var dockerEnvDeleteCmd = cmd.EnvDelete(func()string{return mediawikiOrFatal().Directory()});
+var dockerEnvSetCmd = cmd.EnvSet(func()string{return mediawikiOrFatal().Directory()});
+var dockerEnvGetCmd = cmd.EnvGet(func()string{return mediawikiOrFatal().Directory()});
+var dockerEnvListCmd = cmd.EnvList(func()string{return mediawikiOrFatal().Directory()});
+var dockerEnvWhereCmd = cmd.EnvWhere(func()string{return mediawikiOrFatal().Directory()});
 
 func init() {
 	dockerCmd.AddCommand(dockerEnvCmd)
