@@ -59,7 +59,7 @@ func mediawikiOrFatal() mediawiki.MediaWiki {
 	return MediaWiki
 }
 
-var startCmd = &cobra.Command{
+var dockerStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the development environment",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -156,7 +156,7 @@ var startCmd = &cobra.Command{
 	},
 }
 
-var execCmd = &cobra.Command{
+var dockerExecCmd = &cobra.Command{
 	Use:   "exec [service] [command] [args]",
 	Short: "Run a command in the specified container",
 	Args:  cobra.MinimumNArgs(2),
@@ -202,7 +202,7 @@ var execCmd = &cobra.Command{
 	},
 }
 
-var destroyCmd = &cobra.Command{
+var dockerDestroyCmd = &cobra.Command{
 	Use:   "destroy [service...]",
 	Short: "destroys the development environment or specified containers",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -232,7 +232,7 @@ func contains(slice []string, s string) bool {
 	return false
 }
 
-var stopCmd = &cobra.Command{
+var dockerStopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop development environment",
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -250,7 +250,7 @@ var stopCmd = &cobra.Command{
 	},
 }
 
-var statusCmd = &cobra.Command{
+var dockerStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "List development environment status",
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -303,17 +303,17 @@ func init() {
 
 	rootCmd.AddCommand(dockerCmd)
 
-	dockerCmd.AddCommand(startCmd)
-	dockerCmd.AddCommand(stopCmd)
-	dockerCmd.AddCommand(statusCmd)
-	dockerCmd.AddCommand(destroyCmd)
+	dockerCmd.AddCommand(dockerStartCmd)
+	dockerCmd.AddCommand(dockerStopCmd)
+	dockerCmd.AddCommand(dockerStatusCmd)
+	dockerCmd.AddCommand(dockerDestroyCmd)
 
-	execCmd.Flags().BoolVarP(&Detach, "detach", "d", false, "Detached mode: Run command in the background.")
-	execCmd.Flags().BoolVarP(&Privileged, "privileged", "p", false, "Give extended privileges to the process.")
-	execCmd.Flags().StringVarP(&User, "user", "u", "", "Run the command as this user.")
-	execCmd.Flags().BoolVarP(&NoTTY, "TTY", "T", false, "Disable pseudo-tty allocation. By default a TTY is allocated")
-	execCmd.Flags().StringVarP(&Index, "index", "i", "", "Index of the container if there are multiple instances of a service [default: 1]")
-	execCmd.Flags().StringSliceVarP(&Env, "env", "e", []string{}, "Set environment variables. Can be used multiple times")
-	execCmd.Flags().StringVarP(&Workdir, "workdir", "w", "", "Path to workdir directory for this command.")
-	dockerCmd.AddCommand(execCmd)
+	dockerExecCmd.Flags().BoolVarP(&Detach, "detach", "d", false, "Detached mode: Run command in the background.")
+	dockerExecCmd.Flags().BoolVarP(&Privileged, "privileged", "p", false, "Give extended privileges to the process.")
+	dockerExecCmd.Flags().StringVarP(&User, "user", "u", "", "Run the command as this user.")
+	dockerExecCmd.Flags().BoolVarP(&NoTTY, "TTY", "T", false, "Disable pseudo-tty allocation. By default a TTY is allocated")
+	dockerExecCmd.Flags().StringVarP(&Index, "index", "i", "", "Index of the container if there are multiple instances of a service [default: 1]")
+	dockerExecCmd.Flags().StringSliceVarP(&Env, "env", "e", []string{}, "Set environment variables. Can be used multiple times")
+	dockerExecCmd.Flags().StringVarP(&Workdir, "workdir", "w", "", "Path to workdir directory for this command.")
+	dockerCmd.AddCommand(dockerExecCmd)
 }

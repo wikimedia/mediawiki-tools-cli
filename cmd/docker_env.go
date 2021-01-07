@@ -25,13 +25,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var envCmd = &cobra.Command{
+var dockerEnvCmd = &cobra.Command{
 	Use:   "env",
 	Short: "Provides subcommands for interacting with development environment variables",
 	RunE:  nil,
 }
 
-var deleteCmd = &cobra.Command{
+var dockerEnvDeleteCmd = &cobra.Command{
 	Use:   "delete [name]",
 	Short: "Deletes an environment variable",
 	Args:  cobra.MinimumNArgs(1),
@@ -40,7 +40,7 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-var setCmd = &cobra.Command{
+var dockerEnvSetCmd = &cobra.Command{
 	Use:   "set [name] [value]",
 	Short: "Set an environment variable",
 	Args:  cobra.MinimumNArgs(2),
@@ -49,7 +49,7 @@ var setCmd = &cobra.Command{
 	},
 }
 
-var getCmd = &cobra.Command{
+var dockerEnvGetCmd = &cobra.Command{
 	Use:   "get [name]",
 	Short: "Get an environment variable",
 	Args:  cobra.MinimumNArgs(1),
@@ -58,7 +58,7 @@ var getCmd = &cobra.Command{
 	},
 }
 
-var listCmd = &cobra.Command{
+var dockerEnvListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all environment variables",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -68,7 +68,7 @@ var listCmd = &cobra.Command{
 	},
 }
 
-var whereCmd = &cobra.Command{
+var dockerEnvWhereCmd = &cobra.Command{
 	Use:   "where",
 	Short: "Output the location of the .env file",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -77,11 +77,11 @@ var whereCmd = &cobra.Command{
 }
 
 func init() {
-	dockerCmd.AddCommand(envCmd)
+	dockerCmd.AddCommand(dockerEnvCmd)
 
-	envCmd.AddCommand(whereCmd)
-	envCmd.AddCommand(setCmd)
-	envCmd.AddCommand(getCmd)
-	envCmd.AddCommand(listCmd)
-	envCmd.AddCommand(deleteCmd)
+	dockerEnvCmd.AddCommand(dockerEnvWhereCmd)
+	dockerEnvCmd.AddCommand(dockerEnvSetCmd)
+	dockerEnvCmd.AddCommand(dockerEnvGetCmd)
+	dockerEnvCmd.AddCommand(dockerEnvListCmd)
+	dockerEnvCmd.AddCommand(dockerEnvDeleteCmd)
 }

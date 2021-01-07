@@ -29,6 +29,16 @@ Execute the script from any directory with `go run ~/go/src/gerrit.wikimedia.org
 - `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc
 - `internal/mediawiki`: Logic interacting with a MediaWiki directory on disk
 
+### cmd names
+
+No naming structured is enforced in CI but a convention exists that should be followed.
+
+- `root.go` exists as the overall CLI script.
+- Top level commands will have their own file in the `cmd` directory, named after the command. Example: `docker.go`.
+- Simple sub commands will be defined in those files as vars prefixed with the parent command. For example `dockerStart`.
+- Complex sub commands will be split out into their own file. For example `docker_env.go`.
+- This is a recursive solution.
+
 ### Using a binary
 
 Make a binary by running `make install`
