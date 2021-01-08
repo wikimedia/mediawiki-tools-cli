@@ -36,7 +36,7 @@ import (
 
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
-	Short: "Provides subcommands for interacting with MediaWiki's Docker development environment",
+	Short: "The MediaWiki-Docker development environment",
 	RunE:  nil,
 }
 
