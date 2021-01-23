@@ -35,7 +35,19 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Installs a new MediaWiki site using install.php",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		dbname := "default"
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"php",
+			"/var/www/html/w/maintenance/install.php",
+			"--dbuser", "root",
+			"--dbpass", "toor",
+			"--dbname", dbname,
+			"--dbserver", "db-master",
+			"--lang", "en",
+			"--pass", "mwddpassword",
+			"docker-" + dbname,
+			"admin",
+			}, exec.HandlerOptions{})
 	},
 }
 
