@@ -61,9 +61,9 @@ var dockerStartCmd = &cobra.Command{
 			Verbosity:   Verbosity,
 			HandleError: handlePortError,
 		}
+		exec.RunCommand(options, docker.ComposeCommand("up", "-d"))
 		MediaWiki := mediawikiOrFatal()
 
-		exec.RunCommand(options, exec.DockerComposeCommand("up", "-d"))
 
 		if isLinuxHost() {
 			fileCreated,err := docker.EnsureDockerComposeUserOverrideExists()
@@ -184,9 +184,9 @@ var dockerExecCmd = &cobra.Command{
 
 		if NoTTY {
 			args = append([]string{"-T"}, args...)
-			exec.RunCommand(options, exec.DockerComposeCommand("exec", args...))
+			exec.RunCommand(options, docker.ComposeCommand("exec", args...))
 		} else {
-			exec.RunTTYCommand(options, exec.DockerComposeCommand("exec", args...))
+			exec.RunTTYCommand(options, docker.ComposeCommand("exec", args...))
 		}
 
 	},
@@ -203,7 +203,7 @@ var dockerDestroyCmd = &cobra.Command{
 		}
 
 		runArgs := append([]string{"-sfv"}, args...)
-		exec.RunTTYCommand(options, exec.DockerComposeCommand("rm", runArgs...))
+		exec.RunTTYCommand(options, docker.ComposeCommand("rm", runArgs...))
 
 		if len(args) == 0 || contains(args, "mediawiki") {
 			MediaWiki.RenameLocalSettings()
@@ -236,7 +236,7 @@ var dockerStopCmd = &cobra.Command{
 			Spinner: Spinner,
 			Verbosity: Verbosity,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("stop"))
+		exec.RunCommand(options, docker.ComposeCommand("stop"))
 	},
 }
 
@@ -250,7 +250,7 @@ var dockerStatusCmd = &cobra.Command{
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
-		exec.RunCommand(options, exec.DockerComposeCommand("ps"))
+		exec.RunCommand(options, docker.ComposeCommand("ps"))
 	},
 }
 
@@ -263,7 +263,7 @@ func printSuccess() {
 				strings.Replace(stdout.String(), "0.0.0.0", "localhost", 1))
 		},
 	}
-	exec.RunCommand(options, exec.DockerComposeCommand("port", "mediawiki", "8080"))
+	exec.RunCommand(options, docker.ComposeCommand("port", "mediawiki", "8080"))
 
 }
 

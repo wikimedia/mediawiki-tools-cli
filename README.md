@@ -39,6 +39,14 @@ No naming structured is enforced in CI but a convention exists that should be fo
 - Complex sub commands will be split out into their own file. For example `docker_env.go`.
 - This is a recursive solution.
 
+### Updating included static files
+
+Static files are included in the binary using <https://github.com/bouk/staticfiles>
+
+You can install the staticfiles command with `go get bou.ke/staticfiles`
+
+In order to update files.go you can run `make internal/mwdd/files/files.go`
+
 ### Using a binary
 
 Make a binary by running `make install`

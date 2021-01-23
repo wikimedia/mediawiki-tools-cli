@@ -19,6 +19,9 @@ package cmd
 
 import (
 	"fmt"
+
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"github.com/spf13/cobra"
 )
 
@@ -28,11 +31,34 @@ var mwddMediawikiCmd = &cobra.Command{
 	RunE:  nil,
 }
 
+var mwddMediawikiInstallCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Installs a new MediaWiki site using install.php",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Not yet implemented!");
+	},
+}
+
+var mwddMediawikiComposerCmd = &cobra.Command{
+	Use:   "composer",
+	Short: "Runs composer in a container in the context of MediaWiki",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Not yet implemented!");
+	},
+}
+
 var mwddMediawikiCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create the Mediawiki containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		// TODO mediawiki should come from some default definition set?
+		mwdd.DefaultForUser().UpDetached( []string{"mediawiki"}, options )
+		// TODO add functionality for writing to the hosts file...
+		//mwdd.DefaultForUser().EnsureHostsFile()
 	},
 }
 
@@ -40,8 +66,11 @@ var mwddMediawikiDestroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy the Mediawiki containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
-	},
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().DownWithVolumesAndOrphans( options )	},
 }
 
 var mwddMediawikiSuspendCmd = &cobra.Command{
@@ -66,4 +95,6 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiDestroyCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiSuspendCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiResumeCmd)
+	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
+	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 }

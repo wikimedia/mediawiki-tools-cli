@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"fmt"
 	"github.com/spf13/cobra"
@@ -41,7 +42,14 @@ var mwddCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		// TODO mediawiki should come from some default definition set?
+		mwdd.DefaultForUser().UpDetached( []string{"mediawiki"}, options )
+		// TODO add functionality for writing to the hosts file...
+		//mwdd.DefaultForUser().EnsureHostsFile()
 	},
 }
 
@@ -49,7 +57,11 @@ var mwddDestroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().DownWithVolumesAndOrphans( options )
 	},
 }
 

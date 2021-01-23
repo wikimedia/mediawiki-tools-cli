@@ -1,0 +1,43 @@
+version: '2.2'
+
+services:
+
+  dps:
+    image: defreitas/dns-proxy-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    hostname: dps.mwdd.localhost
+    networks:
+      dps:
+        ipv4_address: 10.0.0.10
+
+  nginx-proxy:
+    # TODO: replace with jwilder/nginx-proxy, once updated
+    image: silvanwmde/nginx-proxy:latest
+    environment:
+      - VIRTUAL_HOST=proxy.mwdd.localhost
+      - HOSTNAMES=.mediawiki.mwdd.localhost      # wildcard name resolution, thanks to DPS
+      - HTTP_PORT=${PORT}      # internal port
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - dps
+    hostname: proxy.mwdd.localhost
+    dns:
+      - 10.0.0.10
+    dns_search:
+      - mwdd.localhost
+    networks:
+      - dps
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx/client_max_body_size.conf:/etc/nginx/conf.d/client_max_body_size.conf:ro
+      - ./nginx/timeouts.conf:/etc/nginx/conf.d/timeouts.conf:ro
+
+networks:
+  dps:
+    ipam:
+      config:
+        # TODO this probably wants to be configurable? or more random? as conflicts can happen in the docker network
+        # mwdd uses 172.0.0.0/24
+        - subnet: 10.0.0.0/24

@@ -18,15 +18,35 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package docker
 
 import (
-	"os"
+	"path/filepath"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"os"
+	osexec "os/exec"
 )
+
+/*ComposeCommand ...*/
+func ComposeCommand (command string, arg ...string) *osexec.Cmd {
+	projectDir, _ := os.Getwd()
+	context := exec.ComposeCommandContext{
+		ProjectDirectory:     projectDir,
+		ProjectName:   "mw-" + filepath.Base(projectDir),
+	}
+	return exec.ComposeCommand(
+		context,
+		"exec",
+		"-T",
+		"mediawiki",
+		"/bin/bash",
+		"/docker/install.sh",
+		)
+}
+
 
 /*MediaWikiInstall ...*/
 func MediaWikiInstall( options exec.HandlerOptions ) {
 	exec.RunCommand(
 		options,
-		exec.DockerComposeCommand(
+		ComposeCommand(
 			"exec",
 			"-T",
 			"mediawiki",
@@ -39,7 +59,7 @@ func MediaWikiInstall( options exec.HandlerOptions ) {
 func MediaWikiComposerUpdate( options exec.HandlerOptions ) {
 	exec.RunCommand(
 		options,
-		exec.DockerComposeCommand(
+		ComposeCommand(
 			"exec",
 			"-T",
 			"mediawiki",
@@ -50,7 +70,7 @@ func MediaWikiComposerUpdate( options exec.HandlerOptions ) {
 
 func mediaWikiPHPVersionCheck( options exec.HandlerOptions ) error {
 	return exec.RunCommand(options,
-		exec.DockerComposeCommand(
+		ComposeCommand(
 			"exec",
 			"-T",
 			"mediawiki",

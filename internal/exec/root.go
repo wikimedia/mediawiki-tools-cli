@@ -23,7 +23,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/briandowns/spinner"
 )
@@ -36,16 +35,26 @@ type HandlerOptions struct {
 	HandleError  func(stderr bytes.Buffer, err error)
 }
 
+// ComposeCommandContext ...
+type ComposeCommandContext struct {
+	ProjectDirectory      string
+	ProjectName    string
+	Files    []string
+}
+
 /*Command passes through to exec.Command for running generic commands*/
 func Command(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
-/*DockerComposeCommand gets a docker-compose command to run*/
-func DockerComposeCommand(command string, arg ...string) *exec.Cmd {
-	projectDir, _ := os.Getwd()
-	projectName := "mw-" + filepath.Base(projectDir)
-	arg = append([]string{"-p", projectName, command}, arg...)
+/*ComposeCommand gets a docker-compose command to run*/
+func ComposeCommand(context ComposeCommandContext, command string, arg ...string) *exec.Cmd {
+	arg = append([]string{command}, arg...)
+	arg = append([]string{"--project-name", context.ProjectName}, arg...)
+	arg = append([]string{"--project-directory", context.ProjectDirectory}, arg...)
+	for _, element := range context.Files {
+		arg = append( []string {"--file", context.ProjectDirectory + "/" + element }, arg... )
+	}
 	return exec.Command("docker-compose", arg...)
 }
 
