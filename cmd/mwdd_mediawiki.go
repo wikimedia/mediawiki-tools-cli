@@ -35,7 +35,65 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Installs a new MediaWiki site using install.php",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		// TODO take 2 conditions, name and type?
+		// TODO deal with errors from any of the below commands...
+		dbname := "default"
+
+		// Move custom LocalSetting.php so the install doesn't overwrite it
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"mv",
+			"/var/www/html/w/LocalSettings.php",
+			"/var/www/html/w/LocalSettings.php.docker.tmp",
+			}, exec.HandlerOptions{})
+
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"php",
+			"/var/www/html/w/maintenance/install.php",
+			"--dbtype", "sqlite",
+			"--dbname", dbname,
+			"--lang", "en",
+			"--pass", "mwddpassword",
+			"docker-" + dbname,
+			"admin",
+			}, exec.HandlerOptions{})
+
+		// TODO enable this for mysql install at some point...
+		// TODO if mysql wait-for-it?
+		// mwdd.DefaultForUser().Exec("mediawiki",[]string{
+		// 	"php",
+		// 	"/var/www/html/w/maintenance/install.php",
+		// 	"--dbtype", "mysql",
+		// 	"--dbuser", "root",
+		// 	"--dbpass", "toor",
+		// 	"--dbname", dbname,
+		// 	"--dbserver", "mysql",
+		// 	"--lang", "en",
+		// 	"--pass", "mwddpassword",
+		// 	"docker-" + dbname,
+		// 	"admin",
+		// 	}, exec.HandlerOptions{})
+
+		// Move the auto generated LocalSetting.php somewhere else
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"mv",
+			"/var/www/html/w/LocalSettings.php",
+			"/var/www/html/w/LocalSettings.php.docker.lastgenerated",
+			}, exec.HandlerOptions{})
+
+		// Move the custom one back
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"mv",
+			"/var/www/html/w/LocalSettings.php.docker.tmp",
+			"/var/www/html/w/LocalSettings.php",
+			}, exec.HandlerOptions{})
+
+		// Run update.php once too
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"php",
+			"/var/www/html/w/maintenance/update.php",
+			"--wiki", dbname,
+			"--quick",
+			}, exec.HandlerOptions{})
 	},
 }
 
