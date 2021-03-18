@@ -28,6 +28,7 @@ import (
 	"github.com/briandowns/spinner"
 )
 
+// HandlerOptions options used when handeling executions
 type HandlerOptions struct {
 	Spinner      *spinner.Spinner
 	Verbosity    int
