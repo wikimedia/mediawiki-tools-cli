@@ -19,6 +19,8 @@ package env
 
 import (
 	"os"
+	"log"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -39,7 +41,14 @@ func (f DotFile) Path() string {
 /*EnsureExists ensures that the .env file exists, creating an empty one if not*/
 func (f DotFile) EnsureExists() {
 	if _, err := os.Stat(f.Path()); err != nil {
-		os.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		err := os.MkdirAll(strings.Replace(f.Path(), ".env", "", -1), 0700)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = os.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
