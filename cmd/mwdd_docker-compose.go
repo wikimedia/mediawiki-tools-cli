@@ -19,6 +19,9 @@ package cmd
 
 import (
 	"fmt"
+
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +40,17 @@ var mwddDockerComposeRawCmd = &cobra.Command{
 var mwddDockerComposePsCmd = &cobra.Command{
 	Use:   "ps",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().DockerCompose(
+			"ps",
+			[]string{},
+			[]string{},
+			[]string{},
+			options,
+		)
 	},
 }
 

@@ -177,7 +177,5 @@ func (m MWDD) Start( services []string, options exec.HandlerOptions ) {
 // TODO execIt?
 // TODO run?
 // TODO runDetatched?
-// TODO psQ?
-// TODO ps?
 // TODO logsTail?
 // TODO raw?
