@@ -1,0 +1,112 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+
+  # Checks that the commited internal/mwdd/files/files.go file is the same as what would be generated with what is committed
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: Install staticfiles
+      run: go get bou.ke/staticfiles
+
+    - name: Copy
+      run: cp internal/mwdd/files/files.go internal/mwdd/files/files.go-copy
+
+    - name: Make
+      run: make internal/mwdd/files/files.go
+
+    - name: Compare
+      run: diff internal/mwdd/files/files.go internal/mwdd/files/files.go-copy
+
+  # Runs lint and test
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: Install golint
+      run: go get -u golang.org/x/lint/golint
+
+    - name: Install staticfiles
+      run: go get bou.ke/staticfiles
+
+    - name: Make
+      run: make
+
+    - name: Test
+      run: make test
+
+  # Runs a series of integration commands
+  integration-mwdd:
+    runs-on: ubuntu-latest
+    steps:
+      # This is a hack to work around https://github.com/jwilder/docker-gen/issues/315.
+      # Support ticket is open with Github to make sure that this is okay.
+    - name: Update Docker cgroup and restart service
+      run: |
+        sudo rm /etc/docker/daemon.json
+        sudo service docker restart
+    - uses: actions/checkout@v2
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: Install staticfiles
+      run: go get bou.ke/staticfiles
+
+    - name: Make
+      run: make
+
+    - name: Setup hosts file
+      run: sudo echo "127.0.0.1 default.mediawiki.mwdd.localhost" | sudo tee -a /etc/hosts
+
+      # TODO at some point make mwdd fetch the code (also to the "right" place)
+    - name: Fetch MediaWiki code to default location
+      uses: actions/checkout@v2
+      with:
+        repository: wikimedia/mediawiki
+        path: mediawiki-code
+    - name: And set that location in mwdd
+      run: ./bin/mw mwdd env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki-code
+
+    # base create
+    - name: mwdd create
+      run: ./bin/mw mwdd create
+
+    # mwdd docker-compose ps
+    - name: mwdd docker-compose ps
+      run: ./bin/mw mwdd docker-compose ps
+
+    # Output things useful for debugging
+    - name: mwdd env list
+      run: ./bin/mw mwdd env list
+
+    # Test mediawiki create
+    - run: curl -s http://default.mediawiki.mwdd.localhost:8080 | grep -q "The MediaWiki logo"
+
+    # base destroy
+    - name: mwdd destroy
+      run: ./bin/mw mwdd destroy
+
+    # Test base destroy
+    - run: docker ps | wc -l | grep -q "1"
