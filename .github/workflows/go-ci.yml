@@ -54,6 +54,28 @@ jobs:
     - name: Test
       run: make test
 
+  # Builds a binary and publishes it as an artifact
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: Install staticfiles
+      run: go get bou.ke/staticfiles
+
+    - name: Make
+      run: make
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: binary
+        path: bin/mw
+
   # Runs a series of integration commands
   integration-mwdd:
     runs-on: ubuntu-latest
