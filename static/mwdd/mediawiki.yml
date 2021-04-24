@@ -4,10 +4,12 @@ services:
 
   mediawiki:
     image: docker-registry.wikimedia.org/dev/stretch-php72-fpm-apache2-xdebug:0.6.1-s1
+    entrypoint: "/mwdd/entrypoint.sh"
     volumes:
      - ./wait-for-it.sh:/wait-for-it.sh:ro
      - ./mediawiki:/mwdd:ro
      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+     - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/data:delegated"
      - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
      - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:delegated"
     environment:
@@ -28,5 +30,6 @@ services:
       - dps
 
 volumes:
+  mediawiki-data:
   mediawiki-images:
   mediawiki-logs:

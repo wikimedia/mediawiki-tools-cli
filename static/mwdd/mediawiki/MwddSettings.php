@@ -18,6 +18,10 @@ if ( PHP_SAPI === 'cli' && !defined( 'MW_DB' ) ) {
     define( 'MW_DB', 'default' );
 }
 
+# Must be above WebRequest::detectServer.
+# mwdd uses a proxy server with no default ports.
+$wgAssumeProxiesUseDefaultProtocolPorts = false;
+
 # Either use the MW_DB env var, or get the DB from the request
 if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
@@ -40,36 +44,58 @@ $mwddServices = [
 ################################
 # MWDD Database
 ################################
+// Figure out if we are using sqlite, or if this should be mysql..?
+// TODO eventually for things like postgres this will need a more advanced system of checking.
+if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
+	$dockerDbType = 'sqlite';
+} else {
+	$dockerDbType = 'mysql';
+}
+
 $wgDBname = $dockerDb;
 
-$wgDBservers = [
-	[
-		'host' => "db-master",
-		'dbname' => $dockerDb,
-		'user' => 'root',
-		'password' => 'toor',
-		'type' => "mysql",
-		'flags' => DBO_DEFAULT,
-		'load' => $mwddServices['db-replica'] ? 0 : 1,
-	],
-];
-if($mwddServices['db-replica'] ) {
-	$wgDBservers[] = [
-		'host' => "db-replica",
-		'dbname' => $dockerDb,
-		'user' => 'root',
-		'password' => 'toor',
-		'type' => "mysql",
-		'flags' => DBO_DEFAULT,
-		# Avoid switching to readonly too early (for example during update.php)
-		'max lag' => 60,
-		'load' => 1,
+if( $dockerDbType === 'sqlite' ) {
+	$wgDBservers = [
+		[
+			'dbDirectory' => $IP . '/data',
+			'dbname' => $dockerDb,
+			'type' => $dockerDbType,
+			'flags' => DBO_DEFAULT,
+			'load' => 1,
+		],
 	];
 }
 
-// mysql only stuff (would need to change for sqlite?)
-$wgDBprefix = "";
-$wgDBTableOptions = "ENGINE=InnoDB, DEFAULT CHARSET=binary";
+if( $dockerDbType === 'mysql' ) {
+	$wgDBservers = [
+		[
+			'host' => "db-master",
+			'dbname' => $dockerDb,
+			'user' => 'root',
+			'password' => 'toor',
+			'type' => $dockerDbType,
+			'flags' => DBO_DEFAULT,
+			'load' => $mwddServices['db-replica'] ? 0 : 1,
+		],
+	];
+	if($mwddServices['db-replica'] ) {
+		$wgDBservers[] = [
+			'host' => "db-replica",
+			'dbname' => $dockerDb,
+			'user' => 'root',
+			'password' => 'toor',
+			'type' => $dockerDbType,
+			'flags' => DBO_DEFAULT,
+			# Avoid switching to readonly too early (for example during update.php)
+			'max lag' => 60,
+			'load' => 1,
+		];
+	}
+
+	// mysql only stuff (would need to change for sqlite?)
+	$wgDBprefix = "";
+	$wgDBTableOptions = "ENGINE=InnoDB, DEFAULT CHARSET=binary";
+}
 
 ################################
 # MWDD Redis
@@ -99,12 +125,10 @@ $wgExtensionMessagesFiles['Mwdd'] = __DIR__ . '/MwddSpecialPage-aliases.php';
 ################################
 # MWDD Dev Settings
 ################################
-## Settings added over time
 $wgShowHostnames = true;
-$wgAssumeProxiesUseDefaultProtocolPorts = false;
 
 ## Site settings
-$wgScriptPath = "";
+$wgScriptPath = "/w";
 $wgSitename = "mwdd-$dockerDb";
 $wgMetaNamespace = "Project"; // Set to "Project", instead of the default $wgSitename
 // TODO re add favicon (removed porting to go)
@@ -118,7 +142,7 @@ $wgCacheDirectory = "{$wgUploadDirectory}/cache";
 $wgUploadPath = "{$wgScriptPath}/images/docker/{$dockerDb}";
 
 ## Dev & Debug
-$dockerLogDirectory = "/var/log/mediawiki"
+$dockerLogDirectory = "/var/log/mediawiki";
 $wgDebugLogFile = "$dockerLogDirectory/debug.log";
 
 ini_set( 'xdebug.var_display_max_depth', -1 );
@@ -163,3 +187,5 @@ $wgPhpCli = '/usr/local/bin/php';
 ################################
 # MWDD END
 ################################
+
+// TODO add auto loading of other LocalSetting.php files from a directory based on dbname -> file name...

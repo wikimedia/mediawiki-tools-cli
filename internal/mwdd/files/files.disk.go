@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 )
 
-
 /*EnsureInMemoryFilesAreOnDisk makes sure that up to date copies of our in app docker-compose files are on disk
 TODO this should be called only when we update the bin?
 TODO This is way to complex, and should be more clever.. checking a hash or something? and be more lightweight*/
@@ -42,10 +41,12 @@ func diskFileToBytes(file string) []byte {
 
 func getAssumedFilePerms( filePath string ) os.FileMode {
 	// Set all .sh files as +x when creating them
+	// All useers should be able to read and execute these files so users in containers can use them
+	// XXX: Currently if you change these file permissions on disk files will need to be deleted and re added..
 	if filepath.Ext(filePath) == ".sh" {
-		return 0700
+		return 0755
 	}
-	return 0600
+	return 0655
 }
 
 func writeBytesToDisk( bytes []byte, filePath string ) {
@@ -60,6 +61,6 @@ func ensureDirectoryForFileOnDisk(file string) {
 
 func ensureDirectoryOnDisk(dirPath string) {
 	if _, err := os.Stat(dirPath); err != nil {
-		os.MkdirAll(dirPath, 0700)
+		os.MkdirAll(dirPath, 0755)
 	}
 }

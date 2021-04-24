@@ -86,6 +86,9 @@ jobs:
       with:
         repository: wikimedia/mediawiki
         path: mediawiki-code
+      # TODO soon mwdd will do this...
+    - name: Do a composer install of MediaWiki
+      run: composer install --no-progress --ansi --working-dir mediawiki-code
     - name: And set that location in mwdd
       run: ./bin/mw mwdd env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki-code
 
@@ -101,8 +104,22 @@ jobs:
     - name: mwdd env list
       run: ./bin/mw mwdd env list
 
-    # Test mediawiki create
+    # Test mediawiki create (Shows the install prompt)
     - run: curl -s http://default.mediawiki.mwdd.localhost:8080 | grep -q "The MediaWiki logo"
+
+    # Create the needed LocalSettings.php file
+    - name: Create the default LocalSettings.php file
+      run: |
+        echo "<?php" >> mediawiki-code/LocalSettings.php
+        echo "//require_once "$IP/includes/PlatformSettings.php";" >> mediawiki-code/LocalSettings.php
+        echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki-code/LocalSettings.php
+
+    # mediawiki install
+    - name: mwdd mediawiki install
+      run: ./bin/mw mwdd mediawiki install
+
+    # Test mediawiki install
+    - run: curl -s -L http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
     # base destroy
     - name: mwdd destroy

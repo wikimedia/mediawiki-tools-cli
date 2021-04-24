@@ -15,6 +15,7 @@ class MwddSpecial extends SpecialPage {
 		parent::execute( $subPage );
 		global $mwddServices;
 
+		// TODO output db type, dbname & other db settings here
 		$this->getOutput()->addHTML( "Which services are running?" );
 		$this->getOutput()->addHTML( "</br>" );
 		$this->getOutput()->addHTML( json_encode( $mwddServices ) );
