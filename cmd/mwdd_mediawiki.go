@@ -32,12 +32,18 @@ var mwddMediawikiCmd = &cobra.Command{
 }
 
 var mwddMediawikiInstallCmd = &cobra.Command{
-	Use:   "install",
+	Use:   "install [db name] [db type]",
 	Short: "Installs a new MediaWiki site using install.php",
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO take 2 conditions, name and type?
 		// TODO deal with errors from any of the below commands...
 		dbname := "default"
+		dbtype := "sqlite"
+		if len(args) >= 1 {
+			dbname = args[0]
+		}
+		if len(args) >= 2 {
+			dbtype = args[1]
+		}
 
 		// Move custom LocalSetting.php so the install doesn't overwrite it
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
@@ -46,32 +52,39 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			"/var/www/html/w/LocalSettings.php.docker.tmp",
 			}, exec.HandlerOptions{})
 
-		mwdd.DefaultForUser().Exec("mediawiki",[]string{
-			"php",
-			"/var/www/html/w/maintenance/install.php",
-			"--dbtype", "sqlite",
-			"--dbname", dbname,
-			"--lang", "en",
-			"--pass", "mwddpassword",
-			"docker-" + dbname,
-			"admin",
-			}, exec.HandlerOptions{})
-
-		// TODO enable this for mysql install at some point...
-		// TODO if mysql wait-for-it?
-		// mwdd.DefaultForUser().Exec("mediawiki",[]string{
-		// 	"php",
-		// 	"/var/www/html/w/maintenance/install.php",
-		// 	"--dbtype", "mysql",
-		// 	"--dbuser", "root",
-		// 	"--dbpass", "toor",
-		// 	"--dbname", dbname,
-		// 	"--dbserver", "mysql",
-		// 	"--lang", "en",
-		// 	"--pass", "mwddpassword",
-		// 	"docker-" + dbname,
-		// 	"admin",
-		// 	}, exec.HandlerOptions{})
+		// Do a DB type dependant install
+		// TODO actually input the "right" settings so install.php output looks correct
+		if dbtype == "sqlite" {
+			mwdd.DefaultForUser().Exec("mediawiki",[]string{
+				"php",
+				"/var/www/html/w/maintenance/install.php",
+				"--dbtype", dbtype,
+				"--dbname", dbname,
+				"--lang", "en",
+				"--pass", "mwddpassword",
+				"docker-" + dbname,
+				"admin",
+				}, exec.HandlerOptions{})
+		}
+		if dbtype == "mysql" {
+			mwdd.DefaultForUser().Exec("mediawiki",[]string{
+				"/wait-for-it.sh",
+				"mysql:3306",
+				}, exec.HandlerOptions{})
+			mwdd.DefaultForUser().Exec("mediawiki",[]string{
+				"php",
+				"/var/www/html/w/maintenance/install.php",
+				"--dbtype", dbtype,
+				"--dbuser", "root",
+				"--dbpass", "toor",
+				"--dbname", dbname,
+				"--dbserver", "mysql",
+				"--lang", "en",
+				"--pass", "mwddpassword",
+				"docker-" + dbname,
+				"admin",
+				}, exec.HandlerOptions{})
+		}
 
 		// Move the auto generated LocalSetting.php somewhere else
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
