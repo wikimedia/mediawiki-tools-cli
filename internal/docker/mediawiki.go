@@ -18,32 +18,29 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package docker
 
 import (
-	"path/filepath"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"os"
 	osexec "os/exec"
+	"path/filepath"
+
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 )
 
 /*ComposeCommand ...*/
-func ComposeCommand (command string, arg ...string) *osexec.Cmd {
+func ComposeCommand(command string, arg ...string) *osexec.Cmd {
 	projectDir, _ := os.Getwd()
 	context := exec.ComposeCommandContext{
-		ProjectDirectory:     projectDir,
-		ProjectName:   "mw-" + filepath.Base(projectDir),
+		ProjectDirectory: projectDir,
+		ProjectName:      "mw-" + filepath.Base(projectDir),
 	}
 	return exec.ComposeCommand(
 		context,
-		"exec",
-		"-T",
-		"mediawiki",
-		"/bin/bash",
-		"/docker/install.sh",
-		)
+		command,
+		arg...,
+	)
 }
 
-
 /*MediaWikiInstall ...*/
-func MediaWikiInstall( options exec.HandlerOptions ) {
+func MediaWikiInstall(options exec.HandlerOptions) {
 	exec.RunCommand(
 		options,
 		ComposeCommand(
@@ -52,11 +49,11 @@ func MediaWikiInstall( options exec.HandlerOptions ) {
 			"mediawiki",
 			"/bin/bash",
 			"/docker/install.sh",
-			))
+		))
 }
 
 /*MediaWikiComposerUpdate ...*/
-func MediaWikiComposerUpdate( options exec.HandlerOptions ) {
+func MediaWikiComposerUpdate(options exec.HandlerOptions) {
 	exec.RunCommand(
 		options,
 		ComposeCommand(
@@ -68,7 +65,7 @@ func MediaWikiComposerUpdate( options exec.HandlerOptions ) {
 		))
 }
 
-func mediaWikiPHPVersionCheck( options exec.HandlerOptions ) error {
+func mediaWikiPHPVersionCheck(options exec.HandlerOptions) error {
 	return exec.RunCommand(options,
 		ComposeCommand(
 			"exec",
@@ -87,7 +84,7 @@ func MediaWikiComposerDependenciesNeedInstallation(options exec.HandlerOptions) 
 }
 
 /*EnsureDockerComposeUserOverrideExists Ensures that a docker-compose.override files exists with a mediawiki user and gid override*/
-func EnsureDockerComposeUserOverrideExists() (bool, error){
+func EnsureDockerComposeUserOverrideExists() (bool, error) {
 	// TODO: We should also check the contents for correctness, maybe
 	// using docker-compose config and asserting that UID/GID mapping is present
 	// and with correct values.
@@ -109,7 +106,7 @@ services:
 			return false, err
 		}
 		file.Sync()
-		return true, nil;
+		return true, nil
 	}
-	return false, nil;
+	return false, nil
 }
