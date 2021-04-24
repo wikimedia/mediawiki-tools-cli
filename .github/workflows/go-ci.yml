@@ -28,8 +28,8 @@ jobs:
     - name: Make
       run: make internal/mwdd/files/files.go
 
-    - name: Compare
-      run: diff internal/mwdd/files/files.go internal/mwdd/files/files.go-copy
+    - name: Compare (Ignoring mtime)
+      run: diff <(cat internal/mwdd/files/files.go | grep -v mtime) <(cat internal/mwdd/files/files.go-copy | grep -v mtime)
 
   # Runs lint and test
   test:
