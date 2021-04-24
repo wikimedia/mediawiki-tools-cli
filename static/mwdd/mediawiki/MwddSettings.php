@@ -14,6 +14,7 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 ################################
 
 # When used via CLI, use the default DB if no MW_DB is specified
+# Maintenance scripts with --wiki passed will set MW_DB
 if ( PHP_SAPI === 'cli' && !defined( 'MW_DB' ) ) {
     define( 'MW_DB', 'default' );
 }
@@ -36,7 +37,7 @@ if ( defined( "MW_DB" ) ) {
 
 # Only use "advanced" services if they can be seen, and if we are not in tests
 $mwddServices = [
-	'db-replica' => gethostbyname('db-replica') !== 'db-replica' && !defined( 'MW_PHPUNIT_TEST' ),
+	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ),
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite-statsd' => gethostbyname('graphite-statsd') !== 'graphite-statsd' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
@@ -69,18 +70,18 @@ if( $dockerDbType === 'sqlite' ) {
 if( $dockerDbType === 'mysql' ) {
 	$wgDBservers = [
 		[
-			'host' => "db-master",
+			'host' => "mysql",
 			'dbname' => $dockerDb,
 			'user' => 'root',
 			'password' => 'toor',
 			'type' => $dockerDbType,
 			'flags' => DBO_DEFAULT,
-			'load' => $mwddServices['db-replica'] ? 0 : 1,
+			'load' => $mwddServices['mysql-replica'] ? 0 : 1,
 		],
 	];
-	if($mwddServices['db-replica'] ) {
+	if($mwddServices['mysql-replica'] ) {
 		$wgDBservers[] = [
-			'host' => "db-replica",
+			'host' => "mysql-replica",
 			'dbname' => $dockerDb,
 			'user' => 'root',
 			'password' => 'toor',

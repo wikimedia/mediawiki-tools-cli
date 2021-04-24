@@ -19,52 +19,59 @@ package cmd
 
 import (
 	"fmt"
+
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"github.com/spf13/cobra"
 )
 
 
-var mwddSQLCmd = &cobra.Command{
-	Use:   "sql",
+var mwddMySQLCmd = &cobra.Command{
+	Use:   "mysql",
 	Short: "Sql service",
 	RunE:  nil,
 }
 
-var mwddSQLCreateCmd = &cobra.Command{
+var mwddMySQLCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create the SQL containers",
+	Short: "Create the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().UpDetached( []string{"mysql"}, options )
 	},
 }
 
-var mwddSQLDestroyCmd = &cobra.Command{
+var mwddMySQLDestroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "Destroy the SQL containers",
+	Short: "Destroy the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Not yet implemented!");
 	},
 }
 
-var mwddSQLSuspendCmd = &cobra.Command{
+var mwddMySQLSuspendCmd = &cobra.Command{
 	Use:   "suspend",
-	Short: "Suspend the SQL containers",
+	Short: "Suspend the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Not yet implemented!");
 	},
 }
 
-var mwddSQLResumeCmd = &cobra.Command{
+var mwddMySQLResumeCmd = &cobra.Command{
 	Use:   "resume",
-	Short: "Resume the SQL containers",
+	Short: "Resume the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Not yet implemented!");
 	},
 }
 
 func init() {
-	mwddCmd.AddCommand(mwddSQLCmd)
-	mwddSQLCmd.AddCommand(mwddSQLCreateCmd)
-	mwddSQLCmd.AddCommand(mwddSQLDestroyCmd)
-	mwddSQLCmd.AddCommand(mwddSQLSuspendCmd)
-	mwddSQLCmd.AddCommand(mwddSQLResumeCmd)
+	mwddCmd.AddCommand(mwddMySQLCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLCreateCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLDestroyCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLSuspendCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLResumeCmd)
 }

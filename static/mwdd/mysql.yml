@@ -1,0 +1,22 @@
+version: '2.2'
+
+services:
+  mysql:
+    # TODO allow image customization, something like MYSQL_IMAGE (as long as it meets the required interface)
+    # TODO use WMF images when and if these exist...
+    image: mariadb:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=toor
+    hostname: mysql.mwdd.localhost
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/main:/mwdd-custom
+    entrypoint: "/mwdd-custom/entrypoint.sh"
+    command: "mysqld"
+
+volumes:
+  mysql-data:
