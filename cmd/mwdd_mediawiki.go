@@ -150,7 +150,11 @@ var mwddMediawikiSuspendCmd = &cobra.Command{
 	Use:   "suspend",
 	Short: "Suspend the Mediawiki containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().Stop( []string{"mediawiki"},options)
 	},
 }
 
@@ -158,7 +162,11 @@ var mwddMediawikiResumeCmd = &cobra.Command{
 	Use:   "resume",
 	Short: "Resume the Mediawiki containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().Start( []string{"mediawiki"},options)
 	},
 }
 
