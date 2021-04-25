@@ -48,6 +48,11 @@ func (m MWDD) Directory() string {
 	return string(m)
 }
 
+/*DockerComposeProjectName the name of the docker-compose project*/
+func (m MWDD) DockerComposeProjectName() string {
+	return "mwcli-mwdd-default"
+}
+
 /*Env ...*/
 func (m MWDD) Env() env.DotFile {
 	return env.DotFileForDirectory(m.Directory())
@@ -104,7 +109,7 @@ type DockerComposeCommand struct {
 func (m MWDD) DockerCompose( command DockerComposeCommand ) {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
-		ProjectName: "mwcli-mwdd-default",
+		ProjectName: m.DockerComposeProjectName(),
 		Files: files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
@@ -114,7 +119,8 @@ func (m MWDD) DockerCompose( command DockerComposeCommand ) {
 			context,
 			command.Command,
 			command.CommandArguments...
-		))
+		),
+	)
 }
 
 /*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
@@ -169,6 +175,29 @@ func (m MWDD) Start( services []string, options exec.HandlerOptions ) {
 			CommandArguments: services,
 			HandlerOptions: options,
 		},
+	)
+}
+
+/*Rm runs `docker-compose rm --stop --force -v <services>`*/
+func (m MWDD) Rm( services []string, options exec.HandlerOptions ) {
+	m.DockerCompose(
+		DockerComposeCommand{
+			Command: "rm",
+			CommandArguments: append( []string{"--stop", "--force", "-v" }, services... ),
+			HandlerOptions: options,
+		},
+	)
+}
+
+/*RmVolumes runs `docker volume rm <volume names with docker-compose project prefixed>`*/
+func (m MWDD) RmVolumes( dcVolumes []string, options exec.HandlerOptions ) {
+	dockerVolumes := []string{}
+	for _, dcVolume := range dcVolumes {
+		dockerVolumes = append( dockerVolumes, m.DockerComposeProjectName() + "_" + dcVolume )
+	}
+	exec.RunCommand(
+		options,
+		exec.Command("docker", append( []string{"volume", "rm" }, dockerVolumes... )... ),
 	)
 }
 
