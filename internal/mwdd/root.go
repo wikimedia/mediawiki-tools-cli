@@ -93,83 +93,82 @@ func (m MWDD) EnsureHostsFile() {
 	//TODO this will differ per serviceset though...
 }
 
-/*DockerCompose ...*/
-func (m MWDD) DockerCompose( command string, commandOptions []string, services []string, commandArguments []string, options exec.HandlerOptions ) {
+// DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`
+type DockerComposeCommand struct {
+	Command      string
+	CommandArguments    []string
+	HandlerOptions exec.HandlerOptions
+}
+
+/*DockerCompose runs any docker-compose command for the mwdd project with the correct project settings and all files loaded*/
+func (m MWDD) DockerCompose( command DockerComposeCommand ) {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
 		ProjectName: "mwcli-mwdd-default",
 		Files: files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
-	arg := commandOptions
-
-	if(len(services) > 0) {
-		arg = append(arg, services...)
-	}
-	if(len(commandArguments) > 0){
-		arg = append(arg, commandArguments...)
-	}
 
 	exec.RunCommand(
-		options,
+		command.HandlerOptions,
 		exec.ComposeCommand(
 			context,
-			command,
-			arg...
+			command.Command,
+			command.CommandArguments...
 		))
 }
 
-/*Exec ...*/
+/*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
 func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions ) {
 	m.DockerCompose(
-		"exec",
-		[]string{"-T"},
-		[]string{service},
-		commandAndArgs,
-		options,
+		DockerComposeCommand{
+			Command: "exec",
+			CommandArguments: append( []string{"-T", service }, commandAndArgs... ),
+			HandlerOptions: options,
+		},
 	)
 }
 
-/*UpDetached ...*/
+/*UpDetached runs `docker-compose up -d <services>`*/
 func (m MWDD) UpDetached( services []string, options exec.HandlerOptions ) {
 	m.DockerCompose(
-		"up",
-		[]string{"-d"},
-		services,
-		[]string{},
-		options,
+		DockerComposeCommand{
+			Command: "up",
+			CommandArguments: append( []string{"-d" }, services... ),
+			HandlerOptions: options,
+		},
 	)
 }
 
-/*DownWithVolumesAndOrphans ...*/
+/*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`*/
 func (m MWDD) DownWithVolumesAndOrphans( options exec.HandlerOptions ) {
 	m.DockerCompose(
-		"down",
-		[]string{"--volumes","--remove-orphans"},
-		[]string{},
-		[]string{},
-		options,
+		DockerComposeCommand{
+			Command: "down",
+			CommandArguments: []string{"--volumes","--remove-orphans"},
+			HandlerOptions: options,
+		},
 	)
 }
 
-/*Stop ...*/
+/*Stop runs `docker-compose stop <services>`*/
 func (m MWDD) Stop( services []string, options exec.HandlerOptions ) {
 	m.DockerCompose(
-		"stop",
-		[]string{},
-		services,
-		[]string{},
-		options,
+		DockerComposeCommand{
+			Command: "stop",
+			CommandArguments: services,
+			HandlerOptions: options,
+		},
 	)
 }
 
-/*Start ...*/
+/*Start runs `docker-compose start <services>`*/
 func (m MWDD) Start( services []string, options exec.HandlerOptions ) {
 	m.DockerCompose(
-		"start",
-		[]string{},
-		services,
-		[]string{},
-		options,
+		DockerComposeCommand{
+			Command: "start",
+			CommandArguments: services,
+			HandlerOptions: options,
+		},
 	)
 }
 
