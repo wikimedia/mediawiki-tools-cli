@@ -5,9 +5,10 @@ development environments.
 
 ## Docker
 
-In this initial version there is support for interacting with MediaWiki core's
-docker-compose development environment, with subcommands provided under the
-`docker` namespace: `mw help docker`.
+There are currently 2 subcommands:
+
+- `docker` allows interacting with MediaWiki core's docker-compose development environment. (See `mw help docker`)
+- `mwdd` allows interacting with a new version of the MediaWiki-docker-dev development environment. (See `mw help mwdd`)
 
 ## Contributing
 
@@ -19,15 +20,18 @@ Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd` directory:
 - run `go mod download` to download the required modules
 - run `go mod vendor` to copy the required modules into a vendor directory for the project
 
-Execute the script from any directory with `go run ~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd/cli/main.go`
+Execute the tool from any directory by running the `./dev.sh` script.
 
-### Packages
+### Packages & Directories
 
-- `cmd`: Contains the Cobra commands and deals with all CLI user interaction
-- `internal/docker`: Logic interacting with the mediawiki-docker dev environment
-- `internal/env`: Logic interacting with a `.env` file
-- `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc
-- `internal/mediawiki`: Logic interacting with a MediaWiki directory on disk
+- `cmd`: Contains the Cobra commands and deals with all CLI user interaction.
+- `internal/cmd`: General Cobra command abstractions that may be useful in multiple places.
+- `internal/docker`: Logic interacting with the mediawiki-docker dev environment.
+- `internal/env`: Logic interacting with a `.env` file.
+- `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc.
+- `internal/mediawiki`: Logic interacting with a MediaWiki installation directory on disk.
+- `internal/mwdd`: Logic for the MediaWiki-docker-dev development environment.
+- `static`: Files that end up being built into the binary.
 
 ### cmd names
 
