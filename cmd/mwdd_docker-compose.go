@@ -41,15 +41,13 @@ var mwddDockerComposePsCmd = &cobra.Command{
 	Use:   "ps",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
-		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
-		}
 		mwdd.DefaultForUser().DockerCompose(
-			"ps",
-			[]string{},
-			[]string{},
-			[]string{},
-			options,
+			mwdd.DockerComposeCommand{
+				Command: "ps",
+				HandlerOptions: exec.HandlerOptions{
+					Verbosity:   Verbosity,
+				},
+			},
 		)
 	},
 }
