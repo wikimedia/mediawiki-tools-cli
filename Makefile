@@ -55,6 +55,7 @@ unit:
 test: unit lint
 
 internal/mwdd/files/files.go: static/mwdd/*
+	rm internal/mwdd/files/files.go
 	staticfiles -o internal/mwdd/files/files.go static/mwdd/
 
 .PHONY: install release
