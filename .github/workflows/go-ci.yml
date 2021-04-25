@@ -76,87 +76,82 @@ jobs:
         name: binary
         path: bin/mw
 
-  # Runs a series of integration commands
-  integration-mwdd:
+  # Fetches and installs MediaWiki, caching it for further runs
+  fetch-mw:
     runs-on: ubuntu-latest
     steps:
+
+    - name: Cache MediaWiki
+      id: cache-mediawiki
+      uses: actions/cache@v2
+      with:
+        path: mediawiki
+        key: ${{ runner.os }}-mediawiki
+    - name: Fetch MediaWiki code
+      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: wikimedia/mediawiki
+        path: mediawiki
+    - name: Do a composer install
+      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      run: composer install --no-progress --ansi --working-dir mediawiki
+
+  collect-integration-tests:
+      runs-on: ubuntu-latest
+      steps:
+          - uses: actions/checkout@v2
+          - run: ls ./.github/workflows/go-ci-integration | jq -R -s -c 'split("\n")[:-1]'
+          - id: output-data
+            run: echo "::set-output name=matrix::$(ls ./.github/workflows/go-ci-integration | jq -R -s -c 'split("\n")[:-1]')"
+
+      outputs:
+          matrix: ${{ steps.output-data.outputs.matrix }}
+
+  # Runs a series of integration tests
+  integration-tests:
+    needs: [ build, fetch-mw, collect-integration-tests ]
+    runs-on: ubuntu-latest
+
+    strategy:
+        fail-fast: false
+        matrix:
+            test: ${{ fromJson(needs.collect-integration-tests.outputs.matrix )}}
+
+    steps:
+    - uses: actions/checkout@v2
+
+      # Get cached or fresh MediaWiki
+    - name: Cache MediaWiki
+      id: cache-mediawiki
+      uses: actions/cache@v2
+      with:
+        path: mediawiki
+        key: ${{ runner.os }}-mediawiki
+    - name: Fetch MediaWiki code
+      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: wikimedia/mediawiki
+        path: mediawiki
+    - name: Do a composer install
+      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      run: composer install --no-progress --ansi --working-dir mediawiki
+
+      # Get the executable binary to test
+    - uses: actions/download-artifact@master
+      with:
+        name: binary
+        path: .
+    - run: chmod +x ./mw
+
       # This is a hack to work around https://github.com/jwilder/docker-gen/issues/315.
       # Support ticket is open with Github to make sure that this is okay.
     - name: Update Docker cgroup and restart service
       run: |
         sudo rm /etc/docker/daemon.json
         sudo service docker restart
-    - uses: actions/checkout@v2
 
-    - name: Setup Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.13
+      # Run the test
+    - run: ./.github/workflows/go-ci-integration/${{ matrix.test }}
 
-    - name: Install staticfiles
-      run: go get bou.ke/staticfiles
-
-    - name: Make
-      run: make
-
-    - name: Setup hosts file
-      run: sudo echo "127.0.0.1 default.mediawiki.mwdd.localhost" | sudo tee -a /etc/hosts
-
-      # TODO at some point make mwdd fetch the code (also to the "right" place)
-    - name: Fetch MediaWiki code to default location
-      uses: actions/checkout@v2
-      with:
-        repository: wikimedia/mediawiki
-        path: mediawiki-code
-      # TODO soon mwdd will do this...
-    - name: Do a composer install of MediaWiki
-      run: composer install --no-progress --ansi --working-dir mediawiki-code
-    - name: And set that location in mwdd
-      run: ./bin/mw mwdd env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki-code
-
-    # base create
-    - name: mwdd create
-      run: ./bin/mw mwdd create
-
-    # mwdd docker-compose ps
-    - name: mwdd docker-compose ps
-      run: ./bin/mw mwdd docker-compose ps
-
-    # Output things useful for debugging
-    - name: mwdd env list
-      run: ./bin/mw mwdd env list
-
-    # Test mediawiki create (Shows the install prompt)
-    - run: curl -s http://default.mediawiki.mwdd.localhost:8080 | grep -q "The MediaWiki logo"
-
-    # Create the needed LocalSettings.php file
-    - name: Create the default LocalSettings.php file
-      run: |
-        echo "<?php" >> mediawiki-code/LocalSettings.php
-        echo "//require_once "$IP/includes/PlatformSettings.php";" >> mediawiki-code/LocalSettings.php
-        echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki-code/LocalSettings.php
-
-    # mediawiki install
-    - name: mwdd mediawiki install
-      run: ./bin/mw mwdd mediawiki install
-
-    # Test mediawiki install
-    - run: curl -s -L http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-
-    # Test mysql create
-    - name: mwdd mysql create
-      run: ./bin/mw mwdd mysql create
-
-    # mediawiki install
-    - name: mwdd mediawiki install
-      run: ./bin/mw mwdd mediawiki install mysqlwiki mysql
-
-    # Test mediawiki install
-    - run: curl -s -L http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-
-    # base destroy
-    - name: mwdd destroy
-      run: ./bin/mw mwdd destroy
-
-    # Test base destroy
-    - run: docker ps | wc -l | grep -q "1"
