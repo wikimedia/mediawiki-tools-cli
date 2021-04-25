@@ -141,7 +141,9 @@ var mwddMediawikiDestroyCmd = &cobra.Command{
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().DownWithVolumesAndOrphans( options )	},
+		mwdd.DefaultForUser().Rm( []string{"mediawiki"},options)
+		mwdd.DefaultForUser().RmVolumes( []string{"mediawiki-data","mediawiki-images","mediawiki-logs"},options)
+	},
 }
 
 var mwddMediawikiSuspendCmd = &cobra.Command{

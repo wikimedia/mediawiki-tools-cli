@@ -37,18 +37,25 @@ var mwddMySQLCreateCmd = &cobra.Command{
 	Short: "Create the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
-		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
-		}
-		mwdd.DefaultForUser().UpDetached( []string{"mysql"}, options )
+		mwdd.DefaultForUser().UpDetached(
+			[]string{"mysql"},
+			exec.HandlerOptions{
+				Verbosity:   Verbosity,
+			},
+		)
 	},
 }
 
 var mwddMySQLDestroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "Destroy the MySQL containers",
+	Short: "Destroy the MySQL containers and volumes",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().Rm( []string{"mysql"},options)
+		mwdd.DefaultForUser().RmVolumes( []string{"mysql-data"},options)
 	},
 }
 
