@@ -18,8 +18,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"fmt"
-
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"github.com/spf13/cobra"
@@ -63,7 +61,11 @@ var mwddMySQLSuspendCmd = &cobra.Command{
 	Use:   "suspend",
 	Short: "Suspend the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().Stop( []string{"mysql"},options)
 	},
 }
 
@@ -71,7 +73,11 @@ var mwddMySQLResumeCmd = &cobra.Command{
 	Use:   "resume",
 	Short: "Resume the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().Start( []string{"mysql"},options)
 	},
 }
 
