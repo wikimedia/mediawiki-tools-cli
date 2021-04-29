@@ -24,19 +24,19 @@ import (
 )
 
 
-var mwddPhpMyAdminCmd = &cobra.Command{
-	Use:   "phpmyadmin",
-	Short: "phpMyAdmin service",
+var mwddMySQLCmd = &cobra.Command{
+	Use:   "mysql",
+	Short: "Sql service",
 	RunE:  nil,
 }
 
-var mwddPhpMyAdminCreateCmd = &cobra.Command{
+var mwddMySQLCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a PhpMyAdmin container",
+	Short: "Create the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().UpDetached(
-			[]string{"phpmyadmin"},
+			[]string{"mysql"},
 			exec.HandlerOptions{
 				Verbosity:   Verbosity,
 			},
@@ -44,47 +44,47 @@ var mwddPhpMyAdminCreateCmd = &cobra.Command{
 	},
 }
 
-var mwddPhpMyAdminDestroyCmd = &cobra.Command{
+var mwddMySQLDestroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "Destroy the PhpMyAdmin container",
+	Short: "Destroy the MySQL containers and volumes",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"phpmyadmin"},options)
-		mwdd.DefaultForUser().RmVolumes( []string{"phpmyadmin-data"},options)
+		mwdd.DefaultForUser().Rm( []string{"mysql"},options)
+		mwdd.DefaultForUser().RmVolumes( []string{"mysql-data"},options)
 	},
 }
 
-var mwddPhpMyAdminSuspendCmd = &cobra.Command{
+var mwddMySQLSuspendCmd = &cobra.Command{
 	Use:   "suspend",
-	Short: "Suspend the PhpMyAdmin container",
+	Short: "Suspend the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"phpmyadmin"},options)
+		mwdd.DefaultForUser().Stop( []string{"mysql"},options)
 	},
 }
 
-var mwddPhpMyAdminResumeCmd = &cobra.Command{
+var mwddMySQLResumeCmd = &cobra.Command{
 	Use:   "resume",
-	Short: "Resume the PhpMyAdmin container",
+	Short: "Resume the MySQL containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"phpmyadmin"},options)
+		mwdd.DefaultForUser().Start( []string{"mysql"},options)
 	},
 }
 
 func init() {
-	mwddCmd.AddCommand(mwddPhpMyAdminCmd)
-	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminCreateCmd)
-	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminDestroyCmd)
-	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminSuspendCmd)
-	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminResumeCmd)
+	mwddCmd.AddCommand(mwddMySQLCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLCreateCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLDestroyCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLSuspendCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLResumeCmd)
 }
