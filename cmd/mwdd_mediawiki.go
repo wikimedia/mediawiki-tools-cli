@@ -187,6 +187,18 @@ var mwddMediawikiPhpunitCmd = &cobra.Command{
 	},
 }
 
+var mwddMediawikiExecCmd = &cobra.Command{
+	Use:   "exec [command...]",
+	Short: "Executes a command in the MediaWiki container",
+	DisableFlagParsing: true,
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "mediawiki",
+			Command: args,
+		})
+	},
+}
 
 func init() {
 	mwddCmd.AddCommand(mwddMediawikiCmd)
@@ -197,4 +209,5 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
+	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
 }
