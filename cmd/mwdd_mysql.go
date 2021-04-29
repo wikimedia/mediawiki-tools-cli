@@ -87,4 +87,5 @@ func init() {
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminDestroyCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminSuspendCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminResumeCmd)
+	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 }
