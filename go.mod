@@ -7,4 +7,4 @@ require (
 	github.com/spf13/cobra v1.0.0
 )
 
-go 1.11
+go 1.16

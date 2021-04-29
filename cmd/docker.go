@@ -18,13 +18,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"github.com/manifoldco/promptui"
 	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/manifoldco/promptui"
 
 	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
@@ -44,7 +45,7 @@ func mediawikiOrFatal() mediawiki.MediaWiki {
 	MediaWiki, err := mediawiki.ForCurrentWorkingDirectory()
 	if err != nil {
 		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
-		os.Exit(1);
+		os.Exit(1)
 	}
 	return MediaWiki
 }
@@ -64,9 +65,8 @@ var dockerStartCmd = &cobra.Command{
 		exec.RunCommand(options, docker.ComposeCommand("up", "-d"))
 		MediaWiki := mediawikiOrFatal()
 
-
 		if isLinuxHost() {
-			fileCreated,err := docker.EnsureDockerComposeUserOverrideExists()
+			fileCreated, err := docker.EnsureDockerComposeUserOverrideExists()
 			if fileCreated {
 				fmt.Println("Creating docker-compose.override.yml for correct user ID and group ID mapping from host to container")
 			}
@@ -79,38 +79,43 @@ var dockerStartCmd = &cobra.Command{
 
 		if docker.MediaWikiComposerDependenciesNeedInstallation(exec.HandlerOptions{Verbosity: Verbosity}) {
 			fmt.Println("MediaWiki has some external dependencies that need to be installed")
-			prompt := promptui.Prompt{
-				IsConfirm: true,
-				Label:     "Install dependencies now",
-			}
-			_, err := prompt.Run()
-			if err == nil {
+
+			installComposer := func() {
 				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 				Spinner.Prefix = "Installing Composer dependencies (this may take a few minutes) "
 				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
 				options := exec.HandlerOptions{
-					Spinner: Spinner,
+					Spinner:   Spinner,
 					Verbosity: Verbosity,
 				}
 				docker.MediaWikiComposerUpdate(options)
 			}
 
+			if NonInteractive {
+				installComposer()
+			} else {
+				prompt := promptui.Prompt{
+					IsConfirm: true,
+					Label:     "Install dependencies now",
+				}
+
+				_, err := prompt.Run()
+				if err == nil {
+					installComposer()
+				}
+			}
 		}
 
 		if !MediaWiki.VectorIsPresent() {
-			prompt := promptui.Prompt{
-				IsConfirm: true,
-				Label:     "Download and use the Vector skin",
-			}
-			_, err := prompt.Run()
-			if err == nil {
+
+			downloadVector := func() {
 				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 				Spinner.Prefix = "Downloading Vector "
 				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 
 				options := exec.HandlerOptions{
-					Spinner: Spinner,
+					Spinner:   Spinner,
 					Verbosity: Verbosity,
 					HandleError: func(stderr bytes.Buffer, err error) {
 						if err != nil {
@@ -122,23 +127,43 @@ var dockerStartCmd = &cobra.Command{
 				MediaWiki.GitCloneVector(options)
 			}
 
+			if NonInteractive {
+				downloadVector()
+			} else {
+				prompt := promptui.Prompt{
+					IsConfirm: true,
+					Label:     "Download and use the Vector skin",
+				}
+				_, err := prompt.Run()
+				if err == nil {
+					downloadVector()
+				}
+			}
 		}
 
 		if !MediaWiki.LocalSettingsIsPresent() {
-			prompt := promptui.Prompt{
-				IsConfirm: true,
-				Label:     "Install MediaWiki database tables and create LocalSettings.php",
-			}
-			_, err := prompt.Run()
-			if err == nil {
+			installMediawiki := func() {
 				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 				Spinner.Prefix = "Installing "
 				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 				options := exec.HandlerOptions{
-					Spinner: Spinner,
+					Spinner:   Spinner,
 					Verbosity: Verbosity,
 				}
 				docker.MediaWikiInstall(options)
+			}
+
+			if NonInteractive {
+				installMediawiki()
+			} else {
+				prompt := promptui.Prompt{
+					IsConfirm: true,
+					Label:     "Install MediaWiki database tables and create LocalSettings.php",
+				}
+				_, err := prompt.Run()
+				if err == nil {
+					installMediawiki()
+				}
 			}
 		}
 
@@ -233,7 +258,7 @@ var dockerStopCmd = &cobra.Command{
 		Spinner.Prefix = "Stopping development environment "
 		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 		options := exec.HandlerOptions{
-			Spinner: Spinner,
+			Spinner:   Spinner,
 			Verbosity: Verbosity,
 		}
 		exec.RunCommand(options, docker.ComposeCommand("stop"))
@@ -293,10 +318,7 @@ func init() {
 
 	rootCmd.AddCommand(dockerCmd)
 
-	dockerCmd.AddCommand(dockerStartCmd)
-	dockerCmd.AddCommand(dockerStopCmd)
-	dockerCmd.AddCommand(dockerStatusCmd)
-	dockerCmd.AddCommand(dockerDestroyCmd)
+	dockerStartCmd.Flags().BoolVarP(&NonInteractive, "acceptPrompts", "y", false, "Answer yes to all prompts")
 
 	dockerExecCmd.Flags().BoolVarP(&Detach, "detach", "d", false, "Detached mode: Run command in the background.")
 	dockerExecCmd.Flags().BoolVarP(&Privileged, "privileged", "p", false, "Give extended privileges to the process.")
@@ -305,5 +327,10 @@ func init() {
 	dockerExecCmd.Flags().StringVarP(&Index, "index", "i", "", "Index of the container if there are multiple instances of a service [default: 1]")
 	dockerExecCmd.Flags().StringSliceVarP(&Env, "env", "e", []string{}, "Set environment variables. Can be used multiple times")
 	dockerExecCmd.Flags().StringVarP(&Workdir, "workdir", "w", "", "Path to workdir directory for this command.")
+
+	dockerCmd.AddCommand(dockerStartCmd)
+	dockerCmd.AddCommand(dockerStopCmd)
+	dockerCmd.AddCommand(dockerStatusCmd)
+	dockerCmd.AddCommand(dockerDestroyCmd)
 	dockerCmd.AddCommand(dockerExecCmd)
 }
