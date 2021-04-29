@@ -170,6 +170,24 @@ var mwddMediawikiResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddMediawikiPhpunitCmd = &cobra.Command{
+	Use:   "phpunit",
+	Short: "Runs MediaWiki phpunit in the MediaWiki container",
+	Run: func(cmd *cobra.Command, args []string) {
+		wiki := "default"
+		// TODO optionally take a --wiki (use default if not specified?) Maybe this should be done in LocalSettings?
+		// if len(args) >= 1 {
+		// 	wiki = args[0]
+		// }
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "mediawiki",
+			Command: append([]string{"php", "/var/www/html/w/tests/phpunit/phpunit.php", "--wiki", wiki},args...),
+		})
+	},
+}
+
+
 func init() {
 	mwddCmd.AddCommand(mwddMediawikiCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiCreateCmd)
@@ -178,4 +196,5 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiResumeCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
+	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 }
