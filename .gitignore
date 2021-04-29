@@ -5,3 +5,4 @@
 /.lint-*
 /_release
 /vendor
+internal/mwdd/files/files.go
