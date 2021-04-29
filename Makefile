@@ -17,7 +17,7 @@ GO_LDFLAGS := \
 GO_BUILD := go build -v -ldflags "$(GO_LDFLAGS)" -o bin/mw
 GO_INSTALL := go install -v -ldflags "$(GO_LDFLAGS)"
 
-all: code mw-cli
+all: code internal/mwdd/files/files.go mw-cli
 
 mw-cli:
 	$(GO_BUILD) ./cmd/cli
@@ -29,6 +29,7 @@ clean:
 	go clean $(GO_PACKAGES)
 	rm -f bin/mw || true
 	rm -rf _releases || true
+	rm internal/mwdd/files/files.go || true
 
 install: all
 	$(GO_INSTALL) $(GO_PACKAGES)
@@ -52,10 +53,11 @@ lint:
 unit:
 	go test -cover -ldflags "$(GO_LDFLAGS)" $(GO_PACKAGES)
 
-test: unit lint
+test: internal/mwdd/files/files.go unit lint
 
 internal/mwdd/files/files.go: static/mwdd/*
-	rm internal/mwdd/files/files.go
+	go get bou.ke/staticfiles@v0.0.0-20210106104248-dd04075d4104
+	rm -f internal/mwdd/files/files.go
 	staticfiles -o internal/mwdd/files/files.go static/mwdd/
 
 .PHONY: install release
