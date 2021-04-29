@@ -41,7 +41,7 @@ func diskFileToBytes(file string) []byte {
 
 func getAssumedFilePerms( filePath string ) os.FileMode {
 	// Set all .sh files as +x when creating them
-	// All useers should be able to read and execute these files so users in containers can use them
+	// All users should be able to read and execute these files so users in containers can use them
 	// XXX: Currently if you change these file permissions on disk files will need to be deleted and re added..
 	if filepath.Ext(filePath) == ".sh" {
 		return 0755
