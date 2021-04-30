@@ -1,0 +1,10 @@
+version: '2.2'
+
+services:
+  redis:
+    image: redis
+    hostname: redis.mwdd.localhost
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
