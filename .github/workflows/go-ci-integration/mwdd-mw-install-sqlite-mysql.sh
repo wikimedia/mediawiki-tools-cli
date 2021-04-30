@@ -7,6 +7,7 @@
 # Validate the basic stuff
 ./mw mwdd docker-compose ps
 ./mw mwdd env list
+cat ~/.mwcli/mwdd/default/.env
 curl -s http://default.mediawiki.mwdd.localhost:8080 | grep -q "The MediaWiki logo"
 
 # Add the needed LocalSettings

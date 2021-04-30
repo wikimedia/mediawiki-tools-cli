@@ -11,6 +11,7 @@ echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 # Validate the basic stuff
 ./mw mwdd docker-compose ps
 ./mw mwdd env list
+cat ~/.mwcli/mwdd/default/.env
 
 # Install & check
 ./mw mwdd mediawiki install mysqlwiki mysql
