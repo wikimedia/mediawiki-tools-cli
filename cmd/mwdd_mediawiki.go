@@ -46,6 +46,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		}
 
 		// Move custom LocalSetting.php so the install doesn't overwrite it
+		// TODO don't output if this file doesnt exist...
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
 			"mv",
 			"/var/www/html/w/LocalSettings.php",

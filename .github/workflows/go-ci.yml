@@ -82,12 +82,23 @@ jobs:
   # Runs a series of integration tests
   integration-tests:
     needs: [ build, fetch-mw, collect-integration-tests ]
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+#ubuntu-18.04
     strategy:
         fail-fast: false
         matrix:
+            docker_version:
+            - 20.10
+            - 19.03
+            - 18.09
             test: ${{ fromJson(needs.collect-integration-tests.outputs.matrix )}}
+            include:
+            - docker_version: 20.10
+              os: ubuntu-latest
+            - docker_version: 19.03
+              os: ubuntu-latest
+            - docker_version: 18.09
+              os: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v2
@@ -116,12 +127,23 @@ jobs:
         path: .
     - run: chmod +x ./mw
 
+    - name: Setup Docker
+      uses: docker-practice/actions-setup-docker@master
+      with:
+        docker_version: ${{ matrix.docker_version }}
+        docker_channel: stable
+
       # This is a hack to work around https://github.com/jwilder/docker-gen/issues/315.
       # Support ticket is open with Github to make sure that this is okay.
     - name: Update Docker cgroup and restart service
       run: |
         sudo rm /etc/docker/daemon.json
         sudo service docker restart
+
+    - name: Output docker versions
+      run: |
+        docker version
+        docker-compose version
 
       # Run the test
     - run: ./.github/workflows/go-ci-integration/${{ matrix.test }}
