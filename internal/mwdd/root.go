@@ -18,10 +18,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package mwdd
 
 import (
-	"fmt"
 	"os"
 	"os/user"
-	"runtime"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
@@ -61,36 +59,7 @@ func (m MWDD) Env() env.DotFile {
 /*EnsureReady ...*/
 func (m MWDD) EnsureReady() {
 	files.EnsureReady(m.Directory())
-	m.EnsureEnvDefaults()
-}
-
-/*EnsureEnvDefaults ...*/
-func (m MWDD) EnsureEnvDefaults() {
-	neededVarDefaults := map[string]string{
-		"MEDIAWIKI_VOLUMES_CODE": "~/dev/git/gerrit/mediawiki",
-		"PORT": "8080",
-	}
-	env := m.Env()
-
-	for key, value := range neededVarDefaults {
-		if( env.Get(key) == "" ) {
-			env.Set(key, value)
-		}
-	}
-
-	// Always set the UID and GID (assume people shouldn't be setting this)
-	if(runtime.GOOS == "windows") {
-		// This user won't exist, but that fact doesn't really matter on Windows
-		env.Set("UID", "2000")
-		env.Set("GID", "2000")
-	} else {
-		if(env.Get("UID") == "") {
-			env.Set("UID", fmt.Sprintf("%d",os.Getuid()))
-		}
-		if(env.Get("GID") == "") {
-			env.Set("GID", fmt.Sprintf("%d",os.Getgid()))
-		}
-	}
+	m.Env().EnsureExists()
 }
 
 /*EnsureHostsFile Make sure that a bunch of hosts that we will use are in the hosts file*/

@@ -20,10 +20,15 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
+	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +37,97 @@ var mwddMediawikiCmd = &cobra.Command{
 	Use:   "mediawiki",
 	Short: "MediaWiki service",
 	RunE:  nil,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		cmd.Parent().Parent().PersistentPreRun(cmd, args)
+		mwdd := mwdd.DefaultForUser()
+		mwdd.EnsureReady()
+		if(mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE")){
+			// TODO auto detect if the current (or parent directory) is MediaWiki and suggest that
+			dirPrompt := promptui.Prompt{
+				Label:     "What directory would you like to store MediaWiki source code in?",
+				Default: "~/dev/git/gerrit/mediawiki/core",
+			}
+			value, err := dirPrompt.Run()
+
+			// Deal with people entering ~/ paths and them not be handeled
+			usr, _ := user.Current()
+			usrDir := usr.HomeDir
+			if value == "~" {
+				// In case of "~", which won't be caught by the "else if"
+				value = usrDir
+			} else if strings.HasPrefix(value, "~/") {
+				// Use strings.HasPrefix so we don't match paths like
+				// "/something/~/something/"
+				value = filepath.Join(usrDir, value[2:])
+			}
+
+			if err == nil {
+				mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE",value)
+			} else {
+				fmt.Println("Can't continue without a MediaWiki code directory")
+				os.Exit(1)
+			}
+		}
+
+		setupOpts := mediawiki.CloneSetupOpts{}
+		mediawiki, _ := mediawiki.ForDirectory(mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+
+		// TODO ask a question about what remotes you want to end up using? https vs ssh!
+		// TODO ask if they want to get any more skins and extensions?
+		// TODO async cloning of repos for speed!
+		if(!mediawiki.MediaWikiIsPresent()) {
+			cloneMwPrompt := promptui.Prompt{
+				Label:     "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
+				IsConfirm: true,
+			}
+			_, err := cloneMwPrompt.Run()
+			setupOpts.GetMediaWiki = err == nil
+		}
+		if(!mediawiki.VectorIsPresent()) {
+			cloneMwPrompt := promptui.Prompt{
+				Label:     "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
+				IsConfirm: true,
+			}
+			_, err := cloneMwPrompt.Run()
+			setupOpts.GetVector = err == nil
+		}
+		if(setupOpts.GetMediaWiki || setupOpts.GetVector) {
+			cloneFromGithub := promptui.Prompt{
+				Label:     "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
+				IsConfirm: true,
+			}
+			_, err := cloneFromGithub.Run()
+			setupOpts.UseGithub = err == nil
+		}
+		if(setupOpts.GetMediaWiki || setupOpts.GetVector) {
+			cloneFromGithub := promptui.Prompt{
+				Label:     "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
+				IsConfirm: true,
+			}
+			_, err := cloneFromGithub.Run()
+			setupOpts.UseShallow = err == nil
+		}
+
+		// Clone various things in multiple stages
+		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+		Spinner.Prefix = "Performing step"
+		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
+		setupOpts.Options = exec.HandlerOptions{
+			Spinner: Spinner,
+			//Verbosity: Verbosity,
+		}
+		mediawiki.CloneSetup(setupOpts)
+
+		// Check that the needed things seem to have happened
+		if(setupOpts.GetMediaWiki && !mediawiki.MediaWikiIsPresent()) {
+			fmt.Println("Something went wrong cloning MediaWiki")
+			os.Exit(1);
+		}
+		if(setupOpts.GetVector && !mediawiki.VectorIsPresent()) {
+			fmt.Println("Something went wrong cloning Vector")
+			os.Exit(1);
+		}
+	},
 }
 
 /*DbType used by the install command*/
@@ -58,6 +154,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 					fmt.Println(err)
 					return
 				}
+				// TODO if the Vector skin exists, also load that
 				_, err = f.WriteString("<?php\n//require_once \"$IP/includes/PlatformSettings.php\";\nrequire_once '/mwdd/MwddSettings.php';")
 				if err != nil {
 					fmt.Println(err)
@@ -79,6 +176,8 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			fmt.Println("LocalSettings.php file exists, but doesn't look right (missing mwcli mwdd shim)")
 			return;
 		}
+
+		// TODO composer install if needed
 
 		// Move custom LocalSetting.php so the install doesn't overwrite it
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{

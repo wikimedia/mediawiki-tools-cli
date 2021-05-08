@@ -30,6 +30,9 @@ func Env(Short string) *cobra.Command {
 		Use:   "env",
 		Short: Short,
 		RunE:  nil,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Do nothing, but override any other PersistentPreRuns
+		},
 	}
 }
 

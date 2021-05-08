@@ -18,8 +18,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package env
 
 import (
-	"os"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -80,6 +80,18 @@ func (f DotFile) Set(name string, value string) {
 func (f DotFile) Get(name string) string {
 	envMap := f.read()
 	return envMap[name]
+}
+
+/*Has a value in the env*/
+func (f DotFile) Has(name string) bool {
+	envMap := f.read()
+	_, ok := envMap[name]
+	return ok
+}
+
+/*Missing a value in the env*/
+func (f DotFile) Missing(name string) bool {
+	return !f.Has(name)
 }
 
 /*List all values from the env*/
