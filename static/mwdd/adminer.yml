@@ -1,0 +1,16 @@
+version: '2.2'
+
+services:
+  adminer:
+    image: adminer
+    environment:
+      - VIRTUAL_HOST=adminer.mwdd.localhost
+      - VIRTUAL_PORT=8080
+    depends_on:
+      - dps
+      - nginx-proxy
+    hostname: adminer.mwdd.localhost
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
