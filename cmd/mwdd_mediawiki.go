@@ -177,7 +177,29 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			return;
 		}
 
-		// TODO composer install if needed
+		// TODO make sure of composer caches
+		composerErr := mwdd.DefaultForUser().Exec("mediawiki",[]string{
+			"php", "-r",
+			"require_once dirname( __FILE__ ) . '/includes/PHPVersionCheck.php'; $phpVersionCheck = new PHPVersionCheck(); $phpVersionCheck->checkVendorExistence();",
+		},
+		exec.HandlerOptions{})
+		if(composerErr != nil) {
+			prompt := promptui.Prompt{
+				IsConfirm: true,
+				Label:     "Composer dependencies are not up to date, do you want to composer install?",
+			}
+			_, err := prompt.Run()
+			if err == nil {
+				mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+					DockerComposeService: "mediawiki",
+					Command: []string{"composer","install","--ignore-platform-reqs","--no-interaction"},
+					User: User,
+				},)
+			} else {
+				fmt.Println("Can't install without up to date composer dependencies")
+				os.Exit(1)
+			}
+		}
 
 		// Move custom LocalSetting.php so the install doesn't overwrite it
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
@@ -251,8 +273,14 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 var mwddMediawikiComposerCmd = &cobra.Command{
 	Use:   "composer",
 	Short: "Runs composer in a container in the context of MediaWiki",
+	Example:   "  composer info\n  composer install -- --ignore-platform-reqs",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "mediawiki",
+			Command: append([]string{"composer"},args...),
+			User: User,
+		})
 	},
 }
 
@@ -349,6 +377,7 @@ func init() {
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "sqlite", "Type of database to install (sqlite, mysql, postgres)")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
+	mwddMediawikiComposerCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
 	mwddMediawikiExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
