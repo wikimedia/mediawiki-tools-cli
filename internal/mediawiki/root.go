@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package mediawiki
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -80,6 +81,101 @@ func (m MediaWiki) EnsureCacheDirectory() {
 	err := os.MkdirAll("cache", 0700)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+/*MediaWikiIsPresent ...*/
+func (m MediaWiki) MediaWikiIsPresent() bool {
+	//TODO add a better check
+	info, err := os.Stat(m.Path("thumb_handler.php"))
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+/*GitCloneMediaWiki ...*/
+func (m MediaWiki) GitCloneMediaWiki(options exec.HandlerOptions) {
+	// TODO check git exists on the system?
+	// TODO don't use https by default? use ssh?
+	exec.RunCommand(options, exec.Command(
+		"git",
+		"clone",
+		"https://gerrit.wikimedia.org/r/mediawiki/core",
+		m.Path("")))
+}
+
+/*CloneSetupOpts for use with GithubCloneMediaWiki*/
+type CloneSetupOpts = struct{
+	GetMediaWiki bool
+	GetVector bool
+	UseGithub bool
+	UseShallow bool
+	FinishAs string
+	Options exec.HandlerOptions
+}
+
+/*CloneSetup provides a packages initial setup method for MediaWiki and Vector with some speedy features*/
+func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
+	// TODO check git exists on the system?
+	startRemoteCore := "https://gerrit.wikimedia.org/r/mediawiki/core"
+	startRemoteVector := "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
+	if(options.UseGithub) {
+		startRemoteCore = "https://github.com/wikimedia/mediawiki.git"
+		startRemoteVector = "https://github.com/wikimedia/Vector.git"
+	}
+	endRemoteCore := "https://gerrit.wikimedia.org/r/mediawiki/core"
+	endRemoteVector := "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
+	if(options.FinishAs != "") {
+		fmt.Println("Not yet implemented")
+		os.Exit(1)
+	}
+	shallowOptions := ""
+	if(options.UseShallow){
+		shallowOptions = "--depth=1"
+	}
+
+	if(options.GetMediaWiki){
+		exec.RunCommand(options.Options, exec.Command(
+			"git",
+			"clone",
+			shallowOptions,
+			startRemoteCore,
+			m.Path("")))
+		if(startRemoteCore != endRemoteCore){
+			exec.RunCommand(options.Options, exec.Command(
+				"git",
+				"-C", m.Path(""),
+				"remote",
+				"set-url",
+				"origin",
+				endRemoteCore))
+			exec.RunCommand(options.Options, exec.Command(
+				"git",
+				"-C", m.Path(""),
+				"pull"))
+		}
+	}
+	if(options.GetVector){
+		exec.RunCommand(options.Options, exec.Command(
+			"git",
+			"clone",
+			shallowOptions,
+			startRemoteVector,
+			m.Path("skins/Vector")))
+		if(startRemoteCore != endRemoteCore){
+				exec.RunCommand(options.Options, exec.Command(
+					"git",
+					"-C", m.Path("skins/Vector"),
+					"remote",
+					"set-url",
+					"origin",
+					endRemoteVector))
+				exec.RunCommand(options.Options, exec.Command(
+					"git",
+					"-C", m.Path("skins/Vector"),
+					"pull"))
+			}
 	}
 }
 
