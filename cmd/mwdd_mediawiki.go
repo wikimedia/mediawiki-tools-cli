@@ -349,6 +349,7 @@ var mwddMediawikiPhpunitCmd = &cobra.Command{
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
 			Command: append([]string{"php", "/var/www/html/w/tests/phpunit/phpunit.php", "--wiki", wiki},args...),
+			User: User,
 		})
 	},
 }
@@ -379,6 +380,7 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiComposerCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
+	mwddMediawikiPhpunitCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
 	mwddMediawikiExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 
