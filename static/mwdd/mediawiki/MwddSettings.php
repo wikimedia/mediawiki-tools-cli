@@ -46,11 +46,23 @@ $mwddServices = [
 # MWDD Database
 ################################
 // Figure out if we are using sqlite, or if this should be mysql..?
-// TODO eventually for things like postgres this will need a more advanced system of checking.
 if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
 	$dockerDbType = 'sqlite';
 } else {
-	$dockerDbType = 'mysql';
+	// TODO cache this check somehow so that we don't need a query every time...
+	try{
+		$mysqlPdo = new PDO( "mysql:host=mysql;dbname=" . $dockerDb, 'root', 'toor' );
+		$mysqlCheck = $mysqlPdo->query("SHOW DATABASES LIKE " . $dockerDb);
+		if(count( $mysqlCheck ) === 1){
+			$dockerDbType = 'mysql';
+		}
+	} catch ( Exception $e ) {
+		// do nothing
+	}
+	// If no other magic detection happened, we must be in postgres (or some generic error state)
+	if(!isset($dockerDbType)){
+		$dockerDbType = 'postgres';
+	}
 }
 
 $wgDBname = $dockerDb;
@@ -96,6 +108,22 @@ if( $dockerDbType === 'mysql' ) {
 	// mysql only stuff (would need to change for sqlite?)
 	$wgDBprefix = "";
 	$wgDBTableOptions = "ENGINE=InnoDB, DEFAULT CHARSET=binary";
+}
+
+if( $dockerDbType === 'postgres' ) {
+	$wgDBservers = [
+		[
+			'host' => "postgres",
+			'dbname' => $dockerDb,
+			'user' => 'root',
+			'password' => 'toor',
+			'type' => $dockerDbType,
+			'flags' => DBO_DEFAULT,
+			'load' => 1,
+		],
+	];
+	// https://www.mediawiki.org/wiki/Manual:$wgDBmwschema
+	$wgDBmwschema = "mediawiki";
 }
 
 ################################

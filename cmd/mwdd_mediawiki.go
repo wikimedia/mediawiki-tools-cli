@@ -206,6 +206,14 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 				"/wait-for-it.sh",
 				"mysql:3306",
 				}, exec.HandlerOptions{})
+		}
+		if DbType == "postgres" {
+			mwdd.DefaultForUser().Exec("mediawiki",[]string{
+				"/wait-for-it.sh",
+				"postgres:5432",
+				}, exec.HandlerOptions{})
+		}
+		if DbType == "mysql" || DbType == "postgres" {
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
 				"php",
 				"/var/www/html/w/maintenance/install.php",
@@ -215,7 +223,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 				"--dbuser", "root",
 				"--dbpass", "toor",
 				"--dbname", DbName,
-				"--dbserver", "mysql",
+				"--dbserver", DbType,
 				"--lang", "en",
 				"--pass", "mwddpassword",
 				"docker-" + DbName,
@@ -339,7 +347,7 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiResumeCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
-	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "sqlite", "Type of database to install (sqlite, mysql)")
+	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "sqlite", "Type of database to install (sqlite, mysql, postgres)")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
