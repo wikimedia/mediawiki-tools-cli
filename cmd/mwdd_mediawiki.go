@@ -19,9 +19,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -31,42 +34,75 @@ var mwddMediawikiCmd = &cobra.Command{
 	RunE:  nil,
 }
 
+/*DbType used by the install command*/
+var DbType string;
+/*DbName used by the install command*/
+var DbName string;
+
 var mwddMediawikiInstallCmd = &cobra.Command{
-	Use:   "install [db name] [db type]",
+	Use:   "install",
 	Short: "Installs a new MediaWiki site using install.php",
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO deal with errors from any of the below commands...
-		dbname := "default"
-		dbtype := "sqlite"
-		if len(args) >= 1 {
-			dbname = args[0]
+		mediawiki, _ := mediawiki.ForDirectory(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+		if !mediawiki.LocalSettingsIsPresent() {
+			prompt := promptui.Prompt{
+				IsConfirm: true,
+				Label:     "No LocalSettings.php detected. Do you want to create the default mwdd file?",
+			}
+			_, err := prompt.Run()
+			if err == nil {
+				lsPath := mediawiki.Path("LocalSettings.php")
+
+				f, err := os.Create(lsPath)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				_, err = f.WriteString("<?php\n//require_once \"$IP/includes/PlatformSettings.php\";\nrequire_once '/mwdd/MwddSettings.php';")
+				if err != nil {
+					fmt.Println(err)
+					f.Close()
+					return
+				}
+				err = f.Close()
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+			} else {
+				fmt.Println("Can't install without the expected LocalSettings.php file")
+				return
+			}
 		}
-		if len(args) >= 2 {
-			dbtype = args[1]
+
+		if(!mediawiki.LocalSettingsContains("/mwdd/MwddSettings.php")) {
+			fmt.Println("LocalSettings.php file exists, but doesn't look right (missing mwcli mwdd shim)")
+			return;
 		}
 
 		// Move custom LocalSetting.php so the install doesn't overwrite it
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
 			"mv",
 			"/var/www/html/w/LocalSettings.php",
-			"/var/www/html/w/LocalSettings.php.docker.tmp",
+			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
 			}, exec.HandlerOptions{})
 
-		// Do a DB type dependant install
-		// TODO actually input the "right" settings so install.php output looks correct
-		if dbtype == "sqlite" {
+		// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
+		if DbType == "sqlite" {
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
 				"php",
 				"/var/www/html/w/maintenance/install.php",
-				"--dbtype", dbtype,
-				"--dbname", dbname,
+				"--confpath", "/tmp",
+				"--server", "http://" + DbName + ".mediawiki.mwdd.localhost:" + mwdd.DefaultForUser().Env().Get("PORT"),
+				"--dbtype", DbType,
+				"--dbname", DbName,
 				"--lang", "en",
 				"--pass", "mwddpassword",
-				"docker-" + dbname,
+				"docker-" + DbName,
 				"admin",
 				}, exec.HandlerOptions{})
 		}
-		if dbtype == "mysql" {
+		if DbType == "mysql" {
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
 				"/wait-for-it.sh",
 				"mysql:3306",
@@ -74,29 +110,24 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
 				"php",
 				"/var/www/html/w/maintenance/install.php",
-				"--dbtype", dbtype,
+				"--confpath", "/tmp",
+				"--server", "http://" + DbName + ".mediawiki.mwdd.localhost:" + mwdd.DefaultForUser().Env().Get("PORT"),
+				"--dbtype", DbType,
 				"--dbuser", "root",
 				"--dbpass", "toor",
-				"--dbname", dbname,
+				"--dbname", DbName,
 				"--dbserver", "mysql",
 				"--lang", "en",
 				"--pass", "mwddpassword",
-				"docker-" + dbname,
+				"docker-" + DbName,
 				"admin",
 				}, exec.HandlerOptions{})
 		}
 
-		// Move the auto generated LocalSetting.php somewhere else
-		mwdd.DefaultForUser().Exec("mediawiki",[]string{
-			"mv",
-			"/var/www/html/w/LocalSettings.php",
-			"/var/www/html/w/LocalSettings.php.docker.lastgenerated",
-			}, exec.HandlerOptions{})
-
 		// Move the custom one back
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
 			"mv",
-			"/var/www/html/w/LocalSettings.php.docker.tmp",
+			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
 			"/var/www/html/w/LocalSettings.php",
 			}, exec.HandlerOptions{})
 
@@ -104,7 +135,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
 			"php",
 			"/var/www/html/w/maintenance/update.php",
-			"--wiki", dbname,
+			"--wiki", DbName,
 			"--quick",
 			}, exec.HandlerOptions{})
 	},
@@ -208,6 +239,8 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiSuspendCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiResumeCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
+	mwddMediawikiInstallCmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
+	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "sqlite", "Type of database to install (sqlite, mysql)")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)

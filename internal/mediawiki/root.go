@@ -18,12 +18,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package mediawiki
 
 import (
-	"time"
-	"strings"
 	"io/ioutil"
-	"os"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"log"
+	"os"
+	"strings"
+	"time"
+
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 )
 
 /*MediaWiki representation of a MediaWiki install directory*/
@@ -37,10 +38,15 @@ func (e *NotMediaWikiDirectory) Error() string {
 	return e.directory + " doesn't look like a MediaWiki directory"
 }
 
+/*ForDirectory returns a MediaWiki for the current working directory*/
+func ForDirectory( directory string ) (MediaWiki, error) {
+	return MediaWiki(directory), errorIfDirectoryDoesNotLookLikeCore(directory)
+}
+
 /*ForCurrentWorkingDirectory returns a MediaWiki for the current working directory*/
 func ForCurrentWorkingDirectory() (MediaWiki, error) {
 	currentWorkingDirectory, _ := os.Getwd()
-	return MediaWiki(currentWorkingDirectory), errorIfDirectoryDoesNotLookLikeCore(currentWorkingDirectory)
+	return ForDirectory(currentWorkingDirectory)
 }
 
 /*CheckIfInCoreDirectory checks that the current working directory looks like a MediaWiki directory*/
@@ -64,7 +70,8 @@ func (m MediaWiki) Directory() string {
 	return string(m)
 }
 
-func (m MediaWiki) path(subPath string) string {
+/*Path within the MediaWiki directory*/
+func (m MediaWiki) Path(subPath string) string {
 	return m.Directory() + string(os.PathSeparator) + subPath
 }
 
@@ -78,7 +85,7 @@ func (m MediaWiki) EnsureCacheDirectory() {
 
 /*VectorIsPresent ...*/
 func (m MediaWiki) VectorIsPresent() bool {
-	info, err := os.Stat(m.path("skins/Vector"))
+	info, err := os.Stat(m.Path("skins/Vector"))
 	if os.IsNotExist(err) {
 		return false
 	}
@@ -91,16 +98,27 @@ func (m MediaWiki) GitCloneVector(options exec.HandlerOptions) {
 		"git",
 		"clone",
 		"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
-		m.path("skins/Vector")))
+		m.Path("skins/Vector")))
 }
 
 /*LocalSettingsIsPresent ...*/
 func (m MediaWiki) LocalSettingsIsPresent() bool {
-	info, err := os.Stat(m.path("LocalSettings.php"))
+	info, err := os.Stat(m.Path("LocalSettings.php"))
 	if os.IsNotExist(err) {
 		return false
 	}
 	return !info.IsDir()
+}
+
+/*LocalSettingsContains ...*/
+func (m MediaWiki) LocalSettingsContains( text string) bool {
+    b, err := ioutil.ReadFile(m.Path("LocalSettings.php"))
+    if err != nil {
+        panic(err)
+    }
+    s := string(b)
+	return strings.Contains(s, text)
+
 }
 
 /*RenameLocalSettings ...*/
