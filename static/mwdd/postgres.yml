@@ -1,0 +1,20 @@
+version: '2.2'
+
+services:
+  postgres:
+    # TODO allow image customization, something like POSTGRES_IMAGE (as long as it meets the required interface)
+    image: postgres:latest
+    environment:
+      # Specify "root" rather than the default "postgres" so that it is similar to the mysql service
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=toor
+    hostname: postgres.mwdd.localhost
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
