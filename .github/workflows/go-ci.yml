@@ -52,20 +52,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Cache MediaWiki
-      id: cache-mediawiki
+    - name: Cache MediaWiki & Vector
+      id: cache-mediawiki-vector
       uses: actions/cache@v2
       with:
         path: mediawiki
-        key: ${{ runner.os }}-mediawiki
+        key: ${{ runner.os }}-mediawiki-vector
     - name: Fetch MediaWiki code
-      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      if: steps.cache-mediawiki-vector.outputs.cache-hit != 'true'
       uses: actions/checkout@v2
       with:
         repository: wikimedia/mediawiki
         path: mediawiki
+    - name: Fetch Vector code
+      if: steps.cache-mediawiki-vector.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: wikimedia/Vector
+        path: mediawiki/skins/Vector
     - name: Do a composer install
-      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      if: steps.cache-mediawiki-vector.outputs.cache-hit != 'true'
       run: composer install --no-progress --ansi --working-dir mediawiki
 
   collect-integration-tests:
@@ -104,20 +110,26 @@ jobs:
     - uses: actions/checkout@v2
 
       # Get cached or fresh MediaWiki
-    - name: Cache MediaWiki
-      id: cache-mediawiki
+    - name: Cache MediaWiki & Vector
+      id: cache-mediawiki-vector
       uses: actions/cache@v2
       with:
         path: mediawiki
-        key: ${{ runner.os }}-mediawiki
+        key: ${{ runner.os }}-mediawiki-vector
     - name: Fetch MediaWiki code
-      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      if: steps.cache-mediawiki-vector.outputs.cache-hit != 'true'
       uses: actions/checkout@v2
       with:
         repository: wikimedia/mediawiki
         path: mediawiki
+    - name: Fetch Vector code
+      if: steps.cache-mediawiki-vector.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: wikimedia/Vector
+        path: mediawiki/skins/Vector
     - name: Do a composer install
-      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      if: steps.cache-mediawiki-vector.outputs.cache-hit != 'true'
       run: composer install --no-progress --ansi --working-dir mediawiki
 
       # Get the executable binary to test
