@@ -34,8 +34,11 @@ var mwddMediawikiCmd = &cobra.Command{
 	RunE:  nil,
 }
 
+/*DbType used by the install command*/
 var DbType string;
+/*DbName used by the install command*/
 var DbName string;
+
 var mwddMediawikiInstallCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Installs a new MediaWiki site using install.php",
