@@ -21,7 +21,7 @@ curl -s -L http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has
 
 # Turn on mysql, install & check
 ./mw mwdd mysql create
-./mw mwdd mediawiki install mysqlwiki mysql
+./mw mwdd mediawiki install --dbname mysqlwiki --dbtype mysql
 curl -s -L http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
 # Destroy it all

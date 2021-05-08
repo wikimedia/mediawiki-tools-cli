@@ -14,7 +14,7 @@ echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 cat ~/.mwcli/mwdd/default/.env
 
 # Install & check
-./mw mwdd mediawiki install mysqlwiki mysql
+./mw mwdd mediawiki install --dbname mysqlwiki --dbtype mysql
 curl -s -L http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
 # Suspend and resume and check the site is still there
@@ -25,7 +25,7 @@ curl -s -L http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki h
 # Destroy and restart mysql, reinstalling mediawiki
 ./mw mwdd mysql destroy
 ./mw mwdd mysql create
-./mw mwdd mediawiki install mysqlwiki mysql
+./mw mwdd mediawiki install --dbname mysqlwiki --dbtype mysql
 curl -s -L http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
 # Destroy it all
