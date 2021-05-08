@@ -188,14 +188,15 @@ var mwddMediawikiPhpunitCmd = &cobra.Command{
 }
 
 var mwddMediawikiExecCmd = &cobra.Command{
-	Use:   "exec [command...]",
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
 	Short: "Executes a command in the MediaWiki container",
-	DisableFlagParsing: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
 			Command: args,
+			User: User,
 		})
 	},
 }
@@ -210,4 +211,6 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
+	mwddMediawikiExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+
 }
