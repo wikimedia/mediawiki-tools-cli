@@ -2,7 +2,7 @@ version: '2.2'
 
 services:
   redis:
-    image: redis
+    image: redis:6.2
     hostname: redis.mwdd.localhost
     dns:
       - 10.0.0.10

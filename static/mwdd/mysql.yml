@@ -4,7 +4,7 @@ services:
   mysql:
     # TODO allow image customization, something like MYSQL_IMAGE (as long as it meets the required interface)
     # TODO use WMF images when and if these exist...
-    image: mariadb:latest
+    image: mariadb:10.5
     environment:
       - MYSQL_ROOT_PASSWORD=toor
     hostname: mysql.mwdd.localhost
