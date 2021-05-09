@@ -179,8 +179,11 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 					fmt.Println(err)
 					return
 				}
-				// TODO if the Vector skin exists, also load that
-				_, err = f.WriteString("<?php\n//require_once \"$IP/includes/PlatformSettings.php\";\nrequire_once '/mwdd/MwddSettings.php';")
+				settingsStringToWrite := "<?php\n//require_once \"$IP/includes/PlatformSettings.php\";\nrequire_once '/mwdd/MwddSettings.php';\n"
+				if(mediawiki.VectorIsPresent()){
+					settingsStringToWrite += "\nwfLoadSkin('Vector');\n"
+				}
+				_, err = f.WriteString(settingsStringToWrite)
 				if err != nil {
 					fmt.Println(err)
 					f.Close()
