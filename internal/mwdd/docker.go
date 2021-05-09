@@ -90,8 +90,9 @@ func (m MWDD) DockerExec( command DockerExecCommand ) {
 		return
 	}
 
+	// When TTY is ON, just copy stdout https://phabricator.wikimedia.org/T282340
+	// See: https://github.com/docker/cli/blob/70a00157f161b109be77cd4f30ce0662bfe8cc32/cli/command/container/hijack.go#L121-L130
 	go io.Copy(os.Stdout, waiter.Reader)
-	go io.Copy(os.Stderr, waiter.Reader)
 	go io.Copy(waiter.Conn, os.Stdin)
 
 	fd := int(os.Stdin.Fd())
