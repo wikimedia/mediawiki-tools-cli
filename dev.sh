@@ -7,5 +7,6 @@ cd $SCRIPTPATH
 # Force remake of the mwdd files
 make internal/mwdd/files/files.go
 
-# Run from source
+# Run from source from the origional directory
+cd $WORKINGPATH
 go run ${SCRIPTPATH}/cmd/cli/main.go $@

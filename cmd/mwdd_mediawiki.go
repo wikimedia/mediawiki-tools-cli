@@ -276,11 +276,11 @@ var mwddMediawikiComposerCmd = &cobra.Command{
 	Example:   "  composer info\n  composer install -- --ignore-platform-reqs",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+		mwdd.DefaultForUser().DockerExec(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
 			Command: append([]string{"composer"},args...),
 			User: User,
-		})
+		}))
 	},
 }
 
@@ -346,11 +346,11 @@ var mwddMediawikiPhpunitCmd = &cobra.Command{
 		// 	wiki = args[0]
 		// }
 		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+		mwdd.DefaultForUser().DockerExec(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
 			Command: append([]string{"php", "/var/www/html/w/tests/phpunit/phpunit.php", "--wiki", wiki},args...),
 			User: User,
-		})
+		}))
 	},
 }
 
@@ -366,6 +366,21 @@ var mwddMediawikiExecCmd = &cobra.Command{
 			User: User,
 		})
 	},
+}
+
+var applyRelevantWorkingDirectory = func( dockerExecCommand mwdd.DockerExecCommand ) mwdd.DockerExecCommand  {
+	currentWorkingDirectory, _ := os.Getwd()
+	mountedMwDirectory := mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE")
+	fmt.Println(currentWorkingDirectory)
+	fmt.Println(mountedMwDirectory)
+	// For paths inside the mediawiki path
+	if( strings.HasPrefix( currentWorkingDirectory,mountedMwDirectory ) ) {
+		dockerExecCommand.WorkingDir = strings.Replace(currentWorkingDirectory, mountedMwDirectory, "/var/www/html/w", 1)
+	} else {
+		fmt.Println("This command is not supported outside of the MediaWiki core directory: " + mountedMwDirectory)
+		os.Exit(1)
+	}
+	return dockerExecCommand
 }
 
 func init() {
