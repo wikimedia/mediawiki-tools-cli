@@ -18,8 +18,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"fmt"
-
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"github.com/spf13/cobra"
@@ -27,23 +25,12 @@ import (
 
 var mwddDockerComposeCmd = &cobra.Command{
 	Use:   "docker-compose",
-	RunE:  nil,
-}
-
-var mwddDockerComposeRawCmd = &cobra.Command{
-	Use:   "raw",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
-	},
-}
-
-var mwddDockerComposePsCmd = &cobra.Command{
-	Use:   "ps",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerCompose(
+		mwdd.DefaultForUser().DockerComposeTTY(
 			mwdd.DockerComposeCommand{
-				Command: "ps",
+				Command: args[0],
+				CommandArguments: args[1:],
 				HandlerOptions: exec.HandlerOptions{
 					Verbosity:   Verbosity,
 				},
@@ -54,6 +41,4 @@ var mwddDockerComposePsCmd = &cobra.Command{
 
 func init() {
 	mwddCmd.AddCommand(mwddDockerComposeCmd)
-	mwddDockerComposeCmd.AddCommand(mwddDockerComposeRawCmd)
-	mwddDockerComposeCmd.AddCommand(mwddDockerComposePsCmd)
 }

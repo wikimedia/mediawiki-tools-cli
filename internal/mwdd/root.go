@@ -92,6 +92,24 @@ func (m MWDD) DockerCompose( command DockerComposeCommand ) error {
 	)
 }
 
+/*DockerComposeTTY runs any docker-compose command for the mwdd project with the correct project settings and all files loaded in a TTY*/
+func (m MWDD) DockerComposeTTY( command DockerComposeCommand ) {
+	context := exec.ComposeCommandContext{
+		ProjectDirectory: m.Directory(),
+		ProjectName: m.DockerComposeProjectName(),
+		Files: files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+	}
+
+	exec.RunTTYCommand(
+		command.HandlerOptions,
+		exec.ComposeCommand(
+			context,
+			command.Command,
+			command.CommandArguments...
+		),
+	)
+}
+
 /*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
 func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions ) error {
 	return m.DockerCompose(
@@ -175,4 +193,3 @@ func (m MWDD) RmVolumes( dcVolumes []string, options exec.HandlerOptions ) {
 // TODO run?
 // TODO runDetatched?
 // TODO logsTail?
-// TODO raw?
