@@ -1,33 +1,16 @@
 # MediaWiki CLI - mwdd
 
-mediawiki-docker-dev is being ported into mwcli.
+A golang mwdd port, incorporated into the mwcli application.
 
-Happy paths are fairly well tested, sad paths may not be, so please keep note of things that you think could be improved.
+Happy paths are fairly well tested, sad paths may not be.
+Please provide feedback to addshore, or write a ticket under the mwcli project https://phabricator.wikimedia.org/tag/mwcli/
+You can also look there for the current known bugs and missing features.
 
-You can find a built binary at https://github.com/addshore/mwcli/suites/2620593092/artifacts/57429807
-This could be considered version `addshore-build-93` (for bug reports etc).
+You can find a built binary at https://github.com/addshore/mwcli/suites/2692952480/artifacts/59343451
+This could be considered version `addshore-build-135` (for bug reports etc).
+You'll need to **extract the binary, make it executable (+x)** and put it somewhere in your path!
 
-You'll need to extract the binary, make it executable and put it somewhere in your path!
-
-## Usage
-
-Everything should look and feel similar to mwdd or mwdd v1.
-
-**Prerequisites...**
-
-MediaWiki checked out in a directory, with needed skins, extensions and a `composer install` done.
-
-A `LocalSettings.php` file should exist with the following:
-
-```php
-<?php
-//require_once "$IP/includes/PlatformSettings.php";
-require_once '/mwdd/MwddSettings.php';
-```
-
-If you want to try using the old mediawiki-docker-dev and the new mwcli mwdd side by side then try the following:
-
-Note: I didn't actually test this yet
+If you want to use a single MediaWiki install with both the new mwcli and the old mwdd setups then try this at the top of you LocalSetting.php file.
 
 ```php
 <?php
@@ -41,81 +24,101 @@ if(file_exists('/mwdd/MwddSettings.php')) {
 }
 ```
 
-**Setup...**
+## Usage
 
-You can alter mwdd settings using the cli too.
+Wizards & Prompts should guide you through any infomation you need to enter when you run commands.
 
-You **MUST** set **MEDIAWIKI_VOLUMES_CODE** to be your MediaWiki core directory.
-
-```sh
-mw mwdd env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki
-mw mwdd env set PORT 8080
-```
-
-And create the basic setup (just MediaWiki):
+**Turn on the mediawiki service:**
 
 ```sh
-mw mwdd create
+mw mwdd mediawiki create
 ```
 
-You can check that the needed things are running:
+**See that the service is running:**
 
 ```sh
 mw mwdd docker-compose ps
 ```
 
-**MediaWiki install (basic)...**
+**Install a default sqlite site:**
 
-You can install a site called "default" using sqlite:
+SQLITE is currently used by default...
 
 ```sh
 mw mwdd mediawiki install
 ```
 
-It should then be accessible at http://default.mediawiki.mwdd.localhost:8080
+It should then be accessible at http://default.mediawiki.mwdd.localhost:8080 (if you are using port 8080)
 
-The sqlite db is stored as part of the `mediawiki` service, so to nuke it you can `destroy`, `create` and `install` this service again.
+**Install a mysql site:**
 
-**MediaWiki install (advanced)...**
-
-You can also specify a site to make and sb type, you may need to start additional services:
+First turn on the mysql service:
 
 ```sh
 mw mwdd mysql create
-mw mwdd mediawiki install mysqlwiki mysql
 ```
 
-You should see it at http://mysqlwiki.mediawiki.mwdd.localhost:8080
-
-If you wanted to "nuke" your dbs, you can now nuke the single service and recreate the site:
+And then install another site:
 
 ```sh
-mw mwdd mysql destroy
-mw mwdd mysql create
-mw mwdd mediawiki install mysqlwiki mysql
+mw mwdd install --dbname mysqlsite --dbtype mysql
 ```
+
+You can also turn on a postgres service and install postgres sites.
 
 **Turning on other individual services...**
 
-Additional services each have their own lifecycle, you can:
+A collection of other services are also available out of the box:
 
 ```sh
-mw mwdd phpmyadmin create
+mw mwdd adminer create
 mw mwdd redis create
+mw mwdd statsd create
 ```
 
-**Container access...**
+**Service commands:**
 
-Services will allow convenient shell access (using your uid by default, or the service user).
+Most services have a very similar lifecycle.
 
-Currently the user stuff isn't finished, but you can try shell access with:
+- `create`, create or update the service
+- `suspend`, stop running the service, but keep the data
+- `resume`, restart a stopped service
+- `destroy`, destroy a service, container and data volumes
+
+**"fancy" commands:**
+
+You can start a shell in the mediawiki container
+(This will soon be availbile for other containers [T282394](https://phabricator.wikimedia.org/T282394))
 
 ```sh
 mw mwdd mediawiki exec bash
 ```
 
-Other convenient commands are being added, such as one for phpunit, though this still needs fixes like (1) paths that are context aware (2) user run options (3) optional alternate wikis, currently default only.
+While in your mediawiki directory, you can easily run phpunit tests
 
 ```sh
-mwdd mediawiki phpunit /var/www/html/w/tests/phpunit/unit/includes/FormOptionsTest.php
+mw mwdd mediawiki phpunit ./tests/phpunit/unit/includes/FormOptionsTest.php
 ```
+
+This includes directory aware execution, so if you were already in the tests directory, you could do:
+
+```sh
+mw mwdd mediawiki phpunit ./phpunit/unit/includes/FormOptionsTest.php
+```
+
+You can also run composer commands
+(Running with your composer cache is coming soon [T282336](https://phabricator.wikimedia.org/T282336))
+
+```sh
+mw mwdd mediawiki composer info
+```
+
+**The guts:**
+
+mwdd now stores data in your home directory in a `.mwcli` directory.
+
+This includes the docker-compose files and .env file.
+
+You can access the .env file via the convenient `mw mwdd env` commands.
+
+If you want to run "raw" docker-compose commands directly on the setup you can use `mw mwdd docker-compose`.
