@@ -29,6 +29,9 @@ echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 ./mw mwdd mediawiki install
 curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
+# docker-compose: Make sure it appears to work
+./mw mwdd docker-compose ps -- --services | grep -q "mediawiki"
+
 # cd to mediawiki
 cd mediawiki
 
