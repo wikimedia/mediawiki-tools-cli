@@ -39,7 +39,7 @@ if ( defined( "MW_DB" ) ) {
 $mwddServices = [
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ),
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
-	'graphite-statsd' => gethostbyname('graphite-statsd') !== 'graphite-statsd' && !defined( 'MW_PHPUNIT_TEST' ),
+	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
 
 ################################

@@ -1,0 +1,21 @@
+version: '2.2'
+
+services:
+  graphite:
+    image: graphiteapp/graphite-statsd:1.1.8-1
+    environment:
+      - VIRTUAL_HOST=graphite.mwdd.localhost
+    hostname: graphite.mwdd.localhost
+    depends_on:
+      - nginx-proxy
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
+    volumes:
+      - graphite-storage:/opt/graphite/storage
+      - graphite-logs:/var/log
+
+volumes:
+  graphite-storage:
+  graphite-logs:
