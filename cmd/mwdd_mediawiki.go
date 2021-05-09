@@ -92,39 +92,64 @@ var mwddMediawikiCmd = &cobra.Command{
 			setupOpts.GetVector = err == nil
 		}
 		if(setupOpts.GetMediaWiki || setupOpts.GetVector) {
-			cloneFromGithub := promptui.Prompt{
+			cloneFromGithubPrompt := promptui.Prompt{
 				Label:     "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
 				IsConfirm: true,
 			}
-			_, err := cloneFromGithub.Run()
+			_, err := cloneFromGithubPrompt.Run()
 			setupOpts.UseGithub = err == nil
-		}
-		if(setupOpts.GetMediaWiki || setupOpts.GetVector) {
-			cloneFromGithub := promptui.Prompt{
+
+			cloneShallowPrompt := promptui.Prompt{
 				Label:     "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
 				IsConfirm: true,
 			}
-			_, err := cloneFromGithub.Run()
+			_, err = cloneShallowPrompt.Run()
+			setupOpts.UseShallow = err == nil
+
+			finalRemoteTypePrompt := promptui.Prompt{
+				Label:     "How do you want to interact with Gerrit for the cloned repositores? (http or ssh)",
+				Default: "ssh",
+			}
+			remoteType, err := finalRemoteTypePrompt.Run()
+			if(err != nil || ( remoteType != "ssh" && remoteType != "http" )) {
+				fmt.Println("Invalid Gerrit interaction type chosen.")
+				os.Exit(1)
+			}
+			setupOpts.GerritInteractionType = remoteType
+			if(remoteType == "ssh") {
+				gerritUsernamePrompt := promptui.Prompt{
+					Label:     "What is your Gerrit username?",
+				}
+				gerritUsername, err := gerritUsernamePrompt.Run()
+				if(err != nil || len(gerritUsername) < 1 ) {
+					fmt.Println("Gerrit username required for ssh interaction type.")
+					os.Exit(1)
+				}
+				setupOpts.GerritUsername = gerritUsername
+			}
 			setupOpts.UseShallow = err == nil
 		}
 
-		// Clone various things in multiple stages
-		Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-		Spinner.Prefix = "Performing step"
-		Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-		setupOpts.Options = exec.HandlerOptions{
-			Spinner: Spinner,
-		}
-		mediawiki.CloneSetup(setupOpts)
+		if(setupOpts.GetMediaWiki || setupOpts.GetVector) {
+			// Clone various things in multiple stages
+			Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+			Spinner.Prefix = "Performing step"
+			Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
+			setupOpts.Options = exec.HandlerOptions{
+				Spinner: Spinner,
+			}
 
-		// Check that the needed things seem to have happened
-		if(setupOpts.GetMediaWiki && !mediawiki.MediaWikiIsPresent()) {
-			fmt.Println("Something went wrong cloning MediaWiki")
-			os.Exit(1);
-		}
-		if(setupOpts.GetVector && !mediawiki.VectorIsPresent()) {
-			fmt.Println("Something went wrong cloning Vector")
-			os.Exit(1);
+			mediawiki.CloneSetup(setupOpts)
+
+			// Check that the needed things seem to have happened
+			if(setupOpts.GetMediaWiki && !mediawiki.MediaWikiIsPresent()) {
+				fmt.Println("Something went wrong cloning MediaWiki")
+				os.Exit(1);
+			}
+			if(setupOpts.GetVector && !mediawiki.VectorIsPresent()) {
+				fmt.Println("Something went wrong cloning Vector")
+				os.Exit(1);
+			}
 		}
 	},
 }
