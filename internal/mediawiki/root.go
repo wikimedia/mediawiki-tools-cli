@@ -136,40 +136,42 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 	}
 
 	if(options.GetMediaWiki){
-		exec.RunCommand(options.Options, exec.Command(
+		exec.RunTTYCommand(options.Options, exec.Command(
 			"git",
 			"clone",
 			shallowOptions,
 			startRemoteCore,
 			m.Path("")))
 		if(startRemoteCore != endRemoteCore){
-			exec.RunCommand(options.Options, exec.Command(
+			exec.RunTTYCommand(options.Options, exec.Command(
 				"git",
+				"-C", m.Path(""),
 				"remote",
 				"set-url",
 				"origin",
 				endRemoteCore))
-			exec.RunCommand(options.Options, exec.Command(
+			exec.RunTTYCommand(options.Options, exec.Command(
 				"git",
+				"-C", m.Path(""),
 				"pull"))
 		}
 	}
 	if(options.GetVector){
-		exec.RunCommand(options.Options, exec.Command(
+		exec.RunTTYCommand(options.Options, exec.Command(
 			"git",
 			"clone",
 			shallowOptions,
 			startRemoteVector,
 			m.Path("skins/Vector")))
 		if(startRemoteCore != endRemoteCore){
-				exec.RunCommand(options.Options, exec.Command(
+				exec.RunTTYCommand(options.Options, exec.Command(
 					"git",
 					"-C", m.Path("skins/Vector"),
 					"remote",
 					"set-url",
 					"origin",
 					endRemoteVector))
-				exec.RunCommand(options.Options, exec.Command(
+				exec.RunTTYCommand(options.Options, exec.Command(
 					"git",
 					"-C", m.Path("skins/Vector"),
 					"pull"))

@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package mwdd
 
 import (
+	"bytes"
 	"os"
 	"os/user"
 
@@ -111,7 +112,20 @@ func (m MWDD) DockerComposeTTY( command DockerComposeCommand ) {
 }
 
 /*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
-func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions ) error {
+func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions ) {
+	m.DockerComposeTTY(
+		DockerComposeCommand{
+			Command: "exec",
+			CommandArguments: append( []string{"-T", service }, commandAndArgs... ),
+			HandlerOptions: options,
+		},
+	)
+}
+
+/*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with not output*/
+func (m MWDD) ExecNoOutput( service string, commandAndArgs []string, options exec.HandlerOptions ) error {
+	options.HandleStdout = func(stdout bytes.Buffer) {}
+	options.HandleError = func(stderr bytes.Buffer, err error) {}
 	return m.DockerCompose(
 		DockerComposeCommand{
 			Command: "exec",
@@ -123,7 +137,7 @@ func (m MWDD) Exec( service string, commandAndArgs []string, options exec.Handle
 
 /*UpDetached runs `docker-compose up -d <services>`*/
 func (m MWDD) UpDetached( services []string, options exec.HandlerOptions ) {
-	m.DockerCompose(
+	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command: "up",
 			CommandArguments: append( []string{"-d" }, services... ),
@@ -134,7 +148,7 @@ func (m MWDD) UpDetached( services []string, options exec.HandlerOptions ) {
 
 /*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`*/
 func (m MWDD) DownWithVolumesAndOrphans( options exec.HandlerOptions ) {
-	m.DockerCompose(
+	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command: "down",
 			CommandArguments: []string{"--volumes","--remove-orphans"},
@@ -145,7 +159,7 @@ func (m MWDD) DownWithVolumesAndOrphans( options exec.HandlerOptions ) {
 
 /*Stop runs `docker-compose stop <services>`*/
 func (m MWDD) Stop( services []string, options exec.HandlerOptions ) {
-	m.DockerCompose(
+	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command: "stop",
 			CommandArguments: services,
@@ -156,7 +170,7 @@ func (m MWDD) Stop( services []string, options exec.HandlerOptions ) {
 
 /*Start runs `docker-compose start <services>`*/
 func (m MWDD) Start( services []string, options exec.HandlerOptions ) {
-	m.DockerCompose(
+	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command: "start",
 			CommandArguments: services,
@@ -167,7 +181,7 @@ func (m MWDD) Start( services []string, options exec.HandlerOptions ) {
 
 /*Rm runs `docker-compose rm --stop --force -v <services>`*/
 func (m MWDD) Rm( services []string, options exec.HandlerOptions ) {
-	m.DockerCompose(
+	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command: "rm",
 			CommandArguments: append( []string{"--stop", "--force", "-v" }, services... ),
@@ -182,7 +196,7 @@ func (m MWDD) RmVolumes( dcVolumes []string, options exec.HandlerOptions ) {
 	for _, dcVolume := range dcVolumes {
 		dockerVolumes = append( dockerVolumes, m.DockerComposeProjectName() + "_" + dcVolume )
 	}
-	exec.RunCommand(
+	exec.RunTTYCommand(
 		options,
 		exec.Command("docker", append( []string{"volume", "rm" }, dockerVolumes... )... ),
 	)
