@@ -111,7 +111,8 @@ type CloneSetupOpts = struct{
 	GetVector bool
 	UseGithub bool
 	UseShallow bool
-	FinishAs string
+	GerritInteractionType string
+	GerritUsername string
 	Options exec.HandlerOptions
 }
 
@@ -124,12 +125,20 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 		startRemoteCore = "https://github.com/wikimedia/mediawiki.git"
 		startRemoteVector = "https://github.com/wikimedia/Vector.git"
 	}
-	endRemoteCore := "https://gerrit.wikimedia.org/r/mediawiki/core"
-	endRemoteVector := "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
-	if(options.FinishAs != "") {
-		fmt.Println("Not yet implemented")
-		os.Exit(1)
+
+	endRemoteCore:=""
+	endRemoteVector:=""
+	if (options.GerritInteractionType == "http") {
+		endRemoteCore = "https://gerrit.wikimedia.org/r/mediawiki/core"
+		endRemoteVector = "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
+	} else if(options.GerritInteractionType == "ssh") {
+		endRemoteCore = "ssh://" + options.GerritUsername + "@gerrit.wikimedia.org:29418/mediawiki/core"
+		endRemoteVector = "ssh://" + options.GerritUsername + "@gerrit.wikimedia.org:29418/mediawiki/skins/Vector"
+	} else {
+		fmt.Println("Unknown GerritInteractionType");
+		os.Exit(1);
 	}
+
 	shallowOptions := ""
 	if(options.UseShallow){
 		shallowOptions = "--depth=1"
@@ -150,10 +159,6 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 				"set-url",
 				"origin",
 				endRemoteCore))
-			exec.RunTTYCommand(options.Options, exec.Command(
-				"git",
-				"-C", m.Path(""),
-				"pull"))
 		}
 	}
 	if(options.GetVector){
@@ -171,10 +176,6 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 					"set-url",
 					"origin",
 					endRemoteVector))
-				exec.RunTTYCommand(options.Options, exec.Command(
-					"git",
-					"-C", m.Path("skins/Vector"),
-					"pull"))
 			}
 	}
 }
