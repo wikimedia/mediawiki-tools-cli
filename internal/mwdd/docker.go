@@ -35,6 +35,7 @@ import (
 type DockerExecCommand struct {
 	DockerComposeService      string
 	Command      []string
+	WorkingDir      string
 	User      string
 	HandlerOptions exec.HandlerOptions
 }
@@ -64,6 +65,7 @@ func (m MWDD) DockerExec( command DockerExecCommand ) {
 		AttachStdout: true,
 		AttachStdin: true,
 		Tty: true,
+		WorkingDir: command.WorkingDir,
 		User: command.User,
 		Cmd: command.Command,
 	}
