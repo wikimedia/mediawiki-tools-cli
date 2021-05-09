@@ -3,7 +3,7 @@ version: '2.2'
 services:
 
   dps:
-    image: defreitas/dns-proxy-server
+    image: defreitas/dns-proxy-server:2.19.0
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     hostname: dps.mwdd.localhost
@@ -13,7 +13,7 @@ services:
 
   nginx-proxy:
     # TODO: replace with jwilder/nginx-proxy, once updated
-    image: silvanwmde/nginx-proxy:latest
+    image: silvanwmde/nginx-proxy@sha256:4488c32bbe8c2ec5b806c38af5f591f5dafe0aa835591a2285017ca59bd12a75
     environment:
       - VIRTUAL_HOST=proxy.mwdd.localhost
       - HOSTNAMES=.mediawiki.mwdd.localhost      # wildcard name resolution, thanks to DPS
