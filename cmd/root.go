@@ -27,20 +27,29 @@ import (
 // Verbosity indicating verbose mode.
 var Verbosity int
 
+// NonInteractive skips prompts with a yes
+var NonInteractive bool
+
 // These vars are currently used by the docker exec command
 
 // Detach run docker command with -d
 var Detach bool
+
 // Privileged run docker command with --privileged
 var Privileged bool
+
 // User run docker command with the specified -u
 var User string
+
 // NoTTY run docker command with -T
 var NoTTY bool
+
 // Index run the docker command with the specified --index
 var Index string
+
 // Env run the docker command with the specified env vars
 var Env []string
+
 // Workdir run the docker command with this working directory
 var Workdir string
 
