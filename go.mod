@@ -1,6 +1,7 @@
 module gerrit.wikimedia.org/r/mediawiki/tools/cli
 
 require (
+	bou.ke/staticfiles v0.0.0-20210106104248-dd04075d4104 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/briandowns/spinner v1.11.1
 	github.com/containerd/containerd v1.4.4 // indirect

@@ -6,7 +6,7 @@ set -x
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export PATH="$PATH:/usr/local/bin/"
-export HOME="/root"
+export HOME="$(echo ~)"
 
 # Golang should be installed
 if ! command -v go &> /dev/null
@@ -27,6 +27,7 @@ then
   popd
 fi
 
+export PATH="$PATH:$HOME/go/bin"
 
 title() {
 	echo
