@@ -1,0 +1,115 @@
+#!/usr/bin/env -S -i /bin/bash
+set -e
+set -u
+set -x
+
+BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+export PATH="$PATH:/usr/local/bin/"
+export HOME="/root"
+
+# Golang should be installed
+if ! command -v go &> /dev/null
+then
+  echo "installing curl"
+  apt-get update && apt-get -y install curl make
+  
+  echo "installing golang"
+  
+  pushd /tmp
+  curl -q -o go1.16.4.linux-amd64.tar.gz https://dl.google.com/go/go1.16.4.linux-amd64.tar.gz
+  tar -xvf go1.16.4.linux-amd64.tar.gz
+  mv go /usr/local/bin
+
+  export GOROOT=/usr/local/bin/go
+  export GOPATH=$HOME/go
+  export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+  popd
+fi
+
+
+title() {
+	echo
+	echo "test: $1..."
+}
+
+assert() {
+	actual="$1"
+	expected="$2"
+	printf "\"${actual}\" == \"${expected}\"\n"
+	test "$actual" = "$expected"
+}
+
+# TODO add mwdd commands
+
+#build the cli executable
+title "Build mwcli"
+{
+  make
+}
+
+# get mediawiki
+title "Clone Mediawiki core"
+{
+  git clone https://gerrit.wikimedia.org/r/mediawiki/core --depth 1
+  cd core
+}
+
+title "Check Status"
+{
+  $BASE/bin/mw docker -v2 status
+}
+
+title "Start Mediawiki"
+{
+  # check success is printed
+  # start and answer the questions from the cli or add flags to auto accept!
+  START_RESULT="$($BASE/bin/mw docker -v2 start -y)"
+  echo $START_RESULT
+  echo $START_RESULT | grep -q "Success! View MediaWiki-Docker at http://"
+  
+  # check we can go to localhost
+  curl -s -L http://localhost:8080 | grep -q "<title>MediaWiki</title>"
+}
+
+# test verbosity
+
+title "Exec into the container"
+{
+  $BASE/bin/mw docker -v2 exec mediawiki -- ls
+}
+
+title "Stop Mediawiki"
+{
+  $BASE/bin/mw docker -v2 stop
+}
+
+title "Destroy Mediawiki"
+{
+  $BASE/bin/mw docker -v2 destroy
+  docker ps | wc -l | grep -q "1"
+}
+
+title "Print the .env file path"
+{
+  $BASE/bin/mw docker -v2 env where
+}
+
+title "List the .env file contents"
+{
+  $BASE/bin/mw docker -v2 env list
+}
+
+title "Manipulate the .env file"
+{
+  $BASE/bin/mw docker -v2 env set TEST_VAR "test"
+  testvar="$($BASE/mw docker env get TEST_VAR)"
+  assert $testvar "test"
+
+  $BASE/bin/mw docker -v2 env delete TEST_VAR
+  testvar="$($BASE/mw docker env get TEST_VAR)"
+  assert $testvar ""
+}
+
+
+
