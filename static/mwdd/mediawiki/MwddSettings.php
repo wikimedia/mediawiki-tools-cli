@@ -37,6 +37,7 @@ if ( defined( "MW_DB" ) ) {
 
 # Only use "advanced" services if they can be seen, and if we are not in tests
 $mwddServices = [
+	'mysql' => gethostbyname('mysql') !== 'mysql',
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ),
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
