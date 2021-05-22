@@ -48,7 +48,7 @@ curl -s -L -N http://adminer.mwdd.localhost:8080 | grep -q "Login - Adminer"
 
 # Make sure the expected number of services appear
 docker ps
-docker ps | wc -l | grep -q "8"
+docker ps | wc -l | grep -q "9"
 
 # Destroy it all
 ./mw mwdd destroy
