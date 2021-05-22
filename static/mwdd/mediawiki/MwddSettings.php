@@ -19,6 +19,9 @@ if ( PHP_SAPI === 'cli' && !defined( 'MW_DB' ) ) {
     define( 'MW_DB', 'default' );
 }
 
+# Detect usage of update.php, so we can turn of replication https://phabricator.wikimedia.org/T283417
+$dockerIsRunningUpdate = basename( $_SERVER['argv'][0] ) === 'update.php';
+
 # Must be above WebRequest::detectServer.
 # mwdd uses a proxy server with no default ports.
 $wgAssumeProxiesUseDefaultProtocolPorts = false;
@@ -38,7 +41,7 @@ if ( defined( "MW_DB" ) ) {
 # Only use "advanced" services if they can be seen, and if we are not in tests
 $mwddServices = [
 	'mysql' => gethostbyname('mysql') !== 'mysql',
-	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ),
+	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
