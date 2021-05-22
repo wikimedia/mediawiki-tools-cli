@@ -29,8 +29,8 @@ echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 ./mw mwdd mediawiki install
 curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
-# Turn on mysql, install & check
-./mw mwdd mysql create
+# Turn on mysql & replica, install & check
+./mw mwdd mysql-replica create
 ./mw mwdd mediawiki install --dbname mysqlwiki --dbtype mysql
 curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
@@ -48,7 +48,7 @@ curl -s -L -N http://adminer.mwdd.localhost:8080 | grep -q "Login - Adminer"
 
 # Make sure the expected number of services appear
 docker ps
-docker ps | wc -l | grep -q "9"
+docker ps | wc -l | grep -q "10"
 
 # Destroy it all
 ./mw mwdd destroy
