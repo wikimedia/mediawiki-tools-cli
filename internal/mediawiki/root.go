@@ -59,12 +59,20 @@ func CheckIfInCoreDirectory() {
 	}
 }
 
-func errorIfDirectoryDoesNotLookLikeCore(directory string) error {
+func errorIfDirectoryMissingGitReviewForProject(directory string, expectedProject string) error {
 	b, err := ioutil.ReadFile(directory + string(os.PathSeparator) + ".gitreview")
-	if err != nil || !strings.Contains(string(b), "project=mediawiki/core.git") {
+	if err != nil || !strings.Contains(string(b), "project="+expectedProject) {
 		return &NotMediaWikiDirectory{directory}
 	}
 	return nil
+}
+
+func errorIfDirectoryDoesNotLookLikeCore(directory string) error {
+	return errorIfDirectoryMissingGitReviewForProject( directory, "mediawiki/core" )
+}
+
+func errorIfDirectoryDoesNotLookLikeVector(directory string) error {
+	return errorIfDirectoryMissingGitReviewForProject( directory, "mediawiki/skins/Vector" )
 }
 
 /*Directory the directory containing MediaWiki*/
@@ -87,12 +95,12 @@ func (m MediaWiki) EnsureCacheDirectory() {
 
 /*MediaWikiIsPresent ...*/
 func (m MediaWiki) MediaWikiIsPresent() bool {
-	//TODO add a better check
-	info, err := os.Stat(m.Path("thumb_handler.php"))
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
+	return errorIfDirectoryDoesNotLookLikeCore(m.Directory()) == nil
+}
+
+/*VectorIsPresent ...*/
+func (m MediaWiki) VectorIsPresent() bool {
+	return errorIfDirectoryDoesNotLookLikeVector(m.Path("skins/Vector")) == nil
 }
 
 func exitIfNoGit() {
@@ -189,15 +197,6 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 					endRemoteVector))
 			}
 	}
-}
-
-/*VectorIsPresent ...*/
-func (m MediaWiki) VectorIsPresent() bool {
-	info, err := os.Stat(m.Path("skins/Vector"))
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
 }
 
 /*GitCloneVector ...*/
