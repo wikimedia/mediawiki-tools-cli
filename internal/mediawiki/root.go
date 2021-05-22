@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	osexec "os/exec"
 	"strings"
 	"time"
 
@@ -94,9 +95,18 @@ func (m MediaWiki) MediaWikiIsPresent() bool {
 	return !info.IsDir()
 }
 
+func exitIfNoGit() {
+	_, err := osexec.LookPath("git")
+	if err != nil {
+		fmt.Println("You must have git installed on your system.")
+		os.Exit(1)
+	}
+}
+
 /*GitCloneMediaWiki ...*/
 func (m MediaWiki) GitCloneMediaWiki(options exec.HandlerOptions) {
-	// TODO check git exists on the system?
+	exitIfNoGit()
+
 	// TODO don't use https by default? use ssh?
 	exec.RunCommand(options, exec.Command(
 		"git",
@@ -118,7 +128,8 @@ type CloneSetupOpts = struct{
 
 /*CloneSetup provides a packages initial setup method for MediaWiki and Vector with some speedy features*/
 func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
-	// TODO check git exists on the system?
+	exitIfNoGit()
+
 	startRemoteCore := "https://gerrit.wikimedia.org/r/mediawiki/core"
 	startRemoteVector := "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
 	if(options.UseGithub) {
@@ -191,6 +202,8 @@ func (m MediaWiki) VectorIsPresent() bool {
 
 /*GitCloneVector ...*/
 func (m MediaWiki) GitCloneVector(options exec.HandlerOptions) {
+	exitIfNoGit()
+
 	exec.RunCommand(options, exec.Command(
 		"git",
 		"clone",
