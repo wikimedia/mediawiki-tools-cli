@@ -46,7 +46,7 @@ cd mediawiki
 cd skins/Vector
 
 # composer: Make sure a command works from the Vector directory
-./../../../mw mwdd mediawiki composer home | grep -q "https://phabricator.wikimedia.org/diffusion/SVEC/"
+./../../../mw mwdd mediawiki composer home | grep -q "http://gerrit.wikimedia.org/g/mediawiki/skins/Vector"
 # phpunit: Make sure a command works from the Vector directory
 ./../../../mw mwdd mediawiki phpunit ./../../tests/phpunit/unit/includes/PingbackTest.php | grep -q "OK "
 # exec: Make sure a command works from the Vector directory
