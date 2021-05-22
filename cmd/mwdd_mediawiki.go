@@ -42,10 +42,28 @@ var mwddMediawikiCmd = &cobra.Command{
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
 		if(mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE")){
-			// TODO auto detect if the current (or parent directory) is MediaWiki and suggest that
+
+			// Try to autodetect if we are in a MediaWiki directory at all
+			suggestedMwDir, err := os.Getwd()
+			if err != nil {
+				panic(err)
+			}
+			for {
+				_, checkError := mediawiki.ForDirectory(suggestedMwDir)
+				if checkError == nil {
+					break
+				}
+				suggestedMwDir = filepath.Dir(suggestedMwDir)
+				if suggestedMwDir == "/" {
+					suggestedMwDir = "~/dev/git/gerrit/mediawiki/core"
+					break
+				}
+			}
+
+			// Prompt the user for a directory or confirmation
 			dirPrompt := promptui.Prompt{
 				Label:     "What directory would you like to store MediaWiki source code in?",
-				Default: "~/dev/git/gerrit/mediawiki/core",
+				Default: suggestedMwDir,
 			}
 			value, err := dirPrompt.Run()
 
