@@ -6,8 +6,8 @@ Happy paths are fairly well tested, sad paths may not be.
 Please provide feedback to addshore, or write a ticket under the mwcli project https://phabricator.wikimedia.org/tag/mwcli/
 You can also look there for the current known bugs and missing features.
 
-You can find a built binary at https://github.com/addshore/mwcli/suites/2692952480/artifacts/59343451
-This could be considered version `addshore-build-135` (for bug reports etc).
+You can find a built binary at https://github.com/addshore/mwcli/suites/2806358520/artifacts/62417942
+This could be considered version `addshore-build-181` (for bug reports etc).
 You'll need to **extract the binary, make it executable (+x)** and put it somewhere in your path!
 
 If you want to use a single MediaWiki install with both the new mwcli and the old mwdd setups then try this at the top of you LocalSetting.php file.
