@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
   adminer:
-    image: adminer:4.8.0
+    image: "${ADMINER_IMAGE:-adminer:4.8.0}"
     environment:
       - VIRTUAL_HOST=adminer.mwdd.localhost
       - VIRTUAL_PORT=8080

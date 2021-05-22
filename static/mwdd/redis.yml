@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
   redis:
-    image: redis:6.2
+    image: "${REDIS_IMAGE:-redis:6.2}"
     hostname: redis.mwdd.localhost
     dns:
       - 10.0.0.10
