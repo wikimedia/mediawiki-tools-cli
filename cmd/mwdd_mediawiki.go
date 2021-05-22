@@ -368,15 +368,10 @@ var mwddMediawikiPhpunitCmd = &cobra.Command{
 	Use:   "phpunit",
 	Short: "Runs MediaWiki phpunit in the MediaWiki container",
 	Run: func(cmd *cobra.Command, args []string) {
-		wiki := "default"
-		// TODO optionally take a --wiki (use default if not specified?) Maybe this should be done in LocalSettings?
-		// if len(args) >= 1 {
-		// 	wiki = args[0]
-		// }
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
-			Command: append([]string{"php", "/var/www/html/w/tests/phpunit/phpunit.php", "--wiki", wiki},args...),
+			Command: append([]string{"php", "/var/www/html/w/tests/phpunit/phpunit.php"},args...),
 			User: User,
 		}))
 	},
@@ -399,8 +394,6 @@ var mwddMediawikiExecCmd = &cobra.Command{
 var applyRelevantWorkingDirectory = func( dockerExecCommand mwdd.DockerExecCommand ) mwdd.DockerExecCommand  {
 	currentWorkingDirectory, _ := os.Getwd()
 	mountedMwDirectory := mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE")
-	fmt.Println(currentWorkingDirectory)
-	fmt.Println(mountedMwDirectory)
 	// For paths inside the mediawiki path
 	if( strings.HasPrefix( currentWorkingDirectory,mountedMwDirectory ) ) {
 		dockerExecCommand.WorkingDir = strings.Replace(currentWorkingDirectory, mountedMwDirectory, "/var/www/html/w", 1)
