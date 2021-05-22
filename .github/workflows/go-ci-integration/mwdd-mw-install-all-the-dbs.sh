@@ -25,26 +25,25 @@ echo "<?php" >> mediawiki/LocalSettings.php
 echo "//require_once "$IP/includes/PlatformSettings.php";" >> mediawiki/LocalSettings.php
 echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 
-# Install sqlite & check
-./mw mwdd mediawiki install
-curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-
-# Turn on mysql & replica, install & check
+# Turn on all of the services
 ./mw mwdd mysql-replica create
-./mw mwdd mediawiki install --dbname mysqlwiki --dbtype mysql
-curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-
-# Turn on postgres, install & check
 ./mw mwdd postgres create
-./mw mwdd mediawiki install --dbname postgreswiki --dbtype postgres
-curl -s -L -N http://postgreswiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-
-# Turn on the db management services
 ./mw mwdd phpmyadmin create
 ./mw mwdd adminer create
-sleep 2
+
+# Install everything
+./mw mwdd mediawiki install --dbname mysqlwiki --dbtype mysql
+./mw mwdd mediawiki install --dbname postgreswiki --dbtype postgres
+./mw mwdd mediawiki install
+
+# Check the DB tools
 curl -s -L -N http://phpmyadmin.mwdd.localhost:8080 | grep -q "Open new phpMyAdmin window"
 curl -s -L -N http://adminer.mwdd.localhost:8080 | grep -q "Login - Adminer"
+
+# And check the installed sites
+curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
+curl -s -L -N http://postgreswiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
+curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
 
 # Make sure the expected number of services appear
 docker ps
