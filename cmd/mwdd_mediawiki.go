@@ -321,7 +321,7 @@ var mwddMediawikiCreateCmd = &cobra.Command{
 			Verbosity:   Verbosity,
 		}
 		// TODO mediawiki should come from some default definition set?
-		mwdd.DefaultForUser().UpDetached( []string{"mediawiki"}, options )
+		mwdd.DefaultForUser().UpDetached( []string{"mediawiki","mediawiki-web"}, options )
 		// TODO add functionality for writing to the hosts file...
 		//mwdd.DefaultForUser().EnsureHostsFile()
 	},
@@ -335,7 +335,7 @@ var mwddMediawikiDestroyCmd = &cobra.Command{
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"mediawiki"},options)
+		mwdd.DefaultForUser().Rm( []string{"mediawiki","mediawiki-web"},options)
 		mwdd.DefaultForUser().RmVolumes( []string{"mediawiki-data","mediawiki-images","mediawiki-logs"},options)
 	},
 }
@@ -348,7 +348,7 @@ var mwddMediawikiSuspendCmd = &cobra.Command{
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"mediawiki"},options)
+		mwdd.DefaultForUser().Stop( []string{"mediawiki","mediawiki-web"},options)
 	},
 }
 
@@ -360,7 +360,7 @@ var mwddMediawikiResumeCmd = &cobra.Command{
 		options := exec.HandlerOptions{
 			Verbosity:   Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"mediawiki"},options)
+		mwdd.DefaultForUser().Start( []string{"mediawiki","mediawiki-web"},options)
 	},
 }
 
