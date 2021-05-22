@@ -39,7 +39,7 @@ var mwddCmd = &cobra.Command{
 		if(mwdd.Env().Missing("PORT")){
 			prompt := promptui.Prompt{
 				Label:     "What port would you like to use for your development environment?",
-				// TODO suggest a port that is defiantly availbile for listening on
+				// TODO suggest a port that is definitely available for listening on
 				Default: "8080",
 				Validate: func(input string) error {
 					// TODO check the port can be listened on?

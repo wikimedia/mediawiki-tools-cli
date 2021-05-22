@@ -49,7 +49,7 @@ var mwddMediawikiCmd = &cobra.Command{
 			}
 			value, err := dirPrompt.Run()
 
-			// Deal with people entering ~/ paths and them not be handeled
+			// Deal with people entering ~/ paths and them not be handled
 			usr, _ := user.Current()
 			usrDir := usr.HomeDir
 			if value == "~" {
@@ -137,7 +137,6 @@ var mwddMediawikiCmd = &cobra.Command{
 			Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
 			setupOpts.Options = exec.HandlerOptions{
 				Spinner: Spinner,
-				//Verbosity: Verbosity,
 			}
 
 			mediawiki.CloneSetup(setupOpts)
@@ -220,6 +219,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			if err == nil {
 				mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 					DockerComposeService: "mediawiki",
+					// --ignore-platform-reqs is currently used as only PHP7.2 is provided and some things need higher
 					Command: []string{"composer","install","--ignore-platform-reqs","--no-interaction"},
 					User: User,
 				},)
