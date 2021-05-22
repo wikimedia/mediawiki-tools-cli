@@ -1,24 +1,26 @@
+  
 version: '3.0'
 
 services:
-  mysql:
+  mysql-replica:
     image: "${MYSQL_IMAGE:-mariadb:10.5}"
     environment:
       - MYSQL_ROOT_PASSWORD=toor
-    hostname: mysql.mwdd.localhost
+    hostname: mysql-replica.mwdd.localhost
     depends_on:
-      - mysql-configure-replication
+      - mysql
+      - mysql-replica-configure-replication
     dns:
       - 10.0.0.10
     networks:
       - dps
     volumes:
-      - mysql-data:/var/lib/mysql
-      - ./mysql/main:/mwdd-custom
+      - mysql-replica-data:/var/lib/mysql
+      - ./mysql/replica:/mwdd-custom
     entrypoint: "/mwdd-custom/entrypoint.sh"
     command: "mysqld"
 
-  mysql-configure-replication:
+  mysql-replica-configure-replication:
     image: "${MYSQL_IMAGE:-mariadb:10.5}"
     environment:
       - "MYSQL_REPLICA_PASSWORD=toor"
@@ -26,14 +28,15 @@ services:
       - "MYSQL_ROOT_PASSWORD=toor"
       - "MYSQL_REPLICATION_USER=repl"
       - "MYSQL_REPLICATION_PASSWORD=repl"
+    dns:
+      - 10.0.0.10
     networks:
       - dps
     volumes:
       - ./wait-for-it.sh:/wait-for-it.sh:ro
-      - ./mysql/main:/mwdd-custom
+      - ./mysql/replica:/mwdd-custom
       - mysql-configure-replication-data:/mwdd-connector
-    command: /bin/bash -x /mwdd-custom/mysql_connector_main.sh
+    command: /bin/bash -x /mwdd-custom/mysql_connector_replica.sh
 
 volumes:
-  mysql-data:
-  mysql-configure-replication-data:
+  mysql-replica-data:
