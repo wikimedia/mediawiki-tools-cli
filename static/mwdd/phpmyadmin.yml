@@ -2,7 +2,7 @@ version: '2.2'
 
 services:
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin/phpmyadmin:5
     environment:
       - PMA_USER=root
       - PMA_PASSWORD=toor
