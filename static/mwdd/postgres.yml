@@ -1,9 +1,8 @@
 version: '3.0'
 
 services:
-  postgres:
-    # TODO allow image customization, something like POSTGRES_IMAGE (as long as it meets the required interface)
-    image: postgres:13.2
+  postgres: 
+    image: "${POSTGRES_IMAGE:-postgres:13.2}"
     environment:
       # Specify "root" rather than the default "postgres" so that it is similar to the mysql service
       - POSTGRES_USER=root
