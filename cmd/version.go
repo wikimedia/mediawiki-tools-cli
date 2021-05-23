@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,15 @@ Version: %s
 `, GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
 	},
 }
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Checks for and performs updates",
+	Run: func(cmd *cobra.Command, args []string) {
+		updater.Check(Version)
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(updateCmd)
 }
