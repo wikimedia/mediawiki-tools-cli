@@ -37,7 +37,6 @@ jobs:
 
     - name: Setup Go
       uses: actions/setup-go@v2
-      # XXX: Keeping this at 1.13 until blubber.yaml is updated to 1.16 too (as is in go.mod)
       with:
         go-version: 1.13
 
@@ -49,6 +48,28 @@ jobs:
       with:
         name: binary
         path: bin/mw
+
+  # Builds a release
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.13
+
+    - name: Make
+      run: make
+    - name: Make Release
+      run: make release
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: release
+        path: _release
+
 
   # Fetches and installs MediaWiki, caching it for further runs
   fetch-mw:

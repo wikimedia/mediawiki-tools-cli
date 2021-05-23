@@ -7,6 +7,7 @@ RELEASE_DIR ?= ./_release
 TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
 
 PACKAGE := gerrit.wikimedia.org/r/mediawiki/tools/cli
+VERSION := $(shell cat VERSION)
 
 GO_LIST_GOFILES := '{{range .GoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}{{range .XTestGoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}'
 GO_PACKAGES := $(shell go list ./...)
@@ -19,15 +20,16 @@ get:
 get-dev:
 	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get github.com/ahmetb/govvv@v0.3.0
 	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get bou.ke/staticfiles@v0.0.0-20210106104248-dd04075d4104
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get github.com/mitchellh/gox@v1.0.1
 
 build:
 	@echo "Building $(GOFILES) to ./bin"
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -v -ldflags "$(shell ./bin/govvv -flags)" -o bin/cli ./
 
 release:
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) gox -output="$(RELEASE_DIR)/{{.OS}}-{{.Arch}}/mw" -osarch='$(TARGETS)' -ldflags '$(GO_LDFLAGS)' $(GO_PACKAGES)
+	GOPATH=$(GOPATH) GOBIN=$(GOBIN) ./bin/gox -output="$(RELEASE_DIR)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell ./bin/govvv -flags)' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
-	for f in "$(RELEASE_DIR)"/*/mw; do \
+	for f in "$(RELEASE_DIR)"/mw_*; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
 	done
 
@@ -44,7 +46,7 @@ internal/mwdd/files/files.go: static/mwdd/*
 clean:
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go clean $(GO_PACKAGES)
 	rm -rf bin || true
-	rm -rf _releases || true
+	rm -rf _release || true
 	rm internal/mwdd/files/files.go || true
 
 test: get-dev generate unit lint

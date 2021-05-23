@@ -1,5 +1,8 @@
 #!/bin/bash
 
+GOPATH=$(pwd)/vendor:$(pwd)
+GOBIN=$(pwd)/bin
+
 SCRIPTPATH=$(dirname $(realpath $0))
 WORKINGPATH=$(echo $PWD)
 cd $SCRIPTPATH
@@ -10,4 +13,4 @@ make internal/mwdd/files/files.go
 
 # Run from source from the origional directory
 cd $WORKINGPATH
-go run ${SCRIPTPATH}/main.go $@
+go run -ldflags "$(${SCRIPTPATH}/bin/govvv -flags)" ${SCRIPTPATH}/main.go $@
