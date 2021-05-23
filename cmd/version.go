@@ -40,7 +40,7 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Checks for and performs updates",
 	Run: func(cmd *cobra.Command, args []string) {
-		updater.Check(Version)
+		updater.Check(Version, GitSummary)
 	},
 }
 

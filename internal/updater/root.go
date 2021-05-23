@@ -27,10 +27,17 @@ import (
 )
 
 /*Check ...*/
-func Check(currentVersion string) {
+func Check(currentVersion string, gitSummary string) {
 	selfupdate.EnableLog()
+
+	if !strings.HasPrefix(gitSummary, currentVersion) || strings.HasSuffix(gitSummary,"dirty") {
+		log.Println("Can only update tag built releases")
+		os.Exit(1)
+	}
+
 	log.Println("Checking version " + currentVersion)
-	v := semver.MustParse(strings.Trim(currentVersion,"v"))
+	log.Println("git summary " + gitSummary)
+	v := semver.MustParse(strings.Trim(gitSummary,"v"))
 
 	// TODO when builds are on wm.o then allow for a "dev" or "stable" update option
 
