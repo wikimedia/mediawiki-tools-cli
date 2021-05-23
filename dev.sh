@@ -10,4 +10,4 @@ make internal/mwdd/files/files.go
 
 # Run from source from the origional directory
 cd $WORKINGPATH
-go run ${SCRIPTPATH}/cmd/cli/main.go $@
+go run ${SCRIPTPATH}/main.go $@

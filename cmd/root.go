@@ -53,13 +53,33 @@ var Env []string
 // Workdir run the docker command with this working directory
 var Workdir string
 
+// GitCommit holds short commit hash of source tree
+var GitCommit string
+// GitBranch holds current branch name the code is built off
+var GitBranch string
+// GitState shows whether there are uncommitted changes
+var GitState string
+// GitSummary holds output of git describe --tags --dirty --always
+var GitSummary string
+// BuildDate holds RFC3339 formatted UTC date (build time)
+var BuildDate string
+// Version holds contents of ./VERSION file, if exists, or the value passed via the -version option
+var Version string
+
 var rootCmd = &cobra.Command{
 	Use:   "mw",
 	Short: "Developer utilities for working with MediaWiki",
 }
 
 /*Execute the root command*/
-func Execute() {
+func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSummaryIn string, BuildDateIn string, VersionIn string) {
+	GitCommit = GitCommitIn
+	GitBranch = GitBranchIn
+	GitState = GitStateIn
+	GitSummary = GitSummaryIn
+	BuildDate = BuildDateIn
+	Version = VersionIn
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
