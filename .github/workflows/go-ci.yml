@@ -43,6 +43,7 @@ jobs:
 
     - name: Make
       run: make
+    - run: mv ./bin/cli ./bin/mw
 
     - uses: actions/upload-artifact@v2
       with:
@@ -151,7 +152,7 @@ jobs:
       with:
         name: binary
         path: .
-    - run: chmod +x ./mw
+    - run:  chmod +x ./mw
 
     - name: Setup Docker
       uses: docker-practice/actions-setup-docker@master

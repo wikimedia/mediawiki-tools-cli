@@ -17,10 +17,9 @@ Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
 
 Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd` directory:
 
-- run `go mod download` to download the required modules
-- run `go mod vendor` to copy the required modules into a vendor directory for the project
+- run `make` to download dependencies and build an initial binary
 
-Execute the tool from any directory by running the `./dev.sh` script.
+Execute the tool without building from any directory by running the `./dev.sh` script.
 
 ### Packages & Directories
 
@@ -45,9 +44,9 @@ No naming structured is enforced in CI but a convention exists that should be fo
 
 ### Using a binary
 
-Make a binary by running `make install`
+Make a binary by running `make`
 
-Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw`
+Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/cli`
 
 ## Support
 

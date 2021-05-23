@@ -58,6 +58,7 @@ assert() {
 title "Build mwcli"
 {
   make
+  mv $BASE/bin/cli $BASE/bin/mw
 }
 
 # get mediawiki

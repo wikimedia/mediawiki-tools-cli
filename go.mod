@@ -1,8 +1,9 @@
 module gerrit.wikimedia.org/r/mediawiki/tools/cli
 
 require (
-	bou.ke/staticfiles v0.0.0-20210106104248-dd04075d4104 // indirect
+	bou.ke/staticfiles v0.0.0-20210106104248-dd04075d4104
 	github.com/Microsoft/go-winio v0.5.0 // indirect
+	github.com/ahmetb/govvv v0.3.0
 	github.com/briandowns/spinner v1.11.1
 	github.com/containerd/containerd v1.4.4 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -21,4 +22,4 @@ require (
 	gotest.tools/v3 v3.0.3 // indirect
 )
 
-go 1.16
+go 1.13

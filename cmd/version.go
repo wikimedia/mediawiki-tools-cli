@@ -1,6 +1,6 @@
 /*Package cmd is used for command line.
 
-Copyright © 2020 Kosta Harlan <kosta@kostaharlan.net>
+Copyright © 2020 Addshore
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,9 +24,15 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Output the version",
+	Short: "Output the version infomation",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("0.1.0")
+		fmt.Printf(`GitCommit: %s
+GitBranch: %s
+GitState: %s
+GitSummary: %s
+BuildDate: %s
+Version: %s
+`, GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
 	},
 }
 
