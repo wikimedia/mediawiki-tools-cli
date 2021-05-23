@@ -1,16 +1,22 @@
 # MediaWiki CLI - mwdd
 
-A golang mwdd port, incorporated into the mwcli application.
+A golang mwdd port, incorporated into the mwcli tool.
 
-Happy paths are fairly well tested, sad paths may not be.
-Please provide feedback to addshore, or write a ticket under the mwcli project https://phabricator.wikimedia.org/tag/mwcli/
-You can also look there for the current known bugs and missing features.
+If you have feedback or requests please write a ticket under the mwcli project https://phabricator.wikimedia.org/tag/mwcli/
 
-You can find a built binary at https://github.com/addshore/mwcli/suites/2806358520/artifacts/62417942
-This could be considered version `addshore-build-181` (for bug reports etc).
-You'll need to **extract the binary, make it executable (+x)** and put it somewhere in your path!
+## Installing
 
-If you want to use a single MediaWiki install with both the new mwcli and the old mwdd setups then try this at the top of you LocalSetting.php file.
+You can grab built development binaries from https://github.com/addshore/mwcli/releases
+
+If you're on linux and want a quick oneliner:
+
+```sh
+sudo wget -O /usr/bin/mw https://github.com/addshore/mwcli/releases/download/v0.1.0-dev-addshore.20210523.1/mw_v0.1.0_linux_amd64 && sudo chmod +x /usr/bin/mw
+```
+
+## Migrating from previous mwdd versions
+
+If you want to use a single MediaWiki install with both the new mwcli and the old mediawiki-docker-dev setup, then add this at the top of your LocalSetting.php
 
 ```php
 <?php
@@ -24,9 +30,17 @@ if(file_exists('/mwdd/MwddSettings.php')) {
 }
 ```
 
+If you only want to use the new mwcli, then you'll end up with something like this:
+
+```php
+<?php
+//require_once "$IP/includes/PlatformSettings.php";
+require_once '/mwdd/MwddSettings.php';
+```
+
 ## Usage
 
-Wizards & Prompts should guide you through any infomation you need to enter when you run commands.
+Wizards & prompts should guide you through any infomation you need to enter when you run commands.
 
 **Turn on the mediawiki service:**
 
