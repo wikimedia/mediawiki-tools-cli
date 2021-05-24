@@ -3,6 +3,8 @@
 This project contains a command-line interface for interacting with MediaWiki
 development environments.
 
+Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
+
 ## Docker
 
 There are currently 2 subcommands:
@@ -50,5 +52,6 @@ Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/medi
 
 ## Support
 
+- Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
 - Phabricator: [#MediaWiki-Docker](https://phabricator.wikimedia.org/project/view/4585/)
 - IRC: `#mediawiki`
