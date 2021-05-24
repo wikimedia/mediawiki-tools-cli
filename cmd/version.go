@@ -18,8 +18,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -36,15 +39,39 @@ Version: %s
 `, GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
 	},
 }
+
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Checks for and performs updates",
 	Run: func(cmd *cobra.Command, args []string) {
-		updater.Check(Version, GitSummary)
+
+		canUpdate, nextRelease := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
+		if !canUpdate || nextRelease == nil {
+			log.Println("No update available")
+			os.Exit(0)
+		}
+
+		log.Println("New update found: " + nextRelease.Version.String())
+		log.Println(nextRelease.AssetURL)
+
+		updatePrompt := promptui.Prompt{
+			Label:     " Do you want to update?",
+			IsConfirm: true,
+		}
+		_, err := updatePrompt.Run()
+		if err == nil {
+			if(!updater.ShouldAllowUpdates( Version, GitSummary, Verbosity >= 2 )){
+				log.Println("Can not update this version")
+				os.Exit(1)
+			}
+			updater.UpdateTo(*nextRelease, Verbosity >= 2)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(updateCmd)
+
+	updateCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
 }

@@ -26,32 +26,70 @@ import (
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 )
 
-/*Check ...*/
-func Check(currentVersion string, gitSummary string) {
-	selfupdate.EnableLog()
-
-	if !strings.HasPrefix(gitSummary, currentVersion) || strings.HasSuffix(gitSummary,"dirty") {
-		log.Println("Can only update tag built releases")
-		os.Exit(1)
+/*CanUpdate ...*/
+func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bool, *selfupdate.Release) {
+	if(verboseOutput){
+		selfupdate.EnableLog()
 	}
 
-	log.Println("Checking version " + currentVersion)
-	log.Println("git summary " + gitSummary)
 	v := semver.MustParse(strings.Trim(gitSummary,"v"))
 
-	// TODO when builds are on wm.o then allow for a "dev" or "stable" update option
+	// TODO when builds are on wm.o then allow for a "dev" or "stable" update option and checks
 
-	latest, err := selfupdate.UpdateSelf(v, "addshore/mwcli")
+	rel, ok, err := selfupdate.DetectLatest("addshore/mwcli")
 	if err != nil {
-		log.Println("Binary update failed:", err)
-		return
+		if(verboseOutput){
+			log.Println("Some unknown error occurred")
+		}
+		return false, rel
 	}
-	if latest.Version.Equals(v) {
-		// latest version is the same as current version. It means current binary is up to date.
-		log.Println("Current binary is the latest version", currentVersion)
-	} else {
-		log.Println("Successfully updated to version", latest.Version)
-		log.Println("Release note:\n", latest.ReleaseNotes)
+	if !ok {
+		if(verboseOutput){
+			log.Println("No release detected. Current version is considered up-to-date")
+		}
+		return false, rel
 	}
-	os.Exit(0)
+	if v.Equals(rel.Version) {
+		if(verboseOutput){
+			log.Println("Current version", v, "is the latest. Update is not needed")
+		}
+		return false, rel
+	}
+	if(verboseOutput){
+		log.Println("Update available", rel.Version)
+	}
+	return true, rel
+}
+
+/*UpdateTo ...*/
+func UpdateTo(release selfupdate.Release, verboseOutput bool) (success bool, message string) {
+	if(verboseOutput){
+		selfupdate.EnableLog()
+	}
+
+	cmdPath, err := os.Executable()
+	if err != nil {
+		return false, "Failed to grab local executable location"
+	}
+
+	err = selfupdate.UpdateTo(release.AssetURL, cmdPath)
+	if err != nil {
+		if(verboseOutput){
+			log.Println("Binary update failed:", err)
+		}
+		return false, "Binary update failed"
+	}
+
+	return true, "Successfully updated to version" + release.Version.String() + "\nRelease note:\n" + release.ReleaseNotes
+}
+
+/*ShouldAllowUpdates ...*/
+func ShouldAllowUpdates(currentVersion string, gitSummary string, verboseOutput bool) bool {
+	if !strings.HasPrefix(gitSummary, currentVersion) || strings.HasSuffix(gitSummary,"dirty") {
+		if(verboseOutput){
+			log.Println("Can only update tag built releases")
+		}
+		return false
+	}
+	return true
 }
