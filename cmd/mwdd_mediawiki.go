@@ -232,8 +232,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 
 		// TODO make sure of composer caches
 		composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki",[]string{
-			"php", "-r",
-			"require_once __DIR__ . '/includes/PHPVersionCheck.php'; $phpVersionCheck = new PHPVersionCheck(); $phpVersionCheck->checkVendorExistence();",
+			"php", "/var/www/html/w/maintenance/checkComposerLockUpToDate.php",
 		},
 		exec.HandlerOptions{})
 		if(composerErr != nil) {
