@@ -255,12 +255,16 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			}
 		}
 
+		// Fix some permissions
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{"chown", "-R", "nobody", "/var/www/html/w/data" }, exec.HandlerOptions{}, "root")
+		mwdd.DefaultForUser().Exec("mediawiki",[]string{"chown", "-R", "nobody", "/var/log/mediawiki" }, exec.HandlerOptions{}, "root")
+
 		// Move custom LocalSetting.php so the install doesn't overwrite it
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
 			"mv",
 			"/var/www/html/w/LocalSettings.php",
 			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
-			}, exec.HandlerOptions{})
+			}, exec.HandlerOptions{}, "root")
 
 		// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
 		if DbType == "sqlite" {
@@ -275,19 +279,19 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 				"--pass", "mwddpassword",
 				"docker-" + DbName,
 				"admin",
-				}, exec.HandlerOptions{})
+				}, exec.HandlerOptions{}, "nobody")
 		}
 		if DbType == "mysql" {
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
 				"/wait-for-it.sh",
 				"mysql:3306",
-				}, exec.HandlerOptions{})
+				}, exec.HandlerOptions{}, "nobody")
 		}
 		if DbType == "postgres" {
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
 				"/wait-for-it.sh",
 				"postgres:5432",
-				}, exec.HandlerOptions{})
+				}, exec.HandlerOptions{}, "nobody")
 		}
 		if DbType == "mysql" || DbType == "postgres" {
 			mwdd.DefaultForUser().Exec("mediawiki",[]string{
@@ -304,7 +308,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 				"--pass", "mwddpassword",
 				"docker-" + DbName,
 				"admin",
-				}, exec.HandlerOptions{})
+				}, exec.HandlerOptions{}, "nobody")
 		}
 
 		// Move the custom one back
@@ -312,7 +316,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			"mv",
 			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
 			"/var/www/html/w/LocalSettings.php",
-			}, exec.HandlerOptions{})
+			}, exec.HandlerOptions{}, "root")
 
 		// Run update.php once too
 		mwdd.DefaultForUser().Exec("mediawiki",[]string{
@@ -320,7 +324,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			"/var/www/html/w/maintenance/update.php",
 			"--wiki", DbName,
 			"--quick",
-			}, exec.HandlerOptions{})
+			}, exec.HandlerOptions{}, "nobody")
 	},
 }
 

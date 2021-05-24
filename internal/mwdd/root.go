@@ -112,11 +112,12 @@ func (m MWDD) DockerComposeTTY( command DockerComposeCommand ) {
 }
 
 /*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
-func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions ) {
+func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions, user string ) {
+	// TODO refactor this code path to make handeling options nicer
 	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command: "exec",
-			CommandArguments: append( []string{"-T", service }, commandAndArgs... ),
+			CommandArguments: append( []string{"-T", "--user", user, service }, commandAndArgs... ),
 			HandlerOptions: options,
 		},
 	)
