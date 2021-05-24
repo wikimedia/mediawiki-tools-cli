@@ -60,10 +60,6 @@ var updateCmd = &cobra.Command{
 		}
 		_, err := updatePrompt.Run()
 		if err == nil {
-			if(!updater.ShouldAllowUpdates( Version, GitSummary, Verbosity >= 2 )){
-				log.Println("Can not update this version")
-				os.Exit(1)
-			}
 			updater.UpdateTo(*nextRelease, Verbosity >= 2)
 		}
 	},

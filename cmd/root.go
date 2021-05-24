@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
 	"github.com/spf13/cobra"
 )
 
@@ -79,6 +80,18 @@ func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSumma
 	GitSummary = GitSummaryIn
 	BuildDate = BuildDateIn
 	Version = VersionIn
+
+	canUpdate, release := updater.CanUpdateDaily(Version, GitSummary, false)
+	if(canUpdate){
+		colorReset := "\033[0m"
+		colorYellow := "\033[33m"
+		colorWhite := "\033[37m"
+		colorCyan := "\033[36m"
+		fmt.Printf(
+			"\n"+colorYellow+"A new update is availbile\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
+			Version, GitSummary, release.Version.String(),
+		)
+	}
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
