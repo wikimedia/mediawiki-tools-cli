@@ -81,6 +81,20 @@ var mwddRedisResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddRedisExecCmd = &cobra.Command{
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short: "Executes a command in the Redis container",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "redis",
+			Command: args,
+			User: User,
+		})
+	},
+}
+
 var mwddRedisCliCmd = &cobra.Command{
 	Use:   "cli",
 	Short: "Redis CLI for the container",
@@ -99,5 +113,6 @@ func init() {
 	mwddRedisCmd.AddCommand(mwddRedisDestroyCmd)
 	mwddRedisCmd.AddCommand(mwddRedisSuspendCmd)
 	mwddRedisCmd.AddCommand(mwddRedisResumeCmd)
+	mwddRedisCmd.AddCommand(mwddRedisExecCmd)
 	mwddRedisCmd.AddCommand(mwddRedisCliCmd)
 }

@@ -80,11 +80,26 @@ var mwddAdminerResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddAdminerExecCmd = &cobra.Command{
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short: "Executes a command in the Adminer container",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "adminer",
+			Command: args,
+			User: User,
+		})
+	},
+}
+
 func init() {
 	mwddCmd.AddCommand(mwddAdminerCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerCreateCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerDestroyCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerSuspendCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerResumeCmd)
+	mwddAdminerCmd.AddCommand(mwddAdminerExecCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
 }

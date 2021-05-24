@@ -81,10 +81,25 @@ var mwddMySQLResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddMySQLExecCmd = &cobra.Command{
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short: "Executes a command in the MySQL container",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "mysql",
+			Command: args,
+			User: User,
+		})
+	},
+}
+
 func init() {
 	mwddCmd.AddCommand(mwddMySQLCmd)
 	mwddMySQLCmd.AddCommand(mwddMySQLCreateCmd)
 	mwddMySQLCmd.AddCommand(mwddMySQLDestroyCmd)
 	mwddMySQLCmd.AddCommand(mwddMySQLSuspendCmd)
 	mwddMySQLCmd.AddCommand(mwddMySQLResumeCmd)
+	mwddMySQLCmd.AddCommand(mwddMySQLExecCmd)
 }

@@ -81,10 +81,25 @@ var mwddPostgresResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddPostgresExecCmd = &cobra.Command{
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short: "Executes a command in the Postgres container",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "postgres",
+			Command: args,
+			User: User,
+		})
+	},
+}
+
 func init() {
 	mwddCmd.AddCommand(mwddPostgresCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresCreateCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresDestroyCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresSuspendCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresResumeCmd)
+	mwddPostgresCmd.AddCommand(mwddPostgresExecCmd)
 }
