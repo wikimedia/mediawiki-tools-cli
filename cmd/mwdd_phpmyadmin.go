@@ -81,10 +81,26 @@ var mwddPhpMyAdminResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddPhpMyAdminExecCmd = &cobra.Command{
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short: "Executes a command in the PhpMyAdmin container",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "phpmyadmin",
+			Command: args,
+			User: User,
+		})
+	},
+}
+
 func init() {
 	mwddCmd.AddCommand(mwddPhpMyAdminCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminCreateCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminDestroyCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminSuspendCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminResumeCmd)
+	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminExecCmd)
+	mwddPhpMyAdminExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }

@@ -81,10 +81,26 @@ var mwddGraphiteResumeCmd = &cobra.Command{
 	},
 }
 
+var mwddGraphiteExecCmd = &cobra.Command{
+	Use:   "exec [flags] [command...]",
+	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short: "Executes a command in the Graphite container",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+			DockerComposeService: "graphite",
+			Command: args,
+			User: User,
+		})
+	},
+}
+
 func init() {
 	mwddCmd.AddCommand(mwddGraphiteCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteCreateCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteDestroyCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteSuspendCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteResumeCmd)
+	mwddGraphiteCmd.AddCommand(mwddGraphiteExecCmd)
+	mwddGraphiteExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }
