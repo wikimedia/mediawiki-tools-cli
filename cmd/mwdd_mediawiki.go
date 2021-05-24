@@ -41,6 +41,10 @@ var mwddMediawikiCmd = &cobra.Command{
 		cmd.Parent().Parent().PersistentPreRun(cmd, args)
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
+
+		usr, _ := user.Current()
+		usrDir := usr.HomeDir
+
 		if(mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE")){
 
 			// Try to autodetect if we are in a MediaWiki directory at all
@@ -68,8 +72,6 @@ var mwddMediawikiCmd = &cobra.Command{
 			value, err := dirPrompt.Run()
 
 			// Deal with people entering ~/ paths and them not be handled
-			usr, _ := user.Current()
-			usrDir := usr.HomeDir
 			if value == "~" {
 				// In case of "~", which won't be caught by the "else if"
 				value = usrDir
@@ -85,6 +87,12 @@ var mwddMediawikiCmd = &cobra.Command{
 				fmt.Println("Can't continue without a MediaWiki code directory")
 				os.Exit(1)
 			}
+
+		}
+
+		// Default the mediawiki container to a .composer directory in the running users home dir
+		if(!mwdd.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER")) {
+			mwdd.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer")
 		}
 
 		setupOpts := mediawiki.CloneSetupOpts{}
@@ -354,7 +362,7 @@ var mwddMediawikiDestroyCmd = &cobra.Command{
 			Verbosity:   Verbosity,
 		}
 		mwdd.DefaultForUser().Rm( []string{"mediawiki","mediawiki-web"},options)
-		mwdd.DefaultForUser().RmVolumes( []string{"mediawiki-data","mediawiki-images","mediawiki-logs"},options)
+		mwdd.DefaultForUser().RmVolumes( []string{"mediawiki-data","mediawiki-images","mediawiki-logs","mediawiki-dot-composer"},options)
 	},
 }
 

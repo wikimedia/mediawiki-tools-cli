@@ -12,11 +12,13 @@ services:
      - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/data:delegated"
      - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
      - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:delegated"
+     - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
     environment:
       # Used by various maintenance scripts to find MediaWiki.
       # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
       - MW_INSTALL_PATH=/var/www/html/w
       - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
+      - COMPOSER_CACHE_DIR=/.composer/cache
     hostname: mediawiki
     depends_on:
       - mediawiki-web
@@ -48,3 +50,4 @@ volumes:
   mediawiki-data:
   mediawiki-images:
   mediawiki-logs:
+  mediawiki-dot-composer:
