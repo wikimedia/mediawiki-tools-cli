@@ -22,7 +22,7 @@ get-dev:
 
 build:
 	@echo "Building $(GOFILES) to ./bin"
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -v -ldflags "$(shell ./bin/govvv -flags)" -o bin/cli ./
+	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -v -ldflags "$(shell ./bin/govvv -flags)" -o bin/mw ./
 
 release:
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) gox -output="$(RELEASE_DIR)/{{.OS}}-{{.Arch}}/mw" -osarch='$(TARGETS)' -ldflags '$(GO_LDFLAGS)' $(GO_PACKAGES)
