@@ -138,10 +138,7 @@ func UpdateTo(release selfupdate.Release, verboseOutput bool) (success bool, mes
 
 	err = selfupdate.UpdateTo(release.AssetURL, cmdPath)
 	if err != nil {
-		if(verboseOutput){
-			log.Println("Binary update failed:", err)
-		}
-		return false, "Binary update failed"
+		return false, "Binary update failed" + err.Error()
 	}
 
 	return true, "Successfully updated to version" + release.Version.String() + "\nRelease note:\n" + release.ReleaseNotes
