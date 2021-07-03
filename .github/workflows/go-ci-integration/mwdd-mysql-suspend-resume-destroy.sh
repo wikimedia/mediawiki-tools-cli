@@ -15,7 +15,7 @@ set -x
 # Setup & Create
 ./mw mwdd env set PORT 8080
 ./mw mwdd env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki
-./mw mwdd create
+./mw mwdd mediawiki create
 ./mw mwdd mysql create
 echo "<?php" >> mediawiki/LocalSettings.php
 echo "//require_once "$IP/includes/PlatformSettings.php";" >> mediawiki/LocalSettings.php

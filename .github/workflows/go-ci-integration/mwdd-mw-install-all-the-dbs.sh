@@ -15,7 +15,7 @@ set -x
 # Setup & Create
 ./mw mwdd env set PORT 8080
 ./mw mwdd env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki
-./mw mwdd create
+./mw mwdd mediawiki create
 
 # Validate the basic stuff
 ./mw mwdd docker-compose ps

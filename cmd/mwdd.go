@@ -70,20 +70,6 @@ var mwddWhereCmd = &cobra.Command{
 	},
 }
 
-var mwddCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create the Default containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
-		}
-		// TODO mediawiki should come from some default definition set?
-		mwdd.DefaultForUser().UpDetached( []string{"mediawiki"}, options )
-		// TODO add functionality for writing to the hosts file...
-		//mwdd.DefaultForUser().EnsureHostsFile()
-	},
-}
-
 var mwddDestroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy the Default containers",
@@ -99,7 +85,10 @@ var mwddSuspendCmd = &cobra.Command{
 	Use:   "suspend",
 	Short: "Suspend the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		mwdd.DefaultForUser().Stop( []string{}, options )
 	},
 }
 
@@ -107,7 +96,11 @@ var mwddResumeCmd = &cobra.Command{
 	Use:   "resume",
 	Short: "Resume the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented!");
+		options := exec.HandlerOptions{
+			Verbosity:   Verbosity,
+		}
+		fmt.Println("Any services that you have not already created will show as 'failed'"	)
+		mwdd.DefaultForUser().Start( []string{}, options )
 	},
 }
 
@@ -115,7 +108,6 @@ func init() {
 	mwddCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
 
 	mwddCmd.AddCommand(mwddWhereCmd)
-	mwddCmd.AddCommand(mwddCreateCmd)
 	mwddCmd.AddCommand(mwddDestroyCmd)
 	mwddCmd.AddCommand(mwddSuspendCmd)
 	mwddCmd.AddCommand(mwddResumeCmd)
