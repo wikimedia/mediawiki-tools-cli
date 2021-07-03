@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
@@ -47,12 +46,12 @@ var updateCmd = &cobra.Command{
 
 		canUpdate, nextRelease := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
 		if !canUpdate || nextRelease == nil {
-			log.Println("No update available")
+			fmt.Println("No update available")
 			os.Exit(0)
 		}
 
-		log.Println("New update found: " + nextRelease.Version.String())
-		log.Println(nextRelease.AssetURL)
+		fmt.Println("New update found: " + nextRelease.Version.String())
+		fmt.Println(nextRelease.AssetURL)
 
 		updatePrompt := promptui.Prompt{
 			Label:     " Do you want to update?",
@@ -60,7 +59,11 @@ var updateCmd = &cobra.Command{
 		}
 		_, err := updatePrompt.Run()
 		if err == nil {
-			updater.UpdateTo(*nextRelease, Verbosity >= 2)
+			updateSuccess, updateMessage := updater.UpdateTo(*nextRelease, Verbosity >= 2)
+			fmt.Println(updateMessage)
+			if !updateSuccess {
+				os.Exit(1)
+			}
 		}
 	},
 }
