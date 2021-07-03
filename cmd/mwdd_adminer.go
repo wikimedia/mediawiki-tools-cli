@@ -101,5 +101,5 @@ func init() {
 	mwddAdminerCmd.AddCommand(mwddAdminerSuspendCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerResumeCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerExecCmd)
-	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
+	mwddAdminerExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }

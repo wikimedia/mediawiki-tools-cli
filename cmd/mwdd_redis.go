@@ -114,5 +114,6 @@ func init() {
 	mwddRedisCmd.AddCommand(mwddRedisSuspendCmd)
 	mwddRedisCmd.AddCommand(mwddRedisResumeCmd)
 	mwddRedisCmd.AddCommand(mwddRedisExecCmd)
+	mwddRedisExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddRedisCmd.AddCommand(mwddRedisCliCmd)
 }

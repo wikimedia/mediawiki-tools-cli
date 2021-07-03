@@ -21,7 +21,7 @@ set -x
 ./mw mwdd docker-compose ps
 ./mw mwdd env list
 cat ~/.mwcli/mwdd/default/.env
-curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "The MediaWiki logo"
+CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "The MediaWiki logo"
 
 # Add the needed LocalSettings
 echo "<?php" >> mediawiki/LocalSettings.php
@@ -30,7 +30,7 @@ echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 
 # Install sqlite & check
 ./mw mwdd mediawiki install
-curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
+CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
 
 # docker-compose: Make sure it appears to work
 ./mw mwdd docker-compose ps -- --services | grep -q "mediawiki"

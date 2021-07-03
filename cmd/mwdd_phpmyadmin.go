@@ -102,4 +102,5 @@ func init() {
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminSuspendCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminResumeCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminExecCmd)
+	mwddPhpMyAdminExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }

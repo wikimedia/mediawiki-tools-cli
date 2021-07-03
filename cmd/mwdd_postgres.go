@@ -102,4 +102,5 @@ func init() {
 	mwddPostgresCmd.AddCommand(mwddPostgresSuspendCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresResumeCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresExecCmd)
+	mwddPostgresExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }

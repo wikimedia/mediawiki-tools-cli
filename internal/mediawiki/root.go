@@ -106,7 +106,7 @@ func (m MediaWiki) VectorIsPresent() bool {
 func exitIfNoGit() {
 	_, err := osexec.LookPath("git")
 	if err != nil {
-		fmt.Println("You must have git installed on you're system.")
+		fmt.Println("You must have git installed on your system.")
 		os.Exit(1)
 	}
 }

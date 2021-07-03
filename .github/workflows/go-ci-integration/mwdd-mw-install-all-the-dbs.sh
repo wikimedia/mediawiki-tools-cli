@@ -40,13 +40,13 @@ echo "require_once '/mwdd/MwddSettings.php';" >> mediawiki/LocalSettings.php
 ./mw mwdd mediawiki install
 
 # Check the DB tools
-curl -s -L -N http://phpmyadmin.mwdd.localhost:8080 | grep -q "Open new phpMyAdmin window"
-curl -s -L -N http://adminer.mwdd.localhost:8080 | grep -q "Login - Adminer"
+CURL=$(curl -s -L -N http://phpmyadmin.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Open new phpMyAdmin window"
+CURL=$(curl -s -L -N http://adminer.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Login - Adminer"
 
 # And check the installed sites
-curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-curl -s -L -N http://postgreswiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
-curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080 | grep -q "MediaWiki has been installed"
+CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
+CURL=$(curl -s -L -N http://postgreswiki.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
+CURL=$(curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
 
 # Make sure the expected number of services appear
 docker ps

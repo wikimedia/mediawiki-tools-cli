@@ -102,4 +102,5 @@ func init() {
 	mwddGraphiteCmd.AddCommand(mwddGraphiteSuspendCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteResumeCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteExecCmd)
+	mwddGraphiteExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }

@@ -35,7 +35,7 @@ func CanUpdateDaily(currentVersion string, gitSummary string, verboseOutput bool
 	now := time.Now().UTC()
 	if(now.Sub(lastCheckedTime()).Hours() < 24 ) {
 		if(verboseOutput){
-			log.Println("Already checked in the last 24 hours")
+			log.Println("Already checked for updates in the last 24 hours")
 		}
 		return false, nil
 	}

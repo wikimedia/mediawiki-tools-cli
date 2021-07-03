@@ -102,4 +102,5 @@ func init() {
 	mwddMySQLCmd.AddCommand(mwddMySQLSuspendCmd)
 	mwddMySQLCmd.AddCommand(mwddMySQLResumeCmd)
 	mwddMySQLCmd.AddCommand(mwddMySQLExecCmd)
+	mwddMySQLExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }
