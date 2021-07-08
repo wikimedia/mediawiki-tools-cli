@@ -96,7 +96,6 @@ var mwddGraphiteExecCmd = &cobra.Command{
 }
 
 func init() {
-	mwddCmd.AddCommand(mwddGraphiteCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteCreateCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteDestroyCmd)
 	mwddGraphiteCmd.AddCommand(mwddGraphiteSuspendCmd)

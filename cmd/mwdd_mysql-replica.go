@@ -96,7 +96,6 @@ var mwddMySQLReplicaExecCmd = &cobra.Command{
 }
 
 func init() {
-	mwddCmd.AddCommand(mwddMySQLReplicaCmd)
 	mwddMySQLReplicaCmd.AddCommand(mwddMySQLReplicaCreateCmd)
 	mwddMySQLReplicaCmd.AddCommand(mwddMySQLReplicaDestroyCmd)
 	mwddMySQLReplicaCmd.AddCommand(mwddMySQLReplicaSuspendCmd)

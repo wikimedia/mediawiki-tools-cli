@@ -9,6 +9,10 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 # Output commands
 set -x
 
+# Setup the test config
+mkdir ~/.mwcli
+echo '{"dev_mode":"mwdd"}' > ~/.mwcli/config.json
+
 # Output version
 ./mw version
 

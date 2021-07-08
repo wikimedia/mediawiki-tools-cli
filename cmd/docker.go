@@ -35,12 +35,6 @@ import (
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 )
 
-var dockerCmd = &cobra.Command{
-	Use:   "docker",
-	Short: "The MediaWiki-Docker development environment",
-	RunE:  nil,
-}
-
 func mediawikiOrFatal() mediawiki.MediaWiki {
 	MediaWiki, err := mediawiki.ForCurrentWorkingDirectory()
 	if err != nil {
@@ -311,26 +305,4 @@ func isLinuxHost() bool {
 		log.Fatal(err)
 	}
 	return string(stdout) == "Linux\n"
-}
-
-func init() {
-	dockerCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
-
-	rootCmd.AddCommand(dockerCmd)
-
-	dockerStartCmd.Flags().BoolVarP(&NonInteractive, "acceptPrompts", "y", false, "Answer yes to all prompts")
-
-	dockerExecCmd.Flags().BoolVarP(&Detach, "detach", "d", false, "Detached mode: Run command in the background.")
-	dockerExecCmd.Flags().BoolVarP(&Privileged, "privileged", "p", false, "Give extended privileges to the process.")
-	dockerExecCmd.Flags().StringVarP(&User, "user", "u", "", "Run the command as this user.")
-	dockerExecCmd.Flags().BoolVarP(&NoTTY, "TTY", "T", false, "Disable pseudo-tty allocation. By default a TTY is allocated")
-	dockerExecCmd.Flags().StringVarP(&Index, "index", "i", "", "Index of the container if there are multiple instances of a service [default: 1]")
-	dockerExecCmd.Flags().StringSliceVarP(&Env, "env", "e", []string{}, "Set environment variables. Can be used multiple times")
-	dockerExecCmd.Flags().StringVarP(&Workdir, "workdir", "w", "", "Path to workdir directory for this command.")
-
-	dockerCmd.AddCommand(dockerStartCmd)
-	dockerCmd.AddCommand(dockerStopCmd)
-	dockerCmd.AddCommand(dockerStatusCmd)
-	dockerCmd.AddCommand(dockerDestroyCmd)
-	dockerCmd.AddCommand(dockerExecCmd)
 }
