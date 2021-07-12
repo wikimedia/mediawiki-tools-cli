@@ -52,8 +52,6 @@ assert() {
 	test "$actual" = "$expected"
 }
 
-# TODO add mwdd commands
-
 #build the cli executable
 title "Build mwcli"
 {
@@ -61,73 +59,92 @@ title "Build mwcli"
   mv $BASE/bin/cli $BASE/bin/mw
 }
 
-# get mediawiki
-title "Clone Mediawiki core"
-{
-  git clone https://gerrit.wikimedia.org/r/mediawiki/core --depth 1
-  cd core
-}
-
-title "Create .env file"
-{
-  touch .env
-  echo "MW_DOCKER_UID=$(id -u)
-  MW_DOCKER_GID=$(id -g)
-  XDEBUG_CONFIG=""">> .env
-}
-
-title "Check Status"
-{
-  $BASE/bin/mw docker -v2 status
-}
-
-title "Start Mediawiki"
-{
-  $BASE/bin/mw docker -v2 start -y
-
-  # check we can go to localhost
-  CHECK_RESULT="$(curl -s -L -N http://localhost:8080)"
-  echo $CHECK_RESULT
-  echo $CHECK_RESULT | grep -q "<title>MediaWiki</title>"
-}
-
-# TODO fixme (complains about no TTY)
-# title "Exec into the container"
+# # get mediawiki
+# title "Clone Mediawiki core"
 # {
-#   $BASE/bin/mw docker -v2 exec mediawiki -- ls
+#   git clone https://gerrit.wikimedia.org/r/mediawiki/core --depth 1
+#   cd core
 # }
 
-title "Stop Mediawiki"
-{
-  $BASE/bin/mw docker -v2 stop
-}
+# title "Create config.json file"
+# {
+#   mkdir ~/.mwcli
+#   echo '{"dev_mode":"docker"}' > ~/.mwcli/config.json
+# }
 
-title "Destroy Mediawiki"
-{
-  $BASE/bin/mw docker -v2 destroy
-  docker ps | wc -l | grep -q "1"
-}
+# title "Setup hosts file"
+# {
+#   sudo echo "127.0.0.1  default.mediawiki.mwdd.localhost" >> /etc/hosts
+#   sudo echo "127.0.0.1  postgreswiki.mediawiki.mwdd.localhost" >> /etc/hosts
+#   sudo echo "127.0.0.1  mysqlwiki.mediawiki.mwdd.localhost" >> /etc/hosts
+#   sudo echo "127.0.0.1  phpmyadmin.mwdd.localhost" >> /etc/hosts
+#   sudo echo "127.0.0.1  adminer.mwdd.localhost" >> /etc/hosts
+# }
 
-title "Print the .env file path"
-{
-  $BASE/bin/mw docker -v2 env where
-}
+# title "Output version"
+# {
+#   $BASE/bin/mw version
+# }
 
-title "List the .env file contents"
-{
-  $BASE/bin/mw docker -v2 env list
-}
+# title "Setup & Create"
+# {
+#   $BASE/bin/mw docker env set PORT 8080
+#   $BASE/bin/mw docker env set MEDIAWIKI_VOLUMES_CODE $(pwd)ore
+#   $BASE/bin/mw docker mediawiki create
+# }
 
-title "Manipulate the .env file"
-{
-  $BASE/bin/mw docker -v2 env set TEST_VAR "test"
-  testvar="$($BASE/bin/mw docker env get TEST_VAR)"
-  assert $testvar "test"
+# title "Validate the basic stuff"
+# {
+#   $BASE/bin/mw docker docker-compose ps
+#   $BASE/bin/mw docker env list
+#   cat ~/.mwcli/mwdd/default/.env
+#   curl -s -L -N http://default.mediawiki.mwdd.localhost:8080 | grep -q "The MediaWiki logo"
+# }
 
-  $BASE/bin/mw docker -v2 env delete TEST_VAR
-  testvar="$($BASE/bin/mw docker env get TEST_VAR)"
-  assert $testvar ""
-}
+# title "Add the needed LocalSettings"
+# {
+#   echo "<?php" >> core/LocalSettings.php
+#   echo "//require_once "$IP/includes/PlatformSettings.php";" >> core/LocalSettings.php
+#   echo "require_once '/mwdd/MwddSettings.php';" >> core/LocalSettings.php
+# }
 
+# title "Turn on all of the services"
+# {
+#   $BASE/bin/mw docker mysql-replica create
+#   $BASE/bin/mw docker postgres create
+#   $BASE/bin/mw docker phpmyadmin create
+#   $BASE/bin/mw docker adminer create
+# }
 
+# title "Install everything"
+# {
+#   $BASE/bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
+#   $BASE/bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres
+#   $BASE/bin/mw docker mediawiki install
+# }
 
+# title "Check the DB tools"
+# {
+#   CURL=$(curl -s -L -N http://phpmyadmin.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Open new phpMyAdmin window"
+#   CURL=$(curl -s -L -N http://adminer.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Login - Adminer"
+# }
+
+# title "And check the installed sites"
+# {
+#   CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
+#   CURL=$(curl -s -L -N http://postgreswiki.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
+#   CURL=$(curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
+# }
+
+# title "Make sure the expected number of services appear"
+# {
+#   docker ps
+#   docker ps | wc -l | grep -q "10"
+# }
+
+# title "Destroy it all"
+# {
+#   $BASE/bin/mw docker destroy
+#   docker ps
+#   docker ps | wc -l | grep -q "1"
+# }

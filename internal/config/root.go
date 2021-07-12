@@ -27,8 +27,12 @@ import (
 	"strings"
 )
 
+/*ConfigDevModeMwdd ...*/
+const ConfigDevModeMwdd string = "docker"
+
 /*Config representation of a cli config*/
 type Config struct {
+	DevMode string `json:"dev_mode"`
 }
 
 func configPath() string {
@@ -62,17 +66,17 @@ func ensureExists() {
 }
 
 /*LoadFromDisk loads the config.json from disk*/
-func LoadFromDisk() (Config) {
+func LoadFromDisk() Config {
 	ensureExists()
-    var config Config
-    configFile, err := os.Open(configPath())
-    defer configFile.Close()
-    if err != nil {
-        fmt.Println(err.Error())
-    }
-    jsonParser := json.NewDecoder(configFile)
-    jsonParser.Decode(&config)
-    return config
+	var config Config
+	configFile, err := os.Open(configPath())
+	defer configFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&config)
+	return config
 }
 
 /*WriteToDisk writers the config to disk*/
@@ -86,4 +90,13 @@ func (c Config) WriteToDisk() {
 	jsonEncoder := json.NewEncoder(w)
 	jsonEncoder.Encode(c)
 	w.Flush()
+}
+
+/*PrettyPrint writers the config to disk*/
+func (c Config) PrettyPrint() {
+	empJSON, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	fmt.Printf("%s\n", string(empJSON))
 }
