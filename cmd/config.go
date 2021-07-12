@@ -17,8 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
 	"github.com/spf13/cobra"
 )
@@ -29,14 +27,14 @@ var configCmd = &cobra.Command{
 }
 
 var configShowCmd = &cobra.Command{
-    Use:   "show",
-    Short: "Shows the raw config",
-    Run: func(cmd *cobra.Command, args []string) {
-        fmt.Println(config.LoadFromDisk())
-    },
+	Use:   "show",
+	Short: "Shows the raw config",
+	Run: func(cmd *cobra.Command, args []string) {
+		config.LoadFromDisk().PrettyPrint()
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(configCmd)
-    configCmd.AddCommand(configShowCmd)
+	configCmd.AddCommand(configShowCmd)
 }

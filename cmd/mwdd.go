@@ -30,15 +30,15 @@ import (
 )
 
 var mwddCmd = &cobra.Command{
-	Use:   "mwdd",
+	Use:   "docker",
 	Short: "The MediaWiki-Docker-Dev like development environment",
 	RunE:  nil,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
-		if(mwdd.Env().Missing("PORT")){
+		if mwdd.Env().Missing("PORT") {
 			prompt := promptui.Prompt{
-				Label:     "What port would you like to use for your development environment?",
+				Label: "What port would you like to use for your development environment?",
 				// TODO suggest a port that is definitely available for listening on
 				Default: "8080",
 				Validate: func(input string) error {
@@ -53,7 +53,7 @@ var mwddCmd = &cobra.Command{
 			}
 			value, err := prompt.Run()
 			if err == nil {
-				mwdd.Env().Set("PORT",value)
+				mwdd.Env().Set("PORT", value)
 			} else {
 				fmt.Println("Can't continue without a port")
 				os.Exit(1)
@@ -75,9 +75,9 @@ var mwddDestroyCmd = &cobra.Command{
 	Short: "Destroy the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().DownWithVolumesAndOrphans( options )
+		mwdd.DefaultForUser().DownWithVolumesAndOrphans(options)
 	},
 }
 
@@ -86,9 +86,9 @@ var mwddSuspendCmd = &cobra.Command{
 	Short: "Suspend the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{}, options )
+		mwdd.DefaultForUser().Stop([]string{}, options)
 	},
 }
 
@@ -97,10 +97,10 @@ var mwddResumeCmd = &cobra.Command{
 	Short: "Resume the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		fmt.Println("Any services that you have not already created will show as 'failed'"	)
-		mwdd.DefaultForUser().Start( []string{}, options )
+		fmt.Println("Any services that you have not already created will show as 'failed'")
+		mwdd.DefaultForUser().Start([]string{}, options)
 	},
 }
 

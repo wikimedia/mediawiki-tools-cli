@@ -7,10 +7,9 @@ Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
 ## Docker
 
-There are currently 2 subcommands:
+There is currently 1 subcommand:
 
-- `docker` allows interacting with MediaWiki core's docker-compose development environment. (See `mw help docker`)
-- `mwdd` allows interacting with a new version of the MediaWiki-docker-dev development environment. (See `mw help mwdd`)
+- `docker` allows interacting with a new version of the MediaWiki-docker-dev development environment. (See `mw help docker`)
 
 ## Contributing
 
