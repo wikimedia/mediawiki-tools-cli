@@ -38,8 +38,8 @@ then
   popd
 fi
 
-export PATH="$PATH:$HOME/go/bin"
 
+export PATH="$PATH:$HOME/go/bin"
 title() {
 	echo
 	echo "test: $1..."
