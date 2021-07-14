@@ -27,14 +27,8 @@ import (
 	"strings"
 )
 
-/*ConfigDevModeMwdd ...*/
-const ConfigDevModeMwdd string = "mwdd"
-/*ConfigDevModeDocker ...*/
-const ConfigDevModeDocker string = "docker"
-
 /*Config representation of a cli config*/
 type Config struct {
-	DevMode string `json:"dev_mode"`
 }
 
 func configPath() string {
@@ -92,13 +86,4 @@ func (c Config) WriteToDisk() {
 	jsonEncoder := json.NewEncoder(w)
 	jsonEncoder.Encode(c)
 	w.Flush()
-}
-
-/*PrettyPrint writers the config to disk*/
-func (c Config) PrettyPrint() {
-	empJSON, err := json.MarshalIndent(c, "", "  ")
-    if err != nil {
-        log.Fatalf(err.Error())
-    }
-    fmt.Printf("%s\n", string(empJSON))
 }

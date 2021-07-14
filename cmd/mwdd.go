@@ -18,12 +18,49 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"strconv"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
+
+var mwddCmd = &cobra.Command{
+	Use:   "mwdd",
+	Short: "The MediaWiki-Docker-Dev like development environment",
+	RunE:  nil,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		mwdd := mwdd.DefaultForUser()
+		mwdd.EnsureReady()
+		if(mwdd.Env().Missing("PORT")){
+			prompt := promptui.Prompt{
+				Label:     "What port would you like to use for your development environment?",
+				// TODO suggest a port that is definitely available for listening on
+				Default: "8080",
+				Validate: func(input string) error {
+					// TODO check the port can be listened on?
+					// https://coolaj86.com/articles/how-to-test-if-a-port-is-available-in-go/
+					_, err := strconv.ParseFloat(input, 64)
+					if err != nil {
+						return errors.New("Invalid number")
+					}
+					return nil
+				},
+			}
+			value, err := prompt.Run()
+			if err == nil {
+				mwdd.Env().Set("PORT",value)
+			} else {
+				fmt.Println("Can't continue without a port")
+				os.Exit(1)
+			}
+		}
+	},
+}
 
 var mwddWhereCmd = &cobra.Command{
 	Use:   "where",
@@ -65,4 +102,15 @@ var mwddResumeCmd = &cobra.Command{
 		fmt.Println("Any services that you have not already created will show as 'failed'"	)
 		mwdd.DefaultForUser().Start( []string{}, options )
 	},
+}
+
+func init() {
+	mwddCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
+
+	mwddCmd.AddCommand(mwddWhereCmd)
+	mwddCmd.AddCommand(mwddDestroyCmd)
+	mwddCmd.AddCommand(mwddSuspendCmd)
+	mwddCmd.AddCommand(mwddResumeCmd)
+
+	rootCmd.AddCommand(mwddCmd)
 }

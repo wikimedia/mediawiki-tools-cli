@@ -38,7 +38,6 @@ var mwddMediawikiCmd = &cobra.Command{
 	Short: "MediaWiki service",
 	RunE:  nil,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		fmt.Println(22222);
 		cmd.Parent().Parent().PersistentPreRun(cmd, args)
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
@@ -435,6 +434,7 @@ var applyRelevantWorkingDirectory = func( dockerExecCommand mwdd.DockerExecComma
 }
 
 func init() {
+	mwddCmd.AddCommand(mwddMediawikiCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiCreateCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiDestroyCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiSuspendCmd)

@@ -76,12 +76,6 @@ title "Create .env file"
   XDEBUG_CONFIG=""">> .env
 }
 
-title "Create config.json file"
-{
-  mkdir ~/.mwcli
-  echo '{"dev_mode":"docker"}' > ~/.mwcli/config.json
-}
-
 title "Check Status"
 {
   $BASE/bin/mw docker -v2 status

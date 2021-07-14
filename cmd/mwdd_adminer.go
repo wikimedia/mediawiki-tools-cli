@@ -95,6 +95,7 @@ var mwddAdminerExecCmd = &cobra.Command{
 }
 
 func init() {
+	mwddCmd.AddCommand(mwddAdminerCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerCreateCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerDestroyCmd)
 	mwddAdminerCmd.AddCommand(mwddAdminerSuspendCmd)

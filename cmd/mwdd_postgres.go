@@ -96,6 +96,7 @@ var mwddPostgresExecCmd = &cobra.Command{
 }
 
 func init() {
+	mwddCmd.AddCommand(mwddPostgresCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresCreateCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresDestroyCmd)
 	mwddPostgresCmd.AddCommand(mwddPostgresSuspendCmd)

@@ -34,6 +34,8 @@ var mwddEnvListCmd = cmd.EnvList(mwddEnvDirectory);
 var mwddEnvWhereCmd = cmd.EnvWhere(mwddEnvDirectory);
 
 func init() {
+	mwddCmd.AddCommand(mwddEnvCmd)
+
 	mwddEnvCmd.AddCommand(mwddEnvWhereCmd)
 	mwddEnvCmd.AddCommand(mwddEnvSetCmd)
 	mwddEnvCmd.AddCommand(mwddEnvGetCmd)

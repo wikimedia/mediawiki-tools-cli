@@ -29,6 +29,8 @@ var dockerEnvListCmd = cmd.EnvList(func()string{return mediawikiOrFatal().Direct
 var dockerEnvWhereCmd = cmd.EnvWhere(func()string{return mediawikiOrFatal().Directory()});
 
 func init() {
+	dockerCmd.AddCommand(dockerEnvCmd)
+
 	dockerEnvCmd.AddCommand(dockerEnvWhereCmd)
 	dockerEnvCmd.AddCommand(dockerEnvSetCmd)
 	dockerEnvCmd.AddCommand(dockerEnvGetCmd)

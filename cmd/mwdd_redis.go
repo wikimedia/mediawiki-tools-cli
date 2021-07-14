@@ -108,6 +108,7 @@ var mwddRedisCliCmd = &cobra.Command{
 }
 
 func init() {
+	mwddCmd.AddCommand(mwddRedisCmd)
 	mwddRedisCmd.AddCommand(mwddRedisCreateCmd)
 	mwddRedisCmd.AddCommand(mwddRedisDestroyCmd)
 	mwddRedisCmd.AddCommand(mwddRedisSuspendCmd)

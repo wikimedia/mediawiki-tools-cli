@@ -96,6 +96,7 @@ var mwddPhpMyAdminExecCmd = &cobra.Command{
 }
 
 func init() {
+	mwddCmd.AddCommand(mwddPhpMyAdminCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminCreateCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminDestroyCmd)
 	mwddPhpMyAdminCmd.AddCommand(mwddPhpMyAdminSuspendCmd)

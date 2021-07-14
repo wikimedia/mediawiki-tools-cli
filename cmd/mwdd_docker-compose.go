@@ -38,3 +38,7 @@ var mwddDockerComposeCmd = &cobra.Command{
 		)
 	},
 }
+
+func init() {
+	mwddCmd.AddCommand(mwddDockerComposeCmd)
+}
