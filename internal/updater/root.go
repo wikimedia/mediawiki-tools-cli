@@ -18,128 +18,35 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package updater
 
 import (
-	"io/ioutil"
-	"log"
-	"os"
-	"os/user"
-	"path/filepath"
-	"strings"
-	"time"
-
-	"github.com/blang/semver"
-	"github.com/rhysd/go-github-selfupdate/selfupdate"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
 )
 
-/*CanUpdateDaily will check for updates at most once a day*/
-func CanUpdateDaily(currentVersion string, gitSummary string, verboseOutput bool) (bool, *selfupdate.Release) {
-	now := time.Now().UTC()
-	if(now.Sub(lastCheckedTime()).Hours() < 24 ) {
-		if(verboseOutput){
-			log.Println("Already checked for updates in the last 24 hours")
+/*CanUpdate will check for updates*/
+func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
+	c := config.LoadFromDisk()
+	if c.UpdateChannel == config.UpdateChannelDev {
+		canUpdate, release := CanUpdateFromAddshore(currentVersion, gitSummary, verboseOutput)
+		if canUpdate {
+			return canUpdate, release.Version.String()
 		}
-		return false, nil
+		// When canUpdate is false, we dont have a release to get the version string of
+		return canUpdate, "Can't currently update"
 	}
-	setCheckedTime(now)
-	return CanUpdate(currentVersion, gitSummary, verboseOutput)
+	if c.UpdateChannel == config.UpdateChannelStable {
+		return CanUpdateFromWikimedia(currentVersion, gitSummary, verboseOutput)
+	}
+	panic("Unexpected update channel")
 }
 
-func lastCheckedTime() time.Time {
-	if _, err := os.Stat(lastUpdateFilePath()); os.IsNotExist(err) {
-		return time.Now().UTC().Add(-24*time.Hour*7)
+/*Update perform the latest update*/
+func Update(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
+	c := config.LoadFromDisk()
+	if c.UpdateChannel == config.UpdateChannelDev {
+		return UpdateFromAddshore(currentVersion, gitSummary, verboseOutput)
 	}
-
-	content, err := ioutil.ReadFile(lastUpdateFilePath())
-	if err != nil {
-		log.Fatal(err)
+	if c.UpdateChannel == config.UpdateChannelStable {
+		// TODO implement me
+		panic("Not yet implemented")
 	}
-	t, err := time.Parse(time.RFC3339, string(content))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return t
-}
-
-func setCheckedTime( toSet time.Time ) {
-	ensureDirectoryForFileOnDisk(lastUpdateFilePath())
-    err := ioutil.WriteFile(lastUpdateFilePath(), []byte(toSet.Format(time.RFC3339)), 0700)
-    if err != nil {
-        log.Fatal(err)
-    }
-}
-
-func lastUpdateFilePath() string {
-	currentUser, _ := user.Current()
-	return currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/.lastUpdateCheck"
-}
-
-func ensureDirectoryForFileOnDisk(file string) {
-	// TODO factor this method out (also used in mwdd.files)
-	ensureDirectoryOnDisk(filepath.Dir(file))
-}
-
-func ensureDirectoryOnDisk(dirPath string) {
-	// TODO factor this method out (also used in mwdd.files)
-	if _, err := os.Stat(dirPath); err != nil {
-		os.MkdirAll(dirPath, 0755)
-	}
-}
-
-/*CanUpdate ...*/
-func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bool, *selfupdate.Release) {
-	if(verboseOutput){
-		selfupdate.EnableLog()
-	}
-
-	// TODO when builds are on wm.o then allow for a "dev" or "stable" update option and checks
-
-	v, err := semver.Parse(strings.Trim(gitSummary,"v"))
-	if err != nil {
-		if(verboseOutput){
-			log.Println("Could not parse git summary version, maybe you are not using a real release?")
-		}
-		return false, nil
-	}
-
-	rel, ok, err := selfupdate.DetectLatest("addshore/mwcli")
-	if err != nil {
-		if(verboseOutput){
-			log.Println("Some unknown error occurred")
-		}
-		return false, rel
-	}
-	if !ok {
-		if(verboseOutput){
-			log.Println("No release detected. Current version is considered up-to-date")
-		}
-		return false, rel
-	}
-	if v.Equals(rel.Version) {
-		if(verboseOutput){
-			log.Println("Current version", v, "is the latest. Update is not needed")
-		}
-		return false, rel
-	}
-	if(verboseOutput){
-		log.Println("Update available", rel.Version)
-	}
-	return true, rel
-}
-
-/*UpdateTo ...*/
-func UpdateTo(release selfupdate.Release, verboseOutput bool) (success bool, message string) {
-	if(verboseOutput){
-		selfupdate.EnableLog()
-	}
-
-	cmdPath, err := os.Executable()
-	if err != nil {
-		return false, "Failed to grab local executable location"
-	}
-
-	err = selfupdate.UpdateTo(release.AssetURL, cmdPath)
-	if err != nil {
-		return false, "Binary update failed" + err.Error()
-	}
-
-	return true, "Successfully updated to version" + release.Version.String() + "\nRelease note:\n" + release.ReleaseNotes
+	panic("Unexpected update channel")
 }

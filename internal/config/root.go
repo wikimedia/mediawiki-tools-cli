@@ -27,14 +27,6 @@ import (
 	"strings"
 )
 
-/*ConfigDevModeMwdd ...*/
-const ConfigDevModeMwdd string = "docker"
-
-/*Config representation of a cli config*/
-type Config struct {
-	DevMode string `json:"dev_mode"`
-}
-
 func configPath() string {
 	return mwcliDirectory() + string(os.PathSeparator) + "config.json"
 }
