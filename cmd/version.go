@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -43,15 +44,17 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Checks for and performs updates",
 	Run: func(cmd *cobra.Command, args []string) {
+		c := config.LoadFromDisk()
+		fmt.Println("You are on the " + c.UpdateChannel + " channel.")
 
-		canUpdate, nextRelease := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
-		if !canUpdate || nextRelease == nil {
+		canUpdate, toUpdateTo := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
+
+		if !canUpdate {
 			fmt.Println("No update available")
 			os.Exit(0)
 		}
 
-		fmt.Println("New update found: " + nextRelease.Version.String())
-		fmt.Println(nextRelease.AssetURL)
+		fmt.Println("New update found: " + toUpdateTo)
 
 		updatePrompt := promptui.Prompt{
 			Label:     " Do you want to update?",
@@ -59,7 +62,8 @@ var updateCmd = &cobra.Command{
 		}
 		_, err := updatePrompt.Run()
 		if err == nil {
-			updateSuccess, updateMessage := updater.UpdateTo(*nextRelease, Verbosity >= 2)
+			// Note: technically there is a small race condition here, and we might update to a newer version if it was release between stages
+			updateSuccess, updateMessage := updater.Update(Version, GitSummary, Verbosity >= 2)
 			fmt.Println(updateMessage)
 			if !updateSuccess {
 				os.Exit(1)

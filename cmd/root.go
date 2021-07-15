@@ -81,10 +81,19 @@ var rootCmd = &cobra.Command{
 func wizardDevMode() {
 	c := config.LoadFromDisk()
 	fmt.Println("\nYou need to choose a development environment mode in order to continue:")
-	fmt.Println(" - '" + config.ConfigDevModeMwdd + "' will provide advanced CLI tooling around a new mediawiki-docker-dev inspired development environment.")
+	fmt.Println(" - '" + config.DevModeMwdd + "' will provide advanced CLI tooling around a new mediawiki-docker-dev inspired development environment.")
 	fmt.Println("\nAs the only environment available currently, it will be set as your default dev environment (alias 'dev')")
 
-	c.DevMode = config.ConfigDevModeMwdd
+	c.DevMode = config.DevModeMwdd
+	c.WriteToDisk()
+}
+
+func wizardUpdateChannel() {
+	c := config.LoadFromDisk()
+	fmt.Println("\nYou need to choose an update channel in order to continue:")
+	fmt.Println(" - '" + config.UpdateChannelDev + "' is the only current release channel, so will be set now.")
+
+	c.UpdateChannel = config.UpdateChannelDev
 	c.WriteToDisk()
 }
 
@@ -97,7 +106,7 @@ func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSumma
 	BuildDate = BuildDateIn
 	Version = VersionIn
 
-	canUpdate, release := updater.CanUpdateDaily(Version, GitSummary, false)
+	canUpdate, nextVersionString := updater.CanUpdateDaily(Version, GitSummary, false)
 	if canUpdate {
 		colorReset := "\033[0m"
 		colorYellow := "\033[33m"
@@ -105,19 +114,23 @@ func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSumma
 		colorCyan := "\033[36m"
 		fmt.Printf(
 			"\n"+colorYellow+"A new update is availbile\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
-			Version, GitSummary, release.Version.String(),
+			Version, GitSummary, nextVersionString,
 		)
 	}
 
-	// check for dev alias
+	// Check and set needed config values
 	c := config.LoadFromDisk()
-	if c.DevMode != config.ConfigDevModeMwdd {
+	if !config.DevModeValues.Contains(c.DevMode) {
 		wizardDevMode()
+		c = config.LoadFromDisk()
+	}
+	if !config.UpdateChannelValues.Contains(c.UpdateChannel) {
+		wizardUpdateChannel()
 		c = config.LoadFromDisk()
 	}
 
 	// mwdd mode
-	if c.DevMode == config.ConfigDevModeMwdd {
+	if c.DevMode == config.DevModeMwdd {
 		mwddCmd.Aliases = []string{"dev"}
 		mwddCmd.Short += "\t(alias: dev)"
 	}
