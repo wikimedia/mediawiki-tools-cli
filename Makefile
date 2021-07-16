@@ -8,6 +8,7 @@ TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64l
 
 PACKAGE := gerrit.wikimedia.org/r/mediawiki/tools/cli
 VERSION := $(shell cat VERSION)
+SEMVER := $(subst v,,$(VERSION))
 
 GO_LIST_GOFILES := '{{range .GoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}{{range .XTestGoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}'
 GO_PACKAGES := $(shell go list ./...)
@@ -27,9 +28,10 @@ build:
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -v -ldflags "$(shell ./bin/govvv -flags)" -o bin/mw ./
 
 release:
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) ./bin/gox -output="$(RELEASE_DIR)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell ./bin/govvv -flags)' $(GO_PACKAGES)
+	GOPATH=$(GOPATH) GOBIN=$(GOBIN) ./bin/gox -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell ./bin/govvv -flags)' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
-	for f in "$(RELEASE_DIR)"/mw_*; do \
+	echo $(SEMVER) >> $(RELEASE_DIR)/latest.txt
+	for f in "$(RELEASE_DIR)"/$(SEMVER)/mw_*; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
 	done
 
