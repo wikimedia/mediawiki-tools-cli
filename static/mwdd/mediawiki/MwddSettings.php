@@ -56,8 +56,12 @@ if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
 	// TODO cache this check somehow so that we don't need a query every time...
 	try{
 		$mysqlPdo = new PDO( "mysql:host=mysql;dbname=" . $dockerDb, 'root', 'toor' );
-		$mysqlCheck = $mysqlPdo->query("SHOW DATABASES LIKE " . $dockerDb);
-		if(count( $mysqlCheck ) === 1){
+		$mysqlCheck = $mysqlPdo->query("SHOW DATABASES LIKE \"" . $dockerDb . "\"");
+		if($mysqlCheck === false) {
+			var_dump(json_encode($mysqlPdo->errorInfo()));
+			die("Failed to get mysql databases list looking for {$dockerDb}.");
+		}
+		if(count($mysqlCheck->fetchAll()) === 1){
 			$dockerDbType = 'mysql';
 		}
 	} catch ( Exception $e ) {
