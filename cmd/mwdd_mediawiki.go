@@ -259,6 +259,15 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/data"}, exec.HandlerOptions{}, "root")
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/log/mediawiki"}, exec.HandlerOptions{}, "root")
 
+		// Copy current local settings "somewhere safe", incase someone needs to restore it
+		currentTime := time.Now()
+		currentTimeString := currentTime.Format("20060102150405")
+		mwdd.DefaultForUser().Exec("mediawiki", []string{
+			"cp",
+			"/var/www/html/w/LocalSettings.php",
+			"/var/www/html/w/LocalSettings.php.mwdd.bak." + currentTimeString,
+		}, exec.HandlerOptions{}, User)
+
 		// Move custom LocalSetting.php so the install doesn't overwrite it
 		mwdd.DefaultForUser().Exec("mediawiki", []string{
 			"mv",
