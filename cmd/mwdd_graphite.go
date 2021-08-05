@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var mwddGraphiteCmd = &cobra.Command{
 	Use:   "graphite",
 	Short: "Graphite service",
@@ -38,7 +37,7 @@ var mwddGraphiteCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"graphite"},
 			exec.HandlerOptions{
-				Verbosity:   Verbosity,
+				Verbosity: Verbosity,
 			},
 		)
 	},
@@ -50,10 +49,10 @@ var mwddGraphiteDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"graphite"},options)
-		mwdd.DefaultForUser().RmVolumes( []string{"graphite-storage","graphite-logs"},options)
+		mwdd.DefaultForUser().Rm([]string{"graphite"}, options)
+		mwdd.DefaultForUser().RmVolumes([]string{"graphite-storage", "graphite-logs"}, options)
 	},
 }
 
@@ -63,9 +62,9 @@ var mwddGraphiteSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"graphite"},options)
+		mwdd.DefaultForUser().Stop([]string{"graphite"}, options)
 	},
 }
 
@@ -75,22 +74,22 @@ var mwddGraphiteResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"graphite"},options)
+		mwdd.DefaultForUser().Start([]string{"graphite"}, options)
 	},
 }
 
 var mwddGraphiteExecCmd = &cobra.Command{
-	Use:   "exec [flags] [command...]",
-	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short: "Executes a command in the Graphite container",
+	Use:     "exec [flags] [command...]",
+	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short:   "Executes a command in the Graphite container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "graphite",
-			Command: args,
-			User: User,
+			Command:              args,
+			User:                 User,
 		})
 	},
 }

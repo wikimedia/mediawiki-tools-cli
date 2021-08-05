@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var mwddRedisCmd = &cobra.Command{
 	Use:   "redis",
 	Short: "Redis service",
@@ -38,7 +37,7 @@ var mwddRedisCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"redis"},
 			exec.HandlerOptions{
-				Verbosity:   Verbosity,
+				Verbosity: Verbosity,
 			},
 		)
 	},
@@ -50,10 +49,10 @@ var mwddRedisDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"redis"},options)
-		mwdd.DefaultForUser().RmVolumes( []string{"redis-data"},options)
+		mwdd.DefaultForUser().Rm([]string{"redis"}, options)
+		mwdd.DefaultForUser().RmVolumes([]string{"redis-data"}, options)
 	},
 }
 
@@ -63,9 +62,9 @@ var mwddRedisSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"redis"},options)
+		mwdd.DefaultForUser().Stop([]string{"redis"}, options)
 	},
 }
 
@@ -75,22 +74,22 @@ var mwddRedisResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"redis"},options)
+		mwdd.DefaultForUser().Start([]string{"redis"}, options)
 	},
 }
 
 var mwddRedisExecCmd = &cobra.Command{
-	Use:   "exec [flags] [command...]",
-	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short: "Executes a command in the Redis container",
+	Use:     "exec [flags] [command...]",
+	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short:   "Executes a command in the Redis container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "redis",
-			Command: args,
-			User: User,
+			Command:              args,
+			User:                 User,
 		})
 	},
 }
@@ -102,7 +101,7 @@ var mwddRedisCliCmd = &cobra.Command{
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "redis",
-			Command: []string{"redis-cli"},
+			Command:              []string{"redis-cli"},
 		})
 	},
 }

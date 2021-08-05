@@ -36,12 +36,13 @@ type MediaWiki string
 type NotMediaWikiDirectory struct {
 	directory string
 }
+
 func (e *NotMediaWikiDirectory) Error() string {
 	return e.directory + " doesn't look like a MediaWiki directory"
 }
 
 /*ForDirectory returns a MediaWiki for the current working directory*/
-func ForDirectory( directory string ) (MediaWiki, error) {
+func ForDirectory(directory string) (MediaWiki, error) {
 	return MediaWiki(directory), errorIfDirectoryDoesNotLookLikeCore(directory)
 }
 
@@ -68,11 +69,11 @@ func errorIfDirectoryMissingGitReviewForProject(directory string, expectedProjec
 }
 
 func errorIfDirectoryDoesNotLookLikeCore(directory string) error {
-	return errorIfDirectoryMissingGitReviewForProject( directory, "mediawiki/core" )
+	return errorIfDirectoryMissingGitReviewForProject(directory, "mediawiki/core")
 }
 
 func errorIfDirectoryDoesNotLookLikeVector(directory string) error {
-	return errorIfDirectoryMissingGitReviewForProject( directory, "mediawiki/skins/Vector" )
+	return errorIfDirectoryMissingGitReviewForProject(directory, "mediawiki/skins/Vector")
 }
 
 /*Directory the directory containing MediaWiki*/
@@ -124,14 +125,14 @@ func (m MediaWiki) GitCloneMediaWiki(options exec.HandlerOptions) {
 }
 
 /*CloneSetupOpts for use with GithubCloneMediaWiki*/
-type CloneSetupOpts = struct{
-	GetMediaWiki bool
-	GetVector bool
-	UseGithub bool
-	UseShallow bool
+type CloneSetupOpts = struct {
+	GetMediaWiki          bool
+	GetVector             bool
+	UseGithub             bool
+	UseShallow            bool
 	GerritInteractionType string
-	GerritUsername string
-	Options exec.HandlerOptions
+	GerritUsername        string
+	Options               exec.HandlerOptions
 }
 
 /*CloneSetup provides a packages initial setup method for MediaWiki and Vector with some speedy features*/
@@ -140,37 +141,37 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 
 	startRemoteCore := "https://gerrit.wikimedia.org/r/mediawiki/core"
 	startRemoteVector := "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
-	if(options.UseGithub) {
+	if options.UseGithub {
 		startRemoteCore = "https://github.com/wikimedia/mediawiki.git"
 		startRemoteVector = "https://github.com/wikimedia/Vector.git"
 	}
 
-	endRemoteCore:=""
-	endRemoteVector:=""
-	if (options.GerritInteractionType == "http") {
+	endRemoteCore := ""
+	endRemoteVector := ""
+	if options.GerritInteractionType == "http" {
 		endRemoteCore = "https://gerrit.wikimedia.org/r/mediawiki/core"
 		endRemoteVector = "https://gerrit.wikimedia.org/r/mediawiki/skins/Vector"
-	} else if(options.GerritInteractionType == "ssh") {
+	} else if options.GerritInteractionType == "ssh" {
 		endRemoteCore = "ssh://" + options.GerritUsername + "@gerrit.wikimedia.org:29418/mediawiki/core"
 		endRemoteVector = "ssh://" + options.GerritUsername + "@gerrit.wikimedia.org:29418/mediawiki/skins/Vector"
 	} else {
-		fmt.Println("Unknown GerritInteractionType");
-		os.Exit(1);
+		fmt.Println("Unknown GerritInteractionType")
+		os.Exit(1)
 	}
 
 	shallowOptions := ""
-	if(options.UseShallow){
+	if options.UseShallow {
 		shallowOptions = "--depth=1"
 	}
 
-	if(options.GetMediaWiki){
+	if options.GetMediaWiki {
 		exec.RunTTYCommand(options.Options, exec.Command(
 			"git",
 			"clone",
 			shallowOptions,
 			startRemoteCore,
 			m.Path("")))
-		if(startRemoteCore != endRemoteCore){
+		if startRemoteCore != endRemoteCore {
 			exec.RunTTYCommand(options.Options, exec.Command(
 				"git",
 				"-C", m.Path(""),
@@ -180,22 +181,22 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 				endRemoteCore))
 		}
 	}
-	if(options.GetVector){
+	if options.GetVector {
 		exec.RunTTYCommand(options.Options, exec.Command(
 			"git",
 			"clone",
 			shallowOptions,
 			startRemoteVector,
 			m.Path("skins/Vector")))
-		if(startRemoteCore != endRemoteCore){
-				exec.RunTTYCommand(options.Options, exec.Command(
-					"git",
-					"-C", m.Path("skins/Vector"),
-					"remote",
-					"set-url",
-					"origin",
-					endRemoteVector))
-			}
+		if startRemoteCore != endRemoteCore {
+			exec.RunTTYCommand(options.Options, exec.Command(
+				"git",
+				"-C", m.Path("skins/Vector"),
+				"remote",
+				"set-url",
+				"origin",
+				endRemoteVector))
+		}
 	}
 }
 
@@ -220,18 +221,18 @@ func (m MediaWiki) LocalSettingsIsPresent() bool {
 }
 
 /*LocalSettingsContains ...*/
-func (m MediaWiki) LocalSettingsContains( text string) bool {
-    b, err := ioutil.ReadFile(m.Path("LocalSettings.php"))
-    if err != nil {
-        panic(err)
-    }
-    s := string(b)
+func (m MediaWiki) LocalSettingsContains(text string) bool {
+	b, err := ioutil.ReadFile(m.Path("LocalSettings.php"))
+	if err != nil {
+		panic(err)
+	}
+	s := string(b)
 	return strings.Contains(s, text)
 
 }
 
 /*RenameLocalSettings ...*/
-func  (m MediaWiki) RenameLocalSettings() {
+func (m MediaWiki) RenameLocalSettings() {
 	const layout = "2006-01-02T15:04:05-0700"
 
 	t := time.Now()
@@ -245,7 +246,7 @@ func  (m MediaWiki) RenameLocalSettings() {
 }
 
 /*DeleteCache ...*/
-func  (m MediaWiki) DeleteCache() {
+func (m MediaWiki) DeleteCache() {
 	err := os.Rename("cache/.htaccess", ".htaccess.fromcache.tmp")
 	if err != nil {
 		log.Fatal(err)
@@ -268,7 +269,7 @@ func  (m MediaWiki) DeleteCache() {
 }
 
 /*DeleteVendor ...*/
-func  (m MediaWiki) DeleteVendor() {
+func (m MediaWiki) DeleteVendor() {
 	err := os.RemoveAll("./vendor")
 	if err != nil {
 		log.Fatal(err)
