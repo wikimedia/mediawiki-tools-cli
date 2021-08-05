@@ -106,18 +106,6 @@ func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSumma
 	BuildDate = BuildDateIn
 	Version = VersionIn
 
-	canUpdate, nextVersionString := updater.CanUpdateDaily(Version, GitSummary, false)
-	if canUpdate {
-		colorReset := "\033[0m"
-		colorYellow := "\033[33m"
-		colorWhite := "\033[37m"
-		colorCyan := "\033[36m"
-		fmt.Printf(
-			"\n"+colorYellow+"A new update is availbile\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
-			Version, GitSummary, nextVersionString,
-		)
-	}
-
 	// Check and set needed config values
 	c := config.LoadFromDisk()
 	if !config.DevModeValues.Contains(c.DevMode) {
@@ -133,6 +121,19 @@ func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSumma
 	if c.DevMode == config.DevModeMwdd {
 		mwddCmd.Aliases = []string{"dev"}
 		mwddCmd.Short += "\t(alias: dev)"
+	}
+
+	// Check if any updates are ready for us
+	canUpdate, nextVersionString := updater.CanUpdateDaily(Version, GitSummary, false)
+	if canUpdate {
+		colorReset := "\033[0m"
+		colorYellow := "\033[33m"
+		colorWhite := "\033[37m"
+		colorCyan := "\033[36m"
+		fmt.Printf(
+			"\n"+colorYellow+"A new update is availbile\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
+			Version, GitSummary, nextVersionString,
+		)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
