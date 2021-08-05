@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var mwddAdminerCmd = &cobra.Command{
 	Use:   "adminer",
 	Short: "adminer service",
@@ -38,7 +37,7 @@ var mwddAdminerCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"adminer"},
 			exec.HandlerOptions{
-				Verbosity:   Verbosity,
+				Verbosity: Verbosity,
 			},
 		)
 	},
@@ -50,9 +49,9 @@ var mwddAdminerDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"adminer"},options)
+		mwdd.DefaultForUser().Rm([]string{"adminer"}, options)
 	},
 }
 
@@ -62,9 +61,9 @@ var mwddAdminerSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"adminer"},options)
+		mwdd.DefaultForUser().Stop([]string{"adminer"}, options)
 	},
 }
 
@@ -74,22 +73,22 @@ var mwddAdminerResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"adminer"},options)
+		mwdd.DefaultForUser().Start([]string{"adminer"}, options)
 	},
 }
 
 var mwddAdminerExecCmd = &cobra.Command{
-	Use:   "exec [flags] [command...]",
-	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short: "Executes a command in the Adminer container",
+	Use:     "exec [flags] [command...]",
+	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short:   "Executes a command in the Adminer container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "adminer",
-			Command: args,
-			User: User,
+			Command:              args,
+			User:                 User,
 		})
 	},
 }

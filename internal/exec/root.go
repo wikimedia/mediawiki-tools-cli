@@ -37,9 +37,9 @@ type HandlerOptions struct {
 
 // ComposeCommandContext ...
 type ComposeCommandContext struct {
-	ProjectDirectory      string
-	ProjectName    string
-	Files    []string
+	ProjectDirectory string
+	ProjectName      string
+	Files            []string
 }
 
 /*Command passes through to exec.Command for running generic commands*/
@@ -53,7 +53,7 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 	arg = append([]string{"--project-name", context.ProjectName}, arg...)
 	arg = append([]string{"--project-directory", context.ProjectDirectory}, arg...)
 	for _, element := range context.Files {
-		arg = append( []string {"--file", context.ProjectDirectory + "/" + element }, arg... )
+		arg = append([]string{"--file", context.ProjectDirectory + "/" + element}, arg...)
 	}
 	return exec.Command("docker-compose", arg...)
 }

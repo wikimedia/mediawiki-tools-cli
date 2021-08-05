@@ -33,16 +33,16 @@ import (
 
 // DockerExecCommand to be run with Docker, which directly uses the docker SDK
 type DockerExecCommand struct {
-	DockerComposeService      string
-	Command      []string
-	WorkingDir      string
-	User      string
-	HandlerOptions exec.HandlerOptions
+	DockerComposeService string
+	Command              []string
+	WorkingDir           string
+	User                 string
+	HandlerOptions       exec.HandlerOptions
 }
 
 /*UserAndGroupForDockerExecution gets a user and group id combination for the current user that can be used for execution*/
 func UserAndGroupForDockerExecution() string {
-	if(runtime.GOOS == "windows") {
+	if runtime.GOOS == "windows" {
 		// TODO confirm that just using 2000 will always work on Windows?
 		// This user won't exist, but that fact doesn't really matter on pure Windows
 		return "2000:2000"
@@ -51,7 +51,7 @@ func UserAndGroupForDockerExecution() string {
 }
 
 /*DockerExec runs a docker exec command using the docker SDK*/
-func (m MWDD) DockerExec( command DockerExecCommand ) {
+func (m MWDD) DockerExec(command DockerExecCommand) {
 	containerID := m.DockerComposeProjectName() + "_" + command.DockerComposeService + "_1"
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -60,14 +60,14 @@ func (m MWDD) DockerExec( command DockerExecCommand ) {
 		panic(err)
 	}
 
-	config :=  types.ExecConfig{
+	config := types.ExecConfig{
 		AttachStderr: true,
 		AttachStdout: true,
-		AttachStdin: true,
-		Tty: true,
-		WorkingDir: command.WorkingDir,
-		User: command.User,
-		Cmd: command.Command,
+		AttachStdin:  true,
+		Tty:          true,
+		WorkingDir:   command.WorkingDir,
+		User:         command.User,
+		Cmd:          command.Command,
 	}
 
 	ctx := context.Background()

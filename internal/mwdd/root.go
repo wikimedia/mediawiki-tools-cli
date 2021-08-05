@@ -30,9 +30,8 @@ import (
 /*MWDD representation of a mwdd v2 setup*/
 type MWDD string
 
-
 /*DefaultForUser returns the default mwdd working directory for the user*/
-func DefaultForUser() (MWDD) {
+func DefaultForUser() MWDD {
 	return MWDD(mwddUserDirectory() + string(os.PathSeparator) + "default")
 }
 
@@ -70,17 +69,17 @@ func (m MWDD) EnsureHostsFile() {
 
 // DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`
 type DockerComposeCommand struct {
-	Command      string
-	CommandArguments    []string
-	HandlerOptions exec.HandlerOptions
+	Command          string
+	CommandArguments []string
+	HandlerOptions   exec.HandlerOptions
 }
 
 /*DockerCompose runs any docker-compose command for the mwdd project with the correct project settings and all files loaded*/
-func (m MWDD) DockerCompose( command DockerComposeCommand ) error {
+func (m MWDD) DockerCompose(command DockerComposeCommand) error {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
-		ProjectName: m.DockerComposeProjectName(),
-		Files: files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+		ProjectName:      m.DockerComposeProjectName(),
+		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
 	return exec.RunCommand(
@@ -88,17 +87,17 @@ func (m MWDD) DockerCompose( command DockerComposeCommand ) error {
 		exec.ComposeCommand(
 			context,
 			command.Command,
-			command.CommandArguments...
+			command.CommandArguments...,
 		),
 	)
 }
 
 /*DockerComposeTTY runs any docker-compose command for the mwdd project with the correct project settings and all files loaded in a TTY*/
-func (m MWDD) DockerComposeTTY( command DockerComposeCommand ) {
+func (m MWDD) DockerComposeTTY(command DockerComposeCommand) {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
-		ProjectName: m.DockerComposeProjectName(),
-		Files: files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+		ProjectName:      m.DockerComposeProjectName(),
+		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
 	exec.RunTTYCommand(
@@ -106,100 +105,100 @@ func (m MWDD) DockerComposeTTY( command DockerComposeCommand ) {
 		exec.ComposeCommand(
 			context,
 			command.Command,
-			command.CommandArguments...
+			command.CommandArguments...,
 		),
 	)
 }
 
 /*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
-func (m MWDD) Exec( service string, commandAndArgs []string, options exec.HandlerOptions, user string ) {
+func (m MWDD) Exec(service string, commandAndArgs []string, options exec.HandlerOptions, user string) {
 	// TODO refactor this code path to make handeling options nicer
 	m.DockerComposeTTY(
 		DockerComposeCommand{
-			Command: "exec",
-			CommandArguments: append( []string{"-T", "--user", user, service }, commandAndArgs... ),
-			HandlerOptions: options,
+			Command:          "exec",
+			CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with not output*/
-func (m MWDD) ExecNoOutput( service string, commandAndArgs []string, options exec.HandlerOptions ) error {
+func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec.HandlerOptions) error {
 	options.HandleStdout = func(stdout bytes.Buffer) {}
 	options.HandleError = func(stderr bytes.Buffer, err error) {}
 	return m.DockerCompose(
 		DockerComposeCommand{
-			Command: "exec",
-			CommandArguments: append( []string{"-T", service }, commandAndArgs... ),
-			HandlerOptions: options,
+			Command:          "exec",
+			CommandArguments: append([]string{"-T", service}, commandAndArgs...),
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*UpDetached runs `docker-compose up -d <services>`*/
-func (m MWDD) UpDetached( services []string, options exec.HandlerOptions ) {
+func (m MWDD) UpDetached(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
-			Command: "up",
-			CommandArguments: append( []string{"-d" }, services... ),
-			HandlerOptions: options,
+			Command:          "up",
+			CommandArguments: append([]string{"-d"}, services...),
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`*/
-func (m MWDD) DownWithVolumesAndOrphans( options exec.HandlerOptions ) {
+func (m MWDD) DownWithVolumesAndOrphans(options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
-			Command: "down",
-			CommandArguments: []string{"--volumes","--remove-orphans"},
-			HandlerOptions: options,
+			Command:          "down",
+			CommandArguments: []string{"--volumes", "--remove-orphans"},
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*Stop runs `docker-compose stop <services>`*/
-func (m MWDD) Stop( services []string, options exec.HandlerOptions ) {
+func (m MWDD) Stop(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
-			Command: "stop",
+			Command:          "stop",
 			CommandArguments: services,
-			HandlerOptions: options,
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*Start runs `docker-compose start <services>`*/
-func (m MWDD) Start( services []string, options exec.HandlerOptions ) {
+func (m MWDD) Start(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
-			Command: "start",
+			Command:          "start",
 			CommandArguments: services,
-			HandlerOptions: options,
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*Rm runs `docker-compose rm --stop --force -v <services>`*/
-func (m MWDD) Rm( services []string, options exec.HandlerOptions ) {
+func (m MWDD) Rm(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
-			Command: "rm",
-			CommandArguments: append( []string{"--stop", "--force", "-v" }, services... ),
-			HandlerOptions: options,
+			Command:          "rm",
+			CommandArguments: append([]string{"--stop", "--force", "-v"}, services...),
+			HandlerOptions:   options,
 		},
 	)
 }
 
 /*RmVolumes runs `docker volume rm <volume names with docker-compose project prefixed>`*/
-func (m MWDD) RmVolumes( dcVolumes []string, options exec.HandlerOptions ) {
+func (m MWDD) RmVolumes(dcVolumes []string, options exec.HandlerOptions) {
 	dockerVolumes := []string{}
 	for _, dcVolume := range dcVolumes {
-		dockerVolumes = append( dockerVolumes, m.DockerComposeProjectName() + "_" + dcVolume )
+		dockerVolumes = append(dockerVolumes, m.DockerComposeProjectName()+"_"+dcVolume)
 	}
 	exec.RunTTYCommand(
 		options,
-		exec.Command("docker", append( []string{"volume", "rm" }, dockerVolumes... )... ),
+		exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...),
 	)
 }
 

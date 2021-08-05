@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var mwddPostgresCmd = &cobra.Command{
 	Use:   "postgres",
 	Short: "Postgres service",
@@ -38,7 +37,7 @@ var mwddPostgresCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"postgres"},
 			exec.HandlerOptions{
-				Verbosity:   Verbosity,
+				Verbosity: Verbosity,
 			},
 		)
 	},
@@ -50,10 +49,10 @@ var mwddPostgresDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"postgres"},options)
-		mwdd.DefaultForUser().RmVolumes( []string{"postgres-data"},options)
+		mwdd.DefaultForUser().Rm([]string{"postgres"}, options)
+		mwdd.DefaultForUser().RmVolumes([]string{"postgres-data"}, options)
 	},
 }
 
@@ -63,9 +62,9 @@ var mwddPostgresSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"postgres"},options)
+		mwdd.DefaultForUser().Stop([]string{"postgres"}, options)
 	},
 }
 
@@ -75,22 +74,22 @@ var mwddPostgresResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"postgres"},options)
+		mwdd.DefaultForUser().Start([]string{"postgres"}, options)
 	},
 }
 
 var mwddPostgresExecCmd = &cobra.Command{
-	Use:   "exec [flags] [command...]",
-	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short: "Executes a command in the Postgres container",
+	Use:     "exec [flags] [command...]",
+	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short:   "Executes a command in the Postgres container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "postgres",
-			Command: args,
-			User: User,
+			Command:              args,
+			User:                 User,
 		})
 	},
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var mwddMySQLCmd = &cobra.Command{
 	Use:   "mysql",
 	Short: "Sql service",
@@ -36,9 +35,9 @@ var mwddMySQLCreateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().UpDetached(
-			[]string{"mysql","mysql-configure-replication"},
+			[]string{"mysql", "mysql-configure-replication"},
 			exec.HandlerOptions{
-				Verbosity:   Verbosity,
+				Verbosity: Verbosity,
 			},
 		)
 	},
@@ -50,10 +49,10 @@ var mwddMySQLDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Rm( []string{"mysql","mysql-configure-replication"},options)
-		mwdd.DefaultForUser().RmVolumes( []string{"mysql-data","mysql-configure-replication-data"},options)
+		mwdd.DefaultForUser().Rm([]string{"mysql", "mysql-configure-replication"}, options)
+		mwdd.DefaultForUser().RmVolumes([]string{"mysql-data", "mysql-configure-replication-data"}, options)
 	},
 }
 
@@ -63,9 +62,9 @@ var mwddMySQLSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop( []string{"mysql","mysql-configure-replication"},options)
+		mwdd.DefaultForUser().Stop([]string{"mysql", "mysql-configure-replication"}, options)
 	},
 }
 
@@ -75,22 +74,22 @@ var mwddMySQLResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity:   Verbosity,
+			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Start( []string{"mysql","mysql-configure-replication"},options)
+		mwdd.DefaultForUser().Start([]string{"mysql", "mysql-configure-replication"}, options)
 	},
 }
 
 var mwddMySQLExecCmd = &cobra.Command{
-	Use:   "exec [flags] [command...]",
-	Example:   "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short: "Executes a command in the MySQL container",
+	Use:     "exec [flags] [command...]",
+	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+	Short:   "Executes a command in the MySQL container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "mysql",
-			Command: args,
-			User: User,
+			Command:              args,
+			User:                 User,
 		})
 	},
 }

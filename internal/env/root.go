@@ -59,7 +59,7 @@ func (f DotFile) read() map[string]string {
 }
 
 func (f DotFile) write(envMap map[string]string) {
-	godotenv.Write(envMap,f.Path())
+	godotenv.Write(envMap, f.Path())
 }
 
 /*Delete a value from the env*/

@@ -24,15 +24,15 @@ import (
 )
 
 var mwddDockerComposeCmd = &cobra.Command{
-	Use:   "docker-compose",
+	Use: "docker-compose",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerComposeTTY(
 			mwdd.DockerComposeCommand{
-				Command: args[0],
+				Command:          args[0],
 				CommandArguments: args[1:],
 				HandlerOptions: exec.HandlerOptions{
-					Verbosity:   Verbosity,
+					Verbosity: Verbosity,
 				},
 			},
 		)
