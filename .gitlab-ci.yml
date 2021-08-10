@@ -1,0 +1,90 @@
+image: docker:19.03.12
+
+variables:
+  # When you use the dind service, you must instruct Docker to talk with
+  # the daemon started inside of the service. The daemon is available
+  # with a network connection instead of the default
+  # /var/run/docker.sock socket. Docker 19.03 does this automatically
+  # by setting the DOCKER_HOST in
+  # https://github.com/docker-library/docker/blob/d45051476babc297257df490d22cbd806f1b11e4/19.03/docker-entrypoint.sh#L23-L29
+  #
+  # The 'docker' hostname is the alias of the service container as described at
+  # https://docs.gitlab.com/ee/ci/docker/using_docker_images.html#accessing-the-services.
+  #
+  # Specify to Docker where to create the certificates. Docker
+  # creates them automatically on boot, and creates
+  # `/certs/client` to share between the service and job
+  # container, thanks to volume mount from config.toml
+  DOCKER_TLS_CERTDIR: "/certs"
+
+stages:
+  - build
+  - test
+  - integration
+  - build-release
+
+# The plan would be for this cache to be reused by all jobs.
+# Caches curently end up cached per runner, per job concurrency level and per md5 of path?
+# So there are potentially 12 caches that end up needing to be populated right now?
+# https://forum.gitlab.com/t/confusion-around-ci-docker-cache-volumes-and-sharing-across-jobs-concurrency/56793
+# Docker cache volumes look like this runner-<short-token>-project-<id>-concurrent-<concurrency-id>-cache-<md5-of-path>
+cache:
+  - key: mediawiki
+    paths:
+      - mediawiki
+
+services:
+  - name: docker:19.03.12-dind
+    # Use a registry mirror to avoid hitting docker hub too much as there is a rate limit of 100 pulls per 6 hours
+    command: ["--registry-mirror", "https://mirror.gcr.io"]
+
+build:
+    stage: build
+    needs: []
+    cache: {}
+    image: docker-registry.wikimedia.org/golang:1.13-3
+    artifacts:
+      paths:
+        - bin/
+    script:
+      - make
+
+build-release:
+    stage: build-release
+    needs: []
+    cache: {}
+    image: docker-registry.wikimedia.org/golang:1.13-3
+    artifacts:
+      paths:
+        - _release/
+    script:
+      # Ideally make would not be needed, only release? But it is needed to install deps currently?
+      - make
+      - make release
+
+test:
+    stage: test
+    needs: []
+    cache: {}
+    image: docker-registry.wikimedia.org/golang:1.13-3
+    script:
+      - go get -u golang.org/x/lint/golint
+      - make test
+
+integration:
+    stage: integration
+    needs: [build]
+    dependencies:
+      - build
+    parallel:
+      matrix:
+        - TEST: docker-mw-extra-commands.sh
+        - TEST: docker-mw-install-all-the-dbs.sh
+        - TEST: docker-mw-mysql-suspend-resume-destroy.sh
+    before_script:
+      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
+      - apk add --no-cache libc6-compat bash docker-compose curl
+      - ./tests/cache-mediawiki.sh
+      - ./tests/setup.sh
+    script:
+      - ./tests/$TEST
