@@ -93,6 +93,14 @@ var mwddMediawikiCmd = &cobra.Command{
 
 		// Default the mediawiki container to a .composer directory in the running users home dir
 		if !mwdd.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER") {
+			usrComposerDirectory := usrDir + "/.composer"
+			if _, err := os.Stat(usrComposerDirectory); os.IsNotExist(err) {
+				err := os.Mkdir(usrComposerDirectory, 0755)
+				if err != nil {
+					fmt.Println("Failed to create directory needed for a composer cache")
+					os.Exit(1)
+				}
+			}
 			mwdd.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer")
 		}
 
