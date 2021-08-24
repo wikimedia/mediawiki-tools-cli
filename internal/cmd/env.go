@@ -26,7 +26,7 @@ import (
 
 /*Env top level env command*/
 func Env(Short string) *cobra.Command {
-	return  &cobra.Command{
+	return &cobra.Command{
 		Use:   "env",
 		Short: Short,
 		RunE:  nil,
@@ -37,8 +37,8 @@ func Env(Short string) *cobra.Command {
 }
 
 /*EnvDelete env delete command*/
-func EnvDelete(directory func()string) *cobra.Command {
-	return  &cobra.Command{
+func EnvDelete(directory func() string) *cobra.Command {
+	return &cobra.Command{
 		Use:   "delete [name]",
 		Short: "Deletes an environment variable",
 		Args:  cobra.MinimumNArgs(1),
@@ -49,8 +49,8 @@ func EnvDelete(directory func()string) *cobra.Command {
 }
 
 /*EnvSet env set command*/
-func EnvSet(directory func()string) *cobra.Command {
-	return  &cobra.Command{
+func EnvSet(directory func() string) *cobra.Command {
+	return &cobra.Command{
 		Use:   "set [name] [value]",
 		Short: "Set an environment variable",
 		Args:  cobra.MinimumNArgs(2),
@@ -61,8 +61,8 @@ func EnvSet(directory func()string) *cobra.Command {
 }
 
 /*EnvGet env get command*/
-func EnvGet(directory func()string) *cobra.Command {
-	return  &cobra.Command{
+func EnvGet(directory func() string) *cobra.Command {
+	return &cobra.Command{
 		Use:   "get [name]",
 		Short: "Get an environment variable",
 		Args:  cobra.MinimumNArgs(1),
@@ -73,8 +73,8 @@ func EnvGet(directory func()string) *cobra.Command {
 }
 
 /*EnvList env list command*/
-func EnvList(directory func()string) *cobra.Command {
-	return  &cobra.Command{
+func EnvList(directory func() string) *cobra.Command {
+	return &cobra.Command{
 		Use:   "list",
 		Short: "List all environment variables",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -86,8 +86,8 @@ func EnvList(directory func()string) *cobra.Command {
 }
 
 /*EnvWhere env where command*/
-func EnvWhere(directory func()string) *cobra.Command {
-	return  &cobra.Command{
+func EnvWhere(directory func() string) *cobra.Command {
+	return &cobra.Command{
 		Use:   "where",
 		Short: "Output the location of the .env file",
 		Run: func(cmd *cobra.Command, args []string) {
