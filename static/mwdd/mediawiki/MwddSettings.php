@@ -189,10 +189,6 @@ $wgUploadPath = "{$wgScriptPath}/images/docker/{$dockerDb}";
 $dockerLogDirectory = "/var/log/mediawiki";
 $wgDebugLogFile = "$dockerLogDirectory/debug.log";
 
-ini_set( 'xdebug.var_display_max_depth', -1 );
-ini_set( 'xdebug.var_display_max_children', -1 );
-ini_set( 'xdebug.var_display_max_data', -1 );
-
 error_reporting( -1 );
 ini_set( 'display_errors', 1 );
 $wgShowExceptionDetails = true;

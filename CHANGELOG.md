@@ -2,7 +2,15 @@
 
 ## 1.0.0 (Work in progress)
 
+...
+
+## [https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210907.1 v0.1.0-dev-addshore.20210907.1]
+
 * Enable updates from releases.wikimedia.org
+* Fix segfaults caused by xdebug and `xdebug.var_display_max_` -1 values. ([phabricator](https://phabricator.wikimedia.org/T288363))
+  * MediaWiki no longer has `ini_set( 'xdebug.var_display_max_depth', -1 );` set
+  * MediaWiki no longer has `ini_set( 'xdebug.var_display_max_children', -1 );` set
+  * MediaWiki no longer has `ini_set( 'xdebug.var_display_max_data', -1 );` set
 
 ## [https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210806.1 v0.1.0-dev-addshore.20210806.1]
 
