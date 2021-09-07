@@ -59,7 +59,11 @@ func (f DotFile) read() map[string]string {
 }
 
 func (f DotFile) write(envMap map[string]string) {
-	godotenv.Write(envMap, f.Path())
+	// Override the regular gotdotenv Write method to avoid adding quotes
+	// https://github.com/joho/godotenv/issues/50#issuecomment-364873528
+	// https://github.com/moby/moby/issues/12997
+	//godotenv.Write(envMap, f.Path())
+	writeOverride(envMap, f.Path())
 }
 
 /*Delete a value from the env*/

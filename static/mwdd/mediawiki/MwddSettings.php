@@ -55,7 +55,14 @@ if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
 } else {
 	// TODO cache this check somehow so that we don't need a query every time...
 	try{
-		$mysqlPdo = new PDO( "mysql:host=mysql;dbname=" . $dockerDb, 'root', 'toor' );
+		$mysqlPdo = new PDO(
+			"mysql:host=mysql;dbname=" . $dockerDb,
+			'root',
+			'toor',
+			[
+				PDO::ATTR_TIMEOUT => 1, // in seconds
+			]
+		);
 		$mysqlCheck = $mysqlPdo->query("SHOW DATABASES LIKE \"" . $dockerDb . "\"");
 		if($mysqlCheck === false) {
 			var_dump(json_encode($mysqlPdo->errorInfo()));
@@ -181,10 +188,6 @@ $wgUploadPath = "{$wgScriptPath}/images/docker/{$dockerDb}";
 ## Dev & Debug
 $dockerLogDirectory = "/var/log/mediawiki";
 $wgDebugLogFile = "$dockerLogDirectory/debug.log";
-
-ini_set( 'xdebug.var_display_max_depth', -1 );
-ini_set( 'xdebug.var_display_max_children', -1 );
-ini_set( 'xdebug.var_display_max_data', -1 );
 
 error_reporting( -1 );
 ini_set( 'display_errors', 1 );

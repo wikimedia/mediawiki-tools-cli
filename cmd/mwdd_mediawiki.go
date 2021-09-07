@@ -34,9 +34,10 @@ import (
 )
 
 var mwddMediawikiCmd = &cobra.Command{
-	Use:   "mediawiki",
-	Short: "MediaWiki service",
-	RunE:  nil,
+	Use:     "mediawiki",
+	Short:   "MediaWiki service",
+	Aliases: []string{"mw"},
+	RunE:    nil,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.Parent().Parent().PersistentPreRun(cmd, args)
 		mwdd := mwdd.DefaultForUser()
@@ -195,8 +196,9 @@ var DbType string
 var DbName string
 
 var mwddMediawikiInstallCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Installs a new MediaWiki site using install.php",
+	Use:     "install",
+	Short:   "Installs a new MediaWiki site using install.php",
+	Aliases: []string{"i"},
 	Run: func(cmd *cobra.Command, args []string) {
 		mediawiki, _ := mediawiki.ForDirectory(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 		if !mediawiki.LocalSettingsIsPresent() {
@@ -243,8 +245,9 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki", []string{
 			"php", "/var/www/html/w/maintenance/checkComposerLockUpToDate.php",
 		},
-			exec.HandlerOptions{})
+			exec.HandlerOptions{}, User)
 		if composerErr != nil {
+			fmt.Println("Composer check failed:", composerErr)
 			prompt := promptui.Prompt{
 				IsConfirm: true,
 				Label:     "Composer dependencies are not up to date, do you want to composer install?",
