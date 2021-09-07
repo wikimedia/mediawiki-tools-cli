@@ -26,7 +26,11 @@ func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bo
 	c := config.LoadFromDisk()
 	if c.UpdateChannel == config.UpdateChannelDev {
 		canUpdate, release := CanUpdateFromAddshore(currentVersion, gitSummary, verboseOutput)
-		return canUpdate, release.Version.String()
+		if canUpdate {
+			return canUpdate, release.Version.String()
+		}
+		// When canUpdate is false, we dont have a release to get the version string of
+		return canUpdate, "Can't currently update"
 	}
 	if c.UpdateChannel == config.UpdateChannelStable {
 		return CanUpdateFromWikimedia(currentVersion, gitSummary, verboseOutput)

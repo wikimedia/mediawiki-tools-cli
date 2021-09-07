@@ -36,6 +36,15 @@ func DefaultForUser() MWDD {
 }
 
 func mwddUserDirectory() string {
+	// user home dir can not be used in Gitlab CI, must use the project dir instead!
+	// https://medium.com/@patrick.winters/mounting-volumes-in-sibling-containers-with-gitlab-ci-534e5edc4035
+	// TODO maybe this should be pushed further up and the whole mwcli dir should be moved?!
+	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
+	if inGitlabCi {
+		ciDir, _ := os.LookupEnv("CI_PROJECT_DIR")
+		return ciDir + ".mwcli/mwdd"
+	}
+
 	currentUser, _ := user.Current()
 	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/mwdd"
 	return projectDirectory
@@ -122,14 +131,14 @@ func (m MWDD) Exec(service string, commandAndArgs []string, options exec.Handler
 	)
 }
 
-/*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with not output*/
-func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec.HandlerOptions) error {
+/*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with no output*/
+func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec.HandlerOptions, user string) error {
 	options.HandleStdout = func(stdout bytes.Buffer) {}
 	options.HandleError = func(stderr bytes.Buffer, err error) {}
 	return m.DockerCompose(
 		DockerComposeCommand{
 			Command:          "exec",
-			CommandArguments: append([]string{"-T", service}, commandAndArgs...),
+			CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
 			HandlerOptions:   options,
 		},
 	)

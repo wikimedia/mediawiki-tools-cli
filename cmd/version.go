@@ -47,14 +47,14 @@ var updateCmd = &cobra.Command{
 		c := config.LoadFromDisk()
 		fmt.Println("You are on the " + c.UpdateChannel + " channel.")
 
-		canUpdate, toUpdateTo := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
+		canUpdate, toUpdateToOrMessage := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
 
 		if !canUpdate {
-			fmt.Println("No update available")
+			fmt.Println(toUpdateToOrMessage)
 			os.Exit(0)
 		}
 
-		fmt.Println("New update found: " + toUpdateTo)
+		fmt.Println("New update found: " + toUpdateToOrMessage)
 
 		updatePrompt := promptui.Prompt{
 			Label:     " Do you want to update?",

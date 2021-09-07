@@ -24,9 +24,10 @@ import (
 )
 
 var mwddPhpMyAdminCmd = &cobra.Command{
-	Use:   "phpmyadmin",
-	Short: "phpMyAdmin service",
-	RunE:  nil,
+	Use:     "phpmyadmin",
+	Short:   "phpMyAdmin service",
+	Aliases: []string{"ppma"},
+	RunE:    nil,
 }
 
 var mwddPhpMyAdminCreateCmd = &cobra.Command{

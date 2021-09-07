@@ -19,9 +19,9 @@ package updater
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/blang/semver"
@@ -34,23 +34,23 @@ func CanUpdateFromWikimedia(currentVersion string, gitSummary string, verboseOut
 		selfupdate.EnableLog()
 	}
 
-	v, err := semver.Parse(strings.Trim(gitSummary, "v"))
-	if err != nil {
-		if verboseOutput {
-			log.Println("Could not parse git summary version, maybe you are not using a real release?")
-		}
-		return false, ""
-	}
-
 	latestRelease := latestWikimediaRelease()
 
 	if latestRelease == "404" {
 		return false, "No Wikimedia releases yet"
 	}
 
-	newVersion, err := semver.Parse(strings.Trim(latestRelease, "v"))
+	newVersion, newErr := semver.Parse(strings.Trim(latestRelease, "v"))
+	currentVerion, currentErr := semver.Parse(strings.Trim(gitSummary, "v"))
 
-	return v.Compare(newVersion) == 1, newVersion.String()
+	if newErr != nil {
+		return false, "Could not remote release version?"
+	}
+	if currentErr != nil {
+		return false, "Could not parse current git summary version '" + gitSummary + "', maybe you are not using a real release? Next release would be " + newVersion.String()
+	}
+
+	return currentVerion.Compare(newVersion) == -1, newVersion.String()
 }
 
 func latestWikimediaRelease() string {
@@ -83,12 +83,12 @@ func UpdateFromWikimedia(currentVersion string, gitSummary string, verboseOutput
 		selfupdate.EnableLog()
 	}
 
-	canUpdate, newVersion := CanUpdateFromWikimedia(currentVersion, gitSummary, verboseOutput)
+	canUpdate, newVersionOrMessage := CanUpdateFromWikimedia(currentVersion, gitSummary, verboseOutput)
 	if !canUpdate {
-		return false, "No update found"
+		return false, "No update found: " + newVersionOrMessage
 	}
 
-	assetURL := "https://releases.wikimedia.org/mwcli/" + newVersion + "/mw_v" + newVersion + "_linux_amd64"
+	assetURL := "https://releases.wikimedia.org/mwcli/" + newVersionOrMessage + "/mw_v" + newVersionOrMessage + "_" + runtime.GOOS + "_" + runtime.GOARCH
 
 	cmdPath, err := os.Executable()
 	if err != nil {
@@ -100,5 +100,5 @@ func UpdateFromWikimedia(currentVersion string, gitSummary string, verboseOutput
 		return false, "Binary update failed" + err.Error()
 	}
 
-	return true, "Successfully updated to version " + newVersion
+	return true, "Successfully updated to version " + newVersionOrMessage
 }
