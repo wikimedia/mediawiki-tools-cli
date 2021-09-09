@@ -38,10 +38,10 @@ release:
 install: all
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go install -v $(GO_PACKAGES)
 
-generate: internal/mwdd/files/files.go
+generate: generate-staticfiles
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go generate $(GO_PACKAGES)
 
-internal/mwdd/files/files.go: static/mwdd/*
+generate-staticfiles:
 	rm -f internal/mwdd/files/files.go || true
 	./bin/staticfiles -o internal/mwdd/files/files.go static/mwdd/
 
@@ -66,4 +66,4 @@ lint:
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go vet -composites=false $(GO_PACKAGES)
 
 
-.PHONY: install release
+.PHONY: all get build release install generate generate-staticfiles clean test unit lint
