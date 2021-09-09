@@ -52,5 +52,5 @@ Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/medi
 ## Support
 
 - Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
-- Phabricator: [#MediaWiki-Docker](https://phabricator.wikimedia.org/project/view/4585/)
+- Phabricator: [#mwcli](https://phabricator.wikimedia.org/project/view/5331/)
 - IRC: `#mediawiki`
