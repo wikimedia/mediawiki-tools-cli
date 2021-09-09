@@ -286,19 +286,23 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
 		}, exec.HandlerOptions{}, "root")
 
+		var serverLink string = "http://" + DbName + ".mediawiki.mwdd.localhost:" + mwdd.DefaultForUser().Env().Get("PORT")
+		const adminUser string = "admin"
+		const adminPass string = "mwddpassword"
+
 		// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
 		if DbType == "sqlite" {
 			mwdd.DefaultForUser().Exec("mediawiki", []string{
 				"php",
 				"/var/www/html/w/maintenance/install.php",
 				"--confpath", "/tmp",
-				"--server", "http://" + DbName + ".mediawiki.mwdd.localhost:" + mwdd.DefaultForUser().Env().Get("PORT"),
+				"--server", serverLink,
 				"--dbtype", DbType,
 				"--dbname", DbName,
 				"--lang", "en",
-				"--pass", "mwddpassword",
+				"--pass", adminPass,
 				"docker-" + DbName,
-				"admin",
+				adminUser,
 			}, exec.HandlerOptions{}, "nobody")
 		}
 		if DbType == "mysql" {
@@ -318,16 +322,16 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 				"php",
 				"/var/www/html/w/maintenance/install.php",
 				"--confpath", "/tmp",
-				"--server", "http://" + DbName + ".mediawiki.mwdd.localhost:" + mwdd.DefaultForUser().Env().Get("PORT"),
+				"--server", serverLink,
 				"--dbtype", DbType,
 				"--dbuser", "root",
 				"--dbpass", "toor",
 				"--dbname", DbName,
 				"--dbserver", DbType,
 				"--lang", "en",
-				"--pass", "mwddpassword",
+				"--pass", adminPass,
 				"docker-" + DbName,
-				"admin",
+				adminUser,
 			}, exec.HandlerOptions{}, "nobody")
 		}
 
@@ -345,6 +349,14 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			"--wiki", DbName,
 			"--quick",
 		}, exec.HandlerOptions{}, "nobody")
+
+		fmt.Println("")
+		fmt.Println("***************************************")
+		fmt.Println("Installation successfull 🎉")
+		fmt.Println("User: " + adminUser)
+		fmt.Println("Pass: " + adminPass)
+		fmt.Println("Link: " + serverLink)
+		fmt.Println("***************************************")
 	},
 }
 
