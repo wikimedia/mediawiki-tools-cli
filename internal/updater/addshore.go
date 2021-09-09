@@ -95,8 +95,8 @@ func UpdateFromAddshore(currentVersion string, gitSummary string, verboseOutput 
 	}
 
 	updateSuccess, updateMessage := UpdateFromAddshoreTo(*nextRelease, verboseOutput)
-	fmt.Println(updateMessage)
 	if !updateSuccess {
+		fmt.Println(updateMessage)
 		os.Exit(1)
 	}
 	return updateSuccess, updateMessage
