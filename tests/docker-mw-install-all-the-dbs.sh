@@ -24,7 +24,7 @@ CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL
 # Install everything (mysql, postgres, sqlite)
 ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
 ./bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres
-./bin/mw docker mediawiki install
+./bin/mw docker mediawiki install --dbtype sqlite
 
 # Check the DB tools (phpmyadmin, adminer)
 CURL=$(curl -s -L -N http://phpmyadmin.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Open new phpMyAdmin window"

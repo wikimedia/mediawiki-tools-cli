@@ -200,6 +200,14 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 	Short:   "Installs a new MediaWiki site using install.php",
 	Aliases: []string{"i"},
 	Run: func(cmd *cobra.Command, args []string) {
+		// Make it harder for people to fall over https://phabricator.wikimedia.org/T287654 for now
+		if DbType != "sqlite" && DbType != "mysql" && DbType != "postgres" {
+			fmt.Println("You must specify a valid dbtype (mysql, postgres, sqlite)")
+			os.Exit(1)
+		}
+
+		// TODO check that the required DB services is running? OR start it up?
+
 		mediawiki, _ := mediawiki.ForDirectory(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 		if !mediawiki.LocalSettingsIsPresent() {
 			prompt := promptui.Prompt{
@@ -356,6 +364,11 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		fmt.Println("Pass: " + adminPass)
 		fmt.Println("Link: " + serverLink)
 		fmt.Println("***************************************")
+
+		// TODO remove once https://phabricator.wikimedia.org/T287654 is solved
+		if DbType == "sqlite" {
+			fmt.Println("WARNING: The sqlite development environemtn currently suffers an issue, https://phabricator.wikimedia.org/T287654")
+		}
 	},
 }
 
@@ -473,7 +486,7 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiResumeCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
-	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "sqlite", "Type of database to install (sqlite, mysql, postgres)")
+	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "", "Type of database to install (mysql, postgres, sqlite)")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiComposerCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)

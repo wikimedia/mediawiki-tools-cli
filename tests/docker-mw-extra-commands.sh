@@ -17,7 +17,7 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Is your database running and wiki database created"
 
 # Install sqlite & check
-./bin/mw docker mediawiki install
+./bin/mw docker mediawiki install --dbtype sqlite
 CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
 
 # docker-compose: Make sure it appears to work
