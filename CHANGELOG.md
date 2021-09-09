@@ -4,6 +4,18 @@
 
 ...
 
+
+## [v0.1.0-dev-addshore.20210909.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210909.1)
+
+* `mw update`: Stop printing update success release notes twice
+* `mw dev docker-compose` no longet breaks if passed no arguments
+* `mw dev mediawiki`: Switch default MediaWiki PHP version to 7.3
+* `mw dev mediawiki`: Include `php-ast` in MediaWiki container
+* `mw dev mediawiki`: Output details of username, password and domain of MediaWiki site after install
+* `mw dev mediawiki`: Nicer error from MediaWiki if no DB exists when loading a site
+* `mw dev mediawiki install`: now requires that you specify a `--dbtype`
+* DEV: `make`: Fix generation of staticfiles using make
+
 ## [v0.1.0-dev-addshore.20210907.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210907.1)
 
 * Enable updates from releases.wikimedia.org
