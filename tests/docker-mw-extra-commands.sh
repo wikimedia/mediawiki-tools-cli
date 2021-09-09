@@ -14,9 +14,7 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 # Validate the basic stuff
 ./bin/mw docker docker-compose ps
 ./bin/mw docker env list
-# TODO enable logo check again once the page no longer shown "Unable to connect to PostgreSQL server"
-#CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "The MediaWiki logo"
-CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Unable to connect to PostgreSQL server"
+CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Is your database running and wiki database created"
 
 # Install sqlite & check
 ./bin/mw docker mediawiki install

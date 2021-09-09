@@ -49,11 +49,15 @@ $mwddServices = [
 ################################
 # MWDD Database
 ################################
+// TODO cache the DB existance checks somehow so as not to run on every request...
+
 // Figure out if we are using sqlite, or if this should be mysql..?
 if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
 	$dockerDbType = 'sqlite';
-} else {
-	// TODO cache this check somehow so that we don't need a query every time...
+}
+
+// Figure out if we are using mysql
+if(!isset($dockerDbType)){
 	try{
 		$mysqlPdo = new PDO(
 			"mysql:host=mysql;dbname=" . $dockerDb,
@@ -72,12 +76,32 @@ if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
 			$dockerDbType = 'mysql';
 		}
 	} catch ( Exception $e ) {
+		// TODO set the timeout on connection to be much shorter, so that when mysql doesnt exist, it doenst hang for a while
 		// do nothing
 	}
-	// If no other magic detection happened, we must be in postgres (or some generic error state)
-	if(!isset($dockerDbType)){
+}
+
+// Figure out if we are using postgres
+if(!isset($dockerDbType)){
+	$pvars = [
+		'dbname' => $dockerDb,
+		'user' => 'root',
+		'password' => 'toor',
+		'host' => 'postgres',
+	];
+	$pconnString = '';
+	foreach ( $pvars as $name => $value ) {
+		$pconnString .= "$name='" . str_replace( "'", "\\'", $value ) . "' ";
+	}
+	$postgresConn = @pg_connect( $pconnString . ' connect_timeout=1', PGSQL_CONNECT_FORCE_NEW );
+	if($postgresConn !== false){
 		$dockerDbType = 'postgres';
 	}
+}
+
+// Otherwise something must be wrong
+if(!isset($dockerDbType)){
+	die("Is your database running and wiki database created / installed?");
 }
 
 $wgDBname = $dockerDb;
