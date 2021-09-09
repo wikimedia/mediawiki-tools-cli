@@ -17,7 +17,7 @@ if [[ ! -f mediawiki/.gitlab-ci.cache.20210809-02 ]]; then
   mkdir mediawiki/vendor
   tar -xf vendor.tar.gz -C mediawiki/vendor
   rm -r *.tar.gz
-  docker run --rm -v $PWD/mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/stretch-php72-fpm:3.0.0 install --ignore-platform-reqs --no-interaction
+  docker run --rm -v $PWD/mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/stretch-php73-fpm:3.0.0 install --ignore-platform-reqs --no-interaction
   touch mediawiki/.gitlab-ci.cache.20210809-02
 fi
 

@@ -256,9 +256,8 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			if err == nil {
 				mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 					DockerComposeService: "mediawiki",
-					// --ignore-platform-reqs is currently used as only PHP7.2 is provided and some things need higher
-					Command: []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
-					User:    User,
+					Command:              []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+					User:                 User,
 				})
 			} else {
 				fmt.Println("Can't install without up to date composer dependencies")
