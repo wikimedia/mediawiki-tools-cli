@@ -28,10 +28,21 @@ var mwddDockerComposeCmd = &cobra.Command{
 	Aliases: []string{"dc"},
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+
+		// This could be simpiler if the mwdd.DockerComposeCommand function just took a list of strings...
+		command := ""
+		if len(args) >= 1 {
+			command = args[0]
+		}
+		commandArgs := []string{}
+		if len(args) > 1 {
+			commandArgs = args[1:]
+		}
+
 		mwdd.DefaultForUser().DockerComposeTTY(
 			mwdd.DockerComposeCommand{
-				Command:          args[0],
-				CommandArguments: args[1:],
+				Command:          command,
+				CommandArguments: commandArgs,
 				HandlerOptions: exec.HandlerOptions{
 					Verbosity: Verbosity,
 				},
