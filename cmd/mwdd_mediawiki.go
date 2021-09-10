@@ -438,43 +438,33 @@ var mwddMediawikiResumeCmd = &cobra.Command{
 	},
 }
 
-var mwddMediawikiPhpunitCmd = &cobra.Command{
-	Use:   "phpunit",
-	Short: "Runs MediaWiki phpunit in the MediaWiki container",
+var mwddMediawikiExecCmd = &cobra.Command{
+	Use: "exec [flags] [command...]",
+	Example: `  exec bash		                                  # Run bash as your system user
+  exec --user root -- bash                                # Run bash as root
+  exec -- composer phpunit:unit                           # Run a composer command (php unit tests)
+  exec -- composer composer phpunit tests/phpunit/unit/includes/XmlTest.php                 # Run a single test
+  exec -- php maintenance/update.php --quick              # Run a MediaWiki maintenance script`,
+	Short: "Executes a command in the MediaWiki container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
-			Command:              append([]string{"php", "/var/www/html/w/tests/phpunit/phpunit.php"}, args...),
-			User:                 User,
-		}))
-	},
-}
-
-var mwddMediawikiExecCmd = &cobra.Command{
-	Use:     "exec [flags] [command...]",
-	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short:   "Executes a command in the MediaWiki container",
-	Run: func(cmd *cobra.Command, args []string) {
-		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
-			DockerComposeService: "mediawiki",
 			Command:              args,
 			User:                 User,
-		})
+		}))
 	},
 }
 
 var applyRelevantWorkingDirectory = func(dockerExecCommand mwdd.DockerExecCommand) mwdd.DockerExecCommand {
 	currentWorkingDirectory, _ := os.Getwd()
 	mountedMwDirectory := mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE")
-	// For paths inside the mediawiki path
+	// For paths inside the mediawiki path, rewrite things
 	if strings.HasPrefix(currentWorkingDirectory, mountedMwDirectory) {
 		dockerExecCommand.WorkingDir = strings.Replace(currentWorkingDirectory, mountedMwDirectory, "/var/www/html/w", 1)
-	} else {
-		fmt.Println("This command is not supported outside of the MediaWiki core directory: " + mountedMwDirectory)
-		os.Exit(1)
 	}
+
+	// Otherwise just use the root of mediawiki
 	return dockerExecCommand
 }
 
@@ -489,8 +479,6 @@ func init() {
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "", "Type of database to install (mysql, postgres, sqlite)")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)
 	mwddMediawikiComposerCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
-	mwddMediawikiCmd.AddCommand(mwddMediawikiPhpunitCmd)
-	mwddMediawikiPhpunitCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
 	mwddMediawikiExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 
