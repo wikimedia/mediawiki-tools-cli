@@ -35,8 +35,6 @@ cache:
 
 services:
   - name: docker:19.03.12-dind
-    # Use a registry mirror to avoid hitting docker hub too much as there is a rate limit of 100 pulls per 6 hours
-    command: ["--registry-mirror", "https://mirror.gcr.io"]
 
 build:
     stage: build
