@@ -4,6 +4,11 @@
 
 ...
 
+## [v0.1.0-dev-addshore.20210910.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210910.1)
+
+* `mw dev mediawiki phpunit`: Command has been removed, please use `mw dev mediawiki exec`
+* `mw dev`: Use correct terminal size in all `exec` commands
+* `mw dev destroy`: Fix command description
 
 ## [v0.1.0-dev-addshore.20210909.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210909.1)
 
