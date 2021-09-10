@@ -28,9 +28,9 @@ cd mediawiki
 
 # composer: Make sure a command works in root of the repo
 ./../bin/mw docker mediawiki composer home | grep -q "https://www.mediawiki.org/"
-# phpunit: Make sure a command works in the root of the repo
-./../bin/mw docker mediawiki phpunit ./tests/phpunit/unit/includes/PingbackTest.php
-./../bin/mw docker mediawiki phpunit ./tests/phpunit/unit/includes/PingbackTest.php | grep -q "OK "
+# exec phpunit: Make sure using exec to run phpunit things works
+./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php
+./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php | grep -q "OK "
 # exec: Make sure a command works in the root of the repo
 ./../bin/mw docker mediawiki exec ls | grep -q "api.php"
 
@@ -39,11 +39,8 @@ cd skins/Vector
 
 # composer: Make sure a command works from the Vector directory
 ./../../../bin/mw docker mediawiki composer home | grep -q "http://gerrit.wikimedia.org/g/mediawiki/skins/Vector"
-# phpunit: Make sure a command works from the Vector directory
-./../../../bin/mw docker mediawiki phpunit ./../../tests/phpunit/unit/includes/PingbackTest.php | grep -q "OK "
 # exec: Make sure a command works from the Vector directory
-# Right now this just executes in the MediaWiki directory
-./../../../bin/mw docker mediawiki exec ls | grep -q "api.php"
+./../../../bin/mw docker mediawiki exec ls | grep -q "skin.json"
 
 # cd back again
 cd ./../../../
