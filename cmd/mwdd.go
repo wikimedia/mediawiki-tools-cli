@@ -18,13 +18,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/ports"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -38,18 +37,9 @@ var mwddCmd = &cobra.Command{
 		mwdd.EnsureReady()
 		if mwdd.Env().Missing("PORT") {
 			prompt := promptui.Prompt{
-				Label: "What port would you like to use for your development environment?",
-				// TODO suggest a port that is definitely available for listening on
-				Default: "8080",
-				Validate: func(input string) error {
-					// TODO check the port can be listened on?
-					// https://coolaj86.com/articles/how-to-test-if-a-port-is-available-in-go/
-					_, err := strconv.ParseFloat(input, 64)
-					if err != nil {
-						return errors.New("Invalid number")
-					}
-					return nil
-				},
+				Label:    "What port would you like to use for your development environment?",
+				Default:  ports.FreeUpFrom("8080"),
+				Validate: ports.IsValidAndFree,
 			}
 			value, err := prompt.Run()
 			if err == nil {
