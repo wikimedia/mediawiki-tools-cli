@@ -19,22 +19,23 @@ package ports
 
 import (
 	"errors"
-	"log"
 	"net"
-	"os"
 	"strconv"
 )
+
+var defaultStartingPort = "8080"
+var portSearchLoopsBeforePanic = 25
 
 /*FreeUpFrom get a free port up from and including the startingPort. Will attempt 25 ports.*/
 func FreeUpFrom(startingPort string) string {
 	if isValid(startingPort) != nil {
-		startingPort = "8080"
+		startingPort = defaultStartingPort
 	}
 
 	portFloat, _ := strconv.ParseFloat(startingPort, 64)
 	loops := 1
 
-	for portFloat < 65535 && loops <= 25 {
+	for portFloat < 65535 && loops <= portSearchLoopsBeforePanic {
 		loopPort := strconv.FormatFloat(portFloat, 'f', 0, 64)
 		if IsValidAndFree(loopPort) == nil {
 			return loopPort
@@ -43,9 +44,7 @@ func FreeUpFrom(startingPort string) string {
 		loops++
 	}
 
-	log.Fatal(errors.New("too many loops finding free port"))
-	os.Exit(1)
-	return ""
+	panic("Error: Too many loops finding free port")
 }
 
 /*IsValidAndFree ...*/
