@@ -54,7 +54,7 @@ clean:
 test: get-dev generate unit lint
 
 unit:
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go test -cover -ldflags "$(shell ./bin/govvv -flags)" $(GO_PACKAGES)
+	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go test -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell ./bin/govvv -flags)" $(GO_PACKAGES)
 
 lint:
 	@echo > .lint-gofmt.diff
