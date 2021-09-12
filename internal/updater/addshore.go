@@ -84,7 +84,7 @@ func UpdateFromAddshoreTo(release selfupdate.Release, verboseOutput bool) (succe
 		return false, "Binary update failed" + err.Error()
 	}
 
-	return true, "Successfully updated to version" + release.Version.String() + "\nRelease note:\n" + release.ReleaseNotes
+	return true, "successfuly updated to version" + release.Version.String() + "\nRelease note:\n" + release.ReleaseNotes
 }
 
 /*UpdateFromAddshore ...*/

@@ -63,7 +63,7 @@ func IsValidAndFree(port string) error {
 func isFree(port string) error {
 	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		return errors.New("port is not availible to listen on")
+		return errors.New("port is not available to listen on")
 	}
 
 	ln.Close()

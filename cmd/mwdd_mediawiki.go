@@ -359,7 +359,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 
 		fmt.Println("")
 		fmt.Println("***************************************")
-		fmt.Println("Installation successfull 🎉")
+		fmt.Println("Installation successful 🎉")
 		fmt.Println("User: " + adminUser)
 		fmt.Println("Pass: " + adminPass)
 		fmt.Println("Link: " + serverLink)

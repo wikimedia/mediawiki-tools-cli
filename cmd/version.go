@@ -24,7 +24,7 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Output the version infomation",
+	Short: "Output the version information",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf(`GitCommit: %s
 GitBranch: %s

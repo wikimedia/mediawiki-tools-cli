@@ -3,7 +3,7 @@
 set -e # Fail on errors
 set -x # Output commands
 
-# Output some useful docker version infomation
+# Output some useful docker version information
 docker --version
 docker-compose version
 
