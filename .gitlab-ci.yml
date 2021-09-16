@@ -65,9 +65,14 @@ test:
     needs: []
     cache: {}
     image: docker-registry.wikimedia.org/golang:1.13-3
+    artifacts:
+      reports:
+        cobertura: coverage.xml
     script:
       - go get -u golang.org/x/lint/golint
       - make test
+      - go get github.com/boumenot/gocover-cobertura
+      - gocover-cobertura < coverage.txt > coverage.xml
 
 integration:
     stage: integration

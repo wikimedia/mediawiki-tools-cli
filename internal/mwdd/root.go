@@ -22,9 +22,9 @@ import (
 	"os"
 	"os/user"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd/files"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/dotenv"
 )
 
 /*MWDD representation of a mwdd v2 setup*/
@@ -45,9 +45,26 @@ func mwddUserDirectory() string {
 		return ciDir + ".mwcli/mwdd"
 	}
 
-	currentUser, _ := user.Current()
+	currentUser, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+
+	// If we are root, check to see if we can detect sudo being used
+	if currentUser.Uid == "0" {
+		sudoUID := os.Getenv("SUDO_UID")
+		if sudoUID == "" {
+			panic("detected sudo but no SUDO_UID")
+		}
+		currentUser, err = user.LookupId(sudoUID)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/mwdd"
 	return projectDirectory
+
 }
 
 /*Directory the directory containing the development environment*/
@@ -61,19 +78,14 @@ func (m MWDD) DockerComposeProjectName() string {
 }
 
 /*Env ...*/
-func (m MWDD) Env() env.DotFile {
-	return env.DotFileForDirectory(m.Directory())
+func (m MWDD) Env() dotenv.File {
+	return dotenv.FileForDirectory(m.Directory())
 }
 
 /*EnsureReady ...*/
 func (m MWDD) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
-}
-
-/*EnsureHostsFile Make sure that a bunch of hosts that we will use are in the hosts file*/
-func (m MWDD) EnsureHostsFile() {
-	//TODO this will differ per serviceset though...
 }
 
 // DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`

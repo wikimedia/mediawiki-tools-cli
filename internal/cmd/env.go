@@ -20,7 +20,7 @@ package cmd
 import (
 	"fmt"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/dotenv"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,7 @@ func EnvDelete(directory func() string) *cobra.Command {
 		Short: "Deletes an environment variable",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			env.DotFileForDirectory(directory()).Delete(args[0])
+			dotenv.FileForDirectory(directory()).Delete(args[0])
 		},
 	}
 }
@@ -55,7 +55,7 @@ func EnvSet(directory func() string) *cobra.Command {
 		Short: "Set an environment variable",
 		Args:  cobra.MinimumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			env.DotFileForDirectory(directory()).Set(args[0], args[1])
+			dotenv.FileForDirectory(directory()).Set(args[0], args[1])
 		},
 	}
 }
@@ -67,7 +67,7 @@ func EnvGet(directory func() string) *cobra.Command {
 		Short: "Get an environment variable",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(env.DotFileForDirectory(directory()).Get(args[0]))
+			fmt.Println(dotenv.FileForDirectory(directory()).Get(args[0]))
 		},
 	}
 }
@@ -78,7 +78,7 @@ func EnvList(directory func() string) *cobra.Command {
 		Use:   "list",
 		Short: "List all environment variables",
 		Run: func(cmd *cobra.Command, args []string) {
-			for name, value := range env.DotFileForDirectory(directory()).List() {
+			for name, value := range dotenv.FileForDirectory(directory()).List() {
 				fmt.Println(name + "=" + value)
 			}
 		},
@@ -91,7 +91,7 @@ func EnvWhere(directory func() string) *cobra.Command {
 		Use:   "where",
 		Short: "Output the location of the .env file",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(env.DotFileForDirectory(directory()).Path())
+			fmt.Println(dotenv.FileForDirectory(directory()).Path())
 		},
 	}
 }

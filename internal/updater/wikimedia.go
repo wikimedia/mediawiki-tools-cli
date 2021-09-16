@@ -100,5 +100,5 @@ func UpdateFromWikimedia(currentVersion string, gitSummary string, verboseOutput
 		return false, "Binary update failed" + err.Error()
 	}
 
-	return true, "Successfully updated to version " + newVersionOrMessage
+	return true, "successfuly updated to version " + newVersionOrMessage
 }

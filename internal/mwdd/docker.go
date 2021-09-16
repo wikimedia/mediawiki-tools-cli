@@ -24,6 +24,7 @@ import (
 	"os"
 	gosignal "os/signal"
 	"runtime"
+	"strings"
 	"time"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
@@ -69,7 +70,7 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 		Tty:          true,
 		WorkingDir:   command.WorkingDir,
 		User:         command.User,
-		Cmd:          command.Command,
+		Cmd:          []string{"/bin/sh", "-c", strings.Join(command.Command, " ")},
 	}
 
 	ctx := context.Background()

@@ -23,8 +23,8 @@ import (
 )
 
 /*EnsureReady makes sure that the files component is ready*/
-func EnsureReady( projectDirectory string ) {
-	ensureInMemoryFilesAreOnDisk( projectDirectory );
+func EnsureReady(projectDirectory string) {
+	ensureInMemoryFilesAreOnDisk(projectDirectory)
 }
 
 /*ListRawDcYamlFilesInContextOfProjectDirectory ...*/
@@ -33,7 +33,7 @@ func ListRawDcYamlFilesInContextOfProjectDirectory(projectDirectory string) []st
 	var files []string
 
 	for _, file := range listRawFiles(projectDirectory) {
-		if( filepath.Ext(file) == ".yml" ) {
+		if filepath.Ext(file) == ".yml" {
 			files = append(files, filepath.Base(file))
 		}
 	}
@@ -46,7 +46,7 @@ func listRawFiles(projectDirectory string) []string {
 	var files []string
 
 	err := filepath.Walk(projectDirectory, func(path string, info os.FileInfo, err error) error {
-		if(! info.IsDir()){
+		if !info.IsDir() {
 			files = append(files, path)
 		}
 		return nil

@@ -10,7 +10,7 @@ import (
 /*EnsureInMemoryFilesAreOnDisk makes sure that up to date copies of our in app docker-compose files are on disk
 TODO this should be called only when we update the bin?
 TODO This is way to complex, and should be more clever.. checking a hash or something? and be more lightweight*/
-func ensureInMemoryFilesAreOnDisk( projectDirectory string ) {
+func ensureInMemoryFilesAreOnDisk(projectDirectory string) {
 	packagedFiles := packagedFileNames()
 
 	// Ensure each file is on disk and up to date
@@ -24,7 +24,7 @@ func ensureInMemoryFilesAreOnDisk( projectDirectory string ) {
 			writeBytesToDisk(packagedBytes, fileTargetOnDisk)
 		} else {
 			onDiskBytes := diskFileToBytes(fileTargetOnDisk)
-			if(!bytes.Equal(onDiskBytes, packagedBytes)) {
+			if !bytes.Equal(onDiskBytes, packagedBytes) {
 				// TODO only output the below line with verbose logging
 				//fmt.Println(fileTargetOnDisk + " out of date, so writing...")
 				writeBytesToDisk(packagedBytes, fileTargetOnDisk)
@@ -39,7 +39,7 @@ func diskFileToBytes(file string) []byte {
 	return bytes
 }
 
-func getAssumedFilePerms( filePath string ) os.FileMode {
+func getAssumedFilePerms(filePath string) os.FileMode {
 	// Set all .sh files as +x when creating them
 	// All users should be able to read and execute these files so users in containers can use them
 	// XXX: Currently if you change these file permissions on disk files will need to be deleted and re added..
@@ -49,7 +49,7 @@ func getAssumedFilePerms( filePath string ) os.FileMode {
 	return 0655
 }
 
-func writeBytesToDisk( bytes []byte, filePath string ) {
+func writeBytesToDisk(bytes []byte, filePath string) {
 	ensureDirectoryForFileOnDisk(filePath)
 	ioutil.WriteFile(filePath, bytes, getAssumedFilePerms(filePath))
 	// TODO check error?
