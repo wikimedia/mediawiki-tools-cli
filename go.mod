@@ -25,6 +25,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1 // indirect
+	github.com/txn2/txeh v1.3.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	gotest.tools/v3 v3.0.3 // indirect
