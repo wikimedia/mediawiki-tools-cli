@@ -277,6 +277,10 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/data"}, exec.HandlerOptions{}, "root")
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/log/mediawiki"}, exec.HandlerOptions{}, "root")
 
+		// Record the wiki domain that we are trying to create
+		var domain string = DbName + ".mediawiki.mwdd.localhost"
+		mwdd.DefaultForUser().RecordHostUsageBySite(domain)
+
 		// Copy current local settings "somewhere safe", incase someone needs to restore it
 		currentTime := time.Now()
 		currentTimeString := currentTime.Format("20060102150405")
@@ -293,7 +297,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
 		}, exec.HandlerOptions{}, "root")
 
-		var serverLink string = "http://" + DbName + ".mediawiki.mwdd.localhost:" + mwdd.DefaultForUser().Env().Get("PORT")
+		var serverLink string = "http://" + domain + ":" + mwdd.DefaultForUser().Env().Get("PORT")
 		const adminUser string = "admin"
 		const adminPass string = "mwddpassword"
 
@@ -363,6 +367,9 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 		fmt.Println("User: " + adminUser)
 		fmt.Println("Pass: " + adminPass)
 		fmt.Println("Link: " + serverLink)
+		fmt.Println("")
+		fmt.Println("If you want to access the wiki from your command line you may need to add it to your hosts file.")
+		fmt.Println("You can do this with the `hosts add` command that is part of this development environment.")
 		fmt.Println("***************************************")
 
 		// TODO remove once https://phabricator.wikimedia.org/T287654 is solved
@@ -396,8 +403,6 @@ var mwddMediawikiCreateCmd = &cobra.Command{
 		}
 		// TODO mediawiki should come from some default definition set?
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki", "mediawiki-web"}, options)
-		// TODO add functionality for writing to the hosts file...
-		//mwdd.DefaultForUser().EnsureHostsFile()
 	},
 }
 

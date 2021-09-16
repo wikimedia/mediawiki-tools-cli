@@ -20,6 +20,7 @@ package cmd
 import (
 	"fmt"
 
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/hosts"
 	"github.com/spf13/cobra"
 )
@@ -35,16 +36,17 @@ var mwddHostsAddCmd = &cobra.Command{
 	Short: "Adds development environment hosts into your system hosts file (might need sudo)",
 	Run: func(cmd *cobra.Command, args []string) {
 		save := hosts.AddHosts(
-			// TODO generate these by reading the yml files?
-			[]string{
-				"proxy.mwdd.localhost",
-				"adminer.mwdd.localhost",
-				"graphite.mwdd.localhost",
-				"phpmyadmin.mwdd.localhost",
-				// TODO generate MORE sites here my reading some other file?
-				// Maybe write to a known file every time a site is created?
-				"default.mediawiki.mwdd.localhost",
-			},
+			append(
+				[]string{
+					// TODO generate these by reading the yml files?
+					"proxy.mwdd.localhost",
+					"adminer.mwdd.localhost",
+					"graphite.mwdd.localhost",
+					"phpmyadmin.mwdd.localhost",
+					"default.mediawiki.mwdd.localhost",
+				},
+				mwdd.DefaultForUser().UsedHosts()...,
+			),
 		)
 		if save.Success {
 			fmt.Println("Hosts file updated!")
