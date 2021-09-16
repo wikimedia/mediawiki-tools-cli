@@ -367,7 +367,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 
 		// TODO remove once https://phabricator.wikimedia.org/T287654 is solved
 		if DbType == "sqlite" {
-			fmt.Println("WARNING: The sqlite development environemtn currently suffers an issue, https://phabricator.wikimedia.org/T287654")
+			fmt.Println("WARNING: The sqlite development environment currently suffers an issue, https://phabricator.wikimedia.org/T287654")
 		}
 	},
 }
