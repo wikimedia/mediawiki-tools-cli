@@ -4,6 +4,14 @@
 
 ...
 
+## [v0.1.0-dev-addshore.20210916.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210916.1)
+
+* `mw dev hosts`: command added to interact with your `/etc/hosts` file if needed
+* `mw dev * exec`: commands can now have environment variables passed to them. e.g. `mw dev mediawiki exec -- FOO=bar env`
+* `mw dev`: ports are now checked for availibility before listening begins
+* `mw dev adminer`: Updated from `adminer:4.8.0` to `adminer:4` (enabling minor update)
+* Fix typos
+
 ## [v0.1.0-dev-addshore.20210910.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210910.1)
 
 * `mw dev mediawiki phpunit`: Command has been removed, please use `mw dev mediawiki exec`
