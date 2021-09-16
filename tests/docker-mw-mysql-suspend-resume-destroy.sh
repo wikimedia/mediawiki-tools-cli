@@ -8,6 +8,9 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
+# Setup the default hosts in hosts file
+./bin/mw docker hosts add
+
 # Create
 ./bin/mw docker mediawiki create
 ./bin/mw docker mediawiki create
@@ -17,8 +20,9 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 ./bin/mw docker docker-compose ps
 ./bin/mw docker env list
 
-# Install & check
+# Install, add host & check
 ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
+./bin/mw docker hosts add
 CURL=$(curl -s -L -N http://mysqlwiki.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
 
 # Suspend and resume and check the site is still there

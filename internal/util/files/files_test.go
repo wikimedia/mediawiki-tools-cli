@@ -36,19 +36,21 @@ func writeContentToTmpFile(content string) string {
 	return tmpFile.Name()
 }
 
-func TestAddLinesUnique(t *testing.T) {
-	type args struct {
-		lines    []string
-		filename string
-	}
-
+func randomString() string {
 	// A bit of randomness so that we dont need to open a file for our non existant test
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	var b strings.Builder
 	for i := 0; i < 10; i++ {
 		b.WriteRune(chars[rand.Intn(len(chars))])
 	}
-	rndstr := b.String()
+	return b.String()
+}
+
+func TestAddLinesUnique(t *testing.T) {
+	type args struct {
+		lines    []string
+		filename string
+	}
 
 	tests := []struct {
 		name string
@@ -59,7 +61,7 @@ func TestAddLinesUnique(t *testing.T) {
 			name: "Non Existant",
 			args: args{
 				lines:    []string{"foo"},
-				filename: "/tmp/mwcli-test-files-empty-" + rndstr,
+				filename: "/tmp/mwcli-test-files-empty-" + randomString(),
 			},
 			want: "foo\n",
 		},
@@ -111,13 +113,21 @@ func TestLines(t *testing.T) {
 	type args struct {
 		fileName string
 	}
+
 	tests := []struct {
 		name string
 		args args
 		want []string
 	}{
 		{
-			name: "None",
+			name: "Non Existant",
+			args: args{
+				fileName: "/tmp/mwcli-test-files-empty-" + randomString(),
+			},
+			want: []string{},
+		},
+		{
+			name: "Empty",
 			args: args{
 				fileName: writeContentToTmpFile(""),
 			},

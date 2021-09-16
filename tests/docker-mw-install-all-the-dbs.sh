@@ -8,6 +8,9 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
+# Setup the default hosts in hosts file
+./bin/mw docker hosts add
+
 # Create
 ./bin/mw docker mediawiki create
 
@@ -25,6 +28,8 @@ CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL
 ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
 ./bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres
 ./bin/mw docker mediawiki install --dbtype sqlite
+# Update the hosts file as we used new wiki names
+./bin/mw docker hosts add
 
 # Check the DB tools (phpmyadmin, adminer)
 CURL=$(curl -s -L -N http://phpmyadmin.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Open new phpMyAdmin window"

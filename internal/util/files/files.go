@@ -52,6 +52,10 @@ func AddLineUnique(line string, fileName string) {
 
 /*Lines reads all lines from a file*/
 func Lines(fileName string) []string {
+	_, err := os.Stat(fileName)
+	if err != nil {
+		return []string{}
+	}
 	file, err := os.Open(fileName)
 	if err != nil {
 		panic(err)

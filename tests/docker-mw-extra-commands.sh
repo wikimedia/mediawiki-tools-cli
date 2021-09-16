@@ -8,6 +8,9 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
+# Setup the default hosts in hosts file
+./bin/mw docker hosts add
+
 # Create
 ./bin/mw docker mediawiki create
 
@@ -47,6 +50,10 @@ cd ./../../../
 
 # Destroy it all
 ./bin/mw docker destroy
+
+# Remove hosts
+./bin/mw docker hosts delete
+
 # And make sure only 1 exists after
 docker ps
 docker ps | wc -l | grep -q "1"
