@@ -1,4 +1,4 @@
-/*Package env for interacting with a .env file
+/*Package dotenv for interacting with a .env file
 
 Copyright © 2020 Addshore
 
@@ -15,50 +15,50 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-package env
+package dotenv
 
 import (
-	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
 )
 
-/*DotFile representation of a .env file*/
-type DotFile string
+/*File location of the .env file to work on*/
+type File string
 
-/*DotFileForDirectory returns a dotFIle for the given directory*/
-func DotFileForDirectory(directory string) DotFile {
-	return DotFile(directory + string(os.PathSeparator) + ".env")
+/*FileForDirectory returns the File for the given directory*/
+func FileForDirectory(directory string) File {
+	return File(directory + string(os.PathSeparator) + ".env")
 }
 
 /*Path the path of the .env file*/
-func (f DotFile) Path() string {
+func (f File) Path() string {
 	return string(f)
 }
 
-/*EnsureExists ensures that the .env file exists, creating an empty one if not*/
-func (f DotFile) EnsureExists() {
+/*EnsureExists ensures that the File exists, creating an empty one if not*/
+func (f File) EnsureExists() {
 	if _, err := os.Stat(f.Path()); err != nil {
-		err := os.MkdirAll(strings.Replace(f.Path(), ".env", "", -1), 0700)
+		err := os.MkdirAll(strings.Replace(f.Path(), filepath.Base(f.Path()), "", -1), 0700)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		_, err = os.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}
 }
 
-func (f DotFile) read() map[string]string {
+func (f File) read() map[string]string {
 	f.EnsureExists()
 	envMap, _ := godotenv.Read(f.Path())
 	return envMap
 }
 
-func (f DotFile) write(envMap map[string]string) {
+func (f File) write(envMap map[string]string) {
 	// Override the regular gotdotenv Write method to avoid adding quotes
 	// https://github.com/joho/godotenv/issues/50#issuecomment-364873528
 	// https://github.com/moby/moby/issues/12997
@@ -67,38 +67,38 @@ func (f DotFile) write(envMap map[string]string) {
 }
 
 /*Delete a value from the env*/
-func (f DotFile) Delete(name string) {
+func (f File) Delete(name string) {
 	envMap := f.read()
 	delete(envMap, name)
 	f.write(envMap)
 }
 
 /*Set a value in the env*/
-func (f DotFile) Set(name string, value string) {
+func (f File) Set(name string, value string) {
 	envMap := f.read()
 	envMap[name] = value
 	f.write(envMap)
 }
 
 /*Get a value from the env*/
-func (f DotFile) Get(name string) string {
+func (f File) Get(name string) string {
 	envMap := f.read()
 	return envMap[name]
 }
 
 /*Has a value in the env*/
-func (f DotFile) Has(name string) bool {
+func (f File) Has(name string) bool {
 	envMap := f.read()
 	_, ok := envMap[name]
 	return ok
 }
 
 /*Missing a value in the env*/
-func (f DotFile) Missing(name string) bool {
+func (f File) Missing(name string) bool {
 	return !f.Has(name)
 }
 
 /*List all values from the env*/
-func (f DotFile) List() map[string]string {
+func (f File) List() map[string]string {
 	return f.read()
 }

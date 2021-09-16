@@ -22,9 +22,9 @@ import (
 	"os"
 	"os/user"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/env"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd/files"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/dotenv"
 )
 
 /*MWDD representation of a mwdd v2 setup*/
@@ -78,8 +78,8 @@ func (m MWDD) DockerComposeProjectName() string {
 }
 
 /*Env ...*/
-func (m MWDD) Env() env.DotFile {
-	return env.DotFileForDirectory(m.Directory())
+func (m MWDD) Env() dotenv.File {
+	return dotenv.FileForDirectory(m.Directory())
 }
 
 /*EnsureReady ...*/
