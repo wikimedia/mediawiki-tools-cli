@@ -14,6 +14,9 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 # Create
 ./bin/mw docker mediawiki create
 
+# Make sure that exec generally works as expected
+./bin/mw docker mediawiki exec -- FOO=bar env | grep FOO
+
 # Validate the basic stuff
 ./bin/mw docker docker-compose ps
 ./bin/mw docker env list
