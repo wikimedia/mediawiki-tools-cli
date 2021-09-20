@@ -7,7 +7,7 @@ RELEASE_DIR ?= ./_release
 TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
 
 PACKAGE := gerrit.wikimedia.org/r/mediawiki/tools/cli
-VERSION := $(shell cat VERSION)
+VERSION := latest
 SEMVER := $(subst v,,$(VERSION))
 
 GO_LIST_GOFILES := '{{range .GoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}{{range .XTestGoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}'
@@ -30,7 +30,6 @@ build:
 release:
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) ./bin/gox -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell ./bin/govvv -flags)' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
-	echo $(SEMVER) >> $(RELEASE_DIR)/latest.txt
 	for f in "$(RELEASE_DIR)"/$(SEMVER)/mw_*; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
 	done
