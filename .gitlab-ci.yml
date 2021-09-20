@@ -18,10 +18,12 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
 
 stages:
-  - build
   - test
+  - build
   - integration
-  - build-release
+  - release-build
+  - release-upload
+  - release-publish
 
 # The plan would be for this cache to be reused by all jobs.
 # Caches curently end up cached per runner, per job concurrency level and per md5 of path?
@@ -35,30 +37,6 @@ cache:
 
 services:
   - name: docker:19.03.12-dind
-
-build:
-    stage: build
-    needs: []
-    cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
-    artifacts:
-      paths:
-        - bin/
-    script:
-      - make
-
-build-release:
-    stage: build-release
-    needs: []
-    cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
-    artifacts:
-      paths:
-        - _release/
-    script:
-      # Ideally make would not be needed, only release? But it is needed to install deps currently?
-      - make
-      - make release
 
 test:
     stage: test
@@ -74,9 +52,20 @@ test:
       - go get github.com/boumenot/gocover-cobertura
       - gocover-cobertura < coverage.txt > coverage.xml
 
+build:
+    stage: build
+    needs: []
+    cache: {}
+    image: docker-registry.wikimedia.org/golang:1.13-3
+    artifacts:
+      paths:
+        - bin/
+    script:
+      - make
+
 integration:
     stage: integration
-    needs: [build]
+    needs: [test,build]
     dependencies:
       - build
     parallel:
@@ -91,3 +80,53 @@ integration:
       - ./tests/setup.sh
     script:
       - ./tests/$TEST
+
+release-build:
+    stage: release-build
+    needs: [build]
+    cache: {}
+    image: docker-registry.wikimedia.org/golang:1.13-3
+    artifacts:
+      paths:
+        - _release/
+    script:
+      # Ideally make would not be needed, only release? But it is needed to install deps currently?
+      - make
+      - make release
+
+release-upload:
+  only:
+    - tags
+  stage: release-upload
+  needs: [integration, release-build]
+  dependencies:
+    - release-build
+  # Has 1 requirement of curl, could be replaced by a wmf releng image?
+  image: alpine:latest
+  before_script:
+    - apk add curl
+  # https://docs.gitlab.com/ee/user/packages/generic_packages/#publish-a-generic-package-by-using-cicd
+  script:
+    - >
+      for release_path in  $(find ./_release -type f); do
+        release_file=$(echo $release_path | sed "s/.*\///")
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${release_path} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}"
+      done
+
+release-publish:
+  only:
+    - tags
+  stage: release-publish
+  needs: [release-build, release-upload]
+  dependencies:
+    - release-build
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  # TODO load the description from CHANGELOG.md & move old changelogs to HISTORY.md? https://docs.gitlab.com/ee/ci/yaml/#read-description-from-a-file
+  script:
+    - assets_links=""
+    - >
+      for release_path in  $(find ./_release -type f); do
+        release_file=$(echo $release_path | sed "s/.*\///")
+        assets_links="${assets_links} --assets-link {\"name\":\"${release_file}\",\"url\":\"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}\"}"
+      done
+    - release-cli create --name "Release $CI_COMMIT_TAG" --description "A release of the mwcli tool" --released-at "${CI_COMMIT_TIMESTAMP}" ${assets_links}
