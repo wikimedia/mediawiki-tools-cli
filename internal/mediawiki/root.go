@@ -24,7 +24,6 @@ import (
 	"os"
 	osexec "os/exec"
 	"strings"
-	"time"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 )
@@ -86,14 +85,6 @@ func (m MediaWiki) Path(subPath string) string {
 	return m.Directory() + string(os.PathSeparator) + subPath
 }
 
-/*EnsureCacheDirectory ...*/
-func (m MediaWiki) EnsureCacheDirectory() {
-	err := os.MkdirAll("cache", 0700)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 /*MediaWikiIsPresent ...*/
 func (m MediaWiki) MediaWikiIsPresent() bool {
 	return errorIfDirectoryDoesNotLookLikeCore(m.Directory()) == nil
@@ -110,18 +101,6 @@ func exitIfNoGit() {
 		fmt.Println("You must have git installed on your system.")
 		os.Exit(1)
 	}
-}
-
-/*GitCloneMediaWiki ...*/
-func (m MediaWiki) GitCloneMediaWiki(options exec.HandlerOptions) {
-	exitIfNoGit()
-
-	// TODO don't use https by default? use ssh?
-	exec.RunCommand(options, exec.Command(
-		"git",
-		"clone",
-		"https://gerrit.wikimedia.org/r/mediawiki/core",
-		m.Path("")))
 }
 
 /*CloneSetupOpts for use with GithubCloneMediaWiki*/
@@ -200,17 +179,6 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 	}
 }
 
-/*GitCloneVector ...*/
-func (m MediaWiki) GitCloneVector(options exec.HandlerOptions) {
-	exitIfNoGit()
-
-	exec.RunCommand(options, exec.Command(
-		"git",
-		"clone",
-		"https://gerrit.wikimedia.org/r/mediawiki/skins/Vector",
-		m.Path("skins/Vector")))
-}
-
 /*LocalSettingsIsPresent ...*/
 func (m MediaWiki) LocalSettingsIsPresent() bool {
 	info, err := os.Stat(m.Path("LocalSettings.php"))
@@ -229,54 +197,4 @@ func (m MediaWiki) LocalSettingsContains(text string) bool {
 	s := string(b)
 	return strings.Contains(s, text)
 
-}
-
-/*RenameLocalSettings ...*/
-func (m MediaWiki) RenameLocalSettings() {
-	const layout = "2006-01-02T15:04:05-0700"
-
-	t := time.Now()
-	localSettingsName := "LocalSettings-" + t.Format(layout) + ".php"
-
-	err := os.Rename("LocalSettings.php", localSettingsName)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-/*DeleteCache ...*/
-func (m MediaWiki) DeleteCache() {
-	err := os.Rename("cache/.htaccess", ".htaccess.fromcache.tmp")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.RemoveAll("./cache/")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.Mkdir("cache", 0700)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.Rename(".htaccess.fromcache.tmp", "cache/.htaccess")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-/*DeleteVendor ...*/
-func (m MediaWiki) DeleteVendor() {
-	err := os.RemoveAll("./vendor")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.Mkdir("vendor", 0700)
-	if err != nil {
-		log.Fatal(err)
-	}
 }

@@ -222,9 +222,3 @@ func (m MWDD) RmVolumes(dcVolumes []string, options exec.HandlerOptions) {
 		exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...),
 	)
 }
-
-// TODO more from https://github.com/addshore/mediawiki-docker-dev/blob/4d380cf638bc60b5b6c22853a199639a3eb70b0b/control/src/Shell/DockerCompose.php#L53
-// TODO execIt?
-// TODO run?
-// TODO runDetatched?
-// TODO logsTail?
