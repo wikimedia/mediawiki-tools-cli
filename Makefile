@@ -25,10 +25,10 @@ get-dev:
 
 build:
 	@echo "Building $(GOFILES) to ./bin"
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -v -ldflags "$(shell ./bin/govvv -flags)" -o bin/mw ./
+	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -v -ldflags "$(shell ./bin/govvv -flags -version $(SEMVER))" -o bin/mw ./
 
 release:
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) ./bin/gox -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell ./bin/govvv -flags)' $(GO_PACKAGES)
+	GOPATH=$(GOPATH) GOBIN=$(GOBIN) ./bin/gox -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell ./bin/govvv -flags -version $(SEMVER))' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
 	for f in "$(RELEASE_DIR)"/$(SEMVER)/mw_*; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \

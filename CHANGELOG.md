@@ -8,6 +8,17 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.2.0
+
+This is the second release built by CI on Gitlab, but the first that will be served to users.
+From this point forward users will automatiacly update from Gitlab releases.
+
+- Added verbose flags to the `version` and `update` commands.
+- Changed default output of the `version` command.
+- Changed default output of the `update` command when no update is availible, making the output more useful.
+- Removed `update_channel` from the configuration, the only update channel is now Gitlab.
+
+
 ## v0.1.0-dev.20210920.1
 
 There are no functionality changes in this release compared to `v0.1.0-dev-addshore.20210916.1`.

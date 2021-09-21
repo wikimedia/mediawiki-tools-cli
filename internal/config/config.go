@@ -23,19 +23,9 @@ var DevModeValues = AllowedOptions([]string{DevModeMwdd})
 /*DevModeMwdd value for DevMode that will use the docker/mediawiki-docker-dev command set*/
 const DevModeMwdd string = "docker"
 
-/*UpdateChannelValues allowed values for UpdateChannel*/
-var UpdateChannelValues = AllowedOptions([]string{UpdateChannelDev, UpdateChannelStable})
-
-/*UpdateChannelDev value for UpdateChannel that will pull updates from addshore's dev builds*/
-const UpdateChannelDev string = "dev-addshore"
-
-/*UpdateChannelStable value for UpdateChannel that will pull updates from wikimedia's stable builds*/
-const UpdateChannelStable string = "stable-wikimedia"
-
 /*Config representation of a cli config*/
 type Config struct {
-	DevMode       string `json:"dev_mode"`
-	UpdateChannel string `json:"update_channel"`
+	DevMode string `json:"dev_mode"`
 }
 
 /*AllowedOptions representation of allowed options for a config value*/

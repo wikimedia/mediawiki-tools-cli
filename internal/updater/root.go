@@ -17,36 +17,24 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package updater
 
-import (
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
-)
-
 /*CanUpdate will check for updates*/
 func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
-	c := config.LoadFromDisk()
-	if c.UpdateChannel == config.UpdateChannelDev {
-		canUpdate, release := CanUpdateFromAddshore(currentVersion, gitSummary, verboseOutput)
-		if canUpdate {
-			return canUpdate, release.Version.String()
-		}
-		// When canUpdate is false, we dont have a release to get the version string of
-		return canUpdate, "Can't currently update"
+	canUpdate, release := CanUpdateFromGitlab(currentVersion, gitSummary, verboseOutput)
+	if canUpdate {
+		return canUpdate, release
 	}
-	if c.UpdateChannel == config.UpdateChannelStable {
-		return CanUpdateFromWikimedia(currentVersion, gitSummary, verboseOutput)
+
+	message := "No update available"
+
+	if verboseOutput {
+		message = message + "\nCurrent version is: " + currentVersion + "\nLatest availible is: " + release
 	}
-	panic("Unexpected update channel")
+
+	// When canUpdate is false, we dont have a release to get the version string of
+	return canUpdate, message
 }
 
 /*Update perform the latest update*/
 func Update(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
-	c := config.LoadFromDisk()
-	if c.UpdateChannel == config.UpdateChannelDev {
-		return UpdateFromAddshore(currentVersion, gitSummary, verboseOutput)
-	}
-	if c.UpdateChannel == config.UpdateChannelStable {
-		// TODO implement me
-		panic("Not yet implemented")
-	}
-	panic("Unexpected update channel")
+	return UpdateFromGitlab(currentVersion, gitSummary, verboseOutput)
 }

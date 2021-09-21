@@ -1,0 +1,37 @@
+[
+    {
+      "name": "Some Release Name",
+      "tag_name": "REL_TAG_NAME",
+      "assets": {
+        "count": 3,
+        "sources": [
+          {
+            "format": "zip",
+            "url": "someUrlOfSource"
+          }
+        ],
+        "links": [
+          {
+            "id": 1,
+            "name": "mw_REL_TAG_NAME_firstOS_fakeArch",
+            "url": "someUrl1",
+            "direct_asset_url": "someDirectUrl1",
+            "external": true,
+            "link_type": "other"
+          },
+          {
+            "id": 2,
+            "name": "mw_REL_TAG_NAME_secondOS_fakeArch",
+            "url": "someUrl2",
+            "direct_asset_url": "someDirectUrl2",
+            "external": true,
+            "link_type": "other"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Fake second release we don't care about",
+      "description": "We don't care about this as the API default return has the latest release at the top"
+    }
+  ]

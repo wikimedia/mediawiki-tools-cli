@@ -17,7 +17,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/manifoldco/promptui v0.7.0
-	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -27,8 +26,8 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/txn2/txeh v1.3.0
+	github.com/xanzy/go-gitlab v0.50.4
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	gotest.tools/v3 v3.0.3 // indirect
 )
 

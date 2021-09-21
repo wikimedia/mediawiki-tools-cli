@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -30,9 +29,6 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Checks for and performs updates",
 	Run: func(cmd *cobra.Command, args []string) {
-		c := config.LoadFromDisk()
-		fmt.Println("You are on the " + c.UpdateChannel + " channel.")
-
 		canUpdate, toUpdateToOrMessage := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
 
 		if !canUpdate {

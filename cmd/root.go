@@ -88,15 +88,6 @@ func wizardDevMode() {
 	c.WriteToDisk()
 }
 
-func wizardUpdateChannel() {
-	c := config.LoadFromDisk()
-	fmt.Println("\nYou need to choose an update channel in order to continue:")
-	fmt.Println(" - '" + config.UpdateChannelDev + "' is the only current release channel, so will be set now.")
-
-	c.UpdateChannel = config.UpdateChannelDev
-	c.WriteToDisk()
-}
-
 /*Execute the root command*/
 func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSummaryIn string, BuildDateIn string, VersionIn string) {
 	GitCommit = GitCommitIn
@@ -110,10 +101,6 @@ func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSumma
 	c := config.LoadFromDisk()
 	if !config.DevModeValues.Contains(c.DevMode) {
 		wizardDevMode()
-		c = config.LoadFromDisk()
-	}
-	if !config.UpdateChannelValues.Contains(c.UpdateChannel) {
-		wizardUpdateChannel()
 		c = config.LoadFromDisk()
 	}
 

@@ -26,16 +26,22 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Output the version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf(`GitCommit: %s
+		fmt.Println("mw version", Version, "(", BuildDate, ")")
+		fmt.Println("https://gitlab.wikimedia.org/releng/cli/-/releases")
+
+		if Verbosity > 1 {
+			fmt.Printf(`GitCommit: %s
 GitBranch: %s
 GitState: %s
 GitSummary: %s
 BuildDate: %s
 Version: %s
 `, GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
+		}
 	},
 }
 
 func init() {
+	versionCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
 	rootCmd.AddCommand(versionCmd)
 }
