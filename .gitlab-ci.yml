@@ -47,10 +47,24 @@ test:
       reports:
         cobertura: coverage.xml
     script:
-      - go get -u golang.org/x/lint/golint
       - make test
       - go get github.com/boumenot/gocover-cobertura
       - gocover-cobertura < coverage.txt > coverage.xml
+
+checks:
+    stage: test
+    needs: []
+    cache: {}
+    image: docker-registry.wikimedia.org/golang:1.13-3
+    parallel:
+      matrix:
+        - CHECK: lint
+        - CHECK: vet
+        - CHECK: staticcheck
+    script:
+      # XDG_CACHE_HOME is needed by staticcheck
+      - export XDG_CACHE_HOME=/tmp/mwcli-cache
+      - make $CHECK
 
 build:
     stage: build
@@ -65,7 +79,7 @@ build:
 
 integration:
     stage: integration
-    needs: [test,build]
+    needs: [checks,test,build]
     dependencies:
       - build
     parallel:

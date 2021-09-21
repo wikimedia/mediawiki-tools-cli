@@ -9,18 +9,33 @@ Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
 There is currently 1 subcommand:
 
-- `docker` allows interacting with a new version of the MediaWiki-docker-dev development environment. (See `mw help docker`)
+- `docker` (alias: dev) Allows interacting with a new version of the MediaWiki-docker-dev development environment. (See `mw help docker`)
 
 ## Contributing
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
 `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli`.
 
-Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd` directory:
+Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli` directory:
 
-- run `make` to download dependencies and build an initial binary
+Run `make` to build a binary to `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw`.
 
-Execute the tool without building from any directory by running the `./dev.sh` script.
+We recommend that you create a development alias for this binary, and run `make` after you make changes to the codebase.
+
+```sh
+alias mwdev='~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw'
+```
+
+### Makefile commands
+
+Many other Makefile commands exist that you might find useful:
+
+- `make build`: Just builds a new binary
+- `make release`: Builds multiple release binaries to `_release`
+- `make test`: Run unit tests
+- `make lint`: Run basic linting
+- `make vet`: Run `go vet`
+- `make staticcheck`: Run https://staticcheck.io/
 
 ### Packages & Directories
 
@@ -42,12 +57,6 @@ No naming structured is enforced in CI but a convention exists that should be fo
 - Simple sub commands will be defined in those files as vars prefixed with the parent command. For example `dockerStart`.
 - Complex sub commands will be split out into their own file. For example `docker_env.go`.
 - This is a recursive solution.
-
-### Using a binary
-
-Make a binary by running `make`
-
-Execute the binary from any directory with `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/cli`
 
 ## Support
 

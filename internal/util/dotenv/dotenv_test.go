@@ -102,9 +102,6 @@ func TestFile_GeneralIntegration(t *testing.T) {
 	envFile := File("/tmp/mwcli-test-dotenv-" + randomString())
 	envFile.EnsureExists()
 
-	type args struct {
-		name string
-	}
 	tests := []struct {
 		name           string
 		f              File

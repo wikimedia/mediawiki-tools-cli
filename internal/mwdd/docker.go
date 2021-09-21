@@ -31,7 +31,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
-	"golang.org/x/crypto/ssh/terminal"
+	terminal "golang.org/x/term"
 )
 
 // DockerExecCommand to be run with Docker, which directly uses the docker SDK
@@ -110,10 +110,7 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 	fd := int(os.Stdin.Fd())
 	var oldState *terminal.State
 	if terminal.IsTerminal(fd) {
-		oldState, err = terminal.MakeRaw(fd)
-		if err != nil {
-			// print error
-		}
+		oldState, _ = terminal.MakeRaw(fd)
 		defer terminal.Restore(fd, oldState)
 	}
 
