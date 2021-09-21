@@ -450,7 +450,8 @@ var mwddMediawikiExecCmd = &cobra.Command{
   exec -- composer phpunit:unit                           # Run a composer command (php unit tests)
   exec -- composer phpunit tests/phpunit/unit/includes/XmlTest.php                 # Run a single test
   exec -- MW_DB=other composer phpunit tests/phpunit/unit/includes/XmlTest.php     # Run a single test for another database
-  exec -- php maintenance/update.php --quick              # Run a MediaWiki maintenance script`,
+  exec -- php maintenance/update.php --quick              # Run a MediaWiki maintenance script
+  exec -- tail -f /var/log/mediawiki/debug.log            # Follow the MediaWiki debug log file`,
 	Short: "Executes a command in the MediaWiki container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
