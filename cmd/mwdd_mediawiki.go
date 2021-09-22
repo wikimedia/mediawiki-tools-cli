@@ -196,8 +196,22 @@ var DbType string
 var DbName string
 
 var mwddMediawikiInstallCmd = &cobra.Command{
-	Use:     "install",
-	Short:   "Installs a new MediaWiki site using install.php",
+	Use: "install",
+	Example: `  install --dbtype=mysql                         # Install a MediaWiki site in a databse called 'default' backed by MySQL
+  install --dbname=enwiki --dbtype=mysql         # Install a MediaWiki site in a databse called 'enwiki' backed by MySQL
+  install --dbname=thirdwiki --dbtype=postgres   # Install a MediaWiki site in a databse called 'thirdwiki' backed by Postgres`,
+	Short: "Installs a new MediaWiki site using install.php & update.php",
+	Long: `Installs a new MediaWiki site using install.php & update.php
+
+The process hidden within this command is:
+ - Ensure we know where MediaWiki is
+ - Ensure a LocalSettings.php file exists with the shim needed by this development environemnt
+ - Ensure composer dependencies are up to date, or run composer install
+ - Move LocalSettings.php to a temporary location, as MediaWiki can't install with it present
+ - Wait for any needed databases to be ready
+ - Run install.php
+ - Move LocalSettings.php back
+ - Run update.php`,
 	Aliases: []string{"i"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Make it harder for people to fall over https://phabricator.wikimedia.org/T287654 for now
