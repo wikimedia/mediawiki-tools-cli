@@ -11,6 +11,9 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 # Setup the default hosts in hosts file
 ./bin/mw docker hosts add
 
+# Run this integration test using a non standard port
+./bin/mw docker env set PORT 9191
+
 # Create
 ./bin/mw docker mediawiki create
 
@@ -20,11 +23,11 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 # Validate the basic stuff
 ./bin/mw docker docker-compose ps
 ./bin/mw docker env list
-CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "Is your database running and wiki database created"
+CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:9191) && echo $CURL && echo $CURL | grep -q "Is your database running and wiki database created"
 
 # Install sqlite & check
 ./bin/mw docker mediawiki install --dbtype sqlite
-CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:8080) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
+CURL=$(curl -s -L -N http://default.mediawiki.mwdd.localhost:9191) && echo $CURL && echo $CURL | grep -q "MediaWiki has been installed"
 
 # docker-compose: Make sure it appears to work
 ./bin/mw docker docker-compose ps -- --services | grep -q "mediawiki"
