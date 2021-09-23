@@ -8,6 +8,16 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.2.1
+
+- `mw docker mediawiki install`
+  - Added long help message, explaining what the command does.
+  - Fixed composer lockfile check & prompt for composer update.
+  - Fixed moving and restoration of LocalSetting.php during install.
+  - Fixed leaving .bak LocalSettings files around if we correctly move the file back.
+- `mw docker mediawiki exec`
+  - Added mediawiki log tail example.
+
 ## v0.2.0
 
 This is the second release built by CI on Gitlab, but the first that will be served to users.
