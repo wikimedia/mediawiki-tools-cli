@@ -208,7 +208,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 The process hidden within this command is:
  - Ensure we know where MediaWiki is
  - Ensure a LocalSettings.php file exists with the shim needed by this development environemnt
- - Ensure composer dependencies are up to date, or run composer install
+ - Ensure composer dependencies are up to date, or run composer install & update
  - Move LocalSettings.php to a temporary location, as MediaWiki can't install with it present
  - Wait for any needed databases to be ready
  - Run install.php
@@ -281,22 +281,28 @@ The process hidden within this command is:
 
 		// Check composer dependencies are up to date
 		checkComposer := func() {
-			// TODO make use of composer caches
+			// overrideConfig is a hack https://phabricator.wikimedia.org/T291613
+			// If this gets merged into Mediawiki we can remvoe it here https://gerrit.wikimedia.org/r/c/mediawiki/core/+/723308/
 			composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki", []string{
-				"php", "/var/www/html/w/maintenance/checkComposerLockUpToDate.php",
+				"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
 			},
 				exec.HandlerOptions{}, User)
 			if composerErr != nil {
 				fmt.Println("Composer check failed:", composerErr)
 				prompt := promptui.Prompt{
 					IsConfirm: true,
-					Label:     "Composer dependencies are not up to date, do you want to composer install?",
+					Label:     "Composer dependencies are not up to date, do you want to composer install & update?",
 				}
 				_, err := prompt.Run()
 				if err == nil {
 					mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 						DockerComposeService: "mediawiki",
 						Command:              []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+						User:                 User,
+					})
+					mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+						DockerComposeService: "mediawiki",
+						Command:              []string{"composer", "update", "--ignore-platform-reqs", "--no-interaction"},
 						User:                 User,
 					})
 				} else {
@@ -397,6 +403,7 @@ The process hidden within this command is:
 				"--quick",
 			}, exec.HandlerOptions{}, "nobody")
 		}
+		// TODO if update fails, still output the install message section, BUT tell them they need to fix the issue and run update.php
 		runUpdate()
 
 		fmt.Println("")

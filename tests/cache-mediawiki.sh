@@ -21,5 +21,8 @@ if [[ ! -f mediawiki/.gitlab-ci.cache.20210809-02 ]]; then
   touch mediawiki/.gitlab-ci.cache.20210809-02
 fi
 
+# Always do a composer update (even when cached) to ensure deps are as up to date as possible
+composer update --working-dir=mediawiki --no-interaction --no-progress --ignore-platform-reqs
+
 # Always remove files that may have been left behind by previous tests and may get in the way?
 rm -f mediawiki/LocalSettings.php
