@@ -20,9 +20,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
@@ -263,31 +265,8 @@ The process hidden within this command is:
 			return
 		}
 
-		// TODO make sure of composer caches
-		composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki", []string{
-			"php", "/var/www/html/w/maintenance/checkComposerLockUpToDate.php",
-		},
-			exec.HandlerOptions{}, User)
-		if composerErr != nil {
-			fmt.Println("Composer check failed:", composerErr)
-			prompt := promptui.Prompt{
-				IsConfirm: true,
-				Label:     "Composer dependencies are not up to date, do you want to composer install?",
-			}
-			_, err := prompt.Run()
-			if err == nil {
-				mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
-					DockerComposeService: "mediawiki",
-					Command:              []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
-					User:                 User,
-				})
-			} else {
-				fmt.Println("Can't install without up to date composer dependencies")
-				os.Exit(1)
-			}
-		}
-
-		// Fix some permissions
+		// Fix some container mount permission issues
+		// Owned by root, but our webserver needs to be able to write
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/data"}, exec.HandlerOptions{}, "root")
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/log/mediawiki"}, exec.HandlerOptions{}, "root")
 
@@ -295,85 +274,130 @@ The process hidden within this command is:
 		var domain string = DbName + ".mediawiki.mwdd.localhost"
 		mwdd.DefaultForUser().RecordHostUsageBySite(domain)
 
-		// Copy current local settings "somewhere safe", incase someone needs to restore it
-		currentTime := time.Now()
-		currentTimeString := currentTime.Format("20060102150405")
-		mwdd.DefaultForUser().Exec("mediawiki", []string{
-			"cp",
-			"/var/www/html/w/LocalSettings.php",
-			"/var/www/html/w/LocalSettings.php.mwdd.bak." + currentTimeString,
-		}, exec.HandlerOptions{}, User)
-
-		// Move custom LocalSetting.php so the install doesn't overwrite it
-		mwdd.DefaultForUser().Exec("mediawiki", []string{
-			"mv",
-			"/var/www/html/w/LocalSettings.php",
-			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
-		}, exec.HandlerOptions{}, "root")
-
+		// Figure out what and where we are installing
 		var serverLink string = "http://" + domain + ":" + mwdd.DefaultForUser().Env().Get("PORT")
 		const adminUser string = "admin"
 		const adminPass string = "mwddpassword"
 
-		// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
-		if DbType == "sqlite" {
+		// Check composer dependencies are up to date
+		checkComposer := func() {
+			// TODO make use of composer caches
+			composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki", []string{
+				"php", "/var/www/html/w/maintenance/checkComposerLockUpToDate.php",
+			},
+				exec.HandlerOptions{}, User)
+			if composerErr != nil {
+				fmt.Println("Composer check failed:", composerErr)
+				prompt := promptui.Prompt{
+					IsConfirm: true,
+					Label:     "Composer dependencies are not up to date, do you want to composer install?",
+				}
+				_, err := prompt.Run()
+				if err == nil {
+					mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
+						DockerComposeService: "mediawiki",
+						Command:              []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+						User:                 User,
+					})
+				} else {
+					fmt.Println("Can't install without up to date composer dependencies")
+					os.Exit(1)
+				}
+			}
+		}
+		checkComposer()
+
+		// Run install.php
+		runInstall := func() {
+			installStartTime := time.Now().Format("20060102150405")
+
+			moveLocalSettingsBack := func() {
+				// Move the LocalSettings.php back after install (or SIGTERM cancellation)
+				// TODO Don't do this in docker, do it on disk...
+				// TODO Check that the file we are moving does indeed exist, and we are not overwriting what we actually want!
+				mwdd.DefaultForUser().Exec("mediawiki", []string{
+					"mv",
+					"/var/www/html/w/LocalSettings.php.mwdd.bak." + installStartTime,
+					"/var/www/html/w/LocalSettings.php",
+				}, exec.HandlerOptions{}, "root")
+			}
+
+			// Set up signal handling for graceful shutdown while LocalSettings.php is moved
+			c := make(chan os.Signal)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+			go func() {
+				<-c
+				moveLocalSettingsBack()
+				os.Exit(1)
+			}()
+			defer func() {
+				moveLocalSettingsBack()
+			}()
+
+			// Move the current LocalSettings "somewhere safe", incase someone needs to restore it
+			mwdd.DefaultForUser().Exec("mediawiki", []string{
+				"mv",
+				"/var/www/html/w/LocalSettings.php",
+				"/var/www/html/w/LocalSettings.php.mwdd.bak." + installStartTime,
+			}, exec.HandlerOptions{}, User)
+
+			// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
+			if DbType == "sqlite" {
+				mwdd.DefaultForUser().Exec("mediawiki", []string{
+					"php",
+					"/var/www/html/w/maintenance/install.php",
+					"--confpath", "/tmp",
+					"--server", serverLink,
+					"--dbtype", DbType,
+					"--dbname", DbName,
+					"--lang", "en",
+					"--pass", adminPass,
+					"docker-" + DbName,
+					adminUser,
+				}, exec.HandlerOptions{}, "nobody")
+			}
+			if DbType == "mysql" {
+				mwdd.DefaultForUser().Exec("mediawiki", []string{
+					"/wait-for-it.sh",
+					"mysql:3306",
+				}, exec.HandlerOptions{}, "nobody")
+			}
+			if DbType == "postgres" {
+				mwdd.DefaultForUser().Exec("mediawiki", []string{
+					"/wait-for-it.sh",
+					"postgres:5432",
+				}, exec.HandlerOptions{}, "nobody")
+			}
+			if DbType == "mysql" || DbType == "postgres" {
+				mwdd.DefaultForUser().Exec("mediawiki", []string{
+					"php",
+					"/var/www/html/w/maintenance/install.php",
+					"--confpath", "/tmp",
+					"--server", serverLink,
+					"--dbtype", DbType,
+					"--dbuser", "root",
+					"--dbpass", "toor",
+					"--dbname", DbName,
+					"--dbserver", DbType,
+					"--lang", "en",
+					"--pass", adminPass,
+					"docker-" + DbName,
+					adminUser,
+				}, exec.HandlerOptions{}, "nobody")
+			}
+		}
+		runInstall()
+
+		// Run update.php
+		runUpdate := func() {
 			mwdd.DefaultForUser().Exec("mediawiki", []string{
 				"php",
-				"/var/www/html/w/maintenance/install.php",
-				"--confpath", "/tmp",
-				"--server", serverLink,
-				"--dbtype", DbType,
-				"--dbname", DbName,
-				"--lang", "en",
-				"--pass", adminPass,
-				"docker-" + DbName,
-				adminUser,
+				"/var/www/html/w/maintenance/update.php",
+				"--wiki", DbName,
+				"--quick",
 			}, exec.HandlerOptions{}, "nobody")
 		}
-		if DbType == "mysql" {
-			mwdd.DefaultForUser().Exec("mediawiki", []string{
-				"/wait-for-it.sh",
-				"mysql:3306",
-			}, exec.HandlerOptions{}, "nobody")
-		}
-		if DbType == "postgres" {
-			mwdd.DefaultForUser().Exec("mediawiki", []string{
-				"/wait-for-it.sh",
-				"postgres:5432",
-			}, exec.HandlerOptions{}, "nobody")
-		}
-		if DbType == "mysql" || DbType == "postgres" {
-			mwdd.DefaultForUser().Exec("mediawiki", []string{
-				"php",
-				"/var/www/html/w/maintenance/install.php",
-				"--confpath", "/tmp",
-				"--server", serverLink,
-				"--dbtype", DbType,
-				"--dbuser", "root",
-				"--dbpass", "toor",
-				"--dbname", DbName,
-				"--dbserver", DbType,
-				"--lang", "en",
-				"--pass", adminPass,
-				"docker-" + DbName,
-				adminUser,
-			}, exec.HandlerOptions{}, "nobody")
-		}
-
-		// Move the custom one back
-		mwdd.DefaultForUser().Exec("mediawiki", []string{
-			"mv",
-			"/var/www/html/w/LocalSettings.php.mwdd.tmp",
-			"/var/www/html/w/LocalSettings.php",
-		}, exec.HandlerOptions{}, "root")
-
-		// Run update.php once too
-		mwdd.DefaultForUser().Exec("mediawiki", []string{
-			"php",
-			"/var/www/html/w/maintenance/update.php",
-			"--wiki", DbName,
-			"--quick",
-		}, exec.HandlerOptions{}, "nobody")
+		runUpdate()
 
 		fmt.Println("")
 		fmt.Println("***************************************")
