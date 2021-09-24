@@ -6,7 +6,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## Unreleased
 
-- ...
+- Changed update check period from 1 day to 3 hours.
 
 ## v0.2.1
 

@@ -29,9 +29,9 @@ import (
 /*CanUpdateDaily will check for updates at most once a day*/
 func CanUpdateDaily(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
 	now := time.Now().UTC()
-	if now.Sub(lastCheckedTime()).Hours() < 24 {
+	if now.Sub(lastCheckedTime()).Hours() < 3 {
 		if verboseOutput {
-			log.Println("Already checked for updates in the last 24 hours")
+			log.Println("Already checked for updates in the last 3 hours")
 		}
 		return false, ""
 	}
@@ -42,7 +42,7 @@ func CanUpdateDaily(currentVersion string, gitSummary string, verboseOutput bool
 
 func lastCheckedTime() time.Time {
 	if _, err := os.Stat(lastUpdateFilePath()); os.IsNotExist(err) {
-		return time.Now().UTC().Add(-24 * time.Hour * 7)
+		return time.Now().UTC().Add(-3 * time.Hour * 7)
 	}
 
 	content, err := ioutil.ReadFile(lastUpdateFilePath())
