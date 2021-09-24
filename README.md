@@ -1,11 +1,19 @@
 # MediaWiki CLI
 
-This project contains a command-line interface for interacting with MediaWiki
-development environments.
+This project contains a command-line interface primarily for interacting with a MediaWiki development environemtn modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev)
 
 Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
+## Support
+
+- Code Repository: [releng/cli on gitlab.wikimedia.org](https://gitlab.wikimedia.org/releng/cli)
+- Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
+- Phabricator: [#mwcli on phabricator.wikimedia.org](https://phabricator.wikimedia.org/project/view/5331/)
+- IRC: `#mediawiki` on [Libera.​Chat](https://libera.chat/)
+
 ## Contributing
+
+### Repo / Code setup
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
 `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli`.
@@ -56,8 +64,18 @@ No naming structured is enforced in CI but a convention exists that should be fo
 - Complex sub commands can be split out into their own file.
 - This is a recursive solution.
 
-## Support
+## Releasing
 
-- Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
-- Phabricator: [#mwcli](https://phabricator.wikimedia.org/project/view/5331/)
-- IRC: `#mediawiki`
+Releases are automaticaly built and published by Gitlab CI after pushing a tag.
+
+Tags should follow [semver](https://semver.org/) and release notes should be written prior to tagging.
+
+### Process
+
+1) Add release notes for the release into CHANGELOG.md
+    - You can use a compare link such as [this](https://gitlab.wikimedia.org/releng/cli/-/compare/v0.2.0...main?from_project_id=16) to see what has changed and what needs release notes.
+    - Notes should be under a fresh new header of the format `## v0.2.1` so that the release process can extract the notes correctly.
+2) Tag & push the commit
+3) [Watch the pipeline run](https://gitlab.wikimedia.org/releng/cli/-/pipelines) that is building, uploading and publishing the release.
+4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/releng/cli/-/releases)
+5) You should now be able to run `mw update` to grab the latest release.
