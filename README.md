@@ -5,12 +5,6 @@ development environments.
 
 Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
-## Docker
-
-There is currently 1 subcommand:
-
-- `docker` (alias: dev) Allows interacting with a new version of the MediaWiki-docker-dev development environment. (See `mw help docker`)
-
 ## Contributing
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
@@ -41,21 +35,25 @@ Many other Makefile commands exist that you might find useful:
 
 - `cmd`: Contains the Cobra commands and deals with all CLI user interaction.
 - `internal/cmd`: General Cobra command abstractions that may be useful in multiple places.
+- `internal/config`: Interaction with the CLI configuration
 - `internal/docker`: Logic interacting with the mediawiki-docker dev environment.
 - `internal/env`: Logic interacting with a `.env` file.
 - `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc.
+- `internal/gitlab`: Basic interaction with the Wikimedia Gitlab instance
 - `internal/mediawiki`: Logic interacting with a MediaWiki installation directory on disk.
 - `internal/mwdd`: Logic for the MediaWiki-docker-dev development environment.
+- `internal/updater`: CLI tool updating.
 - `static`: Files that end up being built into the binary.
+- `tests`: Integration tests that are run as part of CI.
 
 ### cmd names
 
 No naming structured is enforced in CI but a convention exists that should be followed.
 
 - `root.go` exists as the overall CLI script.
-- Top level commands will have their own file in the `cmd` directory, named after the command. Example: `docker.go`.
-- Simple sub commands will be defined in those files as vars prefixed with the parent command. For example `dockerStart`.
-- Complex sub commands will be split out into their own file. For example `docker_env.go`.
+- Major commands will have their own file in the `cmd` directory, named after the command. Example: `mwdd.go`.
+- The lowest level commands can be included in their parent files. Example `mwdd_mediawiki.go` contains subcommands such as `mwddMediawikiCmd`.
+- Complex sub commands can be split out into their own file.
 - This is a recursive solution.
 
 ## Support
