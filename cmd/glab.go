@@ -28,5 +28,6 @@ func init() {
 
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
 
-	rootCmd.AddCommand(commands.NewCmdRoot(cmdFactory, "mwcli", "1.20-addshore-test-003"))
+	// Try to keep this version in line with the addshore fork for now...
+	rootCmd.AddCommand(commands.NewCmdRoot(cmdFactory, "mwcli", "1.20-addshore-test-004"))
 }
