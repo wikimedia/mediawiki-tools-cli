@@ -32,9 +32,12 @@ func CanUpdateFromGitlab(version string, gitSummary string, verboseOutput bool) 
 		selfupdate.EnableLog()
 	}
 
-	latestRelease := latestGitlabRelease()
+	latestRelease, latestErr := gitlab.RelengCliLatestRelease()
+	if latestErr != nil {
+		return false, "Could not fetch latest release version from Gitlab"
+	}
 
-	newVersion, newErr := semver.Parse(strings.Trim(latestRelease, "v"))
+	newVersion, newErr := semver.Parse(strings.Trim(latestRelease.TagName, "v"))
 	currentVerion, currentErr := semver.Parse(strings.Trim(version, "v"))
 
 	if newErr != nil {
@@ -45,15 +48,6 @@ func CanUpdateFromGitlab(version string, gitSummary string, verboseOutput bool) 
 	}
 
 	return currentVerion.Compare(newVersion) == -1, newVersion.String()
-}
-
-func latestGitlabRelease() string {
-	release, err := gitlab.RelengCliLatestRelease()
-	if err != nil {
-		panic(err)
-	}
-
-	return release.TagName
 }
 
 /*UpdateFromGitlab ...*/

@@ -19,7 +19,6 @@ package gitlab
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"runtime"
 	"time"
@@ -52,11 +51,9 @@ func wikimediaClient() *gitlab.Client {
 /*RelengCliLatestRelease from gitlab*/
 func RelengCliLatestRelease() (*gitlab.Release, error) {
 	// ID 16 in releng/mwcli
-	releases, response, err := wikimediaClient().Releases.ListReleases(16, nil)
+	releases, _, err := wikimediaClient().Releases.ListReleases(16, nil)
 	if err != nil {
-		fmt.Println(response.Status)
-		fmt.Println(response.Body)
-		panic(err)
+		return nil, err
 	}
 
 	if len(releases) < 1 {
