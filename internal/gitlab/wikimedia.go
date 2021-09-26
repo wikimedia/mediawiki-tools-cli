@@ -20,7 +20,9 @@ package gitlab
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"runtime"
+	"time"
 
 	gitlab "github.com/xanzy/go-gitlab"
 )
@@ -30,9 +32,16 @@ var os = runtime.GOOS
 var arch = runtime.GOARCH
 
 func wikimediaClient() *gitlab.Client {
+	httpClient := http.Client{
+		Timeout: 2 * time.Second,
+	}
 	git, err := gitlab.NewClient(
 		"",
 		gitlab.WithBaseURL(wikimediav4ApiURL),
+		gitlab.WithoutRetries(),
+		gitlab.WithHTTPClient(
+			&httpClient,
+		),
 	)
 	if err != nil {
 		panic(err)
