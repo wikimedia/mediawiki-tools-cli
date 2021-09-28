@@ -1,6 +1,6 @@
 # MediaWiki CLI
 
-This project contains a command-line interface primarily for interacting with a MediaWiki development environemtn modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev)
+This project contains a command-line interface primarily for interacting with a MediaWiki development environment modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev)
 
 Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
