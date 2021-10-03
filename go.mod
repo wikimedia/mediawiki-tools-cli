@@ -25,7 +25,7 @@ require (
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
-	github.com/profclems/glab v1.20.0
+	github.com/profclems/glab v1.21.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rivo/tview v0.0.0-20210923051754-2cb20002bc4c // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
@@ -45,5 +45,3 @@ require (
 )
 
 go 1.13
-
-replace github.com/profclems/glab v1.20.0 => github.com/addshore/glab v1.20.0-addshore-test-004
