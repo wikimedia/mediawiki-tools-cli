@@ -81,6 +81,7 @@ build:
 integration-general:
     stage: integration
     needs: [checks,test,build]
+    cache: {}
     dependencies:
       - build
     parallel:
