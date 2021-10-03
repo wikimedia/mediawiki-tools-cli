@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -30,6 +29,7 @@ import (
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
 	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
+	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/paths"
 	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -49,43 +49,15 @@ var mwddMediawikiCmd = &cobra.Command{
 		usrDir := usr.HomeDir
 
 		if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
-
-			// Try to autodetect if we are in a MediaWiki directory at all
-			suggestedMwDir, err := os.Getwd()
-			if err != nil {
-				panic(err)
-			}
-			for {
-				_, checkError := mediawiki.ForDirectory(suggestedMwDir)
-				if checkError == nil {
-					break
-				}
-				suggestedMwDir = filepath.Dir(suggestedMwDir)
-				if suggestedMwDir == "/" {
-					suggestedMwDir = "~/dev/git/gerrit/mediawiki/core"
-					break
-				}
-			}
-
 			// Prompt the user for a directory or confirmation
 			dirPrompt := promptui.Prompt{
 				Label:   "What directory would you like to store MediaWiki source code in?",
-				Default: suggestedMwDir,
+				Default: mediawiki.GuessMediaWikiDirectoryBasedOnContext(),
 			}
 			value, err := dirPrompt.Run()
 
-			// Deal with people entering ~/ paths and them not be handled
-			if value == "~" {
-				// In case of "~", which won't be caught by the "else if"
-				value = usrDir
-			} else if strings.HasPrefix(value, "~/") {
-				// Use strings.HasPrefix so we don't match paths like
-				// "/something/~/something/"
-				value = filepath.Join(usrDir, value[2:])
-			}
-
 			if err == nil {
-				mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", value)
+				mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(value))
 			} else {
 				fmt.Println("Can't continue without a MediaWiki code directory")
 				os.Exit(1)

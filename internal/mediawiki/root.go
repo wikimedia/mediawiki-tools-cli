@@ -20,7 +20,6 @@ package mediawiki
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	osexec "os/exec"
 	"strings"
@@ -30,50 +29,6 @@ import (
 
 /*MediaWiki representation of a MediaWiki install directory*/
 type MediaWiki string
-
-/*NotMediaWikiDirectory error when a directory appears to not contain MediaWiki code*/
-type NotMediaWikiDirectory struct {
-	directory string
-}
-
-func (e *NotMediaWikiDirectory) Error() string {
-	return e.directory + " doesn't look like a MediaWiki directory"
-}
-
-/*ForDirectory returns a MediaWiki for the current working directory*/
-func ForDirectory(directory string) (MediaWiki, error) {
-	return MediaWiki(directory), errorIfDirectoryDoesNotLookLikeCore(directory)
-}
-
-/*ForCurrentWorkingDirectory returns a MediaWiki for the current working directory*/
-func ForCurrentWorkingDirectory() (MediaWiki, error) {
-	currentWorkingDirectory, _ := os.Getwd()
-	return ForDirectory(currentWorkingDirectory)
-}
-
-/*CheckIfInCoreDirectory checks that the current working directory looks like a MediaWiki directory*/
-func CheckIfInCoreDirectory() {
-	_, err := ForCurrentWorkingDirectory()
-	if err != nil {
-		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
-	}
-}
-
-func errorIfDirectoryMissingGitReviewForProject(directory string, expectedProject string) error {
-	b, err := ioutil.ReadFile(directory + string(os.PathSeparator) + ".gitreview")
-	if err != nil || !strings.Contains(string(b), "project="+expectedProject) {
-		return &NotMediaWikiDirectory{directory}
-	}
-	return nil
-}
-
-func errorIfDirectoryDoesNotLookLikeCore(directory string) error {
-	return errorIfDirectoryMissingGitReviewForProject(directory, "mediawiki/core")
-}
-
-func errorIfDirectoryDoesNotLookLikeVector(directory string) error {
-	return errorIfDirectoryMissingGitReviewForProject(directory, "mediawiki/skins/Vector")
-}
 
 /*Directory the directory containing MediaWiki*/
 func (m MediaWiki) Directory() string {
@@ -88,6 +43,10 @@ func (m MediaWiki) Path(subPath string) string {
 /*MediaWikiIsPresent ...*/
 func (m MediaWiki) MediaWikiIsPresent() bool {
 	return errorIfDirectoryDoesNotLookLikeCore(m.Directory()) == nil
+}
+
+func errorIfDirectoryDoesNotLookLikeVector(directory string) error {
+	return errorIfDirectoryMissingGitReviewForProject(directory, "mediawiki/skins/Vector")
 }
 
 /*VectorIsPresent ...*/
