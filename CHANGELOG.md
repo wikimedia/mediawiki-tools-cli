@@ -6,7 +6,15 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## Unreleased
 
+- ...
+
+## v0.3.0
+
+- Added `gitlab` command for interacting with the Wikimedia Gitlab instance.
+- Added `--no-interaction` option to all commands with user prompts.
 - Changed update check period from 1 day to 3 hours.
+- Fixed long wait when checking for update with no intetnet.
+- Fixed fatals on regular update check failures.
 
 ## v0.2.1
 
