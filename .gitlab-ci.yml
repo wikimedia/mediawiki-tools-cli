@@ -100,13 +100,21 @@ release-build:
     needs: [build]
     cache: {}
     image: docker-registry.wikimedia.org/golang:1.13-3
-    artifacts:
-      paths:
-        - _release/
+    # artifacts:
+    #   paths:
+    #     - _release/
     script:
       # Ideally make would not be needed, only release? But it is needed to install deps currently?
       - make
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
+      # This next part should be in release-upload, but https://phabricator.wikimedia.org/T292372
+      - >
+        if [ -n "$CI_COMMIT_TAG" ]; then
+          for release_path in  $(find ./_release -type f); do
+            release_file=$(echo $release_path | sed "s/.*\///")
+            curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${release_path} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}"
+          done
+        fi
 
 release-upload:
   only:
@@ -121,11 +129,12 @@ release-upload:
     - apk add curl
   # https://docs.gitlab.com/ee/user/packages/generic_packages/#publish-a-generic-package-by-using-cicd
   script:
-    - >
-      for release_path in  $(find ./_release -type f); do
-        release_file=$(echo $release_path | sed "s/.*\///")
-        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${release_path} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}"
-      done
+    - echo "Placeholder job, as a conditional upload currently happens as part of release-build awaiting decision on https://phabricator.wikimedia.org/T292372"
+    # - >
+    #   for release_path in  $(find ./_release -type f); do
+    #     release_file=$(echo $release_path | sed "s/.*\///")
+    #     curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${release_path} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}"
+    #   done
 
 release-publish:
   only:
