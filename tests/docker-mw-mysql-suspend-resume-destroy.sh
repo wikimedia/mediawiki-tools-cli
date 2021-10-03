@@ -8,6 +8,10 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
+# Set some corret values so we don't get asked
+./bin/mw docker env set PORT 8080
+./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki
+
 # Setup the default hosts in hosts file
 ./bin/mw docker hosts add
 

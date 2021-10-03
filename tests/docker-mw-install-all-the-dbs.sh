@@ -9,10 +9,13 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
 # Setup the default hosts in hosts file
-./bin/mw docker hosts add
+# --no-interaction, as the first time we run a docker command it'll prompt us for the port, default selected is 8080
+./bin/mw docker hosts add --no-interaction
 
-# Create
-./bin/mw docker mediawiki create
+# Create, from the mediawiki dir, to allow --no-interaction to detect the existing mediawiki directory, setting the volume path
+cd ./mediawiki
+./../bin/mw docker mediawiki create --no-interaction
+cd ./..
 
 # Create: Validate the basic stuff
 ./bin/mw docker docker-compose ps

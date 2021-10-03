@@ -49,20 +49,23 @@ var mwddMediawikiCmd = &cobra.Command{
 		usrDir := usr.HomeDir
 
 		if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
-			// Prompt the user for a directory or confirmation
-			dirPrompt := promptui.Prompt{
-				Label:   "What directory would you like to store MediaWiki source code in?",
-				Default: mediawiki.GuessMediaWikiDirectoryBasedOnContext(),
-			}
-			value, err := dirPrompt.Run()
+			if !NoInteraction {
+				// Prompt the user for a directory or confirmation
+				dirPrompt := promptui.Prompt{
+					Label:   "What directory would you like to store MediaWiki source code in?",
+					Default: mediawiki.GuessMediaWikiDirectoryBasedOnContext(),
+				}
+				value, err := dirPrompt.Run()
 
-			if err == nil {
-				mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(value))
+				if err == nil {
+					mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(value))
+				} else {
+					fmt.Println("Can't continue without a MediaWiki code directory")
+					os.Exit(1)
+				}
 			} else {
-				fmt.Println("Can't continue without a MediaWiki code directory")
-				os.Exit(1)
+				mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", mediawiki.GuessMediaWikiDirectoryBasedOnContext())
 			}
-
 		}
 
 		// Default the mediawiki container to a .composer directory in the running users home dir
@@ -85,58 +88,72 @@ var mwddMediawikiCmd = &cobra.Command{
 		// TODO ask if they want to get any more skins and extensions?
 		// TODO async cloning of repos for speed!
 		if !mediawiki.MediaWikiIsPresent() {
-			cloneMwPrompt := promptui.Prompt{
-				Label:     "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
-				IsConfirm: true,
+			if !NoInteraction {
+				cloneMwPrompt := promptui.Prompt{
+					Label:     "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
+					IsConfirm: true,
+				}
+				_, err := cloneMwPrompt.Run()
+				setupOpts.GetMediaWiki = err == nil
+			} else {
+				setupOpts.GetMediaWiki = true
 			}
-			_, err := cloneMwPrompt.Run()
-			setupOpts.GetMediaWiki = err == nil
 		}
 		if !mediawiki.VectorIsPresent() {
-			cloneMwPrompt := promptui.Prompt{
-				Label:     "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
-				IsConfirm: true,
+			if !NoInteraction {
+				cloneMwPrompt := promptui.Prompt{
+					Label:     "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
+					IsConfirm: true,
+				}
+				_, err := cloneMwPrompt.Run()
+				setupOpts.GetVector = err == nil
+			} else {
+				setupOpts.GetVector = true
 			}
-			_, err := cloneMwPrompt.Run()
-			setupOpts.GetVector = err == nil
 		}
 		if setupOpts.GetMediaWiki || setupOpts.GetVector {
-			cloneFromGithubPrompt := promptui.Prompt{
-				Label:     "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
-				IsConfirm: true,
-			}
-			_, err := cloneFromGithubPrompt.Run()
-			setupOpts.UseGithub = err == nil
-
-			cloneShallowPrompt := promptui.Prompt{
-				Label:     "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
-				IsConfirm: true,
-			}
-			_, err = cloneShallowPrompt.Run()
-			setupOpts.UseShallow = err == nil
-
-			finalRemoteTypePrompt := promptui.Prompt{
-				Label:   "How do you want to interact with Gerrit for the cloned repositores? (http or ssh)",
-				Default: "ssh",
-			}
-			remoteType, err := finalRemoteTypePrompt.Run()
-			if err != nil || (remoteType != "ssh" && remoteType != "http") {
-				fmt.Println("Invalid Gerrit interaction type chosen.")
-				os.Exit(1)
-			}
-			setupOpts.GerritInteractionType = remoteType
-			if remoteType == "ssh" {
-				gerritUsernamePrompt := promptui.Prompt{
-					Label: "What is your Gerrit username?",
+			if !NoInteraction {
+				cloneFromGithubPrompt := promptui.Prompt{
+					Label:     "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
+					IsConfirm: true,
 				}
-				gerritUsername, err := gerritUsernamePrompt.Run()
-				if err != nil || len(gerritUsername) < 1 {
-					fmt.Println("Gerrit username required for ssh interaction type.")
+				_, err := cloneFromGithubPrompt.Run()
+				setupOpts.UseGithub = err == nil
+
+				cloneShallowPrompt := promptui.Prompt{
+					Label:     "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
+					IsConfirm: true,
+				}
+				_, err = cloneShallowPrompt.Run()
+				setupOpts.UseShallow = err == nil
+
+				finalRemoteTypePrompt := promptui.Prompt{
+					Label:   "How do you want to interact with Gerrit for the cloned repositores? (http or ssh)",
+					Default: "ssh",
+				}
+				remoteType, err := finalRemoteTypePrompt.Run()
+				if err != nil || (remoteType != "ssh" && remoteType != "http") {
+					fmt.Println("Invalid Gerrit interaction type chosen.")
 					os.Exit(1)
 				}
-				setupOpts.GerritUsername = gerritUsername
+				setupOpts.GerritInteractionType = remoteType
+				if remoteType == "ssh" {
+					gerritUsernamePrompt := promptui.Prompt{
+						Label: "What is your Gerrit username?",
+					}
+					gerritUsername, err := gerritUsernamePrompt.Run()
+					if err != nil || len(gerritUsername) < 1 {
+						fmt.Println("Gerrit username required for ssh interaction type.")
+						os.Exit(1)
+					}
+					setupOpts.GerritUsername = gerritUsername
+				}
+			} else {
+				setupOpts.UseGithub = true
+				setupOpts.UseShallow = true
+				// Default is ssh, but http is the only non interactive choice we can make here..
+				setupOpts.GerritInteractionType = "http"
 			}
-			setupOpts.UseShallow = err == nil
 		}
 
 		if setupOpts.GetMediaWiki || setupOpts.GetVector {

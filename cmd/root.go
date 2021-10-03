@@ -29,8 +29,8 @@ import (
 // Verbosity indicating verbose mode.
 var Verbosity int
 
-// NonInteractive skips prompts with a yes
-var NonInteractive bool
+// NoInteraction skips prompts with a yes or default values
+var NoInteraction bool
 
 // These vars are currently used by the docker exec command
 

@@ -38,18 +38,22 @@ var updateCmd = &cobra.Command{
 
 		fmt.Println("New update found: " + toUpdateToOrMessage)
 
-		updatePrompt := promptui.Prompt{
-			Label:     " Do you want to update?",
-			IsConfirm: true,
-		}
-		_, err := updatePrompt.Run()
-		if err == nil {
-			// Note: technically there is a small race condition here, and we might update to a newer version if it was release between stages
-			updateSuccess, updateMessage := updater.Update(Version, GitSummary, Verbosity >= 2)
-			fmt.Println(updateMessage)
-			if !updateSuccess {
-				os.Exit(1)
+		if !NoInteraction {
+			updatePrompt := promptui.Prompt{
+				Label:     " Do you want to update?",
+				IsConfirm: true,
 			}
+			_, err := updatePrompt.Run()
+			if err != nil {
+				return
+			}
+		}
+
+		// Technically there is a small race condition here, and we might update to a newer version if it was release between stages
+		updateSuccess, updateMessage := updater.Update(Version, GitSummary, Verbosity >= 2)
+		fmt.Println(updateMessage)
+		if !updateSuccess {
+			os.Exit(1)
 		}
 	},
 }
@@ -58,4 +62,5 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 
 	updateCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
+	updateCmd.PersistentFlags().BoolVarP(&NoInteraction, "no-interaction", "n", false, "Do not ask any interactive question")
 }

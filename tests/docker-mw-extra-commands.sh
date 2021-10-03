@@ -13,6 +13,9 @@ trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
 # Run this integration test using a non standard port
 ./bin/mw docker env set PORT 9191
+# And already fill in the location of mediawiki
+./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki
+# So we should get no prompts, even though we don't pass --no-interaction
 
 # Create
 ./bin/mw docker mediawiki create

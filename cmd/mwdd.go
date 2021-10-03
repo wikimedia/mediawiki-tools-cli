@@ -36,17 +36,21 @@ var mwddCmd = &cobra.Command{
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
 		if mwdd.Env().Missing("PORT") {
-			prompt := promptui.Prompt{
-				Label:    "What port would you like to use for your development environment?",
-				Default:  ports.FreeUpFrom("8080"),
-				Validate: ports.IsValidAndFree,
-			}
-			value, err := prompt.Run()
-			if err == nil {
-				mwdd.Env().Set("PORT", value)
+			if !NoInteraction {
+				prompt := promptui.Prompt{
+					Label:    "What port would you like to use for your development environment?",
+					Default:  ports.FreeUpFrom("8080"),
+					Validate: ports.IsValidAndFree,
+				}
+				value, err := prompt.Run()
+				if err == nil {
+					mwdd.Env().Set("PORT", value)
+				} else {
+					fmt.Println("Can't continue without a port")
+					os.Exit(1)
+				}
 			} else {
-				fmt.Println("Can't continue without a port")
-				os.Exit(1)
+				mwdd.Env().Set("PORT", ports.FreeUpFrom("8080"))
 			}
 		}
 	},
@@ -96,6 +100,7 @@ var mwddResumeCmd = &cobra.Command{
 
 func init() {
 	mwddCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
+	mwddCmd.PersistentFlags().BoolVarP(&NoInteraction, "no-interaction", "n", false, "Do not ask any interactive question")
 
 	mwddCmd.AddCommand(mwddWhereCmd)
 	mwddCmd.AddCommand(mwddDestroyCmd)
