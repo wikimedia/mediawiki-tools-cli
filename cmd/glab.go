@@ -18,6 +18,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"runtime/debug"
+
 	"github.com/profclems/glab/commands"
 	"github.com/profclems/glab/commands/cmdutils"
 	"github.com/profclems/glab/pkg/glinstance"
@@ -29,5 +31,46 @@ func init() {
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
 
 	// Try to keep this version in line with the addshore fork for now...
-	rootCmd.AddCommand(commands.NewCmdRoot(cmdFactory, "mwcli", "1.20-addshore-test-004"))
+	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), BuildDate)
+	glabCommand.Short = "Wikimedia Gitlab instance"
+
+	// Hide various built in glab commands
+	toHide := []string{
+		// glab does not need to be updated itself, instead mwcli would need to be updated
+		"check-update",
+		// issues will not be used on the Wikimedia gilab instance
+		"issue",
+	}
+	for _, command := range glabCommand.Commands() {
+		_, found := findInSlice(toHide, command.Name())
+		if found {
+			glabCommand.RemoveCommand(command)
+		}
+	}
+
+	rootCmd.AddCommand(glabCommand)
+}
+
+func findInSlice(slice []string, val string) (int, bool) {
+	for i, item := range slice {
+		if item == val {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func glabVersion() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		panic("couldn't read build info")
+	}
+
+	for _, v := range bi.Deps {
+		if v.Path == "github.com/profclems/glab" {
+			return v.Version
+		}
+	}
+
+	return "unknown"
 }
