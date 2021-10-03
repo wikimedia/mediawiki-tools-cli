@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"runtime/debug"
+	"strings"
 
 	"github.com/profclems/glab/commands"
 	"github.com/profclems/glab/commands/cmdutils"
@@ -45,6 +46,10 @@ func init() {
 		_, found := findInSlice(toHide, command.Name())
 		if found {
 			glabCommand.RemoveCommand(command)
+		}
+		// TODO fix this one upsteam
+		if command.Name() == "config" {
+			command.Long = strings.Replace(command.Long, "https://gitlab.com", "https://gitlab.wikimedia.org", -1)
 		}
 	}
 
