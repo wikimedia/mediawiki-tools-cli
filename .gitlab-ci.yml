@@ -115,7 +115,9 @@ release-build:
     stage: release-build
     needs: [build]
     cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
+    #image: docker-registry.wikimedia.org/golang:1.13-3
+    # Custom 1.13 image that also has curl in, which is needed for the release upload hack https://phabricator.wikimedia.org/T292372
+    image: addshore/wm-golang-curl:1.13-3
     # artifacts:
     #   paths:
     #     - _release/
