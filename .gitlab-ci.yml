@@ -77,7 +77,22 @@ build:
     script:
       - make
 
-integration:
+
+integration-general:
+    stage: integration
+    needs: [checks,test,build]
+    dependencies:
+      - build
+    parallel:
+      matrix:
+        - TEST: general-commands.sh
+    before_script:
+      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
+      - apk add --no-cache libc6-compat
+    script:
+      - ./tests/$TEST
+
+integration-docker:
     stage: integration
     needs: [checks,test,build]
     dependencies:
@@ -120,7 +135,7 @@ release-upload:
   only:
     - tags
   stage: release-upload
-  needs: [integration, release-build]
+  needs: [integration-general, integration-docker, release-build]
   dependencies:
     - release-build
   # Has 1 requirement of curl, could be replaced by a wmf releng image?
