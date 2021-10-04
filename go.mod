@@ -1,4 +1,4 @@
-module gerrit.wikimedia.org/r/mediawiki/tools/cli
+module gitlab.wikimedia.org/releng/cli
 
 require (
 	bou.ke/staticfiles v0.0.0-20210106104248-dd04075d4104

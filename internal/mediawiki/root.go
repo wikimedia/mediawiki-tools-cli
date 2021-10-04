@@ -24,7 +24,7 @@ import (
 	osexec "os/exec"
 	"strings"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
+	"gitlab.wikimedia.org/releng/cli/internal/exec"
 )
 
 /*MediaWiki representation of a MediaWiki install directory*/

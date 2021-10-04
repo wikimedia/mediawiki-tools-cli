@@ -27,10 +27,10 @@ import (
 	"strings"
 	"time"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
+	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	terminal "golang.org/x/term"
 )
 

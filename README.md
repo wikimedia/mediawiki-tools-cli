@@ -16,16 +16,16 @@ Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 ### Repo / Code setup
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
-`~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli`.
+`~/go/src/gitlab.wikimedia.org/releng/cli`.
 
-Within the `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli` directory:
+Within the `~/go/src/gitlab.wikimedia.org/releng/cli` directory:
 
-Run `make` to build a binary to `~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw`.
+Run `make` to build a binary to `~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw`.
 
 We recommend that you create a development alias for this binary, and run `make` after you make changes to the codebase.
 
 ```sh
-alias mwdev='~/go/src/gerrit.wikimedia.org/r/mediawiki/tools/cli/bin/mw'
+alias mwdev='~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw'
 ```
 
 ### Makefile commands

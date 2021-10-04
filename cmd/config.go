@@ -17,8 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/config"
 )
 
 var configCmd = &cobra.Command{

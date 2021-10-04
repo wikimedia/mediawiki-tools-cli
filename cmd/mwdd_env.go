@@ -18,8 +18,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/cmd"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 )
 
 func mwddEnvDirectory() string {

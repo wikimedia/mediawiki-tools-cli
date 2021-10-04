@@ -20,9 +20,9 @@ package cmd
 import (
 	"fmt"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/hosts"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/releng/cli/internal/util/hosts"
 )
 
 var mwddHostsCmd = &cobra.Command{

@@ -20,8 +20,8 @@ package cmd
 import (
 	"fmt"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/dotenv"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 )
 
 /*Env top level env command*/

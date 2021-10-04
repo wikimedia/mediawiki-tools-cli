@@ -20,7 +20,7 @@ package mwdd
 import (
 	"os"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/files"
+	"gitlab.wikimedia.org/releng/cli/internal/util/files"
 )
 
 func (m MWDD) hostRecordFile() string {

@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
 
 var updateCmd = &cobra.Command{

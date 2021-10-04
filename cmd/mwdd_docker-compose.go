@@ -18,9 +18,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 )
 
 var mwddDockerComposeCmd = &cobra.Command{

@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"os"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/config"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/updater"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/config"
+	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
 
 // Verbosity indicating verbose mode.

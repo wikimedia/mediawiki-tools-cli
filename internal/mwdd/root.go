@@ -22,9 +22,9 @@ import (
 	"os"
 	"os/user"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd/files"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/dotenv"
+	"gitlab.wikimedia.org/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
+	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 )
 
 /*MWDD representation of a mwdd v2 setup*/

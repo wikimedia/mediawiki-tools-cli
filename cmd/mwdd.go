@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"os"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/ports"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
 )
 
 var mwddCmd = &cobra.Command{

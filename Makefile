@@ -6,7 +6,7 @@ SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
 TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
 
-PACKAGE := gerrit.wikimedia.org/r/mediawiki/tools/cli
+PACKAGE := gitlab.wikimedia.org/releng/cli
 VERSION := latest
 SEMVER := $(subst v,,$(VERSION))
 

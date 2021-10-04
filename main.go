@@ -16,7 +16,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package main
 
-import "gerrit.wikimedia.org/r/mediawiki/tools/cli/cmd"
+import "gitlab.wikimedia.org/releng/cli/cmd"
 
 // Following variables will be statically linked at the time of compiling
 

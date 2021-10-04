@@ -26,13 +26,13 @@ import (
 	"syscall"
 	"time"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/exec"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mediawiki"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/mwdd"
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/util/paths"
 	"github.com/briandowns/spinner"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/releng/cli/internal/mediawiki"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/releng/cli/internal/util/paths"
 )
 
 var mwddMediawikiCmd = &cobra.Command{
@@ -287,7 +287,7 @@ The process hidden within this command is:
 		// Check composer dependencies are up to date
 		checkComposer := func() {
 			// overrideConfig is a hack https://phabricator.wikimedia.org/T291613
-			// If this gets merged into Mediawiki we can remvoe it here https://gerrit.wikimedia.org/r/c/mediawiki/core/+/723308/
+			// If this gets merged into Mediawiki we can remove it here https://gerrit.wikimedia.org/r/c/mediawiki/core/+/723308/
 			composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki", []string{
 				"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
 			},

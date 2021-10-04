@@ -21,9 +21,9 @@ import (
 	"os"
 	"strings"
 
-	"gerrit.wikimedia.org/r/mediawiki/tools/cli/internal/gitlab"
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
+	"gitlab.wikimedia.org/releng/cli/internal/gitlab"
 )
 
 /*CanUpdateFromGitlab ...*/
