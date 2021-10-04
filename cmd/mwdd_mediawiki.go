@@ -90,23 +90,31 @@ var mwddMediawikiCmd = &cobra.Command{
 		if !mediawiki.MediaWikiIsPresent() {
 			if !NoInteraction {
 				cloneMwPrompt := promptui.Prompt{
-					Label:     "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
+					Label:     "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now? (Negative answers will abort this command)",
 					IsConfirm: true,
 				}
-				_, err := cloneMwPrompt.Run()
-				setupOpts.GetMediaWiki = err == nil
+				if _, err := cloneMwPrompt.Run(); err != nil {
+					fmt.Println("Can't continue without a MediaWiki code")
+					os.Exit(1)
+				} else {
+					setupOpts.GetMediaWiki = err != nil
+				}
 			} else {
 				setupOpts.GetMediaWiki = true
 			}
 		}
 		if !mediawiki.VectorIsPresent() {
 			if !NoInteraction {
-				cloneMwPrompt := promptui.Prompt{
+				cloneVectorPrompt := promptui.Prompt{
 					Label:     "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
 					IsConfirm: true,
 				}
-				_, err := cloneMwPrompt.Run()
-				setupOpts.GetVector = err == nil
+				if _, err := cloneVectorPrompt.Run(); err == promptui.ErrInterrupt {
+					fmt.Println("Keyboard interrupt detected. Shutting down.")
+					os.Exit(1)
+				} else {
+					setupOpts.GetVector = err != nil
+				}
 			} else {
 				setupOpts.GetVector = true
 			}
@@ -117,15 +125,23 @@ var mwddMediawikiCmd = &cobra.Command{
 					Label:     "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
 					IsConfirm: true,
 				}
-				_, err := cloneFromGithubPrompt.Run()
-				setupOpts.UseGithub = err == nil
+				if _, err := cloneFromGithubPrompt.Run(); err == promptui.ErrInterrupt {
+					fmt.Println("Keyboard interrupt detected. Shutting down.")
+					os.Exit(1)
+				} else {
+					setupOpts.UseGithub = err != nil
+				}
 
 				cloneShallowPrompt := promptui.Prompt{
 					Label:     "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
 					IsConfirm: true,
 				}
-				_, err = cloneShallowPrompt.Run()
-				setupOpts.UseShallow = err == nil
+				if _, err := cloneShallowPrompt.Run(); err == promptui.ErrInterrupt {
+					fmt.Println("Keyboard interrupt detected. Shutting down.")
+					os.Exit(1)
+				} else {
+					setupOpts.UseShallow = err != nil
+				}
 
 				finalRemoteTypePrompt := promptui.Prompt{
 					Label:   "How do you want to interact with Gerrit for the cloned repositores? (http or ssh)",
