@@ -204,7 +204,6 @@ $wgMetaNamespace = "Project"; // Set to "Project", instead of the default $wgSit
 
 ## Various directories
 $wgUploadDirectory = "{$IP}/images/docker/{$dockerDb}";
-$wgTmpDirectory = "{$wgUploadDirectory}/tmp";
 $wgCacheDirectory = "{$wgUploadDirectory}/cache";
 
 $wgUploadPath = "{$wgScriptPath}/images/docker/{$dockerDb}";
