@@ -1,0 +1,13 @@
+version: '3.7'
+
+services:
+  memcached:
+    # We could use the memcached wmf prod image, but that doesn't then have CLI tooling.
+    # TODO think about this and alter how we provide the cli tools?
+    #image: "${MEMCACHED_IMAGE:-docker-registry.wikimedia.org/memcached:1.6.6-1-20211003}"
+    image: "${MEMCACHED_IMAGE:-memcached:1.6}"
+    hostname: memcached.mwdd
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps

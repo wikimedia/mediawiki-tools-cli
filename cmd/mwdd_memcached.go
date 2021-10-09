@@ -2,7 +2,7 @@
 
 Copyright © 2020 Addshore
 
-This program is free software: you can redistribute it and/or modify
+This program is free software: you can memcachedtribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -23,27 +23,24 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 )
 
-var mwddRedisCmd = &cobra.Command{
-	Use:   "redis",
-	Short: "Redis service",
-	Long: `Redis service
+var mwddMemcachedCmd = &cobra.Command{
+	Use:   "memcached",
+	Short: "Memcached service",
+	Long: `Memcached service
 
-Using this service will automagically configure (but not use) an object cache in MediaWiki
+Using this will automagically configure a memcached server for MediaWiki
 
-$wgObjectCaches['redis'] = [
-	'class' => 'RedisBagOStuff',
-	'servers' => [ 'redis:6379' ],
-];`,
+$wgMemCachedServers = [ 'memcached:11211' ];`,
 	RunE: nil,
 }
 
-var mwddRedisCreateCmd = &cobra.Command{
+var mwddMemcachedCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a Redis container",
+	Short: "Create a Memcached container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().UpDetached(
-			[]string{"redis"},
+			[]string{"memcached"},
 			exec.HandlerOptions{
 				Verbosity: Verbosity,
 			},
@@ -51,76 +48,63 @@ var mwddRedisCreateCmd = &cobra.Command{
 	},
 }
 
-var mwddRedisDestroyCmd = &cobra.Command{
+var mwddMemcachedDestroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "Destroy the Redis container and volumes",
+	Short: "Destroy the Memcached container and volumes",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Rm([]string{"redis"}, options)
-		mwdd.DefaultForUser().RmVolumes([]string{"redis-data"}, options)
+		mwdd.DefaultForUser().Rm([]string{"memcached"}, options)
+		mwdd.DefaultForUser().RmVolumes([]string{"memcached-data"}, options)
 	},
 }
 
-var mwddRedisSuspendCmd = &cobra.Command{
+var mwddMemcachedSuspendCmd = &cobra.Command{
 	Use:   "suspend",
-	Short: "Suspend the Redis container",
+	Short: "Suspend the Memcached container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Stop([]string{"redis"}, options)
+		mwdd.DefaultForUser().Stop([]string{"memcached"}, options)
 	},
 }
 
-var mwddRedisResumeCmd = &cobra.Command{
+var mwddMemcachedResumeCmd = &cobra.Command{
 	Use:   "resume",
-	Short: "Resume the Redis container",
+	Short: "Resume the Memcached container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
 			Verbosity: Verbosity,
 		}
-		mwdd.DefaultForUser().Start([]string{"redis"}, options)
+		mwdd.DefaultForUser().Start([]string{"memcached"}, options)
 	},
 }
 
-var mwddRedisExecCmd = &cobra.Command{
+var mwddMemcachedExecCmd = &cobra.Command{
 	Use:     "exec [flags] [command...]",
 	Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
-	Short:   "Executes a command in the Redis container",
+	Short:   "Executes a command in the Memcached container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
-			DockerComposeService: "redis",
+			DockerComposeService: "memcached",
 			Command:              args,
 			User:                 User,
 		})
 	},
 }
 
-var mwddRedisCliCmd = &cobra.Command{
-	Use:   "cli",
-	Short: "Redis CLI for the container",
-	Run: func(cmd *cobra.Command, args []string) {
-		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
-			DockerComposeService: "redis",
-			Command:              []string{"redis-cli"},
-		})
-	},
-}
-
 func init() {
-	mwddCmd.AddCommand(mwddRedisCmd)
-	mwddRedisCmd.AddCommand(mwddRedisCreateCmd)
-	mwddRedisCmd.AddCommand(mwddRedisDestroyCmd)
-	mwddRedisCmd.AddCommand(mwddRedisSuspendCmd)
-	mwddRedisCmd.AddCommand(mwddRedisResumeCmd)
-	mwddRedisCmd.AddCommand(mwddRedisExecCmd)
-	mwddRedisExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
-	mwddRedisCmd.AddCommand(mwddRedisCliCmd)
+	mwddCmd.AddCommand(mwddMemcachedCmd)
+	mwddMemcachedCmd.AddCommand(mwddMemcachedCreateCmd)
+	mwddMemcachedCmd.AddCommand(mwddMemcachedDestroyCmd)
+	mwddMemcachedCmd.AddCommand(mwddMemcachedSuspendCmd)
+	mwddMemcachedCmd.AddCommand(mwddMemcachedResumeCmd)
+	mwddMemcachedCmd.AddCommand(mwddMemcachedExecCmd)
+	mwddMemcachedExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 }

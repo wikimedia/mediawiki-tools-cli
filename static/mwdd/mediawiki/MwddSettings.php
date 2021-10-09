@@ -47,6 +47,7 @@ $mwddServices = [
 	'mysql' => gethostbyname('mysql') !== 'mysql',
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
+	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
 
@@ -179,6 +180,12 @@ if(gethostbyname('redis') !== 'redis') {
 	];
 }
 
+################################
+# MWDD Memcached
+################################
+if(gethostbyname('memcached') !== 'memcached') {
+	$wgMemCachedServers = [ 'memcached:11211' ];
+}
 
 ################################
 # MWDD Graphite & Statsd
