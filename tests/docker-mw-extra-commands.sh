@@ -40,11 +40,16 @@ cd mediawiki
 
 # composer: Make sure a command works in root of the repo
 ./../bin/mw docker mediawiki composer home | grep -q "https://www.mediawiki.org/"
+
+# exec: Make sure a command works in the root of the repo
+./../bin/mw docker mediawiki exec ls | grep -q "api.php"
+
 # exec phpunit: Make sure using exec to run phpunit things works
 ./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php
 ./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php | grep -q "OK "
-# exec: Make sure a command works in the root of the repo
-./../bin/mw docker mediawiki exec ls | grep -q "api.php"
+
+# fresh: Make sur a basic browser test works
+./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js
 
 # cd to Vector
 cd skins/Vector

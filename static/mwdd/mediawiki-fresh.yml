@@ -1,0 +1,27 @@
+version: '3.7'
+
+# Service wrapper around what is provided by fresh
+# https://github.com/wikimedia/fresh/blob/master/bin/fresh-node10
+
+services:
+
+  mediawiki-fresh:
+    image: docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2
+    entrypoint: /bin/sh
+    command: -c "echo started"
+    working_dir: /var/www/html/w
+    networks:
+      - dps
+    dns:
+      - 10.0.0.10
+    environment:
+      # https://www.mediawiki.org/wiki/Selenium/How-to/Run_tests_targeting_MediaWiki-Docker_using_Fresh#Environment_variables
+      - MW_SERVER=http://default.mediawiki.mwdd:${PORT}
+      - MW_SCRIPT_PATH=/w
+      - MEDIAWIKI_USER=Admin
+      - MEDIAWIKI_PASSWORD=mwddpassword
+    volumes:
+      # Only mount code and config, don't mount logs or image
+      # TODO is this bit of config even needed?
+      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+      - ./mediawiki:/mwdd:ro

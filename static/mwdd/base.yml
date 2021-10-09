@@ -15,18 +15,18 @@ services:
     # TODO: replace with jwilder/nginx-proxy, once updated
     image: silvanwmde/nginx-proxy@sha256:4488c32bbe8c2ec5b806c38af5f591f5dafe0aa835591a2285017ca59bd12a75
     environment:
-      - VIRTUAL_HOST=proxy.mwdd.localhost
-      - HOSTNAMES=.mediawiki.mwdd.localhost      # wildcard name resolution, thanks to DPS
+      - VIRTUAL_HOST=proxy.mwdd.localhost,proxy.mwdd
+      - HOSTNAMES=.mediawiki.mwdd.localhost,.mediawiki.mwdd     # wildcard name resolution, thanks to DPS
       - HTTP_PORT=${PORT}      # internal port
     ports:
       - "${PORT}:${PORT}"
     depends_on:
       - dps
-    hostname: proxy.mwdd.localhost
+    hostname: proxy.mwdd
     dns:
       - 10.0.0.10
     dns_search:
-      - mwdd.localhost
+      - mwdd
     networks:
       - dps
     volumes:

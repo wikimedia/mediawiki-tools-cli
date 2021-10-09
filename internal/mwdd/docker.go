@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
@@ -57,6 +58,7 @@ func UserAndGroupForDockerExecution() string {
 func (m MWDD) DockerExec(command DockerExecCommand) {
 	containerID := m.DockerComposeProjectName() + "_" + command.DockerComposeService + "_1"
 
+	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		fmt.Println("Unable to create docker client")
@@ -73,7 +75,6 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 		Cmd:          []string{"/bin/sh", "-c", strings.Join(command.Command, " ")},
 	}
 
-	ctx := context.Background()
 	response, err := cli.ContainerExecCreate(ctx, containerID, execConfig)
 	if err != nil {
 		return
@@ -125,6 +126,93 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 			break
 		}
 	}
+}
+
+/*DockerRun runs a docker container using the docker SDK attached to the mwdd network etc...*/
+func (m MWDD) DockerRun(command DockerExecCommand) {
+	containerID := m.DockerComposeProjectName() + "_" + command.DockerComposeService + "_1"
+
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		fmt.Println("Unable to create docker client")
+		panic(err)
+	}
+
+	containerJSON, _ := cli.ContainerInspect(context.Background(), containerID)
+	containerConfig := containerJSON.Config
+
+	containerConfig.AttachStderr = true
+	containerConfig.AttachStdout = true
+	containerConfig.AttachStdin = true
+	containerConfig.OpenStdin = true
+	containerConfig.Tty = true
+	containerConfig.WorkingDir = command.WorkingDir
+	containerConfig.User = command.User
+	containerConfig.Entrypoint = []string{"/bin/sh"}
+	containerConfig.Cmd = []string{"-c", strings.Join(command.Command, " ")}
+
+	// Remove the old one and start a new one with new options :)
+	cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
+
+	resp, err := cli.ContainerCreate(
+		ctx,
+		containerConfig,
+		containerJSON.HostConfig,
+		&network.NetworkingConfig{
+			EndpointsConfig: containerJSON.NetworkSettings.Networks,
+		},
+		nil,
+		containerID,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	waiter, err := cli.ContainerAttach(ctx, resp.ID, types.ContainerAttachOptions{
+		Stream: true,
+		Stdin:  containerConfig.AttachStdin,
+		Stdout: containerConfig.AttachStdout,
+		Stderr: containerConfig.AttachStderr,
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if containerConfig.Tty {
+		if err := monitorTtySize(ctx, cli, resp.ID, false); err != nil {
+			fmt.Println("Error monitoring TTY size:")
+			fmt.Println(err)
+		}
+	}
+
+	cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+
+	// When TTY is ON, just copy stdout https://phabricator.wikimedia.org/T282340
+	// See: https://github.com/docker/cli/blob/70a00157f161b109be77cd4f30ce0662bfe8cc32/cli/command/container/hijack.go#L121-L130
+	go io.Copy(os.Stdout, waiter.Reader)
+	go io.Copy(waiter.Conn, os.Stdin)
+
+	fd := int(os.Stdin.Fd())
+	var oldState *terminal.State
+	if terminal.IsTerminal(fd) {
+		oldState, _ = terminal.MakeRaw(fd)
+		defer terminal.Restore(fd, oldState)
+	}
+
+	for {
+		resp, err := cli.ContainerInspect(ctx, resp.ID)
+		time.Sleep(50 * time.Millisecond)
+		if err != nil {
+			break
+		}
+
+		if !resp.State.Running {
+			break
+		}
+	}
+
 }
 
 // MonitorTtySize updates the container tty size when the terminal tty changes size

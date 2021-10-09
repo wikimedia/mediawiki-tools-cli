@@ -5,7 +5,7 @@ services:
     image: "${MYSQL_IMAGE:-mariadb:10.5}"
     environment:
       - MYSQL_ROOT_PASSWORD=toor
-    hostname: mysql.mwdd.localhost
+    hostname: mysql.mwdd
     depends_on:
       - mysql-configure-replication
     dns:

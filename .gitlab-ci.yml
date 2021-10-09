@@ -105,7 +105,7 @@ integration-docker:
         - TEST: docker-mw-mysql-suspend-resume-destroy.sh
     before_script:
       # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
-      - apk add --no-cache libc6-compat bash docker-compose curl composer
+      - apk add --no-cache libc6-compat bash docker-compose curl
       - ./tests/cache-mediawiki.sh
       - ./tests/setup.sh
     script:

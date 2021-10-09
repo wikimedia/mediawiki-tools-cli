@@ -519,9 +519,11 @@ var applyRelevantWorkingDirectory = func(dockerExecCommand mwdd.DockerExecComman
 	// For paths inside the mediawiki path, rewrite things
 	if strings.HasPrefix(currentWorkingDirectory, mountedMwDirectory) {
 		dockerExecCommand.WorkingDir = strings.Replace(currentWorkingDirectory, mountedMwDirectory, "/var/www/html/w", 1)
+	} else {
+		// Otherwise just use the root of mediawiki
+		dockerExecCommand.WorkingDir = "/var/www/html/w"
 	}
 
-	// Otherwise just use the root of mediawiki
 	return dockerExecCommand
 }
 
