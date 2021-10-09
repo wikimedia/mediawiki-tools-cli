@@ -59,11 +59,11 @@ var mwddMediawikiFreshCmd = &cobra.Command{
 			Verbosity: Verbosity,
 		}
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"}, options)
-		mwdd.DefaultForUser().DockerRun(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
+		mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki-fresh",
 			Command:              args,
 			User:                 User,
-		}))
+		}, "/var/www/html/w"))
 	},
 }
 

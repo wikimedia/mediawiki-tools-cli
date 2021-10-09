@@ -20,7 +20,11 @@ if ( PHP_SAPI === 'cli' && !defined( 'MW_DB' ) ) {
 }
 
 # Detect usage of update.php, so we can turn of replication https://phabricator.wikimedia.org/T283417
-$dockerIsRunningUpdate = basename( $_SERVER['argv'][0] ) === 'update.php';
+$dockerIsRunningUpdate = false;
+# Sometimes argv is not set, such as when running php built in web server via quibble
+if(array_key_exists('argv', $_SERVER)){
+	$dockerIsRunningUpdate = basename( $_SERVER['argv'][0] ) === 'update.php';
+}
 
 # Must be above WebRequest::detectServer.
 # mwdd uses a proxy server with no default ports.

@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
-	"strings"
 	"syscall"
 	"time"
 
@@ -435,11 +434,11 @@ var mwddMediawikiComposerCmd = &cobra.Command{
 	Example: "  composer info\n  composer install -- --ignore-platform-reqs",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerExec(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
+		mwdd.DefaultForUser().DockerExec(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
 			Command:              append([]string{"composer"}, args...),
 			User:                 User,
-		}))
+		}, "/var/www/html/w"))
 	},
 }
 
@@ -505,25 +504,20 @@ var mwddMediawikiExecCmd = &cobra.Command{
 	Short: "Executes a command in the MediaWiki container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
-		mwdd.DefaultForUser().DockerExec(applyRelevantWorkingDirectory(mwdd.DockerExecCommand{
+		mwdd.DefaultForUser().DockerExec(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
 			Command:              args,
 			User:                 User,
-		}))
+		}, "/var/www/html/w"))
 	},
 }
 
-var applyRelevantWorkingDirectory = func(dockerExecCommand mwdd.DockerExecCommand) mwdd.DockerExecCommand {
-	currentWorkingDirectory, _ := os.Getwd()
-	mountedMwDirectory := mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE")
-	// For paths inside the mediawiki path, rewrite things
-	if strings.HasPrefix(currentWorkingDirectory, mountedMwDirectory) {
-		dockerExecCommand.WorkingDir = strings.Replace(currentWorkingDirectory, mountedMwDirectory, "/var/www/html/w", 1)
+var applyRelevantMediawikiWorkingDirectory = func(dockerExecCommand mwdd.DockerExecCommand, mountTo string) mwdd.DockerExecCommand {
+	if resolvedPath := paths.ResolveMountForCwd(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"), mountTo); resolvedPath != nil {
+		dockerExecCommand.WorkingDir = *resolvedPath
 	} else {
-		// Otherwise just use the root of mediawiki
-		dockerExecCommand.WorkingDir = "/var/www/html/w"
+		dockerExecCommand.WorkingDir = mountTo
 	}
-
 	return dockerExecCommand
 }
 

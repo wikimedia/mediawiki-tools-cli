@@ -48,8 +48,12 @@ cd mediawiki
 ./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php
 ./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php | grep -q "OK "
 
-# fresh: Make sur a basic browser test works
+# fresh: Make sue a basic browser test works
 ./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js
+
+# quibble: Make sure a quibble works
+./../bin/mw docker mediawiki quibble quibble -- --help
+./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command "ls"
 
 # cd to Vector
 cd skins/Vector
