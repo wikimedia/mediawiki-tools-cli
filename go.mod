@@ -42,6 +42,7 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/genproto v0.0.0-20210924002016-3dee208752a0 // indirect
+	gopkg.in/ini.v1 v1.62.0
 )
 
 go 1.13

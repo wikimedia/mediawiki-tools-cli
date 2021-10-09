@@ -63,6 +63,9 @@ cd skins/Vector
 # exec: Make sure a command works from the Vector directory
 ./../../../bin/mw docker mediawiki exec ls | grep -q "skin.json"
 
+# gerrit project current
+./../../../bin/mw gerrit project current | grep -q "mediawiki/skins/Vector"
+
 # cd back again
 cd ./../../../
 
