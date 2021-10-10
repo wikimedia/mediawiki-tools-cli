@@ -38,7 +38,7 @@ func CanUpdateFromGitlab(version string, gitSummary string, verboseOutput bool) 
 	}
 
 	newVersion, newErr := semver.Parse(strings.Trim(latestRelease.TagName, "v"))
-	currentVerion, currentErr := semver.Parse(strings.Trim(version, "v"))
+	currentVersion, currentErr := semver.Parse(strings.Trim(version, "v"))
 
 	if newErr != nil {
 		return false, "Could not parse latest release version from Gitlab"
@@ -47,7 +47,7 @@ func CanUpdateFromGitlab(version string, gitSummary string, verboseOutput bool) 
 		return false, "Could not parse current version '" + version + "'. Next release would be " + newVersion.String()
 	}
 
-	return currentVerion.Compare(newVersion) == -1, newVersion.String()
+	return currentVersion.Compare(newVersion) == -1, newVersion.String()
 }
 
 /*UpdateFromGitlab ...*/
@@ -80,5 +80,5 @@ func UpdateFromGitlab(currentVersion string, gitSummary string, verboseOutput bo
 		return false, "Binary update failed" + err.Error()
 	}
 
-	return true, "Successfuly updated to version " + release.TagName + "\n\n" + release.Description
+	return true, "Successfully updated to version " + release.TagName + "\n\n" + release.Description
 }

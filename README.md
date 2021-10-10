@@ -66,7 +66,7 @@ No naming structured is enforced in CI but a convention exists that should be fo
 
 ## Releasing
 
-Releases are automaticaly built and published by Gitlab CI after pushing a tag.
+Releases are automatically built and published by Gitlab CI after pushing a tag.
 
 Tags should follow [semver](https://semver.org/) and release notes should be written prior to tagging.
 

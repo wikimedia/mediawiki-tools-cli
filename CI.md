@@ -1,6 +1,6 @@
 # CI
 
-Continious integration for this project is currently set up on a dedicated Cloud VPM machine.
+Continuous integration for this project is currently set up on a dedicated Cloud VPM machine.
 
 Currently this CI will NOT work for forks of this project, only for actual project branches.
 
@@ -13,7 +13,7 @@ sudo docker system prune --force
 sudo docker volume prune
 ```
 
-If this doesn't free up enough space the next step would be to nuke the registry cotnainer and volume and recreate it!
+If this doesn't free up enough space the next step would be to nuke the registry container and volume and recreate it!
 
 ## Initial Setup
 

@@ -27,7 +27,7 @@ func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bo
 	message := "No update available"
 
 	if verboseOutput {
-		message = message + "\nCurrent version is: " + currentVersion + "\nLatest availible is: " + release
+		message = message + "\nCurrent version is: " + currentVersion + "\nLatest available is: " + release
 	}
 
 	// When canUpdate is false, we dont have a release to get the version string of

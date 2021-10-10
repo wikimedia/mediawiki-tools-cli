@@ -41,7 +41,7 @@ func init() {
 	toHide := []string{
 		// glab does not need to be updated itself, instead mwcli would need to be updated
 		"check-update",
-		// issues will not be used on the Wikimedia gilab instance
+		// issues will not be used on the Wikimedia gitlab instance
 		"issue",
 	}
 	for _, command := range glabCommand.Commands() {

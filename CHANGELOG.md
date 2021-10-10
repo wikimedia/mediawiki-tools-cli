@@ -13,7 +13,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added `gitlab` command for interacting with the Wikimedia Gitlab instance.
 - Added `--no-interaction` option to all commands with user prompts.
 - Changed update check period from 1 day to 3 hours.
-- Fixed long wait when checking for update with no intetnet.
+- Fixed long wait when checking for update with no internet.
 - Fixed fatals on regular update check failures.
 
 ## v0.2.1
@@ -29,11 +29,11 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.2.0
 
 This is the second release built by CI on Gitlab, but the first that will be served to users.
-From this point forward users will automatiacly update from Gitlab releases.
+From this point forward users will automatically update from Gitlab releases.
 
 - Added verbose flags to the `version` and `update` commands.
 - Changed default output of the `version` command.
-- Changed default output of the `update` command when no update is availible, making the output more useful.
+- Changed default output of the `update` command when no update is available, making the output more useful.
 - Removed `update_channel` from the configuration, the only update channel is now Gitlab.
 
 
@@ -49,7 +49,7 @@ This is the first release built by CI on Gitlab.
 
 * `mw dev hosts`: command added to interact with your `/etc/hosts` file if needed
 * `mw dev * exec`: commands can now have environment variables passed to them. e.g. `mw dev mediawiki exec -- FOO=bar env`
-* `mw dev`: ports are now checked for availibility before listening begins
+* `mw dev`: ports are now checked for availability before listening begins
 * `mw dev adminer`: Updated from `adminer:4.8.0` to `adminer:4` (enabling minor update)
 * Fix typos
 
@@ -62,7 +62,7 @@ This is the first release built by CI on Gitlab.
 ### [v0.1.0-dev-addshore.20210909.1](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210909.1)
 
 * `mw update`: Stop printing update success release notes twice
-* `mw dev docker-compose` no longet breaks if passed no arguments
+* `mw dev docker-compose` no longer breaks if passed no arguments
 * `mw dev mediawiki`: Switch default MediaWiki PHP version to 7.3
 * `mw dev mediawiki`: Include `php-ast` in MediaWiki container
 * `mw dev mediawiki`: Output details of username, password and domain of MediaWiki site after install
@@ -114,7 +114,7 @@ This is the first release built by CI on Gitlab.
 * mwdd: Make use of a composer cache
 * mwdd: Fix permissions of data and log mounts
 * mwdd: Internally use maintenance/checkComposerLockUpToDate.php
-* mwdd: Add exec commands for all services 
+* mwdd: Add exec commands for all services
 
 ### [v0.1.0-dev-addshore.20210523.2](https://github.com/addshore/mwcli/releases/tag/v0.1.0-dev-addshore.20210523.2)
 

@@ -203,7 +203,7 @@ var DbName string
 
 var mwddMediawikiInstallCmd = &cobra.Command{
 	Use: "install",
-	Example: `  install --dbtype=mysql                         # Install a MediaWiki site in a databse called 'default' backed by MySQL
+	Example: `  install --dbtype=mysql                         # Install a MediaWiki site in a database called 'default' backed by MySQL
   install --dbname=enwiki --dbtype=mysql         # Install a MediaWiki site in a databse called 'enwiki' backed by MySQL
   install --dbname=thirdwiki --dbtype=postgres   # Install a MediaWiki site in a databse called 'thirdwiki' backed by Postgres`,
 	Short: "Installs a new MediaWiki site using install.php & update.php",

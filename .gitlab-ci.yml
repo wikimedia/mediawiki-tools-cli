@@ -26,7 +26,7 @@ stages:
   - release-publish
 
 # The plan would be for this cache to be reused by all jobs.
-# Caches curently end up cached per runner, per job concurrency level and per md5 of path?
+# Caches currently end up cached per runner, per job concurrency level and per md5 of path?
 # So there are potentially 12 caches that end up needing to be populated right now?
 # https://forum.gitlab.com/t/confusion-around-ci-docker-cache-volumes-and-sharing-across-jobs-concurrency/56793
 # Docker cache volumes look like this runner-<short-token>-project-<id>-concurrent-<concurrency-id>-cache-<md5-of-path>
