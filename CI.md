@@ -24,8 +24,8 @@ Make a VM, such as `gitlab-runner-addshore-1001.integration.eqiad1.wikimedia.clo
 ### Install docker
 
 ```sh
-sudo apt-get remove docker docker-engine docker.io containerd runc
 sudo apt-get update
+sudo apt-get remove docker docker-engine docker.io containerd runc
 sudo apt-get install \
     apt-transport-https \
     ca-certificates \
@@ -56,9 +56,9 @@ sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
-  --limit 6 \
-  --name "gitlab-runner-addshore-1001-docker-0012" \
-  --docker-image "docker:19.03.12" \
+  --limit 5 \
+  --name "gitlab-runner-addshore-1004-docker-01" \
+  --docker-image "docker:19.03.15" \
   --docker-privileged \
   --docker-volumes "/certs/client"
 ```
@@ -70,7 +70,7 @@ sudo gitlab-runner register -n \
 Allow 6 jobs at once globally on this runner and restart gitlab runner
 
 ```sh
-sudo sed -i 's/^concurrent =.*/concurrent = 6/' "/etc/gitlab-runner/config.toml"
+sudo sed -i 's/^concurrent =.*/concurrent = 5/' "/etc/gitlab-runner/config.toml"
 sudo systemctl restart gitlab-runner
 ```
 
@@ -93,7 +93,7 @@ Get the IP address:
 hostname --ip-address
 ```
 
-Add the mirror:
+Add the mirror (You might need to do this as root, not sudo...):
 
 ```sh
 sudo echo '{"registry-mirrors": ["http://<CUSTOM IP>"]}' > /etc/docker/daemon.json
@@ -103,7 +103,7 @@ sudo service docker restart
 Check with:
 
 ```sh
-docker system info
+sudo docker system info
 ```
 
 Also add the mirror for dind in `/etc/gitlab-runner/config.toml` to each runner it is needed for
@@ -111,7 +111,7 @@ https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#enable-registry-mir
 
 ```sh
     [[runners.docker.services]]
-      name = "docker:19.03.12-dind"
+      name = "docker:19.03.15-dind"
       command = ["--registry-mirror", "https://<CUSTOM IP>"]
 ```
 

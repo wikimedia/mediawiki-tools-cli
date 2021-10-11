@@ -8,14 +8,14 @@ trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' EXIT
 
-# Setup the default hosts in hosts file
-./bin/mw docker hosts add
-
 # Run this integration test using a non standard port
 ./bin/mw docker env set PORT 9191
 # And already fill in the location of mediawiki
 ./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE $(pwd)/mediawiki
 # So we should get no prompts, even though we don't pass --no-interaction
+
+# Setup the default hosts in hosts file
+./bin/mw docker hosts add
 
 # Create
 ./bin/mw docker mediawiki create
