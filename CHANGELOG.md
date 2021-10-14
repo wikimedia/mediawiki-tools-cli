@@ -8,6 +8,19 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.4.0
+
+- Added `gerrit` command with `project` subcommand.
+- Added `docker fresh` command.
+- Added `docker memcached` command and service.
+- Added `docker env clear` command to clear all environment variables.
+- Added work in progress `docker quibble` command.
+- Improved help output for the `docker redis` command.
+- Fixed exit codes for various `docker hosts` commands.
+- Fixed aborting of initial setup prompts for `docker mediawiki` (thanks Lens0021).
+- Fixed typos throughout (thanks Lens0021).
+- `$wgTmpDirectory` is no longer set by `docker mediawiki`, allowing the MediaWiki default to prevail.
+
 ## v0.3.0
 
 - Added `gitlab` command for interacting with the Wikimedia Gitlab instance.
