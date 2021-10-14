@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
@@ -49,14 +50,18 @@ var mwddHostsAddCmd = &cobra.Command{
 			),
 		)
 		if save.Success {
-			fmt.Println("Hosts file updated!")
+			fmt.Println("Hosts file " + save.WriteFile + " updated!")
 		} else {
 			fmt.Println("Could not save your hosts file.")
 			fmt.Println("You can return with sudo.")
-			fmt.Println("Or edit the hosts fiel yourself.")
-			fmt.Println("Temporary file: " + save.TmpFile)
+			fmt.Println("Or edit the hosts file yourself.")
+			fmt.Println("Temporary file: " + save.WriteFile)
 			fmt.Println("")
 			fmt.Println(save.Content)
+			// Hack around https://phabricator.wikimedia.org/T292909
+			if os.Getenv("MWCLI_CONTEXT_TEST") == "" {
+				os.Exit(1)
+			}
 		}
 	},
 }
@@ -67,14 +72,31 @@ var mwddHostsRemoveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		save := hosts.RemoveHostsWithSuffix("mwdd.localhost")
 		if save.Success {
-			fmt.Println("Hosts file updated!")
+			fmt.Println("Hosts file " + save.WriteFile + " updated!")
 		} else {
 			fmt.Println("Could not save your hosts file.")
 			fmt.Println("You can return with sudo.")
-			fmt.Println("Or edit the hosts fiel yourself.")
-			fmt.Println("Temporary file: " + save.TmpFile)
+			fmt.Println("Or edit the hosts file yourself.")
+			fmt.Println("Temporary file: " + save.WriteFile)
 			fmt.Println("")
 			fmt.Println(save.Content)
+			// Hack around https://phabricator.wikimedia.org/T292909
+			if os.Getenv("MWCLI_CONTEXT_TEST") == "" {
+				os.Exit(1)
+			}
+		}
+	},
+}
+
+var mwddHostsWritableCmd = &cobra.Command{
+	Use:   "writable",
+	Short: "Checks if you can write to the needed hosts file",
+	Run: func(cmd *cobra.Command, args []string) {
+		if hosts.Writable() {
+			fmt.Println("Hosts file writable")
+		} else {
+			fmt.Println("Hosts file not writable")
+			os.Exit(1)
 		}
 	},
 }
@@ -83,4 +105,5 @@ func init() {
 	mwddCmd.AddCommand(mwddHostsCmd)
 	mwddHostsCmd.AddCommand(mwddHostsAddCmd)
 	mwddHostsCmd.AddCommand(mwddHostsRemoveCmd)
+	mwddHostsCmd.AddCommand(mwddHostsWritableCmd)
 }

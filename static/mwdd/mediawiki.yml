@@ -20,13 +20,10 @@ services:
       - COMPOSER_CACHE_DIR=/.composer/cache
       - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
       - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-develop,debug}
-    hostname: mediawiki.mwdd
     depends_on:
       - mediawiki-web
     dns:
       - 10.0.0.10
-    dns_search:
-      - mwdd
     networks:
       - dps
 
@@ -39,7 +36,6 @@ services:
     environment:
       - VIRTUAL_HOST=*.mediawiki.mwdd.localhost,*.mediawiki.mwdd
       - VIRTUAL_PORT=8080
-    hostname: mediawiki-web.mwdd
     depends_on:
       - nginx-proxy
     dns:

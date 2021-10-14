@@ -1,35 +1,34 @@
 #!/usr/bin/env bash
 
-set -e # Fail on errors
-set -x # Output commands
+# Can be used to invalidate the cache if you are making structural changes
+CACHE_KEY_DATE="20210809-04"
 
 # Only re fetch MediaWiki if we don't already have it in the cache for this job
-if [[ ! -f mediawiki/.gitlab-ci.cache.20210809-04 ]]; then
-  rm -rf mediawiki
-  apk add --no-cache curl tar
-  curl https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/core/+archive/refs/heads/master.tar.gz -o mediawiki.tar.gz
-  curl https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/skins/Vector/+archive/refs/heads/master.tar.gz -o vector.tar.gz
-  curl https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/vendor/+archive/refs/heads/master.tar.gz -o vendor.tar.gz
-  mkdir mediawiki
-  tar -xf mediawiki.tar.gz -C mediawiki
-  mkdir mediawiki/skins/Vector
-  tar -xf vector.tar.gz -C mediawiki/skins/Vector
-  mkdir mediawiki/vendor
-  tar -xf vendor.tar.gz -C mediawiki/vendor
-  rm -r *.tar.gz
+if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
+  rm -rf .mediawiki
 
-  # composer install
-  docker run --rm -v $PWD/mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/stretch-php73-fpm:3.0.0 install --ignore-platform-reqs --no-interaction
+  mkdir .mediawiki
+  curl https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/core/+archive/refs/heads/master.tar.gz -o mediawiki.tar.gz
+  tar -xf mediawiki.tar.gz -C .mediawiki
+  rm mediawiki.tar.gz
+
+  mkdir .mediawiki/skins/Vector
+  curl https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/skins/Vector/+archive/refs/heads/master.tar.gz -o vector.tar.gz
+  tar -xf vector.tar.gz -C .mediawiki/skins/Vector
+  rm vector.tar.gz
+
+  mkdir .mediawiki/vendor
+  curl https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/vendor/+archive/refs/heads/master.tar.gz -o vendor.tar.gz
+  tar -xf vendor.tar.gz -C .mediawiki/vendor
+  rm vendor.tar.gz
+
+  # composer install (for update and dev deps)
+  # TODO use on disk cache
+  docker run -u $(id -u ${USER}):$(id -g ${USER}) --rm -v $PWD/.mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/stretch-php73-fpm:3.0.0 install --ignore-platform-reqs --no-interaction --no-progress
 
   # npm install
-  apk add --no-cache npm
-  npm --prefix mediawiki ci
+  # TODO use on disk cache
+  docker run -u $(id -u ${USER}):$(id -g ${USER}) --rm -v $PWD/.mediawiki:/app -w /app --entrypoint=npm docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2 ci
 
-  touch mediawiki/.gitlab-ci.cache.20210809-04
+  touch .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE
 fi
-
-# composer update (even when cached) to ensure deps are as up to date as possible
-docker run --rm -v $PWD/mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/stretch-php73-fpm:3.0.0 update --no-interaction --no-progress --ignore-platform-reqs
-
-# Always remove files that may have been left behind by previous tests and may get in the way?
-rm -f mediawiki/LocalSettings.php

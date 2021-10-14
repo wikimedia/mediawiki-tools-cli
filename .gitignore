@@ -9,3 +9,4 @@ internal/mwdd/files/files.go
 coverage.txt
 coverage.html
 coverage.xml
+.mediawiki

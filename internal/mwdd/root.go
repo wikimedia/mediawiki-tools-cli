@@ -30,9 +30,17 @@ import (
 /*MWDD representation of a mwdd v2 setup*/
 type MWDD string
 
+func mwddContext() string {
+	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
+	if !inGitlabCi && os.Getenv("MWCLI_CONTEXT_TEST") != "" {
+		return "test"
+	}
+	return "default"
+}
+
 /*DefaultForUser returns the default mwdd working directory for the user*/
 func DefaultForUser() MWDD {
-	return MWDD(mwddUserDirectory() + string(os.PathSeparator) + "default")
+	return MWDD(mwddUserDirectory() + string(os.PathSeparator) + mwddContext())
 }
 
 func mwddUserDirectory() string {
@@ -74,7 +82,7 @@ func (m MWDD) Directory() string {
 
 /*DockerComposeProjectName the name of the docker-compose project*/
 func (m MWDD) DockerComposeProjectName() string {
-	return "mwcli-mwdd-default"
+	return "mwcli-mwdd-" + mwddContext()
 }
 
 /*Env ...*/

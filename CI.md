@@ -19,7 +19,7 @@ If this doesn't free up enough space the next step would be to nuke the registry
 
 ### Make a machine
 
-Make a VM, such as `gitlab-runner-addshore-1001.integration.eqiad1.wikimedia.cloud`
+Make a VM, such as `gitlab-runner-addshore-1004.integration.eqiad1.wikimedia.cloud`
 
 ### Install docker
 
@@ -47,6 +47,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io
 ```sh
 curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
 sudo dpkg -i gitlab-runner_amd64.deb
+rm gitlab-runner_amd64.deb
 ```
 
 ### Register the runner

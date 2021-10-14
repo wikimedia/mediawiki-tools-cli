@@ -30,15 +30,29 @@ var hostsTmpPrefix = "mwcli-hosts-"
 
 /*Save result of saving the hosts file*/
 type Save struct {
-	Success bool
-	Content string
-	TmpFile string
+	Success   bool
+	Content   string
+	WriteFile string
 }
 
 /*AddHosts attempts to add requested hosts to the system hosts file, and gives you the new content, a tmp file and success*/
 func AddHosts(toAdd []string) Save {
 	hosts := hosts()
-	hosts.AddHosts("127.0.0.1", toAdd)
+	serviceIP := "127.0.0.1"
+
+	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
+	if inGitlabCi {
+		// Localhost does not refer to our services in Gitlab CI, docker does
+		// https://gitlab.com/gitlab-org/gitlab/-/issues/34814#note_426362459
+		serviceIP = IPv4("docker")
+	}
+
+	// TODO if verbose..
+	//fmt.Println("Adding hosts:", toAdd)
+	hosts.AddHosts(serviceIP, toAdd)
+	// TODO when the library supports it do ipv6 too https://github.com/txn2/txeh/issues/15
+	//hosts.AddHosts("::1", toAdd)
+
 	return save(hosts)
 }
 
@@ -47,6 +61,20 @@ func RemoveHostsWithSuffix(hostSuffix string) Save {
 	hosts := hosts()
 	removeHostsWithSuffixFromLines(hostSuffix, hosts)
 	return save(hosts)
+}
+
+/*Writable is the hosts file writable*/
+func Writable() bool {
+	return fileIsWritable(hosts().HostsConfig.WriteFilePath)
+}
+
+func fileIsWritable(filePath string) bool {
+	file, err := os.OpenFile(filePath, os.O_WRONLY, 0666)
+	if err != nil {
+		return false
+	}
+	file.Close()
+	return true
 }
 
 func tmpFile() string {
@@ -92,15 +120,15 @@ func save(hosts *txeh.Hosts) Save {
 			panic(err)
 		}
 		return Save{
-			Success: false,
-			Content: hosts.RenderHostsFile(),
-			TmpFile: tmpFile,
+			Success:   false,
+			Content:   hosts.RenderHostsFile(),
+			WriteFile: tmpFile,
 		}
 	}
 
 	return Save{
-		Success: true,
-		Content: hosts.RenderHostsFile(),
-		TmpFile: hosts.WriteFilePath,
+		Success:   true,
+		Content:   hosts.RenderHostsFile(),
+		WriteFile: hosts.WriteFilePath,
 	}
 }

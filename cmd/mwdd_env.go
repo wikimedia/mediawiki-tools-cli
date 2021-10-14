@@ -32,6 +32,7 @@ var mwddEnvSetCmd = cmd.EnvSet(mwddEnvDirectory)
 var mwddEnvGetCmd = cmd.EnvGet(mwddEnvDirectory)
 var mwddEnvListCmd = cmd.EnvList(mwddEnvDirectory)
 var mwddEnvWhereCmd = cmd.EnvWhere(mwddEnvDirectory)
+var mwddEnvClearCmd = cmd.EnvClear(mwddEnvDirectory)
 
 func init() {
 	mwddCmd.AddCommand(mwddEnvCmd)
@@ -41,4 +42,5 @@ func init() {
 	mwddEnvCmd.AddCommand(mwddEnvGetCmd)
 	mwddEnvCmd.AddCommand(mwddEnvListCmd)
 	mwddEnvCmd.AddCommand(mwddEnvDeleteCmd)
+	mwddEnvCmd.AddCommand(mwddEnvClearCmd)
 }

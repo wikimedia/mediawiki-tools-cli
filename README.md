@@ -64,6 +64,28 @@ No naming structured is enforced in CI but a convention exists that should be fo
 - Complex sub commands can be split out into their own file.
 - This is a recursive solution.
 
+## CI & Integration tests
+
+This repository has continious integration setup on Gitlab.
+You can read more in the [CI README](./CI.md).
+
+You can also choose to run the integration tests locally.
+
+```sh
+./tests/test-general-commands.sh
+```
+
+Or for the dev environment
+
+```sh
+./tests/test-docker-general.sh
+./tests/test-docker-mw-all-dbs.sh
+./tests/test-docker-mw-mysql-cycle.sh
+```
+
+These tests should clean up after themselves.
+If you run into issues you might find `./tests/destroy.sh` useful.
+
 ## Releasing
 
 Releases are automatically built and published by Gitlab CI after pushing a tag.

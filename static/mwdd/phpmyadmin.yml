@@ -12,7 +12,6 @@ services:
     depends_on:
       - dps
       - nginx-proxy
-    hostname: phpmyadmin.mwdd
     dns:
       - 10.0.0.10
     networks:

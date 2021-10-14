@@ -5,7 +5,6 @@ services:
     image: graphiteapp/graphite-statsd:1.1.8-1
     environment:
       - VIRTUAL_HOST=graphite.mwdd.localhost,graphite.mwdd
-    hostname: graphite.mwdd
     depends_on:
       - nginx-proxy
     dns:

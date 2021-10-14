@@ -3,7 +3,6 @@ version: '3.7'
 services:
   redis:
     image: "${REDIS_IMAGE:-redis:6.2}"
-    hostname: redis.mwdd
     dns:
       - 10.0.0.10
     networks:

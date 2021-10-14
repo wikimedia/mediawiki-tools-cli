@@ -40,6 +40,7 @@ func writeContentToTmpFile(content string) string {
 }
 
 func TestAddHosts(t *testing.T) {
+	ipv4AddressOverride = "127.0.0.1"
 	type args struct {
 		toAdd []string
 	}
@@ -56,9 +57,9 @@ func TestAddHosts(t *testing.T) {
 				toAdd: []string{"1.mwcli.test"},
 			},
 			want: Save{
-				Success: true,
-				Content: "127.0.0.1        1.mwcli.test\n",
-				TmpFile: "",
+				Success:   true,
+				Content:   "127.0.0.1        1.mwcli.test\n",
+				WriteFile: "",
 			},
 		},
 		{
@@ -68,9 +69,9 @@ func TestAddHosts(t *testing.T) {
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
 			want: Save{
-				Success: true,
-				Content: "127.0.0.1        1.mwcli.test 2.mwcli.test\n",
-				TmpFile: "",
+				Success:   true,
+				Content:   "127.0.0.1        1.mwcli.test 2.mwcli.test\n",
+				WriteFile: "",
 			},
 		},
 		{
@@ -80,9 +81,9 @@ func TestAddHosts(t *testing.T) {
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
 			want: Save{
-				Success: true,
-				Content: "127.0.0.1        iam.localhost 1.mwcli.test 2.mwcli.test\n",
-				TmpFile: "",
+				Success:   true,
+				Content:   "127.0.0.1        iam.localhost 1.mwcli.test 2.mwcli.test\n",
+				WriteFile: "",
 			},
 		},
 		{
@@ -92,9 +93,9 @@ func TestAddHosts(t *testing.T) {
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
 			want: Save{
-				Success: true,
-				Content: "123.123.111.111  iam.not.localhost\n127.0.0.1        1.mwcli.test 2.mwcli.test\n",
-				TmpFile: "",
+				Success:   true,
+				Content:   "123.123.111.111  iam.not.localhost\n127.0.0.1        1.mwcli.test 2.mwcli.test\n",
+				WriteFile: "",
 			},
 		},
 	}
@@ -103,7 +104,7 @@ func TestAddHosts(t *testing.T) {
 			// Setup a test file
 			testFile := writeContentToTmpFile(tt.startingContent)
 			hostsFile = testFile
-			tt.want.TmpFile = testFile
+			tt.want.WriteFile = testFile
 
 			// Perform the test!
 			if got := AddHosts(tt.args.toAdd); !reflect.DeepEqual(got, tt.want) {
@@ -114,6 +115,7 @@ func TestAddHosts(t *testing.T) {
 }
 
 func TestRemoveHostsWithSuffix(t *testing.T) {
+	ipv4AddressOverride = "127.0.0.1"
 	type args struct {
 		hostSuffix string
 	}
@@ -130,9 +132,9 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 				hostSuffix: "mwcli.test",
 			},
 			want: Save{
-				Success: true,
-				Content: singleLocalHost,
-				TmpFile: "",
+				Success:   true,
+				Content:   singleLocalHost,
+				WriteFile: "",
 			},
 		},
 		{
@@ -142,9 +144,9 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 				hostSuffix: "mwcli.test",
 			},
 			want: Save{
-				Success: true,
-				Content: "",
-				TmpFile: "",
+				Success:   true,
+				Content:   "",
+				WriteFile: "",
 			},
 		},
 		{
@@ -154,9 +156,9 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 				hostSuffix: "mwcli.test",
 			},
 			want: Save{
-				Success: true,
-				Content: singleLocalHost,
-				TmpFile: "",
+				Success:   true,
+				Content:   singleLocalHost,
+				WriteFile: "",
 			},
 		},
 	}
@@ -165,7 +167,7 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			// Setup a test file
 			testFile := writeContentToTmpFile(tt.startingContent)
 			hostsFile = testFile
-			tt.want.TmpFile = testFile
+			tt.want.WriteFile = testFile
 
 			// Perform the test!
 			if got := RemoveHostsWithSuffix(tt.args.hostSuffix); !reflect.DeepEqual(got, tt.want) {

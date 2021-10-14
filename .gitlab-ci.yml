@@ -1,4 +1,4 @@
-image: docker:19.03.12
+image: docker:19.03.15
 
 variables:
   # When you use the dind service, you must instruct Docker to talk with
@@ -33,10 +33,10 @@ stages:
 cache:
   - key: mediawiki
     paths:
-      - mediawiki
+      - .mediawiki
 
 services:
-  - name: docker:19.03.12-dind
+  - name: docker:19.03.15-dind
 
 test:
     stage: test
@@ -86,7 +86,7 @@ integration-general:
       - build
     parallel:
       matrix:
-        - TEST: general-commands.sh
+        - TEST: test-general-commands.sh
     before_script:
       # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
       - apk add --no-cache libc6-compat bash
@@ -100,14 +100,13 @@ integration-docker:
       - build
     parallel:
       matrix:
-        - TEST: docker-mw-extra-commands.sh
-        - TEST: docker-mw-install-all-the-dbs.sh
-        - TEST: docker-mw-mysql-suspend-resume-destroy.sh
+        - TEST: test-docker-general.sh
+        - TEST: test-docker-mw-all-dbs.sh
+        - TEST: test-docker-mw-mysql-cycle.sh
     before_script:
       # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
-      - apk add --no-cache libc6-compat bash docker-compose curl
-      - ./tests/cache-mediawiki.sh
-      - ./tests/setup.sh
+      - apk add --no-cache libc6-compat bash docker-compose curl tar
+      - ./tests/pretest-mediawiki.sh
     script:
       - ./tests/$TEST
 
