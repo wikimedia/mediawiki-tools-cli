@@ -167,8 +167,7 @@ release-publish:
     # Manually maintained list of files to upload to release, until https://phabricator.wikimedia.org/T292372 is changed
     # This used to just list the files that were in a directory!
     - >
-      for release_suffix in linux_arm.sha256 windows_amd64.exe linux_amd64.sha256 linux_386 darwin_amd64.sha256 darwin_amd64 linux_amd64 windows_amd64.exe.sha256 linux_386.sha256 linux_ppc64le linux_arm64 linux_arm linux_ppc64le.sha256 linux_arm64.sha256
-      do
+      for release_suffix in linux_arm.sha256 windows_amd64.exe linux_amd64.sha256 linux_386 darwin_amd64.sha256 darwin_amd64 linux_amd64 windows_amd64.exe.sha256 linux_386.sha256 linux_ppc64le linux_arm64 linux_arm linux_ppc64le.sha256 linux_arm64.sha256; do
         release_file="mw_${CI_COMMIT_TAG}_$release_suffix"
         assets_links="${assets_links} --assets-link {\"name\":\"${release_file}\",\"url\":\"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}\"}"
       done
