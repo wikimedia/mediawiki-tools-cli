@@ -41,5 +41,4 @@ func sshGerritCommand(args []string) *exec.Cmd {
 
 func init() {
 	rootCmd.AddCommand(mwddGerritCmd)
-	mwddGerritCmd.AddCommand(mwddGerritProjectCmd)
 }

@@ -95,6 +95,7 @@ var mwddGerritProjectCurrentCmd = &cobra.Command{
 }
 
 func init() {
+	mwddGerritCmd.AddCommand(mwddGerritProjectCmd)
 	mwddGerritProjectCmd.AddCommand(mwddGerritProjectListCmd)
 	mwddGerritProjectCmd.AddCommand(mwddGerritProjectSearchCmd)
 	mwddGerritProjectCmd.AddCommand(mwddGerritProjectCurrentCmd)
