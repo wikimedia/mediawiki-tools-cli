@@ -19,15 +19,12 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
+	"gitlab.wikimedia.org/releng/cli/internal/util/dotgitreview"
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
-	"gopkg.in/ini.v1"
 )
 
 var mwddGerritProjectCmd = &cobra.Command{
@@ -67,29 +64,13 @@ var mwddGerritProjectCurrentCmd = &cobra.Command{
 	Use:   "current",
 	Short: "Detect current Gerrit project",
 	Run: func(cmd *cobra.Command, args []string) {
-		dir, _ := os.Getwd()
-
-		for {
-			if _, err := os.Stat(dir + "/.gitreview"); os.IsNotExist(err) {
-				dir = filepath.Dir(dir)
-			} else {
-				break
-			}
-			if dir == "/" {
-				fmt.Println("Not in a Wikimedia Gerrit repository")
-				os.Exit(1)
-			}
-		}
-
-		gitReview, err := ini.Load(dir + "/.gitreview")
+		gitReview, err := dotgitreview.ForCWD()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("Failed to get .gitreview file, are you in a Gerrit repository?")
+			os.Exit(1)
 		}
 
-		project := gitReview.Section("gerrit").Key("project").String()
-		project = strings.TrimSuffix(project, ".git")
-
-		fmt.Println(project)
+		fmt.Println(gitReview.Project)
 	},
 }
 
