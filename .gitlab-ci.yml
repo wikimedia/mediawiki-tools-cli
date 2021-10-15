@@ -40,10 +40,13 @@ test:
     stage: test
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
+    image: golang:1.16.9
     artifacts:
       reports:
         cobertura: coverage.xml
+    before_script:
+      - go get github.com/bwplotka/bingo
+      - bingo get
     script:
       - make test
       - go get github.com/boumenot/gocover-cobertura
@@ -53,12 +56,15 @@ checks:
     stage: test
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
+    image: golang:1.16.9
     parallel:
       matrix:
         - CHECK: lint
         - CHECK: vet
         - CHECK: staticcheck
+    before_script:
+      - go get github.com/bwplotka/bingo
+      - bingo get
     script:
       # XDG_CACHE_HOME is needed by staticcheck
       - export XDG_CACHE_HOME=/tmp/mwcli-cache
@@ -68,12 +74,15 @@ build:
     stage: build
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
+    image: golang:1.16.9
     artifacts:
       paths:
         - bin/
+    before_script:
+      - go get github.com/bwplotka/bingo
+      - bingo get
     script:
-      - make
+      - make build
 
 
 integration-general:
@@ -114,10 +123,11 @@ build-release:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
+    image: golang:1.16.9
+    before_script:
+      - go get github.com/bwplotka/bingo
+      - bingo get
     script:
-      # Ideally make would not be needed, only release? But it is needed to install deps currently?
-      - make
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
 release-build:
@@ -126,13 +136,14 @@ release-build:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: docker-registry.wikimedia.org/golang:1.13-3
+    image: golang:1.16.9
     artifacts:
       paths:
         - _release/
+    before_script:
+      - go get github.com/bwplotka/bingo
+      - bingo get
     script:
-      # Ideally make would not be needed, only release? But it is needed to install deps currently?
-      - make
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
 release-upload:

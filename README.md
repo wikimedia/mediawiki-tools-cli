@@ -15,12 +15,33 @@ Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
 ### Repo / Code setup
 
+You need go 1.16+ installed.
+
+This repository uses the `bingo` tool.
+You can install it with:
+
+```sh
+go get github.com/bwplotka/bingo
+```
+
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
 `~/go/src/gitlab.wikimedia.org/releng/cli`.
 
 Within the `~/go/src/gitlab.wikimedia.org/releng/cli` directory:
 
-Run `make` to build a binary to `~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw`.
+You can install allo tools used by this repository using bingo.
+
+```sh
+bingo get
+```
+
+You can then build a binary
+
+```sh
+make build
+```
+
+Which you will find at `~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw`.
 
 We recommend that you create a development alias for this binary, and run `make` after you make changes to the codebase.
 
