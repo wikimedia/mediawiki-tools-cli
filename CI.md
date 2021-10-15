@@ -57,7 +57,7 @@ sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
-  --limit 5 \
+  --limit 4 \
   --name "gitlab-runner-addshore-1004-docker-01" \
   --docker-image "docker:19.03.15" \
   --docker-privileged \
@@ -68,10 +68,10 @@ sudo gitlab-runner register -n \
 
 #### Configure "global" runner jobs
 
-Allow 6 jobs at once globally on this runner and restart gitlab runner
+Allow 4 jobs at once globally on this runner and restart gitlab runner
 
 ```sh
-sudo sed -i 's/^concurrent =.*/concurrent = 5/' "/etc/gitlab-runner/config.toml"
+sudo sed -i 's/^concurrent =.*/concurrent = 4/' "/etc/gitlab-runner/config.toml"
 sudo systemctl restart gitlab-runner
 ```
 
@@ -97,7 +97,7 @@ hostname --ip-address
 Add the mirror (You might need to do this as root, not sudo...):
 
 ```sh
-sudo echo '{"registry-mirrors": ["http://<CUSTOM IP>"]}' > /etc/docker/daemon.json
+sudo echo '{"registry-mirrors": ["http://<CUSTOM IP>:<PORT>"]}' > /etc/docker/daemon.json
 sudo service docker restart
 ```
 
@@ -113,7 +113,7 @@ https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#enable-registry-mir
 ```sh
     [[runners.docker.services]]
       name = "docker:19.03.15-dind"
-      command = ["--registry-mirror", "https://<CUSTOM IP>"]
+      command = ["--registry-mirror", "http://<CUSTOM IP>:<PORT>"]
 ```
 
 And restart the gitlab runner service:
