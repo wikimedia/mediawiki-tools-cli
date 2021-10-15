@@ -97,45 +97,39 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 		os.Exit(1)
 	}
 
-	shallowOptions := ""
-	if options.UseShallow {
-		shallowOptions = "--depth=1"
-	}
-
 	if options.GetMediaWiki {
-		exec.RunTTYCommand(options.Options, exec.Command(
-			"git",
-			"clone",
-			shallowOptions,
-			startRemoteCore,
-			m.Path("")))
-		if startRemoteCore != endRemoteCore {
-			exec.RunTTYCommand(options.Options, exec.Command(
-				"git",
-				"-C", m.Path(""),
-				"remote",
-				"set-url",
-				"origin",
-				endRemoteCore))
-		}
+		cloneAndSetRemote(m.Path(""), startRemoteCore, endRemoteCore, options.UseShallow, options.Options)
 	}
 	if options.GetVector {
-		exec.RunTTYCommand(options.Options, exec.Command(
-			"git",
-			"clone",
-			shallowOptions,
-			startRemoteVector,
-			m.Path("skins/Vector")))
-		if startRemoteCore != endRemoteCore {
-			exec.RunTTYCommand(options.Options, exec.Command(
-				"git",
-				"-C", m.Path("skins/Vector"),
-				"remote",
-				"set-url",
-				"origin",
-				endRemoteVector))
-		}
+		cloneAndSetRemote(m.Path("skins/Vector"), startRemoteVector, endRemoteVector, options.UseShallow, options.Options)
 	}
+}
+
+func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool, options exec.HandlerOptions) {
+	exec.RunTTYCommand(options, exec.Command(
+		"git",
+		gitCloneArguments(directory, startRemote, useShallow)...,
+	))
+	if startRemote != endRemote {
+		exec.RunTTYCommand(options, exec.Command(
+			"git",
+			gitRemoteSetURLArguments(directory, endRemote)...,
+		))
+	}
+}
+
+func gitCloneArguments(directory string, remote string, useShallow bool) []string {
+	args := []string{"clone"}
+	if useShallow {
+		args = append(args, "--depth=1")
+	}
+	args = append(args, remote)
+	args = append(args, directory)
+	return args
+}
+
+func gitRemoteSetURLArguments(directory string, newRemote string) []string {
+	return []string{"-C", directory, "remote", "set-url", "origin", newRemote}
 }
 
 /*LocalSettingsIsPresent ...*/
