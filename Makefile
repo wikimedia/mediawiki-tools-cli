@@ -28,15 +28,9 @@ release: $(GOX) $(GOVVV) generate
 	done
 
 .PHONY: generate
-generate: generate-staticfiles
+generate:
+	@cd ./internal/mwdd/files/embed/ && find . -type f > files.txt
 	go generate $(GO_PACKAGES)
-
-.PHONY: generate-staticfiles
-generate-staticfiles: $(STATICFILES)
-	rm -f internal/mwdd/files/files.go || true
-	$(STATICFILES) -o internal/mwdd/files/files.go static/mwdd/
-	echo "//lint:file-ignore ST1005 It's generated code"|cat - internal/mwdd/files/files.go > internal/mwdd/files/files.go.tmp && mv internal/mwdd/files/files.go.tmp internal/mwdd/files/files.go
-	echo "//Package files ..."|cat - internal/mwdd/files/files.go > internal/mwdd/files/files.go.tmp && mv internal/mwdd/files/files.go.tmp internal/mwdd/files/files.go
 
 .PHONY: clean
 clean:

@@ -5,7 +5,6 @@
 /.lint-*
 /_release
 /vendor
-internal/mwdd/files/files.go
 coverage.txt
 coverage.html
 coverage.xml

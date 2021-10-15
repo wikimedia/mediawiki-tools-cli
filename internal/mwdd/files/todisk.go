@@ -11,12 +11,13 @@ import (
 TODO this should be called only when we update the bin?
 TODO This is way to complex, and should be more clever.. checking a hash or something? and be more lightweight.*/
 func ensureInMemoryFilesAreOnDisk(projectDirectory string) {
-	packagedFiles := packagedFileNames()
+	embededFiles := files()
 
 	// Ensure each file is on disk and up to date
-	for _, file := range packagedFiles {
-		fileTargetOnDisk := projectDirectory + string(os.PathSeparator) + file
-		packagedBytes := packagedFileToBytes(file)
+	for _, embedFileName := range embededFiles {
+		strippedFileName := strippedFileName(embedFileName)
+		fileTargetOnDisk := projectDirectory + string(os.PathSeparator) + strippedFileName
+		packagedBytes := fileBytes(embedFileName)
 
 		if _, err := os.Stat(fileTargetOnDisk); os.IsNotExist(err) {
 			// TODO only output the below line with verbose logging

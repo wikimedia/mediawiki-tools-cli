@@ -53,9 +53,3 @@ $(STATICCHECK): $(BINGO_DIR)/staticcheck.mod
 	@echo "(re)installing $(GOBIN)/staticcheck-v0.2.1"
 	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=staticcheck.mod -o=$(GOBIN)/staticcheck-v0.2.1 "honnef.co/go/tools/cmd/staticcheck"
 
-STATICFILES := $(GOBIN)/staticfiles-v0.0.0-20210106104248-dd04075d4104
-$(STATICFILES): $(BINGO_DIR)/staticfiles.mod
-	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/staticfiles-v0.0.0-20210106104248-dd04075d4104"
-	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=staticfiles.mod -o=$(GOBIN)/staticfiles-v0.0.0-20210106104248-dd04075d4104 "bou.ke/staticfiles"
-

@@ -45,4 +45,4 @@ require (
 	gopkg.in/ini.v1 v1.63.2
 )
 
-go 1.15
+go 1.16
