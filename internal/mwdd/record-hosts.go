@@ -27,12 +27,12 @@ func (m MWDD) hostRecordFile() string {
 	return m.Directory() + string(os.PathSeparator) + "record-hosts"
 }
 
-/*RecordHostUsageBySite records a host in a local file as used at some point*/
+/*RecordHostUsageBySite records a host in a local file as used at some point.*/
 func (m MWDD) RecordHostUsageBySite(host string) {
 	files.AddLineUnique(host, m.hostRecordFile())
 }
 
-/*UsedHosts lists all hosts that have been used at some point*/
+/*UsedHosts lists all hosts that have been used at some point.*/
 func (m MWDD) UsedHosts() []string {
 	return files.Lines(m.hostRecordFile())
 }

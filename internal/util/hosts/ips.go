@@ -27,7 +27,7 @@ var ipv4AddressOverride = ""
 func IPs(host string) ([]string, error) {
 	// Resolver https://gist.github.com/aojea/94f6f483173641647c731f582e52f0b0#file-resolve_localhost-go-L11
 	addrs, err := net.LookupHost(host)
-	//fmt.Println("net.LookupHost addrs:", addrs, "err:", err)
+	// fmt.Println("net.LookupHost addrs:", addrs, "err:", err)
 	return addrs, err
 }
 

@@ -38,5 +38,4 @@ func FilterMultiline(s string, requiredMatches []string) string {
 		}
 	}
 	return strings.Trim(out, "\n")
-
 }

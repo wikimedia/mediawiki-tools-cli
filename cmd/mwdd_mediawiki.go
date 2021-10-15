@@ -71,7 +71,7 @@ var mwddMediawikiCmd = &cobra.Command{
 		if !mwdd.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER") {
 			usrComposerDirectory := usrDir + "/.composer"
 			if _, err := os.Stat(usrComposerDirectory); os.IsNotExist(err) {
-				err := os.Mkdir(usrComposerDirectory, 0755)
+				err := os.Mkdir(usrComposerDirectory, 0o755)
 				if err != nil {
 					fmt.Println("Failed to create directory needed for a composer cache")
 					os.Exit(1)
@@ -195,10 +195,10 @@ var mwddMediawikiCmd = &cobra.Command{
 	},
 }
 
-/*DbType used by the install command*/
+/*DbType used by the install command.*/
 var DbType string
 
-/*DbName used by the install command*/
+/*DbName used by the install command.*/
 var DbName string
 
 var mwddMediawikiInstallCmd = &cobra.Command{
@@ -211,7 +211,7 @@ var mwddMediawikiInstallCmd = &cobra.Command{
 
 The process hidden within this command is:
  - Ensure we know where MediaWiki is
- - Ensure a LocalSettings.php file exists with the shim needed by this development environemnt
+ - Ensure a LocalSettings.php file exists with the shim needed by this development environment
  - Ensure composer dependencies are up to date, or run composer install & update
  - Move LocalSettings.php to a temporary location, as MediaWiki can't install with it present
  - Wait for any needed databases to be ready
@@ -534,5 +534,4 @@ func init() {
 	mwddMediawikiComposerCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiExecCmd)
 	mwddMediawikiExecCmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
-
 }

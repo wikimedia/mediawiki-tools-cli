@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 )
 
-/*EnsureReady makes sure that the files component is ready*/
+/*EnsureReady makes sure that the files component is ready.*/
 func EnsureReady(projectDirectory string) {
 	ensureInMemoryFilesAreOnDisk(projectDirectory)
 }
@@ -41,7 +41,7 @@ func ListRawDcYamlFilesInContextOfProjectDirectory(projectDirectory string) []st
 	return files
 }
 
-/*listRawFiles lists the raw docker-compose file paths that are currently on disk*/
+/*listRawFiles lists the raw docker-compose file paths that are currently on disk.*/
 func listRawFiles(projectDirectory string) []string {
 	var files []string
 

@@ -29,48 +29,48 @@ import (
 // Verbosity indicating verbose mode.
 var Verbosity int
 
-// NoInteraction skips prompts with a yes or default values
+// NoInteraction skips prompts with a yes or default values.
 var NoInteraction bool
 
 // These vars are currently used by the docker exec command
 
-// Detach run docker command with -d
+// Detach run docker command with -d.
 var Detach bool
 
-// Privileged run docker command with --privileged
+// Privileged run docker command with --privileged.
 var Privileged bool
 
-// User run docker command with the specified -u
+// User run docker command with the specified -u.
 var User string
 
-// NoTTY run docker command with -T
+// NoTTY run docker command with -T.
 var NoTTY bool
 
-// Index run the docker command with the specified --index
+// Index run the docker command with the specified --index.
 var Index string
 
-// Env run the docker command with the specified env vars
+// Env run the docker command with the specified env vars.
 var Env []string
 
-// Workdir run the docker command with this working directory
+// Workdir run the docker command with this working directory.
 var Workdir string
 
-// GitCommit holds short commit hash of source tree
+// GitCommit holds short commit hash of source tree.
 var GitCommit string
 
-// GitBranch holds current branch name the code is built off
+// GitBranch holds current branch name the code is built off.
 var GitBranch string
 
-// GitState shows whether there are uncommitted changes
+// GitState shows whether there are uncommitted changes.
 var GitState string
 
-// GitSummary holds output of git describe --tags --dirty --always
+// GitSummary holds output of git describe --tags --dirty --always.
 var GitSummary string
 
-// BuildDate holds RFC3339 formatted UTC date (build time)
+// BuildDate holds RFC3339 formatted UTC date (build time).
 var BuildDate string
 
-// Version holds contents of ./VERSION file, if exists, or the value passed via the -version option
+// Version holds contents of ./VERSION file, if exists, or the value passed via the -version option.
 var Version string
 
 var rootCmd = &cobra.Command{
@@ -88,7 +88,7 @@ func wizardDevMode() {
 	c.WriteToDisk()
 }
 
-/*Execute the root command*/
+/*Execute the root command.*/
 func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSummaryIn string, BuildDateIn string, VersionIn string) {
 	GitCommit = GitCommitIn
 	GitBranch = GitBranchIn

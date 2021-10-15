@@ -27,7 +27,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 )
 
-/*MWDD representation of a mwdd v2 setup*/
+/*MWDD representation of a mwdd v2 setup.*/
 type MWDD string
 
 func mwddContext() string {
@@ -38,7 +38,7 @@ func mwddContext() string {
 	return "default"
 }
 
-/*DefaultForUser returns the default mwdd working directory for the user*/
+/*DefaultForUser returns the default mwdd working directory for the user.*/
 func DefaultForUser() MWDD {
 	return MWDD(mwddUserDirectory() + string(os.PathSeparator) + mwddContext())
 }
@@ -72,15 +72,14 @@ func mwddUserDirectory() string {
 
 	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/mwdd"
 	return projectDirectory
-
 }
 
-/*Directory the directory containing the development environment*/
+/*Directory the directory containing the development environment.*/
 func (m MWDD) Directory() string {
 	return string(m)
 }
 
-/*DockerComposeProjectName the name of the docker-compose project*/
+/*DockerComposeProjectName the name of the docker-compose project.*/
 func (m MWDD) DockerComposeProjectName() string {
 	return "mwcli-mwdd-" + mwddContext()
 }
@@ -96,14 +95,14 @@ func (m MWDD) EnsureReady() {
 	m.Env().EnsureExists()
 }
 
-// DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`
+// DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`.
 type DockerComposeCommand struct {
 	Command          string
 	CommandArguments []string
 	HandlerOptions   exec.HandlerOptions
 }
 
-/*DockerCompose runs any docker-compose command for the mwdd project with the correct project settings and all files loaded*/
+/*DockerCompose runs any docker-compose command for the mwdd project with the correct project settings and all files loaded.*/
 func (m MWDD) DockerCompose(command DockerComposeCommand) error {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
@@ -121,7 +120,7 @@ func (m MWDD) DockerCompose(command DockerComposeCommand) error {
 	)
 }
 
-/*DockerComposeTTY runs any docker-compose command for the mwdd project with the correct project settings and all files loaded in a TTY*/
+/*DockerComposeTTY runs any docker-compose command for the mwdd project with the correct project settings and all files loaded in a TTY.*/
 func (m MWDD) DockerComposeTTY(command DockerComposeCommand) {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
@@ -139,7 +138,7 @@ func (m MWDD) DockerComposeTTY(command DockerComposeCommand) {
 	)
 }
 
-/*Exec runs `docker-compose exec -T <service> <commandAndArgs>`*/
+/*Exec runs `docker-compose exec -T <service> <commandAndArgs>`.*/
 func (m MWDD) Exec(service string, commandAndArgs []string, options exec.HandlerOptions, user string) {
 	// TODO refactor this code path to make handeling options nicer
 	m.DockerComposeTTY(
@@ -151,7 +150,7 @@ func (m MWDD) Exec(service string, commandAndArgs []string, options exec.Handler
 	)
 }
 
-/*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with no output*/
+/*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with no output.*/
 func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec.HandlerOptions, user string) error {
 	options.HandleStdout = func(stdout bytes.Buffer) {}
 	options.HandleError = func(stderr bytes.Buffer, err error) {}
@@ -164,7 +163,7 @@ func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec
 	)
 }
 
-/*UpDetached runs `docker-compose up -d <services>`*/
+/*UpDetached runs `docker-compose up -d <services>`.*/
 func (m MWDD) UpDetached(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
@@ -175,7 +174,7 @@ func (m MWDD) UpDetached(services []string, options exec.HandlerOptions) {
 	)
 }
 
-/*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`*/
+/*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`.*/
 func (m MWDD) DownWithVolumesAndOrphans(options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
@@ -186,7 +185,7 @@ func (m MWDD) DownWithVolumesAndOrphans(options exec.HandlerOptions) {
 	)
 }
 
-/*Stop runs `docker-compose stop <services>`*/
+/*Stop runs `docker-compose stop <services>`.*/
 func (m MWDD) Stop(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
@@ -197,7 +196,7 @@ func (m MWDD) Stop(services []string, options exec.HandlerOptions) {
 	)
 }
 
-/*Start runs `docker-compose start <services>`*/
+/*Start runs `docker-compose start <services>`.*/
 func (m MWDD) Start(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
@@ -208,7 +207,7 @@ func (m MWDD) Start(services []string, options exec.HandlerOptions) {
 	)
 }
 
-/*Rm runs `docker-compose rm --stop --force -v <services>`*/
+/*Rm runs `docker-compose rm --stop --force -v <services>`.*/
 func (m MWDD) Rm(services []string, options exec.HandlerOptions) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
@@ -219,7 +218,7 @@ func (m MWDD) Rm(services []string, options exec.HandlerOptions) {
 	)
 }
 
-/*RmVolumes runs `docker volume rm <volume names with docker-compose project prefixed>`*/
+/*RmVolumes runs `docker volume rm <volume names with docker-compose project prefixed>`.*/
 func (m MWDD) RmVolumes(dcVolumes []string, options exec.HandlerOptions) {
 	dockerVolumes := []string{}
 	for _, dcVolume := range dcVolumes {

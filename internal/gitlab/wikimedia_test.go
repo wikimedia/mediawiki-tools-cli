@@ -38,7 +38,6 @@ func TestLatestReleaseBinary(t *testing.T) {
 			}
 			rw.Write(b)
 		}
-
 	}))
 	// Close the server when test finishes
 	defer server.Close()

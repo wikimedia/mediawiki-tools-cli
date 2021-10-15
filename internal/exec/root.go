@@ -27,7 +27,7 @@ import (
 	"github.com/briandowns/spinner"
 )
 
-// HandlerOptions options used when handeling executions
+// HandlerOptions options used when handeling executions.
 type HandlerOptions struct {
 	Spinner      *spinner.Spinner
 	Verbosity    int
@@ -42,12 +42,12 @@ type ComposeCommandContext struct {
 	Files            []string
 }
 
-/*Command passes through to exec.Command for running generic commands*/
+/*Command passes through to exec.Command for running generic commands.*/
 func Command(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
-/*ComposeCommand gets a docker-compose command to run*/
+/*ComposeCommand gets a docker-compose command to run.*/
 func ComposeCommand(context ComposeCommandContext, command string, arg ...string) *exec.Cmd {
 	arg = append([]string{command}, arg...)
 	arg = append([]string{"--project-name", context.ProjectName}, arg...)
@@ -58,7 +58,7 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 	return exec.Command("docker-compose", arg...)
 }
 
-/*RunTTYCommand runs a command in an interactive shell*/
+/*RunTTYCommand runs a command in an interactive shell.*/
 func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
 	if options.Verbosity >= 2 {
 		fmt.Printf("\n%s\n", cmd.String())
@@ -68,13 +68,12 @@ func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-/*RunCommand runs a command, handles verbose output and errors*/
+/*RunCommand runs a command, handles verbose output and errors.*/
 func RunCommand(options HandlerOptions, cmd *exec.Cmd) error {
 	if options.Spinner != nil {
 		options.Spinner.Start()

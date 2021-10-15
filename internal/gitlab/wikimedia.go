@@ -26,9 +26,11 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
-var wikimediav4ApiURL = "https://gitlab.wikimedia.org/api/v4/"
-var os = runtime.GOOS
-var arch = runtime.GOARCH
+var (
+	wikimediav4ApiURL = "https://gitlab.wikimedia.org/api/v4/"
+	os                = runtime.GOOS
+	arch              = runtime.GOARCH
+)
 
 func wikimediaClient() *gitlab.Client {
 	httpClient := http.Client{
@@ -48,7 +50,7 @@ func wikimediaClient() *gitlab.Client {
 	return git
 }
 
-/*RelengCliLatestRelease from gitlab*/
+/*RelengCliLatestRelease from gitlab.*/
 func RelengCliLatestRelease() (*gitlab.Release, error) {
 	// ID 16 in releng/mwcli
 	releases, _, err := wikimediaClient().Releases.ListReleases(16, nil)
@@ -62,7 +64,7 @@ func RelengCliLatestRelease() (*gitlab.Release, error) {
 	return releases[0], nil
 }
 
-/*RelengCliLatestReleaseBinary from gitlab for this OS and ARCH*/
+/*RelengCliLatestReleaseBinary from gitlab for this OS and ARCH.*/
 func RelengCliLatestReleaseBinary() (*gitlab.ReleaseLink, error) {
 	release, err := RelengCliLatestRelease()
 	if err != nil {

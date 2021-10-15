@@ -27,15 +27,15 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 )
 
-/*MediaWiki representation of a MediaWiki install directory*/
+/*MediaWiki representation of a MediaWiki install directory.*/
 type MediaWiki string
 
-/*Directory the directory containing MediaWiki*/
+/*Directory the directory containing MediaWiki.*/
 func (m MediaWiki) Directory() string {
 	return string(m)
 }
 
-/*Path within the MediaWiki directory*/
+/*Path within the MediaWiki directory.*/
 func (m MediaWiki) Path(subPath string) string {
 	return m.Directory() + string(os.PathSeparator) + subPath
 }
@@ -62,7 +62,7 @@ func exitIfNoGit() {
 	}
 }
 
-/*CloneSetupOpts for use with GithubCloneMediaWiki*/
+/*CloneSetupOpts for use with GithubCloneMediaWiki.*/
 type CloneSetupOpts = struct {
 	GetMediaWiki          bool
 	GetVector             bool
@@ -73,7 +73,7 @@ type CloneSetupOpts = struct {
 	Options               exec.HandlerOptions
 }
 
-/*CloneSetup provides a packages initial setup method for MediaWiki and Vector with some speedy features*/
+/*CloneSetup provides a packages initial setup method for MediaWiki and Vector with some speedy features.*/
 func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 	exitIfNoGit()
 
@@ -149,5 +149,4 @@ func (m MediaWiki) LocalSettingsContains(text string) bool {
 	}
 	s := string(b)
 	return strings.Contains(s, text)
-
 }

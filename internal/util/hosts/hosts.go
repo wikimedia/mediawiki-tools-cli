@@ -25,17 +25,19 @@ import (
 	"github.com/txn2/txeh"
 )
 
-var hostsFile = ""
-var hostsTmpPrefix = "mwcli-hosts-"
+var (
+	hostsFile      = ""
+	hostsTmpPrefix = "mwcli-hosts-"
+)
 
-/*Save result of saving the hosts file*/
+/*Save result of saving the hosts file.*/
 type Save struct {
 	Success   bool
 	Content   string
 	WriteFile string
 }
 
-/*AddHosts attempts to add requested hosts to the system hosts file, and gives you the new content, a tmp file and success*/
+/*AddHosts attempts to add requested hosts to the system hosts file, and gives you the new content, a tmp file and success.*/
 func AddHosts(toAdd []string) Save {
 	hosts := hosts()
 	serviceIP := "127.0.0.1"
@@ -48,28 +50,28 @@ func AddHosts(toAdd []string) Save {
 	}
 
 	// TODO if verbose..
-	//fmt.Println("Adding hosts:", toAdd)
+	// fmt.Println("Adding hosts:", toAdd)
 	hosts.AddHosts(serviceIP, toAdd)
 	// TODO when the library supports it do ipv6 too https://github.com/txn2/txeh/issues/15
-	//hosts.AddHosts("::1", toAdd)
+	// hosts.AddHosts("::1", toAdd)
 
 	return save(hosts)
 }
 
-/*RemoveHostsWithSuffix attempts to remove all hosts with a suffix from the system hosts file, and gives you the new content, a tmp file and success*/
+/*RemoveHostsWithSuffix attempts to remove all hosts with a suffix from the system hosts file, and gives you the new content, a tmp file and success.*/
 func RemoveHostsWithSuffix(hostSuffix string) Save {
 	hosts := hosts()
 	removeHostsWithSuffixFromLines(hostSuffix, hosts)
 	return save(hosts)
 }
 
-/*Writable is the hosts file writable*/
+/*Writable is the hosts file writable.*/
 func Writable() bool {
 	return fileIsWritable(hosts().HostsConfig.WriteFilePath)
 }
 
 func fileIsWritable(filePath string) bool {
-	file, err := os.OpenFile(filePath, os.O_WRONLY, 0666)
+	file, err := os.OpenFile(filePath, os.O_WRONLY, 0o666)
 	if err != nil {
 		return false
 	}

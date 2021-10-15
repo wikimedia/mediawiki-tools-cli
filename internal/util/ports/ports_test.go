@@ -8,7 +8,6 @@ import (
 )
 
 func Test_FreeUpFrom(t *testing.T) {
-
 	type test struct {
 		loopLimit     int
 		requestedPort string
@@ -43,11 +42,9 @@ func Test_FreeUpFrom(t *testing.T) {
 			ln.Close()
 		}
 	}
-
 }
 
 func TestValidity_isValid_IsValidAndFree(t *testing.T) {
-
 	type test struct {
 		valid bool
 		port  string
@@ -74,5 +71,4 @@ func TestValidity_isValid_IsValidAndFree(t *testing.T) {
 			t.Errorf("Expected error for port %s", tc.port)
 		}
 	}
-
 }

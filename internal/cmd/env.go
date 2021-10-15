@@ -24,7 +24,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 )
 
-/*Env top level env command*/
+/*Env top level env command.*/
 func Env(Short string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "env",
@@ -36,7 +36,7 @@ func Env(Short string) *cobra.Command {
 	}
 }
 
-/*EnvDelete env delete command*/
+/*EnvDelete env delete command.*/
 func EnvDelete(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete [name]",
@@ -48,7 +48,7 @@ func EnvDelete(directory func() string) *cobra.Command {
 	}
 }
 
-/*EnvSet env set command*/
+/*EnvSet env set command.*/
 func EnvSet(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set [name] [value]",
@@ -60,7 +60,7 @@ func EnvSet(directory func() string) *cobra.Command {
 	}
 }
 
-/*EnvGet env get command*/
+/*EnvGet env get command.*/
 func EnvGet(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "get [name]",
@@ -72,7 +72,7 @@ func EnvGet(directory func() string) *cobra.Command {
 	}
 }
 
-/*EnvList env list command*/
+/*EnvList env list command.*/
 func EnvList(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
@@ -85,7 +85,7 @@ func EnvList(directory func() string) *cobra.Command {
 	}
 }
 
-/*EnvWhere env where command*/
+/*EnvWhere env where command.*/
 func EnvWhere(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "where",
@@ -96,7 +96,7 @@ func EnvWhere(directory func() string) *cobra.Command {
 	}
 }
 
-/*EnvClear env clear command*/
+/*EnvClear env clear command.*/
 func EnvClear(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "clear",

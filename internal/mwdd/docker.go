@@ -35,7 +35,7 @@ import (
 	terminal "golang.org/x/term"
 )
 
-// DockerExecCommand to be run with Docker, which directly uses the docker SDK
+// DockerExecCommand to be run with Docker, which directly uses the docker SDK.
 type DockerExecCommand struct {
 	DockerComposeService string
 	Command              []string
@@ -44,7 +44,7 @@ type DockerExecCommand struct {
 	HandlerOptions       exec.HandlerOptions
 }
 
-/*UserAndGroupForDockerExecution gets a user and group id combination for the current user that can be used for execution*/
+/*UserAndGroupForDockerExecution gets a user and group id combination for the current user that can be used for execution.*/
 func UserAndGroupForDockerExecution() string {
 	if runtime.GOOS == "windows" {
 		// TODO confirm that just using 2000 will always work on Windows?
@@ -54,7 +54,7 @@ func UserAndGroupForDockerExecution() string {
 	return fmt.Sprint(os.Getuid(), ":", os.Getgid())
 }
 
-/*DockerExec runs a docker exec command using the docker SDK*/
+/*DockerExec runs a docker exec command using the docker SDK.*/
 func (m MWDD) DockerExec(command DockerExecCommand) {
 	containerID := m.DockerComposeProjectName() + "_" + command.DockerComposeService + "_1"
 
@@ -212,10 +212,9 @@ func (m MWDD) DockerRun(command DockerExecCommand) {
 			break
 		}
 	}
-
 }
 
-// MonitorTtySize updates the container tty size when the terminal tty changes size
+// MonitorTtySize updates the container tty size when the terminal tty changes size.
 func monitorTtySize(ctx context.Context, client client.APIClient, id string, isExec bool) error {
 	// Source: https://github.com/skiffos/skiff-core/blob/82c430e4961453c250883c2e5ebd4bd360fa13a5/shell/tty.go
 	resizeTty := func() {

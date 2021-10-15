@@ -39,11 +39,11 @@ func mwcliDirectory() string {
 
 func ensureExists() {
 	if _, err := os.Stat(configPath()); err != nil {
-		err := os.MkdirAll(strings.Replace(configPath(), "config.json", "", -1), 0700)
+		err := os.MkdirAll(strings.Replace(configPath(), "config.json", "", -1), 0o700)
 		if err != nil {
 			log.Fatal(err)
 		}
-		file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -57,7 +57,7 @@ func ensureExists() {
 	}
 }
 
-/*LoadFromDisk loads the config.json from disk*/
+/*LoadFromDisk loads the config.json from disk.*/
 func LoadFromDisk() Config {
 	ensureExists()
 	var config Config
@@ -71,9 +71,9 @@ func LoadFromDisk() Config {
 	return config
 }
 
-/*WriteToDisk writers the config to disk*/
+/*WriteToDisk writers the config to disk.*/
 func (c Config) WriteToDisk() {
-	file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func (c Config) WriteToDisk() {
 	w.Flush()
 }
 
-/*PrettyPrint writers the config to disk*/
+/*PrettyPrint writers the config to disk.*/
 func (c Config) PrettyPrint() {
 	empJSON, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {

@@ -24,11 +24,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/ini.v1"
-
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
+	"gopkg.in/ini.v1"
 )
 
 var mwddGerritProjectCmd = &cobra.Command{

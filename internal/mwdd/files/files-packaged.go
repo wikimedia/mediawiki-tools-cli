@@ -14,7 +14,7 @@ func packagedFileToBytes(file string) []byte {
 	return bytes
 }
 
-/*packagedFileNames*/
+/*packagedFileNames.*/
 func packagedFileNames() []string {
 	keys := make([]string, 0, len(staticFiles))
 	for k := range staticFiles {

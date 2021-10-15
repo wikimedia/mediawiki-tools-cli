@@ -23,8 +23,10 @@ import (
 	"strconv"
 )
 
-var defaultStartingPort = "8080"
-var portSearchLoopsBeforePanic = 25
+var (
+	defaultStartingPort        = "8080"
+	portSearchLoopsBeforePanic = 25
+)
 
 /*FreeUpFrom get a free port up from and including the startingPort. Will attempt 25 ports.*/
 func FreeUpFrom(startingPort string) string {

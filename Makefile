@@ -49,13 +49,12 @@ test: $(GOVVV) generate
 	go test -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)
 
 .PHONY: lint
-lint: $(GOLINT) generate
-	@echo > .lint-gofmt.diff
-	go list -f $(GO_LIST_GOFILES) $(GO_PACKAGES) | while read f; do \
-		gofmt -e -d "$${f}" >> .lint-gofmt.diff; \
-	done
-	@test -z "$(grep '[^[:blank:]]' .lint-gofmt.diff)" || (echo "gofmt found errors:"; cat .lint-gofmt.diff; exit 1)
-	@$(GOLINT) -set_exit_status $(GO_PACKAGES)
+lint: $(GOLANGCI_LINT) generate
+	@$(GOLANGCI_LINT) run -E revive -E dupl -E gci -E gofmt -E gofumpt -E goimports -E whitespace
+
+.PHONY: fix
+fix: $(GOLANGCI_LINT) generate
+	@$(GOLANGCI_LINT) run --fix -E revive -E dupl -E gci -E gofmt -E gofumpt -E goimports -E whitespace
 
 .PHONY: generate
 vet: generate

@@ -17,21 +17,21 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package config
 
-/*DevModeValues allowed values for DevMode*/
+/*DevModeValues allowed values for DevMode.*/
 var DevModeValues = AllowedOptions([]string{DevModeMwdd})
 
-/*DevModeMwdd value for DevMode that will use the docker/mediawiki-docker-dev command set*/
+/*DevModeMwdd value for DevMode that will use the docker/mediawiki-docker-dev command set.*/
 const DevModeMwdd string = "docker"
 
-/*Config representation of a cli config*/
+/*Config representation of a cli config.*/
 type Config struct {
 	DevMode string `json:"dev_mode"`
 }
 
-/*AllowedOptions representation of allowed options for a config value*/
+/*AllowedOptions representation of allowed options for a config value.*/
 type AllowedOptions []string
 
-/*Contains do the allowed options contain this value*/
+/*Contains do the allowed options contain this value.*/
 func (cao AllowedOptions) Contains(value string) bool {
 	for _, v := range cao {
 		if v == value {

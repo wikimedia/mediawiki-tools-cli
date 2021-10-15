@@ -25,7 +25,7 @@ import (
 	"strings"
 )
 
-/*NotMediaWikiDirectory error when a directory appears to not contain MediaWiki code*/
+/*NotMediaWikiDirectory error when a directory appears to not contain MediaWiki code.*/
 type NotMediaWikiDirectory struct {
 	directory string
 }
@@ -60,18 +60,18 @@ func GuessMediaWikiDirectoryBasedOnContext() string {
 	return suggestedMwDir
 }
 
-/*ForDirectory returns a MediaWiki for the current working directory*/
+/*ForDirectory returns a MediaWiki for the current working directory.*/
 func ForDirectory(directory string) (MediaWiki, error) {
 	return MediaWiki(directory), errorIfDirectoryDoesNotLookLikeCore(directory)
 }
 
-/*ForCurrentWorkingDirectory returns a MediaWiki for the current working directory*/
+/*ForCurrentWorkingDirectory returns a MediaWiki for the current working directory.*/
 func ForCurrentWorkingDirectory() (MediaWiki, error) {
 	currentWorkingDirectory, _ := os.Getwd()
 	return ForDirectory(currentWorkingDirectory)
 }
 
-/*CheckIfInCoreDirectory checks that the current working directory looks like a MediaWiki directory*/
+/*CheckIfInCoreDirectory checks that the current working directory looks like a MediaWiki directory.*/
 func CheckIfInCoreDirectory() {
 	_, err := ForCurrentWorkingDirectory()
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 
 /*EnsureInMemoryFilesAreOnDisk makes sure that up to date copies of our in app docker-compose files are on disk
 TODO this should be called only when we update the bin?
-TODO This is way to complex, and should be more clever.. checking a hash or something? and be more lightweight*/
+TODO This is way to complex, and should be more clever.. checking a hash or something? and be more lightweight.*/
 func ensureInMemoryFilesAreOnDisk(projectDirectory string) {
 	packagedFiles := packagedFileNames()
 
@@ -20,13 +20,13 @@ func ensureInMemoryFilesAreOnDisk(projectDirectory string) {
 
 		if _, err := os.Stat(fileTargetOnDisk); os.IsNotExist(err) {
 			// TODO only output the below line with verbose logging
-			//fmt.Println(fileTargetOnDisk + " doesn't exist, so write it...")
+			// fmt.Println(fileTargetOnDisk + " doesn't exist, so write it...")
 			writeBytesToDisk(packagedBytes, fileTargetOnDisk)
 		} else {
 			onDiskBytes := diskFileToBytes(fileTargetOnDisk)
 			if !bytes.Equal(onDiskBytes, packagedBytes) {
 				// TODO only output the below line with verbose logging
-				//fmt.Println(fileTargetOnDisk + " out of date, so writing...")
+				// fmt.Println(fileTargetOnDisk + " out of date, so writing...")
 				writeBytesToDisk(packagedBytes, fileTargetOnDisk)
 			}
 		}
@@ -44,9 +44,9 @@ func getAssumedFilePerms(filePath string) os.FileMode {
 	// All users should be able to read and execute these files so users in containers can use them
 	// XXX: Currently if you change these file permissions on disk files will need to be deleted and re added..
 	if filepath.Ext(filePath) == ".sh" {
-		return 0755
+		return 0o755
 	}
-	return 0655
+	return 0o655
 }
 
 func writeBytesToDisk(bytes []byte, filePath string) {
@@ -61,6 +61,6 @@ func ensureDirectoryForFileOnDisk(file string) {
 
 func ensureDirectoryOnDisk(dirPath string) {
 	if _, err := os.Stat(dirPath); err != nil {
-		os.MkdirAll(dirPath, 0755)
+		os.MkdirAll(dirPath, 0o755)
 	}
 }

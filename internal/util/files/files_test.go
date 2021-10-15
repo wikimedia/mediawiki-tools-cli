@@ -37,7 +37,7 @@ func writeContentToTmpFile(content string) string {
 }
 
 func randomString() string {
-	// A bit of randomness so that we dont need to open a file for our non existant test
+	// A bit of randomness so that we dont need to open a file for our non existent test
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	var b strings.Builder
 	for i := 0; i < 10; i++ {
@@ -58,7 +58,7 @@ func TestAddLinesUnique(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Non Existant",
+			name: "Non Existent",
 			args: args{
 				lines:    []string{"foo"},
 				filename: "/tmp/mwcli-test-files-empty-" + randomString(),
@@ -120,7 +120,7 @@ func TestLines(t *testing.T) {
 		want []string
 	}{
 		{
-			name: "Non Existant",
+			name: "Non Existent",
 			args: args{
 				fileName: "/tmp/mwcli-test-files-empty-" + randomString(),
 			},

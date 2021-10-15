@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-/*CanUpdateDaily will check for updates at most once a day*/
+/*CanUpdateDaily will check for updates at most once a day.*/
 func CanUpdateDaily(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
 	now := time.Now().UTC()
 	if now.Sub(lastCheckedTime()).Hours() < 3 {
@@ -58,7 +58,7 @@ func lastCheckedTime() time.Time {
 
 func setCheckedTime(toSet time.Time) {
 	ensureDirectoryForFileOnDisk(lastUpdateFilePath())
-	err := ioutil.WriteFile(lastUpdateFilePath(), []byte(toSet.Format(time.RFC3339)), 0700)
+	err := ioutil.WriteFile(lastUpdateFilePath(), []byte(toSet.Format(time.RFC3339)), 0o700)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,6 +77,6 @@ func ensureDirectoryForFileOnDisk(file string) {
 func ensureDirectoryOnDisk(dirPath string) {
 	// TODO factor this method out (also used in mwdd.files)
 	if _, err := os.Stat(dirPath); err != nil {
-		os.MkdirAll(dirPath, 0755)
+		os.MkdirAll(dirPath, 0o755)
 	}
 }

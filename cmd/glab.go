@@ -49,7 +49,7 @@ func init() {
 		if found {
 			glabCommand.RemoveCommand(command)
 		}
-		// TODO fix this one upsteam
+		// TODO fix this one upstream
 		if command.Name() == "config" {
 			command.Long = strings.Replace(command.Long, "https://gitlab.com", "https://gitlab.wikimedia.org", -1)
 		}

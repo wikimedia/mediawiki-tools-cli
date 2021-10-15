@@ -26,13 +26,15 @@ func mwddEnvDirectory() string {
 	return mwdd.DefaultForUser().Directory()
 }
 
-var mwddEnvCmd = cmd.Env("Interact with the environment variables")
-var mwddEnvDeleteCmd = cmd.EnvDelete(mwddEnvDirectory)
-var mwddEnvSetCmd = cmd.EnvSet(mwddEnvDirectory)
-var mwddEnvGetCmd = cmd.EnvGet(mwddEnvDirectory)
-var mwddEnvListCmd = cmd.EnvList(mwddEnvDirectory)
-var mwddEnvWhereCmd = cmd.EnvWhere(mwddEnvDirectory)
-var mwddEnvClearCmd = cmd.EnvClear(mwddEnvDirectory)
+var (
+	mwddEnvCmd       = cmd.Env("Interact with the environment variables")
+	mwddEnvDeleteCmd = cmd.EnvDelete(mwddEnvDirectory)
+	mwddEnvSetCmd    = cmd.EnvSet(mwddEnvDirectory)
+	mwddEnvGetCmd    = cmd.EnvGet(mwddEnvDirectory)
+	mwddEnvListCmd   = cmd.EnvList(mwddEnvDirectory)
+	mwddEnvWhereCmd  = cmd.EnvWhere(mwddEnvDirectory)
+	mwddEnvClearCmd  = cmd.EnvClear(mwddEnvDirectory)
+)
 
 func init() {
 	mwddCmd.AddCommand(mwddEnvCmd)

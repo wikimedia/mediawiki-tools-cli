@@ -27,7 +27,7 @@ import (
 )
 
 func randomString() string {
-	// A bit of randomness so that we dont need to open a file for our non existant test
+	// A bit of randomness so that we dont need to open a file for our non existent test
 	rand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	var b strings.Builder

@@ -24,10 +24,12 @@ import (
 	"testing"
 )
 
-var singleLocalHost = "127.0.0.1        iam.localhost\n"
-var singleOtherHost = "123.123.111.111        iam.not.localhost\n"
-var twoHostsToRemoveOnly = "127.0.0.1        1.mwcli.test 2.mwcli.test\n"
-var twoHostsToRemoveFromLocal = "127.0.0.1        iam.localhost 1.mwcli.test 2.mwcli.test\n"
+var (
+	singleLocalHost           = "127.0.0.1        iam.localhost\n"
+	singleOtherHost           = "123.123.111.111        iam.not.localhost\n"
+	twoHostsToRemoveOnly      = "127.0.0.1        1.mwcli.test 2.mwcli.test\n"
+	twoHostsToRemoveFromLocal = "127.0.0.1        iam.localhost 1.mwcli.test 2.mwcli.test\n"
+)
 
 func writeContentToTmpFile(content string) string {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), hostsTmpPrefix+"test-")

@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-/*FullifyUserProvidedPath fullify people entering ~/ paths and them not being handeled anywhere*/
+/*FullifyUserProvidedPath fullify people entering ~/ paths and them not being handeled anywhere.*/
 func FullifyUserProvidedPath(userProvidedPath string) string {
 	usr, _ := user.Current()
 	usrDir := usr.HomeDir
