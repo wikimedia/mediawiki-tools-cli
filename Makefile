@@ -2,7 +2,7 @@ GONAME=mw
 
 SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
-TARGETS ?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
+TARGETS ?= darwin/amd64 darwin/arm64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
 
 PACKAGE := gitlab.wikimedia.org/releng/cli
 VERSION := latest
