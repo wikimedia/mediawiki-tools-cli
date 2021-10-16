@@ -355,11 +355,12 @@ The process hidden within this command is:
 			if DbType == "sqlite" {
 				mwdd.DefaultForUser().Exec("mediawiki", []string{
 					"php",
-					"/var/www/html/w/maintenance/install.php",
+					"/mwdd/MwddInstall.php",
 					"--confpath", "/tmp",
 					"--server", serverLink,
 					"--dbtype", DbType,
 					"--dbname", DbName,
+					"--dbpath", "/var/www/html/w/cache/docker",
 					"--lang", "en",
 					"--pass", adminPass,
 					"docker-" + DbName,
@@ -381,7 +382,7 @@ The process hidden within this command is:
 			if DbType == "mysql" || DbType == "postgres" {
 				mwdd.DefaultForUser().Exec("mediawiki", []string{
 					"php",
-					"/var/www/html/w/maintenance/install.php",
+					"/mwdd/MwddInstall.php",
 					"--confpath", "/tmp",
 					"--server", serverLink,
 					"--dbtype", DbType,

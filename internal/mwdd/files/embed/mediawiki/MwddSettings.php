@@ -1,5 +1,9 @@
 <?php
 
+// Set a umask for MediaWiki as we are in a development envrionment
+// This is also currently injected via a wrapper around install.php for initial setup
+umask(000);
+
 ################################
 # MWDD START
 ################################
@@ -59,7 +63,7 @@ $mwddServices = [
 // TODO cache the DB existance checks somehow so as not to run on every request...
 
 // Figure out if we are using sqlite, or if this should be mysql..?
-if( file_exists( $IP . '/data/' . $dockerDb . '.sqlite' ) ) {
+if( file_exists( $IP . '/cache/docker/' . $dockerDb . '.sqlite' ) ) {
 	$dockerDbType = 'sqlite';
 }
 
@@ -116,7 +120,7 @@ $wgDBname = $dockerDb;
 if( $dockerDbType === 'sqlite' ) {
 	$wgDBservers = [
 		[
-			'dbDirectory' => $IP . '/data',
+			'dbDirectory' => $IP . '/cache/docker',
 			'dbname' => $dockerDb,
 			'type' => $dockerDbType,
 			'flags' => DBO_DEFAULT,

@@ -22,6 +22,7 @@
 ./mediawiki/MwddSettings.php
 ./mediawiki/MwddSpecialPage.php
 ./mediawiki/MwddSpecialPage-aliases.php
+./mediawiki/MwddInstall.php
 ./mediawiki/entrypoint.sh
 ./postgres.yml
 ./graphite.yml
