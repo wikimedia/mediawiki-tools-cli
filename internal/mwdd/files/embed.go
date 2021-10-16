@@ -1,57 +1,73 @@
+/*Package files for interacting packaged files and their counterparts on disk for a project directory
+
+Copyright © 2020 Addshore
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
 package files
 
 import (
-	"bytes"
 	"embed"
-	"fmt"
-	"io"
-	"io/fs"
-	"io/ioutil"
-	"strings"
+	"os"
+	"path/filepath"
+
+	"gitlab.wikimedia.org/releng/cli/internal/util/embedsync"
 )
 
 //go:embed embed
 var content embed.FS
 
-func strippedFileName(name string) string {
-	return strings.TrimPrefix(name, "embed/")
+func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
+	return embedsync.EmbeddingDiskSync{
+		Embed:     content,
+		EmbedPath: "embed",
+		DiskPath:  projectDirectory,
+	}
 }
 
-func files() []string {
-	return replaceInAllStrings(strings.Split(strings.Trim(indexString(), "\n"), "\n"), "./", "embed/")
+/*EnsureReady makes sure that the files component is ready.*/
+func EnsureReady(projectDirectory string) {
+	syncer := syncer(projectDirectory)
+	syncer.EnsureFilesOnDisk()
 }
 
-func fileBytes(name string) []byte {
-	fileReader := fileReaderOrExit(name)
-	bytes, _ := ioutil.ReadAll(fileReader)
-	return bytes
+/*ListRawDcYamlFilesInContextOfProjectDirectory ...*/
+func ListRawDcYamlFilesInContextOfProjectDirectory(projectDirectory string) []string {
+	// TODO this function should live in the mwdd struct?
+	var files []string
+
+	for _, file := range listRawFiles(projectDirectory) {
+		if filepath.Ext(file) == ".yml" {
+			files = append(files, filepath.Base(file))
+		}
+	}
+
+	return files
 }
 
-func fileString(name string) string {
-	fileReader := fileReaderOrExit(name)
-	buf := bytes.NewBuffer(nil)
-	io.Copy(buf, fileReader)
-	fileReader.Close()
-	return buf.String()
-}
+/*listRawFiles lists the raw docker-compose file paths that are currently on disk.*/
+func listRawFiles(projectDirectory string) []string {
+	var files []string
 
-func fileReaderOrExit(name string) fs.File {
-	fileReader, err := content.Open(name)
+	err := filepath.Walk(projectDirectory, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
 	if err != nil {
-		fmt.Println("Failed to open file: " + name)
-		fmt.Println(err)
 		panic(err)
 	}
-	return fileReader
-}
-
-func replaceInAllStrings(list []string, find string, replace string) []string {
-	for i, s := range list {
-		list[i] = strings.Replace(s, find, replace, -1)
-	}
-	return list
-}
-
-func indexString() string {
-	return fileString("embed/files.txt")
+	return files
 }

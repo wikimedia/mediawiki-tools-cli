@@ -1,0 +1,3 @@
+./testfile1
+./testfile2.txt
+./adir/test3
