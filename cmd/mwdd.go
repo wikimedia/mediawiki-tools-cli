@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/manifoldco/promptui"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
@@ -37,18 +37,23 @@ var mwddCmd = &cobra.Command{
 		mwdd.EnsureReady()
 		if mwdd.Env().Missing("PORT") {
 			if !NoInteraction {
-				prompt := promptui.Prompt{
-					Label:    "What port would you like to use for your development environment?",
-					Default:  ports.FreeUpFrom("8080"),
-					Validate: ports.IsValidAndFree,
+				port := ""
+				prompt := &survey.Input{
+					Message: "What port would you like to use for your development environment?",
+					Default: ports.FreeUpFrom("8080"),
 				}
-				value, err := prompt.Run()
-				if err == nil {
-					mwdd.Env().Set("PORT", value)
-				} else {
-					fmt.Println("Can't continue without a port")
+				err := survey.AskOne(prompt, &port)
+				if err != nil {
+					fmt.Println(err)
 					os.Exit(1)
 				}
+				validityChck := ports.IsValidAndFree(port)
+				if validityChck != nil {
+					fmt.Println(validityChck)
+					os.Exit(1)
+				}
+
+				mwdd.Env().Set("PORT", port)
 			} else {
 				mwdd.Env().Set("PORT", ports.FreeUpFrom("8080"))
 			}

@@ -1,6 +1,7 @@
 module gitlab.wikimedia.org/releng/cli
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/chroma v0.9.2 // indirect
@@ -17,8 +18,6 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/joho/godotenv v1.4.0
-	github.com/juju/ansiterm v0.0.0-20210929141451-8b71cc96ebdc // indirect
-	github.com/manifoldco/promptui v0.8.0
 	github.com/mattn/go-colorable v0.1.11 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.15 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
@@ -42,6 +41,7 @@ require (
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/genproto v0.0.0-20211015135405-485ec31e706e // indirect
 	google.golang.org/grpc v1.41.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.63.2
 )
 

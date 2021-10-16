@@ -25,8 +25,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mediawiki"
@@ -50,14 +50,20 @@ var mwddMediawikiCmd = &cobra.Command{
 		if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
 			if !NoInteraction {
 				// Prompt the user for a directory or confirmation
-				dirPrompt := promptui.Prompt{
-					Label:   "What directory would you like to store MediaWiki source code in?",
+				dirValue := ""
+				prompt := &survey.Input{
+					Message: "What directory would you like to store MediaWiki source code in?",
 					Default: mediawiki.GuessMediaWikiDirectoryBasedOnContext(),
 				}
-				value, err := dirPrompt.Run()
+				err := survey.AskOne(prompt, &dirValue)
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+				// TODO check if path looks valid?
 
 				if err == nil {
-					mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(value))
+					mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(dirValue))
 				} else {
 					fmt.Println("Can't continue without a MediaWiki code directory")
 					os.Exit(1)
@@ -88,76 +94,85 @@ var mwddMediawikiCmd = &cobra.Command{
 		// TODO async cloning of repos for speed!
 		if !mediawiki.MediaWikiIsPresent() {
 			if !NoInteraction {
-				cloneMwPrompt := promptui.Prompt{
-					Label:     "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now? (Negative answers will abort this command)",
-					IsConfirm: true,
+				cloneMw := false
+				prompt := &survey.Confirm{
+					Message: "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now? (Negative answers will abort this command)",
 				}
-				if _, err := cloneMwPrompt.Run(); err != nil {
-					fmt.Println("Can't continue without a MediaWiki code")
+				err := survey.AskOne(prompt, &cloneMw)
+				if err != nil {
+					fmt.Println(err)
 					os.Exit(1)
-				} else {
-					setupOpts.GetMediaWiki = err != nil
 				}
+				setupOpts.GetMediaWiki = cloneMw
 			} else {
 				setupOpts.GetMediaWiki = true
 			}
 		}
 		if !mediawiki.VectorIsPresent() {
 			if !NoInteraction {
-				cloneVectorPrompt := promptui.Prompt{
-					Label:     "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
-					IsConfirm: true,
+				cloneVector := false
+				prompt := &survey.Confirm{
+					Message: "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
 				}
-				if _, err := cloneVectorPrompt.Run(); err == promptui.ErrInterrupt {
-					fmt.Println("Keyboard interrupt detected. Shutting down.")
+				err := survey.AskOne(prompt, &cloneVector)
+				if err != nil {
+					fmt.Println(err)
 					os.Exit(1)
-				} else {
-					setupOpts.GetVector = err != nil
 				}
+				setupOpts.GetVector = cloneVector
 			} else {
 				setupOpts.GetVector = true
 			}
 		}
 		if setupOpts.GetMediaWiki || setupOpts.GetVector {
 			if !NoInteraction {
-				cloneFromGithubPrompt := promptui.Prompt{
-					Label:     "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
-					IsConfirm: true,
+				cloneFromGithub := false
+				prompt1 := &survey.Confirm{
+					Message: "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
 				}
-				if _, err := cloneFromGithubPrompt.Run(); err == promptui.ErrInterrupt {
-					fmt.Println("Keyboard interrupt detected. Shutting down.")
+				err := survey.AskOne(prompt1, &cloneFromGithub)
+				if err != nil {
+					fmt.Println(err)
 					os.Exit(1)
-				} else {
-					setupOpts.UseGithub = err != nil
 				}
+				setupOpts.UseGithub = cloneFromGithub
 
-				cloneShallowPrompt := promptui.Prompt{
-					Label:     "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
-					IsConfirm: true,
+				cloneShallow := false
+				prompt2 := &survey.Confirm{
+					Message: "Do you want to use shallow clones for extra speed? (You can fetch all history later using `git fetch --unshallow`)",
 				}
-				if _, err := cloneShallowPrompt.Run(); err == promptui.ErrInterrupt {
-					fmt.Println("Keyboard interrupt detected. Shutting down.")
+				err = survey.AskOne(prompt2, &cloneShallow)
+				if err != nil {
+					fmt.Println(err)
 					os.Exit(1)
-				} else {
-					setupOpts.UseShallow = err != nil
 				}
+				setupOpts.UseShallow = cloneFromGithub
 
-				finalRemoteTypePrompt := promptui.Prompt{
-					Label:   "How do you want to interact with Gerrit for the cloned repositores? (http or ssh)",
+				finalRemoteType := ""
+				prompt3 := &survey.Select{
+					Message: "How do you want to interact with Gerrit for the cloned repositores?",
+					Options: []string{"ssh", "http"},
 					Default: "ssh",
 				}
-				remoteType, err := finalRemoteTypePrompt.Run()
-				if err != nil || (remoteType != "ssh" && remoteType != "http") {
-					fmt.Println("Invalid Gerrit interaction type chosen.")
+				err = survey.AskOne(prompt3, &finalRemoteType)
+				if err != nil {
+					fmt.Println(err)
 					os.Exit(1)
 				}
-				setupOpts.GerritInteractionType = remoteType
-				if remoteType == "ssh" {
-					gerritUsernamePrompt := promptui.Prompt{
-						Label: "What is your Gerrit username?",
+				setupOpts.GerritInteractionType = finalRemoteType
+
+				if finalRemoteType == "ssh" {
+					gerritUsername := ""
+					prompt := &survey.Input{
+						Message: "What is your Gerrit username?",
 					}
-					gerritUsername, err := gerritUsernamePrompt.Run()
-					if err != nil || len(gerritUsername) < 1 {
+					err = survey.AskOne(prompt, &gerritUsername)
+					if err != nil {
+						fmt.Println(err)
+						os.Exit(1)
+					}
+
+					if len(gerritUsername) < 1 {
 						fmt.Println("Gerrit username required for ssh interaction type.")
 						os.Exit(1)
 					}
@@ -230,12 +245,17 @@ The process hidden within this command is:
 
 		mediawiki, _ := mediawiki.ForDirectory(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 		if !mediawiki.LocalSettingsIsPresent() {
-			prompt := promptui.Prompt{
-				IsConfirm: true,
-				Label:     "No LocalSettings.php detected. Do you want to create the default mwdd file?",
+			createDefaultFile := false
+			prompt := &survey.Confirm{
+				Message: "No LocalSettings.php detected. Do you want to create the default mwdd file?",
 			}
-			_, err := prompt.Run()
-			if err == nil {
+			err := survey.AskOne(prompt, &createDefaultFile)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			if createDefaultFile {
 				lsPath := mediawiki.Path("LocalSettings.php")
 
 				f, err := os.Create(lsPath)
@@ -293,12 +313,17 @@ The process hidden within this command is:
 				exec.HandlerOptions{}, User)
 			if composerErr != nil {
 				fmt.Println("Composer check failed:", composerErr)
-				prompt := promptui.Prompt{
-					IsConfirm: true,
-					Label:     "Composer dependencies are not up to date, do you want to composer install & update?",
+
+				doComposerInstall := false
+				prompt := &survey.Confirm{
+					Message: "Composer dependencies are not up to date, do you want to composer install & update?",
 				}
-				_, err := prompt.Run()
-				if err == nil {
+				err := survey.AskOne(prompt, &doComposerInstall)
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+				if doComposerInstall {
 					mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 						DockerComposeService: "mediawiki",
 						Command:              []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},

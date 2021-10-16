@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/manifoldco/promptui"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
@@ -39,13 +39,18 @@ var updateCmd = &cobra.Command{
 		fmt.Println("New update found: " + toUpdateToOrMessage)
 
 		if !NoInteraction {
-			updatePrompt := promptui.Prompt{
-				Label:     " Do you want to update?",
-				IsConfirm: true,
+			response := false
+			prompt := &survey.Confirm{
+				Message: "Do you want to update?",
 			}
-			_, err := updatePrompt.Run()
+			err := survey.AskOne(prompt, &response)
 			if err != nil {
-				return
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			if !response {
+				fmt.Println("Update cancelled")
+				os.Exit(0)
 			}
 		}
 
