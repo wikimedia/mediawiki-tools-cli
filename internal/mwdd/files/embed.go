@@ -33,6 +33,12 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 		Embed:     content,
 		EmbedPath: "embed",
 		DiskPath:  projectDirectory,
+		IgnoreFiles: []string{
+			// Used by docker-compose to store currnet environment variables in
+			".env",
+			// Used by the dev environment to store hosts that need adding to the hosts file
+			"record-hosts",
+		},
 	}
 }
 
@@ -40,6 +46,7 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 func EnsureReady(projectDirectory string) {
 	syncer := syncer(projectDirectory)
 	syncer.EnsureFilesOnDisk()
+	syncer.EnsureNoExtraFilesOnDisk()
 }
 
 /*ListRawDcYamlFilesInContextOfProjectDirectory ...*/

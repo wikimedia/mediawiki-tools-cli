@@ -24,6 +24,7 @@ package embedsync
 
 import (
 	"embed"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -41,6 +42,15 @@ func checkFileContent(t *testing.T, file string, expected string) {
 	if string(content) != expected {
 		t.Errorf("Expected %s, got %s", expected, string(content))
 	}
+}
+
+func writeFileContent(t *testing.T, file string, content string) {
+	f, err := os.Create(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	f.WriteString(content)
 }
 
 func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
@@ -78,18 +88,42 @@ func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
 	t.Run("Ensure files overwritten if changed", func(t *testing.T) {
 		e.EnsureFilesOnDisk()
 
-		file, err := os.Create(dir + "/testfile1")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer file.Close()
-		file.WriteString("changed")
-		file.Close()
-
+		writeFileContent(t, dir+"/testfile1", "changed")
 		checkFileContent(t, dir+"/testfile1", "changed")
 
 		e.EnsureFilesOnDisk()
 
 		checkFileContent(t, dir+"/testfile1", "foo")
 	})
+}
+
+func TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk(t *testing.T) {
+	dir, err := ioutil.TempDir("", "TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	e := EmbeddingDiskSync{
+		Embed:     testContent,
+		EmbedPath: "testembed",
+		DiskPath:  dir,
+		IgnoreFiles: []string{
+			"ignoreme",
+		},
+	}
+
+	e.EnsureFilesOnDisk()
+
+	writeFileContent(t, dir+"/ignoreme", "ignored")
+	writeFileContent(t, dir+"/deleteme", "gone")
+
+	e.EnsureNoExtraFilesOnDisk()
+
+	checkFileContent(t, dir+"/ignoreme", "ignored")
+
+	_, err = os.Stat(dir + "/deleteme")
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Error("Expected file to be deleted", err)
+	}
 }

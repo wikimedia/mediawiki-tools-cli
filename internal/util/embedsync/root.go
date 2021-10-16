@@ -39,43 +39,80 @@ import (
 )
 
 type EmbeddingDiskSync struct {
-	Embed     embed.FS
-	EmbedPath string
-	DiskPath  string
+	Embed       embed.FS
+	EmbedPath   string
+	DiskPath    string
+	IgnoreFiles []string
 }
 
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
-	embededFiles := e.files()
+	embededFiles := e.embededFiles()
 
 	// Ensure each file is on disk and up to date
-	for _, embedFileName := range embededFiles {
-		strippedFileName := e.strippedFileName(embedFileName)
-		fileTargetOnDisk := e.DiskPath + string(os.PathSeparator) + strippedFileName
-		embededBytes := e.fileBytes(strippedFileName)
+	for _, embedFile := range embededFiles {
+		agnosticFile := e.agnosticFileFromEmbed(embedFile)
+		diskFile := e.DiskPath + string(os.PathSeparator) + agnosticFile
+		embedBytes := e.agnosticEmbedBytes(agnosticFile)
 
-		if _, err := os.Stat(fileTargetOnDisk); os.IsNotExist(err) {
+		if _, err := os.Stat(diskFile); os.IsNotExist(err) {
 			// TODO only output the below line with verbose logging
-			// fmt.Println(fileTargetOnDisk + " doesn't exist, so write it...")
-			writeBytesToDisk(embededBytes, fileTargetOnDisk)
+			// fmt.Println(diskFile + " doesn't exist, so write it...")
+			writeBytesToDisk(embedBytes, diskFile)
 		} else {
-			onDiskBytes := files.Bytes(fileTargetOnDisk)
-			if !bytes.Equal(onDiskBytes, embededBytes) {
+			diskBytes := files.Bytes(diskFile)
+			if !bytes.Equal(diskBytes, embedBytes) {
 				// TODO only output the below line with verbose logging
-				// fmt.Println(fileTargetOnDisk + " out of date, so writing...")
-				writeBytesToDisk(embededBytes, fileTargetOnDisk)
+				// fmt.Println(diskFile + " out of date, so writing...")
+				writeBytesToDisk(embedBytes, diskFile)
 			}
 		}
 	}
 }
 
 func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
-	// TODO https://phabricator.wikimedia.org/T282361
-	panic("not implemented")
+	diskFiles := e.diskFiles()
+	embededFiles := e.embededFiles()
+
+	for _, diskFile := range diskFiles {
+		agnosticFile := e.agnosticFileFromDisk(diskFile)
+		embedFile := e.EmbedPath + string(os.PathSeparator) + agnosticFile
+		if !utilstrings.StringInSlice(embedFile, embededFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
+			// TODO only output the below line with verbose logging
+			// fmt.Println(diskFile + " no logner needed, so removing")
+			err := os.Remove(diskFile)
+			if err != nil {
+				fmt.Println("Failed to remove file: " + diskFile)
+				fmt.Println(err)
+				panic(err)
+			}
+		}
+	}
 }
 
-func (e EmbeddingDiskSync) files() []string {
+func (e EmbeddingDiskSync) embededFiles() []string {
 	// "./" switched for EmbedPath as from content of files.txt
 	return utilstrings.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+string(os.PathSeparator))
+}
+
+func (e EmbeddingDiskSync) diskFiles() []string {
+	return getFilesInDirectory(e.DiskPath)
+}
+
+func getFilesInDirectory(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		panic(err)
+	}
+	var files []string
+	for _, entry := range entries {
+		fullPath := dir + string(os.PathSeparator) + entry.Name()
+		if entry.IsDir() {
+			files = append(files, getFilesInDirectory(fullPath)...)
+			continue
+		}
+		files = append(files, fullPath)
+	}
+	return files
 }
 
 func (e EmbeddingDiskSync) indexString() string {
@@ -90,7 +127,7 @@ func (e EmbeddingDiskSync) fileString(name string) string {
 	return buf.String()
 }
 
-func (e EmbeddingDiskSync) fileBytes(name string) []byte {
+func (e EmbeddingDiskSync) agnosticEmbedBytes(name string) []byte {
 	fileReader := e.fileReaderOrExit(name)
 	bytes, _ := ioutil.ReadAll(fileReader)
 	return bytes
@@ -107,8 +144,12 @@ func (e EmbeddingDiskSync) fileReaderOrExit(name string) fs.File {
 	return fileReader
 }
 
-func (e EmbeddingDiskSync) strippedFileName(name string) string {
+func (e EmbeddingDiskSync) agnosticFileFromEmbed(name string) string {
 	return strings.TrimPrefix(name, e.EmbedPath+string(os.PathSeparator))
+}
+
+func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
+	return strings.TrimPrefix(name, e.DiskPath+string(os.PathSeparator))
 }
 
 func writeBytesToDisk(bytes []byte, file string) {

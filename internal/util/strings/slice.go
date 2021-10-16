@@ -8,3 +8,12 @@ func ReplaceInAll(list []string, find string, replace string) []string {
 	}
 	return list
 }
+
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
