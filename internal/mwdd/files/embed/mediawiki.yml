@@ -20,6 +20,7 @@ services:
       - COMPOSER_CACHE_DIR=/.composer/cache
       - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
       - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-develop,debug}
+      - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
     depends_on:
       - mediawiki-web
     dns:
