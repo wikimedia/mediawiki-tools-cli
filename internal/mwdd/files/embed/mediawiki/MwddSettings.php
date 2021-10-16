@@ -55,6 +55,7 @@ $mwddServices = [
 	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
+	'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
 
 ################################
@@ -175,6 +176,16 @@ if( $dockerDbType === 'postgres' ) {
 	// https://www.mediawiki.org/wiki/Manual:$wgDBmwschema
 	$wgDBmwschema = "mediawiki";
 }
+
+################################
+# MWDD Mail / Mail Hog
+################################
+$wgSMTP = [
+    'host'     => 'mailhog',
+    'IDHost'   => 'mailhog',
+    'port'     => '1025',
+    'auth'     => false,
+];
 
 ################################
 # MWDD Redis

@@ -2,6 +2,7 @@
 ./adminer.yml
 ./mediawiki.yml
 ./files.txt
+./mailhog.yml
 ./wait-for-it.sh
 ./elasticsearch.yml
 ./redis.yml
