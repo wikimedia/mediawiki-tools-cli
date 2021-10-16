@@ -30,15 +30,16 @@ var (
 	hostsTmpPrefix = "mwcli-hosts-"
 )
 
-/*Save result of saving the hosts file.*/
-type Save struct {
+/*ChangeResult result of changing the hosts file.*/
+type ChangeResult struct {
 	Success   bool
+	Altered   bool
 	Content   string
 	WriteFile string
 }
 
 /*AddHosts attempts to add requested hosts to the system hosts file, and gives you the new content, a tmp file and success.*/
-func AddHosts(toAdd []string) Save {
+func AddHosts(toAdd []string) ChangeResult {
 	hosts := hosts()
 	serviceIP := "127.0.0.1"
 
@@ -55,14 +56,14 @@ func AddHosts(toAdd []string) Save {
 	// TODO when the library supports it do ipv6 too https://github.com/txn2/txeh/issues/15
 	// hosts.AddHosts("::1", toAdd)
 
-	return save(hosts)
+	return finishChanges(hosts)
 }
 
 /*RemoveHostsWithSuffix attempts to remove all hosts with a suffix from the system hosts file, and gives you the new content, a tmp file and success.*/
-func RemoveHostsWithSuffix(hostSuffix string) Save {
+func RemoveHostsWithSuffix(hostSuffix string) ChangeResult {
 	hosts := hosts()
 	removeHostsWithSuffixFromLines(hostSuffix, hosts)
-	return save(hosts)
+	return finishChanges(hosts)
 }
 
 /*Writable is the hosts file writable.*/
@@ -113,7 +114,20 @@ func removeHostsWithSuffixFromLines(hostSuffix string, hosts *txeh.Hosts) *txeh.
 	return hosts
 }
 
-func save(hosts *txeh.Hosts) Save {
+func finishChanges(touchedHosts *txeh.Hosts) ChangeResult {
+	diskHosts := hosts()
+	if diskHosts.RenderHostsFile() != touchedHosts.RenderHostsFile() {
+		return save(touchedHosts)
+	}
+	return ChangeResult{
+		Success:   true,
+		Altered:   false,
+		Content:   diskHosts.RenderHostsFile(),
+		WriteFile: diskHosts.WriteFilePath,
+	}
+}
+
+func save(hosts *txeh.Hosts) ChangeResult {
 	err := hosts.Save()
 	if err != nil {
 		tmpFile := tmpFile()
@@ -121,15 +135,17 @@ func save(hosts *txeh.Hosts) Save {
 		if err != nil {
 			panic(err)
 		}
-		return Save{
+		return ChangeResult{
 			Success:   false,
+			Altered:   true,
 			Content:   hosts.RenderHostsFile(),
 			WriteFile: tmpFile,
 		}
 	}
 
-	return Save{
+	return ChangeResult{
 		Success:   true,
+		Altered:   true,
 		Content:   hosts.RenderHostsFile(),
 		WriteFile: hosts.WriteFilePath,
 	}

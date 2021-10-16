@@ -50,7 +50,7 @@ func TestAddHosts(t *testing.T) {
 		startingContent string
 		name            string
 		args            args
-		want            Save
+		want            ChangeResult
 	}{
 		{
 			name:            "Empty: Add single: 1.mwcli.test",
@@ -58,8 +58,9 @@ func TestAddHosts(t *testing.T) {
 			args: args{
 				toAdd: []string{"1.mwcli.test"},
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   true,
 				Content:   "127.0.0.1        1.mwcli.test\n",
 				WriteFile: "",
 			},
@@ -70,8 +71,9 @@ func TestAddHosts(t *testing.T) {
 			args: args{
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   true,
 				Content:   "127.0.0.1        1.mwcli.test 2.mwcli.test\n",
 				WriteFile: "",
 			},
@@ -82,8 +84,9 @@ func TestAddHosts(t *testing.T) {
 			args: args{
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   true,
 				Content:   "127.0.0.1        iam.localhost 1.mwcli.test 2.mwcli.test\n",
 				WriteFile: "",
 			},
@@ -94,8 +97,9 @@ func TestAddHosts(t *testing.T) {
 			args: args{
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   true,
 				Content:   "123.123.111.111  iam.not.localhost\n127.0.0.1        1.mwcli.test 2.mwcli.test\n",
 				WriteFile: "",
 			},
@@ -125,7 +129,7 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 		startingContent string
 		name            string
 		args            args
-		want            Save
+		want            ChangeResult
 	}{
 		{
 			name:            "Remove mwcli.test suffix, resulting in same content",
@@ -133,8 +137,9 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			args: args{
 				hostSuffix: "mwcli.test",
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   false,
 				Content:   singleLocalHost,
 				WriteFile: "",
 			},
@@ -145,8 +150,9 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			args: args{
 				hostSuffix: "mwcli.test",
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   true,
 				Content:   "",
 				WriteFile: "",
 			},
@@ -157,8 +163,9 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			args: args{
 				hostSuffix: "mwcli.test",
 			},
-			want: Save{
+			want: ChangeResult{
 				Success:   true,
+				Altered:   true,
 				Content:   singleLocalHost,
 				WriteFile: "",
 			},

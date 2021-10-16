@@ -36,7 +36,7 @@ var mwddHostsAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Adds development environment hosts into your system hosts file (might need sudo)",
 	Run: func(cmd *cobra.Command, args []string) {
-		save := hosts.AddHosts(
+		changeResult := hosts.AddHosts(
 			append(
 				[]string{
 					// TODO generate these by reading the yml files?
@@ -49,20 +49,7 @@ var mwddHostsAddCmd = &cobra.Command{
 				mwdd.DefaultForUser().UsedHosts()...,
 			),
 		)
-		if save.Success {
-			fmt.Println("Hosts file " + save.WriteFile + " updated!")
-		} else {
-			fmt.Println("Could not save your hosts file.")
-			fmt.Println("You can return with sudo.")
-			fmt.Println("Or edit the hosts file yourself.")
-			fmt.Println("Temporary file: " + save.WriteFile)
-			fmt.Println("")
-			fmt.Println(save.Content)
-			// Hack around https://phabricator.wikimedia.org/T292909
-			if os.Getenv("MWCLI_CONTEXT_TEST") == "" {
-				os.Exit(1)
-			}
-		}
+		handleChangeResult(changeResult)
 	},
 }
 
@@ -70,22 +57,23 @@ var mwddHostsRemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Removes development environment hosts from your system hosts file (might need sudo)",
 	Run: func(cmd *cobra.Command, args []string) {
-		save := hosts.RemoveHostsWithSuffix("mwdd.localhost")
-		if save.Success {
-			fmt.Println("Hosts file " + save.WriteFile + " updated!")
-		} else {
-			fmt.Println("Could not save your hosts file.")
-			fmt.Println("You can return with sudo.")
-			fmt.Println("Or edit the hosts file yourself.")
-			fmt.Println("Temporary file: " + save.WriteFile)
-			fmt.Println("")
-			fmt.Println(save.Content)
-			// Hack around https://phabricator.wikimedia.org/T292909
-			if os.Getenv("MWCLI_CONTEXT_TEST") == "" {
-				os.Exit(1)
-			}
-		}
+		handleChangeResult(hosts.RemoveHostsWithSuffix("mwdd.localhost"))
 	},
+}
+
+func handleChangeResult(result hosts.ChangeResult) {
+	if result.Success && result.Altered {
+		fmt.Println("Hosts file altered and updated: " + result.WriteFile)
+	} else if result.Altered {
+		fmt.Println("Wanted to alter your hosts file bu could not.")
+		fmt.Println("You can re-run this command with sudo.")
+		fmt.Println("Or edit the hosts file yourself.")
+		fmt.Println("Temporary file: " + result.WriteFile)
+		fmt.Println("")
+		fmt.Println(result.Content)
+	} else {
+		fmt.Println("No changes needed.")
+	}
 }
 
 var mwddHostsWritableCmd = &cobra.Command{
