@@ -65,14 +65,13 @@ Many other Makefile commands exist that you might find useful:
 - `cmd`: Contains the Cobra commands and deals with all CLI user interaction.
 - `internal/cmd`: General Cobra command abstractions that may be useful in multiple places.
 - `internal/config`: Interaction with the CLI configuration
-- `internal/docker`: Logic interacting with the mediawiki-docker dev environment.
-- `internal/env`: Logic interacting with a `.env` file.
 - `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc.
 - `internal/gitlab`: Basic interaction with the Wikimedia Gitlab instance
 - `internal/mediawiki`: Logic interacting with a MediaWiki installation directory on disk.
 - `internal/mwdd`: Logic for the MediaWiki-docker-dev development environment.
+- `internal/mwdd/files/embed`: Files that end up being extracted to disk for the dev environment under `~/mwcli/mwdd/default`.
 - `internal/updater`: CLI tool updating.
-- `static`: Files that end up being built into the binary.
+- `internal/util`: A collection of quite well defined and restricted useful utility packages.
 - `tests`: Integration tests that are run as part of CI.
 
 ### cmd names

@@ -43,11 +43,13 @@ if ( defined( "MW_DB" ) ) {
 }
 
 # Only use "advanced" services if they can be seen, and if we are not in tests
+# TODO this is confusing, tidy it up, what is it?
 $mwddServices = [
 	'mysql' => gethostbyname('mysql') !== 'mysql',
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
 	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
+	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
 
@@ -185,6 +187,13 @@ if(gethostbyname('redis') !== 'redis') {
 ################################
 if(gethostbyname('memcached') !== 'memcached') {
 	$wgMemCachedServers = [ 'memcached:11211' ];
+}
+
+################################
+# MWDD ElasticSearch
+################################
+if(gethostbyname('elasticsearch') !== 'elasticsearch') {
+	$wgCirrusSearchServers = [ 'elasticsearch' ];
 }
 
 ################################

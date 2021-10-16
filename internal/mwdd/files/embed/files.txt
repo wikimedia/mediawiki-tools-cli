@@ -3,6 +3,7 @@
 ./mediawiki.yml
 ./files.txt
 ./wait-for-it.sh
+./elasticsearch.yml
 ./redis.yml
 ./mysql.yml
 ./base.yml

@@ -1,0 +1,21 @@
+version: '3.7'
+
+services:
+  elasticsearch:
+    image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
+    # TODO optionally switch this automatically based on architecture?
+    # TODO actually build this image somewhere nicer?
+    # on an Apple M1 / arm64 system, you can use kostajh/wmf-elasticsearch-arm64,
+    # see https://gitlab.wikimedia.org/kharlan/wmf-elasticsearch-arm64/
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
+
+volumes:
+  elasticsearch-data:
+    driver: local

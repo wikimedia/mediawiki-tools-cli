@@ -44,11 +44,11 @@ test: $(GOVVV) generate
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run -E revive -E dupl -E gci -E gofmt -E gofumpt -E goimports -E whitespace
+	@$(GOLANGCI_LINT) run -E revive -E gci -E gofmt -E gofumpt -E goimports -E whitespace
 
 .PHONY: fix
 fix: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run --fix -E revive -E dupl -E gci -E gofmt -E gofumpt -E goimports -E whitespace
+	@$(GOLANGCI_LINT) run --fix -E revive -E gci -E gofmt -E gofumpt -E goimports -E whitespace
 
 .PHONY: generate
 vet: generate
@@ -58,3 +58,7 @@ vet: generate
 staticcheck: $(STATICCHECK) generate
 	$(STATICCHECK) -version
 	$(STATICCHECK) -- ./...
+
+.PHONY: duplicates
+duplicates: $(GOLANGCI_LINT) generate
+	@$(GOLANGCI_LINT) run -E dupl
