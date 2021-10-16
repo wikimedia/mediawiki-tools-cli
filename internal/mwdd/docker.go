@@ -24,7 +24,6 @@ import (
 	"os"
 	gosignal "os/signal"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -72,7 +71,7 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 		Tty:          true,
 		WorkingDir:   command.WorkingDir,
 		User:         command.User,
-		Cmd:          []string{"/bin/sh", "-c", strings.Join(command.Command, " ")},
+		Cmd:          command.Command,
 	}
 
 	response, err := cli.ContainerExecCreate(ctx, containerID, execConfig)
@@ -149,8 +148,8 @@ func (m MWDD) DockerRun(command DockerExecCommand) {
 	containerConfig.Tty = true
 	containerConfig.WorkingDir = command.WorkingDir
 	containerConfig.User = command.User
-	containerConfig.Entrypoint = []string{"/bin/sh"}
-	containerConfig.Cmd = []string{"-c", strings.Join(command.Command, " ")}
+	containerConfig.Entrypoint = []string{command.Command[0]}
+	containerConfig.Cmd = command.Command[1:]
 
 	// Remove the old one and start a new one with new options :)
 	cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
