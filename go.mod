@@ -12,7 +12,8 @@ require (
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
+	github.com/fatih/color v1.13.0
+	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -26,6 +27,7 @@ require (
 	github.com/profclems/glab v1.21.1
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rivo/tview v0.0.0-20211001102648-5508f4b00266 // indirect
+	github.com/rodaine/table v1.0.1
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/txn2/txeh v1.3.0
