@@ -8,6 +8,26 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.5.0
+
+- Added `toolhub` command for `list`ing and `get`ing tools.
+- Added `gerrit change list` command.
+- Added `gerrit group members` command.
+- Improved all prompt questions.
+- Now also built targetting `darwin/arm64`.
+
+Development environment specific:
+
+- Added `elasticsearch` service.
+- Added a `mailhog` service https://github.com/mailhog/MailHog.
+- Fixed issues cloning MediaWiki and Vecotr with a non shallow clone during setup.
+- Fixed SQLite permission issues.
+- Fixed issue with using `maintenance/shell.php`.
+- Fixed some `quibble` commands.
+- Fixed trying to save `/etc/hosts` file even when nothing had changed.
+
+This release was made on 17th October 2021.
+
 ## v0.4.0
 
 - Added `gerrit` command with `project` subcommand.
@@ -21,6 +41,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Fixed typos throughout (thanks Lens0021).
 - `$wgTmpDirectory` is no longer set by `docker mediawiki`, allowing the MediaWiki default to prevail.
 
+This release was made on 15th October 2021.
+
 ## v0.3.0
 
 - Added `gitlab` command for interacting with the Wikimedia Gitlab instance.
@@ -28,6 +50,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Changed update check period from 1 day to 3 hours.
 - Fixed long wait when checking for update with no internet.
 - Fixed fatals on regular update check failures.
+
+This release was made on 4th October 2021.
 
 ## v0.2.1
 
