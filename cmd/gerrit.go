@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mwddGerritCmd = &cobra.Command{
+var gerritCmd = &cobra.Command{
 	Use:   "gerrit",
 	Short: "Wikimedia Gerrit",
 	Long: `Wikimedia Gerrit
@@ -40,5 +40,5 @@ func sshGerritCommand(args []string) *exec.Cmd {
 }
 
 func init() {
-	rootCmd.AddCommand(mwddGerritCmd)
+	rootCmd.AddCommand(gerritCmd)
 }

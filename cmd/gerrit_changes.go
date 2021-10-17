@@ -31,7 +31,7 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
-var mwddGerritChangesCmd = &cobra.Command{
+var gerritChangesCmd = &cobra.Command{
 	Use:   "changes",
 	Short: "Interact with Gerrit changes",
 }
@@ -57,7 +57,7 @@ type Change struct {
 	WIP           bool
 }
 
-var mwddGerritChangesListCmd = &cobra.Command{
+var gerritChangesListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List Gerrit changes",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -107,6 +107,6 @@ var mwddGerritChangesListCmd = &cobra.Command{
 }
 
 func init() {
-	mwddGerritCmd.AddCommand(mwddGerritChangesCmd)
-	mwddGerritChangesCmd.AddCommand(mwddGerritChangesListCmd)
+	gerritCmd.AddCommand(gerritChangesCmd)
+	gerritChangesCmd.AddCommand(gerritChangesListCmd)
 }

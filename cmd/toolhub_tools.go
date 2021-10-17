@@ -34,7 +34,7 @@ var toolhubToolsCmd = &cobra.Command{
 	Short: "Interact with Toolhub tools",
 }
 
-var mwddToolHubToolsListCmd = &cobra.Command{
+var toolhubToolsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List Toolhub Tools",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -59,7 +59,7 @@ var mwddToolHubToolsListCmd = &cobra.Command{
 	},
 }
 
-var mwddToolHubToolsGetCmd = &cobra.Command{
+var toolhubToolsGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Get a specific Toolhub Tool",
 	Args:  cobra.MinimumNArgs(1),
@@ -81,7 +81,7 @@ var mwddToolHubToolsGetCmd = &cobra.Command{
 }
 
 func init() {
-	mwddToolhubCmd.AddCommand(toolhubToolsCmd)
-	toolhubToolsCmd.AddCommand(mwddToolHubToolsListCmd)
-	toolhubToolsCmd.AddCommand(mwddToolHubToolsGetCmd)
+	toolhubCmd.AddCommand(toolhubToolsCmd)
+	toolhubToolsCmd.AddCommand(toolhubToolsListCmd)
+	toolhubToolsCmd.AddCommand(toolhubToolsGetCmd)
 }

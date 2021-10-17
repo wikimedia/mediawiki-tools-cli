@@ -26,12 +26,12 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
-var mwddGerritGroupCmd = &cobra.Command{
+var gerritGroupCmd = &cobra.Command{
 	Use:   "group",
 	Short: "Interact with Gerrit groups",
 }
 
-var mwddGerritGroupListCmd = &cobra.Command{
+var gerritGroupListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List Gerrit groups",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -42,7 +42,7 @@ var mwddGerritGroupListCmd = &cobra.Command{
 	},
 }
 
-var mwddGerritGroupSearchCmd = &cobra.Command{
+var gerritGroupSearchCmd = &cobra.Command{
 	Use:   "search [search string]...",
 	Short: "Search Gerrit groups",
 	Args:  cobra.MinimumNArgs(1),
@@ -60,7 +60,7 @@ var mwddGerritGroupSearchCmd = &cobra.Command{
 	},
 }
 
-var mwddGerritGroupMembersCmd = &cobra.Command{
+var gerritGroupMembersCmd = &cobra.Command{
 	Use:   "members [group name]",
 	Short: "List members of a Gerrit group",
 	Args:  cobra.MinimumNArgs(1),
@@ -75,8 +75,8 @@ var mwddGerritGroupMembersCmd = &cobra.Command{
 }
 
 func init() {
-	mwddGerritCmd.AddCommand(mwddGerritGroupCmd)
-	mwddGerritGroupCmd.AddCommand(mwddGerritGroupListCmd)
-	mwddGerritGroupCmd.AddCommand(mwddGerritGroupSearchCmd)
-	mwddGerritGroupCmd.AddCommand(mwddGerritGroupMembersCmd)
+	gerritCmd.AddCommand(gerritGroupCmd)
+	gerritGroupCmd.AddCommand(gerritGroupListCmd)
+	gerritGroupCmd.AddCommand(gerritGroupSearchCmd)
+	gerritGroupCmd.AddCommand(gerritGroupMembersCmd)
 }

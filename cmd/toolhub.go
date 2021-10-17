@@ -21,12 +21,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mwddToolhubCmd = &cobra.Command{
+var toolhubCmd = &cobra.Command{
 	Use:   "toolhub",
 	Short: "Wikimedia Toolhub",
 	RunE:  nil,
 }
 
 func init() {
-	rootCmd.AddCommand(mwddToolhubCmd)
+	rootCmd.AddCommand(toolhubCmd)
 }

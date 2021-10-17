@@ -27,12 +27,12 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
-var mwddGerritProjectCmd = &cobra.Command{
+var gerritProjectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "Interact with Gerrit projects",
 }
 
-var mwddGerritProjectListCmd = &cobra.Command{
+var gerritProjectListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List Gerrit projects",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -43,7 +43,7 @@ var mwddGerritProjectListCmd = &cobra.Command{
 	},
 }
 
-var mwddGerritProjectSearchCmd = &cobra.Command{
+var gerritProjectSearchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search Gerrit projects",
 	Example: `  search mediawiki/extensions
@@ -60,7 +60,7 @@ var mwddGerritProjectSearchCmd = &cobra.Command{
 	},
 }
 
-var mwddGerritProjectCurrentCmd = &cobra.Command{
+var gerritProjectCurrentCmd = &cobra.Command{
 	Use:   "current",
 	Short: "Detect current Gerrit project",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -75,8 +75,8 @@ var mwddGerritProjectCurrentCmd = &cobra.Command{
 }
 
 func init() {
-	mwddGerritCmd.AddCommand(mwddGerritProjectCmd)
-	mwddGerritProjectCmd.AddCommand(mwddGerritProjectListCmd)
-	mwddGerritProjectCmd.AddCommand(mwddGerritProjectSearchCmd)
-	mwddGerritProjectCmd.AddCommand(mwddGerritProjectCurrentCmd)
+	gerritCmd.AddCommand(gerritProjectCmd)
+	gerritProjectCmd.AddCommand(gerritProjectListCmd)
+	gerritProjectCmd.AddCommand(gerritProjectSearchCmd)
+	gerritProjectCmd.AddCommand(gerritProjectCurrentCmd)
 }
