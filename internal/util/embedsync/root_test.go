@@ -3,7 +3,7 @@
 NOTE: this requires an index of the files to be part of the embed.
 This can be generated in the MakeFile using a line like this...
 
-@cd ./internal/mwdd/files/embed/ && find . -type f > files.txt
+@cd ./internal/mwdd/files/embed/ && find . -type f | sort > files.txt
 
 Copyright © 2021 Addshore
 
