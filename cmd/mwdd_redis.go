@@ -60,7 +60,6 @@ var mwddRedisDestroyCmd = &cobra.Command{
 			Verbosity: Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"redis"}, options)
-		mwdd.DefaultForUser().RmVolumes([]string{"redis-data"}, options)
 	},
 }
 

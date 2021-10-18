@@ -62,7 +62,6 @@ var mwddMailhogDestroyCmd = &cobra.Command{
 			Verbosity: Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"mailhog"}, options)
-		mwdd.DefaultForUser().RmVolumes([]string{"mailhog-data"}, options)
 	},
 }
 

@@ -57,7 +57,6 @@ var mwddMemcachedDestroyCmd = &cobra.Command{
 			Verbosity: Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"memcached"}, options)
-		mwdd.DefaultForUser().RmVolumes([]string{"memcached-data"}, options)
 	},
 }
 

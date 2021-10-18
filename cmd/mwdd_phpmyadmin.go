@@ -53,7 +53,6 @@ var mwddPhpMyAdminDestroyCmd = &cobra.Command{
 			Verbosity: Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"phpmyadmin"}, options)
-		mwdd.DefaultForUser().RmVolumes([]string{"phpmyadmin-data"}, options)
 	},
 }
 
