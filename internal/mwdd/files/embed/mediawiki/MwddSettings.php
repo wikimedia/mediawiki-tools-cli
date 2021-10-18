@@ -51,6 +51,7 @@ if ( defined( "MW_DB" ) ) {
 $mwddServices = [
 	'mysql' => gethostbyname('mysql') !== 'mysql',
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
+	'eventlogging' => gethostbyname('eventlogging') !== 'eventlogging' && !defined( 'MW_PHPUNIT_TEST' ),
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
 	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
@@ -209,6 +210,20 @@ if(gethostbyname('memcached') !== 'memcached') {
 ################################
 if(gethostbyname('elasticsearch') !== 'elasticsearch') {
 	$wgCirrusSearchServers = [ 'elasticsearch' ];
+}
+
+################################
+# MWDD EventLogging
+################################
+if(gethostbyname('eventlogging') !== 'eventlogging') {
+	$wgEventServices = [
+		'*' => [ 'url' => 'http://eventlogging:8192/v1/events' ],
+	];
+	$wgEventServiceDefault = '*';
+	$wgEventLoggingStreamNames = false;
+	$wgEventLoggingServiceUri = "http://eventlogging.mwdd.localhost:" . parse_url($wgServer)['port'] . "/v1/events";
+	$wgEventLoggingQueueLingerSeconds = 1;
+	$wgEnableEventBus = defined( "MW_PHPUNIT_TEST" ) ? "TYPE_NONE" : "TYPE_ALL";
 }
 
 ################################

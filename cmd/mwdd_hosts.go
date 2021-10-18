@@ -41,6 +41,7 @@ var mwddHostsAddCmd = &cobra.Command{
 				[]string{
 					// TODO generate these by reading the yml files?
 					"proxy.mwdd.localhost",
+					"eventlogging.mwdd.localhost",
 					"adminer.mwdd.localhost",
 					"mailhog.mwdd.localhost",
 					"graphite.mwdd.localhost",

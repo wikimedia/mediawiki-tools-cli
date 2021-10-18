@@ -1,0 +1,15 @@
+version: '3.7'
+
+# https://www.mediawiki.org/wiki/MediaWiki-Docker/Configuration_recipes/EventGate
+services:
+  eventlogging:
+    # https://docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia/tags/
+    image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2021-09-21-133059-production
+    environment:
+      - VIRTUAL_HOST=eventlogging.mwdd.localhost,eventlogging.mwdd
+      - VIRTUAL_PORT=8192
+    entrypoint: /srv/service/node_modules/.bin/eventgate -c config.dev.yaml | /srv/service/node_modules/.bin/bunyan
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
