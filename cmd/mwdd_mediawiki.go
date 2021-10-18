@@ -20,14 +20,17 @@ package cmd
 import (
 	"fmt"
 	"os"
+	osexec "os/exec"
 	"os/signal"
 	"os/user"
+	"runtime"
 	"syscall"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
+
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
@@ -46,6 +49,22 @@ var mwddMediawikiCmd = &cobra.Command{
 
 		usr, _ := user.Current()
 		usrDir := usr.HomeDir
+
+		_, err := osexec.LookPath("mutagen")
+		if err == nil && runtime.GOOS == "darwin" {
+			useMutagen := false
+			prompt := &survey.Confirm{
+				Message: "mutagen detected, do you want to try alpha mutagen support?",
+			}
+			err := survey.AskOne(prompt, &useMutagen)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			if useMutagen {
+				mwdd.Env().Set("MEDIAWIKI_VOLUMES_CODE_MUTAGEN", "mediawiki-code-mutagen")
+			}
+		}
 
 		if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
 			if !NoInteraction {
@@ -478,6 +497,14 @@ var mwddMediawikiCreateCmd = &cobra.Command{
 		}
 		// TODO mediawiki should come from some default definition set?
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki", "mediawiki-web"}, options)
+
+		if mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE_MUTAGEN") == "mediawiki-code-mutagen" {
+			mwSrc := mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE")
+			exec.Command("mutagen", "sync", "create", "--name=mwcli-mwdd-default-mediawiki", mwSrc, "docker://root@mwcli-mwdd-default_mediawiki_1/var/www/html/w")
+			exec.Command("mutagen", "sync", "create", "--name=mwcli-mwdd-default-mediawiki-web", mwSrc, "docker://root@mwcli-mwdd-default_mediawiki-web_1/var/www/html/w")
+			fmt.Println("Note: mutagen syncs will be initially created, and then never touched agian by mwcli..")
+			fmt.Println("You can list the sessions with `mutagen sync list`")
+		}
 	},
 }
 

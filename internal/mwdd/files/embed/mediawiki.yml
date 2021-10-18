@@ -8,7 +8,7 @@ services:
     volumes:
      - ./wait-for-it.sh:/wait-for-it.sh:ro
      - ./mediawiki:/mwdd:ro
-     - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+     - "${MEDIAWIKI_VOLUMES_CODE_MUTAGEN:-$MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
      - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
      - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
      - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:delegated"
@@ -45,6 +45,7 @@ services:
       - dps
 
 volumes:
+  mediawiki-code-mutagen:
   mediawiki-data:
   mediawiki-images:
   mediawiki-logs:
