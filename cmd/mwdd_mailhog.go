@@ -47,7 +47,7 @@ var mwddMailhogCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"mailhog"},
 			exec.HandlerOptions{
-				Verbosity: Verbosity,
+				Verbosity: globalOpts.Verbosity,
 			},
 		)
 	},
@@ -59,7 +59,7 @@ var mwddMailhogDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"mailhog"}, options)
 	},
@@ -71,7 +71,7 @@ var mwddMailhogSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"mailhog"}, options)
 	},
@@ -83,7 +83,7 @@ var mwddMailhogResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"mailhog"}, options)
 	},

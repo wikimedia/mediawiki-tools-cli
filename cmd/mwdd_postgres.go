@@ -37,7 +37,7 @@ var mwddPostgresCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"postgres"},
 			exec.HandlerOptions{
-				Verbosity: Verbosity,
+				Verbosity: globalOpts.Verbosity,
 			},
 		)
 	},
@@ -49,7 +49,7 @@ var mwddPostgresDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"postgres"}, options)
 		mwdd.DefaultForUser().RmVolumes([]string{"postgres-data"}, options)
@@ -62,7 +62,7 @@ var mwddPostgresSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"postgres"}, options)
 	},
@@ -74,7 +74,7 @@ var mwddPostgresResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"postgres"}, options)
 	},

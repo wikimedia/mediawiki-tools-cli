@@ -45,7 +45,7 @@ var mwddRedisCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"redis"},
 			exec.HandlerOptions{
-				Verbosity: Verbosity,
+				Verbosity: globalOpts.Verbosity,
 			},
 		)
 	},
@@ -57,7 +57,7 @@ var mwddRedisDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"redis"}, options)
 	},
@@ -69,7 +69,7 @@ var mwddRedisSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"redis"}, options)
 	},
@@ -81,7 +81,7 @@ var mwddRedisResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"redis"}, options)
 	},

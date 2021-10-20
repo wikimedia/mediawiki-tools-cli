@@ -42,7 +42,7 @@ var mwddMemcachedCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"memcached"},
 			exec.HandlerOptions{
-				Verbosity: Verbosity,
+				Verbosity: globalOpts.Verbosity,
 			},
 		)
 	},
@@ -54,7 +54,7 @@ var mwddMemcachedDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"memcached"}, options)
 	},
@@ -66,7 +66,7 @@ var mwddMemcachedSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"memcached"}, options)
 	},
@@ -78,7 +78,7 @@ var mwddMemcachedResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"memcached"}, options)
 	},

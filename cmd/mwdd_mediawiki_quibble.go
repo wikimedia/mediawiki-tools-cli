@@ -60,7 +60,7 @@ var mwddMediawikiQuibbleCmd = &cobra.Command{
 
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"}, options)
 		mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{

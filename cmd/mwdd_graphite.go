@@ -37,7 +37,7 @@ var mwddGraphiteCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"graphite"},
 			exec.HandlerOptions{
-				Verbosity: Verbosity,
+				Verbosity: globalOpts.Verbosity,
 			},
 		)
 	},
@@ -49,7 +49,7 @@ var mwddGraphiteDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"graphite"}, options)
 		mwdd.DefaultForUser().RmVolumes([]string{"graphite-storage", "graphite-logs"}, options)
@@ -62,7 +62,7 @@ var mwddGraphiteSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"graphite"}, options)
 	},
@@ -74,7 +74,7 @@ var mwddGraphiteResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"graphite"}, options)
 	},

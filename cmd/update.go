@@ -29,7 +29,7 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Checks for and performs updates",
 	Run: func(cmd *cobra.Command, args []string) {
-		canUpdate, toUpdateToOrMessage := updater.CanUpdate(Version, GitSummary, Verbosity >= 2)
+		canUpdate, toUpdateToOrMessage := updater.CanUpdate(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
 
 		if !canUpdate {
 			fmt.Println(toUpdateToOrMessage)
@@ -38,7 +38,7 @@ var updateCmd = &cobra.Command{
 
 		fmt.Println("New update found: " + toUpdateToOrMessage)
 
-		if !NoInteraction {
+		if !globalOpts.NoInteraction {
 			response := false
 			prompt := &survey.Confirm{
 				Message: "Do you want to update?",
@@ -55,7 +55,7 @@ var updateCmd = &cobra.Command{
 		}
 
 		// Technically there is a small race condition here, and we might update to a newer version if it was release between stages
-		updateSuccess, updateMessage := updater.Update(Version, GitSummary, Verbosity >= 2)
+		updateSuccess, updateMessage := updater.Update(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
 		fmt.Println(updateMessage)
 		if !updateSuccess {
 			os.Exit(1)
@@ -65,7 +65,4 @@ var updateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
-
-	updateCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
-	updateCmd.PersistentFlags().BoolVarP(&NoInteraction, "no-interaction", "n", false, "Do not ask any interactive question")
 }

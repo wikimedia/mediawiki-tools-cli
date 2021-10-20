@@ -56,7 +56,7 @@ var mwddMediawikiFreshCmd = &cobra.Command{
 
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"}, options)
 		mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{

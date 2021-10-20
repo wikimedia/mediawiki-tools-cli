@@ -37,7 +37,7 @@ var mwddMySQLReplicaCreateCmd = &cobra.Command{
 		mwdd.DefaultForUser().UpDetached(
 			[]string{"mysql-replica", "mysql-replica-configure-replication"},
 			exec.HandlerOptions{
-				Verbosity: Verbosity,
+				Verbosity: globalOpts.Verbosity,
 			},
 		)
 	},
@@ -49,7 +49,7 @@ var mwddMySQLReplicaDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"mysql-replica", "mysql-replica-configure-replication"}, options)
 		mwdd.DefaultForUser().RmVolumes([]string{"mysql-replica-data"}, options)
@@ -62,7 +62,7 @@ var mwddMySQLReplicaSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"mysql-replica", "mysql-replica-configure-replication"}, options)
 	},
@@ -74,7 +74,7 @@ var mwddMySQLReplicaResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"mysql-replica", "mysql-replica-configure-replication"}, options)
 	},

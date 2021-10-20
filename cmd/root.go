@@ -26,12 +26,6 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
 
-// Verbosity indicating verbose mode.
-var Verbosity int
-
-// NoInteraction skips prompts with a yes or default values.
-var NoInteraction bool
-
 // These vars are currently used by the docker exec command
 
 // Detach run docker command with -d.
@@ -55,27 +49,32 @@ var Env []string
 // Workdir run the docker command with this working directory.
 var Workdir string
 
-// GitCommit holds short commit hash of source tree.
-var GitCommit string
+type GlobalOptions struct {
+	Verbosity     int
+	NoInteraction bool
+}
 
-// GitBranch holds current branch name the code is built off.
-var GitBranch string
+var globalOpts GlobalOptions
 
-// GitState shows whether there are uncommitted changes.
-var GitState string
+type VersionAttributes struct {
+	GitCommit  string // holds short commit hash of source tree.
+	GitBranch  string // holds current branch name the code is built off.
+	GitState   string // shows whether there are uncommitted changes.
+	GitSummary string // holds output of git describe --tags --dirty --always.
+	BuildDate  string // holds RFC3339 formatted UTC date (build time).
+	Version    string // hold contents of ./VERSION file, if exists, or the value passed via the -version option.
+}
 
-// GitSummary holds output of git describe --tags --dirty --always.
-var GitSummary string
-
-// BuildDate holds RFC3339 formatted UTC date (build time).
-var BuildDate string
-
-// Version holds contents of ./VERSION file, if exists, or the value passed via the -version option.
-var Version string
+var VersionDetails VersionAttributes
 
 var rootCmd = &cobra.Command{
 	Use:   "mw",
-	Short: "Developer utilities for working with MediaWiki",
+	Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
+}
+
+func init() {
+	rootCmd.PersistentFlags().IntVarP(&globalOpts.Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
+	rootCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "n", false, "Do not ask any interactive questions")
 }
 
 func wizardDevMode() {
@@ -89,13 +88,13 @@ func wizardDevMode() {
 }
 
 /*Execute the root command.*/
-func Execute(GitCommitIn string, GitBranchIn string, GitStateIn string, GitSummaryIn string, BuildDateIn string, VersionIn string) {
-	GitCommit = GitCommitIn
-	GitBranch = GitBranchIn
-	GitState = GitStateIn
-	GitSummary = GitSummaryIn
-	BuildDate = BuildDateIn
-	Version = VersionIn
+func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version string) {
+	VersionDetails.GitCommit = GitCommit
+	VersionDetails.GitBranch = GitBranch
+	VersionDetails.GitState = GitState
+	VersionDetails.GitSummary = GitSummary
+	VersionDetails.BuildDate = BuildDate
+	VersionDetails.Version = Version
 
 	// Check and set needed config values
 	c := config.LoadFromDisk()

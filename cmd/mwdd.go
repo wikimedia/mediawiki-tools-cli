@@ -36,7 +36,7 @@ var mwddCmd = &cobra.Command{
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
 		if mwdd.Env().Missing("PORT") {
-			if !NoInteraction {
+			if !globalOpts.NoInteraction {
 				port := ""
 				prompt := &survey.Input{
 					Message: "What port would you like to use for your development environment?",
@@ -74,7 +74,7 @@ var mwddDestroyCmd = &cobra.Command{
 	Short: "Destroy the all containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().DownWithVolumesAndOrphans(options)
 	},
@@ -85,7 +85,7 @@ var mwddSuspendCmd = &cobra.Command{
 	Short: "Suspend the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{}, options)
 	},
@@ -96,7 +96,7 @@ var mwddResumeCmd = &cobra.Command{
 	Short: "Resume the Default containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		fmt.Println("Any services that you have not already created will show as 'failed'")
 		mwdd.DefaultForUser().Start([]string{}, options)
@@ -104,9 +104,6 @@ var mwddResumeCmd = &cobra.Command{
 }
 
 func init() {
-	mwddCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
-	mwddCmd.PersistentFlags().BoolVarP(&NoInteraction, "no-interaction", "n", false, "Do not ask any interactive question")
-
 	mwddCmd.AddCommand(mwddWhereCmd)
 	mwddCmd.AddCommand(mwddDestroyCmd)
 	mwddCmd.AddCommand(mwddSuspendCmd)

@@ -44,7 +44,7 @@ var mwddDockerComposeCmd = &cobra.Command{
 				Command:          command,
 				CommandArguments: commandArgs,
 				HandlerOptions: exec.HandlerOptions{
-					Verbosity: Verbosity,
+					Verbosity: globalOpts.Verbosity,
 				},
 			},
 		)

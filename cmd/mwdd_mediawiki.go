@@ -48,7 +48,7 @@ var mwddMediawikiCmd = &cobra.Command{
 		usrDir := usr.HomeDir
 
 		if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
-			if !NoInteraction {
+			if !globalOpts.NoInteraction {
 				// Prompt the user for a directory or confirmation
 				dirValue := ""
 				prompt := &survey.Input{
@@ -93,7 +93,7 @@ var mwddMediawikiCmd = &cobra.Command{
 		// TODO ask if they want to get any more skins and extensions?
 		// TODO async cloning of repos for speed!
 		if !mediawiki.MediaWikiIsPresent() {
-			if !NoInteraction {
+			if !globalOpts.NoInteraction {
 				cloneMw := false
 				prompt := &survey.Confirm{
 					Message: "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now? (Negative answers will abort this command)",
@@ -109,7 +109,7 @@ var mwddMediawikiCmd = &cobra.Command{
 			}
 		}
 		if !mediawiki.VectorIsPresent() {
-			if !NoInteraction {
+			if !globalOpts.NoInteraction {
 				cloneVector := false
 				prompt := &survey.Confirm{
 					Message: "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
@@ -125,7 +125,7 @@ var mwddMediawikiCmd = &cobra.Command{
 			}
 		}
 		if setupOpts.GetMediaWiki || setupOpts.GetVector {
-			if !NoInteraction {
+			if !globalOpts.NoInteraction {
 				cloneFromGithub := false
 				prompt1 := &survey.Confirm{
 					Message: "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
@@ -474,7 +474,7 @@ var mwddMediawikiCreateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		// TODO mediawiki should come from some default definition set?
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki", "mediawiki-web"}, options)
@@ -487,7 +487,7 @@ var mwddMediawikiDestroyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Rm([]string{"mediawiki", "mediawiki-web"}, options)
 		mwdd.DefaultForUser().RmVolumes([]string{"mediawiki-data", "mediawiki-images", "mediawiki-logs", "mediawiki-dot-composer"}, options)
@@ -500,7 +500,7 @@ var mwddMediawikiSuspendCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Stop([]string{"mediawiki", "mediawiki-web"}, options)
 	},
@@ -512,7 +512,7 @@ var mwddMediawikiResumeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		options := exec.HandlerOptions{
-			Verbosity: Verbosity,
+			Verbosity: globalOpts.Verbosity,
 		}
 		mwdd.DefaultForUser().Start([]string{"mediawiki", "mediawiki-web"}, options)
 	},
