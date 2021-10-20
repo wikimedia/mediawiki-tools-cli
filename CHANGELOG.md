@@ -8,6 +8,17 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.6.0
+
+- Added `toolhub search` command.
+- Added `--type` filter to `toolhub list` commnand.
+
+Development environment specific:
+
+- Added `eventlogging` service.
+- Fixed removal of non existant volumes through some commands.
+- Fixed regression in 0.5.0 with passing env vars into exec commands such as `mw docker mediawiki exec -- XDEBUG_SESSION=1 php test.php`
+
 ## v0.5.0
 
 - Added `toolhub` command for `list`ing and `get`ing tools.
