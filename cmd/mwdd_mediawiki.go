@@ -235,7 +235,6 @@ The process hidden within this command is:
  - Run update.php`,
 	Aliases: []string{"i"},
 	Run: func(cmd *cobra.Command, args []string) {
-		// Make it harder for people to fall over https://phabricator.wikimedia.org/T287654 for now
 		if DbType != "sqlite" && DbType != "mysql" && DbType != "postgres" {
 			fmt.Println("You must specify a valid dbtype (mysql, postgres, sqlite)")
 			os.Exit(1)
@@ -446,11 +445,6 @@ The process hidden within this command is:
 		fmt.Println("If you want to access the wiki from your command line you may need to add it to your hosts file.")
 		fmt.Println("You can do this with the `hosts add` command that is part of this development environment.")
 		fmt.Println("***************************************")
-
-		// TODO remove once https://phabricator.wikimedia.org/T287654 is solved
-		if DbType == "sqlite" {
-			fmt.Println("WARNING: The sqlite development environment currently suffers an issue, https://phabricator.wikimedia.org/T287654")
-		}
 	},
 }
 
