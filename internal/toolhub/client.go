@@ -28,6 +28,7 @@ func NewClient() *Client {
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
+	req.Header.Set("User-Agent", "mwcli toolhub")
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return err

@@ -34,29 +34,74 @@ var toolhubToolsCmd = &cobra.Command{
 	Short: "Interact with Toolhub tools",
 }
 
-var toolhubToolsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Toolhub Tools",
-	Run: func(cmd *cobra.Command, args []string) {
-		client := toolhub.NewClient()
-		ctx := context.Background()
-		tools, err := client.GetTools(ctx, nil)
-		if err != nil {
-			color.Red("Error: %s", err)
-			os.Exit(1)
-		}
+func NewToolHubToolsListCmd() *cobra.Command {
+	var toolType string
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List Toolhub Tools",
+		Example: `  list
+  list --type="web app"
+  list --type=""`,
+		Run: func(cmd *cobra.Command, args []string) {
+			client := toolhub.NewClient()
+			ctx := context.Background()
+			tools, err := client.GetTools(ctx, nil)
+			if err != nil {
+				color.Red("Error: %s", err)
+				os.Exit(1)
+			}
 
-		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-		columnFmt := color.New(color.FgYellow).SprintfFunc()
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-		tbl := table.New("Name", "URL")
-		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+			tbl := table.New("Name", "Type", "URL")
+			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-		for _, tool := range tools.Results {
-			tbl.AddRow(tool.Name, tool.URL)
-		}
-		tbl.Print()
-	},
+			for _, tool := range tools.Results {
+				if toolType == "*" || toolType == tool.Type || (toolType == "" && tool.Type == nil) {
+					tbl.AddRow(tool.Name, tool.Type, tool.URL)
+				}
+			}
+			tbl.Print()
+		},
+	}
+	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
+	return cmd
+}
+
+func NewToolHubToolsSearchCmd() *cobra.Command {
+	var toolType string
+	cmd := &cobra.Command{
+		Use:   "search",
+		Short: "Search Toolhub Tools",
+		Example: `  search unicorn
+  search upload --type="web app"`,
+		Run: func(cmd *cobra.Command, args []string) {
+			searchString := args[0]
+			client := toolhub.NewClient()
+			ctx := context.Background()
+			tools, err := client.SearchTools(ctx, searchString, nil)
+			if err != nil {
+				color.Red("Error: %s", err)
+				os.Exit(1)
+			}
+
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			columnFmt := color.New(color.FgYellow).SprintfFunc()
+
+			tbl := table.New("Name", "Type", "URL")
+			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+			for _, tool := range tools.Results {
+				if toolType == "*" || toolType == tool.Type || (toolType == "" && tool.Type == nil) {
+					tbl.AddRow(tool.Name, tool.Type, tool.URL)
+				}
+			}
+			tbl.Print()
+		},
+	}
+	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
+	return cmd
 }
 
 var toolhubToolsGetCmd = &cobra.Command{
@@ -82,6 +127,7 @@ var toolhubToolsGetCmd = &cobra.Command{
 
 func init() {
 	toolhubCmd.AddCommand(toolhubToolsCmd)
-	toolhubToolsCmd.AddCommand(toolhubToolsListCmd)
+	toolhubToolsCmd.AddCommand(NewToolHubToolsListCmd())
+	toolhubToolsCmd.AddCommand(NewToolHubToolsSearchCmd())
 	toolhubToolsCmd.AddCommand(toolhubToolsGetCmd)
 }

@@ -35,7 +35,7 @@ type Tool struct {
 	Sponsor              []interface{} `json:"sponsor"`
 	AvailableUILanguages []interface{} `json:"available_ui_languages"`
 	TechnologyUsed       []interface{} `json:"technology_used"`
-	ToolType             interface{}   `json:"tool_type"`
+	Type                 interface{}   `json:"tool_type"`
 	APIURL               interface{}   `json:"api_url"`
 	DeveloperDocsURL     []interface{} `json:"developer_docs_url"`
 	UserDocsURL          []interface{} `json:"user_docs_url"`
@@ -61,6 +61,29 @@ type Tool struct {
 type ToolsOptions struct {
 	Limit int `json:"limit"`
 	Page  int `json:"page"`
+}
+
+func (c *Client) SearchTools(ctx context.Context, searchString string, options *ToolsOptions) (*Tools, error) {
+	limit := 1500
+	page := 1
+	if options != nil {
+		limit = options.Limit
+		page = options.Page
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/search/tools?q=%s&format=json&page_size=%d&page=%d", c.BaseURL, searchString, limit, page), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req = req.WithContext(ctx)
+
+	res := Tools{}
+	if err := c.sendRequest(req, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 func (c *Client) GetTools(ctx context.Context, options *ToolsOptions) (*Tools, error) {
