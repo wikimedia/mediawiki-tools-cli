@@ -86,9 +86,11 @@ var mwddMySQLReplicaExecCmd = &cobra.Command{
 	Short:   "Executes a command in the MySQL Replica container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "mysql-replica",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		})
 	},

@@ -90,9 +90,11 @@ var mwddMemcachedExecCmd = &cobra.Command{
 	Short:   "Executes a command in the Memcached container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "memcached",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		})
 	},

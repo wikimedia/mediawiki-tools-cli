@@ -23,6 +23,7 @@ import (
 	"io"
 	"os"
 	gosignal "os/signal"
+	"regexp"
 	"runtime"
 	"time"
 
@@ -38,9 +39,26 @@ import (
 type DockerExecCommand struct {
 	DockerComposeService string
 	Command              []string
+	Env                  []string
 	WorkingDir           string
 	User                 string
 	HandlerOptions       exec.HandlerOptions
+}
+
+/*CommandAndEnvFromArgs taks arguments passed to a cobra command and extracts any prefixing env var definitions from them*/
+func CommandAndEnvFromArgs(args []string) ([]string, []string) {
+	extrectedArgs := []string{}
+	extrectedEnvs := []string{}
+	regex, _ := regexp.Compile(`\w+=\w+`)
+	for _, arg := range args {
+		matched := regex.MatchString(arg)
+		if matched {
+			extrectedEnvs = append(extrectedEnvs, arg)
+		} else {
+			extrectedArgs = append(extrectedArgs, arg)
+		}
+	}
+	return extrectedArgs, extrectedEnvs
 }
 
 /*UserAndGroupForDockerExecution gets a user and group id combination for the current user that can be used for execution.*/
@@ -72,6 +90,7 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 		WorkingDir:   command.WorkingDir,
 		User:         command.User,
 		Cmd:          command.Command,
+		Env:          command.Env,
 	}
 
 	response, err := cli.ContainerExecCreate(ctx, containerID, execConfig)
@@ -150,6 +169,7 @@ func (m MWDD) DockerRun(command DockerExecCommand) {
 	containerConfig.User = command.User
 	containerConfig.Entrypoint = []string{command.Command[0]}
 	containerConfig.Cmd = command.Command[1:]
+	containerConfig.Env = command.Env
 
 	// Remove the old one and start a new one with new options :)
 	cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})

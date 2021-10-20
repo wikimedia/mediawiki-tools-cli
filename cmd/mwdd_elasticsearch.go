@@ -103,9 +103,11 @@ var mwddElasticsearchExecCmd = &cobra.Command{
 	Short:   "Executes a command in the Elasticsearch container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "elasticsearch",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		})
 	},

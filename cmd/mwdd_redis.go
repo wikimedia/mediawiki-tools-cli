@@ -93,9 +93,11 @@ var mwddRedisExecCmd = &cobra.Command{
 	Short:   "Executes a command in the Redis container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "redis",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		})
 	},

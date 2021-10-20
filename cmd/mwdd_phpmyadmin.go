@@ -86,9 +86,11 @@ var mwddPhpMyAdminExecCmd = &cobra.Command{
 	Short:   "Executes a command in the PhpMyAdmin container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 			DockerComposeService: "phpmyadmin",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		})
 	},

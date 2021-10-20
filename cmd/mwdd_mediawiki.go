@@ -454,9 +454,11 @@ var mwddMediawikiComposerCmd = &cobra.Command{
 	Example: "  composer info\n  composer install -- --ignore-platform-reqs",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
-			Command:              append([]string{"composer"}, args...),
+			Command:              append([]string{"composer"}, command...),
+			Env:                  env,
 			User:                 User,
 		}, "/var/www/html/w"))
 	},
@@ -524,9 +526,11 @@ var mwddMediawikiExecCmd = &cobra.Command{
 	Short: "Executes a command in the MediaWiki container",
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerExec(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		}, "/var/www/html/w"))
 	},
