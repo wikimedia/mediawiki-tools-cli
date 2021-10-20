@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 
@@ -103,6 +104,21 @@ var mwddResumeCmd = &cobra.Command{
 	},
 }
 
+//go:embed long/mwdd_elasticsearch.txt
+var elasticsearchLong string
+
+//go:embed long/mwdd_eventlogging.txt
+var eventLoggingLong string
+
+//go:embed long/mwdd_mailhog.txt
+var mailhogLong string
+
+//go:embed long/mwdd_memcached.txt
+var memcachedLong string
+
+//go:embed long/mwdd_redis.txt
+var redisLong string
+
 func init() {
 	mwddCmd.AddCommand(mwddWhereCmd)
 	mwddCmd.AddCommand(mwddDestroyCmd)
@@ -110,4 +126,93 @@ func init() {
 	mwddCmd.AddCommand(mwddResumeCmd)
 
 	rootCmd.AddCommand(mwddCmd)
+
+	adminer := mwdd.NewServiceCmd("adminer", "", []string{})
+	mwddCmd.AddCommand(adminer)
+	adminer.AddCommand(mwdd.NewServiceCreateCmd("adminer", []string{"adminer"}, globalOpts.Verbosity))
+	adminer.AddCommand(mwdd.NewServiceDestroyCmd("adminer", []string{"adminer"}, []string{}, globalOpts.Verbosity))
+	adminer.AddCommand(mwdd.NewServiceSuspendCmd("adminer", []string{"adminer"}, globalOpts.Verbosity))
+	adminer.AddCommand(mwdd.NewServiceResumeCmd("adminer", []string{"adminer"}, globalOpts.Verbosity))
+	adminer.AddCommand(mwdd.NewServiceExecCmd("adminer", "adminer", globalOpts.Verbosity))
+
+	elasticsearch := mwdd.NewServiceCmd("elasticsearch", elasticsearchLong, []string{})
+	mwddCmd.AddCommand(elasticsearch)
+	elasticsearch.AddCommand(mwdd.NewServiceCreateCmd("elasticsearch", []string{"elasticsearch"}, globalOpts.Verbosity))
+	elasticsearch.AddCommand(mwdd.NewServiceDestroyCmd("elasticsearch", []string{"elasticsearch"}, []string{"elasticsearch-data"}, globalOpts.Verbosity))
+	elasticsearch.AddCommand(mwdd.NewServiceSuspendCmd("elasticsearch", []string{"elasticsearch"}, globalOpts.Verbosity))
+	elasticsearch.AddCommand(mwdd.NewServiceResumeCmd("elasticsearch", []string{"elasticsearch"}, globalOpts.Verbosity))
+	elasticsearch.AddCommand(mwdd.NewServiceExecCmd("elasticsearch", "elasticsearch", globalOpts.Verbosity))
+
+	eventlogging := mwdd.NewServiceCmd("eventlogging", eventLoggingLong, []string{"eventgate"})
+	mwddCmd.AddCommand(eventlogging)
+	eventlogging.AddCommand(mwdd.NewServiceCreateCmd("eventlogging", []string{"eventlogging"}, globalOpts.Verbosity))
+	eventlogging.AddCommand(mwdd.NewServiceDestroyCmd("eventlogging", []string{"eventlogging"}, []string{}, globalOpts.Verbosity))
+	eventlogging.AddCommand(mwdd.NewServiceSuspendCmd("eventlogging", []string{"eventlogging"}, globalOpts.Verbosity))
+	eventlogging.AddCommand(mwdd.NewServiceResumeCmd("eventlogging", []string{"eventlogging"}, globalOpts.Verbosity))
+	eventlogging.AddCommand(mwdd.NewServiceExecCmd("eventlogging", "eventlogging", globalOpts.Verbosity))
+
+	graphite := mwdd.NewServiceCmd("graphite", "", []string{})
+	mwddCmd.AddCommand(graphite)
+	graphite.AddCommand(mwdd.NewServiceCreateCmd("graphite", []string{"graphite"}, globalOpts.Verbosity))
+	graphite.AddCommand(mwdd.NewServiceDestroyCmd("graphite", []string{"graphite"}, []string{"graphite-storage", "graphite-logs"}, globalOpts.Verbosity))
+	graphite.AddCommand(mwdd.NewServiceSuspendCmd("graphite", []string{"graphite"}, globalOpts.Verbosity))
+	graphite.AddCommand(mwdd.NewServiceResumeCmd("graphite", []string{"graphite"}, globalOpts.Verbosity))
+	graphite.AddCommand(mwdd.NewServiceExecCmd("graphite", "graphite", globalOpts.Verbosity))
+
+	mailhog := mwdd.NewServiceCmd("mailhog", mailhogLong, []string{})
+	mwddCmd.AddCommand(mailhog)
+	mailhog.AddCommand(mwdd.NewServiceCreateCmd("mailhog", []string{"mailhog"}, globalOpts.Verbosity))
+	mailhog.AddCommand(mwdd.NewServiceDestroyCmd("mailhog", []string{"mailhog"}, []string{}, globalOpts.Verbosity))
+	mailhog.AddCommand(mwdd.NewServiceSuspendCmd("mailhog", []string{"mailhog"}, globalOpts.Verbosity))
+	mailhog.AddCommand(mwdd.NewServiceResumeCmd("mailhog", []string{"mailhog"}, globalOpts.Verbosity))
+	mailhog.AddCommand(mwdd.NewServiceExecCmd("mailhog", "mailhog", globalOpts.Verbosity))
+
+	memcached := mwdd.NewServiceCmd("memcached", memcachedLong, []string{})
+	mwddCmd.AddCommand(memcached)
+	memcached.AddCommand(mwdd.NewServiceCreateCmd("memcached", []string{"memcached"}, globalOpts.Verbosity))
+	memcached.AddCommand(mwdd.NewServiceDestroyCmd("memcached", []string{"memcached"}, []string{}, globalOpts.Verbosity))
+	memcached.AddCommand(mwdd.NewServiceSuspendCmd("memcached", []string{"memcached"}, globalOpts.Verbosity))
+	memcached.AddCommand(mwdd.NewServiceResumeCmd("memcached", []string{"memcached"}, globalOpts.Verbosity))
+	memcached.AddCommand(mwdd.NewServiceExecCmd("memcached", "memcached", globalOpts.Verbosity))
+
+	mysql := mwdd.NewServiceCmd("mysql", "", []string{})
+	mwddCmd.AddCommand(mysql)
+	mysql.AddCommand(mwdd.NewServiceCreateCmd("mysql", []string{"mysql", "mysql-configure-replication"}, globalOpts.Verbosity))
+	mysql.AddCommand(mwdd.NewServiceDestroyCmd("mysql", []string{"mysql", "mysql-configure-replication"}, []string{"mysql-data", "mysql-configure-replication-data"}, globalOpts.Verbosity))
+	mysql.AddCommand(mwdd.NewServiceSuspendCmd("mysql", []string{"mysql", "mysql-configure-replication"}, globalOpts.Verbosity))
+	mysql.AddCommand(mwdd.NewServiceResumeCmd("mysql", []string{"mysql", "mysql-configure-replication"}, globalOpts.Verbosity))
+	mysql.AddCommand(mwdd.NewServiceExecCmd("mysql", "mysql", globalOpts.Verbosity))
+
+	mysqlReplica := mwdd.NewServiceCmd("mysql-replica", "", []string{})
+	mwddCmd.AddCommand(mysqlReplica)
+	mysqlReplica.AddCommand(mwdd.NewServiceCreateCmd("mysql-replica", []string{"mysql-replica", "mysql-replica-configure-replication"}, globalOpts.Verbosity))
+	mysqlReplica.AddCommand(mwdd.NewServiceDestroyCmd("mysql-replica", []string{"mysql-replica", "mysql-replica-configure-replication"}, []string{"mysql-replica-data"}, globalOpts.Verbosity))
+	mysqlReplica.AddCommand(mwdd.NewServiceSuspendCmd("mysql-replica", []string{"mysql-replica", "mysql-replica-configure-replication"}, globalOpts.Verbosity))
+	mysqlReplica.AddCommand(mwdd.NewServiceResumeCmd("mysql-replica", []string{"mysql-replica", "mysql-replica-configure-replication"}, globalOpts.Verbosity))
+	mysqlReplica.AddCommand(mwdd.NewServiceExecCmd("mysql-replica", "mysql-replica", globalOpts.Verbosity))
+
+	phpmyadmin := mwdd.NewServiceCmd("phpmyadmin", "", []string{"ppma"})
+	mwddCmd.AddCommand(phpmyadmin)
+	phpmyadmin.AddCommand(mwdd.NewServiceCreateCmd("phpmyadmin", []string{"phpmyadmin"}, globalOpts.Verbosity))
+	phpmyadmin.AddCommand(mwdd.NewServiceDestroyCmd("phpmyadmin", []string{"phpmyadmin"}, []string{}, globalOpts.Verbosity))
+	phpmyadmin.AddCommand(mwdd.NewServiceSuspendCmd("phpmyadmin", []string{"phpmyadmin"}, globalOpts.Verbosity))
+	phpmyadmin.AddCommand(mwdd.NewServiceResumeCmd("phpmyadmin", []string{"phpmyadmin"}, globalOpts.Verbosity))
+	phpmyadmin.AddCommand(mwdd.NewServiceExecCmd("phpmyadmin", "phpmyadmin", globalOpts.Verbosity))
+
+	postgres := mwdd.NewServiceCmd("postgres", "", []string{})
+	mwddCmd.AddCommand(postgres)
+	postgres.AddCommand(mwdd.NewServiceCreateCmd("postgres", []string{"postgres"}, globalOpts.Verbosity))
+	postgres.AddCommand(mwdd.NewServiceDestroyCmd("postgres", []string{"postgres"}, []string{"postgres-data"}, globalOpts.Verbosity))
+	postgres.AddCommand(mwdd.NewServiceSuspendCmd("postgres", []string{"postgres"}, globalOpts.Verbosity))
+	postgres.AddCommand(mwdd.NewServiceResumeCmd("postgres", []string{"postgres"}, globalOpts.Verbosity))
+	postgres.AddCommand(mwdd.NewServiceExecCmd("postgres", "postgres", globalOpts.Verbosity))
+
+	redis := mwdd.NewServiceCmd("redis", redisLong, []string{})
+	mwddCmd.AddCommand(redis)
+	redis.AddCommand(mwdd.NewServiceCreateCmd("redis", []string{"redis"}, globalOpts.Verbosity))
+	redis.AddCommand(mwdd.NewServiceDestroyCmd("redis", []string{"redis"}, []string{}, globalOpts.Verbosity))
+	redis.AddCommand(mwdd.NewServiceSuspendCmd("redis", []string{"redis"}, globalOpts.Verbosity))
+	redis.AddCommand(mwdd.NewServiceResumeCmd("redis", []string{"redis"}, globalOpts.Verbosity))
+	redis.AddCommand(mwdd.NewServiceExecCmd("redis", "redis", globalOpts.Verbosity))
+	redis.AddCommand(mwdd.NewServiceCommandCmd("redis", "redis-cli"))
 }

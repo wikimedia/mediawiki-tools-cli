@@ -1,0 +1,16 @@
+Elasticsearch service
+
+Using this will automagically configure a elasticsearch server for MediaWiki via the CirrusSearch extension.
+In order for this to do anything you will need to CirrusSearch extension installed and enabled.
+
+$wgCirrusSearchServers = [ 'elasticsearch' ];
+
+In order to configure a search index for a wiki, you'll need to run some maintenance scripts:
+
+# Configure the search index and populate it with content
+php extensions/CirrusSearch/maintenance/UpdateSearchIndexConfig.php
+php extensions/CirrusSearch/maintenance/ForceSearchIndex.php --skipLinks --indexOnSkip
+php extensions/CirrusSearch/maintenance/ForceSearchIndex.php --skipParse
+
+# And you'll need to process the job queue any time you add/update content and want it updated in ElasticSearch
+php maintenance/runJobs.php

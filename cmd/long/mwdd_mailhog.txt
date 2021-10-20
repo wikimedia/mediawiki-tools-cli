@@ -1,0 +1,10 @@
+Mailhog service
+
+Using this will automagically configure $wgSMTP for MediaWiki
+
+$wgSMTP = [
+    'host'     => 'mailhog',
+    'IDHost'   => 'mailhog',
+    'port'     => '8025',
+    'auth'     => false,
+];

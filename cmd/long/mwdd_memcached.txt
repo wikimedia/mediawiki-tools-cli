@@ -1,0 +1,5 @@
+Memcached service
+
+Using this will automagically configure a memcached server for MediaWiki
+
+$wgMemCachedServers = [ 'memcached:11211' ];

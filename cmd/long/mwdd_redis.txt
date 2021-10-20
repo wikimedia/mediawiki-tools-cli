@@ -1,0 +1,8 @@
+Redis service
+
+Using this service will automagically configure (but not use) an object cache in MediaWiki
+
+$wgObjectCaches['redis'] = [
+	'class' => 'RedisBagOStuff',
+	'servers' => [ 'redis:6379' ],
+];

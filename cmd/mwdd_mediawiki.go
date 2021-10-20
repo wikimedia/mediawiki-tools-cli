@@ -464,55 +464,17 @@ var mwddMediawikiComposerCmd = &cobra.Command{
 	},
 }
 
-var mwddMediawikiCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create the Mediawiki containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		mwdd.DefaultForUser().EnsureReady()
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		// TODO mediawiki should come from some default definition set?
-		mwdd.DefaultForUser().UpDetached([]string{"mediawiki", "mediawiki-web"}, options)
-	},
-}
-
-var mwddMediawikiDestroyCmd = &cobra.Command{
-	Use:   "destroy",
-	Short: "Destroy the Mediawiki containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		mwdd.DefaultForUser().EnsureReady()
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		mwdd.DefaultForUser().Rm([]string{"mediawiki", "mediawiki-web"}, options)
-		mwdd.DefaultForUser().RmVolumes([]string{"mediawiki-data", "mediawiki-images", "mediawiki-logs", "mediawiki-dot-composer"}, options)
-	},
-}
-
-var mwddMediawikiSuspendCmd = &cobra.Command{
-	Use:   "suspend",
-	Short: "Suspend the Mediawiki containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		mwdd.DefaultForUser().EnsureReady()
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		mwdd.DefaultForUser().Stop([]string{"mediawiki", "mediawiki-web"}, options)
-	},
-}
-
-var mwddMediawikiResumeCmd = &cobra.Command{
-	Use:   "resume",
-	Short: "Resume the Mediawiki containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		mwdd.DefaultForUser().EnsureReady()
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		mwdd.DefaultForUser().Start([]string{"mediawiki", "mediawiki-web"}, options)
-	},
-}
+var (
+	mwddMediawikiCreateCmd  = mwdd.NewServiceCreateCmd("mediawiki", []string{"mediawiki", "mediawiki-web"}, globalOpts.Verbosity)
+	mwddMediawikiDestroyCmd = mwdd.NewServiceDestroyCmd(
+		"mediawiki",
+		[]string{"mediawiki", "mediawiki-web"},
+		[]string{"mediawiki-data", "mediawiki-images", "mediawiki-logs", "mediawiki-dot-composer"},
+		globalOpts.Verbosity,
+	)
+	mwddMediawikiSuspendCmd = mwdd.NewServiceSuspendCmd("mediawiki", []string{"mediawiki", "mediawiki-web"}, globalOpts.Verbosity)
+	mwddMediawikiResumeCmd  = mwdd.NewServiceResumeCmd("mediawiki", []string{"mediawiki", "mediawiki-web"}, globalOpts.Verbosity)
+)
 
 var mwddMediawikiExecCmd = &cobra.Command{
 	Use: "exec [flags] [command...]",
