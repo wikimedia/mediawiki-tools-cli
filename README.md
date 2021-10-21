@@ -21,7 +21,7 @@ This repository uses the `bingo` tool.
 You can install it with:
 
 ```sh
-go get github.com/bwplotka/bingo
+go install github.com/bwplotka/bingo@latest
 ```
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
