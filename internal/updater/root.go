@@ -17,6 +17,37 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package updater
 
+import (
+	"os"
+	"path"
+
+	"gitlab.wikimedia.org/releng/cli/internal/util/paths"
+)
+
+func UpdatePermissionCheck() (bool, error) {
+	// All of this is a half hack around the fact the internal library doesn't check permissison
+	// https://github.com/inconshreveable/go-update/issues/46
+	exPath, err := os.Executable()
+	if err != nil {
+		return false, err
+	}
+
+	exDir, _ := path.Split(exPath)
+
+	// selfupdate.UpdateTo makes this file internally
+	// tmpPath := exDir + "." + exFile + ".old"
+
+	// Note, we would want to check the executabler, but not easily possible?
+	// https://phabricator.wikimedia.org/T293963#7449454
+	// So just check the dir for now?
+	dirWrite, dirWriteErr := paths.IsWritableDir(exDir)
+	if !dirWrite {
+		return false, dirWriteErr
+	}
+	return true, nil
+
+}
+
 /*CanUpdate will check for updates.*/
 func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
 	canUpdate, release := CanUpdateFromGitlab(currentVersion, gitSummary, verboseOutput)

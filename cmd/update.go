@@ -46,7 +46,15 @@ func NewUpdateCmd() *cobra.Command {
 					fmt.Println("Can not find manual version " + manualVersion + " to move to")
 					os.Exit(1)
 				}
-				fmt.Println("Updating to maually selected version: " + manualVersion)
+				fmt.Println("Maually selected version found: " + manualVersion)
+			}
+
+			writable, err := updater.UpdatePermissionCheck()
+			if !writable {
+				fmt.Println("Can not write to filesystem of current binary")
+				fmt.Println("You may need to sudo this command, or manually grab the latest release")
+				fmt.Println(err.Error())
+				os.Exit(1)
 			}
 
 			if !globalOpts.NoInteraction {
