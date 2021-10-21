@@ -38,3 +38,11 @@ func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bo
 func Update(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
 	return UpdateFromGitlab(currentVersion, gitSummary, verboseOutput)
 }
+
+func CanMoveToVersion(targetVersion string) bool {
+	return CanMoveToVersionFromGitlab(targetVersion)
+}
+
+func MoveToVersion(targetVersion string) (success bool, message string) {
+	return MoveToVersionFromGitlab(targetVersion)
+}

@@ -25,44 +25,64 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
 
-var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "Checks for and performs updates",
-	Run: func(cmd *cobra.Command, args []string) {
-		canUpdate, toUpdateToOrMessage := updater.CanUpdate(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
+func NewUpdateCmd() *cobra.Command {
+	manualVersion := ""
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "Checks for and performs updates",
+		Run: func(cmd *cobra.Command, args []string) {
+			if manualVersion == "" {
+				canUpdate, toUpdateToOrMessage := updater.CanUpdate(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
 
-		if !canUpdate {
-			fmt.Println(toUpdateToOrMessage)
-			os.Exit(0)
-		}
+				if !canUpdate {
+					fmt.Println(toUpdateToOrMessage)
+					os.Exit(0)
+				}
 
-		fmt.Println("New update found: " + toUpdateToOrMessage)
-
-		if !globalOpts.NoInteraction {
-			response := false
-			prompt := &survey.Confirm{
-				Message: "Do you want to update?",
+				fmt.Println("New update found: " + toUpdateToOrMessage)
+			} else {
+				canMoveToVersion := updater.CanMoveToVersion(manualVersion)
+				if !canMoveToVersion {
+					fmt.Println("Can not find manual version " + manualVersion + " to move to")
+					os.Exit(1)
+				}
+				fmt.Println("Updating to maually selected version: " + manualVersion)
 			}
-			err := survey.AskOne(prompt, &response)
-			if err != nil {
-				fmt.Println(err)
+
+			if !globalOpts.NoInteraction {
+				response := false
+				prompt := &survey.Confirm{
+					Message: "Do you want to update?",
+				}
+				err := survey.AskOne(prompt, &response)
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+				if !response {
+					fmt.Println("Update cancelled")
+					os.Exit(0)
+				}
+			}
+
+			var updateSuccess bool
+			var updateMessage string
+			if manualVersion == "" {
+				// Technically there is a small race condition here, and we might update to a newer version if it was release between stages
+				updateSuccess, updateMessage = updater.Update(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
+			} else {
+				updateSuccess, updateMessage = updater.MoveToVersion(manualVersion)
+			}
+			fmt.Println(updateMessage)
+			if !updateSuccess {
 				os.Exit(1)
 			}
-			if !response {
-				fmt.Println("Update cancelled")
-				os.Exit(0)
-			}
-		}
-
-		// Technically there is a small race condition here, and we might update to a newer version if it was release between stages
-		updateSuccess, updateMessage := updater.Update(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
-		fmt.Println(updateMessage)
-		if !updateSuccess {
-			os.Exit(1)
-		}
-	},
+		},
+	}
+	cmd.Flags().StringVarP(&manualVersion, "version", "", "", "Specific version to \"update\" to, or rollback to.")
+	return cmd
 }
 
 func init() {
-	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(NewUpdateCmd())
 }

@@ -52,7 +52,7 @@ func wikimediaClient() *gitlab.Client {
 
 /*RelengCliLatestRelease from gitlab.*/
 func RelengCliLatestRelease() (*gitlab.Release, error) {
-	// ID 16 in releng/mwcli
+	// ID 16 is releng/mwcli
 	releases, _, err := wikimediaClient().Releases.ListReleases(16, nil)
 	if err != nil {
 		return nil, err
@@ -71,13 +71,36 @@ func RelengCliLatestReleaseBinary() (*gitlab.ReleaseLink, error) {
 		return nil, err
 	}
 
-	// Look for something like mw_v0.1.0-dev.20210920.1_linux_386
-	lookFor := "mw_" + release.TagName + "_" + os + "_" + arch
-
+	lookFor := binaryName(release.TagName)
 	for _, link := range release.Assets.Links {
 		if link.Name == lookFor {
 			return link, nil
 		}
 	}
-	return nil, errors.New("no binary release found matching VERSION, OS and ARCH")
+	return nil, errors.New("no binary release found: " + lookFor)
+}
+
+func RelengCliRelease(tagName string) (*gitlab.Release, error) {
+	release, _, err := wikimediaClient().Releases.GetRelease(16, tagName, nil)
+	return release, err
+}
+
+func RelengCliReleaseBinary(tagName string) (*gitlab.ReleaseLink, error) {
+	release, err := RelengCliRelease(tagName)
+	if err != nil {
+		return nil, err
+	}
+
+	lookFor := binaryName(release.TagName)
+	for _, link := range release.Assets.Links {
+		if link.Name == lookFor {
+			return link, nil
+		}
+	}
+	return nil, errors.New("no binary release found: " + lookFor)
+}
+
+func binaryName(tagName string) string {
+	// something like mw_v0.5.0_linux_386
+	return "mw_" + tagName + "_" + os + "_" + arch
 }

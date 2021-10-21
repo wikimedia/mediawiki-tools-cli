@@ -61,11 +61,41 @@ func UpdateFromGitlab(currentVersion string, gitSummary string, verboseOutput bo
 		return false, "No update found: " + newVersionOrMessage
 	}
 
+	// TODO refactor to avoid 2 API calls
 	release, err := gitlab.RelengCliLatestRelease()
 	if err != nil {
 		panic(err)
 	}
 	link, err := gitlab.RelengCliLatestReleaseBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	cmdPath, err := os.Executable()
+	if err != nil {
+		return false, "Failed to grab local executable location"
+	}
+
+	err = selfupdate.UpdateTo(link.DirectAssetURL, cmdPath)
+	if err != nil {
+		return false, "Binary update failed" + err.Error()
+	}
+
+	return true, "Successfully updated to version " + release.TagName + "\n\n" + release.Description
+}
+
+func CanMoveToVersionFromGitlab(targetVersion string) bool {
+	_, err := gitlab.RelengCliReleaseBinary(targetVersion)
+	return err == nil
+}
+
+func MoveToVersionFromGitlab(targerVersion string) (success bool, message string) {
+	// TODO refactor to avoid 2 API calls
+	release, err := gitlab.RelengCliRelease(targerVersion)
+	if err != nil {
+		panic(err)
+	}
+	link, err := gitlab.RelengCliReleaseBinary(targerVersion)
 	if err != nil {
 		panic(err)
 	}
