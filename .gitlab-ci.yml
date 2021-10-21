@@ -45,7 +45,7 @@ test:
       reports:
         cobertura: coverage.xml
     before_script:
-      - go get github.com/bwplotka/bingo
+      - go install github.com/bwplotka/bingo@latest
       - bingo get
     script:
       - make test
@@ -62,8 +62,9 @@ checks:
         - CHECK: lint
         - CHECK: vet
         - CHECK: staticcheck
+        - CHECK: git-state
     before_script:
-      - go get github.com/bwplotka/bingo
+      - go install github.com/bwplotka/bingo@latest
       - bingo get
     script:
       # XDG_CACHE_HOME is needed by staticcheck
@@ -79,7 +80,7 @@ build:
       paths:
         - bin/
     before_script:
-      - go get github.com/bwplotka/bingo
+      - go install github.com/bwplotka/bingo@latest
       - bingo get
     script:
       - make build
@@ -125,7 +126,7 @@ build-release:
     cache: {}
     image: golang:1.16.9
     before_script:
-      - go get github.com/bwplotka/bingo
+      - go install github.com/bwplotka/bingo@latest
       - bingo get
     script:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
@@ -141,7 +142,7 @@ release-build:
       paths:
         - _release/
     before_script:
-      - go get github.com/bwplotka/bingo
+      - go install github.com/bwplotka/bingo@latest
       - bingo get
     script:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}

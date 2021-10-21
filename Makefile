@@ -62,3 +62,7 @@ staticcheck: $(STATICCHECK) generate
 .PHONY: duplicates
 duplicates: $(GOLANGCI_LINT) generate
 	@$(GOLANGCI_LINT) run -E dupl
+
+.PHONY: git-state
+git-state: $(GOX) $(GOVVV) release
+	git diff --quiet || (git --no-pager diff && false)
