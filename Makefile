@@ -29,7 +29,7 @@ release: $(GOX) $(GOVVV) generate
 
 .PHONY: generate
 generate:
-	@cd ./internal/mwdd/files/embed/ && find . -type f | sort > files.txt
+	@cd ./internal/mwdd/files/embed/ && find . -type f | LC_ALL=C sort > files.txt
 	go generate $(GO_PACKAGES)
 
 .PHONY: clean
