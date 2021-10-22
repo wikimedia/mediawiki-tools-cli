@@ -45,6 +45,8 @@ type EmbeddingDiskSync struct {
 	IgnoreFiles []string
 }
 
+var embedPathSeperator = "/"
+
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 	embededFiles := e.embededFiles()
 
@@ -75,7 +77,7 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 
 	for _, diskFile := range diskFiles {
 		agnosticFile := e.agnosticFileFromDisk(diskFile)
-		embedFile := e.EmbedPath + string(os.PathSeparator) + agnosticFile
+		embedFile := e.EmbedPath + embedPathSeperator + agnosticFile
 		if !utilstrings.StringInSlice(embedFile, embededFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
 			// TODO only output the below line with verbose logging
 			// fmt.Println(diskFile + " no logner needed, so removing")
@@ -134,7 +136,7 @@ func (e EmbeddingDiskSync) agnosticEmbedBytes(name string) []byte {
 }
 
 func (e EmbeddingDiskSync) fileReaderOrExit(name string) fs.File {
-	innerName := e.EmbedPath + string(os.PathSeparator) + name
+	innerName := e.EmbedPath + embedPathSeperator + name
 	fileReader, err := e.Embed.Open(innerName)
 	if err != nil {
 		fmt.Println("Failed to open file: " + innerName)
