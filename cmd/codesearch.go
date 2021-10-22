@@ -19,12 +19,13 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/codesearch"
+	"gitlab.wikimedia.org/releng/cli/internal/util/printers"
 )
 
 var codesearchCmd = &cobra.Command{
@@ -34,6 +35,7 @@ var codesearchCmd = &cobra.Command{
 }
 
 func NewCodeSearchSearchCmd() *cobra.Command {
+	var output string
 	var searchType string
 	var ignoreCase bool
 	cmd := &cobra.Command{
@@ -49,22 +51,34 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-			columnFmt := color.New(color.FgYellow).SprintfFunc()
-
-			tbl := table.New("Repository", "File", "Line", "Snippet")
-			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
-
-			for repository, result := range response.Results {
-				for _, fileMatch := range result.Matches {
-					for _, lineMatch := range fileMatch.Matches {
-						tbl.AddRow(repository, fileMatch.Filename, lineMatch.LineNumber, lineMatch.Line)
+			if output == "table" {
+				table := printers.Table{}
+				table.AddHeadings("Repository", "File", "Line", "Match")
+				for repository, result := range response.Results {
+					for _, fileMatch := range result.Matches {
+						for _, lineMatch := range fileMatch.Matches {
+							table.AddRow(repository, fileMatch.Filename, lineMatch.LineNumber, lineMatch.Line)
+						}
 					}
 				}
+				table.Print()
 			}
-			tbl.Print()
+			if output == "ack" {
+				ack := printers.Ack{}
+				for repository, result := range response.Results {
+					for _, fileMatch := range result.Matches {
+						sectionName := repository + " " + fileMatch.Filename
+						ack.InitSection(sectionName)
+						for _, lineMatch := range fileMatch.Matches {
+							ack.AddItem(sectionName, fmt.Sprintf("%d:%s", lineMatch.LineNumber, lineMatch.Line))
+						}
+					}
+				}
+				ack.Print()
+			}
 		},
 	}
+	cmd.Flags().StringVarP(&output, "output", "o", "table", "Output types: table|ack")
 	cmd.Flags().StringVarP(&searchType, "type", "t", "search", "Type of search to perform: search|core|extensions|skins|things|bundeled|deployed|libraries|operations|puppet|ooui|milkshake|pywikibot|services|analytics")
 	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "Ignore case in search")
 	return cmd
