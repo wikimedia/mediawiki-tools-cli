@@ -50,7 +50,7 @@ func mwddUserDirectory() string {
 	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
 	if inGitlabCi {
 		ciDir, _ := os.LookupEnv("CI_PROJECT_DIR")
-		return ciDir + ".mwcli/mwdd"
+		return ciDir + ".mwcli" + string(os.PathSeparator) + "mwdd"
 	}
 
 	currentUser, err := user.Current()
@@ -70,7 +70,7 @@ func mwddUserDirectory() string {
 		}
 	}
 
-	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/mwdd"
+	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli" + string(os.PathSeparator) + "mwdd"
 	return projectDirectory
 }
 
