@@ -290,7 +290,8 @@ The process hidden within this command is:
 
 		// Fix some container mount permission issues
 		// Owned by root, but our webserver needs to be able to write
-		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/data"}, exec.HandlerOptions{}, "root")
+		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/cache/docker"}, exec.HandlerOptions{}, "root")
+		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/images/docker"}, exec.HandlerOptions{}, "root")
 		mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/log/mediawiki"}, exec.HandlerOptions{}, "root")
 
 		// Record the wiki domain that we are trying to create
