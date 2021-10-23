@@ -169,7 +169,10 @@ func (m MWDD) DockerRun(command DockerExecCommand) {
 	containerConfig.User = command.User
 	containerConfig.Entrypoint = []string{command.Command[0]}
 	containerConfig.Cmd = command.Command[1:]
-	containerConfig.Env = command.Env
+	// Keep the origional docker-compose env vars from the container we are copying, and add any users supplied ones
+	// This is probably britle, and if we ever stop copying a container, and removing the old one etc we could perhaps do something else?
+	// https://phabricator.wikimedia.org/T294181
+	containerConfig.Env = append(containerConfig.Env, command.Env...)
 
 	// Remove the old one and start a new one with new options :)
 	cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})

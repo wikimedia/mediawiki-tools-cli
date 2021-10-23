@@ -68,9 +68,11 @@ var mwddMediawikiQuibbleCmd = &cobra.Command{
 		// So a better solultion is to make all of this brittle
 		mwdd.DefaultForUser().Rm([]string{"mediawiki-quibble"}, options)
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"}, options)
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki-quibble",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		}, "/workspace/src"))
 	},

@@ -64,9 +64,11 @@ var mwddMediawikiFreshCmd = &cobra.Command{
 		// So a better solultion is to make all of this brittle
 		mwdd.DefaultForUser().Rm([]string{"mediawiki-fresh"}, options)
 		mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"}, options)
+		command, env := mwdd.CommandAndEnvFromArgs(args)
 		mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 			DockerComposeService: "mediawiki-fresh",
-			Command:              args,
+			Command:              command,
+			Env:                  env,
 			User:                 User,
 		}, "/var/www/html/w"))
 	},
