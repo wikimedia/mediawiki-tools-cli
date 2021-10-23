@@ -112,7 +112,7 @@ var mwddMediawikiCmd = &cobra.Command{
 			if !globalOpts.NoInteraction {
 				cloneVector := false
 				prompt := &survey.Confirm{
-					Message: "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it from Gerrit?",
+					Message: "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
 				}
 				err := survey.AskOne(prompt, &cloneVector)
 				if err != nil {
