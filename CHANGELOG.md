@@ -8,6 +8,20 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+
+## v0.7.0
+
+- Added `codesearch` command
+- Added the ability to `update` to a specific `--version` (including rollback)
+- Fixed "dirty" state in verbose version output
+
+Development environment specific:
+
+- Fixed the chown of some directories on `mediawiki install`
+- Fixed running `fresh` or `quibble` after a previous failed command
+- Fixed default `fresh` and `quibble` environment variables
+- Fixed typos in setup wizard
+
 ## v0.6.0
 
 - Added `toolhub search` command.
