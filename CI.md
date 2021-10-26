@@ -4,6 +4,10 @@ Continuous integration for this project is currently set up on a dedicated Cloud
 
 Currently this CI will NOT work for forks of this project, only for actual project branches.
 
+There are currently 2 runners:
+ - gitlab-runner-addshore-1011.mwcli.eqiad1.wikimedia.cloud
+ - gitlab-runner-addshore-1012.mwcli.eqiad1.wikimedia.cloud
+
 ## Maintenance
 
 If the runner starts running out of space...
@@ -19,7 +23,7 @@ If this doesn't free up enough space the next step would be to nuke the registry
 
 ### Make a machine
 
-Make a VM, such as `gitlab-runner-addshore-1004.integration.eqiad1.wikimedia.cloud`
+Make a VM, such as `gitlab-runner-addshore-1011.mwcli.eqiad1.wikimedia.cloud`
 
 ### Install docker
 
@@ -57,8 +61,8 @@ sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
-  --limit 4 \
-  --name "gitlab-runner-addshore-1004-docker-01" \
+  --limit 3 \
+  --name "gitlab-runner-addshore-1012-docker-01" \
   --docker-image "docker:19.03.15" \
   --docker-privileged \
   --docker-volumes "/certs/client"
@@ -68,10 +72,10 @@ sudo gitlab-runner register -n \
 
 #### Configure "global" runner jobs
 
-Allow 4 jobs at once globally on this runner and restart gitlab runner
+Allow 3 jobs at once globally on this runner and restart gitlab runner
 
 ```sh
-sudo sed -i 's/^concurrent =.*/concurrent = 4/' "/etc/gitlab-runner/config.toml"
+sudo sed -i 's/^concurrent =.*/concurrent = 3/' "/etc/gitlab-runner/config.toml"
 sudo systemctl restart gitlab-runner
 ```
 
