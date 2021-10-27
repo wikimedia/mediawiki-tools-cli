@@ -8,6 +8,12 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.8.0
+
+Development environment specific:
+
+- Added `custom` service set, usable by creating a `custom.yml` (see the help output for details)
+- Updated `eventlogging`, `graphite`, `mediawiki-web` & `mariadb` image versions
 
 ## v0.7.0
 
