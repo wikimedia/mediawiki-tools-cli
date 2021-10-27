@@ -466,15 +466,13 @@ var mwddMediawikiComposerCmd = &cobra.Command{
 }
 
 var (
-	mwddMediawikiCreateCmd  = mwdd.NewServiceCreateCmd("mediawiki", []string{"mediawiki", "mediawiki-web"}, globalOpts.Verbosity)
+	mwddMediawikiCreateCmd  = mwdd.NewServiceCreateCmd("mediawiki", globalOpts.Verbosity)
 	mwddMediawikiDestroyCmd = mwdd.NewServiceDestroyCmd(
 		"mediawiki",
-		[]string{"mediawiki", "mediawiki-web"},
-		[]string{"mediawiki-data", "mediawiki-images", "mediawiki-logs", "mediawiki-dot-composer"},
 		globalOpts.Verbosity,
 	)
-	mwddMediawikiSuspendCmd = mwdd.NewServiceSuspendCmd("mediawiki", []string{"mediawiki", "mediawiki-web"}, globalOpts.Verbosity)
-	mwddMediawikiResumeCmd  = mwdd.NewServiceResumeCmd("mediawiki", []string{"mediawiki", "mediawiki-web"}, globalOpts.Verbosity)
+	mwddMediawikiSuspendCmd = mwdd.NewServiceSuspendCmd("mediawiki", globalOpts.Verbosity)
+	mwddMediawikiResumeCmd  = mwdd.NewServiceResumeCmd("mediawiki", globalOpts.Verbosity)
 )
 
 var mwddMediawikiExecCmd = &cobra.Command{

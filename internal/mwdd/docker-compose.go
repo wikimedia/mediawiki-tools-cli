@@ -22,18 +22,7 @@ import (
 
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
-	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 )
-
-/*DockerComposeProjectName the name of the docker-compose project.*/
-func (m MWDD) DockerComposeProjectName() string {
-	return "mwcli-mwdd-" + mwddContext()
-}
-
-/*Env ...*/
-func (m MWDD) Env() dotenv.File {
-	return dotenv.FileForDirectory(m.Directory())
-}
 
 // DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`.
 type DockerComposeCommand struct {
