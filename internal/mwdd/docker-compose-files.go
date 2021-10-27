@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package mwdd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -92,4 +93,12 @@ func (m MWDD) DockerComposeFileServices(fileName string) []string {
 
 func (m MWDD) DockerComposeFileVolumes(fileName string) []string {
 	return m.dockerComposeFile(fileName).VolumeNames()
+}
+
+func (m MWDD) DockerComposeFileExistsOrExit(fileName string) {
+	filePath := m.DockerComposeFileName(fileName)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		fmt.Println("docker-compose file " + filePath + " does not exist")
+		os.Exit(1)
+	}
 }

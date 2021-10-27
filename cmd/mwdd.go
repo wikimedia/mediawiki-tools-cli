@@ -119,6 +119,9 @@ var memcachedLong string
 //go:embed long/mwdd_redis.txt
 var redisLong string
 
+//go:embed long/mwdd_custom.txt
+var customLong string
+
 func init() {
 	mwddCmd.AddCommand(mwddWhereCmd)
 	mwddCmd.AddCommand(mwddDestroyCmd)
@@ -215,4 +218,11 @@ func init() {
 	redis.AddCommand(mwdd.NewServiceResumeCmd("redis", globalOpts.Verbosity))
 	redis.AddCommand(mwdd.NewServiceExecCmd("redis", "redis", globalOpts.Verbosity))
 	redis.AddCommand(mwdd.NewServiceCommandCmd("redis", "redis-cli"))
+
+	custom := mwdd.NewServiceCmd("custom", customLong, []string{})
+	mwddCmd.AddCommand(custom)
+	custom.AddCommand(mwdd.NewServiceCreateCmd("custom", globalOpts.Verbosity))
+	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom", globalOpts.Verbosity))
+	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom", globalOpts.Verbosity))
+	custom.AddCommand(mwdd.NewServiceResumeCmd("custom", globalOpts.Verbosity))
 }

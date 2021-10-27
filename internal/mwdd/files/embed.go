@@ -38,6 +38,8 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 			".env",
 			// Used by the dev environment to store hosts that need adding to the hosts file
 			"record-hosts",
+			// Used by folks that want to define a custom set of docker-compose services
+			"custom.yml",
 		},
 	}
 }

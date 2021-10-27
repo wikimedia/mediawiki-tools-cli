@@ -1,0 +1,35 @@
+Custom docker-compose services
+
+You can define you're own docker-compse file in a custom.yml file.
+This file should be created in the directory returned by the `mw docker where` command.
+
+Example regular service:
+```yml
+version: '3.7'
+services:
+  <service-name>:
+    image: <service-image>
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
+```
+
+Example web service:
+```yml
+version: '3.7'
+services:
+  <service-name>:
+    image: <service-image>
+    environment:
+      - VIRTUAL_HOST=<service-name>.mwdd.localhost,<service-name>.mwdd
+      - VIRTUAL_PORT=<service-port>
+    depends_on:
+      - nginx-proxy
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps
+```
+
+Note: If you use the docker hosts file integration, you may need to manually add this host.

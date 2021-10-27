@@ -40,6 +40,7 @@ func NewServiceCreateCmd(name string, Verbosity int) *cobra.Command {
 		Short: fmt.Sprintf("Create the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
+			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
 			DefaultForUser().UpDetached(
 				services,
@@ -57,6 +58,7 @@ func NewServiceDestroyCmd(name string, Verbosity int) *cobra.Command {
 		Short: fmt.Sprintf("Destroy the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
+			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
 			volumes := DefaultForUser().DockerComposeFileVolumes(name)
 
@@ -77,6 +79,7 @@ func NewServiceSuspendCmd(name string, Verbosity int) *cobra.Command {
 		Short: fmt.Sprintf("Suspend the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
+			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
 			DefaultForUser().Stop(
 				services,
@@ -94,6 +97,7 @@ func NewServiceResumeCmd(name string, Verbosity int) *cobra.Command {
 		Short: fmt.Sprintf("Resume the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
+			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
 			DefaultForUser().Start(
 				services,
@@ -113,6 +117,7 @@ func NewServiceExecCmd(name string, service string, Verbosity int) *cobra.Comman
 		Short:   fmt.Sprintf("Execute a command in the main %s container", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
+			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			command, env := CommandAndEnvFromArgs(args)
 			DefaultForUser().DockerExec(DockerExecCommand{
 				DockerComposeService: service,
