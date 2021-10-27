@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   graphite:
-    image: graphiteapp/graphite-statsd:1.1.8-1
+    image: graphiteapp/graphite-statsd:1.1.8-2
     environment:
       - VIRTUAL_HOST=graphite.mwdd.localhost,graphite.mwdd
     depends_on:

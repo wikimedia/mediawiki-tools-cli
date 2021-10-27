@@ -29,7 +29,7 @@ services:
       - dps
 
   mediawiki-web:
-    image: docker-registry.wikimedia.org/dev/stretch-apache2:1.0.0-s1
+    image: docker-registry.wikimedia.org/dev/stretch-apache2:2.0.0
     volumes:
      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
      - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
