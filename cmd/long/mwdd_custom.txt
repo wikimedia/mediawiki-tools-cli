@@ -1,6 +1,6 @@
 Custom docker-compose services
 
-You can define you're own docker-compse file in a custom.yml file.
+You can define your own docker-compose file in a custom.yml file.
 This file should be created in the directory returned by the `mw docker where` command.
 
 Example regular service:
