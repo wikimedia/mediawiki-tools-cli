@@ -72,7 +72,7 @@ var mwddWhereCmd = &cobra.Command{
 
 var mwddDestroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "Destroy the all containers",
+	Short: "Destroy all the containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
 			Verbosity: globalOpts.Verbosity,
