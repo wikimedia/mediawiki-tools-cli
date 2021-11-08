@@ -23,6 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
+	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
 
@@ -70,6 +71,9 @@ var VersionDetails VersionAttributes
 var rootCmd = &cobra.Command{
 	Use:   "mw",
 	Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		eventlogging.RecordCommand(cmd, args)
+	},
 }
 
 func init() {

@@ -25,12 +25,13 @@ import (
 )
 
 /*Env top level env command.*/
-func Env(Short string) *cobra.Command {
+func Env(Short string, rootCmd *cobra.Command) *cobra.Command {
 	return &cobra.Command{
 		Use:   "env",
 		Short: Short,
 		RunE:  nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			rootCmd.PersistentPreRun(cmd, args)
 			// Do nothing, but override any other PersistentPreRuns
 		},
 	}

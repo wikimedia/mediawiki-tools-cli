@@ -40,7 +40,7 @@ var mwddMediawikiCmd = &cobra.Command{
 	Aliases: []string{"mw"},
 	RunE:    nil,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		cmd.Parent().Parent().PersistentPreRun(cmd, args)
+		mwddCmd.PersistentPreRun(cmd, args)
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
 

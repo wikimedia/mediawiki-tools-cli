@@ -34,6 +34,7 @@ var mwddCmd = &cobra.Command{
 	Short: "The MediaWiki-Docker-Dev like development environment",
 	RunE:  nil,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
 		mwdd := mwdd.DefaultForUser()
 		mwdd.EnsureReady()
 		if mwdd.Env().Missing("PORT") {

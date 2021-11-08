@@ -27,7 +27,7 @@ func mwddEnvDirectory() string {
 }
 
 var (
-	mwddEnvCmd       = cmd.Env("Interact with the environment variables")
+	mwddEnvCmd       = cmd.Env("Interact with the environment variables", rootCmd)
 	mwddEnvDeleteCmd = cmd.EnvDelete(mwddEnvDirectory)
 	mwddEnvSetCmd    = cmd.EnvSet(mwddEnvDirectory)
 	mwddEnvGetCmd    = cmd.EnvGet(mwddEnvDirectory)
