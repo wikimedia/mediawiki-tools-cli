@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
@@ -71,16 +72,29 @@ func UserAndGroupForDockerExecution() string {
 	return fmt.Sprint(os.Getuid(), ":", os.Getgid())
 }
 
+func (m MWDD) containerID(ctx context.Context, cli *client.Client, service string) string {
+	containerFilters := filters.NewArgs()
+	containerFilters.Add("label", "com.docker.compose.project="+m.DockerComposeProjectName())
+	containerFilters.Add("label", "com.docker.compose.service="+service)
+	containerFilters.Add("label", "com.docker.compose.container-number=1")
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Filters: containerFilters})
+	if err != nil || len(containers) != 1 {
+		fmt.Println("Unable to find one container for service", service)
+		panic(err)
+	}
+	return containers[0].ID
+}
+
 /*DockerExec runs a docker exec command using the docker SDK.*/
 func (m MWDD) DockerExec(command DockerExecCommand) {
-	containerID := m.DockerComposeProjectName() + "_" + command.DockerComposeService + "_1"
-
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		fmt.Println("Unable to create docker client")
 		panic(err)
 	}
+
+	containerID := m.containerID(ctx, cli, command.DockerComposeService)
 
 	execConfig := types.ExecConfig{
 		AttachStderr: true,
@@ -95,6 +109,8 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 
 	response, err := cli.ContainerExecCreate(ctx, containerID, execConfig)
 	if err != nil {
+		fmt.Println("containerExecCreate failed")
+		fmt.Println(err)
 		return
 	}
 
@@ -148,14 +164,14 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 
 /*DockerRun runs a docker container using the docker SDK attached to the mwdd network etc...*/
 func (m MWDD) DockerRun(command DockerExecCommand) {
-	containerID := m.DockerComposeProjectName() + "_" + command.DockerComposeService + "_1"
-
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		fmt.Println("Unable to create docker client")
 		panic(err)
 	}
+
+	containerID := m.containerID(ctx, cli, command.DockerComposeService)
 
 	containerJSON, _ := cli.ContainerInspect(context.Background(), containerID)
 	containerConfig := containerJSON.Config

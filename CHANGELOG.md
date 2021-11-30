@@ -8,6 +8,10 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - ...
 
+## v0.8.1
+
+- Fixed development environment `exec` and internal command running with `docker-compose` version 2
+
 ## v0.8.0
 
 Development environment specific:
