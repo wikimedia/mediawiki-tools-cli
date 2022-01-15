@@ -154,7 +154,7 @@ release-upload:
   dependencies:
     - release-build
   # Has 1 requirement of curl, could be replaced by a wmf releng image?
-  image: alpine:latest
+  image: docker-registry.wikimedia.org/alpine:latest
   before_script:
     - apk add curl
   # https://docs.gitlab.com/ee/user/packages/generic_packages/#publish-a-generic-package-by-using-cicd
