@@ -114,7 +114,11 @@ sudo docker system info
 Also add the mirror for dind in `/etc/gitlab-runner/config.toml` to each runner it is needed for
 https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#enable-registry-mirror-for-dockerdind-service
 
+You can also tweak the pull_policy to fallback to "if-not-present".
+
 ```sh
+  [[runners.docker]]
+    pull_policy = ["always", "if-not-present"]
     [[runners.docker.services]]
       name = "docker:19.03.15-dind"
       command = ["--registry-mirror", "http://<CUSTOM IP>:<PORT>"]
