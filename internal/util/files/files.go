@@ -51,6 +51,18 @@ func AddLineUnique(line string, fileName string) {
 	}
 }
 
+func AddLine(line string, fileName string) {
+	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(line + "\n"); err != nil {
+		panic(err)
+	}
+}
+
 /*Lines reads all lines from a file.*/
 func Lines(fileName string) []string {
 	_, err := os.Stat(fileName)
@@ -78,4 +90,15 @@ func Bytes(fileName string) []byte {
 		panic(err)
 	}
 	return bytes
+}
+
+func Exists(fileName string) bool {
+	_, err := os.Stat(fileName)
+	return !os.IsNotExist(err)
+}
+
+func RemoveIfExists(fileName string) {
+	if Exists(fileName) {
+		os.Remove(fileName)
+	}
 }

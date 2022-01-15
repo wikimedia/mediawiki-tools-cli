@@ -12,8 +12,6 @@ uname -a
 echo "I am:" $(whoami)
 docker --version
 docker-compose version
-# Output CLI version
-./bin/mw version
 echo "*****************************************"
 echo
 

@@ -1,5 +1,7 @@
 /*Package config for interacting with the cli config
 
+TODO refactor this to use the util/jsonfile package :)
+
 Copyright © 2020 Addshore
 
 This program is free software: you can redistribute it and/or modify
@@ -25,7 +27,10 @@ const DevModeMwdd string = "docker"
 
 /*Config representation of a cli config.*/
 type Config struct {
-	DevMode string `json:"dev_mode"`
+	DevMode                string `json:"dev_mode"`
+	Telemetry              string `json:"telemetry"`
+	TimerLastEmmitedEvent  string `json:"_timer_last_emmited_event"`
+	TimerLastUpdateChecked string `json:"_timer_last_update_checked"`
 }
 
 /*AllowedOptions representation of allowed options for a config value.*/

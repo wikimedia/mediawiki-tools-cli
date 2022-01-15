@@ -114,7 +114,6 @@ integration-docker:
     before_script:
       # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
       - apk add --no-cache libc6-compat bash docker-compose curl tar
-      - ./tests/pretest-mediawiki.sh
     script:
       - ./tests/$TEST
 

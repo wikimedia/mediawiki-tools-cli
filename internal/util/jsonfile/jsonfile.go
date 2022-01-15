@@ -1,6 +1,4 @@
-/*Package config for interacting with the cli config
-
-TODO refactor this to use the util/jsonfile package :)
+/*Package jsonfile for interacting with a single json file on disk
 
 Copyright © 2020 Addshore
 
@@ -17,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-package config
+package jsonfile
 
 import (
 	"bufio"
@@ -25,27 +23,30 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
+	"path"
 	"strings"
 )
 
-func configPath() string {
-	return mwcliDirectory() + string(os.PathSeparator) + "config.json"
+/*JSONFile representation of a json file.*/
+type JSONFile struct {
+	FilePath string
+	Contents map[string]interface{}
 }
 
-func mwcliDirectory() string {
-	currentUser, _ := user.Current()
-	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli"
-	return projectDirectory
+/*FileName the file name extracted from the full path*/
+func (j JSONFile) FileName() string {
+	_, file := path.Split(j.FilePath)
+	return file
 }
 
-func ensureExists() {
-	if _, err := os.Stat(configPath()); err != nil {
-		err := os.MkdirAll(strings.Replace(configPath(), "config.json", "", -1), 0o700)
+/*EnsureExists makes sure the file exists on disk, will be empty json if created*/
+func (j JSONFile) EnsureExists() {
+	if _, err := os.Stat(j.FilePath); err != nil {
+		err := os.MkdirAll(strings.Replace(j.FilePath, j.FileName(), "", -1), 0o700)
 		if err != nil {
 			log.Fatal(err)
 		}
-		file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -60,35 +61,38 @@ func ensureExists() {
 }
 
 /*LoadFromDisk loads the config.json from disk.*/
-func LoadFromDisk() Config {
-	ensureExists()
-	var config Config
-	configFile, err := os.Open(configPath())
+func LoadFromDisk(filePath string) JSONFile {
+	file := JSONFile{
+		FilePath: filePath,
+	}
+	file.EnsureExists()
+
+	openedFile, err := os.Open(file.FilePath)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	defer configFile.Close()
-	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&config)
-	return config
+	defer openedFile.Close()
+	jsonParser := json.NewDecoder(openedFile)
+	jsonParser.Decode(&file.Contents)
+	return file
 }
 
 /*WriteToDisk writers the config to disk.*/
-func (c Config) WriteToDisk() {
-	file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+func (j JSONFile) WriteToDisk() {
+	file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 	w := bufio.NewWriter(file)
 	jsonEncoder := json.NewEncoder(w)
-	jsonEncoder.Encode(c)
+	jsonEncoder.Encode(j.Contents)
 	w.Flush()
 }
 
 /*PrettyPrint writes the config to disk.*/
-func (c Config) PrettyPrint() {
-	empJSON, err := json.MarshalIndent(c, "", "  ")
+func (j JSONFile) PrettyPrint() {
+	empJSON, err := json.MarshalIndent(j.Contents, "", "  ")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

@@ -6,7 +6,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## Unreleased
 
-- ...
+- Optional telemetry submission via Wikimedia Event intake.
 
 ## v0.8.1
 

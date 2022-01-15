@@ -29,7 +29,7 @@ Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
 
 Within the `~/go/src/gitlab.wikimedia.org/releng/cli` directory:
 
-You can install allo tools used by this repository using bingo.
+You can install all tools used by this repository using bingo.
 
 ```sh
 bingo get
@@ -83,6 +83,7 @@ No naming structured is enforced in CI but a convention exists that should be fo
 - The lowest level commands can be included in their parent files. Example `mwdd_mediawiki.go` contains subcommands such as `mwddMediawikiCmd`.
 - Complex sub commands can be split out into their own file.
 - This is a recursive solution.
+- Hidden commands can be created for debugging mwcli. These should be set as `Hidden` and be under the `debug` command.
 
 ## CI & Integration tests
 
