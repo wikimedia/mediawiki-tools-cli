@@ -4,6 +4,7 @@
 /.build
 /.lint-*
 /_release
+/_docs
 /vendor
 coverage.txt
 coverage.html

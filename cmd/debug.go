@@ -1,6 +1,6 @@
 /*Package cmd is used for command line.
 
-Copyright © 2020 Addshore
+Copyright © 2021 Addshore
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,18 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 )
 
-var debugEventsEmitCmd = &cobra.Command{
-	Hidden: true,
-	Use:    "debug events emit",
-	Short:  "Emit events now",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Emitting events")
-		eventlogging.EmitEvents()
-	},
+func debugAttachToCmd(rootCmd *cobra.Command) {
+	rootCmd.AddCommand(debugEventsEmitCmd)
 }

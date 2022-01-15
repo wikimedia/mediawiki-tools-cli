@@ -39,6 +39,6 @@ func sshGerritCommand(args []string) *exec.Cmd {
 	return ssh
 }
 
-func init() {
+func gerritAttachToCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(gerritCmd)
 }

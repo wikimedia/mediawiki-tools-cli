@@ -73,14 +73,36 @@ type VersionAttributes struct {
 
 var VersionDetails VersionAttributes
 
-var rootCmd = &cobra.Command{
-	Use:   "mw",
-	Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
-}
+var rootCmd = NewMwCliCmd()
 
-func init() {
-	rootCmd.PersistentFlags().IntVarP(&globalOpts.Verbosity, "verbosity", "v", 1, "verbosity level (1-2)")
-	rootCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "n", false, "Do not ask any interactive questions")
+func NewMwCliCmd() *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:   "mw",
+		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
+	}
+
+	rootCmd.PersistentFlags().IntVarP(&globalOpts.Verbosity, "verbosity", "", 1, "verbosity level (1-2)")
+	rootCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
+	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
+	rootCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
+
+	// A PersistentPreRun must always be set, as subcommands currently all call it (used for telemetry, but optional)
+	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
+
+	// TODO down this tree we still reuse commands between instantiations of the rootCmd
+	// Perhaps we should new everything in this call...
+	codesearchAttachToCmd(rootCmd)
+	configAttachToCmd(rootCmd)
+	debugAttachToCmd(rootCmd)
+	toolhubAttachToCmd(rootCmd)
+	gitlabAttachToCmd(rootCmd)
+	gerritAttachToCmd(rootCmd)
+	mwddAttachToCmd(rootCmd)
+	updateAttachToCmd(rootCmd)
+	versionAttachToCmd(rootCmd)
+	wikiAttachToCmd(rootCmd)
+
+	return rootCmd
 }
 
 func wizardDevMode(c *config.Config) {
@@ -197,9 +219,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
 			eventlogging.AddCommandRunEvent(cobrautil.FullCommandString(cmd), VersionDetails.Version)
 		}
-	} else {
-		// We must set a pre run comand, that does nothing, to avoidnil pointers for out sub commands that call this pre run
-		rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
 	}
 
 	// Execute the root command

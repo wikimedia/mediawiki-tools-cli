@@ -6,7 +6,9 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## Unreleased
 
-- Optional telemetry submission via Wikimedia Event intake.
+- Added `wiki page push` command for updating a single MediaWiki page.
+- Added optional telemetry submission via Wikimedia Event intake.
+- Improved on wiki documentation with auto generated command reference.
 
 ## v0.8.1
 

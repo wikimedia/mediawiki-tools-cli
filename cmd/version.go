@@ -48,6 +48,6 @@ Version: %s
 	},
 }
 
-func init() {
+func versionAttachToCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(versionCmd)
 }

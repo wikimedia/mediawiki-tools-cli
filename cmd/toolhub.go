@@ -27,6 +27,6 @@ var toolhubCmd = &cobra.Command{
 	RunE:  nil,
 }
 
-func init() {
+func toolhubAttachToCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(toolhubCmd)
 }

@@ -85,6 +85,9 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 }
 
 func init() {
-	rootCmd.AddCommand(codesearchCmd)
 	codesearchCmd.AddCommand(NewCodeSearchSearchCmd())
+}
+
+func codesearchAttachToCmd(rootCmd *cobra.Command) {
+	rootCmd.AddCommand(codesearchCmd)
 }
