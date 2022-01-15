@@ -40,7 +40,7 @@ test:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.16.9
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20220109
     artifacts:
       reports:
         cobertura: coverage.xml
@@ -56,7 +56,7 @@ checks:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.16.9
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20220109
     parallel:
       matrix:
         - CHECK: lint
@@ -75,7 +75,7 @@ build:
     stage: build
     needs: []
     cache: {}
-    image: golang:1.16.9
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20220109
     artifacts:
       paths:
         - bin/
@@ -123,7 +123,7 @@ build-release:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: golang:1.16.9
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20220109
     before_script:
       - go install github.com/bwplotka/bingo@latest
       - bingo get
@@ -136,7 +136,7 @@ release-build:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: golang:1.16.9
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20220109
     artifacts:
       paths:
         - _release/
