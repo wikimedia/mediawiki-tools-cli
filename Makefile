@@ -66,3 +66,22 @@ duplicates: $(GOLANGCI_LINT) generate
 .PHONY: git-state
 git-state: $(GOX) $(GOVVV) release
 	git diff --quiet || (git --no-pager diff && false)
+
+.PHONY: docs
+docs: build
+	rm -rf ./_docs/*
+	MWCLI_DOC_GEN="./_docs" ./bin/mw
+	for path in ./_docs/*.md; do \
+		echo "Converting "$${path}" to wikitext"; \
+		pandoc --from markdown --to mediawiki --output $${path::-3}.wiki "$${path}"; \
+	done
+
+.PHONY: docs-publish
+docs-publish: docs
+	for path in ./_docs/*.wiki; do \
+		file=$${path/.\/_docs\//}; \
+		fileNoExt=$${file::-5}; \
+		echo $${fileNoExt}; \
+		echo $${path}; \
+		printf "__NOTOC__" | cat $${path} - | ./bin/mw wiki --wiki https://www.mediawiki.org/w/api.php --user ${user} --password ${password} page --title Cli/ref/$${fileNoExt} put --summary "Pushing auto generated docs for mwcli from cobra" --minor; \
+	done

@@ -129,8 +129,6 @@ func init() {
 	mwddCmd.AddCommand(mwddSuspendCmd)
 	mwddCmd.AddCommand(mwddResumeCmd)
 
-	rootCmd.AddCommand(mwddCmd)
-
 	adminer := mwdd.NewServiceCmd("adminer", "", []string{})
 	mwddCmd.AddCommand(adminer)
 	adminer.AddCommand(mwdd.NewServiceCreateCmd("adminer", globalOpts.Verbosity))
@@ -226,4 +224,8 @@ func init() {
 	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom", globalOpts.Verbosity))
 	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom", globalOpts.Verbosity))
 	custom.AddCommand(mwdd.NewServiceResumeCmd("custom", globalOpts.Verbosity))
+}
+
+func mwddAttachToCmd(rootCmd *cobra.Command) {
+	rootCmd.AddCommand(mwddCmd)
 }

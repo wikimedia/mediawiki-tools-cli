@@ -83,6 +83,6 @@ func NewUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-func init() {
+func updateAttachToCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(NewUpdateCmd())
 }

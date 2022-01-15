@@ -35,6 +35,9 @@ var configShowCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configShowCmd)
+}
+
+func configAttachToCmd(rootCmd *cobra.Command) {
+	rootCmd.AddCommand(configCmd)
 }

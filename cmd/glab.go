@@ -24,9 +24,10 @@ import (
 	"github.com/profclems/glab/commands"
 	"github.com/profclems/glab/commands/cmdutils"
 	"github.com/profclems/glab/pkg/glinstance"
+	"github.com/spf13/cobra"
 )
 
-func init() {
+func gitlabAttachToCmd(rootCmd *cobra.Command) {
 	cmdFactory := cmdutils.NewFactory()
 
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
@@ -45,11 +46,13 @@ func init() {
 		// issues will not be used on the Wikimedia gitlab instance
 		"issue",
 	}
+
 	for _, command := range glabCommand.Commands() {
-		_, found := findInSlice(toHide, command.Name())
-		if found {
+		_, shouldHide := findInSlice(toHide, command.Name())
+		if shouldHide {
 			glabCommand.RemoveCommand(command)
 		}
+
 		// TODO fix this one upstream
 		if command.Name() == "config" {
 			command.Long = strings.Replace(command.Long, "https://gitlab.com", "https://gitlab.wikimedia.org", -1)

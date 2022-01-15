@@ -122,3 +122,23 @@ Tags should follow [semver](https://semver.org/) and release notes should be wri
 3) [Watch the pipeline run](https://gitlab.wikimedia.org/releng/cli/-/pipelines) that is building, uploading and publishing the release.
 4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/releng/cli/-/releases)
 5) You should now be able to run `mw update` to grab the latest release.
+
+## Docs
+
+Docs for mediawiki.org can be automatically generated from this repository.
+
+Note: You will need `pandoc` installed. https://pandoc.org/
+
+```sh
+make docs
+```
+
+If you also want to publish them, you'll need something like this:
+
+```sh
+make user="someUser" password="somePassword" docs-publish
+```
+
+You can use a bot password for this https://mediawiki.org/wiki/Special:BotPasswords
+
+In the future this would be done by CI!
