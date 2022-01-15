@@ -61,6 +61,8 @@ sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
+  --tag-list "mwcli" \
+  --run-untagged="true" \
   --limit 3 \
   --name "gitlab-runner-addshore-1012-docker-01" \
   --docker-image "docker:19.03.15" \
