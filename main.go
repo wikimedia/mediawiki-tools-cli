@@ -17,14 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/spf13/cobra/doc"
 	"gitlab.wikimedia.org/releng/cli/cmd"
-	"gitlab.wikimedia.org/releng/cli/internal/util/dirs"
 )
 
 // Following variables will be statically linked at the time of compiling
@@ -48,28 +41,6 @@ var BuildDate string
 var Version string
 
 func main() {
-	// Alow doc generation of the command if an env var is set
-	if os.Getenv("MWCLI_DOC_GEN") != "" {
-		path := os.Getenv("MWCLI_DOC_GEN")
-		dirs.EnsureExists(path)
-		cmdForDocs := cmd.NewMwCliCmd()
-
-		filePrepender := func(filename string) string {
-			return ""
-		}
-
-		linkHandler := func(name string) string {
-			trimmedName := strings.TrimSuffix(name, filepath.Ext(name))
-			return "../" + trimmedName
-		}
-
-		err := doc.GenMarkdownTreeCustom(cmdForDocs, path, filePrepender, linkHandler)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return
-	}
-
 	// Alternatively, execute the command
 	cmd.Execute(GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
 }

@@ -70,7 +70,7 @@ git-state: $(GOX) $(GOVVV) release
 .PHONY: docs
 docs: build
 	rm -rf ./_docs/*
-	MWCLI_DOC_GEN="./_docs" ./bin/mw
+	go run ./tools/docs-gen/main.go
 	for path in ./_docs/*.md; do \
 		echo "Converting "$${path}" to wikitext"; \
 		pandoc --from markdown --to mediawiki --output $${path::-3}.wiki "$${path}"; \

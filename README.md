@@ -73,6 +73,7 @@ Many other Makefile commands exist that you might find useful:
 - `internal/updater`: CLI tool updating.
 - `internal/util`: A collection of quite well defined and restricted useful utility packages.
 - `tests`: Integration tests that are run as part of CI.
+- `tools`: Various tools to make working with this repository easier.
 
 ### cmd names
 
