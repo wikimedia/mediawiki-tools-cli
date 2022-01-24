@@ -4,6 +4,7 @@ require (
 	cgt.name/pkg/go-mwclient v1.2.0
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/Microsoft/go-winio v0.5.0 // indirect
+	github.com/NoahShen/gotunnelme v0.0.0-20180106044115-fbc9b0b77df8
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/chroma v0.9.2 // indirect
 	github.com/alecthomas/colour v0.1.0 // indirect

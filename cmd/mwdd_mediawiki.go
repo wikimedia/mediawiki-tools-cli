@@ -22,10 +22,12 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/NoahShen/gotunnelme/src/gotunnelme"
 	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
@@ -449,6 +451,33 @@ The process hidden within this command is:
 	},
 }
 
+var mwddMediawikiLocalTunelCmd = &cobra.Command{
+	Use:   "local-tunel",
+	Short: "Expose your install to the world",
+	Long:  "Localtunnel allows you to easily share a web service on your local development machine without messing with DNS and firewall settings.",
+	Run: func(cmd *cobra.Command, args []string) {
+		mwdd.DefaultForUser().EnsureReady()
+		i, err := strconv.Atoi(mwdd.DefaultForUser().Env().Get("PORT"))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		t := gotunnelme.NewTunnel()
+		// TODO use a mwcli branded URL in the future, but this is currently broken? https://github.com/localtunnel/localtunnel/issues/439
+		//url, err := t.GetUrl(strings.RandomString(6) + "-mwcli-mwdd")
+		url, err := t.GetUrl("")
+		if err != nil {
+			panic(err)
+		}
+		print(url)
+		err = t.CreateTunnel(i)
+		if err != nil {
+			panic(err)
+		}
+		t.StopTunnel()
+	},
+}
+
 var mwddMediawikiComposerCmd = &cobra.Command{
 	Use:     "composer",
 	Short:   "Runs composer in a container in the context of MediaWiki",
@@ -513,6 +542,7 @@ func init() {
 	mwddMediawikiCmd.AddCommand(mwddMediawikiSuspendCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiResumeCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiInstallCmd)
+	mwddMediawikiCmd.AddCommand(mwddMediawikiLocalTunelCmd)
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
 	mwddMediawikiInstallCmd.Flags().StringVarP(&DbType, "dbtype", "", "", "Type of database to install (mysql, postgres, sqlite)")
 	mwddMediawikiCmd.AddCommand(mwddMediawikiComposerCmd)

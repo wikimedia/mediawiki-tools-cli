@@ -39,9 +39,16 @@ if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
     $wgServer = "//$dockerDb.mediawiki.mwdd.localhost:80";
 } elseif( array_key_exists( 'SERVER_NAME', $_SERVER ) ) {
-    $dockerHostParts = explode( '.', $_SERVER['SERVER_NAME'] );
-    $dockerDb = $dockerHostParts[0];
-    $wgServer = WebRequest::detectServer();
+	// Special handeling for local tunel functionality
+	// always point to the default DB for now
+	if( str_contains($_SERVER['SERVER_NAME'], '.loca.lt') ) {
+		$dockerDb = 'default';
+		$wgServer = "https://" . $_SERVER['SERVER_NAME'];
+	} else {
+		$dockerHostParts = explode( '.', $_SERVER['SERVER_NAME'] );
+		$dockerDb = $dockerHostParts[0];
+		$wgServer = WebRequest::detectServer();
+	}
 } else {
     die( 'Unable to decide which MediaWiki DB to use (from env or request).' );
 }
