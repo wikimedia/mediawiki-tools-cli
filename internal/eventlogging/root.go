@@ -36,9 +36,9 @@ func currentDtString() string {
 
 func AddCommandRunEvent(command string, version string) {
 	AddEventToStore(map[string]interface{}{
-		"$schema": "/analytics/mwcli/command_execution/1.0.0",
+		"$schema": "/analytics/mwcli/command_execute/1.0.0",
 		"meta": map[string]interface{}{
-			"stream": "mwcli.command_execution",
+			"stream": "mwcli.command_execute",
 		},
 		"dt":      currentDtString(),
 		"command": command,
