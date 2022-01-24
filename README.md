@@ -122,7 +122,8 @@ Tags should follow [semver](https://semver.org/) and release notes should be wri
 2) Tag & push the commit
 3) [Watch the pipeline run](https://gitlab.wikimedia.org/releng/cli/-/pipelines) that is building, uploading and publishing the release.
 4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/releng/cli/-/releases)
-5) You should now be able to run `mw update` to grab the latest release.
+5) Publish up to date ref docs (see below)
+6) You should now be able to run `mw update` to grab the latest release.
 
 ## Docs
 
