@@ -117,7 +117,7 @@ Tags should follow [semver](https://semver.org/) and release notes should be wri
 ### Process
 
 1) Add release notes for the release into CHANGELOG.md
-    - You can use a compare link such as [this](https://gitlab.wikimedia.org/releng/cli/-/compare/v0.2.0...main?from_project_id=16) to see what has changed and what needs release notes.
+    - You can use a compare link such as [this](https://gitlab.wikimedia.org/repos/releng/cli/-/compare/v0.8.1...main?from_project_id=16) to see what has changed and what needs release notes.
     - Notes should be under a fresh new header of the format `## v0.2.1` so that the release process can extract the notes correctly.
 2) Tag & push the commit
 3) [Watch the pipeline run](https://gitlab.wikimedia.org/releng/cli/-/pipelines) that is building, uploading and publishing the release.

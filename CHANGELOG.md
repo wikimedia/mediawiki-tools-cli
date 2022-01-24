@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.9.0
 
 - Added `wiki page push` command for updating a single MediaWiki page.
 - Added help text when `exec` commands are run without arguments (T294851).
-- Added optional telemetry submission via Wikimedia Event intake.
+- Added optional telemetry submission via Wikimedia Event intake (T293583).
 - Improved error message when `exec` commands are run without running containers.
-- Improved on wiki documentation with auto generated command reference.
+- Improved on wiki documentation with auto generated command reference https://www.mediawiki.org/wiki/Cli/ref.
 
 ## v0.8.1
 
