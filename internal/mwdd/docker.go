@@ -78,9 +78,17 @@ func (m MWDD) containerID(ctx context.Context, cli *client.Client, service strin
 	containerFilters.Add("label", "com.docker.compose.service="+service)
 	containerFilters.Add("label", "com.docker.compose.container-number=1")
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Filters: containerFilters})
-	if err != nil || len(containers) != 1 {
-		fmt.Println("Unable to find one container for service", service)
+	if err != nil {
+		fmt.Println("Error getting containers for service", service)
 		panic(err)
+	}
+	if len(containers) == 0 {
+		fmt.Println("Unable to execute command, no container found for service: " + service)
+		fmt.Println("You probably need to create the service first")
+		os.Exit(1)
+	}
+	if len(containers) > 1 {
+		panic("More than one container found for service: " + service)
 	}
 	return containers[0].ID
 }
