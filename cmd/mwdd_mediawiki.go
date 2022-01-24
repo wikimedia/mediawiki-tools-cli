@@ -485,6 +485,7 @@ var mwddMediawikiExecCmd = &cobra.Command{
   exec -- php maintenance/update.php --quick              # Run a MediaWiki maintenance script
   exec -- tail -f /var/log/mediawiki/debug.log            # Follow the MediaWiki debug log file`,
 	Short: "Executes a command in the MediaWiki container",
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		mwdd.DefaultForUser().EnsureReady()
 		command, env := mwdd.CommandAndEnvFromArgs(args)

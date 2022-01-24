@@ -115,6 +115,7 @@ func NewServiceExecCmd(name string, service string, Verbosity int) *cobra.Comman
 		Use:     "exec [flags] [command...]",
 		Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
 		Short:   fmt.Sprintf("Execute a command in the main %s container", name),
+		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
