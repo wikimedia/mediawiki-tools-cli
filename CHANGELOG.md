@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## Unreleased
+
+- Updated `nginx-proxy` image from `jwilder/nginx-proxy:0.9` to `jwilder/nginx-proxy:0.10` 
+- Updated `mediawiki-fresh` image from `wm.o/releng/node14-test-browser:0.0.2` to `wm.o/releng/node14-test-browser:0.0.2-s3`
+- Updated `mediawiki-quibble` image from `wm.o/releng//quibble-buster-php74:1.1.1` to `wm.o/releng//quibble-buster-php74:1.3.0-s1`
+- Updated `mysql` images from `mariadb:10.6` to `mariadb:10.7`
+- Updated `postgres` images from `postgres:13.2` to `postgres:13.5`
+
 ## v0.9.0
 
 - Added `wiki page push` command for updating a single MediaWiki page.

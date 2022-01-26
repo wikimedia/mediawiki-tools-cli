@@ -6,7 +6,7 @@ version: '3.7'
 services:
 
   mediawiki-quibble:
-    image: docker-registry.wikimedia.org/releng/quibble-buster-php74:1.1.1
+    image: docker-registry.wikimedia.org/releng/quibble-buster-php74:1.3.0-s1
     entrypoint: /bin/sh
     command: -c "echo started"
     working_dir: /var/www/html/w

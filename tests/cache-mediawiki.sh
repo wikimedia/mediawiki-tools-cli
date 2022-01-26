@@ -28,7 +28,7 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
 
   # npm install
   # TODO use on disk cache
-  docker run -u $(id -u ${USER}):$(id -g ${USER}) --rm -v $PWD/.mediawiki:/app -w /app --entrypoint=npm docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2 ci
+  docker run -u $(id -u ${USER}):$(id -g ${USER}) --rm -v $PWD/.mediawiki:/app -w /app --entrypoint=npm docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s3 ci
 
   touch .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE
 fi
