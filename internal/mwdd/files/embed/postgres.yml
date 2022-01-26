@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   postgres: 
-    image: "${POSTGRES_IMAGE:-postgres:13.2}"
+    image: "${POSTGRES_IMAGE:-postgres:13.5}"
     environment:
       # Specify "root" rather than the default "postgres" so that it is similar to the mysql service
       - POSTGRES_USER=root
