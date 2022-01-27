@@ -90,11 +90,21 @@ func (j JSONFile) WriteToDisk() {
 	w.Flush()
 }
 
-/*PrettyPrint writes the config to disk.*/
+/*PrettyPrint outputs the current config as a pretty string.*/
 func (j JSONFile) PrettyPrint() {
+	fmt.Printf("%s\n", j.String())
+}
+
+/*String current content as a string.*/
+func (j JSONFile) String() string {
 	empJSON, err := json.MarshalIndent(j.Contents, "", "  ")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	fmt.Printf("%s\n", string(empJSON))
+	return string(empJSON)
+}
+
+/*Clear the contents of the file, setting it to an empty json object.*/
+func (j *JSONFile) Clear() {
+	j.Contents = map[string]interface{}{}
 }
