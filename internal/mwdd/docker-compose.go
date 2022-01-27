@@ -19,9 +19,11 @@ package mwdd
 
 import (
 	"bytes"
+	"fmt"
 
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
+	"gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
 // DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`.
@@ -157,4 +159,26 @@ func (m MWDD) RmVolumes(dcVolumes []string, options exec.HandlerOptions) {
 		options,
 		exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...),
 	)
+}
+
+/*ServicesWithStatus lists services in the docker-compose setup that have the given status*/
+func (m MWDD) ServicesWithStatus(statusFilter string) []string {
+	serviceList := []string{}
+	options := exec.HandlerOptions{}
+	options.HandleStdout = func(stdout bytes.Buffer) {
+		serviceList = strings.SplitMultiline(stdout.String())
+	}
+	options.HandleError = func(stderr bytes.Buffer, err error) {
+		if stderr.String() != "" {
+			fmt.Println(stderr.String())
+		}
+	}
+	m.DockerCompose(
+		DockerComposeCommand{
+			Command:          "ps",
+			CommandArguments: []string{"--services", "--filter", "status=" + statusFilter},
+			HandlerOptions:   options,
+		},
+	)
+	return serviceList
 }
