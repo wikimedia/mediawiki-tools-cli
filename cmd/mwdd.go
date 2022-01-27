@@ -73,7 +73,7 @@ var mwddWhereCmd = &cobra.Command{
 
 var mwddDestroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "Destroy all the containers",
+	Short: "Destroy all containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
 			Verbosity: globalOpts.Verbosity,
@@ -84,24 +84,24 @@ var mwddDestroyCmd = &cobra.Command{
 
 var mwddSuspendCmd = &cobra.Command{
 	Use:   "suspend",
-	Short: "Suspend the Default containers",
+	Short: "Suspend all currently running containers",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
 			Verbosity: globalOpts.Verbosity,
 		}
+		// Suspend all containers that were running
 		mwdd.DefaultForUser().Stop([]string{}, options)
 	},
 }
 
 var mwddResumeCmd = &cobra.Command{
 	Use:   "resume",
-	Short: "Resume the Default containers",
+	Short: "Resume containers that were running before",
 	Run: func(cmd *cobra.Command, args []string) {
 		options := exec.HandlerOptions{
 			Verbosity: globalOpts.Verbosity,
 		}
-		fmt.Println("Any services that you have not already created will show as 'failed'")
-		mwdd.DefaultForUser().Start([]string{}, options)
+		mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"), options)
 	},
 }
 
