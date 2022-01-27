@@ -31,6 +31,10 @@ func main() {
 	dirs.EnsureExists(path)
 	cmdForDocs := cmd.NewMwCliCmd()
 
+	// Disable this tag while we push docs to MediaWiki pages, to avoid a new edit even if there are no doc changes.
+	// https://phabricator.wikimedia.org/T299976
+	cmdForDocs.DisableAutoGenTag = true
+
 	filePrepender := func(filename string) string {
 		return ""
 	}
