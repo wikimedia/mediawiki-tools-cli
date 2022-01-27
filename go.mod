@@ -27,12 +27,14 @@ require (
 	github.com/profclems/glab v1.22.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.0.1
+	github.com/schollz/progressbar/v3 v3.8.5
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/txn2/txeh v1.3.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xanzy/go-gitlab v0.51.1
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/crypto v0.0.0-20220126234351-aa10faf2a1f8 // indirect
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

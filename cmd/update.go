@@ -19,8 +19,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
@@ -65,6 +67,17 @@ func NewUpdateCmd() *cobra.Command {
 				}
 			}
 
+			// Start a progress bar
+			updateProcessCompleted := false
+			bar := progressbar.Default(100, "Updating binary")
+			go func() {
+				for !updateProcessCompleted {
+					bar.Add(1)
+					time.Sleep(100 * time.Millisecond)
+				}
+			}()
+
+			// Perform the update
 			var updateSuccess bool
 			var updateMessage string
 			if manualVersion == "" {
@@ -73,6 +86,13 @@ func NewUpdateCmd() *cobra.Command {
 			} else {
 				updateSuccess, updateMessage = updater.MoveToVersion(manualVersion)
 			}
+
+			// Finish the progress bar
+			updateProcessCompleted = true
+			bar.Finish()
+			fmt.Println("")
+
+			// Output result
 			fmt.Println(updateMessage)
 			if !updateSuccess {
 				os.Exit(1)
