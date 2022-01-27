@@ -18,13 +18,23 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package paths
 
 import (
+	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 )
 
-/*FullifyUserProvidedPath fullify people entering ~/ paths and them not being handeled anywhere.*/
+/*FullifyUserProvidedPath fullify people entering ~/ or ./ paths and them not being handeled anywhere.*/
 func FullifyUserProvidedPath(userProvidedPath string) string {
+	currentWorkingDirectory, _ := os.Getwd()
+
+	if userProvidedPath == "." {
+		return currentWorkingDirectory
+	}
+	if strings.HasPrefix(userProvidedPath, "./") {
+		return filepath.Join(currentWorkingDirectory, userProvidedPath[2:])
+	}
+
 	usr, _ := user.Current()
 	usrDir := usr.HomeDir
 
