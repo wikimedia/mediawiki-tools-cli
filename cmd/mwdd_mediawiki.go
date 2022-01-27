@@ -509,6 +509,10 @@ var applyRelevantMediawikiWorkingDirectory = func(dockerExecCommand mwdd.DockerE
 
 func init() {
 	mwddCmd.AddCommand(mwddMediawikiCmd)
+	mwddMediawikiCmd.AddCommand(mwdd.NewWhereCmd(
+		"the MediaWiki directory",
+		func() string { return mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE") },
+	))
 	mwddMediawikiCmd.AddCommand(mwddMediawikiCreateCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiDestroyCmd)
 	mwddMediawikiCmd.AddCommand(mwddMediawikiSuspendCmd)
