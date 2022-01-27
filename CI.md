@@ -61,7 +61,7 @@ sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
-  --limit 3 \
+  --limit 2 \
   --name "gitlab-runner-addshore-1012-docker-01" \
   --docker-image "docker:19.03.15" \
   --docker-privileged \
@@ -72,10 +72,11 @@ sudo gitlab-runner register -n \
 
 #### Configure "global" runner jobs
 
-Allow 3 jobs at once globally on this runner and restart gitlab runner
+Allow 2 jobs at once globally on this runner and restart gitlab runner.
+(Any more than this and things get slow, timeout, use too much storage, fail etc)
 
 ```sh
-sudo sed -i 's/^concurrent =.*/concurrent = 3/' "/etc/gitlab-runner/config.toml"
+sudo sed -i 's/^concurrent =.*/concurrent = 2/' "/etc/gitlab-runner/config.toml"
 sudo systemctl restart gitlab-runner
 ```
 
