@@ -147,3 +147,15 @@ func NewServiceCommandCmd(service string, command string) *cobra.Command {
 		},
 	}
 }
+
+type WherePathProvider func() string
+
+func NewWhereCmd(description string, pathProvider WherePathProvider) *cobra.Command {
+	return &cobra.Command{
+		Use:   "where",
+		Short: "Outputs the path of " + description,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(pathProvider())
+		},
+	}
+}

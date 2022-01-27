@@ -63,14 +63,6 @@ var mwddCmd = &cobra.Command{
 	},
 }
 
-var mwddWhereCmd = &cobra.Command{
-	Use:   "where",
-	Short: "States the working directory for the environment",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(mwdd.DefaultForUser().Directory())
-	},
-}
-
 var mwddDestroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroy all containers",
@@ -124,7 +116,10 @@ var redisLong string
 var customLong string
 
 func init() {
-	mwddCmd.AddCommand(mwddWhereCmd)
+	mwddCmd.AddCommand(mwdd.NewWhereCmd(
+		"the working directory for the environment",
+		func() string { return mwdd.DefaultForUser().Directory() },
+	))
 	mwddCmd.AddCommand(mwddDestroyCmd)
 	mwddCmd.AddCommand(mwddSuspendCmd)
 	mwddCmd.AddCommand(mwddResumeCmd)
@@ -220,6 +215,10 @@ func init() {
 
 	custom := mwdd.NewServiceCmd("custom", customLong, []string{})
 	mwddCmd.AddCommand(custom)
+	custom.AddCommand(mwdd.NewWhereCmd(
+		"the custom docker-compose yml file",
+		func() string { return mwdd.DefaultForUser().Directory() + "/custom.yml" },
+	))
 	custom.AddCommand(mwdd.NewServiceCreateCmd("custom", globalOpts.Verbosity))
 	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom", globalOpts.Verbosity))
 	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom", globalOpts.Verbosity))
