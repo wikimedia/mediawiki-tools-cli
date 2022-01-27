@@ -11,6 +11,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Updated `mediawiki-quibble` image from `wm.o/releng//quibble-buster-php74:1.1.1` to `wm.o/releng//quibble-buster-php74:1.3.0-s1`
 - Updated `mysql` images from `mariadb:10.6` to `mariadb:10.7`
 - Updated `postgres` images from `postgres:13.2` to `postgres:13.5`
+- Update `gitlab` command to [1.22.0](https://github.com/profclems/glab/releases/tag/v1.22.0)
 
 ## v0.9.0
 
