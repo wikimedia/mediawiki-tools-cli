@@ -115,6 +115,24 @@ var redisLong string
 //go:embed long/mwdd_custom.txt
 var customLong string
 
+//go:embed long/mwdd_shellbox.txt
+var shellboxLong string
+
+//go:embed long/mwdd_shellbox-media.txt
+var shellboxLongMedia string
+
+//go:embed long/mwdd_shellbox-php-rpc.txt
+var shellboxLongPHPRPC string
+
+//go:embed long/mwdd_shellbox-score.txt
+var shellboxLongScore string
+
+//go:embed long/mwdd_shellbox-syntaxhighlight.txt
+var shellboxLongSyntaxhighlight string
+
+//go:embed long/mwdd_shellbox-timeline.txt
+var shellboxLongTimeline string
+
 func init() {
 	mwddCmd.AddCommand(mwdd.NewWhereCmd(
 		"the working directory for the environment",
@@ -223,6 +241,33 @@ func init() {
 	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom", globalOpts.Verbosity))
 	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom", globalOpts.Verbosity))
 	custom.AddCommand(mwdd.NewServiceResumeCmd("custom", globalOpts.Verbosity))
+
+	shellbox := mwdd.NewServicesCmd("shellbox", shellboxLong, []string{})
+	mwddCmd.AddCommand(shellbox)
+
+	shellBoxFlavours := []string{
+		"media",
+		"php-rpc",
+		"score",
+		"syntaxhighlight",
+		"timeline",
+	}
+	shellBoxLongDescs := map[string]string{
+		"media":           shellboxLongMedia,
+		"php-rpc":         shellboxLongPHPRPC,
+		"score":           shellboxLongScore,
+		"syntaxhighlight": shellboxLongSyntaxhighlight,
+		"timeline":        shellboxLongTimeline,
+	}
+	for _, flavour := range shellBoxFlavours {
+		shellboxSubCmd := mwdd.NewServiceCmd(flavour, shellBoxLongDescs[flavour], []string{})
+		shellbox.AddCommand(shellboxSubCmd)
+		dockerComposeName := "shellbox-" + flavour
+		shellboxSubCmd.AddCommand(mwdd.NewServiceCreateCmd(dockerComposeName, globalOpts.Verbosity))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceDestroyCmd(dockerComposeName, globalOpts.Verbosity))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName, globalOpts.Verbosity))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName, globalOpts.Verbosity))
+	}
 }
 
 func mwddAttachToCmd(rootCmd *cobra.Command) {

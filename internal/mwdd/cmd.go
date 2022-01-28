@@ -24,10 +24,22 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 )
 
+/*NewServiceCmd a new command for a single service, such as mailhog*/
 func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
 	return &cobra.Command{
 		Use:     name,
 		Short:   fmt.Sprintf("%s service", name),
+		Long:    long,
+		Aliases: aliases,
+		RunE:    nil,
+	}
+}
+
+/*NewServicesCmd a new command for a set of grouped services, such as various flavours of shellbox*/
+func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Command {
+	return &cobra.Command{
+		Use:     groupName,
+		Short:   fmt.Sprintf("%s services", groupName),
 		Long:    long,
 		Aliases: aliases,
 		RunE:    nil,

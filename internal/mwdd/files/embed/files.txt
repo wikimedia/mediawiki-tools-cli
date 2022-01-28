@@ -28,4 +28,9 @@
 ./phpmyadmin/config.user.inc.php
 ./postgres.yml
 ./redis.yml
+./shellbox-media.yml
+./shellbox-php-rpc.yml
+./shellbox-score.yml
+./shellbox-syntaxhighlight.yml
+./shellbox-timeline.yml
 ./wait-for-it.sh
