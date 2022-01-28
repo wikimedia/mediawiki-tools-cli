@@ -30,6 +30,9 @@ type EmbeddingDiskSync struct {
 	IgnoreFiles []string
 }
 
+// DO NOT use os.PathSeparator, embeds ALWAYS uses "/"
+var embedSeperator = "/"
+
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 	embededFiles := e.embededFiles()
 
@@ -60,10 +63,10 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 
 	for _, diskFile := range diskFiles {
 		agnosticFile := e.agnosticFileFromDisk(diskFile)
-		embedFile := e.EmbedPath + string(os.PathSeparator) + agnosticFile
+		embedFile := e.EmbedPath + embedSeperator + agnosticFile
 		if !utilstrings.StringInSlice(embedFile, embededFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
 			// TODO only output the below line with verbose logging
-			// fmt.Println(diskFile + " no logner needed, so removing")
+			// fmt.Println(diskFile + " no longer needed, so removing")
 			err := os.Remove(diskFile)
 			if err != nil {
 				fmt.Println("Failed to remove file: " + diskFile)
@@ -76,30 +79,14 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 
 func (e EmbeddingDiskSync) embededFiles() []string {
 	// "./" switched for EmbedPath as from content of files.txt
-	return utilstrings.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+string(os.PathSeparator))
+	return utilstrings.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+embedSeperator)
 }
 
 func (e EmbeddingDiskSync) diskFiles() []string {
-	return getFilesInDirectory(e.DiskPath)
+	return dirs.FilesIn(e.DiskPath)
 }
 
-func getFilesInDirectory(dir string) []string {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		panic(err)
-	}
-	var files []string
-	for _, entry := range entries {
-		fullPath := dir + string(os.PathSeparator) + entry.Name()
-		if entry.IsDir() {
-			files = append(files, getFilesInDirectory(fullPath)...)
-			continue
-		}
-		files = append(files, fullPath)
-	}
-	return files
-}
-
+// indexString returns the contents of the files.txt file in the embed
 func (e EmbeddingDiskSync) indexString() string {
 	return e.fileString("files.txt")
 }
@@ -119,7 +106,7 @@ func (e EmbeddingDiskSync) agnosticEmbedBytes(name string) []byte {
 }
 
 func (e EmbeddingDiskSync) fileReaderOrExit(name string) fs.File {
-	innerName := e.EmbedPath + string(os.PathSeparator) + name
+	innerName := e.EmbedPath + embedSeperator + name
 	fileReader, err := e.Embed.Open(innerName)
 	if err != nil {
 		fmt.Println("Failed to open file: " + innerName)
@@ -130,11 +117,16 @@ func (e EmbeddingDiskSync) fileReaderOrExit(name string) fs.File {
 }
 
 func (e EmbeddingDiskSync) agnosticFileFromEmbed(name string) string {
-	return strings.TrimPrefix(name, e.EmbedPath+string(os.PathSeparator))
+	return strings.TrimPrefix(name, e.EmbedPath+embedSeperator)
 }
 
+// agnosticFileFromDisk takes an on disk path and returns the agnostic path
+// On Linux "/home/adam/.mwcli/mwdd/default/shellbox-timeline.yml" => "embed/shellbox-timeline.yml"
+// On Windows "C:\Users\adam\.mwcli\mwdd\default\shellbox-timeline.yml" => "embed/shellbox-timeline.yml"
 func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
-	return strings.TrimPrefix(name, e.DiskPath+string(os.PathSeparator))
+	path := strings.TrimPrefix(name, e.DiskPath+string(os.PathSeparator))
+	// As the input is a disk path, we also need to normalize the seperator to the one used by embeds
+	return strings.Replace(path, string(os.PathSeparator), embedSeperator, -1)
 }
 
 func writeBytesToDisk(bytes []byte, file string) {

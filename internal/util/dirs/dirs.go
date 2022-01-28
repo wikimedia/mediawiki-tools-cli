@@ -45,3 +45,21 @@ func EnsureExists(dirPath string) {
 		}
 	}
 }
+
+/*FilesIn list full paths of all files in a directory (recursively)*/
+func FilesIn(dirPath string) []string {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		panic(err)
+	}
+	var files []string
+	for _, entry := range entries {
+		fullPath := dirPath + string(os.PathSeparator) + entry.Name()
+		if entry.IsDir() {
+			files = append(files, FilesIn(fullPath)...)
+			continue
+		}
+		files = append(files, fullPath)
+	}
+	return files
+}
