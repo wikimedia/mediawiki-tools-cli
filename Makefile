@@ -9,7 +9,7 @@ VERSION := latest
 SEMVER := $(subst v,,$(VERSION))
 
 GO_LIST_GOFILES := '{{range .GoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}{{range .XTestGoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}'
-GO_PACKAGES := $(shell go list ./...)
+GO_PACKAGES := gitlab.wikimedia.org/releng/cli
 
 include .bingo/Variables.mk
 
