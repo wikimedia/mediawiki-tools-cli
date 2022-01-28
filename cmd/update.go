@@ -8,6 +8,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
 )
 
@@ -77,7 +78,7 @@ func NewUpdateCmd() *cobra.Command {
 			fmt.Println("")
 
 			// Output result
-			fmt.Println(updateMessage)
+			fmt.Println(cli.RenderMarkdown(updateMessage))
 			if !updateSuccess {
 				os.Exit(1)
 			}
