@@ -1,0 +1,14 @@
+version: '3.7'
+
+# Images for these services are from the wikimedia image repo
+# https://docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox/tags/
+# There is one service per image
+# TODO can we use the simply named images? or must we use the dated ones to stay up to date?
+
+services:
+  shellbox-php-rpc: 
+    image: "${SHELLBOX_PHP_RPC_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-01-06-073153-php-rpc}"
+    dns:
+      - 10.0.0.10
+    networks:
+      - dps

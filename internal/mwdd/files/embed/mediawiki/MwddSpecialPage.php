@@ -13,12 +13,12 @@ class MwddSpecial extends SpecialPage {
 	 */
 	public function execute( $subPage ) {
 		parent::execute( $subPage );
-		global $mwddServices, $dockerDbType;
+		global $dockerServices, $dockerDbType;
 
 		// TODO output db type, dbname & other db settings here
 		$this->getOutput()->addHTML( "Which services are running?" );
 		$this->getOutput()->addHTML( "</br>" );
-		$this->getOutput()->addHTML( json_encode( $mwddServices ) );
+		$this->getOutput()->addHTML( json_encode( $dockerServices ) );
 		$this->getOutput()->addHTML( "</br>" );
 		$this->getOutput()->addHTML( "Which DB is being used" );
 		$this->getOutput()->addHTML( "</br>" );

@@ -48,7 +48,9 @@ if ( defined( "MW_DB" ) ) {
 
 # Only use "advanced" services if they can be seen, and if we are not in tests
 # TODO this is confusing, tidy it up, what is it?
-$mwddServices = [
+# TODO do we want this running in phpunit tests? maybe we need a way to specify that we do?
+# TODO cache these existance checks for at least 1 second to avoid hammering looking for these services..
+$dockerServices = [
 	'mysql' => gethostbyname('mysql') !== 'mysql',
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
 	'eventlogging' => gethostbyname('eventlogging') !== 'eventlogging' && !defined( 'MW_PHPUNIT_TEST' ),
@@ -57,6 +59,11 @@ $mwddServices = [
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 	'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
+	'shellbox-media' => gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ),
+	'shellbox-php-rpc' => gethostbyname('shellbox-php-rpc') !== 'shellbox-php-rpc' && !defined( 'MW_PHPUNIT_TEST' ),
+	'shellbox-score' => gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ),
+	'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
+	'shellbox-timeline' => gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ),
 ];
 
 ################################
@@ -140,10 +147,10 @@ if( $dockerDbType === 'mysql' ) {
 			'password' => 'toor',
 			'type' => $dockerDbType,
 			'flags' => DBO_DEFAULT,
-			'load' => $mwddServices['mysql-replica'] ? 0 : 1,
+			'load' => $dockerServices['mysql-replica'] ? 0 : 1,
 		],
 	];
-	if($mwddServices['mysql-replica'] ) {
+	if($dockerServices['mysql-replica'] ) {
 		$wgDBservers[] = [
 			'host' => "mysql-replica",
 			'dbname' => $dockerDb,
@@ -231,6 +238,26 @@ if(gethostbyname('eventlogging') !== 'eventlogging') {
 ################################
 if(gethostbyname('graphite-statsd') !== 'graphite-statsd') {
 	$wgStatsdServer = "graphite-statsd";
+}
+
+################################
+# Shellboxes
+################################
+if($dockerServices['shellbox-media']) {
+	$wgShellboxUrls['pagedtiffhandler'] = $dockerServices['shellbox-media'];
+	$wgShellboxUrls['pdfhandler'] = $dockerServices['shellbox-media'];
+}
+if($dockerServices['shellbox-php-rpc']) {
+	$wgShellboxUrls['constraint-regex-checker'] = $dockerServices['shellbox-php-rpc'];
+}
+if($dockerServices['shellbox-score']) {
+	$wgShellboxUrls['score'] = $dockerServices['shellbox-score'];
+}
+if($dockerServices['shellbox-syntaxhighlight']) {
+	$wgShellboxUrls['syntaxhighlight'] = $dockerServices['shellbox-syntaxhighlight'];
+}
+if($dockerServices['shellbox-timeline']) {
+	$wgShellboxUrls['easytimeline'] = $dockerServices['shellbox-timeline'];
 }
 
 ################################
