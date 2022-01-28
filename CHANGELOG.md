@@ -4,14 +4,28 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.10.0
 
+- Added a progress bar while the `update` command is downloading an update (T293586)
+- Improved formatting of release notes once `update` command has completed
+- Updated `gitlab` command to [1.22.0](https://github.com/profclems/glab/releases/tag/v1.22.0)
+
+Docker development environment:
+
+- Added support for using relative paths starting in `./` during initial MediaWiki setup wizard (T294177)
+- Added `where` command for the working directory of the development environment
+- Added `mediawiki where` command for the MediaWiki directory
+- Added `custom where` command for the `custom.yml` location
+- Added 5 `shellbox <type>` service commands for commonly used shellbox services
+- Improved `docker resume` output to not show "failed" services, that have never even been started (T299631)
+- Improved formatting of long command descriptions
 - Updated `nginx-proxy` image from `jwilder/nginx-proxy:0.9` to `jwilder/nginx-proxy:0.10` 
 - Updated `mediawiki-fresh` image from `wm.o/releng/node14-test-browser:0.0.2` to `wm.o/releng/node14-test-browser:0.0.2-s3`
 - Updated `mediawiki-quibble` image from `wm.o/releng//quibble-buster-php74:1.1.1` to `wm.o/releng//quibble-buster-php74:1.3.0-s1`
 - Updated `mysql` images from `mariadb:10.6` to `mariadb:10.7`
 - Updated `postgres` images from `postgres:13.2` to `postgres:13.5`
-- Update `gitlab` command to [1.22.0](https://github.com/profclems/glab/releases/tag/v1.22.0)
+- Fixed Windows issue to do with file embeding `Failed to open file: embed\files.txt` (T295473)
+- Fixed issue where MediaWiki would create an unreadable `mw-GlobalIdGenerator-UID-88` file and error (T293682)
 
 ## v0.9.0
 
