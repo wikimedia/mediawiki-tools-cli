@@ -21,23 +21,25 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 )
 
-var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Display or change configuration settings",
+func NewConfigCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "config",
+		Short: "Display or change configuration settings",
+	}
 }
 
-var configShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "Shows the raw config",
-	Run: func(cmd *cobra.Command, args []string) {
-		config.LoadFromDisk().PrettyPrint()
-	},
-}
-
-func init() {
-	configCmd.AddCommand(configShowCmd)
+func NewConfigShowCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "Shows the raw config",
+		Run: func(cmd *cobra.Command, args []string) {
+			config.LoadFromDisk().PrettyPrint()
+		},
+	}
 }
 
 func configAttachToCmd(rootCmd *cobra.Command) {
+	configCmd := NewConfigCmd()
+	configCmd.AddCommand(NewConfigShowCmd())
 	rootCmd.AddCommand(configCmd)
 }

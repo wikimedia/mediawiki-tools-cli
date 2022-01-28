@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 )
 
@@ -29,7 +30,7 @@ func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
 	return &cobra.Command{
 		Use:     name,
 		Short:   fmt.Sprintf("%s service", name),
-		Long:    long,
+		Long:    cli.RenderMarkdown(long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
@@ -40,7 +41,7 @@ func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Comm
 	return &cobra.Command{
 		Use:     groupName,
 		Short:   fmt.Sprintf("%s services", groupName),
-		Long:    long,
+		Long:    cli.RenderMarkdown(long),
 		Aliases: aliases,
 		RunE:    nil,
 	}

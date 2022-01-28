@@ -24,6 +24,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
@@ -73,36 +74,34 @@ type VersionAttributes struct {
 
 var VersionDetails VersionAttributes
 
-var rootCmd = NewMwCliCmd()
-
 func NewMwCliCmd() *cobra.Command {
-	rootCmd := &cobra.Command{
+	mwcliCmd := &cobra.Command{
 		Use:   "mw",
 		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
 	}
 
-	rootCmd.PersistentFlags().IntVarP(&globalOpts.Verbosity, "verbosity", "", 1, "verbosity level (1-2)")
-	rootCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
+	mwcliCmd.PersistentFlags().IntVarP(&globalOpts.Verbosity, "verbosity", "", 1, "verbosity level (1-2)")
+	mwcliCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
-	rootCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
+	mwcliCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
 
 	// A PersistentPreRun must always be set, as subcommands currently all call it (used for telemetry, but optional)
-	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
+	mwcliCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
 
-	// TODO down this tree we still reuse commands between instantiations of the rootCmd
+	// TODO down this tree we still reuse commands between instantiations of the mwcliCmd
 	// Perhaps we should new everything in this call...
-	codesearchAttachToCmd(rootCmd)
-	configAttachToCmd(rootCmd)
-	debugAttachToCmd(rootCmd)
-	toolhubAttachToCmd(rootCmd)
-	gitlabAttachToCmd(rootCmd)
-	gerritAttachToCmd(rootCmd)
-	mwddAttachToCmd(rootCmd)
-	updateAttachToCmd(rootCmd)
-	versionAttachToCmd(rootCmd)
-	wikiAttachToCmd(rootCmd)
+	codesearchAttachToCmd(mwcliCmd)
+	configAttachToCmd(mwcliCmd)
+	debugAttachToCmd(mwcliCmd)
+	toolhubAttachToCmd(mwcliCmd)
+	gitlabAttachToCmd(mwcliCmd)
+	gerritAttachToCmd(mwcliCmd)
+	mwddAttachToCmd(mwcliCmd)
+	updateAttachToCmd(mwcliCmd)
+	versionAttachToCmd(mwcliCmd)
+	wikiAttachToCmd(mwcliCmd)
 
-	return rootCmd
+	return mwcliCmd
 }
 
 func wizardDevMode(c *config.Config) {
@@ -179,12 +178,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 	c.WriteToDisk()
 
-	// mwdd mode
-	if c.DevMode == config.DevModeMwdd {
-		mwddCmd.Aliases = []string{"dev"}
-		mwddCmd.Short += "\t(alias: dev)"
-	}
-
 	// Check various timers and execute tasks if needed
 	{
 		// Setup timers if they are not set
@@ -212,6 +205,13 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		// Write config back to disk once timers are updated
 		c.WriteToDisk()
 	}
+
+	// mwdd mode
+	if c.DevMode == config.DevModeMwdd {
+		cli.MwddIsDevAlias = true
+	}
+
+	rootCmd := NewMwCliCmd()
 
 	if c.Telemetry == "yes" {
 		rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {

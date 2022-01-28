@@ -26,41 +26,47 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/hosts"
 )
 
-var mwddHostsCmd = &cobra.Command{
-	Use:   "hosts",
-	Short: "Interact with your system hosts file",
-	RunE:  nil,
+func NewHostsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "hosts",
+		Short: "Interact with your system hosts file",
+		RunE:  nil,
+	}
 }
 
-var mwddHostsAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Adds development environment hosts into your system hosts file (might need sudo)",
-	Run: func(cmd *cobra.Command, args []string) {
-		changeResult := hosts.AddHosts(
-			append(
-				[]string{
-					// TODO generate these by reading the yml files?
-					"proxy.mwdd.localhost",
-					"eventlogging.mwdd.localhost",
-					"adminer.mwdd.localhost",
-					"mailhog.mwdd.localhost",
-					"graphite.mwdd.localhost",
-					"phpmyadmin.mwdd.localhost",
-					"default.mediawiki.mwdd.localhost",
-				},
-				mwdd.DefaultForUser().UsedHosts()...,
-			),
-		)
-		handleChangeResult(changeResult)
-	},
+func NewHostsAddCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "add",
+		Short: "Adds development environment hosts into your system hosts file (might need sudo)",
+		Run: func(cmd *cobra.Command, args []string) {
+			changeResult := hosts.AddHosts(
+				append(
+					[]string{
+						// TODO generate these by reading the yml files?
+						"proxy.mwdd.localhost",
+						"eventlogging.mwdd.localhost",
+						"adminer.mwdd.localhost",
+						"mailhog.mwdd.localhost",
+						"graphite.mwdd.localhost",
+						"phpmyadmin.mwdd.localhost",
+						"default.mediawiki.mwdd.localhost",
+					},
+					mwdd.DefaultForUser().UsedHosts()...,
+				),
+			)
+			handleChangeResult(changeResult)
+		},
+	}
 }
 
-var mwddHostsRemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Removes development environment hosts from your system hosts file (might need sudo)",
-	Run: func(cmd *cobra.Command, args []string) {
-		handleChangeResult(hosts.RemoveHostsWithSuffix("mwdd.localhost"))
-	},
+func NewHostsRemoveCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "remove",
+		Short: "Removes development environment hosts from your system hosts file (might need sudo)",
+		Run: func(cmd *cobra.Command, args []string) {
+			handleChangeResult(hosts.RemoveHostsWithSuffix("mwdd.localhost"))
+		},
+	}
 }
 
 func handleChangeResult(result hosts.ChangeResult) {
@@ -78,22 +84,17 @@ func handleChangeResult(result hosts.ChangeResult) {
 	}
 }
 
-var mwddHostsWritableCmd = &cobra.Command{
-	Use:   "writable",
-	Short: "Checks if you can write to the needed hosts file",
-	Run: func(cmd *cobra.Command, args []string) {
-		if hosts.Writable() {
-			fmt.Println("Hosts file writable")
-		} else {
-			fmt.Println("Hosts file not writable")
-			os.Exit(1)
-		}
-	},
-}
-
-func init() {
-	mwddCmd.AddCommand(mwddHostsCmd)
-	mwddHostsCmd.AddCommand(mwddHostsAddCmd)
-	mwddHostsCmd.AddCommand(mwddHostsRemoveCmd)
-	mwddHostsCmd.AddCommand(mwddHostsWritableCmd)
+func NewHostsWritableCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "writable",
+		Short: "Checks if you can write to the needed hosts file",
+		Run: func(cmd *cobra.Command, args []string) {
+			if hosts.Writable() {
+				fmt.Println("Hosts file writable")
+			} else {
+				fmt.Println("Hosts file not writable")
+				os.Exit(1)
+			}
+		},
+	}
 }

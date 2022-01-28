@@ -18,6 +18,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -27,6 +28,9 @@ import (
 )
 
 func main() {
+	// Rendering the markdown before then trying to turn it into markdown does bad things, so skip it
+	os.Setenv("MWCLI_SKIP_RENDER_MARKDOWN", "true")
+
 	path := "./_docs"
 	dirs.EnsureExists(path)
 	cmdForDocs := cmd.NewMwCliCmd()

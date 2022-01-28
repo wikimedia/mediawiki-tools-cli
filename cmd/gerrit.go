@@ -18,18 +18,23 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	_ "embed"
 	"os/exec"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 )
 
-var gerritCmd = &cobra.Command{
-	Use:   "gerrit",
-	Short: "Wikimedia Gerrit",
-	Long: `Wikimedia Gerrit
+//go:embed long/mwdd_gerrit.md
+var gerritLong string
 
-Your ssh config must be setup to connect you to gerrit.wikimedia.org already`,
-	RunE: nil,
+func NewGerritCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "gerrit",
+		Short: "Wikimedia Gerrit",
+		Long:  cli.RenderMarkdown(gerritLong),
+		RunE:  nil,
+	}
 }
 
 // TODO factor this into a nice package / util?
@@ -40,5 +45,23 @@ func sshGerritCommand(args []string) *exec.Cmd {
 }
 
 func gerritAttachToCmd(rootCmd *cobra.Command) {
+	gerritCmd := NewGerritCmd()
 	rootCmd.AddCommand(gerritCmd)
+
+	gerritChangesCmd := NewGerritChangesCmd()
+	gerritCmd.AddCommand(gerritChangesCmd)
+	gerritChangesListCmd := NewGerritChangesListCmd()
+	gerritChangesCmd.AddCommand(gerritChangesListCmd)
+
+	gerritGroupCmd := NewGerritGroupCmd()
+	gerritCmd.AddCommand(gerritGroupCmd)
+	gerritGroupCmd.AddCommand(NewGerritGroupListCmd())
+	gerritGroupCmd.AddCommand(NewGerritGroupSearchCmd())
+	gerritGroupCmd.AddCommand(NewGerritGroupMembersCmd())
+
+	gerritProjectCmd := NewGerritProjectCmd()
+	gerritCmd.AddCommand(gerritProjectCmd)
+	gerritProjectCmd.AddCommand(NewGerritProjectListCmd())
+	gerritProjectCmd.AddCommand(NewGerritProjectSearchCmd())
+	gerritProjectCmd.AddCommand(NewGerritProjectCurrentCmd())
 }

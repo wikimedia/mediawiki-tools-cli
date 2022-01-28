@@ -23,22 +23,21 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 )
 
-var debugEventsCmd = &cobra.Command{
-	Hidden: true,
-	Use:    "events",
+func NewDebugEventsCmd() *cobra.Command {
+	return &cobra.Command{
+		Hidden: true,
+		Use:    "events",
+	}
 }
 
-var debugEventsEmitCmd = &cobra.Command{
-	Hidden: true,
-	Use:    "emit",
-	Short:  "Emit events now",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Emitting events")
-		eventlogging.EmitEvents()
-	},
-}
-
-func init() {
-	debugCmd.AddCommand(debugEventsCmd)
-	debugEventsCmd.AddCommand(debugEventsEmitCmd)
+func NewDebugEventsEmitCmd() *cobra.Command {
+	return &cobra.Command{
+		Hidden: true,
+		Use:    "emit",
+		Short:  "Emit events now",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Emitting events")
+			eventlogging.EmitEvents()
+		},
+	}
 }
