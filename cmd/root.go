@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"os/user"
@@ -15,6 +16,12 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/files"
 	"gitlab.wikimedia.org/releng/cli/internal/util/timers"
 )
+
+//go:embed templates/help.md
+var helpTemplate string
+
+//go:embed templates/usage.md
+var usageTemplate string
 
 // These vars are currently used by the docker exec command
 
@@ -195,6 +202,9 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	rootCmd := NewMwCliCmd()
+
+	rootCmd.SetUsageTemplate(usageTemplate)
+	rootCmd.SetHelpTemplate(helpTemplate)
 
 	if c.Telemetry == "yes" {
 		rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
