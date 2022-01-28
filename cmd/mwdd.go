@@ -24,123 +24,175 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
 )
 
-var mwddCmd = &cobra.Command{
-	Use:   "docker",
-	Short: "The MediaWiki-Docker-Dev like development environment",
-	RunE:  nil,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		cmd.Root().PersistentPreRun(cmd, args)
-		mwdd := mwdd.DefaultForUser()
-		mwdd.EnsureReady()
-		if mwdd.Env().Missing("PORT") {
-			if !globalOpts.NoInteraction {
-				port := ""
-				prompt := &survey.Input{
-					Message: "What port would you like to use for your development environment?",
-					Default: ports.FreeUpFrom("8080"),
-				}
-				err := survey.AskOne(prompt, &port)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-				validityChck := ports.IsValidAndFree(port)
-				if validityChck != nil {
-					fmt.Println(validityChck)
-					os.Exit(1)
-				}
+func NewMwddCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "docker",
+		Short: "The MediaWiki-Docker-Dev like development environment",
+		RunE:  nil,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmd.Root().PersistentPreRun(cmd, args)
+			mwdd := mwdd.DefaultForUser()
+			mwdd.EnsureReady()
+			if mwdd.Env().Missing("PORT") {
+				if !globalOpts.NoInteraction {
+					port := ""
+					prompt := &survey.Input{
+						Message: "What port would you like to use for your development environment?",
+						Default: ports.FreeUpFrom("8080"),
+					}
+					err := survey.AskOne(prompt, &port)
+					if err != nil {
+						fmt.Println(err)
+						os.Exit(1)
+					}
+					validityChck := ports.IsValidAndFree(port)
+					if validityChck != nil {
+						fmt.Println(validityChck)
+						os.Exit(1)
+					}
 
-				mwdd.Env().Set("PORT", port)
-			} else {
-				mwdd.Env().Set("PORT", ports.FreeUpFrom("8080"))
+					mwdd.Env().Set("PORT", port)
+				} else {
+					mwdd.Env().Set("PORT", ports.FreeUpFrom("8080"))
+				}
 			}
-		}
-	},
+		},
+	}
 }
 
-var mwddDestroyCmd = &cobra.Command{
-	Use:   "destroy",
-	Short: "Destroy all containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		mwdd.DefaultForUser().DownWithVolumesAndOrphans(options)
-	},
+func NewMwddDestroyCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "destroy",
+		Short: "Destroy all containers",
+		Run: func(cmd *cobra.Command, args []string) {
+			options := exec.HandlerOptions{
+				Verbosity: globalOpts.Verbosity,
+			}
+			mwdd.DefaultForUser().DownWithVolumesAndOrphans(options)
+		},
+	}
 }
 
-var mwddSuspendCmd = &cobra.Command{
-	Use:   "suspend",
-	Short: "Suspend all currently running containers",
-	Run: func(cmd *cobra.Command, args []string) {
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		// Suspend all containers that were running
-		mwdd.DefaultForUser().Stop([]string{}, options)
-	},
+func NewMwddSuspendCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "suspend",
+		Short: "Suspend all currently running containers",
+		Run: func(cmd *cobra.Command, args []string) {
+			options := exec.HandlerOptions{
+				Verbosity: globalOpts.Verbosity,
+			}
+			// Suspend all containers that were running
+			mwdd.DefaultForUser().Stop([]string{}, options)
+		},
+	}
 }
 
-var mwddResumeCmd = &cobra.Command{
-	Use:   "resume",
-	Short: "Resume containers that were running before",
-	Run: func(cmd *cobra.Command, args []string) {
-		options := exec.HandlerOptions{
-			Verbosity: globalOpts.Verbosity,
-		}
-		mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"), options)
-	},
+func NewMwddResumeCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resume",
+		Short: "Resume containers that were running before",
+		Run: func(cmd *cobra.Command, args []string) {
+			options := exec.HandlerOptions{
+				Verbosity: globalOpts.Verbosity,
+			}
+			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"), options)
+		},
+	}
 }
 
-//go:embed long/mwdd_elasticsearch.txt
+//go:embed long/mwdd_elasticsearch.md
 var elasticsearchLong string
 
-//go:embed long/mwdd_eventlogging.txt
+//go:embed long/mwdd_eventlogging.md
 var eventLoggingLong string
 
-//go:embed long/mwdd_mailhog.txt
+//go:embed long/mwdd_mailhog.md
 var mailhogLong string
 
-//go:embed long/mwdd_memcached.txt
+//go:embed long/mwdd_memcached.md
 var memcachedLong string
 
-//go:embed long/mwdd_redis.txt
+//go:embed long/mwdd_redis.md
 var redisLong string
 
-//go:embed long/mwdd_custom.txt
+//go:embed long/mwdd_custom.md
 var customLong string
 
-//go:embed long/mwdd_shellbox.txt
+//go:embed long/mwdd_shellbox.md
 var shellboxLong string
 
-//go:embed long/mwdd_shellbox-media.txt
+//go:embed long/mwdd_shellbox-media.md
 var shellboxLongMedia string
 
-//go:embed long/mwdd_shellbox-php-rpc.txt
+//go:embed long/mwdd_shellbox-php-rpc.md
 var shellboxLongPHPRPC string
 
-//go:embed long/mwdd_shellbox-score.txt
+//go:embed long/mwdd_shellbox-score.md
 var shellboxLongScore string
 
-//go:embed long/mwdd_shellbox-syntaxhighlight.txt
+//go:embed long/mwdd_shellbox-syntaxhighlight.md
 var shellboxLongSyntaxhighlight string
 
-//go:embed long/mwdd_shellbox-timeline.txt
+//go:embed long/mwdd_shellbox-timeline.md
 var shellboxLongTimeline string
 
-func init() {
+func mwddAttachToCmd(rootCmd *cobra.Command) {
+	mwddCmd := NewMwddCmd()
+	rootCmd.AddCommand(mwddCmd)
+
+	if cli.MwddIsDevAlias {
+		mwddCmd.Aliases = []string{"dev"}
+		mwddCmd.Short += "\t(alias: dev)"
+	}
+
 	mwddCmd.AddCommand(mwdd.NewWhereCmd(
 		"the working directory for the environment",
 		func() string { return mwdd.DefaultForUser().Directory() },
 	))
-	mwddCmd.AddCommand(mwddDestroyCmd)
-	mwddCmd.AddCommand(mwddSuspendCmd)
-	mwddCmd.AddCommand(mwddResumeCmd)
+	mwddCmd.AddCommand(NewMwddDestroyCmd())
+	mwddCmd.AddCommand(NewMwddSuspendCmd())
+	mwddCmd.AddCommand(NewMwddResumeCmd())
+
+	mwddCmd.AddCommand(NewDockerComposerCmd())
+
+	mwddEnvCmd := cmd.Env("Interact with the environment variables")
+	mwddCmd.AddCommand(mwddEnvCmd)
+
+	mwddEnvCmd.AddCommand(cmd.EnvDelete(mwdd.DefaultForUser().Directory))
+	mwddEnvCmd.AddCommand(cmd.EnvSet(mwdd.DefaultForUser().Directory))
+	mwddEnvCmd.AddCommand(cmd.EnvGet(mwdd.DefaultForUser().Directory))
+	mwddEnvCmd.AddCommand(cmd.EnvList(mwdd.DefaultForUser().Directory))
+	mwddEnvCmd.AddCommand(cmd.EnvWhere(mwdd.DefaultForUser().Directory))
+	mwddEnvCmd.AddCommand(cmd.EnvClear(mwdd.DefaultForUser().Directory))
+
+	mwddHostsCmd := NewHostsCmd()
+	mwddCmd.AddCommand(mwddHostsCmd)
+	mwddHostsCmd.AddCommand(NewHostsAddCmd())
+	mwddHostsCmd.AddCommand(NewHostsRemoveCmd())
+	mwddHostsCmd.AddCommand(NewHostsWritableCmd())
+
+	mwddMediawikiCmd := NewMediaWikiCmd()
+	mwddCmd.AddCommand(mwddMediawikiCmd)
+	mwddMediawikiCmd.AddCommand(mwdd.NewWhereCmd(
+		"the MediaWiki directory",
+		func() string { return mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE") },
+	))
+	mwddMediawikiCmd.AddCommand(NewMediaWikiFreshCmd())
+	mwddMediawikiCmd.AddCommand(NewMediaWikiQuibbleCmd())
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceCreateCmd("mediawiki", globalOpts.Verbosity))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceDestroyCmd("mediawiki", globalOpts.Verbosity))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceSuspendCmd("mediawiki", globalOpts.Verbosity))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceResumeCmd("mediawiki", globalOpts.Verbosity))
+	mwddMediawikiCmd.AddCommand(NewMediaWikiInstallCmd())
+	mwddMediawikiCmd.AddCommand(NewMediaWikiComposerCmd())
+	mwddMediawikiCmd.AddCommand(NewMediaWikiExecCmd())
 
 	adminer := mwdd.NewServiceCmd("adminer", "", []string{})
 	mwddCmd.AddCommand(adminer)
@@ -268,8 +320,4 @@ func init() {
 		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName, globalOpts.Verbosity))
 		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName, globalOpts.Verbosity))
 	}
-}
-
-func mwddAttachToCmd(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(mwddCmd)
 }

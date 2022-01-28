@@ -28,10 +28,12 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/printers"
 )
 
-var codesearchCmd = &cobra.Command{
-	Use:   "codesearch",
-	Short: "MediaWiki code search",
-	RunE:  nil,
+func NewCodeSearchCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "codesearch",
+		Short: "MediaWiki code search",
+		RunE:  nil,
+	}
 }
 
 func NewCodeSearchSearchCmd() *cobra.Command {
@@ -84,10 +86,8 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	return cmd
 }
 
-func init() {
-	codesearchCmd.AddCommand(NewCodeSearchSearchCmd())
-}
-
 func codesearchAttachToCmd(rootCmd *cobra.Command) {
+	codesearchCmd := NewCodeSearchCmd()
+	codesearchCmd.AddCommand(NewCodeSearchSearchCmd())
 	rootCmd.AddCommand(codesearchCmd)
 }

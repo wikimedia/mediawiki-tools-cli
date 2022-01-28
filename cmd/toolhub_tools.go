@@ -29,9 +29,11 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/toolhub"
 )
 
-var toolhubToolsCmd = &cobra.Command{
-	Use:   "tools",
-	Short: "Interact with Toolhub tools",
+func NewToolhubToolsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "tools",
+		Short: "Interact with Toolhub tools",
+	}
 }
 
 func NewToolHubToolsListCmd() *cobra.Command {
@@ -104,30 +106,25 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 	return cmd
 }
 
-var toolhubToolsGetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get a specific Toolhub Tool",
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		name := args[0]
+func NewToolhubToolsGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get",
+		Short: "Get a specific Toolhub Tool",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			name := args[0]
 
-		client := toolhub.NewClient()
-		ctx := context.Background()
-		tool, err := client.GetTool(ctx, name, nil)
-		if err != nil {
-			color.Red("Error: %s", err)
-			os.Exit(1)
-		}
+			client := toolhub.NewClient()
+			ctx := context.Background()
+			tool, err := client.GetTool(ctx, name, nil)
+			if err != nil {
+				color.Red("Error: %s", err)
+				os.Exit(1)
+			}
 
-		empJSON, _ := json.MarshalIndent(tool, "", "  ")
+			empJSON, _ := json.MarshalIndent(tool, "", "  ")
 
-		fmt.Println(string(empJSON))
-	},
-}
-
-func init() {
-	toolhubCmd.AddCommand(toolhubToolsCmd)
-	toolhubToolsCmd.AddCommand(NewToolHubToolsListCmd())
-	toolhubToolsCmd.AddCommand(NewToolHubToolsSearchCmd())
-	toolhubToolsCmd.AddCommand(toolhubToolsGetCmd)
+			fmt.Println(string(empJSON))
+		},
+	}
 }

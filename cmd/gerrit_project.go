@@ -27,56 +27,57 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
-var gerritProjectCmd = &cobra.Command{
-	Use:   "project",
-	Short: "Interact with Gerrit projects",
+func NewGerritProjectCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "project",
+		Short: "Interact with Gerrit projects",
+	}
 }
 
-var gerritProjectListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Gerrit projects",
-	Run: func(cmd *cobra.Command, args []string) {
-		ssh := cmdutil.AttachAllIO(sshGerritCommand([]string{"ls-projects"}))
-		if err := ssh.Run(); err != nil {
-			os.Exit(1)
-		}
-	},
+func NewGerritProjectListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List Gerrit projects",
+		Run: func(cmd *cobra.Command, args []string) {
+			ssh := cmdutil.AttachAllIO(sshGerritCommand([]string{"ls-projects"}))
+			if err := ssh.Run(); err != nil {
+				os.Exit(1)
+			}
+		},
+	}
 }
 
-var gerritProjectSearchCmd = &cobra.Command{
-	Use:   "search",
-	Short: "Search Gerrit projects",
-	Example: `  search mediawiki/extensions
-  search Wikibase Lexeme`,
-	Run: func(cmd *cobra.Command, args []string) {
-		ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"ls-projects"}))
-		out := cmdutil.AttachOutputBuffer(ssh)
+func NewGerritProjectSearchCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "search",
+		Short: "Search Gerrit projects",
+		Example: `  search mediawiki/extensions
+	  search Wikibase Lexeme`,
+		Run: func(cmd *cobra.Command, args []string) {
+			ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"ls-projects"}))
+			out := cmdutil.AttachOutputBuffer(ssh)
 
-		if err := ssh.Run(); err != nil {
-			os.Exit(1)
-		}
+			if err := ssh.Run(); err != nil {
+				os.Exit(1)
+			}
 
-		fmt.Println(stringsutil.FilterMultiline(out.String(), args))
-	},
+			fmt.Println(stringsutil.FilterMultiline(out.String(), args))
+		},
+	}
 }
 
-var gerritProjectCurrentCmd = &cobra.Command{
-	Use:   "current",
-	Short: "Detect current Gerrit project",
-	Run: func(cmd *cobra.Command, args []string) {
-		gitReview, err := dotgitreview.ForCWD()
-		if err != nil {
-			fmt.Println("Failed to get .gitreview file, are you in a Gerrit repository?")
-			os.Exit(1)
-		}
+func NewGerritProjectCurrentCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "current",
+		Short: "Detect current Gerrit project",
+		Run: func(cmd *cobra.Command, args []string) {
+			gitReview, err := dotgitreview.ForCWD()
+			if err != nil {
+				fmt.Println("Failed to get .gitreview file, are you in a Gerrit repository?")
+				os.Exit(1)
+			}
 
-		fmt.Println(gitReview.Project)
-	},
-}
-
-func init() {
-	gerritCmd.AddCommand(gerritProjectCmd)
-	gerritProjectCmd.AddCommand(gerritProjectListCmd)
-	gerritProjectCmd.AddCommand(gerritProjectSearchCmd)
-	gerritProjectCmd.AddCommand(gerritProjectCurrentCmd)
+			fmt.Println(gitReview.Project)
+		},
+	}
 }
