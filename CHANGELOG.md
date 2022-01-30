@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.10.1
+
+- Fixed wizards prompting on `destroy` commands (T292331)
+- Fixed telemetry question being asked again if being run with sudo (T300412)
+- Fixed telemetry on `docker env` commands
+
 ## v0.10.0
 
 - Added a progress bar while the `update` command is downloading an update (T293586)
