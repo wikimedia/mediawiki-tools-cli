@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"os/user"
 	"strings"
 	"time"
 
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/util/files"
 )
 
@@ -34,14 +34,8 @@ func AddEventToStore(event map[string]interface{}) {
 	files.AddLine(string(j), eventFile())
 }
 
-func mwcliDirectory() string {
-	currentUser, _ := user.Current()
-	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli"
-	return projectDirectory
-}
-
 func eventFile() string {
-	return mwcliDirectory() + "/.events"
+	return cli.UserDirectoryPath() + string(os.PathSeparator) + ".events"
 }
 
 func EmitEvents() bool {

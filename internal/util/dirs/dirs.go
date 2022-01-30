@@ -2,7 +2,8 @@ package dirs
 
 import (
 	"os"
-	"os/user"
+
+	userutil "gitlab.wikimedia.org/releng/cli/internal/util/user"
 )
 
 /*UserDirectoryPath returns a path to a directory in the user directory.*/
@@ -16,21 +17,9 @@ func UserDirectoryPath(subPath string) string {
 		return ciDir + string(os.PathSeparator) + subPath
 	}
 
-	currentUser, err := user.Current()
+	currentUser, err := userutil.CurrentUserIgnoringRootIfSudo()
 	if err != nil {
 		panic(err)
-	}
-
-	// If we are root, check to see if we can detect sudo being used
-	if currentUser.Uid == "0" {
-		sudoUID := os.Getenv("SUDO_UID")
-		if sudoUID == "" {
-			panic("detected sudo but no SUDO_UID")
-		}
-		currentUser, err = user.LookupId(sudoUID)
-		if err != nil {
-			panic(err)
-		}
 	}
 
 	return currentUser.HomeDir + string(os.PathSeparator) + subPath

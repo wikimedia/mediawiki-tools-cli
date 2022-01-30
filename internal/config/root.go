@@ -6,18 +6,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 	"strings"
+
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 )
 
 func configPath() string {
-	return mwcliDirectory() + string(os.PathSeparator) + "config.json"
-}
-
-func mwcliDirectory() string {
-	currentUser, _ := user.Current()
-	projectDirectory := currentUser.HomeDir + string(os.PathSeparator) + ".mwcli"
-	return projectDirectory
+	return cli.UserDirectoryPath() + string(os.PathSeparator) + "config.json"
 }
 
 func ensureExists() {
