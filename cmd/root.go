@@ -210,7 +210,8 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
-			eventlogging.AddCommandRunEvent(cobrautil.FullCommandString(cmd), VersionDetails.Version)
+			// Remove the "mw" command prefix to simplify the telemetry
+			eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), VersionDetails.Version)
 		}
 	}
 

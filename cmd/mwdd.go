@@ -11,8 +11,14 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/cmd"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
 )
+
+var ignoreMwddPersistentRunForPrefixes = []string{
+	// env may be used to initially setup the environment, and thus avoid the wizard
+	"mw docker env",
+}
 
 func NewMwddCmd() *cobra.Command {
 	return &cobra.Command{
@@ -23,6 +29,12 @@ func NewMwddCmd() *cobra.Command {
 			cmd.Root().PersistentPreRun(cmd, args)
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
+
+			// Skip the wizard for some sub commands
+			if cobrautil.CommandIsSubCommandOfOneOrMore(cmd, ignoreMwddPersistentRunForPrefixes) {
+				return
+			}
+
 			if mwdd.Env().Missing("PORT") {
 				if !globalOpts.NoInteraction {
 					port := ""
