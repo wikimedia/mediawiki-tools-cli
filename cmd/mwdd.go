@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -30,8 +31,12 @@ func NewMwddCmd() *cobra.Command {
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
 
-			// Skip the wizard for some sub commands
+			// Skip the checks and wizard for some sub commands
 			if cobrautil.CommandIsSubCommandOfOneOrMore(cmd, ignoreMwddPersistentRunForPrefixes) {
+				return
+			}
+			// Skip the checks and wizard for any destroy commands
+			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") {
 				return
 			}
 

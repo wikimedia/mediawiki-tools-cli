@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/util/paths"
 )
 
@@ -29,6 +31,11 @@ func NewMediaWikiCmd() *cobra.Command {
 			cmd.Parent().Parent().PersistentPreRun(cmd, args)
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
+
+			// Skip the MediaWiki checks if the user is just trying to destroy the environment
+			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") {
+				return
+			}
 
 			usr, _ := user.Current()
 			usrDir := usr.HomeDir
