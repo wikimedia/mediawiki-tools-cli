@@ -27,9 +27,8 @@ func sshGerritCommand(args []string) *exec.Cmd {
 	return ssh
 }
 
-func gerritAttachToCmd(rootCmd *cobra.Command) {
+func gerritAttachToCmd() *cobra.Command {
 	gerritCmd := NewGerritCmd()
-	rootCmd.AddCommand(gerritCmd)
 
 	gerritChangesCmd := NewGerritChangesCmd()
 	gerritCmd.AddCommand(gerritChangesCmd)
@@ -47,4 +46,6 @@ func gerritAttachToCmd(rootCmd *cobra.Command) {
 	gerritProjectCmd.AddCommand(NewGerritProjectListCmd())
 	gerritProjectCmd.AddCommand(NewGerritProjectSearchCmd())
 	gerritProjectCmd.AddCommand(NewGerritProjectCurrentCmd())
+
+	return gerritCmd
 }

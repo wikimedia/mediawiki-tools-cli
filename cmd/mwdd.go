@@ -143,9 +143,8 @@ var shellboxLongSyntaxhighlight string
 //go:embed long/mwdd_shellbox-timeline.md
 var shellboxLongTimeline string
 
-func mwddAttachToCmd(rootCmd *cobra.Command) {
+func mwddAttachToCmd() *cobra.Command {
 	mwddCmd := NewMwddCmd()
-	rootCmd.AddCommand(mwddCmd)
 
 	if cli.MwddIsDevAlias {
 		mwddCmd.Aliases = []string{"dev"}
@@ -320,4 +319,6 @@ func mwddAttachToCmd(rootCmd *cobra.Command) {
 		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName, globalOpts.Verbosity))
 		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName, globalOpts.Verbosity))
 	}
+
+	return mwddCmd
 }

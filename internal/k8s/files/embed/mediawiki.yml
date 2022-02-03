@@ -1,0 +1,8 @@
+main_app:
+  image: image-name-here
+  requests:
+    cpu: 1000m
+    memory: 1000Mi
+  limits:
+    cpu: 2000m
+    memory: 2000Mi

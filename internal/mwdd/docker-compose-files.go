@@ -2,6 +2,7 @@ package mwdd
 
 import (
 	"fmt"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"io/ioutil"
 	"os"
 
@@ -11,7 +12,7 @@ import (
 
 /*DockerComposeProjectName the name of the docker-compose project.*/
 func (m MWDD) DockerComposeProjectName() string {
-	return "mwcli-mwdd-" + mwddContext()
+	return "mwcli-mwdd-" + cli.Context()
 }
 
 /*Env ...*/

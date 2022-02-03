@@ -1,0 +1,2 @@
+./files.txt
+./mediawiki.yml
