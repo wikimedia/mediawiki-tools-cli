@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 )
 
@@ -29,8 +28,8 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 			// Perhaps a better long term solution would be to NOT run up if a container exists with the correct name?
 			// But then there is no way for this container to ever get updates
 			// So a better solultion is to make all of this brittle
-			mwdd.DefaultForUser().Rm([]string{"mediawiki-quibble"}, exec.HandlerOptions{})
-			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"}, exec.HandlerOptions{})
+			mwdd.DefaultForUser().Rm([]string{"mediawiki-quibble"})
+			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"})
 			command, env := mwdd.CommandAndEnvFromArgs(args)
 			mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 				DockerComposeService: "mediawiki-quibble",

@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
@@ -72,7 +71,7 @@ func NewMwddDestroyCmd() *cobra.Command {
 		Use:   "destroy",
 		Short: "Destroy all containers",
 		Run: func(cmd *cobra.Command, args []string) {
-			mwdd.DefaultForUser().DownWithVolumesAndOrphans(exec.HandlerOptions{})
+			mwdd.DefaultForUser().DownWithVolumesAndOrphans()
 		},
 	}
 }
@@ -83,7 +82,7 @@ func NewMwddSuspendCmd() *cobra.Command {
 		Short: "Suspend all currently running containers",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Suspend all containers that were running
-			mwdd.DefaultForUser().Stop([]string{}, exec.HandlerOptions{})
+			mwdd.DefaultForUser().Stop([]string{})
 		},
 	}
 }
@@ -93,7 +92,7 @@ func NewMwddResumeCmd() *cobra.Command {
 		Use:   "resume",
 		Short: "Resume containers that were running before",
 		Run: func(cmd *cobra.Command, args []string) {
-			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"), exec.HandlerOptions{})
+			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"))
 		},
 	}
 }

@@ -65,7 +65,8 @@ func (m MWDD) Exec(service string, commandAndArgs []string, options exec.Handler
 }
 
 /*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with no output.*/
-func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec.HandlerOptions, user string) error {
+func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, user string) error {
+	options := exec.HandlerOptions{}
 	options.HandleStdout = func(stdout bytes.Buffer) {}
 	options.HandleError = func(stderr bytes.Buffer, err error) {}
 	return m.DockerCompose(
@@ -78,68 +79,63 @@ func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, options exec
 }
 
 /*UpDetached runs `docker-compose up -d <services>`.*/
-func (m MWDD) UpDetached(services []string, options exec.HandlerOptions) {
+func (m MWDD) UpDetached(services []string) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command:          "up",
 			CommandArguments: append([]string{"-d"}, services...),
-			HandlerOptions:   options,
 		},
 	)
 }
 
 /*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`.*/
-func (m MWDD) DownWithVolumesAndOrphans(options exec.HandlerOptions) {
+func (m MWDD) DownWithVolumesAndOrphans() {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command:          "down",
 			CommandArguments: []string{"--volumes", "--remove-orphans"},
-			HandlerOptions:   options,
 		},
 	)
 }
 
 /*Stop runs `docker-compose stop <services>`.*/
-func (m MWDD) Stop(services []string, options exec.HandlerOptions) {
+func (m MWDD) Stop(services []string) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command:          "stop",
 			CommandArguments: services,
-			HandlerOptions:   options,
 		},
 	)
 }
 
 /*Start runs `docker-compose start <services>`.*/
-func (m MWDD) Start(services []string, options exec.HandlerOptions) {
+func (m MWDD) Start(services []string) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command:          "start",
 			CommandArguments: services,
-			HandlerOptions:   options,
 		},
 	)
 }
 
 /*Rm runs `docker-compose rm --stop --force -v <services>`.*/
-func (m MWDD) Rm(services []string, options exec.HandlerOptions) {
+func (m MWDD) Rm(services []string) {
 	m.DockerComposeTTY(
 		DockerComposeCommand{
 			Command:          "rm",
 			CommandArguments: append([]string{"--stop", "--force", "-v"}, services...),
-			HandlerOptions:   options,
 		},
 	)
 }
 
 /*RmVolumes runs `docker volume rm <volume names with docker-compose project prefixed>`.*/
-func (m MWDD) RmVolumes(dcVolumes []string, options exec.HandlerOptions) {
+func (m MWDD) RmVolumes(dcVolumes []string) {
 	dockerVolumes := []string{}
 	for _, dcVolume := range dcVolumes {
 		dockerVolumes = append(dockerVolumes, m.DockerComposeProjectName()+"_"+dcVolume)
 	}
 	exec.RunTTYCommand(
-		options,
+		exec.HandlerOptions{},
 		exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...),
 	)
 }

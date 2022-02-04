@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 )
 
 /*NewServiceCmd a new command for a single service, such as mailhog*/
@@ -38,10 +37,7 @@ func NewServiceCreateCmd(name string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().UpDetached(
-				services,
-				exec.HandlerOptions{},
-			)
+			DefaultForUser().UpDetached(services)
 		},
 	}
 }
@@ -56,9 +52,9 @@ func NewServiceDestroyCmd(name string) *cobra.Command {
 			services := DefaultForUser().DockerComposeFileServices(name)
 			volumes := DefaultForUser().DockerComposeFileVolumes(name)
 
-			DefaultForUser().Rm(services, exec.HandlerOptions{})
+			DefaultForUser().Rm(services)
 			if len(volumes) > 0 {
-				DefaultForUser().RmVolumes(volumes, exec.HandlerOptions{})
+				DefaultForUser().RmVolumes(volumes)
 			}
 		},
 	}
@@ -72,10 +68,7 @@ func NewServiceSuspendCmd(name string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().Stop(
-				services,
-				exec.HandlerOptions{},
-			)
+			DefaultForUser().Stop(services)
 		},
 	}
 }
@@ -88,10 +81,7 @@ func NewServiceResumeCmd(name string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().Start(
-				services,
-				exec.HandlerOptions{},
-			)
+			DefaultForUser().Start(services)
 		},
 	}
 }

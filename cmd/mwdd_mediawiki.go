@@ -298,7 +298,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				composerErr := mwdd.DefaultForUser().ExecNoOutput("mediawiki", []string{
 					"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
 				},
-					exec.HandlerOptions{}, User)
+					User)
 				if composerErr != nil {
 					fmt.Println("Composer check failed:", composerErr)
 
