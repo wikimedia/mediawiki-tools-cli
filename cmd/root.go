@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
@@ -46,8 +47,13 @@ var Env []string
 // Workdir run the docker command with this working directory.
 var Workdir string
 
+// Verbosity set by the user. This is a modifier that can be added to the default logrus level
+var Verbosity int
+
+// DoTelemetry do we want to do telemetry?
+var DoTelemetry bool
+
 type GlobalOptions struct {
-	Verbosity     int
 	NoInteraction bool
 }
 
@@ -68,15 +74,29 @@ func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
 		Use:   "mw",
 		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + Verbosity))
+			logrus.SetFormatter(&logrus.TextFormatter{
+				DisableTimestamp:       true,
+				DisableLevelTruncation: true,
+			})
+			logrus.Trace("mwcli: PersistentPreRun")
+
+			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
+			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
+			// Remove the "mw" command prefix to simplify the telemetry
+			if DoTelemetry {
+				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), VersionDetails.Version)
+			}
+		},
 	}
 
-	mwcliCmd.PersistentFlags().IntVarP(&globalOpts.Verbosity, "verbosity", "", 1, "verbosity level (1-2)")
+	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
+	mwcliCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "", 0, "verbosity level (0-2)")
+
 	mwcliCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
 	mwcliCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
-
-	// A PersistentPreRun must always be set, as subcommands currently all call it (used for telemetry, but optional)
-	mwcliCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
 
 	// TODO down this tree we still reuse commands between instantiations of the mwcliCmd
 	// Perhaps we should new everything in this call...
@@ -179,7 +199,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		// Check for updates every 3 hours
 		if timers.IsHoursAgo(timers.Parse(c.TimerLastUpdateChecked), 3) {
 			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
-			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary, false)
+			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
 			if canUpdate {
 				colorReset := "\033[0m"
 				colorYellow := "\033[33m"
@@ -201,25 +221,19 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		cli.MwddIsDevAlias = true
 	}
 
-	rootCmd := NewMwCliCmd()
+	// TODO possibly move this to cli.DoTelemetry (along with verbosity?)
+	DoTelemetry = c.Telemetry == "yes"
 
+	rootCmd := NewMwCliCmd()
 	rootCmd.SetUsageTemplate(usageTemplate)
 	rootCmd.SetHelpTemplate(helpTemplate)
-
-	if c.Telemetry == "yes" {
-		rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
-			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
-			// Remove the "mw" command prefix to simplify the telemetry
-			eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), VersionDetails.Version)
-		}
-	}
 
 	// Execute the root command
 	err := rootCmd.Execute()
 
 	// Try and emit events after main command execution
-	if c.Telemetry == "yes" {
+	// TODO perhaps moved this to a POST command run thing
+	if DoTelemetry {
 		tryToEmitEvents()
 	}
 
@@ -231,7 +245,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	if err != nil {
-		fmt.Println(err)
+		logrus.Error(err)
 		os.Exit(1)
 	}
 }

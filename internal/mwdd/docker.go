@@ -15,7 +15,6 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	terminal "golang.org/x/term"
 )
 
@@ -26,7 +25,6 @@ type DockerExecCommand struct {
 	Env                  []string
 	WorkingDir           string
 	User                 string
-	HandlerOptions       exec.HandlerOptions
 }
 
 /*CommandAndEnvFromArgs taks arguments passed to a cobra command and extracts any prefixing env var definitions from them*/

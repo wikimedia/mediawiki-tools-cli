@@ -53,7 +53,6 @@ type CloneSetupOpts = struct {
 	UseShallow            bool
 	GerritInteractionType string
 	GerritUsername        string
-	Options               exec.HandlerOptions
 }
 
 /*CloneSetup provides a packages initial setup method for MediaWiki and Vector with some speedy features.*/
@@ -81,20 +80,20 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 	}
 
 	if options.GetMediaWiki {
-		cloneAndSetRemote(m.Path(""), startRemoteCore, endRemoteCore, options.UseShallow, options.Options)
+		cloneAndSetRemote(m.Path(""), startRemoteCore, endRemoteCore, options.UseShallow)
 	}
 	if options.GetVector {
-		cloneAndSetRemote(m.Path("skins/Vector"), startRemoteVector, endRemoteVector, options.UseShallow, options.Options)
+		cloneAndSetRemote(m.Path("skins/Vector"), startRemoteVector, endRemoteVector, options.UseShallow)
 	}
 }
 
-func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool, options exec.HandlerOptions) {
-	exec.RunTTYCommand(options, exec.Command(
+func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool) {
+	exec.RunTTYCommand(exec.Command(
 		"git",
 		gitCloneArguments(directory, startRemote, useShallow)...,
 	))
 	if startRemote != endRemote {
-		exec.RunTTYCommand(options, exec.Command(
+		exec.RunTTYCommand(exec.Command(
 			"git",
 			gitRemoteSetURLArguments(directory, endRemote)...,
 		))

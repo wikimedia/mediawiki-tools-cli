@@ -2,11 +2,11 @@ package dotgitreview
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 )
 
@@ -33,7 +33,7 @@ func ForCWD() (*GitReview, error) {
 
 	gitReviewFile, err := ini.Load(dir + "/.gitreview")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	gitReview := &GitReview{

@@ -48,7 +48,7 @@ func EmitEvents() bool {
 	_, err := http.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		// TODO log in verbose
-		// log.Fatal(err)
+		// logrus.Fatal(err)
 		return false
 	}
 

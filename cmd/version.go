@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -13,22 +14,20 @@ var versionCmd = &cobra.Command{
 		fmt.Println("mw version", VersionDetails.Version, "(", VersionDetails.BuildDate, ")")
 		fmt.Println("https://gitlab.wikimedia.org/releng/cli/-/releases")
 
-		if globalOpts.Verbosity > 1 {
-			fmt.Printf(`GitCommit: %s
-GitBranch: %s
-GitState: %s
-GitSummary: %s
-BuildDate: %s
-Version: %s
-`,
-				VersionDetails.GitCommit,
-				VersionDetails.GitBranch,
-				VersionDetails.GitState,
-				VersionDetails.GitSummary,
-				VersionDetails.BuildDate,
-				VersionDetails.Version,
-			)
-		}
+		logrus.Debugf(`GitCommit: %s
+		GitBranch: %s
+		GitState: %s
+		GitSummary: %s
+		BuildDate: %s
+		Version: %s
+		`,
+			VersionDetails.GitCommit,
+			VersionDetails.GitBranch,
+			VersionDetails.GitState,
+			VersionDetails.GitSummary,
+			VersionDetails.BuildDate,
+			VersionDetails.Version,
+		)
 	},
 }
 
