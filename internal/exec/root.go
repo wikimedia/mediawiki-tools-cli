@@ -6,13 +6,11 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/briandowns/spinner"
 	"github.com/sirupsen/logrus"
 )
 
 // HandlerOptions options used when handeling executions.
 type HandlerOptions struct {
-	Spinner      *spinner.Spinner
 	HandleStdout func(stdout bytes.Buffer)
 	HandleError  func(stderr bytes.Buffer, err error)
 }
@@ -55,16 +53,15 @@ func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
 
 /*RunCommand runs a command, handles verbose output and errors.*/
 func RunCommand(options HandlerOptions, cmd *exec.Cmd) error {
-	if options.Spinner != nil {
-		options.Spinner.Start()
-	}
 	stdout, stderr, err := runCommand(cmd)
-	if options.Spinner != nil {
-		options.Spinner.Stop()
-	}
 	handleCommandRun(options, cmd, stdout, stderr, err)
 
 	return err
+}
+
+/*RunCommand runs a command, handles verbose output and errors.*/
+func RunCommandCollect(options HandlerOptions, cmd *exec.Cmd) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
+	return runCommand(cmd)
 }
 
 func runCommand(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {

@@ -11,10 +11,8 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
@@ -181,13 +179,11 @@ func NewMediaWikiCmd() *cobra.Command {
 
 			if setupOpts.GetMediaWiki || setupOpts.GetVector {
 				// Clone various things in multiple stages
-				Spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-				Spinner.Prefix = "Performing step"
-				Spinner.FinalMSG = Spinner.Prefix + "(done)\n"
-				setupOpts.Options = exec.HandlerOptions{
-					Spinner: Spinner,
-				}
 
+				// TODO add a spinner back here
+				// We removed it while untangeling a big old mess
+				fmt.Println("Cloning repositories...")
+				fmt.Println("This may take a few moments...")
 				mediawiki.CloneSetup(setupOpts)
 
 				// Check that the needed things seem to have happened
@@ -278,9 +274,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 			// Fix some container mount permission issues
 			// Owned by root, but our webserver needs to be able to write
-			mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/cache/docker"}, exec.HandlerOptions{}, "root")
-			mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/images/docker"}, exec.HandlerOptions{}, "root")
-			mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/log/mediawiki"}, exec.HandlerOptions{}, "root")
+			mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/cache/docker"}, "root")
+			mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/www/html/w/images/docker"}, "root")
+			mwdd.DefaultForUser().Exec("mediawiki", []string{"chown", "-R", "nobody", "/var/log/mediawiki"}, "root")
 
 			// Record the wiki domain that we are trying to create
 			domain := DbName + ".mediawiki.mwdd.localhost"
@@ -342,7 +338,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						"mv",
 						"/var/www/html/w/LocalSettings.php.mwdd.bak." + installStartTime,
 						"/var/www/html/w/LocalSettings.php",
-					}, exec.HandlerOptions{}, "root")
+					}, "root")
 				}
 
 				// Set up signal handling for graceful shutdown while LocalSettings.php is moved
@@ -362,7 +358,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					"mv",
 					"/var/www/html/w/LocalSettings.php",
 					"/var/www/html/w/LocalSettings.php.mwdd.bak." + installStartTime,
-				}, exec.HandlerOptions{}, User)
+				}, User)
 
 				// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
 				if DbType == "sqlite" {
@@ -378,19 +374,19 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						"--pass", adminPass,
 						"docker-" + DbName,
 						adminUser,
-					}, exec.HandlerOptions{}, "nobody")
+					}, "nobody")
 				}
 				if DbType == "mysql" {
 					mwdd.DefaultForUser().Exec("mediawiki", []string{
 						"/wait-for-it.sh",
 						"mysql:3306",
-					}, exec.HandlerOptions{}, "nobody")
+					}, "nobody")
 				}
 				if DbType == "postgres" {
 					mwdd.DefaultForUser().Exec("mediawiki", []string{
 						"/wait-for-it.sh",
 						"postgres:5432",
-					}, exec.HandlerOptions{}, "nobody")
+					}, "nobody")
 				}
 				if DbType == "mysql" || DbType == "postgres" {
 					mwdd.DefaultForUser().Exec("mediawiki", []string{
@@ -407,7 +403,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						"--pass", adminPass,
 						"docker-" + DbName,
 						adminUser,
-					}, exec.HandlerOptions{}, "nobody")
+					}, "nobody")
 				}
 			}
 			runInstall()
@@ -419,7 +415,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					"/var/www/html/w/maintenance/update.php",
 					"--wiki", DbName,
 					"--quick",
-				}, exec.HandlerOptions{}, "nobody")
+				}, "nobody")
 			}
 			// TODO if update fails, still output the install message section, BUT tell them they need to fix the issue and run update.php
 			runUpdate()

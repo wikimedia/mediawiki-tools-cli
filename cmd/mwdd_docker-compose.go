@@ -10,7 +10,8 @@ func NewDockerComposerCmd() *cobra.Command {
 		Use:     "docker-compose",
 		Aliases: []string{"dc"},
 		Run: func(cmd *cobra.Command, args []string) {
-			mwdd.DefaultForUser().EnsureReady()
+			dev := mwdd.DefaultForUser()
+			dev.EnsureReady()
 
 			// This could be simpiler if the mwdd.DockerComposeCommand function just took a list of strings...
 			command := ""
@@ -22,12 +23,11 @@ func NewDockerComposerCmd() *cobra.Command {
 				commandArgs = args[1:]
 			}
 
-			mwdd.DefaultForUser().DockerComposeTTY(
-				mwdd.DockerComposeCommand{
-					Command:          command,
-					CommandArguments: commandArgs,
-				},
-			)
+			mwdd.DockerComposeCommand{
+				MWDD:             dev,
+				Command:          command,
+				CommandArguments: commandArgs,
+			}.RunTTY()
 		},
 	}
 }

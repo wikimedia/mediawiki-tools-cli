@@ -2,8 +2,8 @@ package mwdd
 
 import (
 	"bytes"
-	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
 	"gitlab.wikimedia.org/releng/cli/internal/util/strings"
@@ -14,123 +14,105 @@ type DockerComposeCommand struct {
 	Command          string
 	CommandArguments []string
 	NoOutput         bool
-	HandlerOptions   exec.HandlerOptions
+	MWDD             MWDD
 }
 
-/*DockerCompose runs any docker-compose command for the mwdd project with the correct project settings and all files loaded.*/
-func (m MWDD) DockerCompose(command DockerComposeCommand) error {
-	context := exec.ComposeCommandContext{
-		ProjectDirectory: m.Directory(),
-		ProjectName:      m.DockerComposeProjectName(),
-		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+func (dcc DockerComposeCommand) composeCommandContext() exec.ComposeCommandContext {
+	return exec.ComposeCommandContext{
+		ProjectDirectory: dcc.MWDD.Directory(),
+		ProjectName:      dcc.MWDD.DockerComposeProjectName(),
+		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(dcc.MWDD.Directory()),
 	}
+}
 
-	if command.NoOutput {
-		// TODO stop setting these on the HandlerOptions in command
-		// and just pass in to exec.RunCommand our own options...
-		command.HandlerOptions.HandleStdout = func(stdout bytes.Buffer) {}
-		command.HandlerOptions.HandleError = func(stderr bytes.Buffer, err error) {}
-	}
-
-	return exec.RunCommand(
-		command.HandlerOptions,
+func (dcc DockerComposeCommand) Run() (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
+	return exec.RunCommandCollect(
+		// TODO get rid of the need to pass HandlerOptions if possible
+		exec.HandlerOptions{},
 		exec.ComposeCommand(
-			context,
-			command.Command,
-			command.CommandArguments...,
+			dcc.composeCommandContext(),
+			dcc.Command,
+			dcc.CommandArguments...,
 		),
 	)
 }
 
-/*DockerComposeTTY runs any docker-compose command for the mwdd project with the correct project settings and all files loaded in a TTY.*/
-func (m MWDD) DockerComposeTTY(command DockerComposeCommand) {
-	context := exec.ComposeCommandContext{
-		ProjectDirectory: m.Directory(),
-		ProjectName:      m.DockerComposeProjectName(),
-		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
-	}
-
+func (dcc DockerComposeCommand) RunTTY() {
 	exec.RunTTYCommand(
-		command.HandlerOptions,
+		// TODO get rid of the need to pass HandlerOptions if possible
+		exec.HandlerOptions{},
 		exec.ComposeCommand(
-			context,
-			command.Command,
-			command.CommandArguments...,
+			dcc.composeCommandContext(),
+			dcc.Command,
+			dcc.CommandArguments...,
 		),
 	)
 }
 
 /*Exec runs `docker-compose exec -T <service> <commandAndArgs>`.*/
-func (m MWDD) Exec(service string, commandAndArgs []string, options exec.HandlerOptions, user string) {
+func (m MWDD) Exec(service string, commandAndArgs []string, user string) {
 	// TODO refactor this code path to make handeling options nicer
-	m.DockerComposeTTY(
-		DockerComposeCommand{
-			Command:          "exec",
-			CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
-			HandlerOptions:   options,
-		},
-	)
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "exec",
+		CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
+	}.RunTTY()
 }
 
 /*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with no output.*/
 func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, user string) error {
-	return m.DockerCompose(
-		DockerComposeCommand{
-			Command:          "exec",
-			CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
-			NoOutput:         true,
-		},
-	)
+	_, _, err := DockerComposeCommand{
+		MWDD:             m,
+		Command:          "exec",
+		CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
+		NoOutput:         true,
+	}.Run()
+	return err
 }
 
 /*UpDetached runs `docker-compose up -d <services>`.*/
 func (m MWDD) UpDetached(services []string) {
-	m.DockerComposeTTY(
-		DockerComposeCommand{
-			Command:          "up",
-			CommandArguments: append([]string{"-d"}, services...),
-		},
-	)
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "up",
+		CommandArguments: append([]string{"-d"}, services...),
+	}.RunTTY()
 }
 
 /*DownWithVolumesAndOrphans runs `docker-compose down --volumes --remove-orphans`.*/
 func (m MWDD) DownWithVolumesAndOrphans() {
-	m.DockerComposeTTY(
-		DockerComposeCommand{
-			Command:          "down",
-			CommandArguments: []string{"--volumes", "--remove-orphans"},
-		},
-	)
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "down",
+		CommandArguments: []string{"--volumes", "--remove-orphans"},
+	}.RunTTY()
 }
 
 /*Stop runs `docker-compose stop <services>`.*/
 func (m MWDD) Stop(services []string) {
-	m.DockerComposeTTY(
-		DockerComposeCommand{
-			Command:          "stop",
-			CommandArguments: services,
-		},
-	)
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "stop",
+		CommandArguments: services,
+	}.RunTTY()
 }
 
 /*Start runs `docker-compose start <services>`.*/
 func (m MWDD) Start(services []string) {
-	m.DockerComposeTTY(
-		DockerComposeCommand{
-			Command:          "start",
-			CommandArguments: services,
-		},
-	)
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "start",
+		CommandArguments: services,
+	}.RunTTY()
 }
 
 /*Rm runs `docker-compose rm --stop --force -v <services>`.*/
 func (m MWDD) Rm(services []string) {
-	m.DockerComposeTTY(
-		DockerComposeCommand{
-			Command:          "rm",
-			CommandArguments: append([]string{"--stop", "--force", "-v"}, services...),
-		},
-	)
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "rm",
+		CommandArguments: append([]string{"--stop", "--force", "-v"}, services...),
+	}.RunTTY()
 }
 
 /*RmVolumes runs `docker volume rm <volume names with docker-compose project prefixed>`.*/
@@ -147,26 +129,16 @@ func (m MWDD) RmVolumes(dcVolumes []string) {
 
 /*ServicesWithStatus lists services in the docker-compose setup that have the given status*/
 func (m MWDD) ServicesWithStatus(statusFilter string) []string {
-	serviceList := []string{}
+	stdout, stderr, err := DockerComposeCommand{
+		MWDD:             m,
+		Command:          "ps",
+		CommandArguments: []string{"--services", "--filter", "status=" + statusFilter},
+	}.Run()
 
-	// TODO stop using HandleStdout etc to do the output handeling here
-	// This is lame passing this into the DockerComposeCommand, so clean this up
-	options := exec.HandlerOptions{}
-	options.HandleStdout = func(stdout bytes.Buffer) {
-		serviceList = strings.SplitMultiline(stdout.String())
-	}
-	options.HandleError = func(stderr bytes.Buffer, err error) {
-		if stderr.String() != "" {
-			fmt.Println(stderr.String())
-		}
+	serviceList := strings.SplitMultiline(stdout.String())
+	if stderr.String() != "" || err != nil {
+		logrus.Error(stderr.String())
 	}
 
-	m.DockerCompose(
-		DockerComposeCommand{
-			Command:          "ps",
-			CommandArguments: []string{"--services", "--filter", "status=" + statusFilter},
-			HandlerOptions:   options,
-		},
-	)
 	return serviceList
 }
