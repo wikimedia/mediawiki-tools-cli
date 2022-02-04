@@ -25,15 +25,12 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 			}
 
 			mwdd.DefaultForUser().EnsureReady()
-			options := exec.HandlerOptions{
-				Verbosity: globalOpts.Verbosity,
-			}
 			// With the current "abuse" of docker-compose to do this, we must run down before up incase the previous container failed?
 			// Perhaps a better long term solution would be to NOT run up if a container exists with the correct name?
 			// But then there is no way for this container to ever get updates
 			// So a better solultion is to make all of this brittle
-			mwdd.DefaultForUser().Rm([]string{"mediawiki-quibble"}, options)
-			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"}, options)
+			mwdd.DefaultForUser().Rm([]string{"mediawiki-quibble"}, exec.HandlerOptions{})
+			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"}, exec.HandlerOptions{})
 			command, env := mwdd.CommandAndEnvFromArgs(args)
 			mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
 				DockerComposeService: "mediawiki-quibble",

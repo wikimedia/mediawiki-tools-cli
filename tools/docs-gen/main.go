@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra/doc"
 	"gitlab.wikimedia.org/releng/cli/cmd"
 	"gitlab.wikimedia.org/releng/cli/internal/util/dirs"

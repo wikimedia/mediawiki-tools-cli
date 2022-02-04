@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 )
 
@@ -27,9 +26,6 @@ func NewDockerComposerCmd() *cobra.Command {
 				mwdd.DockerComposeCommand{
 					Command:          command,
 					CommandArguments: commandArgs,
-					HandlerOptions: exec.HandlerOptions{
-						Verbosity: globalOpts.Verbosity,
-					},
 				},
 			)
 		},

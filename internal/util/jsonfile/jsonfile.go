@@ -5,10 +5,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 /*JSONFile representation of a json file.*/

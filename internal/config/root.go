@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 )
 

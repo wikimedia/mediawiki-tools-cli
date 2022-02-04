@@ -11,9 +11,10 @@ import (
 	"embed"
 	"errors"
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //go:embed testembed

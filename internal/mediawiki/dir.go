@@ -2,10 +2,11 @@ package mediawiki
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 /*NotMediaWikiDirectory error when a directory appears to not contain MediaWiki code.*/

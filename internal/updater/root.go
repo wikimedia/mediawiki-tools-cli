@@ -1,25 +1,24 @@
 package updater
 
+import (
+	log "github.com/sirupsen/logrus"
+)
+
 /*CanUpdate will check for updates.*/
-func CanUpdate(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
-	canUpdate, release := CanUpdateFromGitlab(currentVersion, gitSummary, verboseOutput)
+func CanUpdate(currentVersion string, gitSummary string) (bool, string) {
+	canUpdate, release := CanUpdateFromGitlab(currentVersion, gitSummary)
 	if canUpdate {
 		return canUpdate, release
 	}
-
-	message := "No update available"
-
-	if verboseOutput {
-		message = message + "\nCurrent version is: " + currentVersion + "\nLatest available is: " + release
-	}
+	log.Info("Current version is: " + currentVersion + "\nLatest available is: " + release)
 
 	// When canUpdate is false, we dont have a release to get the version string of
-	return canUpdate, message
+	return canUpdate, "No update available"
 }
 
 /*Update perform the latest update.*/
-func Update(currentVersion string, gitSummary string, verboseOutput bool) (bool, string) {
-	return UpdateFromGitlab(currentVersion, gitSummary, verboseOutput)
+func Update(currentVersion string, gitSummary string) (bool, string) {
+	return UpdateFromGitlab(currentVersion, gitSummary)
 }
 
 func CanMoveToVersion(targetVersion string) bool {

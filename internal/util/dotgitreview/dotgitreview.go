@@ -2,11 +2,11 @@ package dotgitreview
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 )
 

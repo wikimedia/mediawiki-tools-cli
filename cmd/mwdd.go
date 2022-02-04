@@ -72,10 +72,7 @@ func NewMwddDestroyCmd() *cobra.Command {
 		Use:   "destroy",
 		Short: "Destroy all containers",
 		Run: func(cmd *cobra.Command, args []string) {
-			options := exec.HandlerOptions{
-				Verbosity: globalOpts.Verbosity,
-			}
-			mwdd.DefaultForUser().DownWithVolumesAndOrphans(options)
+			mwdd.DefaultForUser().DownWithVolumesAndOrphans(exec.HandlerOptions{})
 		},
 	}
 }
@@ -85,11 +82,8 @@ func NewMwddSuspendCmd() *cobra.Command {
 		Use:   "suspend",
 		Short: "Suspend all currently running containers",
 		Run: func(cmd *cobra.Command, args []string) {
-			options := exec.HandlerOptions{
-				Verbosity: globalOpts.Verbosity,
-			}
 			// Suspend all containers that were running
-			mwdd.DefaultForUser().Stop([]string{}, options)
+			mwdd.DefaultForUser().Stop([]string{}, exec.HandlerOptions{})
 		},
 	}
 }
@@ -99,10 +93,7 @@ func NewMwddResumeCmd() *cobra.Command {
 		Use:   "resume",
 		Short: "Resume containers that were running before",
 		Run: func(cmd *cobra.Command, args []string) {
-			options := exec.HandlerOptions{
-				Verbosity: globalOpts.Verbosity,
-			}
-			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"), options)
+			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"), exec.HandlerOptions{})
 		},
 	}
 }
@@ -186,101 +177,101 @@ func mwddAttachToCmd(rootCmd *cobra.Command) {
 	))
 	mwddMediawikiCmd.AddCommand(NewMediaWikiFreshCmd())
 	mwddMediawikiCmd.AddCommand(NewMediaWikiQuibbleCmd())
-	mwddMediawikiCmd.AddCommand(mwdd.NewServiceCreateCmd("mediawiki", globalOpts.Verbosity))
-	mwddMediawikiCmd.AddCommand(mwdd.NewServiceDestroyCmd("mediawiki", globalOpts.Verbosity))
-	mwddMediawikiCmd.AddCommand(mwdd.NewServiceSuspendCmd("mediawiki", globalOpts.Verbosity))
-	mwddMediawikiCmd.AddCommand(mwdd.NewServiceResumeCmd("mediawiki", globalOpts.Verbosity))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceCreateCmd("mediawiki"))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceDestroyCmd("mediawiki"))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceSuspendCmd("mediawiki"))
+	mwddMediawikiCmd.AddCommand(mwdd.NewServiceResumeCmd("mediawiki"))
 	mwddMediawikiCmd.AddCommand(NewMediaWikiInstallCmd())
 	mwddMediawikiCmd.AddCommand(NewMediaWikiComposerCmd())
 	mwddMediawikiCmd.AddCommand(NewMediaWikiExecCmd())
 
 	adminer := mwdd.NewServiceCmd("adminer", "", []string{})
 	mwddCmd.AddCommand(adminer)
-	adminer.AddCommand(mwdd.NewServiceCreateCmd("adminer", globalOpts.Verbosity))
-	adminer.AddCommand(mwdd.NewServiceDestroyCmd("adminer", globalOpts.Verbosity))
-	adminer.AddCommand(mwdd.NewServiceSuspendCmd("adminer", globalOpts.Verbosity))
-	adminer.AddCommand(mwdd.NewServiceResumeCmd("adminer", globalOpts.Verbosity))
-	adminer.AddCommand(mwdd.NewServiceExecCmd("adminer", "adminer", globalOpts.Verbosity))
+	adminer.AddCommand(mwdd.NewServiceCreateCmd("adminer"))
+	adminer.AddCommand(mwdd.NewServiceDestroyCmd("adminer"))
+	adminer.AddCommand(mwdd.NewServiceSuspendCmd("adminer"))
+	adminer.AddCommand(mwdd.NewServiceResumeCmd("adminer"))
+	adminer.AddCommand(mwdd.NewServiceExecCmd("adminer", "adminer"))
 
 	elasticsearch := mwdd.NewServiceCmd("elasticsearch", elasticsearchLong, []string{})
 	mwddCmd.AddCommand(elasticsearch)
-	elasticsearch.AddCommand(mwdd.NewServiceCreateCmd("elasticsearch", globalOpts.Verbosity))
-	elasticsearch.AddCommand(mwdd.NewServiceDestroyCmd("elasticsearch", globalOpts.Verbosity))
-	elasticsearch.AddCommand(mwdd.NewServiceSuspendCmd("elasticsearch", globalOpts.Verbosity))
-	elasticsearch.AddCommand(mwdd.NewServiceResumeCmd("elasticsearch", globalOpts.Verbosity))
-	elasticsearch.AddCommand(mwdd.NewServiceExecCmd("elasticsearch", "elasticsearch", globalOpts.Verbosity))
+	elasticsearch.AddCommand(mwdd.NewServiceCreateCmd("elasticsearch"))
+	elasticsearch.AddCommand(mwdd.NewServiceDestroyCmd("elasticsearch"))
+	elasticsearch.AddCommand(mwdd.NewServiceSuspendCmd("elasticsearch"))
+	elasticsearch.AddCommand(mwdd.NewServiceResumeCmd("elasticsearch"))
+	elasticsearch.AddCommand(mwdd.NewServiceExecCmd("elasticsearch", "elasticsearch"))
 
 	eventlogging := mwdd.NewServiceCmd("eventlogging", eventLoggingLong, []string{"eventgate"})
 	mwddCmd.AddCommand(eventlogging)
-	eventlogging.AddCommand(mwdd.NewServiceCreateCmd("eventlogging", globalOpts.Verbosity))
-	eventlogging.AddCommand(mwdd.NewServiceDestroyCmd("eventlogging", globalOpts.Verbosity))
-	eventlogging.AddCommand(mwdd.NewServiceSuspendCmd("eventlogging", globalOpts.Verbosity))
-	eventlogging.AddCommand(mwdd.NewServiceResumeCmd("eventlogging", globalOpts.Verbosity))
-	eventlogging.AddCommand(mwdd.NewServiceExecCmd("eventlogging", "eventlogging", globalOpts.Verbosity))
+	eventlogging.AddCommand(mwdd.NewServiceCreateCmd("eventlogging"))
+	eventlogging.AddCommand(mwdd.NewServiceDestroyCmd("eventlogging"))
+	eventlogging.AddCommand(mwdd.NewServiceSuspendCmd("eventlogging"))
+	eventlogging.AddCommand(mwdd.NewServiceResumeCmd("eventlogging"))
+	eventlogging.AddCommand(mwdd.NewServiceExecCmd("eventlogging", "eventlogging"))
 
 	graphite := mwdd.NewServiceCmd("graphite", "", []string{})
 	mwddCmd.AddCommand(graphite)
-	graphite.AddCommand(mwdd.NewServiceCreateCmd("graphite", globalOpts.Verbosity))
-	graphite.AddCommand(mwdd.NewServiceDestroyCmd("graphite", globalOpts.Verbosity))
-	graphite.AddCommand(mwdd.NewServiceSuspendCmd("graphite", globalOpts.Verbosity))
-	graphite.AddCommand(mwdd.NewServiceResumeCmd("graphite", globalOpts.Verbosity))
-	graphite.AddCommand(mwdd.NewServiceExecCmd("graphite", "graphite", globalOpts.Verbosity))
+	graphite.AddCommand(mwdd.NewServiceCreateCmd("graphite"))
+	graphite.AddCommand(mwdd.NewServiceDestroyCmd("graphite"))
+	graphite.AddCommand(mwdd.NewServiceSuspendCmd("graphite"))
+	graphite.AddCommand(mwdd.NewServiceResumeCmd("graphite"))
+	graphite.AddCommand(mwdd.NewServiceExecCmd("graphite", "graphite"))
 
 	mailhog := mwdd.NewServiceCmd("mailhog", mailhogLong, []string{})
 	mwddCmd.AddCommand(mailhog)
-	mailhog.AddCommand(mwdd.NewServiceCreateCmd("mailhog", globalOpts.Verbosity))
-	mailhog.AddCommand(mwdd.NewServiceDestroyCmd("mailhog", globalOpts.Verbosity))
-	mailhog.AddCommand(mwdd.NewServiceSuspendCmd("mailhog", globalOpts.Verbosity))
-	mailhog.AddCommand(mwdd.NewServiceResumeCmd("mailhog", globalOpts.Verbosity))
-	mailhog.AddCommand(mwdd.NewServiceExecCmd("mailhog", "mailhog", globalOpts.Verbosity))
+	mailhog.AddCommand(mwdd.NewServiceCreateCmd("mailhog"))
+	mailhog.AddCommand(mwdd.NewServiceDestroyCmd("mailhog"))
+	mailhog.AddCommand(mwdd.NewServiceSuspendCmd("mailhog"))
+	mailhog.AddCommand(mwdd.NewServiceResumeCmd("mailhog"))
+	mailhog.AddCommand(mwdd.NewServiceExecCmd("mailhog", "mailhog"))
 
 	memcached := mwdd.NewServiceCmd("memcached", memcachedLong, []string{})
 	mwddCmd.AddCommand(memcached)
-	memcached.AddCommand(mwdd.NewServiceCreateCmd("memcached", globalOpts.Verbosity))
-	memcached.AddCommand(mwdd.NewServiceDestroyCmd("memcached", globalOpts.Verbosity))
-	memcached.AddCommand(mwdd.NewServiceSuspendCmd("memcached", globalOpts.Verbosity))
-	memcached.AddCommand(mwdd.NewServiceResumeCmd("memcached", globalOpts.Verbosity))
-	memcached.AddCommand(mwdd.NewServiceExecCmd("memcached", "memcached", globalOpts.Verbosity))
+	memcached.AddCommand(mwdd.NewServiceCreateCmd("memcached"))
+	memcached.AddCommand(mwdd.NewServiceDestroyCmd("memcached"))
+	memcached.AddCommand(mwdd.NewServiceSuspendCmd("memcached"))
+	memcached.AddCommand(mwdd.NewServiceResumeCmd("memcached"))
+	memcached.AddCommand(mwdd.NewServiceExecCmd("memcached", "memcached"))
 
 	mysql := mwdd.NewServiceCmd("mysql", "", []string{})
 	mwddCmd.AddCommand(mysql)
-	mysql.AddCommand(mwdd.NewServiceCreateCmd("mysql", globalOpts.Verbosity))
-	mysql.AddCommand(mwdd.NewServiceDestroyCmd("mysql", globalOpts.Verbosity))
-	mysql.AddCommand(mwdd.NewServiceSuspendCmd("mysql", globalOpts.Verbosity))
-	mysql.AddCommand(mwdd.NewServiceResumeCmd("mysql", globalOpts.Verbosity))
-	mysql.AddCommand(mwdd.NewServiceExecCmd("mysql", "mysql", globalOpts.Verbosity))
+	mysql.AddCommand(mwdd.NewServiceCreateCmd("mysql"))
+	mysql.AddCommand(mwdd.NewServiceDestroyCmd("mysql"))
+	mysql.AddCommand(mwdd.NewServiceSuspendCmd("mysql"))
+	mysql.AddCommand(mwdd.NewServiceResumeCmd("mysql"))
+	mysql.AddCommand(mwdd.NewServiceExecCmd("mysql", "mysql"))
 
 	mysqlReplica := mwdd.NewServiceCmd("mysql-replica", "", []string{})
 	mwddCmd.AddCommand(mysqlReplica)
-	mysqlReplica.AddCommand(mwdd.NewServiceCreateCmd("mysql-replica", globalOpts.Verbosity))
-	mysqlReplica.AddCommand(mwdd.NewServiceDestroyCmd("mysql-replica", globalOpts.Verbosity))
-	mysqlReplica.AddCommand(mwdd.NewServiceSuspendCmd("mysql-replica", globalOpts.Verbosity))
-	mysqlReplica.AddCommand(mwdd.NewServiceResumeCmd("mysql-replica", globalOpts.Verbosity))
-	mysqlReplica.AddCommand(mwdd.NewServiceExecCmd("mysql-replica", "mysql-replica", globalOpts.Verbosity))
+	mysqlReplica.AddCommand(mwdd.NewServiceCreateCmd("mysql-replica"))
+	mysqlReplica.AddCommand(mwdd.NewServiceDestroyCmd("mysql-replica"))
+	mysqlReplica.AddCommand(mwdd.NewServiceSuspendCmd("mysql-replica"))
+	mysqlReplica.AddCommand(mwdd.NewServiceResumeCmd("mysql-replica"))
+	mysqlReplica.AddCommand(mwdd.NewServiceExecCmd("mysql-replica", "mysql-replica"))
 
 	phpmyadmin := mwdd.NewServiceCmd("phpmyadmin", "", []string{"ppma"})
 	mwddCmd.AddCommand(phpmyadmin)
-	phpmyadmin.AddCommand(mwdd.NewServiceCreateCmd("phpmyadmin", globalOpts.Verbosity))
-	phpmyadmin.AddCommand(mwdd.NewServiceDestroyCmd("phpmyadmin", globalOpts.Verbosity))
-	phpmyadmin.AddCommand(mwdd.NewServiceSuspendCmd("phpmyadmin", globalOpts.Verbosity))
-	phpmyadmin.AddCommand(mwdd.NewServiceResumeCmd("phpmyadmin", globalOpts.Verbosity))
-	phpmyadmin.AddCommand(mwdd.NewServiceExecCmd("phpmyadmin", "phpmyadmin", globalOpts.Verbosity))
+	phpmyadmin.AddCommand(mwdd.NewServiceCreateCmd("phpmyadmin"))
+	phpmyadmin.AddCommand(mwdd.NewServiceDestroyCmd("phpmyadmin"))
+	phpmyadmin.AddCommand(mwdd.NewServiceSuspendCmd("phpmyadmin"))
+	phpmyadmin.AddCommand(mwdd.NewServiceResumeCmd("phpmyadmin"))
+	phpmyadmin.AddCommand(mwdd.NewServiceExecCmd("phpmyadmin", "phpmyadmin"))
 
 	postgres := mwdd.NewServiceCmd("postgres", "", []string{})
 	mwddCmd.AddCommand(postgres)
-	postgres.AddCommand(mwdd.NewServiceCreateCmd("postgres", globalOpts.Verbosity))
-	postgres.AddCommand(mwdd.NewServiceDestroyCmd("postgres", globalOpts.Verbosity))
-	postgres.AddCommand(mwdd.NewServiceSuspendCmd("postgres", globalOpts.Verbosity))
-	postgres.AddCommand(mwdd.NewServiceResumeCmd("postgres", globalOpts.Verbosity))
-	postgres.AddCommand(mwdd.NewServiceExecCmd("postgres", "postgres", globalOpts.Verbosity))
+	postgres.AddCommand(mwdd.NewServiceCreateCmd("postgres"))
+	postgres.AddCommand(mwdd.NewServiceDestroyCmd("postgres"))
+	postgres.AddCommand(mwdd.NewServiceSuspendCmd("postgres"))
+	postgres.AddCommand(mwdd.NewServiceResumeCmd("postgres"))
+	postgres.AddCommand(mwdd.NewServiceExecCmd("postgres", "postgres"))
 
 	redis := mwdd.NewServiceCmd("redis", redisLong, []string{})
 	mwddCmd.AddCommand(redis)
-	redis.AddCommand(mwdd.NewServiceCreateCmd("redis", globalOpts.Verbosity))
-	redis.AddCommand(mwdd.NewServiceDestroyCmd("redis", globalOpts.Verbosity))
-	redis.AddCommand(mwdd.NewServiceSuspendCmd("redis", globalOpts.Verbosity))
-	redis.AddCommand(mwdd.NewServiceResumeCmd("redis", globalOpts.Verbosity))
-	redis.AddCommand(mwdd.NewServiceExecCmd("redis", "redis", globalOpts.Verbosity))
+	redis.AddCommand(mwdd.NewServiceCreateCmd("redis"))
+	redis.AddCommand(mwdd.NewServiceDestroyCmd("redis"))
+	redis.AddCommand(mwdd.NewServiceSuspendCmd("redis"))
+	redis.AddCommand(mwdd.NewServiceResumeCmd("redis"))
+	redis.AddCommand(mwdd.NewServiceExecCmd("redis", "redis"))
 	redis.AddCommand(mwdd.NewServiceCommandCmd("redis", "redis-cli"))
 
 	custom := mwdd.NewServiceCmd("custom", customLong, []string{})
@@ -289,10 +280,10 @@ func mwddAttachToCmd(rootCmd *cobra.Command) {
 		"the custom docker-compose yml file",
 		func() string { return mwdd.DefaultForUser().Directory() + "/custom.yml" },
 	))
-	custom.AddCommand(mwdd.NewServiceCreateCmd("custom", globalOpts.Verbosity))
-	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom", globalOpts.Verbosity))
-	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom", globalOpts.Verbosity))
-	custom.AddCommand(mwdd.NewServiceResumeCmd("custom", globalOpts.Verbosity))
+	custom.AddCommand(mwdd.NewServiceCreateCmd("custom"))
+	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom"))
+	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom"))
+	custom.AddCommand(mwdd.NewServiceResumeCmd("custom"))
 
 	shellbox := mwdd.NewServicesCmd("shellbox", shellboxLong, []string{})
 	mwddCmd.AddCommand(shellbox)
@@ -315,9 +306,9 @@ func mwddAttachToCmd(rootCmd *cobra.Command) {
 		shellboxSubCmd := mwdd.NewServiceCmd(flavour, shellBoxLongDescs[flavour], []string{})
 		shellbox.AddCommand(shellboxSubCmd)
 		dockerComposeName := "shellbox-" + flavour
-		shellboxSubCmd.AddCommand(mwdd.NewServiceCreateCmd(dockerComposeName, globalOpts.Verbosity))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceDestroyCmd(dockerComposeName, globalOpts.Verbosity))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName, globalOpts.Verbosity))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName, globalOpts.Verbosity))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceCreateCmd(dockerComposeName))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceDestroyCmd(dockerComposeName))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName))
 	}
 }

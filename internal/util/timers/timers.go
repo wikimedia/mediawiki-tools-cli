@@ -1,8 +1,9 @@
 package timers
 
 import (
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var clockOverride = ""

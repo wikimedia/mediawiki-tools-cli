@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 

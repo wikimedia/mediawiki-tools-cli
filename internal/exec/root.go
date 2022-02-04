@@ -3,17 +3,16 @@ package exec
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
 	"github.com/briandowns/spinner"
+	log "github.com/sirupsen/logrus"
 )
 
 // HandlerOptions options used when handeling executions.
 type HandlerOptions struct {
 	Spinner      *spinner.Spinner
-	Verbosity    int
 	HandleStdout func(stdout bytes.Buffer)
 	HandleError  func(stderr bytes.Buffer, err error)
 }
@@ -43,9 +42,7 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 
 /*RunTTYCommand runs a command in an interactive shell.*/
 func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
-	if options.Verbosity >= 2 {
-		fmt.Printf("\n%s\n", cmd.String())
-	}
+	log.Trace(cmd.String())
 
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -79,9 +76,7 @@ func runCommand(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
 }
 
 func handleCommandRun(options HandlerOptions, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	if options.Verbosity >= 2 {
-		fmt.Printf("\n%s\n", cmd.String())
-	}
+	log.Trace(cmd.String())
 	if options.HandleStdout != nil {
 		options.HandleStdout(stdout)
 	} else {
