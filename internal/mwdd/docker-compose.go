@@ -27,8 +27,6 @@ func (dcc DockerComposeCommand) composeCommandContext() exec.ComposeCommandConte
 
 func (dcc DockerComposeCommand) Run() (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
 	return exec.RunCommandCollect(
-		// TODO get rid of the need to pass HandlerOptions if possible
-		exec.HandlerOptions{},
 		exec.ComposeCommand(
 			dcc.composeCommandContext(),
 			dcc.Command,
@@ -39,8 +37,6 @@ func (dcc DockerComposeCommand) Run() (stdout bytes.Buffer, stderr bytes.Buffer,
 
 func (dcc DockerComposeCommand) RunTTY() {
 	exec.RunTTYCommand(
-		// TODO get rid of the need to pass HandlerOptions if possible
-		exec.HandlerOptions{},
 		exec.ComposeCommand(
 			dcc.composeCommandContext(),
 			dcc.Command,
@@ -122,7 +118,6 @@ func (m MWDD) RmVolumes(dcVolumes []string) {
 		dockerVolumes = append(dockerVolumes, m.DockerComposeProjectName()+"_"+dcVolume)
 	}
 	exec.RunTTYCommand(
-		exec.HandlerOptions{},
 		exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...),
 	)
 }

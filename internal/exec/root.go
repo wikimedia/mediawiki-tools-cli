@@ -2,18 +2,11 @@ package exec
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
 )
-
-// HandlerOptions options used when handeling executions.
-type HandlerOptions struct {
-	HandleStdout func(stdout bytes.Buffer)
-	HandleError  func(stderr bytes.Buffer, err error)
-}
 
 // ComposeCommandContext ...
 type ComposeCommandContext struct {
@@ -39,9 +32,8 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 }
 
 /*RunTTYCommand runs a command in an interactive shell.*/
-func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
+func RunTTYCommand(cmd *exec.Cmd) {
 	logrus.Trace(cmd.String())
-
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
@@ -51,49 +43,11 @@ func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
 	}
 }
 
-/*RunCommand runs a command, handles verbose output and errors.*/
-func RunCommand(options HandlerOptions, cmd *exec.Cmd) error {
-	stdout, stderr, err := runCommand(cmd)
-	handleCommandRun(options, cmd, stdout, stderr, err)
-
-	return err
-}
-
-/*RunCommand runs a command, handles verbose output and errors.*/
-func RunCommandCollect(options HandlerOptions, cmd *exec.Cmd) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	return runCommand(cmd)
-}
-
-func runCommand(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-	err := cmd.Run()
-	return stdoutBuf, stderrBuf, err
-}
-
-func handleCommandRun(options HandlerOptions, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
+/*RunCommand runs a command, collecting output and errors.*/
+func RunCommandCollect(cmd *exec.Cmd) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
 	logrus.Trace(cmd.String())
-	if options.HandleStdout != nil {
-		options.HandleStdout(stdout)
-	} else {
-		handleStdout(stdout)
-	}
-	if options.HandleError != nil {
-		options.HandleError(stderr, err)
-	} else {
-		handleError(stderr, err)
-	}
-}
-
-func handleStdout(stdout bytes.Buffer) {
-	if stdout.String() != "" {
-		fmt.Printf("\n%s\n%s\n", "STDOUT:", stdout.String())
-	}
-}
-
-func handleError(stderr bytes.Buffer, err error) {
-	if err != nil && stderr.String() != "" {
-		fmt.Printf("\n%s\n%s\n", "STDERR:", stderr.String())
-	}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	return stdout, stderr, err
 }
