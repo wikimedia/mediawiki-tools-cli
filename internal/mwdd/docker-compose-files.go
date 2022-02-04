@@ -5,13 +5,14 @@ import (
 	"io/ioutil"
 	"os"
 
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 	"gopkg.in/yaml.v3"
 )
 
 /*DockerComposeProjectName the name of the docker-compose project.*/
 func (m MWDD) DockerComposeProjectName() string {
-	return "mwcli-mwdd-" + mwddContext()
+	return "mwcli-mwdd-" + cli.Context()
 }
 
 /*Env ...*/

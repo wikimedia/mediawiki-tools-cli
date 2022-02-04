@@ -12,13 +12,14 @@ func NewToolHubCmd() *cobra.Command {
 	}
 }
 
-func toolhubAttachToCmd(rootCmd *cobra.Command) {
+func toolhubAttachToCmd() *cobra.Command {
 	toolHubCmd := NewToolHubCmd()
-	rootCmd.AddCommand(toolHubCmd)
 
 	toolhubToolsCmd := NewToolhubToolsCmd()
 	toolHubCmd.AddCommand(toolhubToolsCmd)
 	toolhubToolsCmd.AddCommand(NewToolHubToolsListCmd())
 	toolhubToolsCmd.AddCommand(NewToolHubToolsSearchCmd())
 	toolhubToolsCmd.AddCommand(NewToolhubToolsGetCmd())
+
+	return toolHubCmd
 }

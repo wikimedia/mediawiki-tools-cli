@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func gitlabAttachToCmd(rootCmd *cobra.Command) {
+func gitlabAttachToCmd() *cobra.Command {
 	cmdFactory := cmdutils.NewFactory()
 
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
@@ -42,7 +42,7 @@ func gitlabAttachToCmd(rootCmd *cobra.Command) {
 		}
 	}
 
-	rootCmd.AddCommand(glabCommand)
+	return glabCommand
 }
 
 func findInSlice(slice []string, val string) (int, bool) {

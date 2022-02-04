@@ -22,8 +22,8 @@ func NewConfigShowCmd() *cobra.Command {
 	}
 }
 
-func configAttachToCmd(rootCmd *cobra.Command) {
+func configAttachToCmd() *cobra.Command {
 	configCmd := NewConfigCmd()
 	configCmd.AddCommand(NewConfigShowCmd())
-	rootCmd.AddCommand(configCmd)
+	return configCmd
 }

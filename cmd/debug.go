@@ -11,10 +11,10 @@ func NewDebugCmd() *cobra.Command {
 	}
 }
 
-func debugAttachToCmd(rootCmd *cobra.Command) {
+func debugAttachToCmd() *cobra.Command {
 	debugCmd := NewDebugCmd()
-	rootCmd.AddCommand(debugCmd)
 	debugEventsCmd := NewDebugEventsCmd()
 	debugCmd.AddCommand(NewDebugEventsCmd())
 	debugEventsCmd.AddCommand(NewDebugEventsEmitCmd())
+	return debugCmd
 }
