@@ -7,7 +7,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 )
 
-//Env command for interacting with a .env file in the given directory
+// Env command for interacting with a .env file in the given directory
 func Env(Short string, directory func() string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "env",
