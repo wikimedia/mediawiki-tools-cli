@@ -19,7 +19,7 @@ func NewUpdateCmd() *cobra.Command {
 		Short: "Checks for and performs updates",
 		Run: func(cmd *cobra.Command, args []string) {
 			if manualVersion == "" {
-				canUpdate, toUpdateToOrMessage := updater.CanUpdate(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
+				canUpdate, toUpdateToOrMessage := updater.CanUpdate(VersionDetails.Version, VersionDetails.GitSummary)
 
 				if !canUpdate {
 					fmt.Println(toUpdateToOrMessage)
@@ -67,7 +67,7 @@ func NewUpdateCmd() *cobra.Command {
 			var updateMessage string
 			if manualVersion == "" {
 				// Technically there is a small race condition here, and we might update to a newer version if it was release between stages
-				updateSuccess, updateMessage = updater.Update(VersionDetails.Version, VersionDetails.GitSummary, globalOpts.Verbosity >= 2)
+				updateSuccess, updateMessage = updater.Update(VersionDetails.Version, VersionDetails.GitSummary)
 			} else {
 				updateSuccess, updateMessage = updater.MoveToVersion(manualVersion)
 			}

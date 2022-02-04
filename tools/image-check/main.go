@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,7 +25,7 @@ func main() {
 
 	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	for _, file := range files {
@@ -35,14 +35,14 @@ func main() {
 
 		yamlFile, err := ioutil.ReadFile(dirPath + "/" + file.Name())
 		if err != nil {
-			log.Printf("yamlFile.Get err   #%v ", err)
+			logrus.Printf("yamlFile.Get err   #%v ", err)
 		}
 
 		c := &DockerComposeConfig{}
 
 		err = yaml.Unmarshal(yamlFile, c)
 		if err != nil {
-			log.Fatalf("Unmarshal: %v", err)
+			logrus.Fatalf("Unmarshal: %v", err)
 		}
 
 		for serviceName, service := range c.Services {
@@ -63,7 +63,7 @@ func main() {
 func keepNewerTags(currentTag string, allTags []string) []string {
 	current, err := version.NewVersion(currentTag)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 	newerTags := []string{}
 	for _, tag := range allTags {
@@ -123,14 +123,14 @@ func jsonFromURL(url string, unmarshalTo interface{}) interface{} {
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	req.Header.Set("User-Agent", "mwcli-tools-image-check")
 
 	res, getErr := client.Do(req)
 	if getErr != nil {
-		log.Fatal(getErr)
+		logrus.Fatal(getErr)
 	}
 
 	if res.Body != nil {
@@ -139,12 +139,12 @@ func jsonFromURL(url string, unmarshalTo interface{}) interface{} {
 
 	body, readErr := ioutil.ReadAll(res.Body)
 	if readErr != nil {
-		log.Fatal(readErr)
+		logrus.Fatal(readErr)
 	}
 
 	jsonErr := json.Unmarshal(body, &unmarshalTo)
 	if jsonErr != nil {
-		log.Fatal(jsonErr)
+		logrus.Fatal(jsonErr)
 	}
 
 	return unmarshalTo

@@ -6,14 +6,19 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/releng/cli/internal/gitlab"
 )
 
-/*CanUpdateFromGitlab ...*/
-func CanUpdateFromGitlab(version string, gitSummary string, verboseOutput bool) (bool, string) {
-	if verboseOutput {
+func setLogLevelForSelfUpdate() {
+	if logrus.GetLevel() >= logrus.InfoLevel {
 		selfupdate.EnableLog()
 	}
+}
+
+/*CanUpdateFromGitlab ...*/
+func CanUpdateFromGitlab(version string, gitSummary string) (bool, string) {
+	setLogLevelForSelfUpdate()
 
 	latestRelease, latestErr := gitlab.RelengCliLatestRelease()
 	if latestErr != nil {
@@ -34,12 +39,10 @@ func CanUpdateFromGitlab(version string, gitSummary string, verboseOutput bool) 
 }
 
 /*UpdateFromGitlab ...*/
-func UpdateFromGitlab(currentVersion string, gitSummary string, verboseOutput bool) (success bool, message string) {
-	if verboseOutput {
-		selfupdate.EnableLog()
-	}
+func UpdateFromGitlab(currentVersion string, gitSummary string) (success bool, message string) {
+	setLogLevelForSelfUpdate()
 
-	canUpdate, newVersionOrMessage := CanUpdateFromGitlab(currentVersion, gitSummary, verboseOutput)
+	canUpdate, newVersionOrMessage := CanUpdateFromGitlab(currentVersion, gitSummary)
 	if !canUpdate {
 		return false, "No update found: " + newVersionOrMessage
 	}

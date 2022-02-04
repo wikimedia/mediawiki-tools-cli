@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
 )
 
 /*NewServiceCmd a new command for a single service, such as mailhog*/
@@ -30,7 +29,7 @@ func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Comm
 	}
 }
 
-func NewServiceCreateCmd(name string, Verbosity int) *cobra.Command {
+func NewServiceCreateCmd(name string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "create",
 		Short: fmt.Sprintf("Create the %s containers", name),
@@ -38,17 +37,12 @@ func NewServiceCreateCmd(name string, Verbosity int) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().UpDetached(
-				services,
-				exec.HandlerOptions{
-					Verbosity: Verbosity,
-				},
-			)
+			DefaultForUser().UpDetached(services)
 		},
 	}
 }
 
-func NewServiceDestroyCmd(name string, Verbosity int) *cobra.Command {
+func NewServiceDestroyCmd(name string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "destroy",
 		Short: fmt.Sprintf("Destroy the %s containers", name),
@@ -58,18 +52,15 @@ func NewServiceDestroyCmd(name string, Verbosity int) *cobra.Command {
 			services := DefaultForUser().DockerComposeFileServices(name)
 			volumes := DefaultForUser().DockerComposeFileVolumes(name)
 
-			opts := exec.HandlerOptions{
-				Verbosity: Verbosity,
-			}
-			DefaultForUser().Rm(services, opts)
+			DefaultForUser().Rm(services)
 			if len(volumes) > 0 {
-				DefaultForUser().RmVolumes(volumes, opts)
+				DefaultForUser().RmVolumes(volumes)
 			}
 		},
 	}
 }
 
-func NewServiceSuspendCmd(name string, Verbosity int) *cobra.Command {
+func NewServiceSuspendCmd(name string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "suspend",
 		Short: fmt.Sprintf("Suspend the %s containers", name),
@@ -77,17 +68,12 @@ func NewServiceSuspendCmd(name string, Verbosity int) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().Stop(
-				services,
-				exec.HandlerOptions{
-					Verbosity: Verbosity,
-				},
-			)
+			DefaultForUser().Stop(services)
 		},
 	}
 }
 
-func NewServiceResumeCmd(name string, Verbosity int) *cobra.Command {
+func NewServiceResumeCmd(name string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "resume",
 		Short: fmt.Sprintf("Resume the %s containers", name),
@@ -95,17 +81,12 @@ func NewServiceResumeCmd(name string, Verbosity int) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().Start(
-				services,
-				exec.HandlerOptions{
-					Verbosity: Verbosity,
-				},
-			)
+			DefaultForUser().Start(services)
 		},
 	}
 }
 
-func NewServiceExecCmd(name string, service string, Verbosity int) *cobra.Command {
+func NewServiceExecCmd(name string, service string) *cobra.Command {
 	var User string
 	cmd := &cobra.Command{
 		Use:     "exec [flags] [command...]",
