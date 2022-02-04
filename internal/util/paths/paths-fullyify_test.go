@@ -17,7 +17,7 @@ func TestFullifyUserProvidedPath(t *testing.T) {
 		want  string
 	}{
 		{
-			name:  "Passthrough",
+			name:  "Full path",
 			given: "/foo",
 			want:  "/foo",
 		},
@@ -50,6 +50,21 @@ func TestFullifyUserProvidedPath(t *testing.T) {
 			name:  "pwd sub dir",
 			given: "./foo",
 			want:  pwd + "/foo",
+		},
+		{
+			name:  "string is joined with pwd",
+			given: "foo",
+			want:  pwd + "/foo",
+		},
+		{
+			name:  "string with paths is joined with pwd",
+			given: "foo/bar",
+			want:  pwd + "/foo/bar",
+		},
+		{
+			name:  "string with paths is joined with pwd",
+			given: `X:\Users\adam`,
+			want:  `X:\Users\adam`,
 		},
 	}
 	for _, tt := range tests {
