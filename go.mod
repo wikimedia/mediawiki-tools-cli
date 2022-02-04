@@ -30,6 +30,7 @@ require (
 	github.com/rodaine/table v1.0.1
 	github.com/schollz/progressbar/v3 v3.8.5
 	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/txn2/txeh v1.3.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
