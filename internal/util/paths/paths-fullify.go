@@ -9,6 +9,10 @@ import (
 
 /*FullifyUserProvidedPath fullify people entering ~/ or ./ paths and them not being handeled anywhere.*/
 func FullifyUserProvidedPath(userProvidedPath string) string {
+	if strings.HasPrefix(userProvidedPath, "/") {
+		return userProvidedPath
+	}
+
 	currentWorkingDirectory, _ := os.Getwd()
 
 	if userProvidedPath == "." {
@@ -29,5 +33,5 @@ func FullifyUserProvidedPath(userProvidedPath string) string {
 	}
 
 	// Fallback to what we were provided
-	return userProvidedPath
+	return filepath.Join(currentWorkingDirectory, userProvidedPath)
 }
