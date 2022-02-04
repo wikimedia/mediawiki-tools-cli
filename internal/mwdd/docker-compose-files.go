@@ -2,10 +2,10 @@ package mwdd
 
 import (
 	"fmt"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"io/ioutil"
 	"os"
 
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
 	"gopkg.in/yaml.v3"
 )

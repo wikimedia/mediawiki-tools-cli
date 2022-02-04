@@ -1,9 +1,10 @@
 package k8s
 
 import (
+	"os"
+
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/k8s/files"
-	"os"
 )
 
 type K8S string
