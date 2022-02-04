@@ -1,8 +1,6 @@
 package updater
 
-import (
-	log "github.com/sirupsen/logrus"
-)
+import "github.com/sirupsen/logrus"
 
 /*CanUpdate will check for updates.*/
 func CanUpdate(currentVersion string, gitSummary string) (bool, string) {
@@ -10,7 +8,7 @@ func CanUpdate(currentVersion string, gitSummary string) (bool, string) {
 	if canUpdate {
 		return canUpdate, release
 	}
-	log.Info("Current version is: " + currentVersion + "\nLatest available is: " + release)
+	logrus.Info("Current version is: " + currentVersion + "\nLatest available is: " + release)
 
 	// When canUpdate is false, we dont have a release to get the version string of
 	return canUpdate, "No update available"

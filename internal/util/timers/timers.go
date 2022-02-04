@@ -3,7 +3,7 @@ package timers
 import (
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var clockOverride = ""
@@ -30,7 +30,7 @@ func String(t time.Time) string {
 func Parse(s string) time.Time {
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 	return t
 }

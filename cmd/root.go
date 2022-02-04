@@ -7,7 +7,7 @@ import (
 	"os/user"
 
 	"github.com/AlecAivazis/survey/v2"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
@@ -75,12 +75,12 @@ func NewMwCliCmd() *cobra.Command {
 		Use:   "mw",
 		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			log.SetLevel(log.Level(int(log.InfoLevel) + Verbosity))
-			log.SetFormatter(&log.TextFormatter{
+			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + Verbosity))
+			logrus.SetFormatter(&logrus.TextFormatter{
 				DisableTimestamp:       true,
 				DisableLevelTruncation: true,
 			})
-			log.Trace("mwcli: PersistentPreRun")
+			logrus.Trace("mwcli: PersistentPreRun")
 
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
@@ -245,7 +245,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		os.Exit(1)
 	}
 }

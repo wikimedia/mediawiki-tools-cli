@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 )
 
@@ -33,7 +33,7 @@ func ForCWD() (*GitReview, error) {
 
 	gitReviewFile, err := ini.Load(dir + "/.gitreview")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	gitReview := &GitReview{

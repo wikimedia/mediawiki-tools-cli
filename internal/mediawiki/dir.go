@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 /*NotMediaWikiDirectory error when a directory appears to not contain MediaWiki code.*/
@@ -59,7 +59,7 @@ func ForCurrentWorkingDirectory() (MediaWiki, error) {
 func CheckIfInCoreDirectory() {
 	_, err := ForCurrentWorkingDirectory()
 	if err != nil {
-		log.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
+		logrus.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
 	}
 }
 

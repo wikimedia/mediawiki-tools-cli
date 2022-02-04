@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/briandowns/spinner"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // HandlerOptions options used when handeling executions.
@@ -42,14 +42,14 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 
 /*RunTTYCommand runs a command in an interactive shell.*/
 func RunTTYCommand(options HandlerOptions, cmd *exec.Cmd) {
-	log.Trace(cmd.String())
+	logrus.Trace(cmd.String())
 
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }
 
@@ -76,7 +76,7 @@ func runCommand(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
 }
 
 func handleCommandRun(options HandlerOptions, cmd *exec.Cmd, stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	log.Trace(cmd.String())
+	logrus.Trace(cmd.String())
 	if options.HandleStdout != nil {
 		options.HandleStdout(stdout)
 	} else {

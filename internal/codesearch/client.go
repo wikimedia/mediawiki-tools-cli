@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -44,7 +44,7 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) error {
 	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
 		b, err := io.ReadAll(res.Body)
 		if err != nil {
-			log.Fatalln(err)
+			logrus.Fatalln(err)
 		}
 
 		return fmt.Errorf("unknown error, status code: %d, raw result: %s", res.StatusCode, string(b))

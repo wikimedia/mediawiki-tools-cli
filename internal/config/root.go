@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 )
 
@@ -19,17 +19,17 @@ func ensureExists() {
 	if _, err := os.Stat(configPath()); err != nil {
 		err := os.MkdirAll(strings.Replace(configPath(), "config.json", "", -1), 0o700)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		defer file.Close()
 		w := bufio.NewWriter(file)
 		_, err = w.WriteString("{}")
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		w.Flush()
 	}
@@ -53,7 +53,7 @@ func LoadFromDisk() Config {
 func (c Config) WriteToDisk() {
 	file, err := os.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 	defer file.Close()
 	w := bufio.NewWriter(file)
@@ -66,7 +66,7 @@ func (c Config) WriteToDisk() {
 func (c Config) PrettyPrint() {
 	empJSON, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
-		log.Fatalf(err.Error())
+		logrus.Fatalf(err.Error())
 	}
 	fmt.Printf("%s\n", string(empJSON))
 }

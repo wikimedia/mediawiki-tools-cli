@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 /*JSONFile representation of a json file.*/
@@ -29,17 +29,17 @@ func (j JSONFile) EnsureExists() {
 	if _, err := os.Stat(j.FilePath); err != nil {
 		err := os.MkdirAll(strings.Replace(j.FilePath, j.FileName(), "", -1), 0o700)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		defer file.Close()
 		w := bufio.NewWriter(file)
 		_, err = w.WriteString("{}")
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		w.Flush()
 	}
@@ -66,7 +66,7 @@ func LoadFromDisk(filePath string) JSONFile {
 func (j JSONFile) WriteToDisk() {
 	file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 	defer file.Close()
 	w := bufio.NewWriter(file)
@@ -84,7 +84,7 @@ func (j JSONFile) PrettyPrint() {
 func (j JSONFile) String() string {
 	empJSON, err := json.MarshalIndent(j.Contents, "", "  ")
 	if err != nil {
-		log.Fatalf(err.Error())
+		logrus.Fatalf(err.Error())
 	}
 	return string(empJSON)
 }

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra/doc"
 	"gitlab.wikimedia.org/releng/cli/cmd"
 	"gitlab.wikimedia.org/releng/cli/internal/util/dirs"
@@ -34,6 +34,6 @@ func main() {
 
 	err := doc.GenMarkdownTreeCustom(cmdForDocs, path, filePrepender, linkHandler)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }
