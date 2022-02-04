@@ -61,6 +61,11 @@ func TestFullifyUserProvidedPath(t *testing.T) {
 			given: "foo/bar",
 			want:  pwd + "/foo/bar",
 		},
+		{
+			name:  "string with paths is joined with pwd",
+			given: `X:\Users\adam`,
+			want:  `X:\Users\adam`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
