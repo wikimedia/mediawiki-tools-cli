@@ -13,6 +13,7 @@ import (
 type DockerComposeCommand struct {
 	Command          string
 	CommandArguments []string
+	NoOutput         bool
 	HandlerOptions   exec.HandlerOptions
 }
 
@@ -22,6 +23,13 @@ func (m MWDD) DockerCompose(command DockerComposeCommand) error {
 		ProjectDirectory: m.Directory(),
 		ProjectName:      m.DockerComposeProjectName(),
 		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+	}
+
+	if command.NoOutput {
+		// TODO stop setting these on the HandlerOptions in command
+		// and just pass in to exec.RunCommand our own options...
+		command.HandlerOptions.HandleStdout = func(stdout bytes.Buffer) {}
+		command.HandlerOptions.HandleError = func(stderr bytes.Buffer, err error) {}
 	}
 
 	return exec.RunCommand(
@@ -66,14 +74,11 @@ func (m MWDD) Exec(service string, commandAndArgs []string, options exec.Handler
 
 /*ExecNoOutput runs `docker-compose exec -T <service> <commandAndArgs>` with no output.*/
 func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, user string) error {
-	options := exec.HandlerOptions{}
-	options.HandleStdout = func(stdout bytes.Buffer) {}
-	options.HandleError = func(stderr bytes.Buffer, err error) {}
 	return m.DockerCompose(
 		DockerComposeCommand{
 			Command:          "exec",
 			CommandArguments: append([]string{"-T", "--user", user, service}, commandAndArgs...),
-			HandlerOptions:   options,
+			NoOutput:         true,
 		},
 	)
 }
@@ -143,6 +148,9 @@ func (m MWDD) RmVolumes(dcVolumes []string) {
 /*ServicesWithStatus lists services in the docker-compose setup that have the given status*/
 func (m MWDD) ServicesWithStatus(statusFilter string) []string {
 	serviceList := []string{}
+
+	// TODO stop using HandleStdout etc to do the output handeling here
+	// This is lame passing this into the DockerComposeCommand, so clean this up
 	options := exec.HandlerOptions{}
 	options.HandleStdout = func(stdout bytes.Buffer) {
 		serviceList = strings.SplitMultiline(stdout.String())
@@ -152,6 +160,7 @@ func (m MWDD) ServicesWithStatus(statusFilter string) []string {
 			fmt.Println(stderr.String())
 		}
 	}
+
 	m.DockerCompose(
 		DockerComposeCommand{
 			Command:          "ps",
