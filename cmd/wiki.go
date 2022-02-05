@@ -85,10 +85,11 @@ func NewWikiPagePutCmd() *cobra.Command {
 	return cmd
 }
 
-func wikiAttachToCmd(rootCmd *cobra.Command) {
+func wikiAttachToCmd() *cobra.Command {
 	wikiCmd := NewWikiCmd()
-	rootCmd.AddCommand(wikiCmd)
 	wikipageCmd := NewWikiPageCmd()
 	wikiCmd.AddCommand(wikipageCmd)
 	wikipageCmd.AddCommand(NewWikiPagePutCmd())
+
+	return wikiCmd
 }

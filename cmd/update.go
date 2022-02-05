@@ -87,7 +87,3 @@ func NewUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&manualVersion, "version", "", "", "Specific version to \"update\" to, or rollback to.")
 	return cmd
 }
-
-func updateAttachToCmd(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(NewUpdateCmd())
-}

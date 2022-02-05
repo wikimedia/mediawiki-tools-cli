@@ -30,7 +30,3 @@ var versionCmd = &cobra.Command{
 		)
 	},
 }
-
-func versionAttachToCmd(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(versionCmd)
-}

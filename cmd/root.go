@@ -100,16 +100,19 @@ func NewMwCliCmd() *cobra.Command {
 
 	// TODO down this tree we still reuse commands between instantiations of the mwcliCmd
 	// Perhaps we should new everything in this call...
-	codesearchAttachToCmd(mwcliCmd)
-	configAttachToCmd(mwcliCmd)
-	debugAttachToCmd(mwcliCmd)
-	toolhubAttachToCmd(mwcliCmd)
-	gitlabAttachToCmd(mwcliCmd)
-	gerritAttachToCmd(mwcliCmd)
-	mwddAttachToCmd(mwcliCmd)
-	updateAttachToCmd(mwcliCmd)
-	versionAttachToCmd(mwcliCmd)
-	wikiAttachToCmd(mwcliCmd)
+	cmds := []*cobra.Command{
+		codesearchAttachToCmd(),
+		configAttachToCmd(),
+		debugAttachToCmd(),
+		toolhubAttachToCmd(),
+		gitlabAttachToCmd(),
+		gerritAttachToCmd(),
+		mwddAttachToCmd(),
+		NewUpdateCmd(),
+		versionCmd,
+		wikiAttachToCmd(),
+	}
+	mwcliCmd.AddCommand(cmds...)
 
 	return mwcliCmd
 }
