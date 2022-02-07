@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.10.2
+
+- Fixed handling for relative paths not starting with `./` during initial MediaWiki setup wizard (T300867)
+- Fixed handling for windows absolute paths that look like `D:\` etc during initial MediaWiki setup wizard (T300867)
+- Logging now usees the `logrus` library, so verbose output has changed slightly (T301005)
+
 ## v0.10.1
 
 - Fixed wizards prompting on `destroy` commands (T292331)
@@ -18,7 +24,6 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 Docker development environment:
 
-- Added support for using relative paths starting in `./` during initial MediaWiki setup wizard (T294177)
 - Added `where` command for the working directory of the development environment
 - Added `mediawiki where` command for the MediaWiki directory
 - Added `custom where` command for the `custom.yml` location
@@ -30,6 +35,7 @@ Docker development environment:
 - Updated `mediawiki-quibble` image from `wm.o/releng//quibble-buster-php74:1.1.1` to `wm.o/releng//quibble-buster-php74:1.3.0-s1`
 - Updated `mysql` images from `mariadb:10.6` to `mariadb:10.7`
 - Updated `postgres` images from `postgres:13.2` to `postgres:13.5`
+- Fixed handling for relative paths starting in `./` during initial MediaWiki setup wizard (T294177)
 - Fixed Windows issue to do with file embeding `Failed to open file: embed\files.txt` (T295473)
 - Fixed issue where MediaWiki would create an unreadable `mw-GlobalIdGenerator-UID-88` file and error (T293682)
 
