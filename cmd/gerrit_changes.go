@@ -14,6 +14,8 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
+var gerritProject string
+
 func NewGerritChangesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "changes",
@@ -43,17 +45,20 @@ type Change struct {
 }
 
 func NewGerritChangesListCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List Gerrit changes",
 		Run: func(cmd *cobra.Command, args []string) {
-			gitReview, err := dotgitreview.ForCWD()
-			if err != nil {
-				fmt.Println("Failed to get .gitreview file, are you in a Gerrit repository?")
-				os.Exit(1)
+			if gerritProject == "" {
+				gitReview, err := dotgitreview.ForCWD()
+				if err != nil {
+					fmt.Println("Failed to get .gitreview file, are you in a Gerrit repository?")
+					os.Exit(1)
+				}
+				gerritProject = gitReview.Project
 			}
 
-			ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"query", "project:" + gitReview.Project + " status:open", "--format", "JSON"}))
+			ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"query", "project:" + gerritProject + " status:open", "--format", "JSON"}))
 			out := cmdutil.AttachOutputBuffer(ssh)
 
 			if err := ssh.Run(); err != nil {
@@ -88,7 +93,9 @@ func NewGerritChangesListCmd() *cobra.Command {
 			tbl.Print()
 
 			fmt.Println(lastLine)
-			fmt.Println("If you see moreChanges:true, there is currently no way to see these mor changes.")
+			fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
 		},
 	}
+	cmd.Flags().StringVarP(&gerritProject, "project", "p", "", "Auto detect from .gitreview, or specify")
+	return cmd
 }
