@@ -1,10 +1,10 @@
 package mwdd
 
 import (
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
 	"os"
 
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
 )
 
 /*MWDD representation of a mwdd v2 setup.*/

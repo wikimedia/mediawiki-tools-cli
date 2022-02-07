@@ -2,6 +2,7 @@ package files
 
 import (
 	"embed"
+
 	"gitlab.wikimedia.org/releng/cli/internal/util/embedsync"
 )
 
