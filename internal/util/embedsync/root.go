@@ -33,6 +33,14 @@ type EmbeddingDiskSync struct {
 // DO NOT use os.PathSeparator, embeds ALWAYS uses "/"
 var embedSeperator = "/"
 
+func Syncer(projectDirectory string, ignoreFiles []string) EmbeddingDiskSync {
+	return EmbeddingDiskSync{
+		EmbedPath:   "embed",
+		DiskPath:    projectDirectory,
+		IgnoreFiles: ignoreFiles,
+	}
+}
+
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 	embededFiles := e.embededFiles()
 
