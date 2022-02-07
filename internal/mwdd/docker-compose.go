@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.wikimedia.org/releng/cli/internal/exec"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
+	"gitlab.wikimedia.org/releng/cli/internal/util/dirs"
 	"gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
@@ -21,7 +21,7 @@ func (m MWDD) DockerCompose(command DockerComposeCommand) error {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
 		ProjectName:      m.DockerComposeProjectName(),
-		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+		Files:            dirs.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
 	return exec.RunCommand(
@@ -39,7 +39,7 @@ func (m MWDD) DockerComposeTTY(command DockerComposeCommand) {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
 		ProjectName:      m.DockerComposeProjectName(),
-		Files:            files.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+		Files:            dirs.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
 	exec.RunTTYCommand(

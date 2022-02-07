@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
+	"gitlab.wikimedia.org/releng/cli/internal/util/embedsync"
 )
 
 /*MWDD representation of a mwdd v2 setup.*/
@@ -26,6 +26,6 @@ func (m MWDD) Directory() string {
 
 /*EnsureReady ...*/
 func (m MWDD) EnsureReady() {
-	files.EnsureReady(m.Directory())
+	embedsync.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
 }

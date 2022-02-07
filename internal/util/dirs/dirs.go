@@ -2,6 +2,7 @@ package dirs
 
 import (
 	"os"
+	"path/filepath"
 
 	userutil "gitlab.wikimedia.org/releng/cli/internal/util/user"
 )
@@ -49,6 +50,35 @@ func FilesIn(dirPath string) []string {
 			continue
 		}
 		files = append(files, fullPath)
+	}
+	return files
+}
+
+/*ListRawDcYamlFilesInContextOfProjectDirectory ...*/
+func ListRawDcYamlFilesInContextOfProjectDirectory(projectDirectory string) []string {
+	var files []string
+
+	for _, file := range listRawFiles(projectDirectory) {
+		if filepath.Ext(file) == ".yml" {
+			files = append(files, filepath.Base(file))
+		}
+	}
+
+	return files
+}
+
+/*listRawFiles lists the raw docker-compose file paths that are currently on disk.*/
+func listRawFiles(projectDirectory string) []string {
+	var files []string
+
+	err := filepath.Walk(projectDirectory, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
 	}
 	return files
 }

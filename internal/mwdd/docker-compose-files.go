@@ -1,7 +1,7 @@
 package mwdd
 
 import (
-	"fmt"
+	"gitlab.wikimedia.org/releng/cli/internal/util/files"
 	"io/ioutil"
 	"os"
 
@@ -81,8 +81,5 @@ func (m MWDD) DockerComposeFileVolumes(fileName string) []string {
 
 func (m MWDD) DockerComposeFileExistsOrExit(fileName string) {
 	filePath := m.DockerComposeFileName(fileName)
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Println("docker-compose file " + filePath + " does not exist")
-		os.Exit(1)
-	}
+	files.FileExistsOrExit(filePath)
 }

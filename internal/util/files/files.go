@@ -3,6 +3,7 @@ package files
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -83,5 +84,12 @@ func Exists(fileName string) bool {
 func RemoveIfExists(fileName string) {
 	if Exists(fileName) {
 		os.Remove(fileName)
+	}
+}
+
+func FileExistsOrExit(filePath string) {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		fmt.Println("file " + filePath + " does not exist")
+		os.Exit(1)
 	}
 }
