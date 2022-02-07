@@ -9,7 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/cmd"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/env"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
@@ -151,15 +151,7 @@ func mwddAttachToCmd() *cobra.Command {
 
 	mwddCmd.AddCommand(NewDockerComposerCmd())
 
-	mwddEnvCmd := cmd.Env("Interact with the environment variables")
-	mwddCmd.AddCommand(mwddEnvCmd)
-
-	mwddEnvCmd.AddCommand(cmd.EnvDelete(mwdd.DefaultForUser().Directory))
-	mwddEnvCmd.AddCommand(cmd.EnvSet(mwdd.DefaultForUser().Directory))
-	mwddEnvCmd.AddCommand(cmd.EnvGet(mwdd.DefaultForUser().Directory))
-	mwddEnvCmd.AddCommand(cmd.EnvList(mwdd.DefaultForUser().Directory))
-	mwddEnvCmd.AddCommand(cmd.EnvWhere(mwdd.DefaultForUser().Directory))
-	mwddEnvCmd.AddCommand(cmd.EnvClear(mwdd.DefaultForUser().Directory))
+	mwddCmd.AddCommand(env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory))
 
 	mwddHostsCmd := NewHostsCmd()
 	mwddCmd.AddCommand(mwddHostsCmd)
