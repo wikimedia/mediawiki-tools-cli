@@ -21,7 +21,7 @@ func (m MWDD) DockerCompose(command DockerComposeCommand) error {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
 		ProjectName:      m.DockerComposeProjectName(),
-		Files:            dirs.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+		Files:            dirs.ListRawYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
 	return exec.RunCommand(
@@ -39,7 +39,7 @@ func (m MWDD) DockerComposeTTY(command DockerComposeCommand) {
 	context := exec.ComposeCommandContext{
 		ProjectDirectory: m.Directory(),
 		ProjectName:      m.DockerComposeProjectName(),
-		Files:            dirs.ListRawDcYamlFilesInContextOfProjectDirectory(m.Directory()),
+		Files:            dirs.ListRawYamlFilesInContextOfProjectDirectory(m.Directory()),
 	}
 
 	exec.RunTTYCommand(

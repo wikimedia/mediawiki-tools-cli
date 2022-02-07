@@ -54,8 +54,8 @@ func FilesIn(dirPath string) []string {
 	return files
 }
 
-/*ListRawDcYamlFilesInContextOfProjectDirectory ...*/
-func ListRawDcYamlFilesInContextOfProjectDirectory(projectDirectory string) []string {
+/*ListRawYamlFilesInContextOfProjectDirectory ...*/
+func ListRawYamlFilesInContextOfProjectDirectory(projectDirectory string) []string {
 	var files []string
 
 	for _, file := range listRawFiles(projectDirectory) {
