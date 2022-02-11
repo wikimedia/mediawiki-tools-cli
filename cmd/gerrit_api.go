@@ -11,9 +11,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var gerritApiMethod string
-var gerritApiUser string
-var gerritApiPassword string
+var (
+	gerritAPIMethod   string
+	gerritAPIUser     string
+	gerritAPIPassword string
+)
 
 func NewGerritAPICmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -29,12 +31,12 @@ func NewGerritAPICmd() *cobra.Command {
 
 			instance := "https://gerrit.wikimedia.org/r/"
 			client, _ := gerrit.NewClient(instance, nil)
-			if gerritApiUser != "" && gerritApiPassword != "" {
+			if gerritAPIUser != "" && gerritAPIPassword != "" {
 				logrus.Trace("Using username and password")
-				client.Authentication.SetBasicAuth(gerritApiUser, gerritApiPassword)
+				client.Authentication.SetBasicAuth(gerritAPIUser, gerritAPIPassword)
 			}
 
-			resp, err := client.Call(gerritApiMethod, args[0], nil, nil)
+			resp, err := client.Call(gerritAPIMethod, args[0], nil, nil)
 			if err != nil {
 				logrus.Fatal("Error making request: %s", err)
 			}
@@ -55,8 +57,8 @@ func NewGerritAPICmd() *cobra.Command {
 			fmt.Print(string(b))
 		},
 	}
-	cmd.Flags().StringVarP(&gerritApiMethod, "method", "X", "GET", "The HTTP method for the request (default \"GET\")")
-	cmd.Flags().StringVarP(&gerritApiUser, "auth-user", "", "", "Gerrit HTTP user")
-	cmd.Flags().StringVarP(&gerritApiPassword, "auth-password", "", "", "Gerrit HTTP password")
+	cmd.Flags().StringVarP(&gerritAPIMethod, "method", "X", "GET", "The HTTP method for the request (default \"GET\")")
+	cmd.Flags().StringVarP(&gerritAPIUser, "auth-user", "", "", "Gerrit HTTP user")
+	cmd.Flags().StringVarP(&gerritAPIPassword, "auth-password", "", "", "Gerrit HTTP password")
 	return cmd
 }
