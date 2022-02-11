@@ -11,6 +11,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotgitreview"
@@ -71,6 +72,7 @@ func NewGerritChangesListCmd() *cobra.Command {
 			if err := ssh.Run(); err != nil {
 				os.Exit(1)
 			}
+			logrus.Trace(out.String())
 
 			lines := stringsutil.SplitMultiline(out.String())
 			lastLine := lines[len(lines)-1]
@@ -89,7 +91,7 @@ func NewGerritChangesListCmd() *cobra.Command {
 
 			// Filter
 			if outputFilter != nil {
-				getField := func(v *Change, filter string) interface{} {
+				getField := func(v *Change, filter string) string {
 					fields := strings.Split(filter, ".")
 					val := reflect.ValueOf(v)
 					for _, field := range fields {
@@ -103,7 +105,20 @@ func NewGerritChangesListCmd() *cobra.Command {
 					filterValue := filterSplit[1]
 					for i := len(changes) - 1; i >= 0; i-- {
 						change := changes[i]
-						if getField(&change, filterKey) != filterValue {
+						fieldValue := getField(&change, filterKey)
+						keep := true
+						if filterValue[0:1] == "*" && filterValue[len(filterValue)-1:] == "*" {
+							lookFor := filterValue[1 : len(filterValue)-1]
+							if !strings.Contains(fieldValue, lookFor) {
+								logrus.Tracef("Filtering out as '%s' not in '%s'", lookFor, fieldValue)
+								keep = false
+							}
+						} else if fieldValue != filterValue {
+							logrus.Tracef("Filtering out as '%s' doesn't match '%s'", filterValue, fieldValue)
+							keep = false
+						}
+
+						if !keep {
 							changes = append(changes[:i], changes[i+1:]...)
 						}
 					}
