@@ -30,6 +30,8 @@ func sshGerritCommand(args []string) *exec.Cmd {
 func gerritAttachToCmd() *cobra.Command {
 	gerritCmd := NewGerritCmd()
 
+	gerritCmd.AddCommand(NewGerritSSHCmd())
+
 	gerritChangesCmd := NewGerritChangesCmd()
 	gerritCmd.AddCommand(gerritChangesCmd)
 	gerritChangesListCmd := NewGerritChangesListCmd()
