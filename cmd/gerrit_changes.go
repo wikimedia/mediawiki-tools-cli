@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/fatih/color"
@@ -14,7 +17,11 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
-var gerritProject string
+var (
+	gerritProject string
+	outputFormat  string
+	outputFilter  []string
+)
 
 func NewGerritChangesCmd() *cobra.Command {
 	return &cobra.Command{
@@ -80,6 +87,51 @@ func NewGerritChangesListCmd() *cobra.Command {
 				changes = append(changes, change)
 			}
 
+			// Filter
+			if outputFilter != nil {
+				getField := func(v *Change, filter string) interface{} {
+					fields := strings.Split(filter, ".")
+					val := reflect.ValueOf(v)
+					for _, field := range fields {
+						val = reflect.Indirect(val).FieldByName(field)
+					}
+					return string(val.String())
+				}
+				for _, filter := range outputFilter {
+					filterSplit := strings.Split(filter, "=")
+					filterKey := filterSplit[0]
+					filterValue := filterSplit[1]
+					for i := len(changes) - 1; i >= 0; i-- {
+						change := changes[i]
+						if getField(&change, filterKey) != filterValue {
+							changes = append(changes[:i], changes[i+1:]...)
+						}
+					}
+				}
+			}
+
+			// Output using format
+			if outputFormat != "" {
+				tmpl := template.Must(template.
+					New("").
+					Funcs(map[string]interface{}{
+						"json": func(v interface{}) (string, error) {
+							b, err := json.MarshalIndent(v, "", "  ")
+							if err != nil {
+								return "", err
+							}
+							return string(b), nil
+						},
+					}).
+					Parse(outputFormat))
+				for _, change := range changes {
+					_ = tmpl.Execute(os.Stdout, change)
+					fmt.Println()
+				}
+				return
+			}
+
+			// Default table output below
 			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 			columnFmt := color.New(color.FgYellow).SprintfFunc()
 
@@ -97,5 +149,7 @@ func NewGerritChangesListCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&gerritProject, "project", "p", "", "Auto detect from .gitreview, or specify")
+	cmd.Flags().StringVarP(&outputFormat, "format", "", "", "Pretty print output using a Go template")
+	cmd.Flags().StringSliceVarP(&outputFilter, "filter", "f", []string{}, "Filter output based on conditions provided")
 	return cmd
 }
