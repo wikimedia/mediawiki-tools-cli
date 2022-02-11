@@ -7,10 +7,11 @@ require (
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/colour v0.1.0 // indirect
 	github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142 // indirect
+	github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/briandowns/spinner v1.16.0
+	github.com/briandowns/spinner v1.16.0 // indirect
 	github.com/charmbracelet/glamour v0.3.0
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/docker/docker v20.10.9+incompatible
@@ -30,7 +31,7 @@ require (
 	github.com/rodaine/table v1.0.1
 	github.com/schollz/progressbar/v3 v3.8.5
 	github.com/sergi/go-diff v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/txn2/txeh v1.3.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
