@@ -13,10 +13,14 @@ import (
 )
 
 func NewToolhubToolsCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "tools",
 		Short: "Interact with Toolhub tools",
 	}
+	cmd.AddCommand(NewToolHubToolsListCmd())
+	cmd.AddCommand(NewToolHubToolsSearchCmd())
+	cmd.AddCommand(NewToolhubToolsGetCmd())
+	return cmd
 }
 
 func NewToolHubToolsListCmd() *cobra.Command {
