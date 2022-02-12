@@ -26,8 +26,9 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	var searchType string
 	var ignoreCase bool
 	cmd := &cobra.Command{
-		Use:   "search",
+		Use:   "search [search-text]",
 		Short: "Search using codesearch",
+		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			searchString := args[0]
 			client := codesearch.NewClient(searchType)
