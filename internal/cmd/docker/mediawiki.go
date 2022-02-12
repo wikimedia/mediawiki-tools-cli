@@ -223,12 +223,13 @@ var DbName string
 //go:embed long/mwdd_mediawiki_install.md
 var mwddMediawikiInstallLong string
 
+//go:embed example/mediawiki_install.txt
+var mwddMediawikiInstallExample string
+
 func NewMediaWikiInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "install",
-		Example: `  install --dbtype=mysql                         # Install a MediaWiki site in a database called 'default' backed by MySQL
-  install --dbname=enwiki --dbtype=mysql         # Install a MediaWiki site in a databse called 'enwiki' backed by MySQL
-  install --dbname=thirdwiki --dbtype=postgres   # Install a MediaWiki site in a databse called 'thirdwiki' backed by Postgres`,
+		Use:     "install",
+		Example: mwddMediawikiInstallExample,
 		Short:   "Installs a new MediaWiki site using install.php & update.php",
 		Long:    cli.RenderMarkdown(mwddMediawikiInstallLong),
 		Aliases: []string{"i"},
@@ -455,7 +456,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "composer",
 		Short:   "Runs composer in a container in the context of MediaWiki",
-		Example: "  composer info\n  composer install -- --ignore-platform-reqs",
+		Example: "composer info\ncomposer install -- --ignore-platform-reqs",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := mwdd.CommandAndEnvFromArgs(args)
@@ -471,18 +472,15 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 	return cmd
 }
 
+//go:embed example/mediawiki_exec.txt
+var exampleMediawikiExec string
+
 func NewMediaWikiExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "exec [flags] [command...]",
-		Example: `  exec bash		                                  # Run bash as your system user
-	  exec --user root -- bash                                # Run bash as root
-	  exec -- composer phpunit:unit                           # Run a composer command (php unit tests)
-	  exec -- composer phpunit tests/phpunit/unit/includes/XmlTest.php                 # Run a single test
-	  exec -- MW_DB=other composer phpunit tests/phpunit/unit/includes/XmlTest.php     # Run a single test for another database
-	  exec -- php maintenance/update.php --quick              # Run a MediaWiki maintenance script
-	  exec -- tail -f /var/log/mediawiki/debug.log            # Follow the MediaWiki debug log file`,
-		Short: "Executes a command in the MediaWiki container",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "exec [flags] [command...]",
+		Example: exampleMediawikiExec,
+		Short:   "Executes a command in the MediaWiki container",
+		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := mwdd.CommandAndEnvFromArgs(args)

@@ -36,10 +36,9 @@ func NewGerritProjectListCmd() *cobra.Command {
 
 func NewGerritProjectSearchCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "search",
-		Short: "Search Gerrit projects",
-		Example: `  search mediawiki/extensions
-	  search Wikibase Lexeme`,
+		Use:     "search",
+		Short:   "Search Gerrit projects",
+		Example: "search mediawiki/extensions\nsearch Wikibase Lexeme",
 		Run: func(cmd *cobra.Command, args []string) {
 			ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"ls-projects"}))
 			out := cmdutil.AttachOutputBuffer(ssh)

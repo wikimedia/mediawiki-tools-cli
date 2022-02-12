@@ -12,6 +12,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/env"
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/util/lookpath"
 	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
 )
 
@@ -48,6 +49,11 @@ func NewCmd() *cobra.Command {
 		RunE:  nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmd.Root().PersistentPreRun(cmd, args)
+			if _, err := lookpath.NeedExecutables([]string{"docker", "docker-compose"}); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
 

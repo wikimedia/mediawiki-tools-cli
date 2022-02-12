@@ -2,7 +2,6 @@ package docker
 
 import (
 	_ "embed"
-	"os"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
@@ -14,15 +13,11 @@ var mwddMediawikiFreshLong string
 
 func NewMediaWikiFreshCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "fresh ...",
+		Use:   "fresh [flags] [fresh-commands]... -- [fresh-args]",
 		Short: "Runs commands in a 'fresh' container.",
+		Args:  cobra.MinimumNArgs(1),
 		Long:  cli.RenderMarkdown(mwddMediawikiFreshLong),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				cmd.Help()
-				os.Exit(1)
-			}
-
 			mwdd.DefaultForUser().EnsureReady()
 			// With the current "abuse" of docker-compose to do this, we must run down before up incase the previous container failed?
 			// Perhaps a better long term solution would be to NOT run up if a container exists with the correct name?

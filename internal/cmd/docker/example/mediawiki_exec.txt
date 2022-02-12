@@ -1,0 +1,7 @@
+exec bash                                               # Run bash as your system user
+exec --user root -- bash                                # Run bash as root
+exec -- composer phpunit:unit                           # Run a composer command (php unit tests)
+exec -- composer phpunit tests/phpunit/unit/includes/XmlTest.php                 # Run a single test
+exec -- MW_DB=other composer phpunit tests/phpunit/unit/includes/XmlTest.php     # Run a single test for another database
+exec -- php maintenance/update.php --quick              # Run a MediaWiki maintenance script
+exec -- tail -f /var/log/mediawiki/debug.log            # Follow the MediaWiki debug log file

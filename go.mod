@@ -3,6 +3,9 @@ module gitlab.wikimedia.org/releng/cli
 require (
 	cgt.name/pkg/go-mwclient v1.2.0
 	github.com/AlecAivazis/survey/v2 v2.3.2
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/colour v0.1.0 // indirect
@@ -21,7 +24,9 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.3.0
+	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/joho/godotenv v1.4.0
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect

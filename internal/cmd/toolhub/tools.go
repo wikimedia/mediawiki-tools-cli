@@ -26,11 +26,9 @@ func NewToolhubToolsCmd() *cobra.Command {
 func NewToolHubToolsListCmd() *cobra.Command {
 	var toolType string
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List Toolhub Tools",
-		Example: `  list
-  list --type="web app"
-  list --type=""`,
+		Use:     "list",
+		Short:   "List Toolhub Tools",
+		Example: "list\nlist --type=\"web app\"\nlist --type=\"\"",
 		Run: func(cmd *cobra.Command, args []string) {
 			client := toolhub.NewClient()
 			ctx := context.Background()
@@ -61,10 +59,9 @@ func NewToolHubToolsListCmd() *cobra.Command {
 func NewToolHubToolsSearchCmd() *cobra.Command {
 	var toolType string
 	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search Toolhub Tools",
-		Example: `  search unicorn
-  search upload --type="web app"`,
+		Use:     "search",
+		Short:   "Search Toolhub Tools",
+		Example: "search unicorn\nsearch upload --type=\"web app\"",
 		Run: func(cmd *cobra.Command, args []string) {
 			searchString := args[0]
 			client := toolhub.NewClient()

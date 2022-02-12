@@ -35,11 +35,10 @@ func NewGerritGroupListCmd() *cobra.Command {
 
 func NewGerritGroupSearchCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "search [search string]...",
-		Short: "Search Gerrit groups",
-		Args:  cobra.MinimumNArgs(1),
-		Example: `  search wmde
-	  search extension Wikibase`,
+		Use:     "search [search string]...",
+		Short:   "Search Gerrit groups",
+		Args:    cobra.MinimumNArgs(1),
+		Example: "search wmde\nsearch extension Wikibase",
 		Run: func(cmd *cobra.Command, args []string) {
 			ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"ls-groups"}))
 			out := cmdutil.AttachOutputBuffer(ssh)
@@ -55,11 +54,10 @@ func NewGerritGroupSearchCmd() *cobra.Command {
 
 func NewGerritGroupMembersCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "members [group name]",
-		Short: "List members of a Gerrit group",
-		Args:  cobra.MinimumNArgs(1),
-		Example: `  members wmde
-	  members mediawiki`,
+		Use:     "members [group name]",
+		Short:   "List members of a Gerrit group",
+		Args:    cobra.MinimumNArgs(1),
+		Example: "members wmde\nmembers mediawiki",
 		Run: func(cmd *cobra.Command, args []string) {
 			ssh := cmdutil.AttachAllIO(sshGerritCommand([]string{"ls-members", args[0]}))
 			if err := ssh.Run(); err != nil {

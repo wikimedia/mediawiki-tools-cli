@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
@@ -195,6 +196,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	DoTelemetry = c.Telemetry == "yes"
 
 	rootCmd := NewMwCliCmd()
+	cobra.AddTemplateFuncs(sprig.TxtFuncMap())
 	rootCmd.SetUsageTemplate(usageTemplate)
 	rootCmd.SetHelpTemplate(helpTemplate)
 
