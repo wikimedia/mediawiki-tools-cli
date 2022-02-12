@@ -14,6 +14,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/debug"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/toolhub"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/wiki"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
@@ -114,7 +115,7 @@ func NewMwCliCmd() *cobra.Command {
 		mwddAttachToCmd(),
 		NewUpdateCmd(),
 		versionCmd,
-		wikiAttachToCmd(),
+		wiki.NewWikiCmd(),
 	}
 	mwcliCmd.AddCommand(cmds...)
 

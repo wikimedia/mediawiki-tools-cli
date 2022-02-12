@@ -1,4 +1,4 @@
-package cmd
+package wiki
 
 import (
 	"fmt"
@@ -11,25 +11,10 @@ import (
 )
 
 var (
-	wiki               string
-	wikiUser           string
-	wikiPassword       string
 	wikiPageTitle      string
 	wikiPagePutSummary string
 	wikiPagePutMinor   bool
 )
-
-func NewWikiCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "wiki",
-		Short: "MediaWiki Wiki",
-		RunE:  nil,
-	}
-	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
-	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "A user to interact using")
-	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
-	return cmd
-}
 
 func NewWikiPageCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -37,6 +22,7 @@ func NewWikiPageCmd() *cobra.Command {
 		Short: "MediaWiki Wiki Page",
 		RunE:  nil,
 	}
+	cmd.AddCommand(NewWikiPagePutCmd())
 	cmd.PersistentFlags().StringVar(&wikiPageTitle, "title", "", "Title of the page")
 	return cmd
 }
@@ -83,13 +69,4 @@ func NewWikiPagePutCmd() *cobra.Command {
 	cmd.Flags().StringVar(&wikiPagePutSummary, "summary", "mwcli edit", "Summary of the edit")
 	cmd.Flags().BoolVar(&wikiPagePutMinor, "minor", false, "Minor edit")
 	return cmd
-}
-
-func wikiAttachToCmd() *cobra.Command {
-	wikiCmd := NewWikiCmd()
-	wikipageCmd := NewWikiPageCmd()
-	wikiCmd.AddCommand(wikipageCmd)
-	wikipageCmd.AddCommand(NewWikiPagePutCmd())
-
-	return wikiCmd
 }
