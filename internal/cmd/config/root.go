@@ -1,4 +1,4 @@
-package cmd
+package config
 
 import (
 	"github.com/spf13/cobra"
@@ -6,10 +6,12 @@ import (
 )
 
 func NewConfigCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Display or change configuration settings",
 	}
+	cmd.AddCommand(NewConfigShowCmd())
+	return cmd
 }
 
 func NewConfigShowCmd() *cobra.Command {
@@ -20,10 +22,4 @@ func NewConfigShowCmd() *cobra.Command {
 			config.LoadFromDisk().PrettyPrint()
 		},
 	}
-}
-
-func configAttachToCmd() *cobra.Command {
-	configCmd := NewConfigCmd()
-	configCmd.AddCommand(NewConfigShowCmd())
-	return configCmd
 }

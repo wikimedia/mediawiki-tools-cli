@@ -11,7 +11,9 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/codesearch"
+	configcmd "gitlab.wikimedia.org/releng/cli/internal/cmd/config"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/debug"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gitlab"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/toolhub"
@@ -31,29 +33,6 @@ var helpTemplate string
 
 //go:embed templates/usage.md
 var usageTemplate string
-
-// These vars are currently used by the docker exec command
-
-// Detach run docker command with -d.
-var Detach bool
-
-// Privileged run docker command with --privileged.
-var Privileged bool
-
-// User run docker command with the specified -u.
-var User string
-
-// NoTTY run docker command with -T.
-var NoTTY bool
-
-// Index run the docker command with the specified --index.
-var Index string
-
-// Env run the docker command with the specified env vars.
-var Env []string
-
-// Workdir run the docker command with this working directory.
-var Workdir string
 
 // Verbosity set by the user. This is a modifier that can be added to the default logrus level
 var Verbosity int
@@ -89,21 +68,18 @@ func NewMwCliCmd() *cobra.Command {
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
 	mwcliCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
 
-	// TODO down this tree we still reuse commands between instantiations of the mwcliCmd
-	// Perhaps we should new everything in this call...
-	cmds := []*cobra.Command{
+	mwcliCmd.AddCommand([]*cobra.Command{
 		codesearch.NewCodeSearchCmd(),
-		configAttachToCmd(),
+		configcmd.NewConfigCmd(),
 		debug.NewDebugCmd(),
 		toolhub.NewToolHubCmd(),
 		gitlab.NewGitlabCmd(),
 		gerrit.NewGerritCmd(),
-		mwddAttachToCmd(),
+		docker.NewCmd(),
 		update.NewUpdateCmd(),
 		version.NewVersionCmd(),
 		wiki.NewWikiCmd(),
-	}
-	mwcliCmd.AddCommand(cmds...)
+	}...)
 
 	return mwcliCmd
 }

@@ -1,4 +1,4 @@
-package cmd
+package docker
 
 import (
 	_ "embed"
@@ -9,14 +9,14 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
 )
 
-//go:embed long/mwdd_mediawiki_quibble.md
-var mwddMediawikiQuibbleLong string
+//go:embed long/mwdd_mediawiki_fresh.md
+var mwddMediawikiFreshLong string
 
-func NewMediaWikiQuibbleCmd() *cobra.Command {
+func NewMediaWikiFreshCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "quibble ...",
-		Short: "Runs commands in a 'quibble' container.",
-		Long:  cli.RenderMarkdown(mwddMediawikiQuibbleLong),
+		Use:   "fresh ...",
+		Short: "Runs commands in a 'fresh' container.",
+		Long:  cli.RenderMarkdown(mwddMediawikiFreshLong),
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				cmd.Help()
@@ -28,15 +28,15 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 			// Perhaps a better long term solution would be to NOT run up if a container exists with the correct name?
 			// But then there is no way for this container to ever get updates
 			// So a better solultion is to make all of this brittle
-			mwdd.DefaultForUser().Rm([]string{"mediawiki-quibble"})
-			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"})
+			mwdd.DefaultForUser().Rm([]string{"mediawiki-fresh"})
+			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"})
 			command, env := mwdd.CommandAndEnvFromArgs(args)
 			mwdd.DefaultForUser().DockerRun(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
-				DockerComposeService: "mediawiki-quibble",
+				DockerComposeService: "mediawiki-fresh",
 				Command:              command,
 				Env:                  env,
 				User:                 User,
-			}, "/workspace/src"))
+			}, "/var/www/html/w"))
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")

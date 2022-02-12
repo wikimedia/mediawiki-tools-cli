@@ -1,4 +1,4 @@
-package cmd
+package docker
 
 import (
 	_ "embed"
@@ -20,7 +20,7 @@ import (
 )
 
 func NewMediaWikiCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "mediawiki",
 		Short:   "MediaWiki service",
 		Aliases: []string{"mw"},
@@ -198,6 +198,20 @@ func NewMediaWikiCmd() *cobra.Command {
 			}
 		},
 	}
+	cmd.AddCommand(mwdd.NewWhereCmd(
+		"the MediaWiki directory",
+		func() string { return mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE") },
+	))
+	cmd.AddCommand(NewMediaWikiFreshCmd())
+	cmd.AddCommand(NewMediaWikiQuibbleCmd())
+	cmd.AddCommand(mwdd.NewServiceCreateCmd("mediawiki"))
+	cmd.AddCommand(mwdd.NewServiceDestroyCmd("mediawiki"))
+	cmd.AddCommand(mwdd.NewServiceSuspendCmd("mediawiki"))
+	cmd.AddCommand(mwdd.NewServiceResumeCmd("mediawiki"))
+	cmd.AddCommand(NewMediaWikiInstallCmd())
+	cmd.AddCommand(NewMediaWikiComposerCmd())
+	cmd.AddCommand(NewMediaWikiExecCmd())
+	return cmd
 }
 
 /*DbType used by the install command.*/

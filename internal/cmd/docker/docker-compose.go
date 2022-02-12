@@ -1,4 +1,4 @@
-package cmd
+package docker
 
 import (
 	"github.com/spf13/cobra"

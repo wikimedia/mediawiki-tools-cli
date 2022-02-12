@@ -9,13 +9,22 @@ import (
 
 /*NewServiceCmd a new command for a single service, such as mailhog*/
 func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     name,
 		Short:   fmt.Sprintf("%s service", name),
 		Long:    cli.RenderMarkdown(long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
+
+	cmd.AddCommand(NewServiceCreateCmd(name))
+	cmd.AddCommand(NewServiceDestroyCmd(name))
+	cmd.AddCommand(NewServiceSuspendCmd(name))
+	cmd.AddCommand(NewServiceResumeCmd(name))
+	// There is an expectation that the main service for exec has the same name as the service command overall
+	cmd.AddCommand(NewServiceExecCmd(name, name))
+
+	return cmd
 }
 
 /*NewServicesCmd a new command for a set of grouped services, such as various flavours of shellbox*/
