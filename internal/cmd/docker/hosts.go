@@ -1,4 +1,4 @@
-package cmd
+package docker
 
 import (
 	"fmt"
@@ -10,11 +10,15 @@ import (
 )
 
 func NewHostsCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "hosts",
 		Short: "Interact with your system hosts file",
 		RunE:  nil,
 	}
+	cmd.AddCommand(NewHostsAddCmd())
+	cmd.AddCommand(NewHostsRemoveCmd())
+	cmd.AddCommand(NewHostsWritableCmd())
+	return cmd
 }
 
 func NewHostsAddCmd() *cobra.Command {

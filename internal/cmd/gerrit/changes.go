@@ -1,4 +1,4 @@
-package cmd
+package gerrit
 
 import (
 	"encoding/json"
@@ -25,10 +25,12 @@ var (
 )
 
 func NewGerritChangesCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "changes",
 		Short: "Interact with Gerrit changes",
 	}
+	cmd.AddCommand(NewGerritChangesListCmd())
+	return cmd
 }
 
 type Change struct {

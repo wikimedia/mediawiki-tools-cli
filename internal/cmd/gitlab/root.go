@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"runtime/debug"
@@ -8,15 +8,16 @@ import (
 	"github.com/profclems/glab/commands/cmdutils"
 	"github.com/profclems/glab/pkg/glinstance"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/cli"
 )
 
-func gitlabAttachToCmd() *cobra.Command {
+func NewGitlabCmd() *cobra.Command {
 	cmdFactory := cmdutils.NewFactory()
 
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
 
 	// Try to keep this version in line with the addshore fork for now...
-	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), VersionDetails.BuildDate)
+	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
 	glabCommand.Short = "Wikimedia Gitlab instance"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.Aliases = []string{"glab"}

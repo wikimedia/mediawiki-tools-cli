@@ -1,4 +1,4 @@
-package cmd
+package gerrit
 
 import (
 	"fmt"
@@ -10,10 +10,14 @@ import (
 )
 
 func NewGerritGroupCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "group",
 		Short: "Interact with Gerrit groups",
 	}
+	cmd.AddCommand(NewGerritGroupListCmd())
+	cmd.AddCommand(NewGerritGroupSearchCmd())
+	cmd.AddCommand(NewGerritGroupMembersCmd())
+	return cmd
 }
 
 func NewGerritGroupListCmd() *cobra.Command {

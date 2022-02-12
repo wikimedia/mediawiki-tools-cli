@@ -1,4 +1,4 @@
-package cmd
+package gerrit
 
 import (
 	"fmt"
@@ -11,10 +11,14 @@ import (
 )
 
 func NewGerritProjectCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "project",
 		Short: "Interact with Gerrit projects",
 	}
+	cmd.AddCommand(NewGerritProjectListCmd())
+	cmd.AddCommand(NewGerritProjectSearchCmd())
+	cmd.AddCommand(NewGerritProjectCurrentCmd())
+	return cmd
 }
 
 func NewGerritProjectListCmd() *cobra.Command {

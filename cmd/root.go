@@ -10,6 +10,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/codesearch"
+	configcmd "gitlab.wikimedia.org/releng/cli/internal/cmd/config"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/debug"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/docker"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/gitlab"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/toolhub"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/update"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/version"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/wiki"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
@@ -24,51 +34,11 @@ var helpTemplate string
 //go:embed templates/usage.md
 var usageTemplate string
 
-// These vars are currently used by the docker exec command
-
-// Detach run docker command with -d.
-var Detach bool
-
-// Privileged run docker command with --privileged.
-var Privileged bool
-
-// User run docker command with the specified -u.
-var User string
-
-// NoTTY run docker command with -T.
-var NoTTY bool
-
-// Index run the docker command with the specified --index.
-var Index string
-
-// Env run the docker command with the specified env vars.
-var Env []string
-
-// Workdir run the docker command with this working directory.
-var Workdir string
-
 // Verbosity set by the user. This is a modifier that can be added to the default logrus level
 var Verbosity int
 
 // DoTelemetry do we want to do telemetry?
 var DoTelemetry bool
-
-type GlobalOptions struct {
-	NoInteraction bool
-}
-
-var globalOpts GlobalOptions
-
-type VersionAttributes struct {
-	GitCommit  string // holds short commit hash of source tree.
-	GitBranch  string // holds current branch name the code is built off.
-	GitState   string // shows whether there are uncommitted changes.
-	GitSummary string // holds output of git describe --tags --dirty --always.
-	BuildDate  string // holds RFC3339 formatted UTC date (build time).
-	Version    string // hold contents of ./VERSION file, if exists, or the value passed via the -version option.
-}
-
-var VersionDetails VersionAttributes
 
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
@@ -86,7 +56,7 @@ func NewMwCliCmd() *cobra.Command {
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
 			// Remove the "mw" command prefix to simplify the telemetry
 			if DoTelemetry {
-				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), VersionDetails.Version)
+				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
 			}
 		},
 	}
@@ -94,25 +64,22 @@ func NewMwCliCmd() *cobra.Command {
 	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
 	mwcliCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "", 0, "verbosity level (0-2)")
 
-	mwcliCmd.PersistentFlags().BoolVarP(&globalOpts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
+	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
 	mwcliCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
 
-	// TODO down this tree we still reuse commands between instantiations of the mwcliCmd
-	// Perhaps we should new everything in this call...
-	cmds := []*cobra.Command{
-		codesearchAttachToCmd(),
-		configAttachToCmd(),
-		debugAttachToCmd(),
-		toolhubAttachToCmd(),
-		gitlabAttachToCmd(),
-		gerritAttachToCmd(),
-		mwddAttachToCmd(),
-		NewUpdateCmd(),
-		versionCmd,
-		wikiAttachToCmd(),
-	}
-	mwcliCmd.AddCommand(cmds...)
+	mwcliCmd.AddCommand([]*cobra.Command{
+		codesearch.NewCodeSearchCmd(),
+		configcmd.NewConfigCmd(),
+		debug.NewDebugCmd(),
+		toolhub.NewToolHubCmd(),
+		gitlab.NewGitlabCmd(),
+		gerrit.NewGerritCmd(),
+		docker.NewCmd(),
+		update.NewUpdateCmd(),
+		version.NewVersionCmd(),
+		wiki.NewWikiCmd(),
+	}...)
 
 	return mwcliCmd
 }
@@ -170,12 +137,12 @@ func tryToEmitEvents() {
 
 /*Execute the root command.*/
 func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version string) {
-	VersionDetails.GitCommit = GitCommit
-	VersionDetails.GitBranch = GitBranch
-	VersionDetails.GitState = GitState
-	VersionDetails.GitSummary = GitSummary
-	VersionDetails.BuildDate = BuildDate
-	VersionDetails.Version = Version
+	cli.VersionDetails.GitCommit = GitCommit
+	cli.VersionDetails.GitBranch = GitBranch
+	cli.VersionDetails.GitState = GitState
+	cli.VersionDetails.GitSummary = GitSummary
+	cli.VersionDetails.BuildDate = BuildDate
+	cli.VersionDetails.Version = Version
 
 	// Check and set needed config values from various wizards
 	c := config.LoadFromDisk()
@@ -183,7 +150,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		wizardDevMode(&c)
 	}
 	if c.Telemetry == "" {
-		if globalOpts.NoInteraction {
+		if cli.Opts.NoInteraction {
 			c.Telemetry = "no"
 		} else {
 			wizardTelemetry(&c)
