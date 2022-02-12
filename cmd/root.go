@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/toolhub"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
@@ -105,7 +106,7 @@ func NewMwCliCmd() *cobra.Command {
 		codesearchAttachToCmd(),
 		configAttachToCmd(),
 		debugAttachToCmd(),
-		toolhubAttachToCmd(),
+		toolhub.NewToolHubCmd(),
 		gitlabAttachToCmd(),
 		gerrit.NewGerritCmd(),
 		mwddAttachToCmd(),
