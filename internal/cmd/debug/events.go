@@ -1,4 +1,4 @@
-package cmd
+package debug
 
 import (
 	"fmt"
@@ -8,10 +8,12 @@ import (
 )
 
 func NewDebugEventsCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Hidden: true,
 		Use:    "events",
 	}
+	cmd.AddCommand(NewDebugEventsEmitCmd())
+	return cmd
 }
 
 func NewDebugEventsEmitCmd() *cobra.Command {
