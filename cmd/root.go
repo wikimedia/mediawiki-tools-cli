@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
@@ -106,7 +107,7 @@ func NewMwCliCmd() *cobra.Command {
 		debugAttachToCmd(),
 		toolhubAttachToCmd(),
 		gitlabAttachToCmd(),
-		gerritAttachToCmd(),
+		gerrit.NewGerritCmd(),
 		mwddAttachToCmd(),
 		NewUpdateCmd(),
 		versionCmd,
