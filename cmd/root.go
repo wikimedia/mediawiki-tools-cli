@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/codesearch"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/debug"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/toolhub"
@@ -104,7 +105,7 @@ func NewMwCliCmd() *cobra.Command {
 	// TODO down this tree we still reuse commands between instantiations of the mwcliCmd
 	// Perhaps we should new everything in this call...
 	cmds := []*cobra.Command{
-		codesearchAttachToCmd(),
+		codesearch.NewCodeSearchCmd(),
 		configAttachToCmd(),
 		debug.NewDebugCmd(),
 		toolhub.NewToolHubCmd(),

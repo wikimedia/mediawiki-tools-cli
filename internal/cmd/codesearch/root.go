@@ -1,4 +1,4 @@
-package cmd
+package codesearch
 
 import (
 	"context"
@@ -12,11 +12,13 @@ import (
 )
 
 func NewCodeSearchCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "codesearch",
 		Short: "MediaWiki code search",
 		RunE:  nil,
 	}
+	cmd.AddCommand(NewCodeSearchSearchCmd())
+	return cmd
 }
 
 func NewCodeSearchSearchCmd() *cobra.Command {
@@ -67,10 +69,4 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&searchType, "type", "t", "search", "Type of search to perform: search|core|extensions|skins|things|bundeled|deployed|libraries|operations|puppet|ooui|milkshake|pywikibot|services|analytics")
 	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "Ignore case in search")
 	return cmd
-}
-
-func codesearchAttachToCmd() *cobra.Command {
-	codesearchCmd := NewCodeSearchCmd()
-	codesearchCmd.AddCommand(NewCodeSearchSearchCmd())
-	return codesearchCmd
 }
