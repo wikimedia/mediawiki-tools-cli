@@ -1,12 +1,14 @@
 # MediaWiki CLI
 
-This project contains a command-line interface primarily for interacting with a MediaWiki development environment modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev)
+This project contains a command-line interface for MediaWiki and Wikimedia developers.
+
+It includes a MediaWiki development environment modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev).
 
 Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
 ## Support
 
-- Code Repository: [releng/cli on gitlab.wikimedia.org](https://gitlab.wikimedia.org/releng/cli)
+- Code Repository: [releng/cli on gitlab.wikimedia.org](https://gitlab.wikimedia.org/repos/releng/cli)
 - Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
 - Phabricator: [#mwcli on phabricator.wikimedia.org](https://phabricator.wikimedia.org/project/view/5331/)
 - IRC: `#mediawiki` on [Libera.​Chat](https://libera.chat/)
@@ -53,38 +55,23 @@ alias mwdev='~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw'
 
 Many other Makefile commands exist that you might find useful:
 
-- `make build`: Just builds a new binary
+- `make build`: Builds a new binary
 - `make release`: Builds multiple release binaries to `_release`
 - `make test`: Run unit tests
 - `make lint`: Run basic linting
+- `make fix`: Run basic lint fixes
 - `make vet`: Run `go vet`
 - `make staticcheck`: Run https://staticcheck.io/
 
 ### Packages & Directories
 
-- `cmd`: Contains the Cobra commands and deals with all CLI user interaction.
-- `internal/cmd`: General Cobra command abstractions that may be useful in multiple places.
-- `internal/config`: Interaction with the CLI configuration
-- `internal/exec`: Wrapper for the main `exec` package, providing easy verbosity etc.
-- `internal/gitlab`: Basic interaction with the Wikimedia Gitlab instance
-- `internal/mediawiki`: Logic interacting with a MediaWiki installation directory on disk.
-- `internal/mwdd`: Logic for the MediaWiki-docker-dev development environment.
-- `internal/mwdd/files/embed`: Files that end up being extracted to disk for the dev environment under `~/mwcli/mwdd/default`.
-- `internal/updater`: CLI tool updating.
-- `internal/util`: A collection of quite well defined and restricted useful utility packages.
+- `cmd`: Creationand execution of the top level mw cobra CLI command.
+- `internal/cli`: High level things used across the CLI.
+- `internal/util`: Independant packages that do not bind the the CLI.
+- `internal/cmd`: Packages for commands that make up part of the CLI, binding to cobra.
+- `internal/<command name>`: Packages for commands that should not bind to cobra.
 - `tests`: Integration tests that are run as part of CI.
 - `tools`: Various tools to make working with this repository easier.
-
-### cmd names
-
-No naming structured is enforced in CI but a convention exists that should be followed.
-
-- `root.go` exists as the overall CLI script.
-- Major commands will have their own file in the `cmd` directory, named after the command. Example: `mwdd.go`.
-- The lowest level commands can be included in their parent files. Example `mwdd_mediawiki.go` contains subcommands such as `mwddMediawikiCmd`.
-- Complex sub commands can be split out into their own file.
-- This is a recursive solution.
-- Hidden commands can be created for debugging mwcli. These should be set as `Hidden` and be under the `debug` command.
 
 ## CI & Integration tests
 
