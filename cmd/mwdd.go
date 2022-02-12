@@ -40,7 +40,7 @@ func NewMwddCmd() *cobra.Command {
 			}
 
 			if mwdd.Env().Missing("PORT") {
-				if !globalOpts.NoInteraction {
+				if !cli.Opts.NoInteraction {
 					port := ""
 					prompt := &survey.Input{
 						Message: "What port would you like to use for your development environment?",

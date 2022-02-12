@@ -1,4 +1,4 @@
-package cmd
+package update
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ func NewUpdateCmd() *cobra.Command {
 		Short: "Checks for and performs updates",
 		Run: func(cmd *cobra.Command, args []string) {
 			if manualVersion == "" {
-				canUpdate, toUpdateToOrMessage := updater.CanUpdate(VersionDetails.Version, VersionDetails.GitSummary)
+				canUpdate, toUpdateToOrMessage := updater.CanUpdate(cli.VersionDetails.Version, cli.VersionDetails.GitSummary)
 
 				if !canUpdate {
 					fmt.Println(toUpdateToOrMessage)
@@ -36,7 +36,7 @@ func NewUpdateCmd() *cobra.Command {
 				fmt.Println("Updating to maually selected version: " + manualVersion)
 			}
 
-			if !globalOpts.NoInteraction {
+			if !cli.Opts.NoInteraction {
 				response := false
 				prompt := &survey.Confirm{
 					Message: "Do you want to update?",
@@ -67,7 +67,7 @@ func NewUpdateCmd() *cobra.Command {
 			var updateMessage string
 			if manualVersion == "" {
 				// Technically there is a small race condition here, and we might update to a newer version if it was release between stages
-				updateSuccess, updateMessage = updater.Update(VersionDetails.Version, VersionDetails.GitSummary)
+				updateSuccess, updateMessage = updater.Update(cli.VersionDetails.Version, cli.VersionDetails.GitSummary)
 			} else {
 				updateSuccess, updateMessage = updater.MoveToVersion(manualVersion)
 			}

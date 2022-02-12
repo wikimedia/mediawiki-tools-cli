@@ -39,7 +39,7 @@ func NewMediaWikiCmd() *cobra.Command {
 			usrDir := usr.HomeDir
 
 			if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
-				if !globalOpts.NoInteraction {
+				if !cli.Opts.NoInteraction {
 					// Prompt the user for a directory or confirmation
 					dirValue := ""
 					prompt := &survey.Input{
@@ -84,7 +84,7 @@ func NewMediaWikiCmd() *cobra.Command {
 			// TODO ask if they want to get any more skins and extensions?
 			// TODO async cloning of repos for speed!
 			if !mediawiki.MediaWikiIsPresent() {
-				if !globalOpts.NoInteraction {
+				if !cli.Opts.NoInteraction {
 					cloneMw := false
 					prompt := &survey.Confirm{
 						Message: "MediaWiki code not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now? (Negative answers will abort this command)",
@@ -100,7 +100,7 @@ func NewMediaWikiCmd() *cobra.Command {
 				}
 			}
 			if !mediawiki.VectorIsPresent() {
-				if !globalOpts.NoInteraction {
+				if !cli.Opts.NoInteraction {
 					cloneVector := false
 					prompt := &survey.Confirm{
 						Message: "Vector skin is not detected in " + mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
@@ -116,7 +116,7 @@ func NewMediaWikiCmd() *cobra.Command {
 				}
 			}
 			if setupOpts.GetMediaWiki || setupOpts.GetVector {
-				if !globalOpts.NoInteraction {
+				if !cli.Opts.NoInteraction {
 					cloneFromGithub := false
 					prompt1 := &survey.Confirm{
 						Message: "Do you want to clone from Github for extra speed? (your git remotes will be switched to Gerrit after download)",
