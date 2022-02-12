@@ -99,7 +99,7 @@ func NewServiceExecCmd(name string, service string) *cobra.Command {
 	var User string
 	cmd := &cobra.Command{
 		Use:     "exec [flags] [command...]",
-		Example: "  exec bash\n  exec -- bash --help\n  exec --user root bash\n  exec --user root -- bash --help",
+		Example: "exec bash\nexec -- bash --help\nexec --user root bash\nexec --user root -- bash --help",
 		Short:   fmt.Sprintf("Execute a command in the main %s container", name),
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -11,12 +11,16 @@ import (
 //go:embed long/mwdd_mediawiki_quibble.md
 var mwddMediawikiQuibbleLong string
 
+//go:embed example/mediawiki_quibble.txt
+var mediawikiQuibbleExample string
+
 func NewMediaWikiQuibbleCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "quibble [flags] [quibble-commands]... -- [quibble-args]",
-		Short: "Runs commands in a 'quibble' container.",
-		Args:  cobra.MinimumNArgs(1),
-		Long:  cli.RenderMarkdown(mwddMediawikiQuibbleLong),
+		Use:     "quibble [flags] [quibble-commands]... -- [quibble-args]",
+		Short:   "Runs commands in a 'quibble' container.",
+		Args:    cobra.MinimumNArgs(1),
+		Long:    cli.RenderMarkdown(mwddMediawikiQuibbleLong),
+		Example: mediawikiQuibbleExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			// With the current "abuse" of docker-compose to do this, we must run down before up incase the previous container failed?
