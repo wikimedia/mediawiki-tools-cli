@@ -14,6 +14,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/codesearch"
 	configcmd "gitlab.wikimedia.org/releng/cli/internal/cmd/config"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/debug"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/demo1"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gitlab"
@@ -80,6 +81,7 @@ func NewMwCliCmd() *cobra.Command {
 		update.NewUpdateCmd(),
 		version.NewVersionCmd(),
 		wiki.NewWikiCmd(),
+		demo1.NewDemoCommand(),
 	}...)
 
 	return mwcliCmd
