@@ -63,11 +63,11 @@ func NewMwCliCmd() *cobra.Command {
 	}
 
 	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
-	mwcliCmd.PersistentFlags().IntVarP(&Verbosity, "verbosity", "", 0, "verbosity level (0-2)")
+	mwcliCmd.PersistentFlags().CountVarP(&Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 
 	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
-	mwcliCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
+	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
 
 	mwcliCmd.AddCommand([]*cobra.Command{
 		codesearch.NewCodeSearchCmd(),
