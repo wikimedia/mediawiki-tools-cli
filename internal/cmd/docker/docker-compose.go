@@ -9,6 +9,7 @@ func NewDockerComposerCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "docker-compose",
 		Aliases: []string{"dc"},
+		Short:   "Interact with docker-compose",
 		Run: func(cmd *cobra.Command, args []string) {
 			dev := mwdd.DefaultForUser()
 			dev.EnsureReady()

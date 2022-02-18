@@ -29,10 +29,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/util/timers"
 )
 
-//go:embed templates/help.md
-var helpTemplate string
-
-//go:embed templates/usage.md
+//go:embed templates/usage.txt
 var usageTemplate string
 
 // Verbosity set by the user. This is a modifier that can be added to the default logrus level
@@ -198,7 +195,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	rootCmd := NewMwCliCmd()
 	cobra.AddTemplateFuncs(sprig.TxtFuncMap())
 	rootCmd.SetUsageTemplate(usageTemplate)
-	rootCmd.SetHelpTemplate(helpTemplate)
 
 	// Execute the root command
 	err := rootCmd.Execute()

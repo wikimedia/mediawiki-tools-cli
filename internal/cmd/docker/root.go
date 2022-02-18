@@ -94,7 +94,7 @@ func NewCmd() *cobra.Command {
 
 	if cli.MwddIsDevAlias {
 		cmd.Aliases = []string{"dev"}
-		cmd.Short += "\t(alias: dev)"
+		cmd.Short += " (alias: dev)"
 	}
 
 	// High level commands
