@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/fatih/color"
@@ -15,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
 	"gitlab.wikimedia.org/releng/cli/internal/util/dotgitreview"
+	"gitlab.wikimedia.org/releng/cli/internal/util/output"
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
@@ -80,7 +78,7 @@ func NewGerritChangesListCmd() *cobra.Command {
 			lastLine := lines[len(lines)-1]
 			lines = lines[:len(lines)-1]
 
-			var changes []Change
+			var objects []interface{}
 			for _, line := range lines {
 				change := Change{}
 				err := json.Unmarshal([]byte(line), &change)
@@ -88,63 +86,11 @@ func NewGerritChangesListCmd() *cobra.Command {
 					fmt.Println(err)
 					os.Exit(1)
 				}
-				changes = append(changes, change)
+				objects = append(objects, change)
 			}
 
-			// Filter
-			if outputFilter != nil {
-				getField := func(reflectedValue reflect.Value, filter string) string {
-					fields := strings.Split(filter, ".")
-					for _, field := range fields {
-						reflectedValue = reflect.Indirect(reflectedValue).FieldByName(field)
-					}
-					return string(reflectedValue.String())
-				}
-				for _, filter := range outputFilter {
-					filterSplit := strings.Split(filter, "=")
-					filterKey := filterSplit[0]
-					filterValue := filterSplit[1]
-					for i := len(changes) - 1; i >= 0; i-- {
-						change := changes[i]
-						reflectedChange := reflect.ValueOf(change)
-						fieldValue := getField(reflectedChange, filterKey)
-						keep := true
-						if filterValue[0:1] == "*" && filterValue[len(filterValue)-1:] == "*" {
-							lookFor := filterValue[1 : len(filterValue)-1]
-							if !strings.Contains(fieldValue, lookFor) {
-								logrus.Tracef("Filtering out as '%s' not in '%s'", lookFor, fieldValue)
-								keep = false
-							}
-						} else if fieldValue != filterValue {
-							logrus.Tracef("Filtering out as '%s' doesn't match '%s'", filterValue, fieldValue)
-							keep = false
-						}
-
-						if !keep {
-							changes = append(changes[:i], changes[i+1:]...)
-						}
-					}
-				}
-			}
-
-			// Output using format
 			if outputFormat != "" {
-				tmpl := template.Must(template.
-					New("").
-					Funcs(map[string]interface{}{
-						"json": func(v interface{}) (string, error) {
-							b, err := json.MarshalIndent(v, "", "  ")
-							if err != nil {
-								return "", err
-							}
-							return string(b), nil
-						},
-					}).
-					Parse(outputFormat))
-				for _, change := range changes {
-					_ = tmpl.Execute(os.Stdout, change)
-					fmt.Println()
-				}
+				output.OutputModern(objects, outputFormat, outputFilter)
 				return
 			}
 
@@ -155,7 +101,8 @@ func NewGerritChangesListCmd() *cobra.Command {
 			tbl := table.New("ID", "Subject", "Status", "Owner", "Branch", "Updated")
 			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-			for _, change := range changes {
+			for _, object := range objects {
+				change := object.(Change)
 				tLastUpdated := time.Unix(change.LastUpdated, 0)
 				tbl.AddRow(change.Number, change.Subject, change.Status, change.Owner.Username, change.Branch, tLastUpdated.Format("02 01 2006"))
 			}
