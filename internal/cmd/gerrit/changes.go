@@ -93,13 +93,12 @@ func NewGerritChangesListCmd() *cobra.Command {
 
 			// Filter
 			if outputFilter != nil {
-				getField := func(v *Change, filter string) string {
+				getField := func(reflectedValue reflect.Value, filter string) string {
 					fields := strings.Split(filter, ".")
-					val := reflect.ValueOf(v)
 					for _, field := range fields {
-						val = reflect.Indirect(val).FieldByName(field)
+						reflectedValue = reflect.Indirect(reflectedValue).FieldByName(field)
 					}
-					return string(val.String())
+					return string(reflectedValue.String())
 				}
 				for _, filter := range outputFilter {
 					filterSplit := strings.Split(filter, "=")
@@ -107,7 +106,8 @@ func NewGerritChangesListCmd() *cobra.Command {
 					filterValue := filterSplit[1]
 					for i := len(changes) - 1; i >= 0; i-- {
 						change := changes[i]
-						fieldValue := getField(&change, filterKey)
+						reflectedChange := reflect.ValueOf(change)
+						fieldValue := getField(reflectedChange, filterKey)
 						keep := true
 						if filterValue[0:1] == "*" && filterValue[len(filterValue)-1:] == "*" {
 							lookFor := filterValue[1 : len(filterValue)-1]
