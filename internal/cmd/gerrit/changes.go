@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/rodaine/table"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
@@ -89,25 +88,23 @@ func NewGerritChangesListCmd() *cobra.Command {
 				objects = append(objects, change)
 			}
 
+			objects = output.Filter(objects, outputFilter)
+
 			if outputFormat != "" {
-				output.OutputModern(objects, outputFormat, outputFilter)
+				output.Modern(objects, outputFormat)
 				return
 			}
 
-			// Default table output below
-			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-			columnFmt := color.New(color.FgYellow).SprintfFunc()
-
-			tbl := table.New("ID", "Subject", "Status", "Owner", "Branch", "Updated")
-			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
-
-			for _, object := range objects {
-				change := object.(Change)
-				tLastUpdated := time.Unix(change.LastUpdated, 0)
-				tbl.AddRow(change.Number, change.Subject, change.Status, change.Owner.Username, change.Branch, tLastUpdated.Format("02 01 2006"))
-			}
-			tbl.Print()
-
+			output.Table(
+				objects,
+				[]string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
+				func(object interface{}) []string {
+					typedObject := object.(Change)
+					tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
+					return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
+				},
+			)
+			fmt.Println("----------------")
 			fmt.Println(lastLine)
 			fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
 		},
