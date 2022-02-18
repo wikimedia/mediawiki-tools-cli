@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type SearchResponse struct {
@@ -40,7 +41,13 @@ func (c *Client) Search(ctx context.Context, flavour string, query string, optio
 		ignoreCase = "nope"
 	}
 
-	url := fmt.Sprintf("%s?q=%s&repos=*&i=%s&stats=fosho", BaseURLForFlavour(flavour), query, ignoreCase)
+	params := url.Values{}
+	params.Add("q", query)
+	params.Add("repos", "*")
+	params.Add("i", ignoreCase)
+	params.Add("stats", "fosho")
+
+	url := fmt.Sprintf("%s?%s", BaseURLForFlavour(flavour), params.Encode())
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
