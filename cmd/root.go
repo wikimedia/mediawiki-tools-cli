@@ -21,6 +21,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/update"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/version"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/wiki"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/ziki"
 	"gitlab.wikimedia.org/releng/cli/internal/config"
 	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/releng/cli/internal/updater"
@@ -77,6 +78,7 @@ func NewMwCliCmd() *cobra.Command {
 		update.NewUpdateCmd(),
 		version.NewVersionCmd(),
 		wiki.NewWikiCmd(),
+		ziki.NewZikiCmd(),
 	}...)
 
 	return mwcliCmd
