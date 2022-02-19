@@ -17,6 +17,7 @@ import (
 
 var (
 	gerritProject string
+	outputType    string
 	outputFormat  string
 	outputFilter  []string
 )
@@ -90,27 +91,30 @@ func NewGerritChangesListCmd() *cobra.Command {
 
 			objects = output.Filter(objects, outputFilter)
 
-			if outputFormat != "" {
-				output.NewGoTmpl(objects, outputFormat).Print()
-				return
+			if outputType == "json" {
+				output.NewJSON(objects, outputFormat).Print()
 			}
-
-			output.TableFromObjects(
-				objects,
-				[]string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
-				func(object interface{}) []string {
-					typedObject := object.(Change)
-					tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
-					return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
-				},
-			).Print()
-
-			fmt.Println("----------------")
-			fmt.Println(lastLine)
-			fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
+			if outputType == "gotmpl" {
+				output.NewGoTmpl(objects, outputFormat).Print()
+			}
+			if outputType == "table" {
+				output.TableFromObjects(
+					objects,
+					[]string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
+					func(object interface{}) []string {
+						typedObject := object.(Change)
+						tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
+						return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
+					},
+				).Print()
+				fmt.Println("----------------")
+				fmt.Println(lastLine)
+				fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
+			}
 		},
 	}
 	cmd.Flags().StringVarP(&gerritProject, "project", "p", "", "Auto detect from .gitreview, or specify")
+	cmd.Flags().StringVarP(&outputType, "output", "", "json", "How to output the resutls (table, gotmpl, json)")
 	cmd.Flags().StringVarP(&outputFormat, "format", "", "", "Pretty print output using a Go template")
 	cmd.Flags().StringSliceVarP(&outputFilter, "filter", "f", []string{}, "Filter output based on conditions provided")
 	return cmd

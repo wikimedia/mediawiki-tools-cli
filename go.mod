@@ -14,8 +14,9 @@ require (
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/briandowns/spinner v1.16.0 // indirect
-	github.com/charmbracelet/glamour v0.3.0
+	github.com/briandowns/spinner v1.18.1 // indirect
+	github.com/charmbracelet/glamour v0.4.0
+	github.com/cli/cli/v2 v2.5.1
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -25,7 +26,9 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.3.0
 	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
+	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
