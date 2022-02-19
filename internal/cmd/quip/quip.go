@@ -52,6 +52,7 @@ func NewQuipCmd() *cobra.Command {
 			}
 
 			firstQuote := doc.Find(".quote").First()
+			link := "https://bash.toolforge.org" + firstQuote.Find("a").First().AttrOr("href", "/random")
 			firstQuote.Find(".nav").Remove()
 			text := firstQuote.Text()
 
@@ -82,8 +83,15 @@ func NewQuipCmd() *cobra.Command {
 			if err := execCmd.Run(); err != nil {
 				panic(err)
 			}
+
+			// Finally output the link if requested
+			printLink, _ := cmd.Flags().GetBool("link")
+			if printLink {
+				fmt.Println(link)
+			}
 		},
 	}
 	cmd.Flags().BoolP("no-fun", "n", false, "disable fun")
+	cmd.Flags().BoolP("link", "", false, "output a link to the quip")
 	return cmd
 }
