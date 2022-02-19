@@ -41,7 +41,14 @@ func (a *Ack) AddSection(name string, items []interface{}) {
 	a.Sections[name] = items
 }
 
+func (a *Ack) ensureSection(name string) {
+	if _, ok := a.Sections[name]; !ok {
+		a.InitSection(name)
+	}
+}
+
 func (a *Ack) AddItem(section string, item string) {
+	a.ensureSection(section)
 	a.Sections[section] = append(a.Sections[section], item)
 }
 
