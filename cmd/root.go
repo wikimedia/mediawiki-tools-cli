@@ -17,6 +17,7 @@ import (
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/gitlab"
+	"gitlab.wikimedia.org/releng/cli/internal/cmd/quip"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/toolhub"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/update"
 	"gitlab.wikimedia.org/releng/cli/internal/cmd/version"
@@ -79,6 +80,7 @@ func NewMwCliCmd() *cobra.Command {
 		version.NewVersionCmd(),
 		wiki.NewWikiCmd(),
 		ziki.NewZikiCmd(),
+		quip.NewQuipCmd(),
 	}...)
 
 	return mwcliCmd
