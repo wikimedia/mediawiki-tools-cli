@@ -7,7 +7,19 @@ import (
 	"text/template"
 )
 
-func Modern(objects []interface{}, outputFormat string) {
+type GoTmpl struct {
+	Objects []interface{}
+	Format  string
+}
+
+func NewGoTmpl(objects []interface{}, format string) *GoTmpl {
+	return &GoTmpl{
+		Objects: objects,
+		Format:  format,
+	}
+}
+
+func (m *GoTmpl) Print() {
 	tmpl := template.Must(template.
 		New("").
 		Funcs(map[string]interface{}{
@@ -19,8 +31,8 @@ func Modern(objects []interface{}, outputFormat string) {
 				return string(b), nil
 			},
 		}).
-		Parse(outputFormat))
-	for _, change := range objects {
+		Parse(m.Format))
+	for _, change := range m.Objects {
 		_ = tmpl.Execute(os.Stdout, change)
 		fmt.Println()
 	}

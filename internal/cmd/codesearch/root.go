@@ -8,7 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/releng/cli/internal/codesearch"
-	"gitlab.wikimedia.org/releng/cli/internal/util/printers"
+	op "gitlab.wikimedia.org/releng/cli/internal/util/output"
 )
 
 func NewCodeSearchCmd() *cobra.Command {
@@ -40,7 +40,7 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 			}
 
 			if output == "table" {
-				table := printers.Table{}
+				table := op.Table{}
 				table.AddHeadings("Repository", "File", "Line", "Match")
 				for repository, result := range response.Results {
 					for _, fileMatch := range result.Matches {
@@ -52,7 +52,7 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 				table.Print()
 			}
 			if output == "ack" {
-				ack := printers.Ack{}
+				ack := op.Ack{}
 				for repository, result := range response.Results {
 					for _, fileMatch := range result.Matches {
 						sectionName := repository + " " + fileMatch.Filename

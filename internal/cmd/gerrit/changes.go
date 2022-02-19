@@ -91,11 +91,11 @@ func NewGerritChangesListCmd() *cobra.Command {
 			objects = output.Filter(objects, outputFilter)
 
 			if outputFormat != "" {
-				output.Modern(objects, outputFormat)
+				output.NewGoTmpl(objects, outputFormat).Print()
 				return
 			}
 
-			output.Table(
+			output.TableFromObjects(
 				objects,
 				[]string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
 				func(object interface{}) []string {
@@ -103,7 +103,8 @@ func NewGerritChangesListCmd() *cobra.Command {
 					tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
 					return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
 				},
-			)
+			).Print()
+
 			fmt.Println("----------------")
 			fmt.Println(lastLine)
 			fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
