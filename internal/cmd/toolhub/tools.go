@@ -62,6 +62,7 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 		Use:     "search",
 		Short:   "Search Toolhub Tools",
 		Example: "search unicorn\nsearch upload --type=\"web app\"",
+		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			searchString := args[0]
 			client := toolhub.NewClient()
