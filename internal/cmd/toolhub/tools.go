@@ -7,9 +7,9 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/toolhub"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
 func NewToolhubToolsCmd() *cobra.Command {
@@ -23,8 +23,40 @@ func NewToolhubToolsCmd() *cobra.Command {
 	return cmd
 }
 
+func toolOutput() output.Output {
+	return output.Output{
+		TableBinding: &output.TableBinding{
+			Headings: []string{"Name", "Type", "URL"},
+			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
+				for _, object := range objects {
+					typedObject := object.(toolhub.Tool)
+					table.AddRowS(typedObject.Name, typedObject.Type, typedObject.URL)
+				}
+			},
+		},
+		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
+			for _, object := range objects {
+				typedObject := object.(toolhub.Tool)
+				ack.AddItem(typedObject.Type, typedObject.Name+" ("+typedObject.Type+") @ "+typedObject.URL)
+			}
+		},
+	}
+}
+
+func resultsToObjects(results []toolhub.Tool, toolType string) map[interface{}]interface{} {
+	objects := make(map[interface{}]interface{}, len(results))
+	for key, tool := range results {
+		if toolType == "*" || toolType == tool.Type {
+			objects[key] = tool
+		}
+	}
+	return objects
+}
+
 func NewToolHubToolsListCmd() *cobra.Command {
 	var toolType string
+
+	out := toolOutput()
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List Toolhub Tools",
@@ -37,27 +69,18 @@ func NewToolHubToolsListCmd() *cobra.Command {
 				color.Red("Error: %s", err)
 				os.Exit(1)
 			}
-
-			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-			columnFmt := color.New(color.FgYellow).SprintfFunc()
-
-			tbl := table.New("Name", "Type", "URL")
-			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
-
-			for _, tool := range tools.Results {
-				if toolType == "*" || toolType == tool.Type || (toolType == "" && tool.Type == nil) {
-					tbl.AddRow(tool.Name, tool.Type, tool.URL)
-				}
-			}
-			tbl.Print()
+			out.Print(resultsToObjects(tools.Results, toolType))
 		},
 	}
+	out.AddFlags(cmd, "table")
 	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
 	return cmd
 }
 
 func NewToolHubToolsSearchCmd() *cobra.Command {
 	var toolType string
+
+	out := toolOutput()
 	cmd := &cobra.Command{
 		Use:     "search",
 		Short:   "Search Toolhub Tools",
@@ -72,21 +95,10 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 				color.Red("Error: %s", err)
 				os.Exit(1)
 			}
-
-			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-			columnFmt := color.New(color.FgYellow).SprintfFunc()
-
-			tbl := table.New("Name", "Type", "URL")
-			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
-
-			for _, tool := range tools.Results {
-				if toolType == "*" || toolType == tool.Type || (toolType == "" && tool.Type == nil) {
-					tbl.AddRow(tool.Name, tool.Type, tool.URL)
-				}
-			}
-			tbl.Print()
+			out.Print(resultsToObjects(tools.Results, toolType))
 		},
 	}
+	out.AddFlags(cmd, "table")
 	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
 	return cmd
 }
