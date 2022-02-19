@@ -15,12 +15,7 @@ import (
 	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
 )
 
-var (
-	gerritProject string
-	outputType    string
-	outputFormat  string
-	outputFilter  []string
-)
+var gerritProject string
 
 func NewGerritChangesCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -53,6 +48,20 @@ type Change struct {
 }
 
 func NewGerritChangesListCmd() *cobra.Command {
+	out := output.Output{
+		TableBinding: &output.TableBinding{
+			Headings: []string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
+			ToRow: func(object interface{}) []string {
+				typedObject := object.(Change)
+				tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
+				return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
+			},
+		},
+		AckBinding: func(object interface{}) (section string, stringVal string) {
+			typedObject := object.(Change)
+			return typedObject.Project, strconv.Itoa(typedObject.Number) + " " + typedObject.Subject + " " + typedObject.URL
+		},
+	}
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List Gerrit changes",
@@ -67,15 +76,15 @@ func NewGerritChangesListCmd() *cobra.Command {
 			}
 
 			ssh := cmdutil.AttachInErrIO(sshGerritCommand([]string{"query", "project:" + gerritProject + " status:open", "--format", "JSON"}))
-			out := cmdutil.AttachOutputBuffer(ssh)
+			outBuff := cmdutil.AttachOutputBuffer(ssh)
 
 			if err := ssh.Run(); err != nil {
 				os.Exit(1)
 			}
-			logrus.Trace(out.String())
+			logrus.Trace(outBuff.String())
 
-			lines := stringsutil.SplitMultiline(out.String())
-			lastLine := lines[len(lines)-1]
+			lines := stringsutil.SplitMultiline(outBuff.String())
+			// lastLine := lines[len(lines)-1]
 			lines = lines[:len(lines)-1]
 
 			var objects []interface{}
@@ -89,41 +98,13 @@ func NewGerritChangesListCmd() *cobra.Command {
 				objects = append(objects, change)
 			}
 
-			objects = output.Filter(objects, outputFilter)
-
-			if outputType == "json" {
-				output.NewJSON(objects, outputFormat).Print()
-			}
-			if outputType == "template" {
-				output.NewGoTmpl(objects, outputFormat).Print()
-			}
-			if outputType == "table" {
-				output.TableFromObjects(
-					objects,
-					[]string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
-					func(object interface{}) []string {
-						typedObject := object.(Change)
-						tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
-						return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
-					},
-				).Print()
-				fmt.Println("----------------")
-				fmt.Println(lastLine)
-				fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
-			}
-			if outputType == "ack" {
-				out := output.Ack{}
-				for _, object := range objects {
-					typedObject := object.(Change)
-					out.AddItem(typedObject.Project, strconv.Itoa(typedObject.Number)+" "+typedObject.Subject+" "+typedObject.URL)
-				}
-				out.Print()
-			}
+			out.Print(objects)
+			// fmt.Println("----------------")
+			// fmt.Println(lastLine)
+			// fmt.Println("If you see moreChanges:true, there is currently no way to see these more changes.")
 		},
 	}
+	out.AddFlags(cmd, "table")
 	cmd.Flags().StringVarP(&gerritProject, "project", "p", "", "Auto detect from .gitreview, or specify")
-	cmd.Flags().StringVarP(&outputType, "output", "", "json", "How to output the results (table, template, json, ack)")
-	cmd.Flags().StringVarP(&outputFormat, "format", "", "", "Format the specified output")
-	cmd.Flags().StringSliceVarP(&outputFilter, "filter", "f", []string{}, "Filter output based on conditions provided")
 	return cmd
 }
