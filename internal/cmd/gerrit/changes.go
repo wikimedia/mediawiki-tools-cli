@@ -51,15 +51,19 @@ func NewGerritChangesListCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"ID", "Subject", "Status", "Owner", "Branch", "Updated"},
-			ToRow: func(object interface{}) []string {
-				typedObject := object.(Change)
-				tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
-				return []string{strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006")}
+			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
+				for _, object := range objects {
+					typedObject := object.(Change)
+					tLastUpdated := time.Unix(typedObject.LastUpdated, 0)
+					table.AddRowS(strconv.Itoa(typedObject.Number), typedObject.Subject, typedObject.Status, typedObject.Owner.Username, typedObject.Branch, tLastUpdated.Format("02 01 2006"))
+				}
 			},
 		},
-		AckBinding: func(object interface{}) (section string, stringVal string) {
-			typedObject := object.(Change)
-			return typedObject.Project, strconv.Itoa(typedObject.Number) + " " + typedObject.Subject + " " + typedObject.URL
+		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
+			for _, object := range objects {
+				typedObject := object.(Change)
+				ack.AddItem(typedObject.Project, strconv.Itoa(typedObject.Number)+" "+typedObject.Subject+" "+typedObject.URL)
+			}
 		},
 	}
 	cmd := &cobra.Command{
@@ -87,15 +91,15 @@ func NewGerritChangesListCmd() *cobra.Command {
 			// lastLine := lines[len(lines)-1]
 			lines = lines[:len(lines)-1]
 
-			var objects []interface{}
-			for _, line := range lines {
+			objects := make(map[interface{}]interface{}, len(lines))
+			for key, line := range lines {
 				change := Change{}
 				err := json.Unmarshal([]byte(line), &change)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(1)
 				}
-				objects = append(objects, change)
+				objects[key] = change
 			}
 
 			out.Print(objects)

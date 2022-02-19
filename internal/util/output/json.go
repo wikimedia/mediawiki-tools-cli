@@ -12,11 +12,11 @@ import (
 )
 
 type JSON struct {
-	Objects []interface{}
+	Objects map[interface{}]interface{}
 	Format  string
 }
 
-func NewJSON(objects []interface{}, format string) *JSON {
+func NewJSON(objects map[interface{}]interface{}, format string) *JSON {
 	return &JSON{
 		Objects: objects,
 		Format:  format,

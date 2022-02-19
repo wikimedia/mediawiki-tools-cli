@@ -8,11 +8,11 @@ import (
 )
 
 type GoTmpl struct {
-	Objects []interface{}
+	Objects map[interface{}]interface{}
 	Format  string
 }
 
-func NewGoTmpl(objects []interface{}, format string) *GoTmpl {
+func NewGoTmpl(objects map[interface{}]interface{}, format string) *GoTmpl {
 	return &GoTmpl{
 		Objects: objects,
 		Format:  format,

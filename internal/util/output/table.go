@@ -30,12 +30,10 @@ func NewTable(headings []interface{}, rows [][]interface{}) *Table {
 	}
 }
 
-func TableFromObjects(objects []interface{}, headings []string, objectToRow func(interface{}) []string) *Table {
+func TableFromObjects(objects map[interface{}]interface{}, headings []string, processObjects func(map[interface{}]interface{}, *Table)) *Table {
 	var thisTable Table
 	thisTable.AddHeadingsS(headings...)
-	for _, object := range objects {
-		thisTable.AddRow(stringSplitToInterfaceSplit(objectToRow(object))...)
-	}
+	processObjects(objects, &thisTable)
 	return &thisTable
 }
 
@@ -50,6 +48,10 @@ func (t *Table) AddHeadingsS(headings ...string) {
 func (t *Table) AddRow(rowValues ...interface{}) {
 	var thisRow []interface{}
 	t.Rows = append(t.Rows, append(thisRow, rowValues...))
+}
+
+func (t *Table) AddRowS(rowValues ...string) {
+	t.AddRow(stringSplitToInterfaceSplit(rowValues)...)
 }
 
 func stringSplitToInterfaceSplit(in []string) []interface{} {

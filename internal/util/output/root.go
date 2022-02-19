@@ -16,11 +16,11 @@ type Output struct {
 }
 
 type TableBinding struct {
-	Headings []string
-	ToRow    func(interface{}) []string
+	Headings       []string
+	ProcessObjects func(map[interface{}]interface{}, *Table)
 }
 
-type AckBinding func(interface{}) (section string, stringVal string)
+type AckBinding func(map[interface{}]interface{}, *Ack)
 
 func (o *Output) OutputTypes() []string {
 	outputTypes := []string{"json", "template"}
@@ -43,7 +43,7 @@ func (o *Output) AddFlags(cmd *cobra.Command, defaultOutput string) {
 	cmd.Flags().StringSliceVarP(&o.Filter, "filter", "f", []string{}, "Filter output based on conditions provided")
 }
 
-func (o *Output) Print(objects []interface{}) {
+func (o *Output) Print(objects map[interface{}]interface{}) {
 	objects = Filter(objects, o.Filter)
 	switch o.Type {
 	case "json":
@@ -57,17 +57,14 @@ func (o *Output) Print(objects []interface{}) {
 		TableFromObjects(
 			objects,
 			o.TableBinding.Headings,
-			o.TableBinding.ToRow,
+			o.TableBinding.ProcessObjects,
 		).Print()
 	case "ack":
 		if o.AckBinding == nil {
 			logrus.Panic("Ack binding is nil")
 		}
 		ack := Ack{}
-		for _, obj := range objects {
-			section, objString := o.AckBinding(obj)
-			ack.AddItem(section, objString)
-		}
+		o.AckBinding(objects, &ack)
 		ack.Print()
 	default:
 		logrus.Panic("Unknown output method: " + o.Type)

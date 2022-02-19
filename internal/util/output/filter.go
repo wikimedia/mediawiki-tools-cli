@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Filter(objects []interface{}, outputFilter []string) []interface{} {
+func Filter(objects map[interface{}]interface{}, outputFilter []string) map[interface{}]interface{} {
 	if len(outputFilter) == 0 {
 		return objects
 	}
@@ -39,7 +39,7 @@ func Filter(objects []interface{}, outputFilter []string) []interface{} {
 			}
 
 			if !keep {
-				objects = append(objects[:i], objects[i+1:]...)
+				delete(objects, i)
 			}
 		}
 	}
