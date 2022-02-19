@@ -11,8 +11,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/util/files"
-	"gitlab.wikimedia.org/releng/cli/internal/util/lookpath"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/lookpath"
 )
 
 func NewQuipCmd() *cobra.Command {

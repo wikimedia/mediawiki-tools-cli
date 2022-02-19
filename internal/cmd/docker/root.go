@@ -8,12 +8,12 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/cmd/env"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
-	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/util/lookpath"
-	"gitlab.wikimedia.org/releng/cli/internal/util/ports"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/env"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/lookpath"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/ports"
 )
 
 // Detach run docker command with -d.

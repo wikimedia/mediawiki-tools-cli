@@ -4,9 +4,9 @@ import (
 	"bytes"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
-	"gitlab.wikimedia.org/releng/cli/internal/util/strings"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/files"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 // DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`.

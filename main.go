@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gitlab.wikimedia.org/releng/cli/cmd"
+	"gitlab.wikimedia.org/repos/releng/cli/cmd"
 )
 
 // Following variables will be statically linked at the time of compiling

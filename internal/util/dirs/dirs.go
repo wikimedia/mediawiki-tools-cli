@@ -3,7 +3,7 @@ package dirs
 import (
 	"os"
 
-	userutil "gitlab.wikimedia.org/releng/cli/internal/util/user"
+	userutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/user"
 )
 
 /*UserDirectoryPath returns a path to a directory in the user directory.*/

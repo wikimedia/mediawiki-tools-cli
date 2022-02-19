@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/toolhub"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/toolhub"
 )
 
 func NewToolhubToolsCmd() *cobra.Command {

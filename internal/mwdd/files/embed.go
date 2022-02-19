@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.wikimedia.org/releng/cli/internal/util/embedsync"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/embedsync"
 )
 
 //go:embed embed

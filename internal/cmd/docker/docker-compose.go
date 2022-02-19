@@ -2,7 +2,7 @@ package docker
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 )
 
 func NewDockerComposerCmd() *cobra.Command {

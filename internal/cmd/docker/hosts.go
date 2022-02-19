@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
-	"gitlab.wikimedia.org/releng/cli/internal/util/hosts"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/hosts"
 )
 
 func NewHostsCmd() *cobra.Command {

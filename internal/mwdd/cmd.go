@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 /*NewServiceCmd a new command for a single service, such as mailhog*/

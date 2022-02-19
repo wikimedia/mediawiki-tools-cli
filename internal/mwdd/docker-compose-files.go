@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dotenv"
 	"gopkg.in/yaml.v3"
 )
 

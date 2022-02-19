@@ -7,7 +7,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 	"github.com/sirupsen/logrus"
-	"gitlab.wikimedia.org/releng/cli/internal/gitlab"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 )
 
 func setLogLevelForSelfUpdate() {

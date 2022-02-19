@@ -8,7 +8,7 @@ import (
 	"github.com/profclems/glab/commands/cmdutils"
 	"github.com/profclems/glab/pkg/glinstance"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func NewGitlabCmd() *cobra.Command {

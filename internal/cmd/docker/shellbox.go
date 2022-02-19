@@ -4,7 +4,7 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 )
 
 //go:embed long/mwdd_shellbox.md

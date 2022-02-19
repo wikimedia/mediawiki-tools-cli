@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func configPath() string {

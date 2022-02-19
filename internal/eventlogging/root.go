@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/util/files"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 )
 
 func currentDtString() string {
