@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	"os"
+	"os/exec"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/releng/cli/internal/util/files"
+	"gitlab.wikimedia.org/releng/cli/internal/util/lookpath"
 )
 
 func NewQuipCmd() *cobra.Command {
@@ -48,13 +51,39 @@ func NewQuipCmd() *cobra.Command {
 				panic(err)
 			}
 
-			doc.Find(".quote").Each(func(i int, s *goquery.Selection) {
-				// link := s.Find("a").First().AttrOr("href", "https://bash.toolforge.org/random")
-				s.Find(".nav").Remove()
-				fmt.Println(strings.TrimSpace(s.Text()))
-				// fmt.Println("https://bash.toolforge.org" + link)
-			})
+			firstQuote := doc.Find(".quote").First()
+			firstQuote.Find(".nav").Remove()
+			text := firstQuote.Text()
+
+			hasCowsay := lookpath.HasExecutable("cowsay")
+			hasLolcat := lookpath.HasExecutable("lolcat")
+			noFun, _ := cmd.Flags().GetBool("no-fun")
+
+			if (!hasCowsay && !hasLolcat) || noFun {
+				fmt.Println(text)
+				return
+			}
+
+			// Lets have some fun
+			tmpFile := files.StringToTempFile(text)
+			defer os.Remove(tmpFile)
+
+			cmds := "cat " + tmpFile
+			if hasCowsay {
+				cmds += " | cowsay -n"
+			}
+			if hasLolcat {
+				cmds += " | lolcat"
+			}
+
+			execCmd := exec.Command("bash", "-c", cmds)
+			execCmd.Stdout = os.Stdout
+			execCmd.Stderr = os.Stderr
+			if err := execCmd.Run(); err != nil {
+				panic(err)
+			}
 		},
 	}
+	cmd.Flags().BoolP("no-fun", "n", false, "disable fun")
 	return cmd
 }
