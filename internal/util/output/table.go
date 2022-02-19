@@ -12,6 +12,8 @@ SecurityCheckPlugin                  tests/integration/redos/test.php
 ```
 */
 import (
+	"fmt"
+
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 )
@@ -59,8 +61,15 @@ func stringSplitToInterfaceSplit(in []string) []interface{} {
 }
 
 func (t *Table) Print() {
-	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-	columnFmt := color.New(color.FgYellow).SprintfFunc()
+	var headerFmt table.Formatter
+	var columnFmt table.Formatter
+	if shouldColor() {
+		headerFmt = color.New(color.FgGreen, color.Underline).SprintfFunc()
+		columnFmt = color.New(color.FgYellow).SprintfFunc()
+	} else {
+		headerFmt = fmt.Sprintf
+		columnFmt = fmt.Sprintf
+	}
 
 	tbl := table.New(t.Headings...)
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)

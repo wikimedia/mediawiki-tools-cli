@@ -53,14 +53,21 @@ func (a *Ack) AddItem(section string, item string) {
 }
 
 func (a *Ack) Print() {
-	headerFmt := color.New(color.FgGreen, color.Underline).PrintfFunc()
+	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+
 	firstOneDone := false
 	for section, items := range a.Sections {
 		if firstOneDone {
 			fmt.Println("")
 		}
 		firstOneDone = true
-		headerFmt("%s\n", section)
+
+		if shouldColor() {
+			fmt.Print(headerFmt("%s:\n", section))
+		} else {
+			fmt.Printf("%s:\n", section)
+		}
+
 		for _, item := range items {
 			fmt.Printf("%s\n", item)
 		}

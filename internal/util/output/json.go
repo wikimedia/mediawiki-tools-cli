@@ -8,7 +8,6 @@ import (
 
 	"github.com/cli/cli/v2/pkg/jsoncolor"
 	"github.com/itchyny/gojq"
-	"github.com/mattn/go-isatty"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,16 +53,6 @@ func (j *JSON) Print() {
 			}
 		}
 	}
-}
-
-func shouldColor() bool {
-	// From https://github.com/cli/cli/blob/bf83c660a1ae486d582117e0a174f8e109b64775/pkg/iostreams/iostreams.go#L389
-	stdoutIsTTY := isTerminal(os.Stdout)
-	return stdoutIsTTY
-}
-
-func isTerminal(f *os.File) bool {
-	return isatty.IsTerminal(f.Fd()) || isatty.IsCygwinTerminal(f.Fd())
 }
 
 func interfaceToJSONString(v interface{}) string {
