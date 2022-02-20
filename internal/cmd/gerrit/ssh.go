@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
-	"gitlab.wikimedia.org/releng/cli/internal/util/lookpath"
+	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/lookpath"
 )
 
 func NewGerritSSHCmd() *cobra.Command {

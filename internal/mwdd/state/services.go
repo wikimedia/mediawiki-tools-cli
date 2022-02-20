@@ -26,8 +26,8 @@ package state
 import (
 	"os"
 
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
-	"gitlab.wikimedia.org/releng/cli/internal/util/jsonfile"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/jsonfile"
 )
 
 func RecordServiceCreated(service string) {

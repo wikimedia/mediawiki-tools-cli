@@ -4,12 +4,12 @@ SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
 TARGETS ?= darwin/amd64 darwin/arm64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
 
-PACKAGE := gitlab.wikimedia.org/releng/cli
+PACKAGE := gitlab.wikimedia.org/repos/releng/cli
 VERSION := latest
 SEMVER := $(subst v,,$(VERSION))
 
 GO_LIST_GOFILES := '{{range .GoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}{{range .XTestGoFiles}}{{printf "%s/%s\n" $$.Dir .}}{{end}}'
-GO_PACKAGES := gitlab.wikimedia.org/releng/cli
+GO_PACKAGES := gitlab.wikimedia.org/repos/releng/cli
 
 include .bingo/Variables.mk
 

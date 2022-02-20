@@ -3,8 +3,8 @@ package mwdd
 import (
 	"os"
 
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd/files"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/files"
 )
 
 /*MWDD representation of a mwdd v2 setup.*/

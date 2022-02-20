@@ -18,9 +18,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.wikimedia.org/releng/cli/internal/util/dirs"
-	"gitlab.wikimedia.org/releng/cli/internal/util/files"
-	utilstrings "gitlab.wikimedia.org/releng/cli/internal/util/strings"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
+	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 type EmbeddingDiskSync struct {

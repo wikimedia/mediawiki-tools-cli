@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func NewVersionCmd() *cobra.Command {
@@ -14,7 +14,7 @@ func NewVersionCmd() *cobra.Command {
 		Short: "Output the version information",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("mw version", cli.VersionDetails.Version, "(", cli.VersionDetails.BuildDate, ")")
-			fmt.Println("https://gitlab.wikimedia.org/releng/cli/-/releases")
+			fmt.Println("https://gitlab.wikimedia.org/repos/releng/cli/-/releases")
 
 			logrus.Debugf(`GitCommit: %s
 			GitBranch: %s

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/eventlogging"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 )
 
 func NewDebugEventsCmd() *cobra.Command {

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	cmdutil "gitlab.wikimedia.org/releng/cli/internal/util/cmd"
-	stringsutil "gitlab.wikimedia.org/releng/cli/internal/util/strings"
+	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 func NewGerritGroupCmd() *cobra.Command {

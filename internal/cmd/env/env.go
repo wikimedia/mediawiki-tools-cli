@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/util/dotenv"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dotenv"
 )
 
 // Env command for interacting with a .env file in the given directory

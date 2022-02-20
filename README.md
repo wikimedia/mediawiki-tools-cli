@@ -27,9 +27,9 @@ go install github.com/bwplotka/bingo@latest
 ```
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at
-`~/go/src/gitlab.wikimedia.org/releng/cli`.
+`~/go/src/gitlab.wikimedia.org/repos/releng/cli`.
 
-Within the `~/go/src/gitlab.wikimedia.org/releng/cli` directory:
+Within the `~/go/src/gitlab.wikimedia.org/repos/releng/cli` directory:
 
 You can install all tools used by this repository using bingo.
 
@@ -43,12 +43,12 @@ You can then build a binary
 make build
 ```
 
-Which you will find at `~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw`.
+Which you will find at `~/go/src/gitlab.wikimedia.org/repos/releng/cli/bin/mw`.
 
 We recommend that you create a development alias for this binary, and run `make` after you make changes to the codebase.
 
 ```sh
-alias mwdev='~/go/src/gitlab.wikimedia.org/releng/cli/bin/mw'
+alias mwdev='~/go/src/gitlab.wikimedia.org/repos/releng/cli/bin/mw'
 ```
 
 ### Makefile commands
@@ -107,8 +107,8 @@ Tags should follow [semver](https://semver.org/) and release notes should be wri
     - You can use a compare link such as [this](https://gitlab.wikimedia.org/repos/releng/cli/-/compare/v0.10.0...main?from_project_id=16) to see what has changed and what needs release notes.
     - Notes should be under a fresh new header of the format `## v0.2.1` so that the release process can extract the notes correctly.
 2) Tag & push the commit
-3) [Watch the pipeline run](https://gitlab.wikimedia.org/releng/cli/-/pipelines) that is building, uploading and publishing the release.
-4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/releng/cli/-/releases)
+3) [Watch the pipeline run](https://gitlab.wikimedia.org/repos/releng/cli/-/pipelines) that is building, uploading and publishing the release.
+4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/repos/releng/cli/-/releases)
 5) Publish up to date ref docs (see below)
 6) You should now be able to run `mw update` to grab the latest release.
 

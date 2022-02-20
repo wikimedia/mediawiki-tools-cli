@@ -5,7 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 //go:embed long_gerrit.md

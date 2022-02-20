@@ -8,8 +8,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/codesearch"
-	"gitlab.wikimedia.org/releng/cli/internal/util/output"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/codesearch"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
 func NewCodeSearchCmd() *cobra.Command {

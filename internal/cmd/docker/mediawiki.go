@@ -12,11 +12,11 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/releng/cli/internal/mediawiki"
-	"gitlab.wikimedia.org/releng/cli/internal/mwdd"
-	cobrautil "gitlab.wikimedia.org/releng/cli/internal/util/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/util/paths"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/paths"
 )
 
 func NewMediaWikiCmd() *cobra.Command {

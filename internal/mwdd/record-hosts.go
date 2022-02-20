@@ -3,7 +3,7 @@ package mwdd
 import (
 	"os"
 
-	"gitlab.wikimedia.org/releng/cli/internal/util/files"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 )
 
 func (m MWDD) hostRecordFile() string {

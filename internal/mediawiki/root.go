@@ -7,7 +7,7 @@ import (
 	osexec "os/exec"
 	"strings"
 
-	"gitlab.wikimedia.org/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
 )
 
 /*MediaWiki representation of a MediaWiki install directory.*/

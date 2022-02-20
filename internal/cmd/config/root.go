@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 func NewConfigCmd() *cobra.Command {

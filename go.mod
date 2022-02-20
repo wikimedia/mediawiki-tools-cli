@@ -1,4 +1,4 @@
-module gitlab.wikimedia.org/releng/cli
+module gitlab.wikimedia.org/repos/releng/cli
 
 require (
 	cgt.name/pkg/go-mwclient v1.2.0

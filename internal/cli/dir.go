@@ -3,7 +3,7 @@ package cli
 import (
 	"os"
 
-	"gitlab.wikimedia.org/releng/cli/internal/util/dirs"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
 )
 
 // MWCLIDIR name of the directory for storing application files
