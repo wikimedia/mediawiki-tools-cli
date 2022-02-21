@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.11.0
+
+- Added `gerrit ssh` command
+- Added `gerrit api `command
+- Added `--project` option to `gerrit changes` command
+- Improved verbose output flag to enable use of `-v` and `-vv` (T301691)
+- Improved output formats of some commands, including `--output`, `--format`, `--filter` including new `json` output
+  - `gerrit changes`
+  - `codesearch`
+- Improved output when binaries are needed on disk (such as docker) that do not exist (T301557)
+- Fix display of help when search term is missed in `codesearch search` command
+- Fix display of help when search term is missing in `toolhub tools search` command
+- Fix indenting of help and usage text accross commands
+- Fix `codesearch search` commands usage when spaces appear in the search text (needed urlencoding) (T301973)
+- Fix color usage in output when not in a TTY across commands
+- Fix mistaken INFO log of periodical version check output
+- Fix tab completion for `docker` command (T301693)
+- Updated docker dev environment fresh image to `node14-test-browser:0.0.2-s4`
+- Added easter eggs ;)
+
+Thanks to @bpirkle & @ollieshotton for patch submissions
+Thanks to @itamar, @ollieshotton for bug reports & requests
+
 ## v0.10.2
 
 - Fixed handling for relative paths not starting with `./` during initial MediaWiki setup wizard (T300867)
