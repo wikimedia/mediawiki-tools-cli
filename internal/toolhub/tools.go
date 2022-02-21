@@ -35,7 +35,7 @@ type Tool struct {
 	Sponsor              []interface{} `json:"sponsor"`
 	AvailableUILanguages []interface{} `json:"available_ui_languages"`
 	TechnologyUsed       []interface{} `json:"technology_used"`
-	Type                 interface{}   `json:"tool_type"`
+	Type                 string        `json:"tool_type"`
 	APIURL               interface{}   `json:"api_url"`
 	DeveloperDocsURL     []interface{} `json:"developer_docs_url"`
 	UserDocsURL          []interface{} `json:"user_docs_url"`
