@@ -8,6 +8,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - Added `cs` alias for `codesearch` command
 - Added `gl` alias for `gitlab` command
+- Improved syncing of file permissions for dev environment files
 
 ## v0.11.0
 
