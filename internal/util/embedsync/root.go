@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
@@ -43,15 +44,16 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 		embedBytes := e.agnosticEmbedBytes(agnosticFile)
 
 		if _, err := os.Stat(diskFile); os.IsNotExist(err) {
-			// TODO only output the below line with verbose logging
-			// fmt.Println(diskFile + " doesn't exist, so write it...")
+			logrus.Trace(diskFile + " doesn't exist, so write it...")
+			writeBytesToDisk(embedBytes, diskFile)
+		} else if !bytes.Equal(files.Bytes(diskFile), embedBytes) {
+			logrus.Trace(diskFile + " has different byte count, so write it...")
 			writeBytesToDisk(embedBytes, diskFile)
 		} else {
-			diskBytes := files.Bytes(diskFile)
-			if !bytes.Equal(diskBytes, embedBytes) {
-				// TODO only output the below line with verbose logging
-				// fmt.Println(diskFile + " out of date, so writing...")
-				writeBytesToDisk(embedBytes, diskFile)
+			stats, _ := os.Stat(diskFile)
+			if stats.Mode() != os.FileMode(getAssumedFilePerms(diskFile)) {
+				logrus.Trace(diskFile + " has different permissions, so set correct permissions...")
+				os.Chmod(diskFile, getAssumedFilePerms(diskFile))
 			}
 		}
 	}
@@ -65,8 +67,7 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 		agnosticFile := e.agnosticFileFromDisk(diskFile)
 		embedFile := e.EmbedPath + embedSeperator + agnosticFile
 		if !utilstrings.StringInSlice(embedFile, embededFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
-			// TODO only output the below line with verbose logging
-			// fmt.Println(diskFile + " no longer needed, so removing")
+			logrus.Trace(diskFile + " no longer needed, so removing")
 			err := os.Remove(diskFile)
 			if err != nil {
 				fmt.Println("Failed to remove file: " + diskFile)
@@ -136,11 +137,10 @@ func writeBytesToDisk(bytes []byte, file string) {
 }
 
 func getAssumedFilePerms(filePath string) os.FileMode {
-	// Set all .sh files as +x when creating them
-	// All users should be able to read and execute these files so users in containers can use them
-	// XXX: Currently if you change these file permissions on disk files will need to be deleted and re added..
 	if filepath.Ext(filePath) == ".sh" {
+		// All users should be able to read and execute these files so users in containers can use them
 		return 0o755
 	}
-	return 0o655
+	// All users should be able to read these files so users in containers can use them
+	return 0o644
 }
