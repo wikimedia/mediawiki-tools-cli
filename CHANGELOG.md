@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.12.0
+
+- Added `cs` alias for `codesearch` command
+- Added `gl` alias for `gitlab` command
+
 ## v0.11.0
 
 - Added `gerrit ssh` command
