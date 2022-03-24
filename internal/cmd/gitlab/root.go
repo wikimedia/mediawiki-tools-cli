@@ -20,7 +20,7 @@ func NewGitlabCmd() *cobra.Command {
 	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
 	glabCommand.Short = "Wikimedia Gitlab instance"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
-	glabCommand.Aliases = []string{"glab"}
+	glabCommand.Aliases = []string{"glab", "gl"}
 	glabCommand.ResetFlags()
 
 	// Hide various built in glab commands

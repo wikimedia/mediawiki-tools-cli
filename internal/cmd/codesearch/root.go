@@ -14,9 +14,10 @@ import (
 
 func NewCodeSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "codesearch",
-		Short: "MediaWiki code search",
-		RunE:  nil,
+		Use:     "codesearch",
+		Short:   "MediaWiki code search",
+		Aliases: []string{"cs"},
+		RunE:    nil,
 	}
 	cmd.AddCommand(NewCodeSearchSearchCmd())
 	return cmd
