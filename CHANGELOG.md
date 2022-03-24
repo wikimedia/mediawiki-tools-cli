@@ -9,6 +9,15 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added `cs` alias for `codesearch` command
 - Added `gl` alias for `gitlab` command
 - Improved syncing of file permissions for dev environment files
+- Updated various docker dev environment images:
+  - eventgate `2021-10-21-192154-production` -> `2022-02-01-141357-production`
+  - graphite `1.1.8-2` -> `1.1.8-8`
+  - quibble `quibble-buster-php74:1.3.0-s1` -> `quibble-buster-php74:1.4.4`
+  - mediawiki `stretch-php73-fpm:3.0.0` -> `stretch-php74-fpm:3.0.0`
+  - mediawiki-web `stretch-apache2:2.0.0` -> `buster-apache2:1.0.0-s1`
+  - mariadb `10.7` -> `10.8`
+  - postgres `13.5` -> `13.6`
+  - shellbox* `2022-01-06-073153` -> `2022-03-10-142520`
 
 ## v0.11.0
 

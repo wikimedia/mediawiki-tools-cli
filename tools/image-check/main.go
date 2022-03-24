@@ -46,7 +46,7 @@ func main() {
 		}
 
 		for serviceName, service := range c.Services {
-			r := regexp.MustCompile(`(\$\{.*:\-)?([\w\/\-\.]+):([\w\.]+)(\})?`)
+			r := regexp.MustCompile(`(\$\{.*:\-)?([\w\/\-\.]+):([\w\-\_\.]+)(\})?`)
 			regexSplit := r.FindStringSubmatch(service.Image)
 			imageName := regexSplit[2]
 			imageTag := regexSplit[3]
@@ -55,7 +55,7 @@ func main() {
 			fmt.Printf("Current tag: %s\n", imageTag)
 			fmt.Printf("Human URL: %s\n", humanURLForImageName(imageName))
 			tags := keepNewerTags(imageTag, tagsForImageName(imageName))
-			fmt.Printf("Available tags: %v\n", tags)
+			fmt.Printf("Available tags (newer?): %v\n", tags)
 		}
 	}
 }
@@ -83,9 +83,9 @@ func humanURLForImageName(imageName string) string {
 		return "https://" + imageName + "/tags"
 	}
 	if strings.Contains(imageName, "/") {
-		return "https://hub.docker.com/r/" + imageName + "?tab=tags"
+		return "https://hub.docker.com/r/" + imageName + "/tags"
 	}
-	return "https://hub.docker.com/_/" + imageName + "?tab=tags"
+	return "https://hub.docker.com/_/" + imageName + "/tags"
 }
 
 func tagsForImageName(imageName string) []string {
