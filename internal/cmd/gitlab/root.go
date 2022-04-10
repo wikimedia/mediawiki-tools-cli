@@ -8,7 +8,9 @@ import (
 	"github.com/profclems/glab/commands/cmdutils"
 	"github.com/profclems/glab/pkg/glinstance"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
 func NewGitlabCmd() *cobra.Command {
@@ -21,7 +23,20 @@ func NewGitlabCmd() *cobra.Command {
 	glabCommand.Short = "Wikimedia Gitlab instance"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.Aliases = []string{"glab", "gl"}
-	glabCommand.ResetFlags()
+
+	// Remove all "v" shothands for command flags recursively
+	cobrautil.VisitAllCommands(glabCommand, func(cmd *cobra.Command) {
+		originalFlags := cmd.Flags()
+		if originalFlags.ShorthandLookup("v") != nil {
+			cmd.ResetFlags()
+			originalFlags.VisitAll(func(flag *pflag.Flag) {
+				if flag.Shorthand == "v" {
+					flag.Shorthand = ""
+				}
+				cmd.Flags().AddFlag(flag)
+			})
+		}
+	})
 
 	// Hide various built in glab commands
 	toHide := []string{

@@ -38,3 +38,10 @@ func CommandIsSubCommandOfOneOrMore(cmd *cobra.Command, subCommandStrings []stri
 	}
 	return false
 }
+
+func VisitAllCommands(cmd *cobra.Command, fn func(*cobra.Command)) {
+	fn(cmd)
+	for _, subCmd := range cmd.Commands() {
+		VisitAllCommands(subCmd, fn)
+	}
+}
