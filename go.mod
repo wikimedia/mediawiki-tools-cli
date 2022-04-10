@@ -43,6 +43,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
+	github.com/spf13/pflag v1.0.5
 	github.com/txn2/txeh v1.3.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xanzy/go-gitlab v0.51.1
