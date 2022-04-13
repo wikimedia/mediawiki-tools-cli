@@ -6,6 +6,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## v0.12.1
 
+- Fixed `glab` commands that make use of a `-v` flag
 - Updated various docker dev environment images:
   - mediawiki-web `buster-apache2:1.0.0-s1` -> `buster-apache2:2.0.0`
 
