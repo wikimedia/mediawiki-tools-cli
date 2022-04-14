@@ -5,8 +5,8 @@ Continuous integration for this project is currently set up on a dedicated Cloud
 Currently this CI will NOT work for forks of this project, only for actual project branches.
 
 There are currently 2 runners:
- - gitlab-runner-addshore-1011.mwcli.eqiad1.wikimedia.cloud
  - gitlab-runner-addshore-1012.mwcli.eqiad1.wikimedia.cloud
+ - gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud
 
 ## Maintenance
 
@@ -23,7 +23,7 @@ If this doesn't free up enough space the next step would be to nuke the registry
 
 ### Make a machine
 
-Make a VM, such as `gitlab-runner-addshore-1011.mwcli.eqiad1.wikimedia.cloud`
+Make a VM, such as `gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud`
 
 ### Install docker
 
@@ -62,7 +62,7 @@ sudo gitlab-runner register -n \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
   --limit 2 \
-  --name "gitlab-runner-addshore-1012-docker-01" \
+  --name "gitlab-runner-addshore-1013-docker-01" \
   --docker-image "docker:19.03.15" \
   --docker-privileged \
   --docker-volumes "/certs/client"
@@ -102,7 +102,8 @@ hostname --ip-address
 Add the mirror (You might need to do this as root, not sudo...):
 
 ```sh
-sudo echo '{"registry-mirrors": ["http://<CUSTOM IP>:<PORT>"]}' > /etc/docker/daemon.json
+# If sudo doesn't work for the file change you may need to sudo su, and then run the echo...
+sudo echo '{"registry-mirrors": ["http://<CUSTOM IP>:6000"]}' > /etc/docker/daemon.json
 sudo service docker restart
 ```
 
@@ -122,7 +123,7 @@ You can also tweak the pull_policy to fallback to "if-not-present".
     pull_policy = ["always", "if-not-present"]
     [[runners.docker.services]]
       name = "docker:19.03.15-dind"
-      command = ["--registry-mirror", "http://<CUSTOM IP>:<PORT>"]
+      command = ["--registry-mirror", "http://<CUSTOM IP>:6000"]
 ```
 
 And restart the gitlab runner service:
