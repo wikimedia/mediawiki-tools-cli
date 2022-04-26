@@ -5,8 +5,8 @@ Continuous integration for this project is currently set up on a dedicated Cloud
 Currently this CI will NOT work for forks of this project, only for actual project branches.
 
 There are currently 2 runners:
- - gitlab-runner-addshore-1012.mwcli.eqiad1.wikimedia.cloud
  - gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud
+ - gitlab-runner-addshore-1014.mwcli.eqiad1.wikimedia.cloud
 
 ## Maintenance
 
@@ -63,7 +63,7 @@ sudo gitlab-runner register -n \
   --executor docker \
   --limit 2 \
   --name "gitlab-runner-addshore-1013-docker-01" \
-  --docker-image "docker:19.03.15" \
+  --docker-image "docker:20.10.14" \
   --docker-privileged \
   --docker-volumes "/certs/client"
 ```
@@ -122,8 +122,8 @@ You can also tweak the pull_policy to fallback to "if-not-present".
   [[runners.docker]]
     pull_policy = ["always", "if-not-present"]
     [[runners.docker.services]]
-      name = "docker:19.03.15-dind"
-      command = ["--registry-mirror", "http://<CUSTOM IP>:6000"]
+      name = "docker:20.10.14-dind"
+      command = ["--registry-mirror", "http://172.16.7.194:6000"]
 ```
 
 And restart the gitlab runner service:

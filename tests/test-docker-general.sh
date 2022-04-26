@@ -59,11 +59,14 @@ PORT=$(./bin/mw docker env get PORT)
 test_command_success "./bin/mw docker docker-compose ps"
 test_command_success "./bin/mw docker env list"
 
-test_curl http://default.mediawiki.mwdd.localhost:$PORT "Is your database running and wiki database created"
+test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
 # Install sqlite & check
 test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+
+# Make sure one of the shellbox services works
+test_command_success "./bin/mw docker shellbox media create"
 
 # cd to mediawiki
 cd .mediawiki

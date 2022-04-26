@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.13.0
+
+- Added `restart: unless-stopped` for most containers so that previously running containers are auto started after reboot (T305839)
+- Added the ability to override images used for all services using environment variables (T306023)
+- Added the ability to run multiple fresh (and quibble) commands simultaneously (T305683)
+- Changed `resume` to `start` with a backward compatible alias (T305823)
+- Changed `suspend` to `stop` with a backward compatible alias (T305823)
+- Improved HTML error message when MediaWiki database can not be found, including commands that might help (T305099)
+- Fix duplicated sub commands of `mw docker custom`
+- Fix duplicated and broken sub commands of `mw docker shellbox`
+
 ## v0.12.1
 
 - Fixed `glab` commands that make use of a `-v` flag

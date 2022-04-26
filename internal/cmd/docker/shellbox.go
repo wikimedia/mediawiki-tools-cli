@@ -42,13 +42,8 @@ func NewShellboxCmd() *cobra.Command {
 		"timeline":        shellboxLongTimeline,
 	}
 	for _, flavour := range shellBoxFlavours {
-		shellboxSubCmd := mwdd.NewServiceCmd(flavour, shellBoxLongDescs[flavour], []string{})
+		shellboxSubCmd := mwdd.NewServiceCmdDifferingNames(flavour, "shellbox-"+flavour, shellBoxLongDescs[flavour], []string{})
 		shellbox.AddCommand(shellboxSubCmd)
-		dockerComposeName := "shellbox-" + flavour
-		shellboxSubCmd.AddCommand(mwdd.NewServiceCreateCmd(dockerComposeName))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceDestroyCmd(dockerComposeName))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName))
 	}
 	return shellbox
 }

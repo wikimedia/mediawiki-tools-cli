@@ -4,6 +4,7 @@ version: '3.7'
 services:
   mysql-replica:
     image: "${MYSQL_IMAGE:-mariadb:10.8}"
+    restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=toor
     depends_on:

@@ -4,7 +4,8 @@ version: '3.7'
 services:
   eventlogging:
     # https://docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia/tags/
-    image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2022-02-01-141357-production
+    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2022-02-01-141357-production}"
+    restart: unless-stopped
     environment:
       - VIRTUAL_HOST=eventlogging.mwdd.localhost,eventlogging.mwdd
       - VIRTUAL_PORT=8192

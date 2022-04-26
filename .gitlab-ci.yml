@@ -1,4 +1,4 @@
-image: docker:19.03.15
+image: docker:20.10.14
 
 variables:
   # When you use the dind service, you must instruct Docker to talk with
@@ -34,7 +34,7 @@ cache:
       - .mediawiki
 
 services:
-  - name: docker:19.03.15-dind
+  - name: docker:20.10.14-dind
 
 test:
     stage: test

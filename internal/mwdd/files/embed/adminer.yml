@@ -3,6 +3,7 @@ version: '3.7'
 services:
   adminer:
     image: "${ADMINER_IMAGE:-adminer:4}"
+    restart: unless-stopped
     environment:
       - VIRTUAL_HOST=adminer.mwdd.localhost,adminer.mwdd
       - VIRTUAL_PORT=8080

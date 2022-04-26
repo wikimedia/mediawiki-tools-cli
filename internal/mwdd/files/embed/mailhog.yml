@@ -2,7 +2,8 @@ version: '3.7'
 
 services:
   mailhog:
-    image: mailhog/mailhog:v1.0.1
+    image: "${MAILHOG_IMAGE:-mailhog/mailhog:v1.0.1}"
+    restart: unless-stopped
     environment:
       - VIRTUAL_HOST=mailhog.mwdd.localhost,mailhog.mwdd
       - VIRTUAL_PORT=8025

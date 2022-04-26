@@ -103,8 +103,8 @@ func NewCmd() *cobra.Command {
 		func() string { return mwdd.DefaultForUser().Directory() },
 	))
 	cmd.AddCommand(NewMwddDestroyCmd())
-	cmd.AddCommand(NewMwddSuspendCmd())
-	cmd.AddCommand(NewMwddResumeCmd())
+	cmd.AddCommand(NewMwddStopCmd())
+	cmd.AddCommand(NewMwddStartCmd())
 	cmd.AddCommand(NewDockerComposerCmd())
 	cmd.AddCommand(env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory))
 	cmd.AddCommand(NewHostsCmd())
@@ -135,10 +135,6 @@ func NewCmd() *cobra.Command {
 		"the custom docker-compose yml file",
 		func() string { return mwdd.DefaultForUser().Directory() + "/custom.yml" },
 	))
-	custom.AddCommand(mwdd.NewServiceCreateCmd("custom"))
-	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom"))
-	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom"))
-	custom.AddCommand(mwdd.NewServiceResumeCmd("custom"))
 
 	return cmd
 }
@@ -146,28 +142,30 @@ func NewCmd() *cobra.Command {
 func NewMwddDestroyCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "destroy",
-		Short: "Destroy all containers",
+		Short: "Destroy all containers and data",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().DownWithVolumesAndOrphans()
 		},
 	}
 }
 
-func NewMwddSuspendCmd() *cobra.Command {
+func NewMwddStopCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "suspend",
-		Short: "Suspend all currently running containers",
+		Use:     "stop",
+		Aliases: []string{"suspend"},
+		Short:   "Stop all currently running containers",
 		Run: func(cmd *cobra.Command, args []string) {
-			// Suspend all containers that were running
+			// Stop all containers that were running
 			mwdd.DefaultForUser().Stop([]string{})
 		},
 	}
 }
 
-func NewMwddResumeCmd() *cobra.Command {
+func NewMwddStartCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "resume",
-		Short: "Resume containers that were running before",
+		Use:     "start",
+		Aliases: []string{"resume"},
+		Short:   "Start containers that were running before",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"))
 		},

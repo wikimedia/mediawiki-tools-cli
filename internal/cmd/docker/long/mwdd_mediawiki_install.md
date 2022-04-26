@@ -1,6 +1,6 @@
 # MediaWiki Install
 
-Installs a new MediaWiki site MediaWiki maintenance scripts:
+Installs a new MediaWiki site using MediaWiki maintenance scripts:
  - [install.php](https://www.mediawiki.org/wiki/Manual:Install.php)
  - [update.php](https://www.mediawiki.org/wiki/Manual:Update.php)
 
