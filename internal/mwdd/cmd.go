@@ -19,8 +19,8 @@ func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
 
 	cmd.AddCommand(NewServiceCreateCmd(name))
 	cmd.AddCommand(NewServiceDestroyCmd(name))
-	cmd.AddCommand(NewServiceSuspendCmd(name))
-	cmd.AddCommand(NewServiceResumeCmd(name))
+	cmd.AddCommand(NewServiceStopCmd(name))
+	cmd.AddCommand(NewServiceStartCmd(name))
 	// There is an expectation that the main service for exec has the same name as the service command overall
 	cmd.AddCommand(NewServiceExecCmd(name, name))
 
@@ -69,10 +69,11 @@ func NewServiceDestroyCmd(name string) *cobra.Command {
 	}
 }
 
-func NewServiceSuspendCmd(name string) *cobra.Command {
+func NewServiceStopCmd(name string) *cobra.Command {
 	return &cobra.Command{
-		Use:   "suspend",
-		Short: fmt.Sprintf("Suspend the %s containers", name),
+		Use:     "stop",
+		Aliases: []string{"suspend"},
+		Short:   fmt.Sprintf("Stop the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
@@ -82,10 +83,11 @@ func NewServiceSuspendCmd(name string) *cobra.Command {
 	}
 }
 
-func NewServiceResumeCmd(name string) *cobra.Command {
+func NewServiceStartCmd(name string) *cobra.Command {
 	return &cobra.Command{
-		Use:   "resume",
-		Short: fmt.Sprintf("Resume the %s containers", name),
+		Use:     "start",
+		Aliases: []string{"resume"},
+		Short:   fmt.Sprintf("Start the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)

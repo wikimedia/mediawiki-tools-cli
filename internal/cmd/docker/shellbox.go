@@ -47,8 +47,8 @@ func NewShellboxCmd() *cobra.Command {
 		dockerComposeName := "shellbox-" + flavour
 		shellboxSubCmd.AddCommand(mwdd.NewServiceCreateCmd(dockerComposeName))
 		shellboxSubCmd.AddCommand(mwdd.NewServiceDestroyCmd(dockerComposeName))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceSuspendCmd(dockerComposeName))
-		shellboxSubCmd.AddCommand(mwdd.NewServiceResumeCmd(dockerComposeName))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceStopCmd(dockerComposeName))
+		shellboxSubCmd.AddCommand(mwdd.NewServiceStartCmd(dockerComposeName))
 	}
 	return shellbox
 }

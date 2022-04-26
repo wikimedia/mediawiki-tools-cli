@@ -63,9 +63,9 @@ fi
 test_file_contains "/etc/hosts" "mysqlwiki.mediawiki.mwdd.localhost"
 test_curl http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
-# Suspend and resume and check the site is still there
-test_command_success "./bin/mw docker mysql suspend"
-test_command_success "./bin/mw docker mysql resume"
+# Stop and start and check the site is still there
+test_command_success "./bin/mw docker mysql stop"
+test_command_success "./bin/mw docker mysql start"
 sleep 5
 test_curl http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 

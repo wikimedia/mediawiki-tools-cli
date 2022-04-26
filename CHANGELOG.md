@@ -7,6 +7,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.13.0
 
 - Added `restart: unless-stopped` for most containers so that previously running containers are auto started after reboot (T305839)
+- Changed `resume` to `start` with a backward compatible alias (T305823)
+- Changed `suspend` to `stop` with a backward compatible alias (T305823)
 - Improved HTML error message when MediaWiki database can not be found, including commands that might help (T305099)
 - Fix duplicated sub commands of `mw docker custom`
 
