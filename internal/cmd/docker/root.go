@@ -135,10 +135,6 @@ func NewCmd() *cobra.Command {
 		"the custom docker-compose yml file",
 		func() string { return mwdd.DefaultForUser().Directory() + "/custom.yml" },
 	))
-	custom.AddCommand(mwdd.NewServiceCreateCmd("custom"))
-	custom.AddCommand(mwdd.NewServiceDestroyCmd("custom"))
-	custom.AddCommand(mwdd.NewServiceSuspendCmd("custom"))
-	custom.AddCommand(mwdd.NewServiceResumeCmd("custom"))
 
 	return cmd
 }
