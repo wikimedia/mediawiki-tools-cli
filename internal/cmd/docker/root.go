@@ -118,15 +118,21 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("graphite", "", []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("mailhog", mailhogLong, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("memcached", memcachedLong, []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("mysql", "", []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("mysql-replica", "", []string{}))
+
+	mysql := mwdd.NewServiceCmd("mysql", "", []string{})
+	mysql.AddCommand(mwdd.NewServiceCommandCmd("mysql", []string{"mysql", "-uroot", "-ptoor"}, []string{"cli"}))
+	cmd.AddCommand(mysql)
+	mysqlReplica := mwdd.NewServiceCmd("mysql-replica", "", []string{})
+	mysqlReplica.AddCommand(mwdd.NewServiceCommandCmd("mysql-replica", []string{"mysql", "-uroot", "-ptoor"}, []string{"cli"}))
+	cmd.AddCommand(mysqlReplica)
+
 	cmd.AddCommand(mwdd.NewServiceCmd("phpmyadmin", "", []string{"ppma"}))
 	cmd.AddCommand(mwdd.NewServiceCmd("postgres", "", []string{}))
 
 	cmd.AddCommand(NewShellboxCmd())
 
 	redis := mwdd.NewServiceCmd("redis", redisLong, []string{})
-	redis.AddCommand(mwdd.NewServiceCommandCmd("redis", "redis-cli"))
+	redis.AddCommand(mwdd.NewServiceCommandCmd("redis", []string{"redis-cli"}, []string{"cli"}))
 	cmd.AddCommand(redis)
 
 	// Custom creation of custom command to avoid the exec command being added (for now)
