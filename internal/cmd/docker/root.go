@@ -105,6 +105,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewMwddDestroyCmd())
 	cmd.AddCommand(NewMwddStopCmd())
 	cmd.AddCommand(NewMwddStartCmd())
+	cmd.AddCommand(NewMwddRestartCmd())
 	cmd.AddCommand(NewDockerComposerCmd())
 	cmd.AddCommand(env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory))
 	cmd.AddCommand(NewHostsCmd())
@@ -168,6 +169,17 @@ func NewMwddStartCmd() *cobra.Command {
 		Short:   "Start containers that were running before",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"))
+		},
+	}
+}
+
+func NewMwddRestartCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart",
+		Short: "Restart the running containers",
+		Run: func(cmd *cobra.Command, args []string) {
+			NewMwddStopCmd().Execute()
+			NewMwddStartCmd().Execute()
 		},
 	}
 }
