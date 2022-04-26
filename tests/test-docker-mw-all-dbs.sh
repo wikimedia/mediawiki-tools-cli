@@ -52,7 +52,7 @@ cd ./..
 PORT=$(./bin/mw docker env get PORT)
 
 # Make sure a site is running and not connected to a db
-test_curl http://default.mediawiki.mwdd.localhost:$PORT "Is your database running and wiki database created"
+test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
 # Turn on all of the services
 test_command_success "./bin/mw docker mysql-replica create"
