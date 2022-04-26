@@ -6,7 +6,7 @@ version: '3.7'
 services:
 
   mediawiki-fresh:
-    image: docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s4
+    image: "${MEDIAWIKI_FRESH_IMAGE:-docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s4}"
     restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "echo started"

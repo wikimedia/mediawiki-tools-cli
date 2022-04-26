@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   dps:
-    image: defreitas/dns-proxy-server:2.19.0
+    image: "${DPS_IMAGE:-defreitas/dns-proxy-server:2.19.0}"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -12,7 +12,7 @@ services:
         ipv4_address: 10.0.0.10
 
   nginx-proxy:
-    image: jwilder/nginx-proxy:0.10
+    image: "${NGINX_PROXY_IMAGE:-jwilder/nginx-proxy:0.10}"
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=proxy.mwdd.localhost,proxy.mwdd

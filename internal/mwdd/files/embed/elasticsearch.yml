@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   elasticsearch:
-    image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
+    image: "${ELASTICSEARCH_IMAGE:-docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0}"
     restart: unless-stopped
     # TODO optionally switch this automatically based on architecture?
     # TODO actually build this image somewhere nicer?

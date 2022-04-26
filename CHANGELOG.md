@@ -7,6 +7,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.13.0
 
 - Added `restart: unless-stopped` for most containers so that previously running containers are auto started after reboot (T305839)
+- Added the ability to override images used for all services using environment variables (T306023)
 - Changed `resume` to `start` with a backward compatible alias (T305823)
 - Changed `suspend` to `stop` with a backward compatible alias (T305823)
 - Improved HTML error message when MediaWiki database can not be found, including commands that might help (T305099)
