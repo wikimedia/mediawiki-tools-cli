@@ -9,7 +9,7 @@ services:
     image: "${MEDIAWIKI_QUIBBLE_IMAGE:-docker-registry.wikimedia.org/releng/quibble-buster-php74:1.4.4}"
     restart: unless-stopped
     entrypoint: /bin/sh
-    command: -c "echo started"
+    command: -c "sleep infinity"
     working_dir: /var/www/html/w
     networks:
       - dps

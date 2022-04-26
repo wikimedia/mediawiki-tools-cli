@@ -9,7 +9,7 @@ services:
     image: "${MEDIAWIKI_FRESH_IMAGE:-docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s4}"
     restart: unless-stopped
     entrypoint: /bin/sh
-    command: -c "echo started"
+    command: -c "sleep infinity"
     working_dir: /var/www/html/w
     networks:
       - dps
