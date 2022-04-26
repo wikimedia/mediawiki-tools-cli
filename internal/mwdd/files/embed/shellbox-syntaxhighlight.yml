@@ -8,6 +8,7 @@ version: '3.7'
 services:
   shellbox-syntaxhighlight: 
     image: "${SHELLBOX_SYNTAXHIGHLIGHT_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-03-10-142520-syntaxhighlight}"
+    restart: unless-stopped
     dns:
       - 10.0.0.10
     networks:

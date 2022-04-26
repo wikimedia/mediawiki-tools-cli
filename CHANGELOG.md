@@ -6,6 +6,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## Unreleased
 
+- Added `restart: unless-stopped` for most containers so that previously running containers are auto started after reboot (T305839)
 - Fix duplicated sub commands of `mw docker custom`
 
 ## v0.12.1

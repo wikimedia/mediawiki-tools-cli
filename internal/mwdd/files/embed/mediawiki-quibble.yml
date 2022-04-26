@@ -7,6 +7,7 @@ services:
 
   mediawiki-quibble:
     image: docker-registry.wikimedia.org/releng/quibble-buster-php74:1.4.4
+    restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "echo started"
     working_dir: /var/www/html/w

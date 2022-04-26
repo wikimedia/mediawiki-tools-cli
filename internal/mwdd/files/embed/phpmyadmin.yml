@@ -3,6 +3,7 @@ version: '3.7'
 services:
   phpmyadmin:
     image: "${PHPMYADMIN_IMAGE:-phpmyadmin/phpmyadmin:5}"
+    restart: unless-stopped
     environment:
       - PMA_USER=root
       - PMA_PASSWORD=toor
