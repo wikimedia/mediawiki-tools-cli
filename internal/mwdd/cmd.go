@@ -9,20 +9,25 @@ import (
 
 /*NewServiceCmd a new command for a single service, such as mailhog*/
 func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
+	return NewServiceCmdDifferingNames(name, name, long, aliases)
+}
+
+/*NewServiceCmdDifferingNames a new command for a single service, such as mailhog*/
+func NewServiceCmdDifferingNames(commandName string, serviceName string, long string, aliases []string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     name,
-		Short:   fmt.Sprintf("%s service", name),
+		Use:     commandName,
+		Short:   fmt.Sprintf("%s service", commandName),
 		Long:    cli.RenderMarkdown(long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
 
-	cmd.AddCommand(NewServiceCreateCmd(name))
-	cmd.AddCommand(NewServiceDestroyCmd(name))
-	cmd.AddCommand(NewServiceStopCmd(name))
-	cmd.AddCommand(NewServiceStartCmd(name))
+	cmd.AddCommand(NewServiceCreateCmd(serviceName))
+	cmd.AddCommand(NewServiceDestroyCmd(serviceName))
+	cmd.AddCommand(NewServiceStopCmd(serviceName))
+	cmd.AddCommand(NewServiceStartCmd(serviceName))
 	// There is an expectation that the main service for exec has the same name as the service command overall
-	cmd.AddCommand(NewServiceExecCmd(name, name))
+	cmd.AddCommand(NewServiceExecCmd(serviceName, serviceName))
 
 	return cmd
 }

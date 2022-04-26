@@ -12,6 +12,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Changed `suspend` to `stop` with a backward compatible alias (T305823)
 - Improved HTML error message when MediaWiki database can not be found, including commands that might help (T305099)
 - Fix duplicated sub commands of `mw docker custom`
+- Fix duplicated and broken sub commands of `mw docker shellbox`
 
 ## v0.12.1
 
