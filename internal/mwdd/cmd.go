@@ -125,16 +125,17 @@ func NewServiceExecCmd(name string, service string) *cobra.Command {
 	return cmd
 }
 
-func NewServiceCommandCmd(service string, command string) *cobra.Command {
+func NewServiceCommandCmd(service string, commands []string, aliases []string) *cobra.Command {
 	return &cobra.Command{
-		Use:   command,
-		Short: "Runs %s in the %s container",
+		Use:     commands[0],
+		Aliases: aliases,
+		Short:   fmt.Sprintf("Runs %s in the %s container", commands[0], service),
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
 			userCommand, env := CommandAndEnvFromArgs(args)
 			DefaultForUser().DockerExec(DockerExecCommand{
 				DockerComposeService: service,
-				Command:              append([]string{command}, userCommand...),
+				Command:              append(commands, userCommand...),
 				Env:                  env,
 			})
 		},
