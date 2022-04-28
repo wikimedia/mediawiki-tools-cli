@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 )
@@ -47,11 +48,15 @@ func EmitEvents() bool {
 	payload := []byte("[" + strings.Join(eventJsons, ",") + "]")
 	_, err := http.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		// TODO log in verbose
-		// logrus.Fatal(err)
+		logrus.Debug(err)
 		return false
 	}
 
-	files.RemoveIfExists(eventFile())
+	truncateErr := os.Truncate(eventFile(), 0)
+	if truncateErr != nil {
+		logrus.Debug(truncateErr)
+		return false
+	}
+
 	return true
 }
