@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.13.1
+
+- Fix files being created as owned by root when using `sudo` as part of the suggested update path (T306981)
+  - These files will now be created as the user running root where possible
+  - The `~/.mwcli/.events` file will also not be recreated repetidly, advoid ownership changes
+
 ## v0.13.0
 
 - Added `restart: unless-stopped` for most containers so that previously running containers are auto started after reboot (T305839)

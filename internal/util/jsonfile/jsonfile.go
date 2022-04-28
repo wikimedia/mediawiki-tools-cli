@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
 
 /*JSONFile representation of a json file.*/
@@ -27,11 +28,11 @@ func (j JSONFile) FileName() string {
 /*EnsureExists makes sure the file exists on disk, will be empty json if created*/
 func (j JSONFile) EnsureExists() {
 	if _, err := os.Stat(j.FilePath); err != nil {
-		err := os.MkdirAll(strings.Replace(j.FilePath, j.FileName(), "", -1), 0o700)
+		err := sudoaware.MkdirAll(strings.Replace(j.FilePath, j.FileName(), "", -1), 0o700)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		file, err := sudoaware.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -64,7 +65,7 @@ func LoadFromDisk(filePath string) JSONFile {
 
 /*WriteToDisk writers the config to disk.*/
 func (j JSONFile) WriteToDisk() {
-	file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	file, err := sudoaware.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		logrus.Fatal(err)
 	}
