@@ -33,7 +33,7 @@ func NewUpdateCmd() *cobra.Command {
 					fmt.Println("Can not find manual version " + manualVersion + " to move to")
 					os.Exit(1)
 				}
-				fmt.Println("Updating to maually selected version: " + manualVersion)
+				fmt.Println("Updating to manually selected version: " + manualVersion)
 			}
 
 			if !cli.Opts.NoInteraction {

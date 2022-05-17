@@ -20,7 +20,7 @@ var (
 func NewGerritAPICmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "api",
-		Short:   "Gerrits API",
+		Short:   "Gerrit's API",
 		Example: `api --auth-user Username --auth-password Password accounts/addshore`,
 		Long:    `https://gerrit.wikimedia.org/r/Documentation/rest-api.html`,
 		Run: func(cmd *cobra.Command, args []string) {

@@ -8,7 +8,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - Fix files being created as owned by root when using `sudo` as part of the suggested update path (T306981)
   - These files will now be created as the user running root where possible
-  - The `~/.mwcli/.events` file will also not be recreated repetidly, advoid ownership changes
+  - The `~/.mwcli/.events` file will also not be recreated repeatedly, to avoid ownership changes
 
 ## v0.13.0
 
@@ -16,7 +16,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added the ability to override images used for all services using environment variables (T306023)
 - Added the ability to run multiple fresh (and quibble) commands simultaneously (T305683)
 - Added the `restart` command to `stop` and then `start` the current running containers (T305943)
-- Added `mysql mysql` and `mysql-replica mysql` commands that run the `mysql` cli in the mysq containers (T306864)
+- Added `mysql mysql` and `mysql-replica mysql` commands that run the `mysql` cli in the mysql containers (T306864)
 - Changed `resume` to `start` with a backward compatible alias (T305823)
 - Changed `suspend` to `stop` with a backward compatible alias (T305823)
 - Improved HTML error message when MediaWiki database can not be found, including commands that might help (T305099)
@@ -56,7 +56,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Improved output when binaries are needed on disk (such as docker) that do not exist (T301557)
 - Fix display of help when search term is missed in `codesearch search` command
 - Fix display of help when search term is missing in `toolhub tools search` command
-- Fix indenting of help and usage text accross commands
+- Fix indenting of help and usage text across commands
 - Fix `codesearch search` commands usage when spaces appear in the search text (needed urlencoding) (T301973)
 - Fix color usage in output when not in a TTY across commands
 - Fix mistaken INFO log of periodical version check output
@@ -71,7 +71,7 @@ Thanks to @itamar, @ollieshotton for bug reports & requests
 
 - Fixed handling for relative paths not starting with `./` during initial MediaWiki setup wizard (T300867)
 - Fixed handling for windows absolute paths that look like `D:\` etc during initial MediaWiki setup wizard (T300867)
-- Logging now usees the `logrus` library, so verbose output has changed slightly (T301005)
+- Logging now uses the `logrus` library, so verbose output has changed slightly (T301005)
 
 ## v0.10.1
 
@@ -99,7 +99,7 @@ Docker development environment:
 - Updated `mysql` images from `mariadb:10.6` to `mariadb:10.7`
 - Updated `postgres` images from `postgres:13.2` to `postgres:13.5`
 - Fixed handling for relative paths starting in `./` during initial MediaWiki setup wizard (T294177)
-- Fixed Windows issue to do with file embeding `Failed to open file: embed\files.txt` (T295473)
+- Fixed Windows issue to do with file embedding `Failed to open file: embed\files.txt` (T295473)
 - Fixed issue where MediaWiki would create an unreadable `mw-GlobalIdGenerator-UID-88` file and error (T293682)
 
 ## v0.9.0
@@ -137,12 +137,12 @@ Development environment specific:
 ## v0.6.0
 
 - Added `toolhub search` command.
-- Added `--type` filter to `toolhub list` commnand.
+- Added `--type` filter to `toolhub list` command.
 
 Development environment specific:
 
 - Added `eventlogging` service.
-- Fixed removal of non existant volumes through some commands.
+- Fixed removal of nonexistent volumes through some commands.
 - Fixed regression in 0.5.0 with passing env vars into exec commands such as `mw docker mediawiki exec -- XDEBUG_SESSION=1 php test.php`
 
 ## v0.5.0
@@ -151,13 +151,13 @@ Development environment specific:
 - Added `gerrit change list` command.
 - Added `gerrit group members` command.
 - Improved all prompt questions.
-- Now also built targetting `darwin/arm64`.
+- Now also built targeting `darwin/arm64`.
 
 Development environment specific:
 
 - Added `elasticsearch` service.
 - Added a `mailhog` service https://github.com/mailhog/MailHog.
-- Fixed issues cloning MediaWiki and Vecotr with a non shallow clone during setup.
+- Fixed issues cloning MediaWiki and Vector with a non shallow clone during setup.
 - Fixed SQLite permission issues.
 - Fixed issue with using `maintenance/shell.php`.
 - Fixed some `quibble` commands.

@@ -94,7 +94,7 @@ func tagsForImageName(imageName string) []string {
 		jsonFromURL("https://docker-registry.wikimedia.org/v2/"+strings.Replace(imageName, "docker-registry.wikimedia.org/", "", 1)+"/tags/list/", &v2Res)
 		return v2Res.Tags
 	}
-	// Use v1 for docker hub, as it doesnt require authentication
+	// Use v1 for docker hub, as it doesn't require authentication
 	v1Res := v1Response{}
 	jsonFromURL("https://registry.hub.docker.com/v1/repositories/"+imageName+"/tags", &v1Res)
 	return v1Res.Tags()

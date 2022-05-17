@@ -19,7 +19,7 @@ $wgShellboxUrls['constraint-regex-checker'] = $dockerServices['shellbox-php-rpc'
 
 You can add more to your LocalSettings.php file if needed.
 
-Note: This service will NOT be automaticaly loaded if MW_PHPUNIT_TEST is defined.
+Note: This service will NOT be automatically loaded if MW_PHPUNIT_TEST is defined.
 (This happens when you are running unit tests)
 
 ## Documentation

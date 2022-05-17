@@ -1,6 +1,6 @@
 # image-check
 
-This tool is intended to make using up to date container images in mwcli easier by providing a mwcli developer a quikc way to check all images used.
+This tool is intended to make using up to date container images in mwcli easier by providing a mwcli developer a quick way to check all images used.
 
 When run, it will output all tags that appear via SEMVER to be newer than the currently used tag
 

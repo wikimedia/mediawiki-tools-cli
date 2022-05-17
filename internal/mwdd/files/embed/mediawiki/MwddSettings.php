@@ -1,6 +1,6 @@
 <?php
 
-// Set a umask for MediaWiki as we are in a development envrionment
+// Set a umask for MediaWiki as we are in a development environment
 // This is also currently injected via a wrapper around install.php for initial setup
 umask(000);
 
@@ -49,7 +49,7 @@ if ( defined( "MW_DB" ) ) {
 # Only use "advanced" services if they can be seen, and if we are not in tests
 # TODO this is confusing, tidy it up, what is it?
 # TODO do we want this running in phpunit tests? maybe we need a way to specify that we do?
-# TODO cache these existance checks for at least 1 second to avoid hammering looking for these services..
+# TODO cache these existence checks for at least 1 second to avoid hammering looking for these services..
 $dockerServices = [
 	'mysql' => gethostbyname('mysql') !== 'mysql',
 	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
@@ -69,7 +69,7 @@ $dockerServices = [
 ################################
 # MWDD Database
 ################################
-// TODO cache the DB existance checks somehow so as not to run on every request...
+// TODO cache the DB existence checks somehow so as not to run on every request...
 
 // Figure out if we are using sqlite, or if this should be mysql..?
 if( file_exists( $IP . '/cache/docker/' . $dockerDb . '.sqlite' ) ) {
@@ -96,7 +96,7 @@ if(!isset($dockerDbType)){
 			$dockerDbType = 'mysql';
 		}
 	} catch ( Exception $e ) {
-		// TODO set the timeout on connection to be much shorter, so that when mysql doesnt exist, it doenst hang for a while
+		// TODO set the timeout on connection to be much shorter, so that when mysql doesn't exist, it doesn't hang for a while
 		// do nothing
 	}
 }

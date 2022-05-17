@@ -3,7 +3,7 @@ This enables various commands , such as stop and start, to be more selective
 about which services they specify.
 
 For example, if you run `create mediawiki` and then `suspend` and `resume`
-you do NOT want to see errors about starting servcices that you didn't create
+you do NOT want to see errors about starting services that you didn't create
 in the first place.
 
 Copyright © 2022 Addshore

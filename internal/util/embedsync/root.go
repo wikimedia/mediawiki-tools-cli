@@ -1,4 +1,4 @@
-/*Package embedsync deals with syncing go embeded files onto the systme disk
+/*Package embedsync deals with syncing go embedded files onto the system disk
 
 NOTE: this requires an index of the files to be part of the embed.
 This can be generated in the MakeFile using a line like this...
@@ -35,10 +35,10 @@ type EmbeddingDiskSync struct {
 var embedSeperator = "/"
 
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
-	embededFiles := e.embededFiles()
+	embeddedFiles := e.embeddedFiles()
 
 	// Ensure each file is on disk and up to date
-	for _, embedFile := range embededFiles {
+	for _, embedFile := range embeddedFiles {
 		agnosticFile := e.agnosticFileFromEmbed(embedFile)
 		diskFile := e.DiskPath + string(os.PathSeparator) + agnosticFile
 		embedBytes := e.agnosticEmbedBytes(agnosticFile)
@@ -61,12 +61,12 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 
 func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 	diskFiles := e.diskFiles()
-	embededFiles := e.embededFiles()
+	embeddedFiles := e.embeddedFiles()
 
 	for _, diskFile := range diskFiles {
 		agnosticFile := e.agnosticFileFromDisk(diskFile)
 		embedFile := e.EmbedPath + embedSeperator + agnosticFile
-		if !utilstrings.StringInSlice(embedFile, embededFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
+		if !utilstrings.StringInSlice(embedFile, embeddedFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
 			logrus.Trace(diskFile + " no longer needed, so removing")
 			err := os.Remove(diskFile)
 			if err != nil {
@@ -78,7 +78,7 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 	}
 }
 
-func (e EmbeddingDiskSync) embededFiles() []string {
+func (e EmbeddingDiskSync) embeddedFiles() []string {
 	// "./" switched for EmbedPath as from content of files.txt
 	return utilstrings.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+embedSeperator)
 }

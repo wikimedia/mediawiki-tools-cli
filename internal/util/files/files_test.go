@@ -20,7 +20,7 @@ func writeContentToTmpFile(content string) string {
 }
 
 func randomString() string {
-	// A bit of randomness so that we dont need to open a file for our non existent test
+	// A bit of randomness so that we don't need to open a file for our non existent test
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	var b strings.Builder
 	for i := 0; i < 10; i++ {
@@ -134,7 +134,7 @@ func TestLines(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := Lines(tt.args.fileName); !reflect.DeepEqual(got, tt.want) {
-				// Special case for emptyu splits which DeepEqual doesn't like
+				// Special case for empty splits which DeepEqual doesn't like
 				if len(got) != 0 && len(tt.want) != 0 {
 					t.Errorf("Lines() = %v, want %v", got, tt.want)
 				}
