@@ -15,6 +15,14 @@ Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
 
 ## Contributing
 
+If you want to contribute tp this repository, please [ask an existing maintainer](https://gitlab.wikimedia.org/repos/releng/cli/-/project_members) to be added as a developer.
+
+Once this has happened you will be able to make branches in this repository and CI will run for you.
+
+If you create merge requests from forks, CI will not run.
+
+You can request access to the project by [filing a ticket against the #mwcli project on phabricator](https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli&title=Request%20access%20to%20mwcli%20gitlab%20project%20for%20%3CUSER%3E).
+
 ### Repo / Code setup
 
 You need go 1.16+ installed.
