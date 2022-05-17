@@ -31,7 +31,7 @@ func (j *JSON) Print() {
 	logrus.Trace(query.String())
 
 	for _, obj := range j.Objects {
-		// Convert to a map of interfaces so the j lib doesnt complain about our types
+		// Convert to a map of interfaces so the j lib doesn't complain about our types
 		var mapOfInterfaces map[string]interface{}
 		data, _ := json.Marshal(obj)
 		json.Unmarshal(data, &mapOfInterfaces)

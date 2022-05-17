@@ -3,7 +3,7 @@
 Shellbox is a library for command execution, and also a server and client for remote command execution.
 Shellbox is usable starting with MediaWiki 1.36.
 
-Different shellbox services include different libraries for different usecaes.
+Different shellbox services include different libraries for different use cases.
 
 The services provided by this command current make use of the Wikimedia Foundation
 pre built containers https://docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox/tags/

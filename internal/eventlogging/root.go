@@ -40,12 +40,12 @@ func eventFile() string {
 }
 
 func EmitEvents() bool {
-	eventJsons := files.Lines(eventFile())
-	if len(eventJsons) == 0 {
+	eventJSON := files.Lines(eventFile())
+	if len(eventJSON) == 0 {
 		return false
 	}
 
-	payload := []byte("[" + strings.Join(eventJsons, ",") + "]")
+	payload := []byte("[" + strings.Join(eventJSON, ",") + "]")
 	_, err := http.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		logrus.Debug(err)

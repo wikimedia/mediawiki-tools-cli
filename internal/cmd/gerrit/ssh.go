@@ -12,7 +12,7 @@ import (
 func NewGerritSSHCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ssh",
-		Short: "Gerrits SSH interface",
+		Short: "Gerrit's SSH interface",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmd.Root().PersistentPreRun(cmd, args)
 			if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {

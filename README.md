@@ -73,9 +73,9 @@ Many other Makefile commands exist that you might find useful:
 
 ### Packages & Directories
 
-- `cmd`: Creationand execution of the top level mw cobra CLI command.
+- `cmd`: Creation and execution of the top level mw cobra CLI command.
 - `internal/cli`: High level things used across the CLI.
-- `internal/util`: Independant packages that do not bind the the CLI.
+- `internal/util`: Independent packages that do not bind the the CLI.
 - `internal/cmd`: Packages for commands that make up part of the CLI, binding to cobra.
 - `internal/<command name>`: Packages for commands that should not bind to cobra.
 - `tests`: Integration tests that are run as part of CI.
@@ -83,7 +83,7 @@ Many other Makefile commands exist that you might find useful:
 
 ## CI & Integration tests
 
-This repository has continious integration setup on Gitlab.
+This repository has continuous integration setup on Gitlab.
 You can read more in the [CI README](./CI.md).
 
 You can also choose to run the integration tests locally.

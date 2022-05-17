@@ -26,20 +26,20 @@ type DockerExecCommand struct {
 	User                 string
 }
 
-/*CommandAndEnvFromArgs taks arguments passed to a cobra command and extracts any prefixing env var definitions from them*/
+/*CommandAndEnvFromArgs takes arguments passed to a cobra command and extracts any prefixing env var definitions from them*/
 func CommandAndEnvFromArgs(args []string) ([]string, []string) {
-	extrectedArgs := []string{}
-	extrectedEnvs := []string{}
+	extractedArgs := []string{}
+	extractedEnvs := []string{}
 	regex, _ := regexp.Compile(`\w+=\w+`)
 	for _, arg := range args {
 		matched := regex.MatchString(arg)
 		if matched {
-			extrectedEnvs = append(extrectedEnvs, arg)
+			extractedEnvs = append(extractedEnvs, arg)
 		} else {
-			extrectedArgs = append(extrectedArgs, arg)
+			extractedArgs = append(extractedArgs, arg)
 		}
 	}
-	return extrectedArgs, extrectedEnvs
+	return extractedArgs, extractedEnvs
 }
 
 /*UserAndGroupForDockerExecution gets a user and group id combination for the current user that can be used for execution.*/

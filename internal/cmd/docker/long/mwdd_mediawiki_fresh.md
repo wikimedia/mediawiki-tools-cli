@@ -3,7 +3,7 @@
 A [Fresh](https://github.com/wikimedia/fresh) environment is a fast and ready-to-use Docker container with various developer tools pre-installed.
 Including Node.js, and headless browsers. It aims to help to run npm packages on your machine, without putting your personal data at risk!
 
-Some default environment variables will be provided for you in the fresh cotnainer.
+Some default environment variables will be provided for you in the fresh container.
 
 ```sh
 MW_SERVER=http://default.mediawiki.mwdd:${PORT}

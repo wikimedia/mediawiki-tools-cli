@@ -181,7 +181,7 @@ func NewMediaWikiCmd() *cobra.Command {
 				// Clone various things in multiple stages
 
 				// TODO add a spinner back here
-				// We removed it while untangeling a big old mess
+				// We removed it while untangling a big old mess
 				fmt.Println("Cloning repositories...")
 				fmt.Println("This may take a few moments...")
 				mediawiki.CloneSetup(setupOpts)

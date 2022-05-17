@@ -17,7 +17,7 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 		EmbedPath: "embed",
 		DiskPath:  projectDirectory,
 		IgnoreFiles: []string{
-			// Used by docker-compose to store currnet environment variables in
+			// Used by docker-compose to store current environment variables in
 			".env",
 			// Used by the dev environment to store hosts that need adding to the hosts file
 			"record-hosts",

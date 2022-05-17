@@ -53,7 +53,7 @@ func NewMwCliCmd() *cobra.Command {
 			logrus.Trace("mwcli: PersistentPreRun")
 
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
-			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicity called
+			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
 			if DoTelemetry {
 				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
@@ -212,7 +212,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// Perform some temporary cleanup
 	{
 		currentUser, _ := user.Current()
-		// In 0.8.1 and before, this was the location of the last udpate time, it was since moved to the config
+		// In 0.8.1 and before, this was the location of the last update time, it was since moved to the config
 		files.RemoveIfExists(currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/.lastUpdateCheck")
 	}
 

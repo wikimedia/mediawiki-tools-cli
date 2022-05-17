@@ -78,9 +78,9 @@ func NewCmd() *cobra.Command {
 						fmt.Println(err)
 						os.Exit(1)
 					}
-					validityChck := ports.IsValidAndFree(port)
-					if validityChck != nil {
-						fmt.Println(validityChck)
+					validityCheck := ports.IsValidAndFree(port)
+					if validityCheck != nil {
+						fmt.Println(validityCheck)
 						os.Exit(1)
 					}
 

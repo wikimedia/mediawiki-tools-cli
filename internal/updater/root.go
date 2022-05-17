@@ -10,7 +10,7 @@ func CanUpdate(currentVersion string, gitSummary string) (bool, string) {
 	}
 	logrus.Debug("Current version is: " + currentVersion + "\nLatest available is: " + release)
 
-	// When canUpdate is false, we dont have a release to get the version string of
+	// When canUpdate is false, we don't have a release to get the version string of
 	return canUpdate, "No update available"
 }
 

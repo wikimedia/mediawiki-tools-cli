@@ -10,14 +10,14 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
 
-/*AddLinesUnique adds all lines to the file if each one will be the only occourance of the string.*/
+/*AddLinesUnique adds all lines to the file if each one will be the only occurrence of the string.*/
 func AddLinesUnique(lines []string, filename string) {
 	for _, line := range lines {
 		AddLineUnique(line, filename)
 	}
 }
 
-/*AddLineUnique adds the line to the file if it will be the only occourance of the string.*/
+/*AddLineUnique adds the line to the file if it will be the only occurrence of the string.*/
 func AddLineUnique(line string, fileName string) {
 	file, err := sudoaware.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {

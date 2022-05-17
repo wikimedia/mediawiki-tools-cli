@@ -10,7 +10,7 @@ import (
 )
 
 func randomString() string {
-	// A bit of randomness so that we dont need to open a file for our non existent test
+	// A bit of randomness so that we don't need to open a file for our non existent test
 	rand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	var b strings.Builder
@@ -27,7 +27,7 @@ func TestFile_Path(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Path even if it doesnt exist",
+			name: "Path even if it doesn't exist",
 			f:    File("/tmp/mwcli-test-dotenv-not-created"),
 			want: "/tmp/mwcli-test-dotenv-not-created",
 		},

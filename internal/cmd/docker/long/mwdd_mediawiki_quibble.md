@@ -10,7 +10,7 @@ Runs commands in a `quibble` container.
         - If you let quibble touch your setup (missing --skip-install for example) it might break your environment.
         - quibble has various things hardcoded :(, for example the user and password for browser tests, you might find the below command helpful.
 
-    mw docker mediawiki exec php maintenance/CeateAndPromote.php -- --sysop WikiAdmin testwikijenkinspass
+    mw docker mediawiki exec php maintenance/createAndPromote.php -- --sysop WikiAdmin testwikijenkinspass
 
 ## Documentation
 

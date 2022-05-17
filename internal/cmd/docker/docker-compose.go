@@ -14,7 +14,7 @@ func NewDockerComposerCmd() *cobra.Command {
 			dev := mwdd.DefaultForUser()
 			dev.EnsureReady()
 
-			// This could be simpiler if the mwdd.DockerComposeCommand function just took a list of strings...
+			// This could be simpler if the mwdd.DockerComposeCommand function just took a list of strings...
 			command := ""
 			if len(args) >= 1 {
 				command = args[0]
