@@ -5,6 +5,7 @@
 ./eventlogging.yml
 ./files.txt
 ./graphite.yml
+./keycloak.yml
 ./mailhog.yml
 ./mediawiki-fresh.yml
 ./mediawiki-quibble.yml
