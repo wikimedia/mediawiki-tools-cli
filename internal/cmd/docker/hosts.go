@@ -35,6 +35,7 @@ func NewHostsAddCmd() *cobra.Command {
 						"adminer.mwdd.localhost",
 						"mailhog.mwdd.localhost",
 						"graphite.mwdd.localhost",
+						"keycloak.mwdd.localhost",
 						"phpmyadmin.mwdd.localhost",
 						"default.mediawiki.mwdd.localhost",
 					},

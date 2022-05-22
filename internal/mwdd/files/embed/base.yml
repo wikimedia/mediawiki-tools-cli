@@ -17,7 +17,7 @@ services:
     environment:
       - VIRTUAL_HOST=proxy.mwdd.localhost,proxy.mwdd
       - VIRTUAL_PORT=${PORT}
-      - HOSTNAMES=.mediawiki.mwdd.localhost,.mediawiki.mwdd     # wildcard name resolution, thanks to DPS
+      - HOSTNAMES=.mediawiki.mwdd.localhost,.mediawiki.mwdd,keycloak.mwdd.localhost     # wildcard name resolution, thanks to DPS
       - HTTP_PORT=${PORT}      # internal port
     ports:
       - "${PORT}:${PORT}"
