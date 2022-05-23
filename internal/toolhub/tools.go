@@ -20,7 +20,7 @@ type Tool struct {
 	Description          string        `json:"description"`
 	URL                  string        `json:"url"`
 	Keywords             []string      `json:"keywords"`
-	Author               string        `json:"author"`
+	Author               []interface{} `json:"author"`
 	Repository           string        `json:"repository"`
 	Subtitle             interface{}   `json:"subtitle"`
 	OpenhubID            interface{}   `json:"openhub_id"`
