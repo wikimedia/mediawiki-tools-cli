@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
-	"os/user"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Masterminds/sprig"
@@ -28,7 +27,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
 
@@ -209,13 +207,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// TODO perhaps moved this to a POST command run thing
 	if DoTelemetry {
 		tryToEmitEvents()
-	}
-
-	// Perform some temporary cleanup
-	{
-		currentUser, _ := user.Current()
-		// In 0.8.1 and before, this was the location of the last update time, it was since moved to the config
-		files.RemoveIfExists(currentUser.HomeDir + string(os.PathSeparator) + ".mwcli/.lastUpdateCheck")
 	}
 
 	if err != nil {
