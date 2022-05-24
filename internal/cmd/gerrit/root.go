@@ -30,5 +30,5 @@ func NewGerritCmd() *cobra.Command {
 }
 
 func sshGerritCommand(args []string) *exec.Cmd {
-	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
+	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", true, append([]string{"gerrit"}, args...))
 }

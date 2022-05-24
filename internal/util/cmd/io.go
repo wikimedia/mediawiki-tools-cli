@@ -13,6 +13,14 @@ func AttachOutputBuffer(cmd *exec.Cmd) *bytes.Buffer {
 	return &outb
 }
 
+/*AttachAllOutputBuffer ...*/
+func AttachAllOutputBuffer(cmd *exec.Cmd) *bytes.Buffer {
+	var outb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = &outb
+	return &outb
+}
+
 /*AttachInErrIO ...*/
 func AttachInErrIO(cmd *exec.Cmd) *exec.Cmd {
 	cmd.Stdin = os.Stdin

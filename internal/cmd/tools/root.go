@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/kevinburke/ssh_config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -49,7 +50,7 @@ func NewToolsCmd() *cobra.Command {
 				remoteCommandAndArgs = append([]string{"become", toolName}, remoteCommandAndArgs...)
 			}
 
-			sshCmd := sshutil.CommandOnSSHHost("login.toolforge.org", "22", remoteCommandAndArgs)
+			sshCmd := sshutil.CommandOnSSHHost("login.toolforge.org", "22", true, remoteCommandAndArgs)
 			logrus.Trace(sshCmd.String())
 
 			sshCmd = cmdutil.AttachAllIO(sshCmd)
@@ -96,6 +97,48 @@ func NewToolsCmd() *cobra.Command {
 	}
 	cpCmd.Flags().StringVarP(&toolName, "tool", "t", "", "Tool to execute command on")
 	cmd.AddCommand(cpCmd)
+
+	sshTestCmd := &cobra.Command{
+		Use:     "ssh-test",
+		Short:   "Test SSH connectivity",
+		Example: "ssh-test",
+		Run: func(cmd *cobra.Command, args []string) {
+			if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			sshCmd := sshutil.CommandOnSSHHost("login.toolforge.org", "22", false, []string{"echo", "Hello World!"})
+			logrus.Trace(sshCmd.String())
+			outBuff := cmdutil.AttachAllOutputBuffer(sshCmd)
+			err := sshCmd.Run()
+			if err != nil {
+				fmt.Print(outBuff.String())
+				logrus.Errorf("ssh command returned an error: %v", err)
+				return
+			} else {
+				logrus.Info("SSH connectivity test successful!")
+			}
+		},
+	}
+	cmd.AddCommand(sshTestCmd)
+
+	sshConfigCmd := &cobra.Command{
+		Use:   "ssh-config",
+		Short: "Setup your SSH config for tools connections",
+		Run: func(cmd *cobra.Command, args []string) {
+			if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			user := ssh_config.Get("login.toolforge.org", "User")
+			fmt.Println("User:", user)
+			identityFile := ssh_config.Get("login.toolforge.org", "IdentityFile")
+			fmt.Println("IdentityFile:", identityFile)
+		},
+	}
+	cmd.AddCommand(sshConfigCmd)
 
 	return cmd
 }

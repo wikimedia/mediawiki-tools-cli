@@ -29,6 +29,7 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
+	github.com/kevinburke/ssh_config v1.2.0
 	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.3
@@ -47,7 +48,7 @@ require (
 	github.com/txn2/txeh v1.3.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xanzy/go-gitlab v0.51.1
-	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
+	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
