@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
 
 //go:embed long_gerrit.md
@@ -28,9 +29,6 @@ func NewGerritCmd() *cobra.Command {
 	return cmd
 }
 
-// TODO factor this into a nice package / util?
 func sshGerritCommand(args []string) *exec.Cmd {
-	ssh := exec.Command("ssh", "-p", "29418", "gerrit.wikimedia.org", "gerrit")
-	ssh.Args = append(ssh.Args, args...)
-	return ssh
+	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
 }
