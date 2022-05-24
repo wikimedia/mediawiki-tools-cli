@@ -11,7 +11,7 @@ import (
 )
 
 func setLogLevelForSelfUpdate() {
-	if logrus.GetLevel() >= logrus.InfoLevel {
+	if logrus.GetLevel() >= logrus.DebugLevel {
 		selfupdate.EnableLog()
 	}
 }
