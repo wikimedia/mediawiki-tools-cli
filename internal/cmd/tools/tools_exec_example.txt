@@ -1,0 +1,7 @@
+exec whoami                                                     # Run the whoami command as you on tool
+exec --tool=mytool whoami                                       # Run the whoami command as the specified tool
+exec --tool=mytool rm foo                                       # Remove the file called foo from the tool
+exec --tool=mytool webservice -- --backend=kubernetes start     # Starts a kubernetes webservice on mytool
+exec --tool=mytool webservice restart                           # Restart the webservice of mytool
+exec --tool=mytool webservice shell                             # Start a shell in a webservice pod for mytool
+exec --tool=mytool -- kubectl get pods -o=json 2> /dev/null     # Get JSON output of pods of mytool, ignoring stdout

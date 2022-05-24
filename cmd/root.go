@@ -19,6 +19,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/tools"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/update"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/version"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/wiki"
@@ -73,6 +74,7 @@ func NewMwCliCmd() *cobra.Command {
 		configcmd.NewConfigCmd(),
 		debug.NewDebugCmd(),
 		toolhub.NewToolHubCmd(),
+		tools.NewToolsCmd(),
 		gitlab.NewGitlabCmd(),
 		gerrit.NewGerritCmd(),
 		docker.NewCmd(),
