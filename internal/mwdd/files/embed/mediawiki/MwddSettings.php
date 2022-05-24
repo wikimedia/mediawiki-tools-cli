@@ -243,8 +243,8 @@ if(gethostbyname('eventlogging') !== 'eventlogging') {
 ################################
 # MWDD Graphite & Statsd
 ################################
-if(gethostbyname('graphite-statsd') !== 'graphite-statsd') {
-	$wgStatsdServer = "graphite-statsd";
+if(gethostbyname('graphite') !== 'graphite') {
+	$wgStatsdServer = "graphite";
 }
 
 ################################
