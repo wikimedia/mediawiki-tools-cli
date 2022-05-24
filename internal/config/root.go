@@ -12,17 +12,18 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
 
-func configPath() string {
+/*Path path of the config file.*/
+func Path() string {
 	return cli.UserDirectoryPath() + string(os.PathSeparator) + "config.json"
 }
 
 func ensureExists() {
-	if _, err := os.Stat(configPath()); err != nil {
-		err := sudoaware.MkdirAll(strings.Replace(configPath(), "config.json", "", -1), 0o700)
+	if _, err := os.Stat(Path()); err != nil {
+		err := sudoaware.MkdirAll(strings.Replace(Path(), "config.json", "", -1), 0o700)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		file, err := sudoaware.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		file, err := sudoaware.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -40,7 +41,7 @@ func ensureExists() {
 func LoadFromDisk() Config {
 	ensureExists()
 	var config Config
-	configFile, err := os.Open(configPath())
+	configFile, err := os.Open(Path())
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -52,7 +53,7 @@ func LoadFromDisk() Config {
 
 /*WriteToDisk writers the config to disk.*/
 func (c Config) WriteToDisk() {
-	file, err := sudoaware.OpenFile(configPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	file, err := sudoaware.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		logrus.Fatal(err)
 	}
