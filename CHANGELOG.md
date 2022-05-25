@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.14.0
+
+- Add `config where` command to show where the config is located
+- Add `tools exec` and `tools cp` commands for interacting with WMF Tools (T308928)
+- Fix verbose output when updating (T302216)
+- Fix `toolhub` commands error (T308929)
+- Fix various typos in inline documentation
+- Development environment:
+  - Add a `keycloak` service (T309053)
+  - Fix settings of wgStatsdServer for graphite service (T307365)
+  - Image updates
+    - `graphiteapp/graphite-statsd:1.1.8-8` -> `graphiteapp/graphite-statsd:1.1.10-1`
+    - `eventgate-wikimedia:2022-02-01-141357-production` -> `eventgate-wikimedia:2022-05-10-150602-production`
+
+Thanks to @ollieshotton, @cicalese, @samtar, @addshore for patches this release.
+
 ## v0.13.1
 
 - Fix files being created as owned by root when using `sudo` as part of the suggested update path (T306981)
