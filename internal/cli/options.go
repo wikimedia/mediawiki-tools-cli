@@ -5,5 +5,5 @@ type Options struct {
 	NoInteraction bool
 }
 
-// Options that are global throughout the CLI
+// Options that are global throughout the CLI.
 var Opts Options

@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-// HasExecutable returns true if the given executable is in PATH
+// HasExecutable returns true if the given executable is in PATH.
 func HasExecutable(executable string) bool {
 	_, err := exec.LookPath(executable)
 	return err == nil
 }
 
-// NeedExecutables checks to see if the given executables are in PATH, erroring and returning the missing executables if not
+// NeedExecutables checks to see if the given executables are in PATH, erroring and returning the missing executables if not.
 func NeedExecutables(executables []string) (missing []string, err error) {
 	for _, executable := range executables {
 		if !HasExecutable(executable) {

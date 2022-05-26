@@ -9,7 +9,7 @@ Extension:FileImporter               tests/phpunit/Data/SourceUrlTest.php
 Extension:Wikibase                   repo/tests/phpunit/includes/Api/EditEntityTest.php
 SecurityCheckPlugin                  tests/integration/redos/test.php
 SecurityCheckPlugin                  tests/integration/redos/test.php
-```
+```.
 */
 import (
 	"fmt"

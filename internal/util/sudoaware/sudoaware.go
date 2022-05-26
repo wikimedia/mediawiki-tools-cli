@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-// CurrentUser will ignore the root user if sudo is being used, getting the real current user
+// CurrentUser will ignore the root user if sudo is being used, getting the real current user.
 func CurrentUser() (*user.User, error) {
 	currentUser, err := user.Current()
 	// Bail early if we can't even get the current user.
@@ -45,7 +45,7 @@ func currentUserUIDGidOrFatal() (int, int) {
 	return uid, gid
 }
 
-// IsDifferentUser will return true if the current user is not the same as the user running the program, such as when sudo is used
+// IsDifferentUser will return true if the current user is not the same as the user running the program, such as when sudo is used.
 func IsDifferentUser() bool {
 	callingUser, err1 := user.Current()
 	sudoAware, err2 := CurrentUser()
@@ -55,7 +55,7 @@ func IsDifferentUser() bool {
 	return callingUser.Uid != sudoAware.Uid
 }
 
-// OpenFile implementation that will chown files created to the current user if sudo is used
+// OpenFile implementation that will chown files created to the current user if sudo is used.
 func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 	file, err := os.OpenFile(name, flag, perm)
 	// sudoaware modification start
@@ -67,7 +67,7 @@ func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 	return file, err
 }
 
-// MkdirAll implementation that will chown directories created to the current user if sudo is used
+// MkdirAll implementation that will chown directories created to the current user if sudo is used.
 func MkdirAll(path string, perm os.FileMode) error {
 	// Fast path: if we can tell whether path is a directory or file, stop with success or error.
 	dir, err := os.Stat(path)

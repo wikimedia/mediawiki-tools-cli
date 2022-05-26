@@ -7,10 +7,10 @@ import (
 	terminal "golang.org/x/term"
 )
 
-/*SkipRenderMarkdown allows markdown rendering to be skipped in certain situations*/
+/*SkipRenderMarkdown allows markdown rendering to be skipped in certain situations.*/
 var SkipRenderMarkdown = false
 
-/*RenderMarkdown converts markdown into something nice to be displayed on the terminal*/
+/*RenderMarkdown converts markdown into something nice to be displayed on the terminal.*/
 func RenderMarkdown(markdownIn string) string {
 	if os.Getenv("MWCLI_SKIP_RENDER_MARKDOWN") != "" {
 		return markdownIn

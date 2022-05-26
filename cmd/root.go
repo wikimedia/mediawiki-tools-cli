@@ -33,7 +33,7 @@ import (
 //go:embed templates/usage.txt
 var usageTemplate string
 
-// Verbosity set by the user. This is a modifier that can be added to the default logrus level
+// Verbosity set by the user. This is a modifier that can be added to the default logrus level.
 var Verbosity int
 
 // DoTelemetry do we want to do telemetry?

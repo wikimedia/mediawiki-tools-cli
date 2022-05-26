@@ -7,12 +7,12 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
-/*NewServiceCmd a new command for a single service, such as mailhog*/
+/*NewServiceCmd a new command for a single service, such as mailhog.*/
 func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
 	return NewServiceCmdDifferingNames(name, name, long, aliases)
 }
 
-/*NewServiceCmdDifferingNames a new command for a single service, such as mailhog*/
+/*NewServiceCmdDifferingNames a new command for a single service, such as mailhog.*/
 func NewServiceCmdDifferingNames(commandName string, serviceName string, long string, aliases []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     commandName,
@@ -32,7 +32,7 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, long st
 	return cmd
 }
 
-/*NewServicesCmd a new command for a set of grouped services, such as various flavours of shellbox*/
+/*NewServicesCmd a new command for a set of grouped services, such as various flavours of shellbox.*/
 func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Command {
 	return &cobra.Command{
 		Use:     groupName,

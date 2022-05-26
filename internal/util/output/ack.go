@@ -12,7 +12,7 @@ Extension:wikihiero tests/parser/tests.txt
 
 Extension:AbuseFilter tests/phpunit/AbuseFilterSaveTest.php
 256:            yield 'valid' => [ [ 'fooooobar', 'foooobaz' ], null ];
-```
+```.
 */
 import (
 	"fmt"
