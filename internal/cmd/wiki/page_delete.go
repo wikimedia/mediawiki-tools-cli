@@ -65,7 +65,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 	return cmd
 }
 
-// TODO consider pushing this upstream
+// TODO consider pushing this upstream.
 func wikiDelete(w *mwclient.Client, p params.Values) error {
 	// If edit token not set, obtain one from API or cache
 	if p["token"] == "" {
@@ -92,12 +92,12 @@ func wikiDelete(w *mwclient.Client, p params.Values) error {
 		if captcha, err := resp.GetObject("delete", "captcha"); err == nil {
 			captchaBytes, err := captcha.Marshal()
 			if err != nil {
-				return fmt.Errorf("error occured while creating error message: %s", err)
+				return fmt.Errorf("error occurred while creating error message: %s", err)
 			}
 			var captchaerr mwclient.CaptchaError
 			err = json.Unmarshal(captchaBytes, &captchaerr)
 			if err != nil {
-				return fmt.Errorf("error occured while creating error message: %s", err)
+				return fmt.Errorf("error occurred while creating error message: %s", err)
 			}
 			return captchaerr
 		}
