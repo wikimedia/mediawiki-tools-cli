@@ -42,6 +42,14 @@ var ignoreMwddPersistentRunForPrefixes = []string{
 	"mw docker env",
 }
 
+func defaultContext() string {
+	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
+	if !inGitlabCi && os.Getenv("MWCLI_CONTEXT_TEST") != "" {
+		return "test"
+	}
+	return "default"
+}
+
 func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docker",
@@ -91,6 +99,8 @@ func NewCmd() *cobra.Command {
 			}
 		},
 	}
+
+	cmd.PersistentFlags().StringVarP(&mwdd.Context, "context", "c", defaultContext(), "The context to use")
 
 	if cli.MwddIsDevAlias {
 		cmd.Aliases = []string{"dev"}
