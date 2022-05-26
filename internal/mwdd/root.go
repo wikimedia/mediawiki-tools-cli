@@ -8,11 +8,17 @@ import (
 )
 
 /*MWDD representation of a mwdd v2 setup.*/
-type MWDD string
+type MWDD struct {
+	BaseDir string
+}
+
+var Context string
 
 /*DefaultForUser returns the default mwdd working directory for the user.*/
 func DefaultForUser() MWDD {
-	return MWDD(mwddUserDirectory() + string(os.PathSeparator) + cli.Context())
+	return MWDD{
+		BaseDir: mwddUserDirectory(),
+	}
 }
 
 func mwddUserDirectory() string {
@@ -21,7 +27,7 @@ func mwddUserDirectory() string {
 
 /*Directory the directory containing the development environment.*/
 func (m MWDD) Directory() string {
-	return string(m)
+	return m.BaseDir + string(os.PathSeparator) + Context
 }
 
 /*EnsureReady ...*/
