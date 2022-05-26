@@ -1,0 +1,2 @@
+# Put "foo" on the "mwcli-test" page on test.wikipedia.org
+put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test" <<< "foo"

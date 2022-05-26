@@ -1,0 +1,2 @@
+# Delete the page "mwcli-test" page on test.wikipedia.org
+delete --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test"
