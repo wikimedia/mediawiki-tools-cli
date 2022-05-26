@@ -6,7 +6,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
 )
 
-// MWCLIDIR name of the directory for storing application files
+// MWCLIDIR name of the directory for storing application files.
 const MWCLIDIR string = ".mwcli"
 
 func Context() string {
@@ -17,12 +17,12 @@ func Context() string {
 	return "default"
 }
 
-// UserDirectoryPath returns the MWCLIDIR in the user home directory (or similar directory) that can be used for storage
+// UserDirectoryPath returns the MWCLIDIR in the user home directory (or similar directory) that can be used for storage.
 func UserDirectoryPath() string {
 	return dirs.UserDirectoryPath(MWCLIDIR)
 }
 
-// UserDirectoryPathForCmd is a path within the application directory for the user that can be used for storage for the command
+// UserDirectoryPathForCmd is a path within the application directory for the user that can be used for storage for the command.
 func UserDirectoryPathForCmd(cmdName string) string {
 	return dirs.UserDirectoryPath(MWCLIDIR + string(os.PathSeparator) + cmdName)
 }

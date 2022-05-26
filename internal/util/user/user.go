@@ -5,7 +5,7 @@ import (
 	"os/user"
 )
 
-// CurrentUserIgnoringRootIfSudo will ignore the root user if sudo is being used, getting the calling user
+// CurrentUserIgnoringRootIfSudo will ignore the root user if sudo is being used, getting the calling user.
 func CurrentUserIgnoringRootIfSudo() (*user.User, error) {
 	currentUser, err := user.Current()
 	// Bail early if we can't even get the current user.

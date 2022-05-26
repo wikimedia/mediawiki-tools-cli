@@ -31,7 +31,7 @@ type EmbeddingDiskSync struct {
 	IgnoreFiles []string
 }
 
-// DO NOT use os.PathSeparator, embeds ALWAYS uses "/"
+// DO NOT use os.PathSeparator, embeds ALWAYS uses "/".
 var embedSeperator = "/"
 
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
@@ -87,7 +87,7 @@ func (e EmbeddingDiskSync) diskFiles() []string {
 	return dirs.FilesIn(e.DiskPath)
 }
 
-// indexString returns the contents of the files.txt file in the embed
+// indexString returns the contents of the files.txt file in the embed.
 func (e EmbeddingDiskSync) indexString() string {
 	return e.fileString("files.txt")
 }
@@ -123,10 +123,10 @@ func (e EmbeddingDiskSync) agnosticFileFromEmbed(name string) string {
 
 // agnosticFileFromDisk takes an on disk path and returns the agnostic path
 // On Linux "/home/adam/.mwcli/mwdd/default/shellbox-timeline.yml" => "embed/shellbox-timeline.yml"
-// On Windows "C:\Users\adam\.mwcli\mwdd\default\shellbox-timeline.yml" => "embed/shellbox-timeline.yml"
+// On Windows "C:\Users\adam\.mwcli\mwdd\default\shellbox-timeline.yml" => "embed/shellbox-timeline.yml".
 func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
 	path := strings.TrimPrefix(name, e.DiskPath+string(os.PathSeparator))
-	// As the input is a disk path, we also need to normalize the seperator to the one used by embeds
+	// As the input is a disk path, we also need to normalize the separator to the one used by embeds
 	return strings.Replace(path, string(os.PathSeparator), embedSeperator, -1)
 }
 

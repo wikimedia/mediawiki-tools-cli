@@ -10,7 +10,7 @@ import (
 	"github.com/fatih/color"
 )
 
-// Game top-level structure for the game
+// Game top-level structure for the game.
 type Game struct {
 	Player      Actor
 	ColorScheme string

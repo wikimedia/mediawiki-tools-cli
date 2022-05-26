@@ -122,7 +122,7 @@ func (m MWDD) RmVolumes(dcVolumes []string) {
 	)
 }
 
-/*ServicesWithStatus lists services in the docker-compose setup that have the given status*/
+/*ServicesWithStatus lists services in the docker-compose setup that have the given status.*/
 func (m MWDD) ServicesWithStatus(statusFilter string) []string {
 	stdout, stderr, err := DockerComposeCommand{
 		MWDD:             m,

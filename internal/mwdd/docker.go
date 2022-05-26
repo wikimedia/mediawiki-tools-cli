@@ -26,7 +26,7 @@ type DockerExecCommand struct {
 	User                 string
 }
 
-/*CommandAndEnvFromArgs takes arguments passed to a cobra command and extracts any prefixing env var definitions from them*/
+/*CommandAndEnvFromArgs takes arguments passed to a cobra command and extracts any prefixing env var definitions from them.*/
 func CommandAndEnvFromArgs(args []string) ([]string, []string) {
 	extractedArgs := []string{}
 	extractedEnvs := []string{}

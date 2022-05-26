@@ -19,13 +19,13 @@ type JSONFile struct {
 	Contents map[string]interface{}
 }
 
-/*FileName the file name extracted from the full path*/
+/*FileName the file name extracted from the full path.*/
 func (j JSONFile) FileName() string {
 	_, file := path.Split(j.FilePath)
 	return file
 }
 
-/*EnsureExists makes sure the file exists on disk, will be empty json if created*/
+/*EnsureExists makes sure the file exists on disk, will be empty json if created.*/
 func (j JSONFile) EnsureExists() {
 	if _, err := os.Stat(j.FilePath); err != nil {
 		err := sudoaware.MkdirAll(strings.Replace(j.FilePath, j.FileName(), "", -1), 0o700)

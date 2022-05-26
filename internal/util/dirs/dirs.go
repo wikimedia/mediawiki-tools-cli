@@ -36,7 +36,7 @@ func EnsureExists(dirPath string) {
 	}
 }
 
-/*FilesIn list full paths of all files in a directory (recursively)*/
+/*FilesIn list full paths of all files in a directory (recursively).*/
 func FilesIn(dirPath string) []string {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
