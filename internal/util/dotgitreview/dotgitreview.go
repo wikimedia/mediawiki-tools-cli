@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 )
 
@@ -19,7 +18,10 @@ type GitReview struct {
 
 func ForCWD() (*GitReview, error) {
 	dir, _ := os.Getwd()
+	return ForDirectory(dir)
+}
 
+func ForDirectory(dir string) (*GitReview, error) {
 	for {
 		if _, err := os.Stat(dir + "/.gitreview"); os.IsNotExist(err) {
 			dir = filepath.Dir(dir)
@@ -31,10 +33,8 @@ func ForCWD() (*GitReview, error) {
 		}
 	}
 
-	gitReviewFile, err := ini.Load(dir + "/.gitreview")
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	// Ignore error, as it only happens if the file doesnt exist, and we check that
+	gitReviewFile, _ := ini.Load(dir + "/.gitreview")
 
 	gitReview := &GitReview{
 		Host:       gitReviewFile.Section("gerrit").Key("host").String(),
