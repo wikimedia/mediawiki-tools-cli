@@ -86,5 +86,8 @@ func RelengCliReleaseBinary(tagName string) (*gitlab.ReleaseLink, error) {
 
 func binaryName(tagName string) string {
 	// something like mw_v0.5.0_linux_386
+	if os == "windows" {
+		return "mw_" + tagName + "_" + os + "_" + arch + ".exe"
+	}
 	return "mw_" + tagName + "_" + os + "_" + arch
 }
