@@ -43,4 +43,6 @@
 ./shellbox-score.yml
 ./shellbox-syntaxhighlight.yml
 ./shellbox-timeline.yml
+./shellbox/media/Dockerfile
+./shellbox/media/config.json
 ./wait-for-it.sh
