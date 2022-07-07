@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   mediawiki:
-    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/stretch-php74-fpm:3.0.0}"
+    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s1}"
     restart: unless-stopped
     entrypoint: "/mwdd/entrypoint.sh"
     volumes:
