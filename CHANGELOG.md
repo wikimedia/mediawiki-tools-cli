@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.15.0
+- Update mediawiki image to `buster-php74-fpm:1.0.0-s1` which includes `composer` version `2.1.8` (T311821)
+
 ## v0.14.0
 
 - Add `config where` command to show where the config is located
