@@ -139,6 +139,7 @@ If you also want to publish them, you'll need something like this:
 make user="someUser" password="somePassword" docs-publish
 ```
 
-You can use a bot password for this https://mediawiki.org/wiki/Special:BotPasswords
+You can use a bot password for this https://mediawiki.org/wiki/Special:BotPasswords \
+The bot will need at least the `Basic rights` and `High-volume editing` permissions.
 
 In the future this would be done by CI!
