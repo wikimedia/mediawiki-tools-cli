@@ -43,7 +43,9 @@ test:
     image: golang:1.16.9
     artifacts:
       reports:
-        cobertura: coverage.xml
+        coverage_report: 
+          coverage_format: cobertura
+          path: coverage.xml
     before_script:
       - go install github.com/bwplotka/bingo@latest
       - bingo get
