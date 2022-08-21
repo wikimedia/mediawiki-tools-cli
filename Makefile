@@ -40,7 +40,7 @@ clean:
 
 .PHONY: test
 test: $(GOVVV) generate
-	go test -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
+	$(GOTESTSUM) --junitfile "junit.xml" -- -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
