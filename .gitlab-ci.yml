@@ -42,6 +42,10 @@ test:
     cache: {}
     image: golang:1.16.9
     artifacts:
+      when: always
+      paths:
+        - coverage.txt
+        - coverage.xml
       reports:
         coverage_report: 
           coverage_format: cobertura
@@ -51,6 +55,7 @@ test:
       - bingo get
     script:
       - make test
+    after_script:
       - go get github.com/boumenot/gocover-cobertura
       - gocover-cobertura < coverage.txt > coverage.xml
 
