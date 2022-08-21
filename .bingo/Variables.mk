@@ -35,6 +35,12 @@ $(GOLINT): $(BINGO_DIR)/golint.mod
 	@echo "(re)installing $(GOBIN)/golint-v0.0.0-20210508222113-6edffad5e616"
 	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=golint.mod -o=$(GOBIN)/golint-v0.0.0-20210508222113-6edffad5e616 "golang.org/x/lint/golint"
 
+GOTESTSUM := $(GOBIN)/gotestsum-v1.8.2
+$(GOTESTSUM): $(BINGO_DIR)/gotestsum.mod
+	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
+	@echo "(re)installing $(GOBIN)/gotestsum-v1.8.2"
+	@cd $(BINGO_DIR) && $(GO) build -mod=mod -modfile=gotestsum.mod -o=$(GOBIN)/gotestsum-v1.8.2 "gotest.tools/gotestsum"
+
 GOVVV := $(GOBIN)/govvv-v0.3.0
 $(GOVVV): $(BINGO_DIR)/govvv.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
