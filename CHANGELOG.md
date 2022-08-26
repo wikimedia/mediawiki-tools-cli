@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.16.0
+
+- Development environment:
+  - Fix `docker exec` commands always have a 0 exit code (T307583)
+  - Image updates:
+    - `eventgate-wikimedia`: `2022-05-10-150602-production` -> `2022-06-07-105344-production`
+    - `graphite-statsd`: `1.1.10-1` -> `1.1.10-3`
+
 ## v0.15.0
 
 - Fix `no binary release found` when running `mw update` on Windows (T309450)
