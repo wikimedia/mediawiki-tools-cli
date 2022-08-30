@@ -139,7 +139,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("phpmyadmin", "", []string{"ppma"}))
 	cmd.AddCommand(mwdd.NewServiceCmd("postgres", "", []string{}))
 
-	cmd.AddCommand(mwdd.NewServiceCmd("keycloak", "", []string{}))
+	cmd.AddCommand(NewKeycloakCmd())
 
 	cmd.AddCommand(NewShellboxCmd())
 

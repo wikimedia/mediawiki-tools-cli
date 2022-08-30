@@ -6,6 +6,12 @@
 ./files.txt
 ./graphite.yml
 ./keycloak.yml
+./keycloak/create_client.sh
+./keycloak/create_user.sh
+./keycloak/delete_client.sh
+./keycloak/delete_user.sh
+./keycloak/get_client_secret.sh
+./keycloak/login.sh
 ./mailhog.yml
 ./mediawiki-fresh.yml
 ./mediawiki-quibble.yml
