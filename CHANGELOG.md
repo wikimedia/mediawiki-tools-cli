@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.17.0 (unreleased)
+
+- Development environment:
+  - Speed up `restart` command by internally using `docker-compose restart` (T314894)
+
 ## v0.16.0
 
 - Development environment:

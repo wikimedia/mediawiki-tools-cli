@@ -102,6 +102,15 @@ func (m MWDD) Start(services []string) {
 	}.RunTTY()
 }
 
+/*Restart runs `docker-compose restart <services>`.*/
+func (m MWDD) Restart(services []string) {
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "restart",
+		CommandArguments: services,
+	}.RunTTY()
+}
+
 /*Rm runs `docker-compose rm --stop --force -v <services>`.*/
 func (m MWDD) Rm(services []string) {
 	DockerComposeCommand{
