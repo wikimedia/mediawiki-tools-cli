@@ -196,8 +196,7 @@ func NewMwddRestartCmd() *cobra.Command {
 		Use:   "restart",
 		Short: "Restart the running containers",
 		Run: func(cmd *cobra.Command, args []string) {
-			NewMwddStopCmd().Execute()
-			NewMwddStartCmd().Execute()
+			mwdd.DefaultForUser().Restart([]string{})
 		},
 	}
 }
