@@ -129,7 +129,11 @@ func tryToEmitEvents() {
 	}
 
 	// Try to emit events every 1 hour
-	if timers.IsHoursAgo(timers.Parse(c.TimerLastEmmitedEvent), 1) {
+	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmmitedEvent)
+	if parseError != nil {
+		logrus.Warn("Failed to parse last emitted event time")
+	}
+	if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
 		c.TimerLastEmmitedEvent = timers.String(timers.NowUTC())
 		eventlogging.EmitEvents()
 	}
@@ -169,7 +173,11 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 		// Check if timers trigger things
 		// Check for updates every 3 hours
-		if timers.IsHoursAgo(timers.Parse(c.TimerLastUpdateChecked), 3) {
+		lastUpdateCheckedTime, parseError := timers.Parse(c.TimerLastUpdateChecked)
+		if parseError != nil {
+			logrus.Warn("Failed to parse last update checked time")
+		}
+		if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
 			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
 			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
 			if canUpdate {
