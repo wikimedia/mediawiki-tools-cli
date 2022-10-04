@@ -1,6 +1,9 @@
 package strings
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestFilterMultiline(t *testing.T) {
 	type args struct {
@@ -49,6 +52,39 @@ func TestFilterMultiline(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := FilterMultiline(tt.args.s, tt.args.requiredMatches); got != tt.want {
 				t.Errorf("FilterMultiline() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSplitMultiline(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "Single line",
+			args: args{
+				s: "foo",
+			},
+			want: []string{"foo"},
+		},
+		{
+			name: "Two lines",
+			args: args{
+				s: "foo\nbar",
+			},
+			want: []string{"foo", "bar"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := SplitMultiline(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("SplitMultiline() = %v, want %v", got, tt.want)
 			}
 		})
 	}
