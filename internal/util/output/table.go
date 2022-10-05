@@ -13,6 +13,7 @@ SecurityCheckPlugin                  tests/integration/redos/test.php
 */
 import (
 	"fmt"
+	"io"
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
@@ -62,7 +63,7 @@ func stringSplitToInterfaceSplit(in []string) []interface{} {
 	return out
 }
 
-func (t *Table) Print() {
+func (t *Table) Print(writer io.Writer) {
 	var headerFmt table.Formatter
 	var columnFmt table.Formatter
 	if shouldColor() {
@@ -80,5 +81,6 @@ func (t *Table) Print() {
 		tbl.AddRow(row...)
 	}
 
+	tbl.WithWriter(writer)
 	tbl.Print()
 }

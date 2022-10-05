@@ -3,7 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 
 	"github.com/cli/cli/v2/pkg/jsoncolor"
@@ -23,7 +23,7 @@ func NewJSON(objects map[interface{}]interface{}, format string) *JSON {
 	}
 }
 
-func (j *JSON) Print() {
+func (j *JSON) Print(writer io.Writer) {
 	query, err := gojq.Parse(j.Format)
 	if err != nil {
 		logrus.Panic(err)
@@ -47,9 +47,9 @@ func (j *JSON) Print() {
 			}
 
 			if shouldColor() {
-				jsoncolor.Write(os.Stdout, strings.NewReader(interfaceToJSONString(v)), "  ")
+				jsoncolor.Write(writer, strings.NewReader(interfaceToJSONString(v)), "  ")
 			} else {
-				fmt.Printf("%v\n", interfaceToJSONString(v))
+				fmt.Fprintf(writer, "%v\n", interfaceToJSONString(v))
 			}
 		}
 	}

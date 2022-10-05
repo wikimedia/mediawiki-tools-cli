@@ -1,6 +1,7 @@
 package output
 
 import (
+	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -47,9 +48,9 @@ func (o *Output) Print(objects map[interface{}]interface{}) {
 	objects = Filter(objects, o.Filter)
 	switch o.Type {
 	case "json":
-		NewJSON(objects, o.Format).Print()
+		NewJSON(objects, o.Format).Print(os.Stdout)
 	case "template":
-		NewGoTmpl(objects, o.Format).Print()
+		NewGoTmpl(objects, o.Format).Print(os.Stdout)
 	case "table":
 		if o.TableBinding == nil {
 			logrus.Panic("Table binding is nil")
@@ -58,14 +59,14 @@ func (o *Output) Print(objects map[interface{}]interface{}) {
 			objects,
 			o.TableBinding.Headings,
 			o.TableBinding.ProcessObjects,
-		).Print()
+		).Print(os.Stdout)
 	case "ack":
 		if o.AckBinding == nil {
 			logrus.Panic("Ack binding is nil")
 		}
 		ack := Ack{}
 		o.AckBinding(objects, &ack)
-		ack.Print()
+		ack.Print(os.Stdout)
 	default:
 		logrus.Panic("Unknown output method: " + o.Type)
 	}

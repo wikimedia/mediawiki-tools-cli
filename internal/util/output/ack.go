@@ -16,6 +16,7 @@ Extension:AbuseFilter tests/phpunit/AbuseFilterSaveTest.php
 */
 import (
 	"fmt"
+	"io"
 
 	"github.com/fatih/color"
 )
@@ -52,24 +53,25 @@ func (a *Ack) AddItem(section string, item string) {
 	a.Sections[section] = append(a.Sections[section], item)
 }
 
-func (a *Ack) Print() {
+func (a *Ack) Print(writer io.Writer) {
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 
 	firstOneDone := false
 	for section, items := range a.Sections {
 		if firstOneDone {
-			fmt.Println("")
+			fmt.Fprintln(writer, "")
+			fmt.Fprintln(writer, "")
 		}
 		firstOneDone = true
 
 		if shouldColor() {
-			fmt.Print(headerFmt("%s:\n", section))
+			fmt.Fprint(writer, headerFmt("%s:\n", section))
 		} else {
-			fmt.Printf("%s:\n", section)
+			fmt.Fprintf(writer, "%s:\n", section)
 		}
 
 		for _, item := range items {
-			fmt.Printf("%s\n", item)
+			fmt.Fprintf(writer, "%s\n", item)
 		}
 	}
 }

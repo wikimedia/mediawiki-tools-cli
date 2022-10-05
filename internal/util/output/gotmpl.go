@@ -3,7 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"text/template"
 )
 
@@ -19,7 +19,7 @@ func NewGoTmpl(objects map[interface{}]interface{}, format string) *GoTmpl {
 	}
 }
 
-func (m *GoTmpl) Print() {
+func (m *GoTmpl) Print(writer io.Writer) {
 	tmpl := template.Must(template.
 		New("").
 		Funcs(map[string]interface{}{
@@ -33,7 +33,7 @@ func (m *GoTmpl) Print() {
 		}).
 		Parse(m.Format))
 	for _, change := range m.Objects {
-		_ = tmpl.Execute(os.Stdout, change)
-		fmt.Println()
+		_ = tmpl.Execute(writer, change)
+		fmt.Fprintln(writer)
 	}
 }
