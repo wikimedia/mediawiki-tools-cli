@@ -7,8 +7,9 @@ import (
 
 func TestGoTmpl_Print(t *testing.T) {
 	type fields struct {
-		Objects map[interface{}]interface{}
-		Format  string
+		Objects      map[interface{}]interface{}
+		Format       string
+		TopLevelKeys bool
 	}
 	tests := []struct {
 		name       string
@@ -39,12 +40,31 @@ func TestGoTmpl_Print(t *testing.T) {
 			},
 			wantWriter: "aString\nbString\n",
 		},
+		{
+			name: "simple table can keep keys",
+			fields: fields{
+				Objects:      provideMap("simpleTable"),
+				Format:       "{{.}}",
+				TopLevelKeys: true,
+			},
+			wantWriter: "map[k1:v1 k2:v2]\n",
+		},
+		{
+			name: "simple table can keep keys and be formatted",
+			fields: fields{
+				Objects:      provideMap("simpleTable"),
+				Format:       "{{.k1}}",
+				TopLevelKeys: true,
+			},
+			wantWriter: "v1\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &GoTmpl{
-				Objects: tt.fields.Objects,
-				Format:  tt.fields.Format,
+				Objects:      tt.fields.Objects,
+				Format:       tt.fields.Format,
+				TopLevelKeys: tt.fields.TopLevelKeys,
 			}
 			writer := &bytes.Buffer{}
 			m.Print(writer)

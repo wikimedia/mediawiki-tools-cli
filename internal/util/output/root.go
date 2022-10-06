@@ -9,12 +9,13 @@ import (
 )
 
 type Output struct {
-	Type             string
-	Filter           []string
-	Format           string
-	JSONTopLevelKeys bool
-	TableBinding     *TableBinding
-	AckBinding       AckBinding
+	Type   string
+	Filter []string
+	Format string
+	//TopLevelKeys is only used for json and gotmpl currently
+	TopLevelKeys bool
+	TableBinding *TableBinding
+	AckBinding   AckBinding
 }
 
 type TableBinding struct {
@@ -49,9 +50,9 @@ func (o *Output) Print(objects map[interface{}]interface{}) {
 	objects = Filter(objects, o.Filter)
 	switch o.Type {
 	case "json":
-		NewJSON(objects, o.Format, o.JSONTopLevelKeys).Print(os.Stdout)
+		NewJSON(objects, o.Format, o.TopLevelKeys).Print(os.Stdout)
 	case "template":
-		NewGoTmpl(objects, o.Format).Print(os.Stdout)
+		NewGoTmpl(objects, o.Format, o.TopLevelKeys).Print(os.Stdout)
 	case "table":
 		if o.TableBinding == nil {
 			logrus.Panic("Table binding is nil")
