@@ -9,11 +9,12 @@ import (
 )
 
 type Output struct {
-	Type         string
-	Filter       []string
-	Format       string
-	TableBinding *TableBinding
-	AckBinding   AckBinding
+	Type             string
+	Filter           []string
+	Format           string
+	JSONTopLevelKeys bool
+	TableBinding     *TableBinding
+	AckBinding       AckBinding
 }
 
 type TableBinding struct {
@@ -48,7 +49,7 @@ func (o *Output) Print(objects map[interface{}]interface{}) {
 	objects = Filter(objects, o.Filter)
 	switch o.Type {
 	case "json":
-		NewJSON(objects, o.Format).Print(os.Stdout)
+		NewJSON(objects, o.Format, o.JSONTopLevelKeys).Print(os.Stdout)
 	case "template":
 		NewGoTmpl(objects, o.Format).Print(os.Stdout)
 	case "table":
