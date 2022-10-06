@@ -16,16 +16,15 @@ func Filter(objects map[interface{}]interface{}, outputFilter []string) map[inte
 		for _, field := range fields {
 			reflectedValue = reflect.Indirect(reflectedValue).FieldByName(field)
 		}
-		return string(reflectedValue.String())
+		return reflectedValue.String()
 	}
 	for _, filter := range outputFilter {
 		filterSplit := strings.Split(filter, "=")
 		filterKey := filterSplit[0]
 		filterValue := filterSplit[1]
-		for i := len(objects) - 1; i >= 0; i-- {
-			change := objects[i]
-			reflectedChange := reflect.ValueOf(change)
-			fieldValue := getField(reflectedChange, filterKey)
+		for i, object := range objects {
+			reflectedValueOfObject := reflect.ValueOf(object)
+			fieldValue := getField(reflectedValueOfObject, filterKey)
 			keep := true
 			if filterValue[0:1] == "*" && filterValue[len(filterValue)-1:] == "*" {
 				lookFor := filterValue[1 : len(filterValue)-1]
