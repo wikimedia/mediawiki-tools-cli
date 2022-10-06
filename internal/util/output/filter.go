@@ -26,10 +26,9 @@ func Filter(objects map[interface{}]interface{}, outputFilter []string) map[inte
 			reflectedValueOfObject := reflect.ValueOf(object)
 			fieldValue := getField(reflectedValueOfObject, filterKey)
 			keep := true
-			if filterValue[0:1] == "*" && filterValue[len(filterValue)-1:] == "*" {
-				lookFor := filterValue[1 : len(filterValue)-1]
-				if !strings.Contains(fieldValue, lookFor) {
-					logrus.Tracef("Filtering out as '%s' not in '%s'", lookFor, fieldValue)
+
+			if isSimpleRegexStringMatcher(filterValue) {
+				if !simpleRegexStringMatch(fieldValue, filterValue) {
 					keep = false
 				}
 			} else if fieldValue != filterValue {
@@ -43,4 +42,26 @@ func Filter(objects map[interface{}]interface{}, outputFilter []string) map[inte
 		}
 	}
 	return objects
+}
+
+func isSimpleRegexStringMatcher(matcher string) bool {
+	return matcher[0:1] == "*" || matcher[len(matcher)-1:] == "*"
+}
+
+func simpleRegexStringMatch(in string, matcher string) bool {
+	if matcher[0:1] == "*" && matcher[len(matcher)-1:] == "*" {
+		// Both ends
+		lookFor := matcher[1 : len(matcher)-1]
+		return strings.Contains(in, lookFor)
+	} else if matcher[0:1] == "*" {
+		// Start only
+		lookFor := matcher[1:]
+		return strings.LastIndex(in, lookFor) == len(in)-len(lookFor)
+	} else if matcher[len(matcher)-1:] == "*" {
+		// End only
+		lookFor := matcher[0 : len(matcher)-1]
+		return strings.Index(in, lookFor) == 0
+	}
+	return false
+	panic("simpleRegexStringMatch called wity invalid matcher")
 }

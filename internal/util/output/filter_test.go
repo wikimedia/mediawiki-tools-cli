@@ -108,27 +108,21 @@ func TestFilter(t *testing.T) {
 			},
 			wantTopKeys: []string{"EntryOne"},
 		},
-		// TODO FIXME on *n* regex is currently supported
 		{
-			name: "TODO FIXME filter simple n* regex matching one top level string",
+			name: "filter simple n* regex matching one top level string",
 			args: args{
 				objects:      filterableMapFromFile("filter_test_1.json"),
 				outputFilter: []string{"TopLevelString=a*"},
 			},
-			// Should be this
-			// wantTopKeys: []string{"EntryOne"},
-			want: emptyMap(),
+			wantTopKeys: []string{"EntryOne"},
 		},
-		// TODO FIXME on *n* regex is currently supported
 		{
-			name: "TODO FIXME filter simple *n regex matching one top level string",
+			name: "filter simple *n regex matching one top level string",
 			args: args{
 				objects:      filterableMapFromFile("filter_test_1.json"),
 				outputFilter: []string{"TopLevelString=*String"},
 			},
-			// Should be this
-			// want: filterableMapFromFile("filter_test_1.json"),
-			want: emptyMap(),
+			want: filterableMapFromFile("filter_test_1.json"),
 		},
 		{
 			name: "filter all matching top level string",
@@ -165,6 +159,35 @@ func TestFilter(t *testing.T) {
 						t.Errorf("Filter() = %v, wanted a number of keys %v, not found %v", got, tt.wantTopKeys, wantedKey)
 					}
 				}
+			}
+		})
+	}
+}
+
+func Test_simpleRegexStringMatch(t *testing.T) {
+	type args struct {
+		in      string
+		matcher string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		// All around matchers
+		{name: "*n* no match", args: args{in: "aaa", matcher: "*b*"}, want: false},
+		{name: "*n* match", args: args{in: "aaa", matcher: "*a*"}, want: true},
+		// Starting matchers
+		{name: "*n no match", args: args{in: "aaa", matcher: "*b"}, want: false},
+		{name: "*n match", args: args{in: "aaa", matcher: "*a"}, want: true},
+		// Ending matchers
+		{name: "n* no match", args: args{in: "aaa", matcher: "b*"}, want: false},
+		{name: "n* match", args: args{in: "aaa", matcher: "a*"}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := simpleRegexStringMatch(tt.args.in, tt.args.matcher); got != tt.want {
+				t.Errorf("simpleRegexStringMatch() = %v, want %v", got, tt.want)
 			}
 		})
 	}
