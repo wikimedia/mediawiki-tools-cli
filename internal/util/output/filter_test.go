@@ -132,15 +132,28 @@ func TestFilter(t *testing.T) {
 			},
 			want: filterableMapFromFile("filter_test_1.json"),
 		},
-		// TODO FIXME Filtering on ints doesn't currently work
 		{
-			name: "TODO FIXME filter all matching top level int",
+			name: "filter all matching top level int",
 			args: args{
 				objects:      filterableMapFromFile("filter_test_1.json"),
 				outputFilter: []string{"TopLevelMatchingInt=99"},
 			},
-			// Should be this
-			// want: filterableMapFromFile("filter_test_1.json"),
+			want: filterableMapFromFile("filter_test_1.json"),
+		},
+		{
+			name: "filter none matching top level int",
+			args: args{
+				objects:      filterableMapFromFile("filter_test_1.json"),
+				outputFilter: []string{"TopLevelMatchingInt=999"},
+			},
+			want: emptyMap(),
+		},
+		{
+			name: "filter int with value that is not parseable",
+			args: args{
+				objects:      filterableMapFromFile("filter_test_1.json"),
+				outputFilter: []string{"TopLevelMatchingInt=xx"},
+			},
 			want: emptyMap(),
 		},
 	}
@@ -188,6 +201,50 @@ func Test_simpleRegexStringMatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := simpleRegexStringMatch(tt.args.in, tt.args.matcher); got != tt.want {
 				t.Errorf("simpleRegexStringMatch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getObjectValueAtKey(t *testing.T) {
+	type teststruct struct {
+		astring string
+		aint    int
+	}
+	ateststruct := teststruct{
+		astring: "foo",
+		aint:    99,
+	}
+	type args struct {
+		object interface{}
+		key    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want reflect.Value
+	}{
+		{
+			name: "string",
+			args: args{
+				object: ateststruct,
+				key:    "astring",
+			},
+			want: reflect.ValueOf("foo"),
+		},
+		{
+			name: "int",
+			args: args{
+				object: ateststruct,
+				key:    "aint",
+			},
+			want: reflect.ValueOf(99),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getValueAtKey(tt.args.object, tt.args.key); got.Type() != tt.want.Type() && got.String() != tt.want.String() {
+				t.Errorf("getValueAtKey() = %v(%v), want %v(%v)", got, got.Type(), tt.want, tt.want.Type())
 			}
 		})
 	}

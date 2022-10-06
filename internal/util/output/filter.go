@@ -2,38 +2,36 @@ package output
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
-func Filter(objects map[interface{}]interface{}, outputFilter []string) map[interface{}]interface{} {
-	if len(outputFilter) == 0 {
+func Filter(objects map[interface{}]interface{}, filterList []string) map[interface{}]interface{} {
+	if len(filterList) == 0 {
 		return objects
 	}
-	getField := func(reflectedValue reflect.Value, filter string) string {
-		fields := strings.Split(filter, ".")
-		for _, field := range fields {
-			reflectedValue = reflect.Indirect(reflectedValue).FieldByName(field)
-		}
-		return reflectedValue.String()
-	}
-	for _, filter := range outputFilter {
-		filterSplit := strings.Split(filter, "=")
-		filterKey := filterSplit[0]
-		filterValue := filterSplit[1]
+	for _, filter := range filterList {
+		filterKey, filterValue := filterKeyAndValue(filter)
 		for i, object := range objects {
-			reflectedValueOfObject := reflect.ValueOf(object)
-			fieldValue := getField(reflectedValueOfObject, filterKey)
-			keep := true
-
-			if isSimpleRegexStringMatcher(filterValue) {
-				if !simpleRegexStringMatch(fieldValue, filterValue) {
-					keep = false
+			reflectValue := getValueAtKey(object, filterKey)
+			keep := reflectValue.IsValid()
+			if keep {
+				switch reflectValue.Type().String() {
+				case "string":
+					stringValue := reflectValue.String()
+					if isSimpleRegexStringMatcher(filterValue) {
+						if !simpleRegexStringMatch(stringValue, filterValue) {
+							keep = false
+						}
+					} else if stringValue != filterValue {
+						keep = false
+					}
+				case "int":
+					intFilter, _ := strconv.ParseInt(filterValue, 0, 64)
+					if reflectValue.Int() != intFilter {
+						keep = false
+					}
 				}
-			} else if fieldValue != filterValue {
-				logrus.Tracef("Filtering out as '%s' doesn't match '%s'", filterValue, fieldValue)
-				keep = false
 			}
 
 			if !keep {
@@ -42,6 +40,21 @@ func Filter(objects map[interface{}]interface{}, outputFilter []string) map[inte
 		}
 	}
 	return objects
+}
+
+func getValueAtKey(object interface{}, key string) reflect.Value {
+	reflectedValue := reflect.ValueOf(object)
+	fields := strings.Split(key, ".")
+	// Look down through each key split from . recursively
+	for _, field := range fields {
+		reflectedValue = reflect.Indirect(reflectedValue).FieldByName(field)
+	}
+	return reflectedValue
+}
+
+func filterKeyAndValue(userInput string) (key string, value string) {
+	split := strings.Split(userInput, "=")
+	return split[0], split[1]
 }
 
 func isSimpleRegexStringMatcher(matcher string) bool {
@@ -62,6 +75,5 @@ func simpleRegexStringMatch(in string, matcher string) bool {
 		lookFor := matcher[0 : len(matcher)-1]
 		return strings.Index(in, lookFor) == 0
 	}
-	return false
 	panic("simpleRegexStringMatch called wity invalid matcher")
 }
