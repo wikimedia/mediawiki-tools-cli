@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Masterminds/sprig"
@@ -16,6 +17,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gitlab"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/help"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/tools"
@@ -60,6 +62,12 @@ func NewMwCliCmd() *cobra.Command {
 		},
 	}
 
+	defaultHelpFunc := mwcliCmd.HelpFunc()
+	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
+		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		defaultHelpFunc(c, a)
+	})
+
 	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
 	mwcliCmd.PersistentFlags().CountVarP(&Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 
@@ -81,6 +89,7 @@ func NewMwCliCmd() *cobra.Command {
 		wiki.NewWikiCmd(),
 		ziki.NewZikiCmd(),
 		quip.NewQuipCmd(),
+		help.NewOutputTopicCmd(),
 	}...)
 
 	return mwcliCmd
@@ -205,6 +214,8 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	DoTelemetry = c.Telemetry == "yes"
 
 	rootCmd := NewMwCliCmd()
+	// Override the UsageTemplate so that:
+	// - Indenting of usage examples is consistent automatically
 	cobra.AddTemplateFuncs(sprig.TxtFuncMap())
 	rootCmd.SetUsageTemplate(usageTemplate)
 
