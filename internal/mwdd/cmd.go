@@ -21,6 +21,9 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, long st
 		RunE:    nil,
 	}
 
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
+
 	if len(long) > 0 {
 		cmd.Long = cli.RenderMarkdown(long)
 	}
@@ -37,17 +40,20 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, long st
 
 /*NewServicesCmd a new command for a set of grouped services, such as various flavours of shellbox.*/
 func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     groupName,
 		Short:   fmt.Sprintf("%s services", groupName),
 		Long:    cli.RenderMarkdown(long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
+	return cmd
 }
 
 func NewServiceCreateCmd(name string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "create",
 		Short: fmt.Sprintf("Create the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -57,10 +63,13 @@ func NewServiceCreateCmd(name string) *cobra.Command {
 			DefaultForUser().UpDetached(services)
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewServiceDestroyCmd(name string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "destroy",
 		Short: fmt.Sprintf("Destroy the %s containers", name),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -75,10 +84,13 @@ func NewServiceDestroyCmd(name string) *cobra.Command {
 			}
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewServiceStopCmd(name string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "stop",
 		Aliases: []string{"suspend"},
 		Short:   fmt.Sprintf("Stop the %s containers", name),
@@ -89,10 +101,13 @@ func NewServiceStopCmd(name string) *cobra.Command {
 			DefaultForUser().Stop(services)
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewServiceStartCmd(name string) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "start",
 		Aliases: []string{"resume"},
 		Short:   fmt.Sprintf("Start the %s containers", name),
@@ -103,6 +118,9 @@ func NewServiceStartCmd(name string) *cobra.Command {
 			DefaultForUser().Start(services)
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewServiceExecCmd(name string, service string) *cobra.Command {

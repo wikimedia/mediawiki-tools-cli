@@ -26,6 +26,8 @@ func NewGitlabCmd() *cobra.Command {
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.Aliases = []string{"glab", "gl"}
 
+	glabCommand.Annotations["group"] = "Service"
+
 	defaultHelpFunc := glabCommand.HelpFunc()
 	glabCommand.SetHelpFunc(func(c *cobra.Command, a []string) {
 		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)

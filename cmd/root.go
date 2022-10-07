@@ -29,6 +29,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
 
@@ -209,7 +210,36 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	rootCmd := NewMwCliCmd()
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
+	// - Commands can be split into sections based on annotations
 	cobra.AddTemplateFuncs(sprig.TxtFuncMap())
+	type CommandGroup struct {
+		Name     string
+		Commands []*cobra.Command
+	}
+	cobra.AddTemplateFunc("commandGroups", func(commands []*cobra.Command) map[string]CommandGroup {
+		collectCommandsInGroup := func(commands []*cobra.Command, group string) []*cobra.Command {
+			collected := []*cobra.Command{}
+			for _, command := range commands {
+				if command.Annotations["group"] == group {
+					collected = append(collected, command)
+				}
+			}
+			return collected
+		}
+		groupNames := []string{}
+		groups := make(map[string]CommandGroup)
+		for _, command := range commands {
+			groupAnnotation := command.Annotations["group"]
+			if groupAnnotation != "" && !stringsutil.StringInSlice(groupAnnotation, groupNames) {
+				groupNames = append(groupNames, groupAnnotation)
+				groups[groupAnnotation] = CommandGroup{
+					Name:     groupAnnotation,
+					Commands: collectCommandsInGroup(commands, groupAnnotation),
+				}
+			}
+		}
+		return groups
+	})
 	rootCmd.SetUsageTemplate(usageTemplate)
 
 	// Execute the root command
