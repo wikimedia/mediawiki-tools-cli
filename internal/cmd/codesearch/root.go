@@ -78,7 +78,7 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 			out.Print(objects)
 		},
 	}
-	out.AddFlags(cmd, "table")
+	out.AddFlags(cmd, string(output.TableType))
 	cmd.Flags().StringVarP(&searchType, "type", "t", "search", "Type of search to perform: search|core|extensions|skins|things|bundeled|deployed|libraries|operations|puppet|ooui|milkshake|pywikibot|services|analytics")
 	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "Ignore case in search")
 	return cmd

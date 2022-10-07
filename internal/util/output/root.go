@@ -18,6 +18,24 @@ type Output struct {
 	AckBinding   AckBinding
 }
 
+var AllOutputTypes = []OutputType{
+	JSONType,
+	GoTmplType,
+	TableType,
+	AckType,
+}
+
+// OutputType
+type OutputType string
+
+// These are the different output types.
+const (
+	JSONType   OutputType = "json"
+	GoTmplType OutputType = "template"
+	TableType  OutputType = "table"
+	AckType    OutputType = "ack"
+)
+
 type TableBinding struct {
 	Headings       []string
 	ProcessObjects func(map[interface{}]interface{}, *Table)
@@ -25,23 +43,23 @@ type TableBinding struct {
 
 type AckBinding func(map[interface{}]interface{}, *Ack)
 
-func (o *Output) OutputTypes() []string {
-	outputTypes := []string{"json", "template"}
+func (o *Output) ConfiguredOutputTypes() []string {
+	outputTypes := []string{string(JSONType), string(GoTmplType)}
 	if o.TableBinding != nil {
-		outputTypes = append(outputTypes, "table")
+		outputTypes = append(outputTypes, string(TableType))
 	}
 	if o.AckBinding != nil {
-		outputTypes = append(outputTypes, "ack")
+		outputTypes = append(outputTypes, string(AckType))
 	}
 	return outputTypes
 }
 
-func (o *Output) OutputTypesString() string {
-	return strings.Join(o.OutputTypes(), ", ")
+func (o *Output) ConfiguredOutputTypesString() string {
+	return strings.Join(o.ConfiguredOutputTypes(), ", ")
 }
 
 func (o *Output) AddFlags(cmd *cobra.Command, defaultOutput string) {
-	cmd.Flags().StringVarP(&o.Type, "output", "", defaultOutput, "How to output the results "+o.OutputTypesString())
+	cmd.Flags().StringVarP(&o.Type, "output", "", defaultOutput, "How to output the results "+o.ConfiguredOutputTypesString())
 	cmd.Flags().StringVarP(&o.Format, "format", "", "", "Format the specified output")
 	cmd.Flags().StringSliceVarP(&o.Filter, "filter", "f", []string{}, "Filter output based on conditions provided")
 }
@@ -49,27 +67,29 @@ func (o *Output) AddFlags(cmd *cobra.Command, defaultOutput string) {
 func (o *Output) Print(objects map[interface{}]interface{}) {
 	objects = Filter(objects, o.Filter)
 	switch o.Type {
-	case "json":
+	case string(JSONType):
 		NewJSON(objects, o.Format, o.TopLevelKeys).Print(os.Stdout)
-	case "template":
+	case string(GoTmplType):
 		NewGoTmpl(objects, o.Format, o.TopLevelKeys).Print(os.Stdout)
-	case "table":
+	case string(TableType):
 		if o.TableBinding == nil {
-			logrus.Panic("Table binding is nil")
+			logrus.Trace("TableBinding is nil")
+			logrus.Error("Output type not supported for current operation.")
 		}
 		TableFromObjects(
 			objects,
 			o.TableBinding.Headings,
 			o.TableBinding.ProcessObjects,
 		).Print(os.Stdout)
-	case "ack":
+	case string(AckType):
 		if o.AckBinding == nil {
-			logrus.Panic("Ack binding is nil")
+			logrus.Trace("AckBinding is nil")
+			logrus.Error("Output type not supported for current operation.")
 		}
 		ack := Ack{}
 		o.AckBinding(objects, &ack)
 		ack.Print(os.Stdout)
 	default:
-		logrus.Panic("Unknown output method: " + o.Type)
+		logrus.Errorf("Unknown output type: %v. Allowed types are: %v", o.Type, AllOutputTypes)
 	}
 }

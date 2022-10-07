@@ -32,7 +32,7 @@ func NewVersionCmd() *cobra.Command {
 		},
 	}
 
-	out.AddFlags(cmd, "table")
+	out.AddFlags(cmd, string(output.TableType))
 	return cmd
 }
 
