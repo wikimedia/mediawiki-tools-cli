@@ -4,8 +4,6 @@ import (
 	"net"
 )
 
-var ipv4AddressOverride = ""
-
 /*IPs ... */
 func IPs(host string) ([]string, error) {
 	// Resolver https://gist.github.com/aojea/94f6f483173641647c731f582e52f0b0#file-resolve_localhost-go-L11
@@ -41,9 +39,6 @@ func getFirstOfType(addrs []string, t int) *string {
 
 /*IPv4 ...*/
 func IPv4(host string) string {
-	if ipv4AddressOverride != "" {
-		return ipv4AddressOverride
-	}
 	addrs, _ := IPs(host)
 	return *getFirstOfType(addrs, 4)
 }

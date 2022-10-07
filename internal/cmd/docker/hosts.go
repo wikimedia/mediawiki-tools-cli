@@ -22,11 +22,13 @@ func NewHostsCmd() *cobra.Command {
 }
 
 func NewHostsAddCmd() *cobra.Command {
-	return &cobra.Command{
+	IP := ""
+	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Adds development environment hosts into your system hosts file (might need sudo)",
 		Run: func(cmd *cobra.Command, args []string) {
 			changeResult := hosts.AddHosts(
+				IP,
 				append(
 					[]string{
 						// TODO generate these by reading the yml files?
@@ -41,20 +43,26 @@ func NewHostsAddCmd() *cobra.Command {
 					},
 					mwdd.DefaultForUser().UsedHosts()...,
 				),
+				true,
 			)
 			handleChangeResult(changeResult)
 		},
 	}
+	cmd.Flags().StringVar(&IP, "ip", hosts.LocalIP(), "IP address to interact with hosts for")
+	return cmd
 }
 
 func NewHostsRemoveCmd() *cobra.Command {
-	return &cobra.Command{
+	IP := ""
+	cmd := &cobra.Command{
 		Use:   "remove",
 		Short: "Removes development environment hosts from your system hosts file (might need sudo)",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleChangeResult(hosts.RemoveHostsWithSuffix("mwdd.localhost"))
+			handleChangeResult(hosts.RemoveHostsWithSuffix(IP, "mwdd.localhost", true))
 		},
 	}
+	cmd.Flags().StringVar(&IP, "ip", hosts.LocalIP(), "IP address to interact with hosts for")
+	return cmd
 }
 
 func handleChangeResult(result hosts.ChangeResult) {

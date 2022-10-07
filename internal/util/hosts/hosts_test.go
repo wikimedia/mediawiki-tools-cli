@@ -25,9 +25,9 @@ func writeContentToTmpFile(content string) string {
 }
 
 func TestAddHosts(t *testing.T) {
-	ipv4AddressOverride = "127.0.0.1"
 	type args struct {
 		toAdd []string
+		IP    string
 	}
 	tests := []struct {
 		startingContent string
@@ -39,6 +39,7 @@ func TestAddHosts(t *testing.T) {
 			name:            "Empty: Add single: 1.mwcli.test",
 			startingContent: "",
 			args: args{
+				IP:    "127.0.0.1",
 				toAdd: []string{"1.mwcli.test"},
 			},
 			want: ChangeResult{
@@ -49,9 +50,24 @@ func TestAddHosts(t *testing.T) {
 			},
 		},
 		{
+			name:            "Empty: Add single: 1.mwcli.test with alternative IP",
+			startingContent: "",
+			args: args{
+				IP:    "1.2.3.4",
+				toAdd: []string{"1.mwcli.test"},
+			},
+			want: ChangeResult{
+				Success:   true,
+				Altered:   true,
+				Content:   "1.2.3.4          1.mwcli.test\n",
+				WriteFile: "",
+			},
+		},
+		{
 			name:            "Empty: Add two: 1.mwcli.test, 2.mwcli.test",
 			startingContent: "",
 			args: args{
+				IP:    "127.0.0.1",
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
 			want: ChangeResult{
@@ -65,6 +81,7 @@ func TestAddHosts(t *testing.T) {
 			name:            "singleLocalHost: Add two: 1.mwcli.test, 2.mwcli.test",
 			startingContent: singleLocalHost,
 			args: args{
+				IP:    "127.0.0.1",
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
 			want: ChangeResult{
@@ -78,6 +95,7 @@ func TestAddHosts(t *testing.T) {
 			name:            "singleOtherHost: Add two: 1.mwcli.test, 2.mwcli.test",
 			startingContent: singleOtherHost,
 			args: args{
+				IP:    "127.0.0.1",
 				toAdd: []string{"1.mwcli.test", "2.mwcli.test"},
 			},
 			want: ChangeResult{
@@ -96,7 +114,7 @@ func TestAddHosts(t *testing.T) {
 			tt.want.WriteFile = testFile
 
 			// Perform the test!
-			if got := AddHosts(tt.args.toAdd); !reflect.DeepEqual(got, tt.want) {
+			if got := AddHosts(tt.args.IP, tt.args.toAdd, true); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AddHosts() = %v, want %v", got, tt.want)
 			}
 		})
@@ -104,9 +122,9 @@ func TestAddHosts(t *testing.T) {
 }
 
 func TestRemoveHostsWithSuffix(t *testing.T) {
-	ipv4AddressOverride = "127.0.0.1"
 	type args struct {
 		hostSuffix string
+		IP         string
 	}
 	tests := []struct {
 		startingContent string
@@ -118,6 +136,7 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			name:            "Remove mwcli.test suffix, resulting in same content",
 			startingContent: singleLocalHost,
 			args: args{
+				IP:         "127.0.0.1",
 				hostSuffix: "mwcli.test",
 			},
 			want: ChangeResult{
@@ -131,6 +150,7 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			name:            "Remove mwcli.test suffix, removing 2, resulting in nothing",
 			startingContent: twoHostsToRemoveOnly,
 			args: args{
+				IP:         "127.0.0.1",
 				hostSuffix: "mwcli.test",
 			},
 			want: ChangeResult{
@@ -144,6 +164,7 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			name:            "Remove mwcli.test suffix, removing 2, resulting in 1 left",
 			startingContent: twoHostsToRemoveFromLocal,
 			args: args{
+				IP:         "127.0.0.1",
 				hostSuffix: "mwcli.test",
 			},
 			want: ChangeResult{
@@ -162,7 +183,7 @@ func TestRemoveHostsWithSuffix(t *testing.T) {
 			tt.want.WriteFile = testFile
 
 			// Perform the test!
-			if got := RemoveHostsWithSuffix(tt.args.hostSuffix); !reflect.DeepEqual(got, tt.want) {
+			if got := RemoveHostsWithSuffix(tt.args.IP, tt.args.hostSuffix, true); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RemoveHostsWithSuffix() = %v, want %v", got, tt.want)
 			}
 		})
