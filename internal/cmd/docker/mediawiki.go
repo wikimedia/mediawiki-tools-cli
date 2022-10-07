@@ -211,6 +211,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewMediaWikiInstallCmd())
 	cmd.AddCommand(NewMediaWikiComposerCmd())
 	cmd.AddCommand(NewMediaWikiExecCmd())
+	cmd.AddCommand(NewMediaWikiSitesCmd())
 	return cmd
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/env"
@@ -164,6 +165,8 @@ func NewMwddDestroyCmd() *cobra.Command {
 		Short: "Destroy all containers and data",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().DownWithVolumesAndOrphans()
+			logrus.Debug("Removing used hosts file")
+			mwdd.DefaultForUser().RemoveUsedHostsIfExists()
 		},
 	}
 }
