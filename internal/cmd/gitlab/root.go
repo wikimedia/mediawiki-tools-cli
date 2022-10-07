@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/pflag"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 func NewGitlabCmd() *cobra.Command {
@@ -47,8 +48,7 @@ func NewGitlabCmd() *cobra.Command {
 	}
 
 	for _, command := range glabCommand.Commands() {
-		_, shouldHide := findInSlice(toHide, command.Name())
-		if shouldHide {
+		if stringsutil.StringInSlice(command.Name(), toHide) {
 			glabCommand.RemoveCommand(command)
 		}
 
@@ -59,15 +59,6 @@ func NewGitlabCmd() *cobra.Command {
 	}
 
 	return glabCommand
-}
-
-func findInSlice(slice []string, val string) (int, bool) {
-	for i, item := range slice {
-		if item == val {
-			return i, true
-		}
-	}
-	return -1, false
 }
 
 func glabVersion() string {
