@@ -74,7 +74,7 @@ func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
 			break
 		}
 		if err, isErr := v.(error); isErr {
-			logrus.Fatalln(err)
+			logrus.Errorln(err)
 		}
 
 		if shouldColor() {

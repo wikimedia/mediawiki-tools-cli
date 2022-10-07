@@ -2,7 +2,10 @@ package output
 
 import (
 	"bytes"
+	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestJSON_Print(t *testing.T) {
@@ -12,9 +15,10 @@ func TestJSON_Print(t *testing.T) {
 		TopLevelKeys bool
 	}
 	tests := []struct {
-		name       string
-		fields     fields
-		wantWriter string
+		name                  string
+		fields                fields
+		wantWriter            string
+		wantLogWriterContains string
 	}{
 		{
 			name: "Empty map is empty output",
@@ -36,6 +40,15 @@ func TestJSON_Print(t *testing.T) {
 				`{"TopLevelMatchingInt":99,"TopLevelMatchingString":"match","TopLevelString":"bString","TopLevelStruct":{"SecondLevelString":"bString","SecondLevelStructList":[{"ThirdLevelInt":69,"ThirdLevelList":["cat","goat"],"ThirdLevelString":"bString"}]}}` + "\n",
 		},
 		{
+			name: "Interesting map, with format applied",
+			fields: fields{
+				Objects:      provideMap("test1.json"),
+				Format:       ".[\"TopLevelString\"]",
+				TopLevelKeys: false,
+			},
+			wantWriter: "\"aString\"\n\"bString\"\n",
+		},
+		{
 			name: "Simple table has output",
 			fields: fields{
 				Objects:      provideMap("simpleTable"),
@@ -43,6 +56,25 @@ func TestJSON_Print(t *testing.T) {
 				TopLevelKeys: true,
 			},
 			wantWriter: `{"k1":"v1","k2":"v2"}` + "\n",
+		},
+		{
+			name: "Simple table has output, and format can be applied ..",
+			fields: fields{
+				Objects:      provideMap("simpleTable"),
+				Format:       ".[]",
+				TopLevelKeys: true,
+			},
+			wantWriter: "\"v1\"\n\"v2\"\n",
+		},
+		{
+			name: "Simple table has output, bad format",
+			fields: fields{
+				Objects:      provideMap("simpleTable"),
+				Format:       "hdsa0jdsa",
+				TopLevelKeys: true,
+			},
+			wantWriter:            "{}\n",
+			wantLogWriterContains: "function not defined: hdsa0jdsa",
 		},
 	}
 	for _, tt := range tests {
@@ -53,9 +85,14 @@ func TestJSON_Print(t *testing.T) {
 				TopLevelKeys: tt.fields.TopLevelKeys,
 			}
 			writer := &bytes.Buffer{}
+			logWriter := &bytes.Buffer{}
+			logrus.SetOutput(logWriter)
 			j.Print(writer)
 			if gotWriter := writer.String(); gotWriter != tt.wantWriter {
 				t.Errorf("JSON.Print()...\n%v\n...want...\n%v\n...", gotWriter, tt.wantWriter)
+			}
+			if gotLogWriterWriter := logWriter.String(); tt.wantLogWriterContains != "" && !strings.Contains(gotLogWriterWriter, tt.wantLogWriterContains) {
+				t.Errorf("JSON.Print() log output...\n%v\n...should contain...\n%v\n...", gotLogWriterWriter, tt.wantLogWriterContains)
 			}
 		})
 	}
