@@ -1,5 +1,7 @@
 package ziki
 
+import "math/rand"
+
 // Actor
 // Used for both the player and all npcs
 // By convention, if a variable name is "player", it refers
@@ -16,6 +18,10 @@ type Actor struct {
 type Actors []Actor
 
 func (a *Actor) Act(actionOption int) (int, string) {
+	if actionOption > len(a.Actions) {
+		randAction := a.Actions[rand.Intn(len(a.Actions)-1)]
+		return Actions[randAction].Use(), "no action"
+	}
 	action := a.Actions[actionOption]
 	return Actions[action].Use(), Actions[action].Name
 }
