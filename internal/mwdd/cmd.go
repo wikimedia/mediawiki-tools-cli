@@ -17,9 +17,12 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, long st
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   fmt.Sprintf("%s service", commandName),
-		Long:    cli.RenderMarkdown(long),
 		Aliases: aliases,
 		RunE:    nil,
+	}
+
+	if len(long) > 0 {
+		cmd.Long = cli.RenderMarkdown(long)
 	}
 
 	cmd.AddCommand(NewServiceCreateCmd(serviceName))

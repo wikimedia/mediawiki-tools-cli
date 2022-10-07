@@ -36,6 +36,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
+	github.com/muesli/termenv v0.9.0
 	github.com/profclems/glab v1.22.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.0.1

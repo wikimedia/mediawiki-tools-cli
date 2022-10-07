@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/glamour"
+	"github.com/muesli/termenv"
 	terminal "golang.org/x/term"
 )
 
@@ -18,9 +19,18 @@ func RenderMarkdown(markdownIn string) string {
 
 	width, _, _ := terminal.GetSize(0)
 
+	// Logic copied from glamour.WithAutoStyle
+	style := glamour.LightStyleConfig
+	if termenv.HasDarkBackground() {
+		style = glamour.DarkStyleConfig
+	}
+
+	// Styletweak: Avoid a 2 char margin along the "document" on output
+	uintPtr := func(u uint) *uint { return &u }
+	style.Document.Margin = uintPtr(0)
+
 	r, _ := glamour.NewTermRenderer(
-		// detect background color and pick either the default dark or light theme
-		glamour.WithAutoStyle(),
+		glamour.WithStyles(style),
 		// wrap output at specific width
 		glamour.WithWordWrap(width),
 	)
