@@ -6,7 +6,6 @@ import (
 )
 
 func TestFilter(t *testing.T) {
-
 	type args struct {
 		objects      map[interface{}]interface{}
 		outputFilter []string
@@ -27,7 +26,7 @@ func TestFilter(t *testing.T) {
 			want: provideMap("test1.json"),
 		},
 		{
-			name: "filter on non existant keys and value shows returns nothing",
+			name: "filter on non existent keys and value shows returns nothing",
 			args: args{
 				objects:      provideMap("test1.json"),
 				outputFilter: []string{"xxx=yyy"},

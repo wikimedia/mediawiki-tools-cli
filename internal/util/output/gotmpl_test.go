@@ -17,7 +17,7 @@ func TestGoTmpl_Print(t *testing.T) {
 		wantWriter string
 	}{
 		{
-			name: "emtpy everything is empty",
+			name: "empty everything is empty",
 			fields: fields{
 				Objects: provideMap("empty"),
 				Format:  "",
@@ -70,7 +70,6 @@ func TestGoTmpl_Print(t *testing.T) {
 			m.Print(writer)
 			if gotWriter := writer.String(); gotWriter != tt.wantWriter {
 				t.Errorf("GoTmpl.Print()...\n%v\n...want...\n%v\n...", gotWriter, tt.wantWriter)
-
 			}
 		})
 	}

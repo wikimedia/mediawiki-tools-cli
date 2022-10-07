@@ -12,28 +12,28 @@ type Output struct {
 	Type   string
 	Filter []string
 	Format string
-	//TopLevelKeys is only used for json and gotmpl currently
+	// TopLevelKeys is only used for json and gotmpl currently
 	TopLevelKeys bool
 	TableBinding *TableBinding
 	AckBinding   AckBinding
 }
 
-var AllOutputTypes = []OutputType{
+var AllTypes = []Type{
 	JSONType,
 	GoTmplType,
 	TableType,
 	AckType,
 }
 
-// OutputType
-type OutputType string
+// Type.
+type Type string
 
 // These are the different output types.
 const (
-	JSONType   OutputType = "json"
-	GoTmplType OutputType = "template"
-	TableType  OutputType = "table"
-	AckType    OutputType = "ack"
+	JSONType   Type = "json"
+	GoTmplType Type = "template"
+	TableType  Type = "table"
+	AckType    Type = "ack"
 )
 
 type TableBinding struct {
@@ -90,6 +90,6 @@ func (o *Output) Print(objects map[interface{}]interface{}) {
 		o.AckBinding(objects, &ack)
 		ack.Print(os.Stdout)
 	default:
-		logrus.Errorf("Unknown output type: %v. Allowed types are: %v", o.Type, AllOutputTypes)
+		logrus.Errorf("Unknown output type: %v. Allowed types are: %v", o.Type, AllTypes)
 	}
 }

@@ -40,7 +40,7 @@ func versionOutput() output.Output {
 	return output.Output{
 		TopLevelKeys: true,
 		TableBinding: &output.TableBinding{
-			Headings: []string{"Version Infomation", "Value"},
+			Headings: []string{"Version Information", "Value"},
 			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
 				for key, value := range objects {
 					table.AddRowS(fmt.Sprintf("%s", key), fmt.Sprintf("%s", value))
@@ -49,7 +49,7 @@ func versionOutput() output.Output {
 		},
 		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
 			for key, value := range objects {
-				ack.AddItem("Version Infomation", fmt.Sprintf("%s: %s", key, value))
+				ack.AddItem("Version Information", fmt.Sprintf("%s: %s", key, value))
 			}
 		},
 	}

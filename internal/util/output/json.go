@@ -26,7 +26,7 @@ func NewJSON(objects map[interface{}]interface{}, format string, topLevelKeys bo
 }
 
 func (j *JSON) Print(writer io.Writer) {
-	if j.TopLevelKeys == true {
+	if j.TopLevelKeys {
 		printWithKeys(j, writer)
 	} else {
 		printIgnoringKeys(j, writer)
