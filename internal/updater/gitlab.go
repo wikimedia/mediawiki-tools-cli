@@ -6,12 +6,12 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
-	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 )
 
 func setLogLevelForSelfUpdate() {
-	if logrus.GetLevel() >= logrus.DebugLevel {
+	if cli.Opts.Verbosity > 0 {
 		selfupdate.EnableLog()
 	}
 }

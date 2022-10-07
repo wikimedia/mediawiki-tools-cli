@@ -35,18 +35,12 @@ import (
 //go:embed templates/usage.txt
 var usageTemplate string
 
-// Verbosity set by the user. This is a modifier that can be added to the default logrus level.
-var Verbosity int
-
-// DoTelemetry do we want to do telemetry?
-var DoTelemetry bool
-
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
 		Use:   "mw",
 		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + Verbosity))
+			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
 			logrus.SetFormatter(&logrus.TextFormatter{
 				DisableTimestamp:       true,
 				DisableLevelTruncation: true,
@@ -56,7 +50,7 @@ func NewMwCliCmd() *cobra.Command {
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
-			if DoTelemetry {
+			if cli.Opts.Telemetry {
 				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
 			}
 		},
@@ -69,7 +63,7 @@ func NewMwCliCmd() *cobra.Command {
 	})
 
 	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
-	mwcliCmd.PersistentFlags().CountVarP(&Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
+	mwcliCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 
 	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
@@ -210,8 +204,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		cli.MwddIsDevAlias = true
 	}
 
-	// TODO possibly move this to cli.DoTelemetry (along with verbosity?)
-	DoTelemetry = c.Telemetry == "yes"
+	cli.Opts.Telemetry = c.Telemetry == "yes"
 
 	rootCmd := NewMwCliCmd()
 	// Override the UsageTemplate so that:
@@ -224,7 +217,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 	// Try and emit events after main command execution
 	// TODO perhaps moved this to a POST command run thing
-	if DoTelemetry {
+	if cli.Opts.Telemetry {
 		tryToEmitEvents()
 	}
 

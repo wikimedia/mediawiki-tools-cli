@@ -3,7 +3,6 @@ package version
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -17,7 +16,7 @@ func NewVersionCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			objects := make(map[interface{}]interface{}, 7)
 
-			if logrus.GetLevel() > logrus.InfoLevel {
+			if cli.Opts.Verbosity > 1 {
 				objects["GitCommit"] = cli.VersionDetails.GitCommit
 				objects["GitBranch"] = cli.VersionDetails.GitBranch
 				objects["GitState"] = cli.VersionDetails.GitState
