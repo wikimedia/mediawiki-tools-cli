@@ -10,7 +10,7 @@ type Actor struct {
 	Actions []int
 	Npc     bool
 
-	CurrentLocation string
+	CurrentLocation LocationName
 }
 
 type Actors []Actor
