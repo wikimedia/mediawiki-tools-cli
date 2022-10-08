@@ -1,20 +1,4 @@
-image: docker:20.10.14
-
 variables:
-  # When you use the dind service, you must instruct Docker to talk with
-  # the daemon started inside of the service. The daemon is available
-  # with a network connection instead of the default
-  # /var/run/docker.sock socket. Docker 19.03 does this automatically
-  # by setting the DOCKER_HOST in
-  # https://github.com/docker-library/docker/blob/d45051476babc297257df490d22cbd806f1b11e4/19.03/docker-entrypoint.sh#L23-L29
-  #
-  # The 'docker' hostname is the alias of the service container as described at
-  # https://docs.gitlab.com/ee/ci/docker/using_docker_images.html#accessing-the-services.
-  #
-  # Specify to Docker where to create the certificates. Docker
-  # creates them automatically on boot, and creates
-  # `/certs/client` to share between the service and job
-  # container, thanks to volume mount from config.toml
   DOCKER_TLS_CERTDIR: "/certs"
 
 stages:
@@ -33,16 +17,11 @@ cache:
     paths:
       - .mediawiki
 
-services:
-  - name: docker:20.10.14-dind
-
 test:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.17
-    tags:
-    - mwcli
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20221002
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -66,9 +45,7 @@ checks:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.17
-    tags:
-    - mwcli
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20221002
     parallel:
       matrix:
         - CHECK: lint
@@ -87,9 +64,7 @@ build:
     stage: build
     needs: []
     cache: {}
-    image: golang:1.17
-    tags:
-    - mwcli
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20221002
     artifacts:
       paths:
         - bin/
@@ -102,6 +77,10 @@ build:
 
 integration-general:
     stage: integration
+    services:
+    - name: docker:20.10.14-dind
+    tags:
+    - mwcli
     needs: [checks,test,build]
     cache: {}
     tags:
@@ -119,6 +98,8 @@ integration-general:
 
 integration-docker:
     stage: integration
+    services:
+    - name: docker:20.10.14-dind
     needs: [checks,test,build]
     tags:
     - mwcli
@@ -141,9 +122,7 @@ build-release:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: golang:1.17
-    tags:
-    - mwcli
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20221002
     before_script:
       - go install github.com/bwplotka/bingo@latest
       - bingo get
@@ -156,9 +135,7 @@ release-build:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: golang:1.17
-    tags:
-    - mwcli
+    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20221002
     artifacts:
       paths:
         - _release/
@@ -179,6 +156,9 @@ release-upload:
     - release-build
   # Has 1 requirement of curl, could be replaced by a wmf releng image?
   image: alpine:latest
+  # Must run on mwcli runner, as alpine:* images are not on shared runners (for now)
+  tags:
+  - mwcli
   before_script:
     - apk update
     - apk add curl
@@ -200,6 +180,7 @@ release-publish:
   - mwcli
   dependencies:
     - release-build
+  # Allowed in shared runners https://github.com/wikimedia/puppet/blob/production/modules/gitlab_runner/templates/config.toml.erb#L50
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   script:
     - (echo "## ${CI_COMMIT_TAG}" && echo "CHANGELOG extracted from https://gitlab.wikimedia.org/repos/releng/cli/-/blob/main/CHANGELOG.md" && sed "/^## ${CI_COMMIT_TAG}$/,/^## /"'!d'";//d;/\^$/d" CHANGELOG.md) > .gitlab.description.md
