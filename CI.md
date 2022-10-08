@@ -1,14 +1,19 @@
 # CI
 
-Continuous integration for this project is currently set up on a dedicated Cloud VPM machine.
+Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom mwcli runners.
 
-Currently this CI will NOT work for forks of this project, only for actual project branches.
+The shared runners are used where possible.
+The custom mwcli runners are used when docker in docker is needed (integreation tests).
+
+This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
+
+## Custom runners
 
 There are currently 2 runners:
  - gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud
  - gitlab-runner-addshore-1014.mwcli.eqiad1.wikimedia.cloud
 
-## Maintenance
+### Maintenance
 
 If the runner starts running out of space...
 
@@ -19,13 +24,13 @@ sudo docker volume prune
 
 If this doesn't free up enough space the next step would be to nuke the registry container and volume and recreate it!
 
-## Initial Setup
+### Initial Setup
 
-### Make a machine
+#### Make a machine
 
 Make a VM, such as `gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud`
 
-### Install docker
+#### Install docker
 
 ```sh
 sudo apt-get update
@@ -46,7 +51,7 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io
 ```
 
-### Install gitlab runner
+#### Install gitlab runner
 
 ```sh
 curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
@@ -54,7 +59,7 @@ sudo dpkg -i gitlab-runner_amd64.deb
 rm gitlab-runner_amd64.deb
 ```
 
-### Register the runner
+#### Register the runner
 
 ```sh
 sudo gitlab-runner register -n \
@@ -68,9 +73,11 @@ sudo gitlab-runner register -n \
   --docker-volumes "/certs/client"
 ```
 
-### Extra configuration
+Check it is registered and add the `mwcli` tag
 
-#### Configure "global" runner jobs
+#### Extra configuration
+
+##### Configure "global" runner jobs
 
 Allow 2 jobs at once globally on this runner and restart gitlab runner.
 (Any more than this and things get slow, timeout, use too much storage, fail etc)
@@ -80,7 +87,7 @@ sudo sed -i 's/^concurrent =.*/concurrent = 2/' "/etc/gitlab-runner/config.toml"
 sudo systemctl restart gitlab-runner
 ```
 
-#### Register custom local docker mirror
+##### Register custom local docker mirror
 
 Mainly from https://about.gitlab.com/blog/2020/10/30/mitigating-the-impact-of-docker-hub-pull-requests-limits/
 
