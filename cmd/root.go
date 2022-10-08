@@ -179,7 +179,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 				colorWhite := "\033[37m"
 				colorCyan := "\033[36m"
 				fmt.Printf(
-					"\n"+colorYellow+"A new update is availbile\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
+					"\n"+colorYellow+"A new update is available\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
 					Version, GitSummary, nextVersionString,
 				)
 			}
