@@ -1,0 +1,22 @@
+name: Gitlab Runner Service
+on: [repository_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+
+      - name: Gitlab Runner
+        uses: edersonbrilhante/gitlab-runner-action@main
+        with:
+          registration-token: "${{ github.event.client_payload.registration_token }}"
+          docker-image: "docker:20.10.18"
+          name: ${{ github.run_id }}
+          tag-list: "github,dind"
