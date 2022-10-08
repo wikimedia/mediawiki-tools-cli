@@ -41,6 +41,8 @@ test:
     needs: []
     cache: {}
     image: golang:1.16.9
+    tags:
+    - mwcli
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -65,6 +67,8 @@ checks:
     needs: []
     cache: {}
     image: golang:1.16.9
+    tags:
+    - mwcli
     parallel:
       matrix:
         - CHECK: lint
@@ -84,6 +88,8 @@ build:
     needs: []
     cache: {}
     image: golang:1.16.9
+    tags:
+    - mwcli
     artifacts:
       paths:
         - bin/
@@ -98,6 +104,8 @@ integration-general:
     stage: integration
     needs: [checks,test,build]
     cache: {}
+    tags:
+    - mwcli
     dependencies:
       - build
     parallel:
@@ -112,6 +120,8 @@ integration-general:
 integration-docker:
     stage: integration
     needs: [checks,test,build]
+    tags:
+    - mwcli
     dependencies:
       - build
     parallel:
@@ -132,6 +142,8 @@ build-release:
     needs: [build,integration-general,integration-docker]
     cache: {}
     image: golang:1.16.9
+    tags:
+    - mwcli
     before_script:
       - go install github.com/bwplotka/bingo@latest
       - bingo get
@@ -145,6 +157,8 @@ release-build:
     needs: [build,integration-general,integration-docker]
     cache: {}
     image: golang:1.16.9
+    tags:
+    - mwcli
     artifacts:
       paths:
         - _release/
@@ -159,6 +173,8 @@ release-upload:
     - tags
   stage: release
   needs: [release-build]
+  tags:
+  - mwcli
   dependencies:
     - release-build
   # Has 1 requirement of curl, could be replaced by a wmf releng image?
@@ -180,6 +196,8 @@ release-publish:
     - tags
   stage: release
   needs: [release-upload,release-build]
+  tags:
+  - mwcli
   dependencies:
     - release-build
   image: registry.gitlab.com/gitlab-org/release-cli:latest
