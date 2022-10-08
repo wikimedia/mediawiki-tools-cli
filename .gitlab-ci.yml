@@ -157,8 +157,6 @@ release-upload:
   # Has 1 requirement of curl, could be replaced by a wmf releng image?
   image: alpine:latest
   # Must run on mwcli runner, as alpine:* images are not on shared runners (for now)
-  tags:
-  - mwcli
   before_script:
     - apk update
     - apk add curl
