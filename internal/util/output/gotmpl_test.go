@@ -68,9 +68,7 @@ func TestGoTmpl_Print(t *testing.T) {
 			}
 			writer := &bytes.Buffer{}
 			m.Print(writer)
-			if gotWriter := writer.String(); gotWriter != tt.wantWriter {
-				t.Errorf("GoTmpl.Print()...\n%v\n...want...\n%v\n...", gotWriter, tt.wantWriter)
-			}
+			checkStringContainnLinesInAnyOrder(t, writer.String(), tt.wantWriter)
 		})
 	}
 }

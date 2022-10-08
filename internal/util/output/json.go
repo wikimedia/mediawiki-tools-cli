@@ -1,5 +1,8 @@
 package output
 
+/*
+Output order is not guaranteed.
+*/
 import (
 	"encoding/json"
 	"fmt"

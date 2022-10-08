@@ -88,9 +88,7 @@ func TestJSON_Print(t *testing.T) {
 			logWriter := &bytes.Buffer{}
 			logrus.SetOutput(logWriter)
 			j.Print(writer)
-			if gotWriter := writer.String(); gotWriter != tt.wantWriter {
-				t.Errorf("JSON.Print()...\n%v\n...want...\n%v\n...", gotWriter, tt.wantWriter)
-			}
+			checkStringContainnLinesInAnyOrder(t, writer.String(), tt.wantWriter)
 			if gotLogWriterWriter := logWriter.String(); tt.wantLogWriterContains != "" && !strings.Contains(gotLogWriterWriter, tt.wantLogWriterContains) {
 				t.Errorf("JSON.Print() log output...\n%v\n...should contain...\n%v\n...", gotLogWriterWriter, tt.wantLogWriterContains)
 			}

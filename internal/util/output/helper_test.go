@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"strings"
+	"testing"
 
 	"github.com/sirupsen/logrus"
 )
@@ -58,4 +59,19 @@ func mapFromFile(file string) map[interface{}]interface{} {
 
 func emptyMap() map[interface{}]interface{} {
 	return provideMap("empty")
+}
+
+func checkStringContainnLinesInAnyOrder(t *testing.T, actual, expected string) {
+	// This custom check is needed as JSON and gotmpl output are not ordered
+	t.Helper()
+	// Check the string are the same length
+	if len(actual) != len(expected) {
+		t.Errorf("Expected string to be the same length as actual string, but they were not. Expected: %d, Actual: %d", len(expected), len(actual))
+	}
+	// Check all the lines exist
+	for _, line := range strings.Split(expected, "\n") {
+		if !strings.Contains(actual, line) {
+			t.Errorf("Expected %q to contain %q", actual, line)
+		}
+	}
 }
