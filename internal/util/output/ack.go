@@ -13,6 +13,8 @@ Extension:wikihiero tests/parser/tests.txt
 Extension:AbuseFilter tests/phpunit/AbuseFilterSaveTest.php
 256:            yield 'valid' => [ [ 'fooooobar', 'foooobaz' ], null ];
 ```.
+
+Sections and Items will be output in the order that they were initialized.
 */
 import (
 	"fmt"
@@ -22,7 +24,8 @@ import (
 )
 
 type Ack struct {
-	Sections map[string][]interface{}
+	Sections     map[string][]interface{}
+	SectionOrder []string
 }
 
 func (a *Ack) initMap() {
@@ -32,14 +35,14 @@ func (a *Ack) initMap() {
 }
 
 func (a *Ack) InitSection(name string) {
-	a.initMap()
 	var emptyItems []interface{}
-	a.Sections[name] = emptyItems
+	a.AddSection(name, emptyItems)
 }
 
 func (a *Ack) AddSection(name string, items []interface{}) {
 	a.initMap()
 	a.Sections[name] = items
+	a.SectionOrder = append(a.SectionOrder, name)
 }
 
 func (a *Ack) ensureSection(name string) {
@@ -57,7 +60,8 @@ func (a *Ack) Print(writer io.Writer) {
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 
 	firstOneDone := false
-	for section, items := range a.Sections {
+	for _, section := range a.SectionOrder {
+		items := a.Sections[section]
 		if firstOneDone {
 			fmt.Fprintln(writer, "")
 			fmt.Fprintln(writer, "")
