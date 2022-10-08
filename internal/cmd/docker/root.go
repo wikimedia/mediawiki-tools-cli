@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/env"
@@ -100,6 +101,9 @@ func NewCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Core"
+
 	cmd.PersistentFlags().StringVarP(&mwdd.Context, "context", "c", defaultContext(), "The context to use")
 
 	if cli.MwddIsDevAlias {
@@ -159,17 +163,22 @@ func NewCmd() *cobra.Command {
 }
 
 func NewMwddDestroyCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "destroy",
 		Short: "Destroy all containers and data",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().DownWithVolumesAndOrphans()
+			logrus.Debug("Removing used hosts file")
+			mwdd.DefaultForUser().RemoveUsedHostsIfExists()
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewMwddStopCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "stop",
 		Aliases: []string{"suspend"},
 		Short:   "Stop all currently running containers",
@@ -178,10 +187,13 @@ func NewMwddStopCmd() *cobra.Command {
 			mwdd.DefaultForUser().Stop([]string{})
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewMwddStartCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "start",
 		Aliases: []string{"resume"},
 		Short:   "Start containers that were running before",
@@ -189,16 +201,22 @@ func NewMwddStartCmd() *cobra.Command {
 			mwdd.DefaultForUser().Start(mwdd.DefaultForUser().ServicesWithStatus("stopped"))
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 func NewMwddRestartCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "restart",
 		Short: "Restart the running containers",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().Restart([]string{})
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Control"
+	return cmd
 }
 
 //go:embed long/mwdd_elasticsearch.md

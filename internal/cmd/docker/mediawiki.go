@@ -199,6 +199,10 @@ func NewMediaWikiCmd() *cobra.Command {
 			}
 		},
 	}
+
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
+
 	cmd.AddCommand(mwdd.NewWhereCmd(
 		"the MediaWiki directory",
 		func() string { return mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE") },
@@ -212,6 +216,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewMediaWikiInstallCmd())
 	cmd.AddCommand(NewMediaWikiComposerCmd())
 	cmd.AddCommand(NewMediaWikiExecCmd())
+	cmd.AddCommand(NewMediaWikiSitesCmd())
 	return cmd
 }
 
@@ -448,6 +453,8 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			fmt.Println("***************************************")
 		},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Core"
 	cmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
 	cmd.Flags().StringVarP(&DbType, "dbtype", "", "", "Type of database to install (mysql, postgres, sqlite)")
 	return cmd

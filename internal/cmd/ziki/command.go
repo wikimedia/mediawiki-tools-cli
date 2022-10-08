@@ -20,10 +20,10 @@ func ProcessCommands(g *Game, input string) {
 	switch command {
 	case "goto":
 		loc := LocationMap[g.Player.CurrentLocation]
-		locName, err := FindLocationName(strings.ToLower(param1))
+		locName, err := LocationNameFromString(strings.ToLower(param1))
 		if err != nil {
 			g.Output(ColorTypes["error"], err)
-		} else if loc.CanGoTo(strings.ToLower(locName)) {
+		} else if loc.CanGoTo(locName) {
 			g.Player.CurrentLocation = locName
 		} else {
 			g.Output(ColorTypes["error"], "Can't go to "+param1+" from here.")

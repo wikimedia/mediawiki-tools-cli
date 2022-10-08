@@ -10,7 +10,11 @@ var clockOverride = ""
 
 func NowUTC() time.Time {
 	if clockOverride != "" {
-		return Parse(clockOverride)
+		parsedOverride, error := Parse(clockOverride)
+		if error != nil {
+			logrus.Fatal(error)
+		}
+		return parsedOverride
 	}
 	return time.Now().UTC()
 }
@@ -27,10 +31,6 @@ func String(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func Parse(s string) time.Time {
-	t, err := time.Parse(time.RFC3339, s)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	return t
+func Parse(s string) (time.Time, error) {
+	return time.Parse(time.RFC3339, s)
 }

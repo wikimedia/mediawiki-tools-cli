@@ -1,25 +1,30 @@
 package output
 
+/*
+Output order is not guaranteed.
+*/
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"text/template"
 )
 
 type GoTmpl struct {
-	Objects map[interface{}]interface{}
-	Format  string
+	Objects      map[interface{}]interface{}
+	Format       string
+	TopLevelKeys bool
 }
 
-func NewGoTmpl(objects map[interface{}]interface{}, format string) *GoTmpl {
+func NewGoTmpl(objects map[interface{}]interface{}, format string, topLevelKeys bool) *GoTmpl {
 	return &GoTmpl{
-		Objects: objects,
-		Format:  format,
+		Objects:      objects,
+		Format:       format,
+		TopLevelKeys: topLevelKeys,
 	}
 }
 
-func (m *GoTmpl) Print() {
+func (m *GoTmpl) Print(writer io.Writer) {
 	tmpl := template.Must(template.
 		New("").
 		Funcs(map[string]interface{}{
@@ -32,8 +37,13 @@ func (m *GoTmpl) Print() {
 			},
 		}).
 		Parse(m.Format))
-	for _, change := range m.Objects {
-		_ = tmpl.Execute(os.Stdout, change)
-		fmt.Println()
+	if m.TopLevelKeys {
+		_ = tmpl.Execute(writer, m.Objects)
+		fmt.Fprintln(writer)
+	} else {
+		for _, change := range m.Objects {
+			_ = tmpl.Execute(writer, change)
+			fmt.Fprintln(writer)
+		}
 	}
 }

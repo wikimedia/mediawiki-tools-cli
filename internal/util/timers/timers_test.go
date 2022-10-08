@@ -7,7 +7,18 @@ import (
 )
 
 func TestNowUTC(t *testing.T) {
+	t.Run("Returns a time", func(t *testing.T) {
+		got := NowUTC()
+		diff := time.Now().UTC().Sub(got)
+		if diff.Milliseconds() > 1000 {
+			t.Errorf("NowUTC() seems to have got a non recent got = %v, diff %v", got, diff.Milliseconds())
+		}
+	})
+}
+
+func TestNowUTC_withOverride(t *testing.T) {
 	clockOverride = "2020-01-01T10:00:00Z"
+	overrideTime, _ := time.Parse(time.RFC3339, "2020-01-01T10:00:00Z")
 
 	tests := []struct {
 		name string
@@ -15,7 +26,7 @@ func TestNowUTC(t *testing.T) {
 	}{
 		{
 			name: "returns the current time in UTC",
-			want: Parse(clockOverride),
+			want: overrideTime,
 		},
 	}
 	for _, tt := range tests {
@@ -98,6 +109,32 @@ func TestIsHoursAgo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsHoursAgo(tt.args.t, tt.args.hours); got != tt.want {
 				t.Errorf("IsHoursAgo() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestString(t *testing.T) {
+	type args struct {
+		t time.Time
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "some times",
+			args: args{
+				t: time.Date(2022, 10, 4, 1, 2, 3, 4, time.UTC),
+			},
+			want: "2022-10-04T01:02:03Z",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := String(tt.args.t); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -20,6 +20,9 @@ func NewGerritCmd() *cobra.Command {
 		RunE:  nil,
 	}
 
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
+
 	cmd.AddCommand(NewGerritAPICmd())
 	cmd.AddCommand(NewGerritSSHCmd())
 	cmd.AddCommand(NewGerritChangesCmd())

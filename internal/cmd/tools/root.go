@@ -31,6 +31,9 @@ func NewToolsCmd() *cobra.Command {
 		RunE:    nil,
 	}
 
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
+
 	toolName := ""
 	execCmd := &cobra.Command{
 		Use:     "exec [flags] [command & arguments] -- [command flags]",

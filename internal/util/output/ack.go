@@ -13,15 +13,19 @@ Extension:wikihiero tests/parser/tests.txt
 Extension:AbuseFilter tests/phpunit/AbuseFilterSaveTest.php
 256:            yield 'valid' => [ [ 'fooooobar', 'foooobaz' ], null ];
 ```.
+
+Sections and Items will be output in the order that they were initialized.
 */
 import (
 	"fmt"
+	"io"
 
 	"github.com/fatih/color"
 )
 
 type Ack struct {
-	Sections map[string][]interface{}
+	Sections     map[string][]interface{}
+	SectionOrder []string
 }
 
 func (a *Ack) initMap() {
@@ -31,14 +35,14 @@ func (a *Ack) initMap() {
 }
 
 func (a *Ack) InitSection(name string) {
-	a.initMap()
 	var emptyItems []interface{}
-	a.Sections[name] = emptyItems
+	a.AddSection(name, emptyItems)
 }
 
 func (a *Ack) AddSection(name string, items []interface{}) {
 	a.initMap()
 	a.Sections[name] = items
+	a.SectionOrder = append(a.SectionOrder, name)
 }
 
 func (a *Ack) ensureSection(name string) {
@@ -52,24 +56,26 @@ func (a *Ack) AddItem(section string, item string) {
 	a.Sections[section] = append(a.Sections[section], item)
 }
 
-func (a *Ack) Print() {
+func (a *Ack) Print(writer io.Writer) {
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 
 	firstOneDone := false
-	for section, items := range a.Sections {
+	for _, section := range a.SectionOrder {
+		items := a.Sections[section]
 		if firstOneDone {
-			fmt.Println("")
+			fmt.Fprintln(writer, "")
+			fmt.Fprintln(writer, "")
 		}
 		firstOneDone = true
 
 		if shouldColor() {
-			fmt.Print(headerFmt("%s:\n", section))
+			fmt.Fprint(writer, headerFmt("%s:\n", section))
 		} else {
-			fmt.Printf("%s:\n", section)
+			fmt.Fprintf(writer, "%s:\n", section)
 		}
 
 		for _, item := range items {
-			fmt.Printf("%s\n", item)
+			fmt.Fprintf(writer, "%s\n", item)
 		}
 	}
 }

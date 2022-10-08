@@ -72,7 +72,7 @@ func NewToolHubToolsListCmd() *cobra.Command {
 			out.Print(resultsToObjects(tools.Results, toolType))
 		},
 	}
-	out.AddFlags(cmd, "table")
+	out.AddFlags(cmd, string(output.TableType))
 	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
 	return cmd
 }

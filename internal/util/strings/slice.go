@@ -9,9 +9,9 @@ func ReplaceInAll(list []string, find string, replace string) []string {
 	return list
 }
 
-func StringInSlice(a string, list []string) bool {
+func StringInSlice(find string, list []string) bool {
 	for _, b := range list {
-		if b == a {
+		if b == find {
 			return true
 		}
 	}

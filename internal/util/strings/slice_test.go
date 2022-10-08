@@ -43,3 +43,47 @@ func TestReplaceInAll(t *testing.T) {
 		})
 	}
 }
+
+func TestStringInSlice(t *testing.T) {
+	type args struct {
+		find string
+		list []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Does exist",
+			args: args{
+				find: "exist",
+				list: []string{
+					"lala",
+					"exist",
+					"foo",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Does not exist",
+			args: args{
+				find: "noexist",
+				list: []string{
+					"lala",
+					"exist",
+					"foo",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := StringInSlice(tt.args.find, tt.args.list); got != tt.want {
+				t.Errorf("StringInSlice() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

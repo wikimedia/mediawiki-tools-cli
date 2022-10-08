@@ -13,9 +13,12 @@ var (
 func NewWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wiki",
-		Short: "MediaWiki Wiki",
+		Short: "Any MediaWiki Wiki",
 		RunE:  nil,
 	}
+
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
 
 	cmd.AddCommand(NewWikiPageCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")

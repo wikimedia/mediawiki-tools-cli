@@ -13,9 +13,11 @@ SecurityCheckPlugin                  tests/integration/redos/test.php
 */
 import (
 	"fmt"
+	"io"
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 type Table struct {
@@ -42,7 +44,7 @@ func (t *Table) AddHeadings(headings ...interface{}) {
 }
 
 func (t *Table) AddHeadingsS(headings ...string) {
-	t.AddHeadings(stringSplitToInterfaceSplit(headings)...)
+	t.AddHeadings(strings.SplitToInterfaceSplit(headings)...)
 }
 
 func (t *Table) AddRow(rowValues ...interface{}) {
@@ -51,18 +53,10 @@ func (t *Table) AddRow(rowValues ...interface{}) {
 }
 
 func (t *Table) AddRowS(rowValues ...string) {
-	t.AddRow(stringSplitToInterfaceSplit(rowValues)...)
+	t.AddRow(strings.SplitToInterfaceSplit(rowValues)...)
 }
 
-func stringSplitToInterfaceSplit(in []string) []interface{} {
-	out := make([]interface{}, len(in))
-	for i, v := range in {
-		out[i] = v
-	}
-	return out
-}
-
-func (t *Table) Print() {
+func (t *Table) Print(writer io.Writer) {
 	var headerFmt table.Formatter
 	var columnFmt table.Formatter
 	if shouldColor() {
@@ -80,5 +74,6 @@ func (t *Table) Print() {
 		tbl.AddRow(row...)
 	}
 
+	tbl.WithWriter(writer)
 	tbl.Print()
 }

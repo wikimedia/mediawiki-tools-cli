@@ -15,6 +15,10 @@ func (m MWDD) RecordHostUsageBySite(host string) {
 	files.AddLineUnique(host, m.hostRecordFile())
 }
 
+func (m MWDD) RemoveUsedHostsIfExists() {
+	files.RemoveIfExists(m.hostRecordFile())
+}
+
 /*UsedHosts lists all hosts that have been used at some point.*/
 func (m MWDD) UsedHosts() []string {
 	return files.Lines(m.hostRecordFile())

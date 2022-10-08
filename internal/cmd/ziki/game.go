@@ -37,7 +37,7 @@ func (g *Game) Play() {
 	g.Player.Actions = []int{1, 2, 3, 4, 5, 6}
 	g.Player.CurrentLocation = "CommandLine"
 
-	lastLocation := ""
+	lastLocation := Start
 
 	g.Output(ColorTypes["alert"], Messages["welcome"])
 	for {

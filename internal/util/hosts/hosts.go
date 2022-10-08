@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"github.com/txn2/txeh"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
@@ -22,32 +23,33 @@ type ChangeResult struct {
 	WriteFile string
 }
 
-/*AddHosts attempts to add requested hosts to the system hosts file, and gives you the new content, a tmp file and success.*/
-func AddHosts(toAdd []string) ChangeResult {
-	hosts := hosts()
-	serviceIP := "127.0.0.1"
-
+func LocalIP() string {
 	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
 	if inGitlabCi {
 		// Localhost does not refer to our services in Gitlab CI, docker does
 		// https://gitlab.com/gitlab-org/gitlab/-/issues/34814#note_426362459
-		serviceIP = IPv4("docker")
+		return IPv4("docker")
 	}
+	return "127.0.0.1"
+}
 
-	// TODO if verbose..
-	// fmt.Println("Adding hosts:", toAdd)
-	hosts.AddHosts(serviceIP, toAdd)
+/*AddHosts attempts to add requested hosts to the system hosts file, and gives you the new content, a tmp file and success.*/
+func AddHosts(ip string, toAdd []string, tryWrite bool) ChangeResult {
+	hosts := hosts()
+
+	logrus.Tracef("Adding hosts: %v", toAdd)
+	hosts.AddHosts(ip, toAdd)
 	// TODO when the library supports it do ipv6 too https://github.com/txn2/txeh/issues/15
 	// hosts.AddHosts("::1", toAdd)
 
-	return finishChanges(hosts)
+	return finishChanges(tryWrite, hosts)
 }
 
 /*RemoveHostsWithSuffix attempts to remove all hosts with a suffix from the system hosts file, and gives you the new content, a tmp file and success.*/
-func RemoveHostsWithSuffix(hostSuffix string) ChangeResult {
+func RemoveHostsWithSuffix(ip string, hostSuffix string, tryWrite bool) ChangeResult {
 	hosts := hosts()
 	removeHostsWithSuffixFromLines(hostSuffix, hosts)
-	return finishChanges(hosts)
+	return finishChanges(tryWrite, hosts)
 }
 
 /*Writable is the hosts file writable.*/
@@ -98,9 +100,9 @@ func removeHostsWithSuffixFromLines(hostSuffix string, hosts *txeh.Hosts) *txeh.
 	return hosts
 }
 
-func finishChanges(touchedHosts *txeh.Hosts) ChangeResult {
+func finishChanges(tryWrite bool, touchedHosts *txeh.Hosts) ChangeResult {
 	diskHosts := hosts()
-	if diskHosts.RenderHostsFile() != touchedHosts.RenderHostsFile() {
+	if tryWrite && diskHosts.RenderHostsFile() != touchedHosts.RenderHostsFile() {
 		return save(touchedHosts)
 	}
 	return ChangeResult{

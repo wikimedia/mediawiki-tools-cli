@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Masterminds/sprig"
@@ -17,6 +18,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gitlab"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/help"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/tools"
@@ -28,24 +30,19 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
 
 //go:embed templates/usage.txt
 var usageTemplate string
 
-// Verbosity set by the user. This is a modifier that can be added to the default logrus level.
-var Verbosity int
-
-// DoTelemetry do we want to do telemetry?
-var DoTelemetry bool
-
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
 		Use:   "mw",
 		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + Verbosity))
+			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
 			logrus.SetFormatter(&logrus.TextFormatter{
 				DisableTimestamp:       true,
 				DisableLevelTruncation: true,
@@ -55,14 +52,20 @@ func NewMwCliCmd() *cobra.Command {
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
-			if DoTelemetry {
+			if cli.Opts.Telemetry {
 				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
 			}
 		},
 	}
 
+	defaultHelpFunc := mwcliCmd.HelpFunc()
+	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
+		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		defaultHelpFunc(c, a)
+	})
+
 	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
-	mwcliCmd.PersistentFlags().CountVarP(&Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
+	mwcliCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 
 	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
@@ -82,6 +85,7 @@ func NewMwCliCmd() *cobra.Command {
 		wiki.NewWikiCmd(),
 		ziki.NewZikiCmd(),
 		quip.NewQuipCmd(),
+		help.NewOutputTopicCmd(),
 	}...)
 
 	return mwcliCmd
@@ -130,7 +134,11 @@ func tryToEmitEvents() {
 	}
 
 	// Try to emit events every 1 hour
-	if timers.IsHoursAgo(timers.Parse(c.TimerLastEmmitedEvent), 1) {
+	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmmitedEvent)
+	if parseError != nil {
+		logrus.Warn("Failed to parse last emitted event time")
+	}
+	if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
 		c.TimerLastEmmitedEvent = timers.String(timers.NowUTC())
 		eventlogging.EmitEvents()
 	}
@@ -170,7 +178,11 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 		// Check if timers trigger things
 		// Check for updates every 3 hours
-		if timers.IsHoursAgo(timers.Parse(c.TimerLastUpdateChecked), 3) {
+		lastUpdateCheckedTime, parseError := timers.Parse(c.TimerLastUpdateChecked)
+		if parseError != nil {
+			logrus.Warn("Failed to parse last update checked time")
+		}
+		if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
 			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
 			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
 			if canUpdate {
@@ -194,11 +206,41 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		cli.MwddIsDevAlias = true
 	}
 
-	// TODO possibly move this to cli.DoTelemetry (along with verbosity?)
-	DoTelemetry = c.Telemetry == "yes"
+	cli.Opts.Telemetry = c.Telemetry == "yes"
 
 	rootCmd := NewMwCliCmd()
+	// Override the UsageTemplate so that:
+	// - Indenting of usage examples is consistent automatically
+	// - Commands can be split into sections based on annotations
 	cobra.AddTemplateFuncs(sprig.TxtFuncMap())
+	type CommandGroup struct {
+		Name     string
+		Commands []*cobra.Command
+	}
+	cobra.AddTemplateFunc("commandGroups", func(commands []*cobra.Command) map[string]CommandGroup {
+		collectCommandsInGroup := func(commands []*cobra.Command, group string) []*cobra.Command {
+			collected := []*cobra.Command{}
+			for _, command := range commands {
+				if command.Annotations["group"] == group {
+					collected = append(collected, command)
+				}
+			}
+			return collected
+		}
+		groupNames := []string{}
+		groups := make(map[string]CommandGroup)
+		for _, command := range commands {
+			groupAnnotation := command.Annotations["group"]
+			if groupAnnotation != "" && !stringsutil.StringInSlice(groupAnnotation, groupNames) {
+				groupNames = append(groupNames, groupAnnotation)
+				groups[groupAnnotation] = CommandGroup{
+					Name:     groupAnnotation,
+					Commands: collectCommandsInGroup(commands, groupAnnotation),
+				}
+			}
+		}
+		return groups
+	})
 	rootCmd.SetUsageTemplate(usageTemplate)
 
 	// Execute the root command
@@ -206,7 +248,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 	// Try and emit events after main command execution
 	// TODO perhaps moved this to a POST command run thing
-	if DoTelemetry {
+	if cli.Opts.Telemetry {
 		tryToEmitEvents()
 	}
 

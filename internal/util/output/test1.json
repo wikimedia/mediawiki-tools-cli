@@ -1,0 +1,38 @@
+{
+    "EntryOne": {
+        "TopLevelString": "aString",
+        "TopLevelMatchingInt": 99,
+        "TopLevelMatchingString": "match",
+        "TopLevelStruct": {
+            "SecondLevelString": "aString",
+            "SecondLevelStructList": [
+                {
+                    "ThirdLevelString": "aString",
+                    "ThirdLevelInt": 1,
+                    "ThirdLevelList": [
+                        "foo",
+                        "bar"
+                    ]
+                }
+            ]
+        }
+    },
+    "EntryTwo": {
+        "TopLevelString": "bString",
+        "TopLevelMatchingInt": 99,
+        "TopLevelMatchingString": "match",
+        "TopLevelStruct": {
+            "SecondLevelString": "bString",
+            "SecondLevelStructList": [
+                {
+                    "ThirdLevelString": "bString",
+                    "ThirdLevelInt": 69,
+                    "ThirdLevelList": [
+                        "cat",
+                        "goat"
+                    ]
+                }
+            ]
+        }
+    }
+}

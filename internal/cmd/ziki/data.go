@@ -40,13 +40,54 @@ var Events = map[string]*Event{
 	"spam":         {Type: "Story", Chance: 75, Description: "You receive annoying spam", Morale: -5, Evt: ""},
 }
 
-var LocationMap = map[string]*Location{
-	"CommandLine": {Description: "You just pushed your first change.", Transitions: []string{"Phab", "Gerrit", "Gitlab", "Email", "Chat", "Meeting", "AFK"}, Events: []string{}},
-	"Phab":        {Description: "You are looking at your Phabricator task.", Transitions: []string{"Gerrit", "Gitlab", "Chat", "Email", "Meeting", "AFK"}, Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	"Gerrit":      {Description: "You are looking at  your change in Gerrit.", Transitions: []string{"Phab", "Gitlab", "Chat", "Email", "Meeting", "AFK"}, Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	"Gitlab":      {Description: "You are in Gitlab. There aren't many people here.", Transitions: []string{"Phab", "Gerrit", "Chat", "Email", "Meeting", "AFK"}, Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	"Email":       {Description: "You are in your email, looking at your massive inbox.", Transitions: []string{"Phab", "Gerrit", "Gitlab", "Meeting", "AFK"}, Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow", "extraHoliday", "spam"}},
-	"Chat":        {Description: "You are in Slack/Element/IRC/whatever-you-prefer.", Transitions: []string{"Phab", "Gerrit", "Gitlab", "Email", "Meeting", "AFK"}, Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	"Meeting":     {Description: "You are in Google Meet", Transitions: []string{"Phab", "Gerrit", "Gitlab", "Chat", "Email"}, Events: []string{"codeReview", "criticism", "unbreakNow", "wikilove", "extraHoliday"}},
-	"AFK":         {Description: "You are away from your computer, living your real life", Transitions: []string{"Phab", "Gerrit", "Gitlab", "Chat", "Email", "Meeting"}, Events: []string{"recharging"}},
+type LocationName string
+
+var AllLocationNames = []LocationName{
+	CommandLine,
+	Phab,
+	Gerrit,
+	Gitlab,
+	Email,
+	Chat,
+	Meeting,
+	AFK,
+}
+
+const (
+	Start       LocationName = "Start"
+	CommandLine LocationName = "CommandLine"
+	Phab        LocationName = "Phab"
+	Gerrit      LocationName = "Gerrit"
+	Gitlab      LocationName = "Gitlab"
+	Email       LocationName = "Email"
+	Chat        LocationName = "Chat"
+	Meeting     LocationName = "Meeting"
+	AFK         LocationName = "AFK"
+)
+
+func allLocationsExcept(except []LocationName) []LocationName {
+	allExcept := []LocationName{}
+	for _, name := range AllLocationNames {
+		skip := false
+		for _, skipName := range except {
+			if name == skipName {
+				skip = true
+			}
+		}
+		if !skip {
+			allExcept = append(allExcept, name)
+		}
+	}
+	return allExcept
+}
+
+var LocationMap = map[LocationName]*Location{
+	CommandLine: {Description: "You just pushed your first change to Gerrit.", Transitions: allLocationsExcept([]LocationName{CommandLine}), Events: []string{}},
+	Phab:        {Description: "You are looking at your Phabricator task.", Transitions: allLocationsExcept([]LocationName{Phab}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
+	Gerrit:      {Description: "You are looking at your change in Gerrit.", Transitions: allLocationsExcept([]LocationName{Gerrit}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
+	Gitlab:      {Description: "You are in Gitlab. There aren't many people here.", Transitions: allLocationsExcept([]LocationName{Gitlab}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
+	Email:       {Description: "You are in your email, looking at your massive inbox.", Transitions: allLocationsExcept([]LocationName{Email}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow", "extraHoliday", "spam"}},
+	Chat:        {Description: "You are in Slack/Element/IRC/whatever-you-prefer.", Transitions: allLocationsExcept([]LocationName{Chat}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
+	Meeting:     {Description: "You are in Google Meet", Transitions: AllLocationNames, Events: []string{"codeReview", "criticism", "unbreakNow", "wikilove", "extraHoliday"}},
+	AFK:         {Description: "You are away from your computer, living your real life", Transitions: allLocationsExcept([]LocationName{AFK}), Events: []string{"recharging"}},
 }
