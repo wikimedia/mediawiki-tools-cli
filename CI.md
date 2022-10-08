@@ -18,7 +18,7 @@ There are currently 2 runners:
 If the runner starts running out of space...
 
 ```sh
-sudo docker system prune --force
+sudo docker system prune -af
 sudo docker volume prune
 ```
 
