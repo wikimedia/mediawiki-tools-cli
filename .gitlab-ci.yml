@@ -40,7 +40,7 @@ test:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.16.9
+    image: golang:1.17
     tags:
     - mwcli
     coverage: '/Total coverage: \d+.\d+%/'
@@ -66,7 +66,7 @@ checks:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.16.9
+    image: golang:1.17
     tags:
     - mwcli
     parallel:
@@ -87,7 +87,7 @@ build:
     stage: build
     needs: []
     cache: {}
-    image: golang:1.16.9
+    image: golang:1.17
     tags:
     - mwcli
     artifacts:
@@ -141,7 +141,7 @@ build-release:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: golang:1.16.9
+    image: golang:1.17
     tags:
     - mwcli
     before_script:
@@ -156,7 +156,7 @@ release-build:
     stage: release
     needs: [build,integration-general,integration-docker]
     cache: {}
-    image: golang:1.16.9
+    image: golang:1.17
     tags:
     - mwcli
     artifacts:
