@@ -2,6 +2,7 @@ package mwdd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -134,12 +135,18 @@ func NewServiceExecCmd(name string, service string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			command, env := CommandAndEnvFromArgs(args)
-			DefaultForUser().DockerExec(DockerExecCommand{
-				DockerComposeService: service,
-				Command:              command,
-				Env:                  env,
-				User:                 User,
-			})
+			exitCode := DefaultForUser().DockerExec(
+				DockerExecCommand{
+					DockerComposeService: service,
+					Command:              command,
+					Env:                  env,
+					User:                 User,
+				},
+			)
+			if exitCode != 0 {
+				cmd.Root().Annotations = make(map[string]string)
+				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
+			}
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
@@ -154,11 +161,17 @@ func NewServiceCommandCmd(service string, commands []string, aliases []string) *
 		Run: func(cmd *cobra.Command, args []string) {
 			DefaultForUser().EnsureReady()
 			userCommand, env := CommandAndEnvFromArgs(args)
-			DefaultForUser().DockerExec(DockerExecCommand{
-				DockerComposeService: service,
-				Command:              append(commands, userCommand...),
-				Env:                  env,
-			})
+			exitCode := DefaultForUser().DockerExec(
+				DockerExecCommand{
+					DockerComposeService: service,
+					Command:              append(commands, userCommand...),
+					Env:                  env,
+				},
+			)
+			if exitCode != 0 {
+				cmd.Root().Annotations = make(map[string]string)
+				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
+			}
 		},
 	}
 }

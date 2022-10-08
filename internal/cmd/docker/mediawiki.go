@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -467,12 +468,21 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := mwdd.CommandAndEnvFromArgs(args)
-			mwdd.DefaultForUser().DockerExec(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
-				DockerComposeService: "mediawiki",
-				Command:              append([]string{"composer"}, command...),
-				Env:                  env,
-				User:                 User,
-			}, "/var/www/html/w"))
+			exitCode := mwdd.DefaultForUser().DockerExec(
+				applyRelevantMediawikiWorkingDirectory(
+					mwdd.DockerExecCommand{
+						DockerComposeService: "mediawiki",
+						Command:              append([]string{"composer"}, command...),
+						Env:                  env,
+						User:                 User,
+					},
+					"/var/www/html/w",
+				),
+			)
+			if exitCode != 0 {
+				cmd.Root().Annotations = make(map[string]string)
+				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
+			}
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
@@ -491,12 +501,21 @@ func NewMediaWikiExecCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := mwdd.CommandAndEnvFromArgs(args)
-			mwdd.DefaultForUser().DockerExec(applyRelevantMediawikiWorkingDirectory(mwdd.DockerExecCommand{
-				DockerComposeService: "mediawiki",
-				Command:              command,
-				Env:                  env,
-				User:                 User,
-			}, "/var/www/html/w"))
+			exitCode := mwdd.DefaultForUser().DockerExec(
+				applyRelevantMediawikiWorkingDirectory(
+					mwdd.DockerExecCommand{
+						DockerComposeService: "mediawiki",
+						Command:              command,
+						Env:                  env,
+						User:                 User,
+					},
+					"/var/www/html/w",
+				),
+			)
+			if exitCode != 0 {
+				cmd.Root().Annotations = make(map[string]string)
+				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
+			}
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")

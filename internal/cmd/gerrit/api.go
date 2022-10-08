@@ -38,7 +38,7 @@ func NewGerritAPICmd() *cobra.Command {
 
 			resp, err := client.Call(gerritAPIMethod, args[0], nil, nil)
 			if err != nil {
-				logrus.Fatal("Error making request: %s", err)
+				logrus.Fatalf("Error making request: %s", err)
 			}
 
 			if err != nil {

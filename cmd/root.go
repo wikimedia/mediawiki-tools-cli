@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -249,6 +250,11 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// TODO perhaps moved this to a POST command run thing
 	if cli.Opts.Telemetry {
 		tryToEmitEvents()
+	}
+
+	if exitCode, ok := rootCmd.Annotations["exitCode"]; ok {
+		exitCodeInt, _ := strconv.Atoi(exitCode)
+		os.Exit(exitCodeInt)
 	}
 
 	if err != nil {

@@ -40,7 +40,9 @@ clean:
 
 .PHONY: test
 test: $(GOVVV) generate
-	go test -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)
+	$(GOTESTSUM) --junitfile "junit.xml" -- -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
+	@$(GOCOVER_COBERTURA) < coverage.txt > coverage.xml
+	@echo "$$(sed -n 's/^<coverage line-rate="\([0-9.]*\)".*$$/\1/p' coverage.xml)" | awk '{printf "Total coverage: %.2f%%\n",$$1*100}'
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate

@@ -74,7 +74,7 @@ func (m MWDD) containerID(ctx context.Context, cli *client.Client, service strin
 }
 
 /*DockerExec runs a docker exec command using the docker SDK.*/
-func (m MWDD) DockerExec(command DockerExecCommand) {
+func (m MWDD) DockerExec(command DockerExecCommand) (ExitCode int) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -99,13 +99,13 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 	if err != nil {
 		fmt.Println("containerExecCreate failed")
 		fmt.Println(err)
-		return
+		return 1
 	}
 
 	execID := response.ID
 	if execID == "" {
 		fmt.Println("exec ID empty")
-		return
+		return 1
 	}
 
 	execStartCheck := types.ExecStartCheck{
@@ -115,7 +115,7 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 	waiter, err := cli.ContainerExecAttach(ctx, execID, execStartCheck)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return 1
 	}
 
 	if execConfig.Tty {
@@ -141,11 +141,11 @@ func (m MWDD) DockerExec(command DockerExecCommand) {
 		resp, err := cli.ContainerExecInspect(ctx, execID)
 		time.Sleep(50 * time.Millisecond)
 		if err != nil {
-			break
+			return 1
 		}
 
 		if !resp.Running {
-			break
+			return resp.ExitCode
 		}
 	}
 }
