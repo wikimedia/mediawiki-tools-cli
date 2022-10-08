@@ -25,7 +25,7 @@ func main() {
 
 	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 
 	for _, file := range files {
@@ -42,7 +42,7 @@ func main() {
 
 		err = yaml.Unmarshal(yamlFile, c)
 		if err != nil {
-			logrus.Fatalf("Unmarshal: %v", err)
+			panic(err)
 		}
 
 		for serviceName, service := range c.Services {
@@ -63,7 +63,7 @@ func main() {
 func keepNewerTags(currentTag string, allTags []string) []string {
 	current, err := version.NewVersion(currentTag)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	newerTags := []string{}
 	for _, tag := range allTags {
@@ -123,14 +123,14 @@ func jsonFromURL(url string, unmarshalTo interface{}) interface{} {
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 
 	req.Header.Set("User-Agent", "mwcli-tools-image-check")
 
 	res, getErr := client.Do(req)
 	if getErr != nil {
-		logrus.Fatal(getErr)
+		panic(getErr)
 	}
 
 	if res.Body != nil {
@@ -139,12 +139,12 @@ func jsonFromURL(url string, unmarshalTo interface{}) interface{} {
 
 	body, readErr := ioutil.ReadAll(res.Body)
 	if readErr != nil {
-		logrus.Fatal(readErr)
+		panic(readErr)
 	}
 
 	jsonErr := json.Unmarshal(body, &unmarshalTo)
 	if jsonErr != nil {
-		logrus.Fatal(jsonErr)
+		panic(jsonErr)
 	}
 
 	return unmarshalTo
