@@ -6,8 +6,18 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## v0.17.0 (unreleased)
 
-- Development environment:
-  - Speed up `restart` command by internally using `docker-compose restart` (T314894)
+- Added grouping of commands in help command output
+- Added support for advanced outputs in `version` command
+- Added `output` help command explaining how to use `--output`, `--filter` and `--format`
+- Added integer support to `--filter`
+- Added support for `*string` and `string*` string filters with `--filter`
+- Improved `ziki` location selection, command description and some invalid input handling
+- Fix document indentation during markdown rendering
+
+- Development environment (`mw docker`):
+  - Add `mediawiki sites` commands to list recently installed sites
+  - Add ability to pass an `--ip` to `hosts` commands
+  - Improved speed of `restart` commands by internally using `docker-compose restart` (T314894)
 
 ## v0.16.0
 
