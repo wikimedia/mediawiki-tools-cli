@@ -22,6 +22,8 @@ services:
       - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
       - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-develop,debug}
       - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
     depends_on:
       - mediawiki-web
     dns:
