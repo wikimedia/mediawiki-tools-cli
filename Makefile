@@ -69,6 +69,10 @@ duplicates: $(GOLANGCI_LINT) generate
 git-state: $(GOX) $(GOVVV) release
 	git diff --quiet || (git --no-pager diff && false)
 
+.PHONY: linti
+linti:
+	go run ./tools/lint/main.go
+
 .PHONY: docs
 docs: build
 	rm -rf ./_docs/*

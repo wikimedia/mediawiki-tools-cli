@@ -66,7 +66,8 @@ Many other Makefile commands exist that you might find useful:
 - `make build`: Builds a new binary
 - `make release`: Builds multiple release binaries to `_release`
 - `make test`: Run unit tests
-- `make lint`: Run basic linting
+- `make lint`: Run basic go linting
+- `make linti`: Run custom mwcli command linting (lint internal)
 - `make fix`: Run basic lint fixes
 - `make vet`: Run `go vet`
 - `make staticcheck`: Run https://staticcheck.io/
