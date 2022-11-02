@@ -72,6 +72,29 @@ func detectorList() []func(*cobra.Command, string) *Issue {
 			}
 			return nil
 		},
+		// annotations-allowed: Only defined annotations are allowed
+		// Generally to help avoid typos
+		func(theCmd *cobra.Command, cmdStirng string) *Issue {
+			allowedKeys := []string{
+				"exitCode",
+				"group",
+				"mwcli-lint-skip",
+				"mwcli-lint-skip-children",
+			}
+			// TODO check all annotaitons and issue for each
+			for key := range theCmd.Annotations {
+				if !utilstrings.StringInSlice(key, allowedKeys) {
+					return &Issue{
+						Command: cmdStirng,
+						Level:   ErrorLevel,
+						Code:    "annotations-allowed",
+						Text:    "Annotation keys must come from allowed list",
+						Context: ">>> " + key,
+					}
+				}
+			}
+			return nil
+		},
 	}
 }
 
@@ -89,7 +112,10 @@ func detectIssues(theCmd *cobra.Command, cmdString string) []Issue {
 func detectIssuesRecursively(theCmd *cobra.Command, parentNamePrefix string) []Issue {
 	issues := []Issue{}
 	theCmdName := parentNamePrefix + theCmd.Name()
-	issues = append(issues, detectIssues(theCmd, theCmdName)...)
+
+	if len(theCmd.Annotations["mwcli-lint-skip"]) == 0 {
+		issues = append(issues, detectIssues(theCmd, theCmdName)...)
+	}
 
 	if len(theCmd.Annotations["mwcli-lint-skip-children"]) == 0 {
 		for _, nextCmd := range theCmd.Commands() {
