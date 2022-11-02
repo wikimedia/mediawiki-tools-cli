@@ -28,6 +28,18 @@ type Issue struct {
 
 func detectorList() []func(*cobra.Command, string) *Issue {
 	return []func(*cobra.Command, string) *Issue{
+		// short-required: Short description is always required
+		func(theCmd *cobra.Command, cmdStirng string) *Issue {
+			if len(theCmd.Short) == 0 {
+				return &Issue{
+					Command: cmdStirng,
+					Level:   ErrorLevel,
+					Code:    "short-required",
+					Text:    "Short descriptions are required",
+				}
+			}
+			return nil
+		},
 		// examples-required-when-flagged-lowlevel: Low level commands with flags require at least one example
 		func(theCmd *cobra.Command, cmdStirng string) *Issue {
 			if len(theCmd.Commands()) == 0 && /*No sub commands*/
