@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 type Level uint32
@@ -21,21 +22,40 @@ type Issue struct {
 	Command string
 	Code    string
 	Text    string
+	Context string
 	Level   Level
 }
 
 func detectorList() []func(*cobra.Command, string) *Issue {
 	return []func(*cobra.Command, string) *Issue{
-		// examples-required-flagged-lowlevel: Low level commands with flags require at least one example
+		// examples-required-when-flagged-lowlevel: Low level commands with flags require at least one example
 		func(theCmd *cobra.Command, cmdStirng string) *Issue {
 			if len(theCmd.Commands()) == 0 && /*No sub commands*/
 				theCmd.Flags().HasFlags() && /*At least one flag*/
-				len(strings.SplitMultiline(theCmd.Example)) <= 0 /*No example lines*/ {
+				len(utilstrings.SplitMultiline(theCmd.Example)) <= 0 /*No example lines*/ {
 				return &Issue{
 					Command: cmdStirng,
 					Level:   WarningLevel,
-					Code:    "examples-required-lowlevel",
+					Code:    "examples-required-when-flagged-lowlevel",
 					Text:    "Low level commands with flags require at least one example",
+				}
+			}
+			return nil
+		},
+		// examples-expected: All examples need to start with something that is expected
+		// This can be 1) The command name 2) a comment "#" 3) be a blank line (separation)
+		// It is common for people to start with `mw`, an alias or for whitespace between lines to be incorrect
+		func(theCmd *cobra.Command, cmdStirng string) *Issue {
+			for _, line := range utilstrings.SplitMultiline(theCmd.Example) {
+				// TODO check all example lines and return an issue for each?
+				if len(line) > 0 && strings.Index(line, theCmd.Name()) != 0 && strings.Index(line, "#") != 0 {
+					return &Issue{
+						Command: cmdStirng,
+						Level:   ErrorLevel,
+						Code:    "examples-expected-start",
+						Text:    "All examples have an expected start",
+						Context: ">>> " + line,
+					}
 				}
 			}
 			return nil
@@ -93,6 +113,9 @@ func main() {
 		if issue.Level == ErrorLevel {
 			numErrors++
 			color.Red("ERRR %s: (%s) %s", issue.Code, issue.Command, issue.Text)
+		}
+		if issue.Context != "" {
+			fmt.Println(issue.Context)
 		}
 	}
 	fmt.Printf("%d warnings and %d errors\n", numWarnings, numErrors)

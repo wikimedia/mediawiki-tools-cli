@@ -14,7 +14,7 @@ var mwddDockerCompose string
 func NewDockerComposerCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "docker-compose [flags] [docker-compose command] -- [docker-compose flags]",
-		Example: "ps\n-v=2 ps\n-v=2 ps -- --services",
+		Example: "docker-compose ps\ndocker-compose -v=2 ps\ndocker-compose -v=2 ps -- --services",
 		Aliases: []string{"dc"},
 		Short:   "Interact directly with docker-compose",
 		Long:    cli.RenderMarkdown(mwddDockerCompose),
