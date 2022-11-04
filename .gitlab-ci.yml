@@ -49,6 +49,7 @@ checks:
     parallel:
       matrix:
         - CHECK: lint
+        - CHECK: linti
         - CHECK: vet
         - CHECK: staticcheck
         - CHECK: git-state

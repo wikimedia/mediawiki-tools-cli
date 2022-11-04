@@ -16,7 +16,7 @@ You can also run this from the main makefile
 make linti
 ```
 
-This will soon be included in CI and as a pre commit hook...
+This will soon be included as a pre commit hook...
 
 ## Rules
 
