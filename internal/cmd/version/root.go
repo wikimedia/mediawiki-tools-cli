@@ -13,6 +13,8 @@ func NewVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Output the version information",
+		Example: `version
+version --output=template --format={{.Version}}`,
 		Run: func(cmd *cobra.Command, args []string) {
 			objects := make(map[interface{}]interface{}, 7)
 

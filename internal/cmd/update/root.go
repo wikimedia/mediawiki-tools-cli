@@ -17,6 +17,8 @@ func NewUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Checks for and performs updates",
+		Example: `update
+update --version=0.10 --no-interaction`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if manualVersion == "" {
 				canUpdate, toUpdateToOrMessage := updater.CanUpdate(cli.VersionDetails.Version, cli.VersionDetails.GitSummary)
