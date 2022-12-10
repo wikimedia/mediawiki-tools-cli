@@ -18,6 +18,8 @@ func NewKeycloakCmd() *cobra.Command {
 		Long:    cli.RenderMarkdown(mwddKeycloakLong),
 		Aliases: []string{"kc"},
 	}
+	cmd.Annotations = make(map[string]string)
+	cmd.Annotations["group"] = "Service"
 	cmd.AddCommand(mwdd.NewServiceCreateCmd("keycloak"))
 	cmd.AddCommand(mwdd.NewServiceDestroyCmd("keycloak"))
 	cmd.AddCommand(mwdd.NewServiceStopCmd("keycloak"))
