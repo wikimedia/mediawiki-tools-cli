@@ -74,11 +74,22 @@ Many other Makefile commands exist that you might find useful:
 
 ### Packages & Directories
 
-- `cmd`: Creation and execution of the top level mw cobra CLI command.
+#### CLI wide general packages
+
+- `cmd`: Creation and execution of the top level Cobra command.
 - `internal/cli`: High level things used across the CLI.
-- `internal/util`: Independent packages that do not bind the the CLI.
 - `internal/cmd`: Packages for commands that make up part of the CLI, binding to cobra.
-- `internal/<command name>`: Packages for commands that should not bind to cobra.
+- `internal/cmdgloss`: Glossy output for users
+- `internal/codesearch`: Client for interacting with https://codesearch.wikimedia.org
+- `internal/config`: CLI wide configuration.
+- `internal/eventlogging`: Client to submit events to Wikimedia Event Logging
+- `internal/exec`: Wrapper around `exec` for easily running commands and capturing output. TODO clean this up
+- `internal/gitlab`: Client for interacting with https://gitlab.wikimedia.org
+- `internal/mediawiki`: Interact with a MediaWiki installation directory on disk
+- `internal/mwdd`: Package for the docker-compose powered development environment
+- `internal/toolhub`: Client for interacting with https://toolhub.wikimedia.org
+- `internal/updater`: Code for updating the CLI.
+- `internal/util`: Independent packages that do not bind the CLI in any way.
 - `tests`: Integration tests that are run as part of CI.
 - `tools`: Various tools to make working with this repository easier.
 
