@@ -39,12 +39,18 @@ func getFirstOfType(addrs []string, t int) *string {
 
 /*IPv4 ...*/
 func IPv4(host string) string {
-	addrs, _ := IPs(host)
+	addrs, err := IPs(host)
+	if err != nil {
+		return ""
+	}
 	return *getFirstOfType(addrs, 4)
 }
 
 /*IPv6 ...*/
 func IPv6(host string) string {
-	addrs, _ := IPs(host)
+	addrs, err := IPs(host)
+	if err != nil {
+		return ""
+	}
 	return *getFirstOfType(addrs, 6)
 }
