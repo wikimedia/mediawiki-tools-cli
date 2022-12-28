@@ -24,7 +24,7 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
 
   # composer install (for update and dev deps)
   # TODO use on disk cache
-  docker run -u $(id -u ${USER}):$(id -g ${USER}) --rm -v $PWD/.mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s1 install --ignore-platform-reqs --no-interaction --no-progress
+  docker run -u $(id -u ${USER}):$(id -g ${USER}) --rm -v $PWD/.mediawiki:/app -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s3 install --ignore-platform-reqs --no-interaction --no-progress
 
   # npm install
   # TODO use on disk cache

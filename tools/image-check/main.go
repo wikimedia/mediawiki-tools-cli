@@ -91,12 +91,20 @@ func humanURLForImageName(imageName string) string {
 func tagsForImageName(imageName string) []string {
 	if stringStartsWith(imageName, "docker-registry.wikimedia.org") {
 		v2Res := v2Response{}
-		jsonFromURL("https://docker-registry.wikimedia.org/v2/"+strings.Replace(imageName, "docker-registry.wikimedia.org/", "", 1)+"/tags/list/", &v2Res)
+		_, err := jsonFromURL("https://docker-registry.wikimedia.org/v2/"+strings.Replace(imageName, "docker-registry.wikimedia.org/", "", 1)+"/tags/list/", &v2Res)
+		if err != nil {
+			logrus.Error(err)
+			return []string{}
+		}
 		return v2Res.Tags
 	}
 	// Use v1 for docker hub, as it doesn't require authentication
 	v1Res := v1Response{}
-	jsonFromURL("https://registry.hub.docker.com/v1/repositories/"+imageName+"/tags", &v1Res)
+	_, err := jsonFromURL("https://registry.hub.docker.com/v1/repositories/"+imageName+"/tags", &v1Res)
+	if err != nil {
+		logrus.Error(err)
+		return []string{}
+	}
 	return v1Res.Tags()
 }
 
@@ -118,19 +126,19 @@ type v2Response struct {
 	Tags []string `json:"tags"`
 }
 
-func jsonFromURL(url string, unmarshalTo interface{}) interface{} {
+func jsonFromURL(url string, unmarshalTo interface{}) (interface{}, error) {
 	client := http.Client{}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	req.Header.Set("User-Agent", "mwcli-tools-image-check")
 
 	res, getErr := client.Do(req)
 	if getErr != nil {
-		panic(getErr)
+		return nil, getErr
 	}
 
 	if res.Body != nil {
@@ -139,15 +147,15 @@ func jsonFromURL(url string, unmarshalTo interface{}) interface{} {
 
 	body, readErr := ioutil.ReadAll(res.Body)
 	if readErr != nil {
-		panic(readErr)
+		return nil, readErr
 	}
 
 	jsonErr := json.Unmarshal(body, &unmarshalTo)
 	if jsonErr != nil {
-		panic(jsonErr)
+		return nil, jsonErr
 	}
 
-	return unmarshalTo
+	return unmarshalTo, nil
 }
 
 func stringStartsWith(s string, prefix string) bool {
