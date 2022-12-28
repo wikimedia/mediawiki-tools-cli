@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   graphite:
-    image: "${GRAPHITE_IMAGE:-graphiteapp/graphite-statsd:1.1.10-3}"
+    image: "${GRAPHITE_IMAGE:-graphiteapp/graphite-statsd:1.1.10-4}"
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=graphite.mwdd.localhost,graphite.mwdd

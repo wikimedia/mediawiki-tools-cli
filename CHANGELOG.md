@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.18.0
+- Development environment (`mw docker`):
+  - Image updates:
+    - `eventgate-wikimedia`: `2022-06-07-105344-production` -> `2022-11-28-190331-production`
+    - `graphite-statsd`: `1.1.10-3` -> `1.1.10-4`
+    - `releng/quibble-buster-php74`: `1.4.4` -> `1.4.7-s1`
+    - `dev/buster-php74-fpm`: `1.0.0-s1` -> `1.0.0-s3`
+    - shellbox* `2022-03-10-142520` -> `2022-12-05-111819`
+
 ## v0.17.0
 
 - Added grouping of commands in help command output
