@@ -15,7 +15,7 @@ var gerritLong string
 func NewGerritCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gerrit",
-		Short: "Wikimedia Gerrit",
+		Short: "Interact with the Wikimedia Gerrit instance",
 		Long:  cli.RenderMarkdown(gerritLong),
 		RunE:  nil,
 	}

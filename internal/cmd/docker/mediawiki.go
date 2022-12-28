@@ -14,6 +14,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -441,16 +442,16 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			// TODO if update fails, still output the install message section, BUT tell them they need to fix the issue and run update.php
 			runUpdate()
 
-			fmt.Println("")
-			fmt.Println("***************************************")
-			fmt.Println("Installation successful 🎉")
-			fmt.Println("User: " + adminUser)
-			fmt.Println("Pass: " + adminPass)
-			fmt.Println("Link: " + serverLink)
-			fmt.Println("")
-			fmt.Println("If you want to access the wiki from your command line you may need to add it to your hosts file.")
-			fmt.Println("You can do this with the `hosts add` command that is part of this development environment.")
-			fmt.Println("***************************************")
+			outputDetails := make(map[string]string)
+			outputDetails["User"] = adminUser
+			outputDetails["Pass"] = adminPass
+			outputDetails["Link"] = serverLink
+			cmdgloss.PrintThreePartBlock(
+				cmdgloss.SuccessHeding("Installation successful"),
+				outputDetails,
+				"If you want to access the wiki from your command line you may need to add it to your hosts file.\n"+
+					"You can do this with the `hosts add` command that is part of this development environment.",
+			)
 		},
 	}
 	cmd.Annotations = make(map[string]string)

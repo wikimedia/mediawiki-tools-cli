@@ -9,21 +9,39 @@ import (
 
 func NewDebugEventsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "events",
+		Hidden:  debugCommandsAreHidden(),
+		Short:   "Debug events / telemetry",
+		Use:     "events",
+		Aliases: []string{"telemetry"},
 	}
 	cmd.AddCommand(NewDebugEventsEmitCmd())
+	cmd.AddCommand(NewDebugEventsCatCmd())
 	return cmd
 }
 
 func NewDebugEventsEmitCmd() *cobra.Command {
 	return &cobra.Command{
-		Hidden: true,
-		Use:    "emit",
-		Short:  "Emit events now",
+		Hidden:  debugCommandsAreHidden(),
+		Use:     "submit",
+		Aliases: []string{"emit"},
+		Short:   "Submit events now",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Emitting events")
+			fmt.Println("Submitting events")
 			eventlogging.EmitEvents()
+		},
+	}
+}
+
+func NewDebugEventsCatCmd() *cobra.Command {
+	return &cobra.Command{
+		Hidden:  debugCommandsAreHidden(),
+		Use:     "cat",
+		Aliases: []string{"list"},
+		Short:   "List events pending submission",
+		Run: func(cmd *cobra.Command, args []string) {
+			for _, line := range eventlogging.RawEvents() {
+				fmt.Println(line)
+			}
 		},
 	}
 }

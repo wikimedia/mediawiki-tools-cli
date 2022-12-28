@@ -22,11 +22,13 @@ func NewGitlabCmd() *cobra.Command {
 
 	// Try to keep this version in line with the addshore fork for now...
 	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
-	glabCommand.Short = "Wikimedia Gitlab instance"
+	glabCommand.Short = "Interact with the Wikimedia Gitlab instance"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.Aliases = []string{"glab", "gl"}
 
 	glabCommand.Annotations["group"] = "Service"
+	glabCommand.Annotations["mwcli-lint-skip"] = "yarhar"
+	glabCommand.Annotations["mwcli-lint-skip-children"] = "yarhar"
 
 	defaultHelpFunc := glabCommand.HelpFunc()
 	glabCommand.SetHelpFunc(func(c *cobra.Command, a []string) {

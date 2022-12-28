@@ -27,7 +27,7 @@ func NewToolsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "tools",
 		Aliases: []string{"toolforge"},
-		Short:   "Wikimedia Tools",
+		Short:   "Interact with any Wikimedia \"Tool\"",
 		RunE:    nil,
 	}
 

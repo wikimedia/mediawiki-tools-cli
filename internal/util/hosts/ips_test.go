@@ -4,20 +4,24 @@ import (
 	"testing"
 )
 
-func TestLocalhostIps(t *testing.T) {
+func TestHostIps(t *testing.T) {
 	tests := []struct {
 		name string
+		host string
+		has  string
 	}{
 		{
 			name: "localhost has 127.0.0.1",
+			host: "localhost",
+			has:  "127.0.0.1",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := IPs("localhost")
+			got, _ := IPs(tt.host)
 
-			if !splitContains(got, "127.0.0.1") {
-				t.Errorf("LocalhostIps() = doesn't container 127.0.0.1 and probably should, got: %v", got)
+			if !splitContains(got, tt.has) {
+				t.Errorf("IPs() = for %v doesn't contain %v and probably should, got: %v", tt.host, tt.has, got)
 				return
 			}
 		})

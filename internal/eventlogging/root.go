@@ -39,11 +39,18 @@ func eventFile() string {
 	return cli.UserDirectoryPath() + string(os.PathSeparator) + ".events"
 }
 
+func RawEvents() []string {
+	return files.Lines(eventFile())
+}
+
 func EmitEvents() bool {
-	eventJSON := files.Lines(eventFile())
-	if len(eventJSON) == 0 {
+	eventJSON := RawEvents()
+	eventCount := len(eventJSON)
+	if eventCount == 0 {
+		logrus.Debug("No events to emit")
 		return false
 	}
+	logrus.Tracef("Submitting %d events", eventCount)
 
 	payload := []byte("[" + strings.Join(eventJSON, ",") + "]")
 	_, err := http.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
@@ -58,5 +65,6 @@ func EmitEvents() bool {
 		return false
 	}
 
+	logrus.Debug("Event submission success")
 	return true
 }

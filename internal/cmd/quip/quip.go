@@ -17,7 +17,10 @@ import (
 
 func NewQuipCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "quip",
+		Use:   "quip",
+		Short: "Outputs a quip from bash.toolforge.org",
+		Example: `quip
+quip --link`,
 		Hidden: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			req, err := http.NewRequest("GET", "https://bash.toolforge.org/random", nil)
