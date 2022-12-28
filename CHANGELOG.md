@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
 ## v0.18.0
+- Added more command examples
+- Improved top level short command descriptions
 - Development environment (`mw docker`):
+  - Added long form `docker-compose` command description
+  - Fix incorrect grouping of `keycloak` command
   - Image updates:
     - `eventgate-wikimedia`: `2022-06-07-105344-production` -> `2022-11-28-190331-production`
     - `graphite-statsd`: `1.1.10-3` -> `1.1.10-4`
