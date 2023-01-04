@@ -30,6 +30,18 @@ func AddCommandRunEvent(command string, version string) {
 	})
 }
 
+func AddFeatureUsageEvent(feature string, version string) {
+	AddEventToStore(map[string]interface{}{
+		"$schema": "/analytics/mwcli/feature_usage/1.0.0",
+		"meta": map[string]interface{}{
+			"stream": "mwcli.feature_usage",
+		},
+		"dt":      currentDtString(),
+		"feature": feature,
+		"version": version,
+	})
+}
+
 func AddEventToStore(event map[string]interface{}) {
 	j, _ := json.Marshal(event)
 	files.AddLine(string(j), eventFile())

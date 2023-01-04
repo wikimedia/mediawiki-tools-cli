@@ -9,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -181,6 +182,14 @@ func NewMediaWikiCmd() *cobra.Command {
 				fmt.Println("Cloning repositories...")
 				fmt.Println("This may take a few moments...")
 				mediawiki.CloneSetup(setupOpts)
+
+				eventlogging.AddFeatureUsageEvent("clone-repositories", cli.VersionDetails.Version)
+				if setupOpts.UseGithub {
+					eventlogging.AddFeatureUsageEvent("clone-repositories:use-github", cli.VersionDetails.Version)
+				}
+				if setupOpts.UseShallow {
+					eventlogging.AddFeatureUsageEvent("clone-repositories:use-shallow", cli.VersionDetails.Version)
+				}
 
 				// Check that the needed things seem to have happened
 				if setupOpts.GetMediaWiki && !mediawiki.MediaWikiIsPresent() {
