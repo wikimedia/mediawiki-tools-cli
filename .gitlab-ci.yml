@@ -112,6 +112,19 @@ build-release:
     script:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
+build-docs:
+    except:
+      - tags
+    stage: release
+    needs: [build,integration]
+    cache: {}
+    image: golang:1.17
+    before_script:
+      - apt update
+      - apt -y install pandoc
+    script:
+      - make docs
+
 release-build:
     only:
       - tags
@@ -172,3 +185,17 @@ release-publish:
         assets_links="${assets_links} --assets-link {\"name\":\"${release_file}\",\"url\":\"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mwcli/${CI_COMMIT_TAG}/${release_file}\"}"
       done
     - release-cli create --name "Release $CI_COMMIT_TAG" --description ".gitlab.description.md" --released-at "${CI_COMMIT_TIMESTAMP}" ${assets_links}
+
+release-docs:
+    only:
+      - tags
+    stage: release
+    needs: [release-publish]
+    cache: {}
+    image: golang:1.17
+    before_script:
+      - apt update
+      - apt -y install pandoc
+    script:
+      - make docs
+      - make user="$DOCS_UPDATE_USER" password="$DOCS_UPDATE_PASS" docs-publish
