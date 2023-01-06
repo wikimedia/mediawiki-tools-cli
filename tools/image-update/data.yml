@@ -1,0 +1,56 @@
+images:
+  # docker dev env: Base services
+  - image: defreitas/dns-proxy-server:2.19.0
+  - image: jwilder/nginx-proxy:0.10
+  # docker dev env: MediaWiki related services
+  - image: docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s4
+  - image: docker-registry.wikimedia.org/releng/quibble-buster-php74:1.4.7-s1
+  - image: docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s3
+  - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0
+  # docker dev env: Misc services
+  - image: postgres:13.6
+    noCheck: true
+  - image: mariadb:10.8
+    noCheck: true
+  - image: phpmyadmin/phpmyadmin:5
+    noCheck: true
+  - image: adminer:4
+    noCheck: true
+  - image: mailhog/mailhog:v1.0.1
+    noCheck: true
+  - image: memcached:1.6
+    noCheck: true
+  - image: redis:6.2
+    noCheck: true
+  - image: quay.io/keycloak/keycloak:18.0.0
+    noCheck: true
+  - image: graphiteapp/graphite-statsd:1.1.10-4
+    requireRegex: 1\.\d+\.\d+(\-\d+)
+  - image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
+  # docker dev env: Regularly released WMF production images
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-media
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-php-rpc
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-score
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-syntaxhighlight
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-timeline
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
+  - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2022-11-28-190331-production
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
+  # Latest images...
+  - image: ubuntu:latest
+    noCheck: true
+  - image: registry.gitlab.com/gitlab-org/release-cli:latest
+    noCheck: true
+  # Golang CI images
+  - image: docker-registry.wikimedia.org/golang1.17:1.17-1-20221002
+  - image: golang:1.17
+    noCheck: true
+# Files and directories to check
+files:
+  - .gitlab-ci.yml
+directories:
+  - internal/mwdd/files/embed
