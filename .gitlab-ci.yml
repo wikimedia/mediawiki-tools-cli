@@ -133,16 +133,12 @@ release-upload:
     - tags
   stage: release
   needs: [release-build]
-  tags:
-  - mwcli
   dependencies:
     - release-build
-  # Has 1 requirement of curl, could be replaced by a wmf releng image?
-  image: alpine:latest
-  # Must run on mwcli runner, as alpine:* images are not on shared runners (for now)
+  image: ubuntu:latest
   before_script:
-    - apk update
-    - apk add curl
+    - apt update
+    - apt -y install curl
   # https://docs.gitlab.com/ee/user/packages/generic_packages/#publish-a-generic-package-by-using-cicd
   script:
     - echo "Placeholder job, as a conditional upload currently happens as part of release-build awaiting decision on https://phabricator.wikimedia.org/T292372"
@@ -157,11 +153,8 @@ release-publish:
     - tags
   stage: release
   needs: [release-upload,release-build]
-  tags:
-  - mwcli
   dependencies:
     - release-build
-  # Allowed in shared runners https://github.com/wikimedia/puppet/blob/production/modules/gitlab_runner/templates/config.toml.erb#L50
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   script:
     - (echo "## ${CI_COMMIT_TAG}" && echo "CHANGELOG extracted from https://gitlab.wikimedia.org/repos/releng/cli/-/blob/main/CHANGELOG.md" && sed "/^## ${CI_COMMIT_TAG}$/,/^## /"'!d'";//d;/\^$/d" CHANGELOG.md) > .gitlab.description.md
