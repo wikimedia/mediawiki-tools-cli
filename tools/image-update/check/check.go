@@ -96,7 +96,7 @@ func main() {
 	}
 
 	// write commands to file
-	err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")), 0o755)
+	err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")+"\n"), 0o755)
 	if err != nil {
 		panic(err)
 	}
