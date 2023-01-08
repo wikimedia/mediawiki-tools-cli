@@ -6,16 +6,16 @@ image-update-build:
        - go run ./tools/image-update/check/check.go
        - echo "Update commands collected..."
        - cat ./tools/image-update/.update.sh
-       - cp .gitlab-ci.daily.template.yml .gitlab-ci.daily.generated.yml
+       - cp .gitlab-ci.weekly.template.yml .gitlab-ci.weekly.generated.yml
        - |+
          while read line; do
            line=$(echo $line|tr -d '\n')
-           echo "        - COMMAND: ${line}" >> .gitlab-ci.daily.generated.yml
+           echo "        - COMMAND: ${line}" >> .gitlab-ci.weekly.generated.yml
          done < ./tools/image-update/.update.sh
-       - cat .gitlab-ci.daily.generated.yml
+       - cat .gitlab-ci.weekly.generated.yml
     artifacts:
         paths:
-          - .gitlab-ci.daily.generated.yml
+          - .gitlab-ci.weekly.generated.yml
 
 image-update-trigger:
   stage: build
@@ -23,6 +23,6 @@ image-update-trigger:
     - image-update-build
   trigger:
     include:
-      - artifact: .gitlab-ci.daily.generated.yml
+      - artifact: .gitlab-ci.weekly.generated.yml
         job: image-update-build
     strategy: depend
