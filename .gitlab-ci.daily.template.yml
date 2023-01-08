@@ -12,7 +12,7 @@ image-update:
       - git config --global user.email "project16_bot@noreply.gitlab.wikimedia.org"
       - git config --global user.name "image-update-ci"
       - NEW_MSG=$(sed 's/go run tools\/image-update\/update\/update.go //g' <<<"$COMMAND")
-      - NEW_MSG=$(echo $NEW_MSG | sed -r "s/ [^:]+:/ > /g")
+      - NEW_MSG=$(echo $NEW_MSG | sed -r "s/ [^:]+:/ to /g")
       - NEW_BRANCH="${NEW_MSG// /_}"
       - NEW_BRANCH="${NEW_BRANCH//:/_}"
       # Gitlab CI seems to keep branches between runs, os delete any previous branches?
