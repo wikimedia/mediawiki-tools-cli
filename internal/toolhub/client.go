@@ -14,9 +14,13 @@ const (
 	BaseURLV1 = "https://toolhub.wikimedia.org/api"
 )
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type Client struct {
 	BaseURL    string
-	HTTPClient *http.Client
+	HTTPClient HTTPClient
 }
 
 func NewClient() *Client {
