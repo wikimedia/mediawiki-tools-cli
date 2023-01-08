@@ -35,6 +35,7 @@ type EmbeddingDiskSync struct {
 var embedSeperator = "/"
 
 func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
+	logrus.Trace("embedsync.EnsureFilesOnDisk")
 	embeddedFiles := e.embeddedFiles()
 
 	// Ensure each file is on disk and up to date
@@ -60,6 +61,7 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 }
 
 func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
+	logrus.Trace("embedsync.EnsureNoExtraFilesOnDisk")
 	diskFiles := e.diskFiles()
 	embeddedFiles := e.embeddedFiles()
 

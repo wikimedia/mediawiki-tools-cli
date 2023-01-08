@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
@@ -36,6 +37,7 @@ func NewMediaWikiCmd() *cobra.Command {
 			usrDir := usr.HomeDir
 
 			if mwdd.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
+				logrus.Debug("MEDIAWIKI_VOLUMES_CODE is missing")
 				if !cli.Opts.NoInteraction {
 					// Prompt the user for a directory or confirmation
 					dirValue := ""
@@ -63,6 +65,7 @@ func NewMediaWikiCmd() *cobra.Command {
 
 			// Default the mediawiki container to a .composer directory in the running users home dir
 			if !mwdd.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER") {
+				logrus.Debug("MEDIAWIKI_VOLUMES_DOT_COMPOSER is missing")
 				usrComposerDirectory := usrDir + "/.composer"
 				if _, err := os.Stat(usrComposerDirectory); os.IsNotExist(err) {
 					err := os.Mkdir(usrComposerDirectory, 0o755)
@@ -81,6 +84,7 @@ func NewMediaWikiCmd() *cobra.Command {
 			// TODO ask if they want to get any more skins and extensions?
 			// TODO async cloning of repos for speed!
 			if !mediawiki.MediaWikiIsPresent() {
+				logrus.Debug("MediaWiki is missing")
 				if !cli.Opts.NoInteraction {
 					cloneMw := false
 					prompt := &survey.Confirm{
@@ -97,6 +101,7 @@ func NewMediaWikiCmd() *cobra.Command {
 				}
 			}
 			if !mediawiki.VectorIsPresent() {
+				logrus.Debug("Vector is missing")
 				if !cli.Opts.NoInteraction {
 					cloneVector := false
 					prompt := &survey.Confirm{
