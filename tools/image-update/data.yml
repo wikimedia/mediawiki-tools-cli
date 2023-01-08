@@ -53,7 +53,7 @@ images:
 files:
   - .gitlab-ci.yml
   - .gitlab-ci.commit.yml
-  - .gitlab-ci.daily.yml
-  - .gitlab-ci.daily.template.yml
+  - .gitlab-ci.weekly.yml
+  - .gitlab-ci.weekly.template.yml
 directories:
   - internal/mwdd/files/embed
