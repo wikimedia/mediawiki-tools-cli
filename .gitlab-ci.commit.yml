@@ -77,12 +77,13 @@ integration-trigger:
     needs: [checks,test,build]
     trigger:
         include: .gitlab-ci.commit.integration.yml
+    strategy: depend
 
 build-release:
     except:
       - tags
     stage: release
-    needs: [build,integration]
+    needs: [build,integration-trigger]
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     before_script:
       - go install github.com/bwplotka/bingo@v0.7.0
@@ -94,7 +95,7 @@ build-docs:
     except:
       - tags
     stage: release
-    needs: [build,integration]
+    needs: [build,integration-trigger]
     image: golang:1.17
     before_script:
       - apt update
@@ -106,7 +107,7 @@ release-build:
     only:
       - tags
     stage: release
-    needs: [build,integration]
+    needs: [build,integration-trigger]
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     artifacts:
       paths:
