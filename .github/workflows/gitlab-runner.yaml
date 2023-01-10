@@ -14,7 +14,7 @@ jobs:
           remove-haskell: 'true'
 
       - name: Gitlab Runner
-        uses: edersonbrilhante/gitlab-runner-action@main
+        uses: addshore/gitlab-runner-action@main
         with:
           registration-token: "${{ github.event.client_payload.registration_token }}"
           docker-image: "docker:20.10.18"
