@@ -33,6 +33,7 @@ start-runner:
   stage: build
   image: ubuntu:latest
   before_script:
+    - apt update
     - apt -y install curl
   script: |
     curl -H "Authorization: token ${GITHUB_TOKEN}" \
