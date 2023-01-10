@@ -1,8 +1,10 @@
 variables:
   DOCKER_TLS_CERTDIR: "/certs"
   PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+  GITHUB_REPO: wikimedia/releng-cli
 
 stages:
+  - build
   - integration
 
 # The plan would be for this cache to be reused by all jobs.
@@ -28,6 +30,7 @@ cache:
 
 start-runner:
   extends: .integration
+  stage: build
   image: ubuntu:latest
   before_script:
     - apt -y install curl
