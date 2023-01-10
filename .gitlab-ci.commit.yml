@@ -75,12 +75,8 @@ build:
 integration-trigger:
     stage: integration
     needs: [checks,test,build]
-    dependencies:
-      - build
     trigger:
         include: .gitlab-ci.commit.integration.yml
-    tags:
-    - mwcli
 
 build-release:
     except:
