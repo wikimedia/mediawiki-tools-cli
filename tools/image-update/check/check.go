@@ -95,13 +95,15 @@ func main() {
 		fmt.Println(v)
 	}
 
-	// write commands to file
-	err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")+"\n"), 0o755)
-	if err != nil {
-		panic(err)
+	// write commands to file (if there are any)
+	if len(delayOutputCommands) != 0 {
+		err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")+"\n"), 0o755)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("-------------------------------------------------------")
+		fmt.Println("Commands to update images written to tools/image-update/.update.sh")
 	}
-	fmt.Println("-------------------------------------------------------")
-	fmt.Println("Commands to update images written to tools/image-update/.update.sh")
 }
 
 func keepNewerTags(currentTag string, allTags []string) []string {
