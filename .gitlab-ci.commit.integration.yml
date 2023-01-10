@@ -1,0 +1,56 @@
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+  PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+
+stages:
+  - integration
+
+# The plan would be for this cache to be reused by all jobs.
+# Caches currently end up cached per runner, per job concurrency level and per md5 of path?
+# So there are lots of duplicate caches that end up needing to be populated right now?
+# https://forum.gitlab.com/t/confusion-around-ci-docker-cache-volumes-and-sharing-across-jobs-concurrency/56793
+# Docker cache volumes look like this runner-<short-token>-project-<id>-concurrent-<concurrency-id>-cache-<md5-of-path>
+cache:
+  - key: mediawiki
+    paths:
+      - .mediawiki
+
+.integration:
+    parallel:
+      matrix:
+        - TEST_SCRIPT: test-general-commands.sh
+        - TEST_SCRIPT: test-docker-general.sh
+          EXTRA_PACKAGES: docker-compose curl tar
+        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
+          EXTRA_PACKAGES: docker-compose curl tar
+        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh  
+          EXTRA_PACKAGES: docker-compose curl tar
+
+start-runner:
+  extends: .integration
+  image: ubuntu:latest
+  before_script:
+    - apt -y install curl
+  script: |
+    curl -H "Authorization: token ${GITHUB_TOKEN}" \
+    -H 'Accept: application/vnd.github.everest-preview+json' \
+    "https://api.github.com/repos/${GITHUB_REPO}/dispatches" \
+    -d '{"event_type": "gitlab_trigger_'${CI_PIPELINE_ID}'", "client_payload": {"registration_token": "'${GITLAB_REGISTRATION_TOKEN}'", "extra_tag": "'script-${TEST_SCRIPT}-, job-${CI_JOB_ID}'"}}'
+
+integration:
+    extends: .integration
+    stage: integration
+    services:
+    - name: docker:20.10.14-dind
+    tags:
+    - dind
+    - script-${TEST_SCRIPT}
+    - job-${CI_JOB_ID}
+    needs:
+      - pipeline: $PARENT_PIPELINE_ID
+        job: build
+    before_script:
+      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
+      - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
+    script:
+      - ./tests/$TEST_SCRIPT

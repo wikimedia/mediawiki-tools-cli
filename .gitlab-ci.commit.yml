@@ -1,26 +1,12 @@
-variables:
-  DOCKER_TLS_CERTDIR: "/certs"
-
 stages:
   - test
   - build
   - integration
   - release
 
-# The plan would be for this cache to be reused by all jobs.
-# Caches currently end up cached per runner, per job concurrency level and per md5 of path?
-# So there are lots of duplicate caches that end up needing to be populated right now?
-# https://forum.gitlab.com/t/confusion-around-ci-docker-cache-volumes-and-sharing-across-jobs-concurrency/56793
-# Docker cache volumes look like this runner-<short-token>-project-<id>-concurrent-<concurrency-id>-cache-<md5-of-path>
-cache:
-  - key: mediawiki
-    paths:
-      - .mediawiki
-
 test:
     stage: test
     needs: []
-    cache: {}
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
@@ -44,7 +30,6 @@ test:
 checks:
     stage: test
     needs: []
-    cache: {}
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     parallel:
       matrix:
@@ -64,7 +49,6 @@ checks:
 tools:
     stage: test
     needs: []
-    cache: {}
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     parallel:
       matrix:
@@ -78,7 +62,6 @@ tools:
 build:
     stage: build
     needs: []
-    cache: {}
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     artifacts:
       paths:
@@ -89,36 +72,21 @@ build:
     script:
       - make build
 
-integration:
+integration-trigger:
     stage: integration
-    services:
-    - name: docker:20.10.14-dind
     needs: [checks,test,build]
-    tags:
-    - mwcli
     dependencies:
       - build
-    parallel:
-      matrix:
-        - TEST_SCRIPT: test-general-commands.sh
-        - TEST_SCRIPT: test-docker-general.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-    before_script:
-      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
-      - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
-    script:
-      - ./tests/$TEST_SCRIPT
+    trigger:
+        include: .gitlab-ci.commit.integration.yml
+    tags:
+    - mwcli
 
 build-release:
     except:
       - tags
     stage: release
     needs: [build,integration]
-    cache: {}
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     before_script:
       - go install github.com/bwplotka/bingo@v0.7.0
@@ -131,7 +99,6 @@ build-docs:
       - tags
     stage: release
     needs: [build,integration]
-    cache: {}
     image: golang:1.17
     before_script:
       - apt update
@@ -144,7 +111,6 @@ release-build:
       - tags
     stage: release
     needs: [build,integration]
-    cache: {}
     image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
     artifacts:
       paths:
@@ -198,7 +164,6 @@ release-docs:
       - tags
     stage: release
     needs: [release-publish]
-    cache: {}
     image: golang:1.17
     before_script:
       - apt update

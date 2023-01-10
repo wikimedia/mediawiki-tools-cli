@@ -19,4 +19,6 @@ jobs:
           registration-token: "${{ github.event.client_payload.registration_token }}"
           docker-image: "docker:20.10.18"
           name: ${{ github.run_id }}
-          tag-list: "github,dind"
+          # We can provide a specific tag when triggering a job, so 1 runner matches to 1 job
+          tag-list: "github,dind,${{ github.event.client_payload.extra_tag }}"
+          run-untagged: false
