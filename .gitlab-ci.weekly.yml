@@ -4,9 +4,15 @@ image-update-build:
     image: golang:1.17
     script:
        - go run ./tools/image-update/check/check.go
+       - cp .gitlab-ci.weekly.template.yml .gitlab-ci.weekly.generated.yml
+       - |+
+         if [ ! -f "./tools/image-update/.update.sh" ]; then
+           echo "        - COMMAND: echo null" >> .gitlab-ci.weekly.generated.yml
+           echo "No update commands to run"
+           exit 0
+         fi
        - echo "Update commands collected..."
        - cat ./tools/image-update/.update.sh
-       - cp .gitlab-ci.weekly.template.yml .gitlab-ci.weekly.generated.yml
        - |+
          while read line; do
            line=$(echo $line|tr -d '\n')
