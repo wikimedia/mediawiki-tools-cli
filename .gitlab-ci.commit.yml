@@ -77,7 +77,7 @@ integration-trigger:
     needs: [checks,test,build]
     trigger:
         include: .gitlab-ci.commit.integration.yml
-    strategy: depend
+        strategy: depend
 
 build-release:
     except:
