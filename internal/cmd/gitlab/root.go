@@ -4,11 +4,11 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/profclems/glab/commands"
-	"github.com/profclems/glab/commands/cmdutils"
-	"github.com/profclems/glab/pkg/glinstance"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"gitlab.com/gitlab-org/cli/commands"
+	"gitlab.com/gitlab-org/cli/commands/cmdutils"
+	"gitlab.com/gitlab-org/cli/pkg/glinstance"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -79,7 +79,7 @@ func glabVersion() string {
 	}
 
 	for _, v := range bi.Deps {
-		if v.Path == "github.com/profclems/glab" {
+		if v.Path == "gitlab.com/gitlab-org/cli" {
 			return v.Version
 		}
 	}
