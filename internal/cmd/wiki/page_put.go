@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//go:embed page_put_example.txt
+//go:embed page_put.example
 var pagePutExample string
 
 func NewWikiPagePutCmd() *cobra.Command {

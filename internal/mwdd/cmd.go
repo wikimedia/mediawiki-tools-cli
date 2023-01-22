@@ -124,6 +124,10 @@ func NewServiceStartCmd(name string) *cobra.Command {
 	return cmd
 }
 
+// TODO move these commands into cmd/docker/genericservice ?
+// TODO split each cmd into its own file
+// TODO exreact the Examples, such as that below into own files
+
 func NewServiceExecCmd(name string, service string) *cobra.Command {
 	var User string
 	cmd := &cobra.Command{

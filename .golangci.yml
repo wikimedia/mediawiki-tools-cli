@@ -8,3 +8,7 @@ issues:
 # all available settings of specific linters
 linters-settings:
   revive:
+    rules:
+      # Ignore blank imports, as "embed" is a valid blank import
+      - name: blank-imports
+        disabled: true

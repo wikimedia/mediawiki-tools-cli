@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//go:embed page_delete_example.txt
+//go:embed page_delete.example
 var pageDeleteExample string
 
 func NewWikiPageDeleteCmd() *cobra.Command {
