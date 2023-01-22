@@ -1,4 +1,4 @@
-package detectors
+package issue
 
 type Level uint32
 

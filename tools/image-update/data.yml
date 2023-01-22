@@ -52,8 +52,8 @@ images:
 # Files and directories to check
 files:
   - .gitlab-ci.yml
-  - .gitlab-ci.commit.yml
-  - .gitlab-ci.weekly.yml
-  - .gitlab-ci.weekly.template.yml
+  - .gitlab/commit.yml
+  - .gitlab/weekly.yml
+  - .gitlab/weekly.image-update.yml
 directories:
   - internal/mwdd/files/embed
