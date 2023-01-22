@@ -2,6 +2,8 @@ package detectors
 
 import (
 	"os"
+	"regexp"
+	"strings"
 
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 	"gopkg.in/yaml.v2"
@@ -48,6 +50,38 @@ func DetectDataIssues() []issue.Issue {
 				Text:    "Directory listed in data.yml does not exist",
 				Context: directory.(string),
 			})
+		}
+	}
+
+	// Check requireRegex in images in data.yml
+	dataYmlImages := dataYml["images"].([]interface{})
+	for _, image := range dataYmlImages {
+		imageMap := image.(map[interface{}]interface{})
+		if imageMap["requireRegex"] != nil {
+			_, err := regexp.Compile(imageMap["requireRegex"].(string))
+			if err != nil {
+				issues = append(issues, issue.Issue{
+					Target:  "data.yml image requireRegex: " + imageMap["image"].(string),
+					Level:   issue.ErrorLevel,
+					Code:    "data-yml-image-requireRegex-compile",
+					Text:    "Invalid requireRegex",
+					Context: imageMap["requireRegex"].(string),
+				})
+			}
+			// get image tag from image name
+			imageTag := imageMap["image"].(string)
+			imageTag = imageTag[strings.LastIndex(imageTag, ":")+1:]
+
+			// check compiled regex matches current image tag
+			if !regexp.MustCompile(imageMap["requireRegex"].(string)).MatchString(imageTag) {
+				issues = append(issues, issue.Issue{
+					Target:  "data.yml image requireRegex: " + imageMap["image"].(string),
+					Level:   issue.ErrorLevel,
+					Code:    "data-yml-image-requireRegex-match",
+					Text:    "Current image tag does not match requireRegex",
+					Context: imageMap["requireRegex"].(string),
+				})
+			}
 		}
 	}
 

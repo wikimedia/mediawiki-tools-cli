@@ -9,21 +9,21 @@ images:
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0
   # docker dev env: Misc services
   - image: postgres:13.6
-    noCheck: true
+    requireRegex: 13\.\d+(\.\d+)?
   - image: mariadb:10.8
-    noCheck: true
+    requireRegex: 10\.\d+(\.\d+)?
   - image: phpmyadmin/phpmyadmin:5
     noCheck: true
   - image: adminer:4
     noCheck: true
   - image: mailhog/mailhog:v1.0.1
-    noCheck: true
+    requireRegex: v1\.\d+(\.\d+)?
   - image: memcached:1.6
-    noCheck: true
+    requireRegex: 1\.\d+(\.\d+)?
   - image: redis:6.2
-    noCheck: true
+    requireRegex: 6\.\d+(\.\d+)?
   - image: quay.io/keycloak/keycloak:18.0.0
-    noCheck: true
+    requireRegex: 18\.\d+\.\d+
   - image: graphiteapp/graphite-statsd:1.1.10-4
     requireRegex: 1\.\d+\.\d+(\-\d+)
   - image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
