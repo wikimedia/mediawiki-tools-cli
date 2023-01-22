@@ -1,11 +1,11 @@
 include:
-- local: ".gitlab-ci.commit.yml"
+- local: ".gitlab/commit.yml"
   rules:
   - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push'"
 # Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
 - template: Security/Secret-Detection.gitlab-ci.yml
   rules:
   - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push'"
-- local: ".gitlab-ci.weekly.yml"
+- local: ".gitlab/weekly.yml"
   rules:
   - if: "$GITLAB_SCHEDULE == 'weekly'"
