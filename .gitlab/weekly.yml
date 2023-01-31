@@ -1,7 +1,7 @@
 image-update-build:
     stage: build
     cache: {}
-    image: golang:1.17
+    image: golang:1.18
     script:
        - go run ./tools/image-update/check/check.go
        - cp .gitlab/weekly.image-update.yml .gitlab/weekly.image-update.generated.yml
