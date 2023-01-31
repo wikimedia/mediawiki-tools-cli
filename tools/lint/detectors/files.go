@@ -4,19 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-type FileIssue struct {
-	File    string
-	Code    string
-	Text    string
-	Context string
-	Level   Level
-}
+	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
+)
 
 type FileDetector struct {
 	Path     string
-	Function func(string) *FileIssue
+	Function func(string) *issue.Issue
 }
 
 func fileDetectorList() []FileDetector {
@@ -24,11 +18,11 @@ func fileDetectorList() []FileDetector {
 		// yml-extension: .yml extensions should be used for docker-compose files
 		{
 			Path: "internal/mwdd/files/embed",
-			Function: func(file string) *FileIssue {
+			Function: func(file string) *issue.Issue {
 				if strings.HasSuffix(file, ".yaml") {
-					return &FileIssue{
-						File:    file,
-						Level:   ErrorLevel,
+					return &issue.Issue{
+						Target:  "file: " + file,
+						Level:   issue.ErrorLevel,
 						Code:    "yml-extension",
 						Text:    "YAML files should use .yml extensions only",
 						Context: file,
@@ -40,8 +34,8 @@ func fileDetectorList() []FileDetector {
 	}
 }
 
-func DetectFileIssues(directory string) []FileIssue {
-	issues := []FileIssue{}
+func DetectFileIssues(directory string) []issue.Issue {
+	issues := []issue.Issue{}
 	for _, detector := range fileDetectorList() {
 		files := listFiles(detector.Path)
 		for _, file := range files {

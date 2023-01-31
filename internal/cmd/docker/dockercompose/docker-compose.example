@@ -1,0 +1,3 @@
+docker-compose ps
+docker-compose -v=2 ps
+docker-compose -v=2 ps -- --services

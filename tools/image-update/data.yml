@@ -4,26 +4,26 @@ images:
   - image: jwilder/nginx-proxy:0.10
   # docker dev env: MediaWiki related services
   - image: docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s4
-  - image: docker-registry.wikimedia.org/releng/quibble-buster-php74:1.4.7-s3
-  - image: docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s3
-  - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0
+  - image: docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3
+  - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0
+  - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1
   # docker dev env: Misc services
   - image: postgres:13.6
-    noCheck: true
-  - image: mariadb:10.8
-    noCheck: true
+    requireRegex: 13\.\d+(\.\d+)?
+  - image: mariadb:10.9.4
+    requireRegex: 10\.\d+(\.\d+)?
   - image: phpmyadmin/phpmyadmin:5
     noCheck: true
   - image: adminer:4
     noCheck: true
   - image: mailhog/mailhog:v1.0.1
-    noCheck: true
+    requireRegex: v1\.\d+(\.\d+)?
   - image: memcached:1.6
-    noCheck: true
+    requireRegex: 1\.\d+(\.\d+)?
   - image: redis:6.2
-    noCheck: true
+    requireRegex: 6\.\d+(\.\d+)?
   - image: quay.io/keycloak/keycloak:18.0.0
-    noCheck: true
+    requireRegex: 18\.\d+\.\d+
   - image: graphiteapp/graphite-statsd:1.1.10-4
     requireRegex: 1\.\d+\.\d+(\-\d+)
   - image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
@@ -46,14 +46,14 @@ images:
   - image: registry.gitlab.com/gitlab-org/release-cli:latest
     noCheck: true
   # Golang CI images
-  - image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230108
+  - image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
   - image: golang:1.17
     noCheck: true
 # Files and directories to check
 files:
   - .gitlab-ci.yml
-  - .gitlab-ci.commit.yml
-  - .gitlab-ci.weekly.yml
-  - .gitlab-ci.weekly.template.yml
+  - .gitlab/commit.yml
+  - .gitlab/weekly.yml
+  - .gitlab/weekly.image-update.yml
 directories:
   - internal/mwdd/files/embed

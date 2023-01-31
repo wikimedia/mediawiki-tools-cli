@@ -7,15 +7,18 @@ import (
 	"github.com/fatih/color"
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/detectors"
+	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 )
 
 func main() {
 	rootCmd := cmd.NewMwCliCmd()
 
-	cobraCommandIssues := detectors.DetectCobraCommandIssuesRoot(rootCmd)
-	fileIssues := detectors.DetectFileIssues("./../../")
+	// Collect all issues
+	allIssues := detectors.DetectCobraCommandIssuesRoot(rootCmd)
+	allIssues = append(allIssues, detectors.DetectFileIssues("./../../")...)
+	allIssues = append(allIssues, detectors.DetectDataIssues()...)
 
-	issueCount := len(cobraCommandIssues) + len(fileIssues)
+	issueCount := len(allIssues)
 
 	if issueCount == 0 {
 		fmt.Println("No issues detected!")
@@ -26,31 +29,17 @@ func main() {
 	numWarnings := 0
 	numErrors := 0
 
-	for _, issue := range cobraCommandIssues {
-		if issue.Level == detectors.WarningLevel {
+	for _, thisIssue := range allIssues {
+		if thisIssue.Level == issue.WarningLevel {
 			numWarnings++
-			color.Yellow("WARN command %s: (%s) %s", issue.Code, issue.Command, issue.Text)
+			color.Yellow("WARN %s: (%s) %s", thisIssue.Code, thisIssue.Target, thisIssue.Text)
 		}
-		if issue.Level == detectors.ErrorLevel {
+		if thisIssue.Level == issue.ErrorLevel {
 			numErrors++
-			color.Red("ERRR command %s: (%s) %s", issue.Code, issue.Command, issue.Text)
+			color.Red("ERRR %s: (%s) %s", thisIssue.Code, thisIssue.Target, thisIssue.Text)
 		}
-		if issue.Context != "" {
-			fmt.Println(issue.Context)
-		}
-	}
-
-	for _, issue := range fileIssues {
-		if issue.Level == detectors.WarningLevel {
-			numWarnings++
-			color.Yellow("WARN file %s: (%s) %s", issue.Code, issue.File, issue.Text)
-		}
-		if issue.Level == detectors.ErrorLevel {
-			numErrors++
-			color.Red("ERRR file %s: (%s) %s", issue.Code, issue.File, issue.Text)
-		}
-		if issue.Context != "" {
-			fmt.Println(issue.Context)
+		if thisIssue.Context != "" {
+			fmt.Println(thisIssue.Context)
 		}
 	}
 

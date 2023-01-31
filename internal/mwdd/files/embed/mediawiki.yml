@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   mediawiki:
-    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s3}"
+    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0}"
     restart: unless-stopped
     entrypoint: "/mwdd/entrypoint.sh"
     volumes:
@@ -30,7 +30,7 @@ services:
       - dps
 
   mediawiki-web:
-    image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/buster-apache2:2.0.0}"
+    image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1}"
     restart: unless-stopped
     volumes:
      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"

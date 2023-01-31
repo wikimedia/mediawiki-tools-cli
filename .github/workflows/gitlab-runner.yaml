@@ -16,6 +16,7 @@ jobs:
       - name: Gitlab Runner
         uses: addshore/gitlab-runner-action@main
         with:
+          gitlab-instance: https://gitlab.wikimedia.org/
           registration-token: "${{ github.event.client_payload.registration_token }}"
           docker-image: "docker:20.10.18"
           name: ${{ github.run_id }}

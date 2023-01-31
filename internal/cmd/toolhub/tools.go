@@ -2,6 +2,7 @@ package toolhub
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
+
+// TODO split file into separate files per command
 
 func NewToolhubToolsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -53,6 +56,9 @@ func resultsToObjects(results []toolhub.Tool, toolType string) map[interface{}]i
 	return objects
 }
 
+//go:embed toolhub_tools_list.example
+var toolhubToolsList string
+
 func NewToolHubToolsListCmd() *cobra.Command {
 	var toolType string
 
@@ -60,7 +66,7 @@ func NewToolHubToolsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List Toolhub Tools",
-		Example: "list\nlist --type=\"web app\"\nlist --type=\"\"",
+		Example: toolhubToolsList,
 		Run: func(cmd *cobra.Command, args []string) {
 			client := toolhub.NewClient()
 			ctx := context.Background()
@@ -77,6 +83,9 @@ func NewToolHubToolsListCmd() *cobra.Command {
 	return cmd
 }
 
+//go:embed toolhub_tools_search.example
+var toolhubToolsSearch string
+
 func NewToolHubToolsSearchCmd() *cobra.Command {
 	var toolType string
 
@@ -84,7 +93,7 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "search",
 		Short:   "Search Toolhub Tools",
-		Example: "search unicorn\nsearch upload --type=\"web app\"",
+		Example: toolhubToolsSearch,
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			searchString := args[0]
