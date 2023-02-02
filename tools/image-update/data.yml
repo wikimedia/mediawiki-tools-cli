@@ -46,7 +46,7 @@ images:
   - image: registry.gitlab.com/gitlab-org/release-cli:latest
     noCheck: true
   # Golang CI images
-  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230115
+  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
   - image: golang:1.18
     noCheck: true
 # Files and directories to check
