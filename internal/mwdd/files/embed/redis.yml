@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   redis:
-    image: "${REDIS_IMAGE:-redis:6.2}"
+    image: "${REDIS_IMAGE:-redis:6.2.7-alpine}"
     restart: unless-stopped
     dns:
       - 10.0.0.10
