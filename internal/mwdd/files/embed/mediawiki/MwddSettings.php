@@ -19,8 +19,11 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 
 # When used via CLI, use the default DB if no MW_DB is specified
 # Maintenance scripts with --wiki passed will set MW_DB
-if ( PHP_SAPI === 'cli' && !defined( 'MW_DB' ) ) {
-    define( 'MW_DB', 'default' );
+if ( PHP_SAPI === 'cli' && getenv( 'MW_DB' ) === false ) {
+	putenv( 'MW_DB=default' );
+}
+if ( getenv( 'MW_DB' ) !== false && !defined( 'MW_DB' ) ) {
+	define( 'MW_DB', getenv( 'MW_DB' ) );
 }
 
 # Detect usage of update.php, so we can turn of replication https://phabricator.wikimedia.org/T283417

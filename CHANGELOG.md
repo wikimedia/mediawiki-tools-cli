@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.19.1
+- Development environment (`mw docker`):
+  - Fixed `MW_DB` handling for `mediawiki exec` commands 
+
 ## v0.19.0
 - Added `config get` and `config set` commands
 - Updated `gitlab` command to [1.23.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.23.0)
