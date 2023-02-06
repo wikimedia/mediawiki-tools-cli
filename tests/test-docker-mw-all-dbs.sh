@@ -66,6 +66,11 @@ test_command_success "./bin/mw docker mediawiki install --dbname mysqlwiki --dbt
 test_command_success "./bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres"
 test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 
+# Make sure mediawiki exec works for alternative db name
+test_command_success "./bin/mw docker mediawiki exec -- MW_DB=mysqlwiki composer phpunit tests/phpunit/unit/includes/XmlTest.php | grep 'seconds'"
+# And doesnt work with a non existant name
+test_command_success "./bin/mw docker mediawiki exec -- MW_DB=ddsadsadsaefault composer phpunit tests/phpunit/unit/includes/XmlTest.php | grep 'Unable to find database'"
+
 # Update the hosts file as we used new wiki names
 if ./bin/mw docker hosts writable; then
     test_command_success "./bin/mw docker hosts add"
