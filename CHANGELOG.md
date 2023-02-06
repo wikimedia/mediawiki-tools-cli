@@ -12,7 +12,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added `config get` and `config set` commands
 - Updated `gitlab` command to [1.23.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.23.0)
 - Development environment (`mw docker`):
-  - Image updaters:
+  - Image updates:
     - mysql `mariadb:10.8` -> `mariadb:10.9.4`
     - mediawiki `d-r.wm.o/dev/buster-php74` -> `d-r.wm.o/dev/buster-php81`
     - quibble `d-r.wm.o/dev/quibble-buster-php74` -> `d-r.wm.o/dev/quibble-buster-php81`
