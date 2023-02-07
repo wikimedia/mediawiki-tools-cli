@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Tests in this file require an internet connection
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
