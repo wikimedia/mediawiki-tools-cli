@@ -65,8 +65,33 @@ test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a runnin
 test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
-# Make sure one of the shellbox services works
+# Make sure the shellbox service commands work
+# TODO text exec command
 test_command_success "./bin/mw docker shellbox media create"
+test_command_success "./bin/mw docker shellbox media stop"
+test_command_success "./bin/mw docker shellbox media start"
+test_command_success "./bin/mw docker shellbox media destroy"
+# Internally these all work the same, so this tests "them all"
+# SUGGEST cmd: mw docker shellbox php-rpc: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox php-rpc create: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox php-rpc destroy: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox php-rpc start: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox php-rpc stop: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox score: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox score create: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox score destroy: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox score start: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox score stop: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox syntaxhighlight: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox syntaxhighlight create: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox syntaxhighlight destroy: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox syntaxhighlight start: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox syntaxhighlight stop: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox timeline: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox timeline create: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox timeline destroy: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox timeline start: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw docker shellbox timeline stop: (end-to-end-test) End to end tests are suggested, none found
 
 # cd to mediawiki
 cd .mediawiki
