@@ -8,8 +8,6 @@ export MWCLI_CONTEXT_TEST=1
 
 test_command_success "./bin/mw version"
 
-#test_command_success "./bin/mw quip" # Required internet for status 0 :/
-
 test_command_success "./bin/mw debug"
 test_command_success "./bin/mw debug events"
 test_command_success "./bin/mw debug events cat"

@@ -101,7 +101,7 @@ You can read more in the [CI README](./CI.md).
 You can also choose to run the integration tests locally.
 
 ```sh
-./tests/test-general-commands.sh
+./tests/test-general.sh
 ```
 
 Or for the dev environment
