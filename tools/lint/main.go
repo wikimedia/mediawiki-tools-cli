@@ -26,24 +26,29 @@ func main() {
 	}
 
 	fmt.Printf("Found %d issues!\n", issueCount)
+	numSuggests := 0
 	numWarnings := 0
 	numErrors := 0
 
 	for _, thisIssue := range allIssues {
+		if thisIssue.Level == issue.SuggestLevel {
+			numSuggests++
+			color.Green("SUGGEST %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
+		}
 		if thisIssue.Level == issue.WarningLevel {
 			numWarnings++
-			color.Yellow("WARN %s: (%s) %s", thisIssue.Code, thisIssue.Target, thisIssue.Text)
+			color.Yellow("WARN %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
 		}
 		if thisIssue.Level == issue.ErrorLevel {
 			numErrors++
-			color.Red("ERRR %s: (%s) %s", thisIssue.Code, thisIssue.Target, thisIssue.Text)
+			color.Red("ERRR %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
 		}
 		if thisIssue.Context != "" {
 			fmt.Println(thisIssue.Context)
 		}
 	}
 
-	fmt.Printf("%d warnings and %d errors\n", numWarnings, numErrors)
+	fmt.Printf("%d suggestions, %d warnings and %d errors\n", numSuggests, numWarnings, numErrors)
 	if numErrors != 0 {
 		os.Exit(1)
 	} else {

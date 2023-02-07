@@ -1,6 +1,9 @@
 package detectors
 
 import (
+	"bufio"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -73,6 +76,42 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 						Text:    "Annotation keys must come from allowed list",
 						Context: ">>> " + key,
 					}
+				}
+			}
+			return nil
+		},
+		// end-to-end-test: All commands should have an end to end test
+		// Helps ensure test coverage
+		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
+			testFound := false
+			err := filepath.Walk("tests", func(path string, info os.FileInfo, errAbove error) error {
+				if info.IsDir() || strings.Split(info.Name(), "-")[0] != "test" {
+					return nil
+				}
+
+				file, err := os.Open(path)
+				if err != nil {
+					panic(err)
+				}
+				defer file.Close()
+
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					if strings.Contains(scanner.Text(), cmdStirng) {
+						testFound = true
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				panic(err)
+			}
+			if !testFound {
+				return &issue.Issue{
+					Target: "cmd: " + cmdStirng,
+					Level:  issue.SuggestLevel,
+					Code:   "end-to-end-test",
+					Text:   "End to end tests are suggested, none found",
 				}
 			}
 			return nil
