@@ -76,7 +76,7 @@ integration-trigger:
     stage: integration
     needs: [checks,test,build]
     trigger:
-        include: commit.integration.yml
+        include: .gitlab/pipelines/commit.integration.yml
         strategy: depend
 
 build-release:
