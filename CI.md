@@ -3,15 +3,15 @@
 Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom mwcli runners.
 
 The shared runners are used where possible.
-The custom mwcli runners are used when docker in docker is needed (integreation tests).
+The custom mwcli runners are used when docker in docker is needed (integration tests).
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
 ## Custom runners
 
 There are currently 2 runners:
- - gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud
- - gitlab-runner-addshore-1014.mwcli.eqiad1.wikimedia.cloud
+ - gitlab-runner-addshore-1016.mwcli.eqiad1.wikimedia.cloud
+ - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud
 
 ### Maintenance
 
@@ -28,14 +28,24 @@ If this doesn't free up enough space the next step would be to nuke the registry
 
 #### Make a machine
 
-Make a VM, such as `gitlab-runner-addshore-1013.mwcli.eqiad1.wikimedia.cloud`
+Make a VM, such as `gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud`
+
+#### Attach a volume
+
+See https://wikitech.wikimedia.org/wiki/Help:Adding_Disk_Space_to_Cloud_VPS_instances
+
+- Make a volume of 40GB for the instance
+- Attach a volume in the horizon UI
+- Run `sudo wmcs-prepare-cinder-volume` on the instance
+  - Select `/var/lib/docker` as the mount point
+  - Wait for the mount to be created
 
 #### Install docker
 
 ```sh
 sudo apt-get update
 sudo apt-get remove docker docker-engine docker.io containerd runc
-sudo apt-get install \
+sudo apt-get --yes install \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -48,7 +58,7 @@ echo \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io
+sudo apt-get install --yes docker-ce docker-ce-cli containerd.io
 ```
 
 #### Install gitlab runner
@@ -61,19 +71,22 @@ rm gitlab-runner_amd64.deb
 
 #### Register the runner
 
+WARNING: Support for registration tokens and runner parameters in the 'register' command has been deprecated in GitLab Runner 15.6 and will be replaced with support for authentication tokens. For more information, see https://gitlab.com/gitlab-org/gitlab/-/issues/380872
+
 ```sh
 sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
   --registration-token XXXreleng-mwcli-tokenXXX \
   --executor docker \
   --limit 2 \
-  --name "gitlab-runner-addshore-1013-docker-01" \
+  --name "gitlab-runner-addshore-1017-docker" \
   --docker-image "docker:20.10.14" \
   --docker-privileged \
+  --tag-list mwcli \
   --docker-volumes "/certs/client"
 ```
 
-Check it is registered and add the `mwcli` tag
+Check it is registered @ https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings
 
 #### Extra configuration
 
@@ -100,21 +113,18 @@ sudo docker run -d -p 6000:5000 \
     --name registry registry:2
 ```
 
-Get the IP address:
-
-```sh
-hostname --ip-address
-```
+NOTE: You many need to temporarily `docker login` and `docker logout` if the image pull limit is already reached...
 
 Add the mirror (You might need to do this as root, not sudo...):
 
 ```sh
-# If sudo doesn't work for the file change you may need to sudo su, and then run the echo...
-sudo echo '{"registry-mirrors": ["http://<CUSTOM IP>:6000"]}' > /etc/docker/daemon.json
+sudo mkdir /etc/docker
+# NOTE: If sudo doesn't work for the file change you may need to sudo su, and then run the echo as root...
+sudo echo "{\"registry-mirrors\": [\"http://"$(hostname --ip-address)":6000\"]}" > /etc/docker/daemon.json
 sudo service docker restart
 ```
 
-Check with:
+Check with that a mirror appears in the info...
 
 ```sh
 sudo docker system info
@@ -130,7 +140,7 @@ You can also tweak the pull_policy to fallback to "if-not-present".
     pull_policy = ["always", "if-not-present"]
     [[runners.docker.services]]
       name = "docker:20.10.14-dind"
-      command = ["--registry-mirror", "http://172.16.7.194:6000"]
+      command = ["--registry-mirror", "http://172.16.5.159:6000"]
 ```
 
 And restart the gitlab runner service:
