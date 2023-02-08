@@ -75,25 +75,6 @@ build:
 integration-trigger:
     stage: integration
     needs: [checks,test,build]
-    tags:
-    - mwcli
-    dependencies:
-      - build
-    parallel:
-      matrix:
-        - TEST_SCRIPT: test-general.sh
-        - TEST_SCRIPT: test-general-online.sh
-        - TEST_SCRIPT: test-docker-general.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-    before_script:
-      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
-      - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
-    script:
-      - ./tests/$TEST_SCRIPT
     trigger:
         include: commit.integration.yml
         strategy: depend
