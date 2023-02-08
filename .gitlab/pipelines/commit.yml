@@ -95,7 +95,7 @@ integration-trigger:
     script:
       - ./tests/$TEST_SCRIPT
     trigger:
-        include: .gitlab-ci.commit.integration.yml
+        include: commit.integration.yml
         strategy: depend
 
 build-release:
