@@ -17,7 +17,7 @@ jobs:
         uses: addshore/gitlab-runner-action@main
         with:
           gitlab-instance: https://gitlab.wikimedia.org/
-          registration-token: "${{ github.event.client_payload.registration_token }}"
+          registration-token: "${{ secrets.GITLAB_RUNNER_REGISTER_TOKEN }}"
           docker-image: "docker:20.10.18"
           name: ${{ github.run_id }}
           # We can provide a specific tag when triggering a job, so 1 runner matches to 1 job
