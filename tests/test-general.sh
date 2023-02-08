@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Tests in this file do not require an internet connection
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -7,8 +8,6 @@ source $SCRIPT_DIR/functions.sh
 export MWCLI_CONTEXT_TEST=1
 
 test_command_success "./bin/mw version"
-
-#test_command_success "./bin/mw quip" # Required internet for status 0 :/
 
 test_command_success "./bin/mw debug"
 test_command_success "./bin/mw debug events"

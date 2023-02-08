@@ -90,3 +90,13 @@ test_curl http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been in
 
 # Make sure the expected number of services appear
 test_docker_ps_service_count 9
+
+# Try other DB related commands
+test_command_success "./bin/mw docker postgres stop"
+test_command_success "./bin/mw docker postgres start"
+test_command_success "./bin/mw docker postgres exec echo foo"
+test_command_success "./bin/mw docker mysql-replica stop"
+test_command_success "./bin/mw docker mysql-replica start"
+test_command_success "./bin/mw docker mysql-replica exec echo foo"
+# TODO test the mysql and replica "mysql" commands (cli)
+test_command_success "./bin/mw docker mysql exec echo foo"
