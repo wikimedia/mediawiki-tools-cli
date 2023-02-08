@@ -45,15 +45,14 @@ images:
     noCheck: true
   - image: registry.gitlab.com/gitlab-org/release-cli:latest
     noCheck: true
+  - image: registry.gitlab.com/dependabot-gitlab/dependabot:latest
+    noCheck: true
   # Golang CI images
   - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
   - image: golang:1.18
     noCheck: true
 # Files and directories to check
 files:
-  - .gitlab-ci.yml
-  - .gitlab/commit.yml
-  - .gitlab/weekly.yml
-  - .gitlab/weekly.image-update.yml
 directories:
   - internal/mwdd/files/embed
+  - .gitlab/pipelines
