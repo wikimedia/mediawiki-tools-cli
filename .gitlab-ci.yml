@@ -9,3 +9,6 @@ include:
 - local: ".gitlab/weekly.yml"
   rules:
   - if: "$GITLAB_SCHEDULE == 'weekly'"
+- local: .gitlab-ci.dependabot.yml
+  rules:
+  - if: "$GITLAB_SCHEDULE == 'dependabot'"
