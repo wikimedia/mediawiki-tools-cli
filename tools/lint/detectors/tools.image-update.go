@@ -26,30 +26,34 @@ func DetectDataIssues() []issue.Issue {
 	issues := []issue.Issue{}
 
 	// Check files in yml exist
-	dataYmlFiles := dataYml["files"].([]interface{})
-	for _, file := range dataYmlFiles {
-		if _, err := os.Stat(file.(string)); os.IsNotExist(err) {
-			issues = append(issues, issue.Issue{
-				Target:  "data.yml file: " + file.(string),
-				Level:   issue.ErrorLevel,
-				Code:    "data-yml-file-existence",
-				Text:    "File listed in data.yml does not exist",
-				Context: file.(string),
-			})
+	if dataYml["files"] != nil {
+		dataYmlFiles := dataYml["files"].([]interface{})
+		for _, file := range dataYmlFiles {
+			if _, err := os.Stat(file.(string)); os.IsNotExist(err) {
+				issues = append(issues, issue.Issue{
+					Target:  "data.yml file: " + file.(string),
+					Level:   issue.ErrorLevel,
+					Code:    "data-yml-file-existence",
+					Text:    "File listed in data.yml does not exist",
+					Context: file.(string),
+				})
+			}
 		}
 	}
 
 	// Check directories in yml exist
-	dataYmlDirectories := dataYml["directories"].([]interface{})
-	for _, directory := range dataYmlDirectories {
-		if _, err := os.Stat(directory.(string)); os.IsNotExist(err) {
-			issues = append(issues, issue.Issue{
-				Target:  "data.yml directory: " + directory.(string),
-				Level:   issue.ErrorLevel,
-				Code:    "data-yml-directory-existence",
-				Text:    "Directory listed in data.yml does not exist",
-				Context: directory.(string),
-			})
+	if dataYml["directories"] != nil {
+		dataYmlDirectories := dataYml["directories"].([]interface{})
+		for _, directory := range dataYmlDirectories {
+			if _, err := os.Stat(directory.(string)); os.IsNotExist(err) {
+				issues = append(issues, issue.Issue{
+					Target:  "data.yml directory: " + directory.(string),
+					Level:   issue.ErrorLevel,
+					Code:    "data-yml-directory-existence",
+					Text:    "Directory listed in data.yml does not exist",
+					Context: directory.(string),
+				})
+			}
 		}
 	}
 
