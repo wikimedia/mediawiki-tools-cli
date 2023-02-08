@@ -61,6 +61,12 @@ sudo apt-get update
 sudo apt-get install --yes docker-ce docker-ce-cli containerd.io
 ```
 
+#### Authenticate to docker hub
+
+Grab a key from https://hub.docker.com/settings/security
+
+Perform a `docker login` with your username and they READ ONLY PUBLIC key you created.
+
 #### Install gitlab runner
 
 ```sh
@@ -100,20 +106,23 @@ sudo sed -i 's/^concurrent =.*/concurrent = 2/' "/etc/gitlab-runner/config.toml"
 sudo systemctl restart gitlab-runner
 ```
 
-##### Register custom local docker mirror
+##### Register local pull through cache / mirror
 
-Mainly from https://about.gitlab.com/blog/2020/10/30/mitigating-the-impact-of-docker-hub-pull-requests-limits/
+Reading:
+ - https://about.gitlab.com/blog/2020/10/30/mitigating-the-impact-of-docker-hub-pull-requests-limits/
+ - https://docs.docker.com/registry/recipes/mirror/#run-a-registry-as-a-pull-through-cache
 
-Create a mirror (using docker):
+Create an authenticaed pull through cache / mirror (using docker)
+You can use the same username and password/key you used earlier
 
 ```sh
 sudo docker run -d -p 6000:5000 \
     -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
+    -e REGISTRY_PROXY_USERNAME=<TODO-USERNAME> \
+    -e REGISTRY_PROXY_PASSWORD=<TODO-PASSWORD/KEY> \
     --restart always \
     --name registry registry:2
 ```
-
-NOTE: You many need to temporarily `docker login` and `docker logout` if the image pull limit is already reached...
 
 Add the mirror (You might need to do this as root, not sudo...):
 
