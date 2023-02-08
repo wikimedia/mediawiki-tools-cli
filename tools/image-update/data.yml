@@ -8,8 +8,8 @@ images:
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1
   # docker dev env: Misc services
-  - image: postgres:13.6
-    requireRegex: 13\.\d+(\.\d+)?
+  - image: postgres:13.9
+    requireRegex: 13\.\d+(\.\d+)?$
   - image: mariadb:10.9.4
     requireRegex: 10\.\d+(\.\d+)?
   - image: phpmyadmin/phpmyadmin:5
@@ -18,10 +18,10 @@ images:
     noCheck: true
   - image: mailhog/mailhog:v1.0.1
     requireRegex: v1\.\d+(\.\d+)?
-  - image: memcached:1.6
-    requireRegex: 1\.\d+(\.\d+)?
+  - image: memcached:1.6.9
+    requireRegex: 1\.\d+(\.\d+)?$
   - image: redis:6.2
-    requireRegex: 6\.\d+(\.\d+)?
+    requireRegex: 6\.\d+(\.\d+)?$
   - image: quay.io/keycloak/keycloak:18.0.0
     requireRegex: 18\.\d+\.\d+
   - image: graphiteapp/graphite-statsd:1.1.10-4
@@ -45,15 +45,14 @@ images:
     noCheck: true
   - image: registry.gitlab.com/gitlab-org/release-cli:latest
     noCheck: true
+  - image: registry.gitlab.com/dependabot-gitlab/dependabot:latest
+    noCheck: true
   # Golang CI images
-  - image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
-  - image: golang:1.17
+  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+  - image: golang:1.18
     noCheck: true
 # Files and directories to check
 files:
-  - .gitlab-ci.yml
-  - .gitlab/commit.yml
-  - .gitlab/weekly.yml
-  - .gitlab/weekly.image-update.yml
 directories:
   - internal/mwdd/files/embed
+  - .gitlab/pipelines

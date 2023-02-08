@@ -7,7 +7,7 @@ stages:
 test:
     stage: test
     needs: []
-    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
+    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -30,7 +30,7 @@ test:
 checks:
     stage: test
     needs: []
-    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
+    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
     parallel:
       matrix:
         - CHECK: lint
@@ -49,7 +49,7 @@ checks:
 tools:
     stage: test
     needs: []
-    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
+    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
     parallel:
       matrix:
         - TOOL: ./tools/image-update/check/check.go
@@ -62,7 +62,7 @@ tools:
 build:
     stage: build
     needs: []
-    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
+    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
     artifacts:
       paths:
         - bin/
@@ -75,6 +75,25 @@ build:
 integration-trigger:
     stage: integration
     needs: [checks,test,build]
+    tags:
+    - mwcli
+    dependencies:
+      - build
+    parallel:
+      matrix:
+        - TEST_SCRIPT: test-general-commands.sh
+        - TEST_SCRIPT: test-general-online.sh
+        - TEST_SCRIPT: test-docker-general.sh
+          EXTRA_PACKAGES: docker-compose curl tar
+        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
+          EXTRA_PACKAGES: docker-compose curl tar
+        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
+          EXTRA_PACKAGES: docker-compose curl tar
+    before_script:
+      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
+      - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
+    script:
+      - ./tests/$TEST_SCRIPT
     trigger:
         include: .gitlab-ci.commit.integration.yml
         strategy: depend
@@ -84,7 +103,7 @@ build-release:
       - tags
     stage: release
     needs: [build,integration-trigger]
-    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
+    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
     before_script:
       - go install github.com/bwplotka/bingo@v0.7.0
       - bingo get
@@ -96,7 +115,7 @@ build-docs:
       - tags
     stage: release
     needs: [build,integration-trigger]
-    image: golang:1.17
+    image: golang:1.18
     before_script:
       - apt update
       - apt -y install pandoc
@@ -108,7 +127,7 @@ release-build:
       - tags
     stage: release
     needs: [build,integration-trigger]
-    image: docker-registry.wikimedia.org/golang1.17:1.17-1-20230115
+    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
     artifacts:
       paths:
         - _release/
@@ -161,7 +180,7 @@ release-docs:
       - tags
     stage: release
     needs: [release-publish]
-    image: golang:1.17
+    image: golang:1.18
     before_script:
       - apt update
       - apt -y install pandoc

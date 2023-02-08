@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.20.0
+- Development environment (`mw docker`):
+  - Image updates:
+    - postgres `postgres:13.6` -> `postgres:13.9`
+    - memcached `memcached:1.6` -> `postgres:1.6.9`
+
+## v0.19.1
+- Development environment (`mw docker`):
+  - Fixed `MW_DB` handling for `mediawiki exec` commands 
+
+## v0.19.0
+- Added `config get` and `config set` commands
+- Updated `gitlab` command to [1.23.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.23.0)
+- Development environment (`mw docker`):
+  - Image updates:
+    - mysql `mariadb:10.8` -> `mariadb:10.9.4`
+    - mediawiki `d-r.wm.o/dev/buster-php74` -> `d-r.wm.o/dev/buster-php81`
+    - quibble `d-r.wm.o/dev/quibble-buster-php74` -> `d-r.wm.o/dev/quibble-buster-php81`
+
 ## v0.18.0
 - Added more command examples
 - Improved top level short command descriptions
