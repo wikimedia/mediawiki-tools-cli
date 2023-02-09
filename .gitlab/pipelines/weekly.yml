@@ -2,6 +2,7 @@ image-update-build:
     stage: build
     cache: {}
     image: golang:1.18
+    pull_policy: if-not-present
     script:
        - go run ./tools/image-update/check/check.go
        - cp .gitlab/weekly.image-update.yml .gitlab/weekly.image-update.generated.yml

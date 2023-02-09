@@ -1,6 +1,7 @@
 image-update:
     stage: test
     image: golang:1.18
+    pull_policy: if-not-present
     cache: {}
     before_script:
       - apt update
