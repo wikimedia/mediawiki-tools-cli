@@ -28,7 +28,7 @@ require (
 	github.com/xanzy/go-gitlab v0.73.1
 	gitlab.com/gitlab-org/cli v1.23.0
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	gopkg.in/ini.v1 v1.66.2
+	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -43,7 +43,6 @@ require (
 	github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/antonholmquist/jason v1.0.0 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.18.1 // indirect
