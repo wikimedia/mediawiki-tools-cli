@@ -19,7 +19,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.9.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
-	github.com/rodaine/table v1.0.1
+	github.com/rodaine/table v1.1.0
 	github.com/schollz/progressbar/v3 v3.8.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
