@@ -8,16 +8,16 @@ require (
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/charmbracelet/glamour v0.4.0
+	github.com/charmbracelet/glamour v0.6.0
 	github.com/cli/cli/v2 v2.5.1
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/fatih/color v1.13.0
 	github.com/hashicorp/go-version v1.3.0
 	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
-	github.com/mattn/go-isatty v0.0.14
+	github.com/mattn/go-isatty v0.0.16
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/muesli/termenv v0.9.0
+	github.com/muesli/termenv v0.13.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.1.0
 	github.com/schollz/progressbar/v3 v3.8.5
@@ -44,6 +44,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
+	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.18.1 // indirect
 	github.com/containerd/containerd v1.5.7 // indirect
@@ -78,9 +79,9 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/microcosm-cc/bluemonday v1.0.17 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.21 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -101,13 +102,13 @@ require (
 	github.com/tcnksm/go-gitconfig v0.1.2 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/yuin/goldmark v1.4.4 // indirect
+	github.com/yuin/goldmark v1.5.2 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
-	golang.org/x/net v0.0.0-20220805013720-a33c5aa5df48 // indirect
+	golang.org/x/net v0.0.0-20221002022538-bcab6841153b // indirect
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
