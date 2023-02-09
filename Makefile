@@ -46,7 +46,7 @@ test: $(GOVVV) generate
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run -E revive -E gci -E gofmt -E gofumpt -E goimports -E whitespace -E godot -E misspell
+	@$(GOLANGCI_LINT) run --timeout 2m -E revive -E gci -E gofmt -E gofumpt -E goimports -E whitespace -E godot -E misspell
 
 .PHONY: fix
 fix: $(GOLANGCI_LINT) generate
