@@ -16,7 +16,7 @@ require (
 	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-isatty v0.0.14
-	github.com/mitchellh/mapstructure v1.4.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.9.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.0.1
