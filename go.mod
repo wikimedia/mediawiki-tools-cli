@@ -11,11 +11,11 @@ require (
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/cli/cli/v2 v2.5.1
 	github.com/docker/docker v20.10.9+incompatible
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.14.1
 	github.com/hashicorp/go-version v1.3.0
 	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
-	github.com/mattn/go-isatty v0.0.16
+	github.com/mattn/go-isatty v0.0.17
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.13.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
@@ -78,7 +78,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/microcosm-cc/bluemonday v1.0.21 // indirect
@@ -108,7 +108,7 @@ require (
 	golang.org/x/net v0.0.0-20221002022538-bcab6841153b // indirect
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
