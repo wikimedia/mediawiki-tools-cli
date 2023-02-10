@@ -129,17 +129,17 @@ func wizardTelemetry(c *config.Config) {
 
 func tryToEmitEvents() {
 	c := config.LoadFromDisk()
-	if c.TimerLastEmmitedEvent == "" {
-		c.TimerLastEmmitedEvent = timers.String(timers.NowUTC())
+	if c.TimerLastEmittedEvent == "" {
+		c.TimerLastEmittedEvent = timers.String(timers.NowUTC())
 	}
 
 	// Try to emit events every 1 hour
-	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmmitedEvent)
+	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmittedEvent)
 	if parseError != nil {
 		logrus.Warn("Failed to parse last emitted event time")
 	}
 	if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
-		c.TimerLastEmmitedEvent = timers.String(timers.NowUTC())
+		c.TimerLastEmittedEvent = timers.String(timers.NowUTC())
 		eventlogging.EmitEvents()
 	}
 
