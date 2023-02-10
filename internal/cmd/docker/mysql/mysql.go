@@ -8,7 +8,7 @@ import (
 )
 
 func NewCmd() *cobra.Command {
-	mysql := mwdd.NewServiceCmd("mysql", "", []string{})
+	mysql := mwdd.NewServiceCmd("mysql", mwdd.ServiceTexts{}, []string{})
 	mysql.AddCommand(mwdd.NewServiceCommandCmd("mysql", []string{"mysql", "-uroot", "-ptoor"}, []string{"cli"}))
 	return mysql
 }

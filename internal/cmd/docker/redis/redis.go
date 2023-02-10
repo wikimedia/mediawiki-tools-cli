@@ -11,7 +11,7 @@ import (
 var redisLong string
 
 func NewCmd() *cobra.Command {
-	redis := mwdd.NewServiceCmd("redis", redisLong, []string{})
+	redis := mwdd.NewServiceCmd("redis", mwdd.ServiceTexts{Long: redisLong}, []string{})
 	redis.AddCommand(mwdd.NewServiceCommandCmd("redis", []string{"redis-cli"}, []string{"cli"}))
 	return redis
 }

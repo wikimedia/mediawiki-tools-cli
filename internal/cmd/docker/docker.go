@@ -133,14 +133,14 @@ func NewCmd() *cobra.Command {
 
 	// Service commands
 	cmd.AddCommand(mediawiki.NewMediaWikiCmd())
-	cmd.AddCommand(mwdd.NewServiceCmd("adminer", "", []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("elasticsearch", elasticsearchLong, []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("eventlogging", eventLoggingLong, []string{"eventgate"}))
-	cmd.AddCommand(mwdd.NewServiceCmd("graphite", "", []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("mailhog", mailhogLong, []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("memcached", memcachedLong, []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("phpmyadmin", "", []string{"ppma"}))
-	cmd.AddCommand(mwdd.NewServiceCmd("postgres", "", []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("adminer", mwdd.ServiceTexts{Long: adminerLong, OnCreate: envSubst(adminerOnCreate)}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("elasticsearch", mwdd.ServiceTexts{Long: elasticsearchLong}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("eventlogging", mwdd.ServiceTexts{Long: eventLoggingLong}, []string{"eventgate"}))
+	cmd.AddCommand(mwdd.NewServiceCmd("graphite", mwdd.ServiceTexts{Long: graphiteLong, OnCreate: envSubst(graphiteOnCreate)}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("mailhog", mwdd.ServiceTexts{Long: mailhogLong, OnCreate: envSubst(mailhogOnCreate)}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("memcached", mwdd.ServiceTexts{Long: memcachedLong}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("phpmyadmin", mwdd.ServiceTexts{Long: phpmyadminLong, OnCreate: envSubst(phpmyadminOnCreate)}, []string{"ppma"}))
+	cmd.AddCommand(mwdd.NewServiceCmd("postgres", mwdd.ServiceTexts{}, []string{}))
 	cmd.AddCommand(mysql.NewCmd())
 	cmd.AddCommand(mysqlreplica.NewCmd())
 	cmd.AddCommand(keycloak.NewCmd())
@@ -148,7 +148,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(redis.NewCmd())
 
 	// Custom creation of custom command to avoid the exec command being added (for now)
-	custom := mwdd.NewServiceCmd("custom", customLong, []string{})
+	custom := mwdd.NewServiceCmd("custom", mwdd.ServiceTexts{Long: customLong}, []string{})
 	cmd.AddCommand(custom)
 	custom.AddCommand(mwdd.NewWhereCmd(
 		"the custom docker-compose yml file",
@@ -156,6 +156,12 @@ func NewCmd() *cobra.Command {
 	))
 
 	return cmd
+}
+
+func envSubst(s string) string {
+	// TODO do this more dynamically... / better...
+	os.Setenv("PORT", mwdd.DefaultForUser().Env().Get("PORT"))
+	return os.ExpandEnv(s)
 }
 
 //go:embed elasticsearch/elasticsearch.long.md
@@ -167,8 +173,29 @@ var eventLoggingLong string
 //go:embed mailhog/mailhog.long.md
 var mailhogLong string
 
+//go:embed mailhog/mailhog.oncreate.md
+var mailhogOnCreate string
+
+//go:embed graphite/graphite.long.md
+var graphiteLong string
+
+//go:embed graphite/graphite.oncreate.md
+var graphiteOnCreate string
+
 //go:embed memcached/memcached.long.md
 var memcachedLong string
 
 //go:embed custom/custom.long.md
 var customLong string
+
+//go:embed adminer/adminer.long.md
+var adminerLong string
+
+//go:embed adminer/adminer.oncreate.md
+var adminerOnCreate string
+
+//go:embed phpmyadmin/phpmyadmin.long.md
+var phpmyadminLong string
+
+//go:embed phpmyadmin/phpmyadmin.oncreate.md
+var phpmyadminOnCreate string
