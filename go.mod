@@ -13,7 +13,7 @@ require (
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/fatih/color v1.14.1
 	github.com/hashicorp/go-version v1.6.0
-	github.com/itchyny/gojq v0.12.6
+	github.com/itchyny/gojq v0.12.11
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-isatty v0.0.17
 	github.com/mitchellh/mapstructure v1.5.0
@@ -74,7 +74,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/itchyny/timefmt-go v0.1.3 // indirect
+	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
