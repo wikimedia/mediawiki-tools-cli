@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
 ## v0.20.0
+- Added helpful infomation for the user when service are created, such as `mailhog`, `graphite`, `adminer` and `phpmyadmin`
+- Added long documentation text for the `graphite`, `adminer` and `phpmyadmin` commands
 - Fixed `mw gerrit` command output for commands that used ssh
 - Development environment (`mw docker`):
   - Image updates:

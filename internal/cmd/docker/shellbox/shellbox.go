@@ -26,7 +26,7 @@ var shellboxLongSyntaxhighlight string
 var shellboxLongTimeline string
 
 func NewCmd() *cobra.Command {
-	shellbox := mwdd.NewServicesCmd("shellbox", shellboxLong, []string{})
+	shellbox := mwdd.NewServicesCmd("shellbox", mwdd.ServiceTexts{Long: shellboxLong}, []string{})
 	shellBoxFlavours := []string{
 		"media",
 		"php-rpc",
@@ -42,7 +42,7 @@ func NewCmd() *cobra.Command {
 		"timeline":        shellboxLongTimeline,
 	}
 	for _, flavour := range shellBoxFlavours {
-		shellboxSubCmd := mwdd.NewServiceCmdDifferingNames(flavour, "shellbox-"+flavour, shellBoxLongDescs[flavour], []string{})
+		shellboxSubCmd := mwdd.NewServiceCmdDifferingNames(flavour, "shellbox-"+flavour, mwdd.ServiceTexts{Long: shellBoxLongDescs[flavour]}, []string{})
 		shellbox.AddCommand(shellboxSubCmd)
 	}
 	return shellbox

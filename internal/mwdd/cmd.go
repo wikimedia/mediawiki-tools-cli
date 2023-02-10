@@ -8,13 +8,20 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
+type ServiceTexts struct {
+	// Long description for the top level command
+	Long string
+	// Output after the service has been created
+	OnCreate string
+}
+
 /*NewServiceCmd a new command for a single service, such as mailhog.*/
-func NewServiceCmd(name string, long string, aliases []string) *cobra.Command {
-	return NewServiceCmdDifferingNames(name, name, long, aliases)
+func NewServiceCmd(name string, texts ServiceTexts, aliases []string) *cobra.Command {
+	return NewServiceCmdDifferingNames(name, name, texts, aliases)
 }
 
 /*NewServiceCmdDifferingNames a new command for a single service, such as mailhog.*/
-func NewServiceCmdDifferingNames(commandName string, serviceName string, long string, aliases []string) *cobra.Command {
+func NewServiceCmdDifferingNames(commandName string, serviceName string, texts ServiceTexts, aliases []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   fmt.Sprintf("%s service", commandName),
@@ -25,11 +32,11 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, long st
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Service"
 
-	if len(long) > 0 {
-		cmd.Long = cli.RenderMarkdown(long)
+	if len(texts.Long) > 0 {
+		cmd.Long = cli.RenderMarkdown(texts.Long)
 	}
 
-	cmd.AddCommand(NewServiceCreateCmd(serviceName))
+	cmd.AddCommand(NewServiceCreateCmd(serviceName, texts.OnCreate))
 	cmd.AddCommand(NewServiceDestroyCmd(serviceName))
 	cmd.AddCommand(NewServiceStopCmd(serviceName))
 	cmd.AddCommand(NewServiceStartCmd(serviceName))
@@ -40,11 +47,11 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, long st
 }
 
 /*NewServicesCmd a new command for a set of grouped services, such as various flavours of shellbox.*/
-func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Command {
+func NewServicesCmd(groupName string, texts ServiceTexts, aliases []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     groupName,
 		Short:   fmt.Sprintf("%s services", groupName),
-		Long:    cli.RenderMarkdown(long),
+		Long:    cli.RenderMarkdown(texts.Long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
@@ -53,7 +60,7 @@ func NewServicesCmd(groupName string, long string, aliases []string) *cobra.Comm
 	return cmd
 }
 
-func NewServiceCreateCmd(name string) *cobra.Command {
+func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: fmt.Sprintf("Create the %s containers", name),
@@ -62,6 +69,9 @@ func NewServiceCreateCmd(name string) *cobra.Command {
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
 			DefaultForUser().UpDetached(services)
+			if len(onCreateText) > 0 {
+				fmt.Print(cli.RenderMarkdown(onCreateText))
+			}
 		},
 	}
 	cmd.Annotations = make(map[string]string)
