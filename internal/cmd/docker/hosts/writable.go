@@ -14,9 +14,9 @@ func NewHostsWritableCmd() *cobra.Command {
 		Short: "Checks if you can write to the needed hosts file",
 		Run: func(cmd *cobra.Command, args []string) {
 			if hosts.Writable() {
-				fmt.Println("Hosts file writable")
+				fmt.Println("Hosts file writable by the current user")
 			} else {
-				fmt.Println("Hosts file not writable")
+				fmt.Println("Hosts file not writable by the current user")
 				os.Exit(1)
 			}
 		},

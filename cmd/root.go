@@ -155,6 +155,25 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
+	// Migration to v0.20.0+ moves the config directory from ~/.mwcli to an XDG based path
+	// This is a one time migration, and can be removed in a future release
+	{
+		oldConfigPath := cli.LegacyUserDirectoryPath()
+		newConfigPath := cli.UserDirectoryPath()
+		// If the old path exists
+		if _, err := os.Stat(oldConfigPath); err == nil {
+			// And the new path does not exist
+			if _, err := os.Stat(newConfigPath); os.IsNotExist(err) {
+				// Move the old path to the new path
+				logrus.Info("Migrating config directory from " + oldConfigPath + " to " + newConfigPath)
+				err := os.Rename(oldConfigPath, newConfigPath)
+				if err != nil {
+					logrus.Warn("Failed to migrate config directory from " + oldConfigPath + " to " + newConfigPath)
+				}
+			}
+		}
+	}
+
 	// Check and set needed config values from various wizards
 	c := config.LoadFromDisk()
 	if !config.DevModeValues.Contains(c.DevMode) {

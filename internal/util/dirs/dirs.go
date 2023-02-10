@@ -7,8 +7,8 @@ import (
 	userutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/user"
 )
 
-/*UserDirectoryPath returns a path to a directory in the user directory.*/
-func UserDirectoryPath(subPath string) string {
+/*LegacyUserDirectoryPath returns a path to a directory in the user directory.*/
+func LegacyUserDirectoryPath(subPath string) string {
 	// user home dir can not be used in Gitlab CI, must use the project dir instead!
 	// https://medium.com/@patrick.winters/mounting-volumes-in-sibling-containers-with-gitlab-ci-534e5edc4035
 	// TODO maybe this should be pushed further up and the whole mwcli dir should be moved?!

@@ -5,18 +5,24 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
 ## v0.20.0
+
+- Added XDG standards usage for config directory location (T305150)
 - Added helpful infomation for the user when service are created, such as `mailhog`, `graphite`, `adminer` and `phpmyadmin`
 - Added long documentation text for the `graphite`, `adminer` and `phpmyadmin` commands
 - Fixed `mw gerrit` command output for commands that used ssh
+- Removed any suggestions to `sudo` using the CLI, instead providing alternative options
 - Development environment (`mw docker`):
+  - Added `docker hosts where` command to show you where the hosts file is
   - Image updates:
     - postgres `postgres:13.6` -> `postgres:13.9`
 
 ## v0.19.1
+
 - Development environment (`mw docker`):
   - Fixed `MW_DB` handling for `mediawiki exec` commands 
 
 ## v0.19.0
+
 - Added `config get` and `config set` commands
 - Updated `gitlab` command to [1.23.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.23.0)
 - Development environment (`mw docker`):
@@ -26,6 +32,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
     - quibble `d-r.wm.o/dev/quibble-buster-php74` -> `d-r.wm.o/dev/quibble-buster-php81`
 
 ## v0.18.0
+
 - Added more command examples
 - Improved top level short command descriptions
 - Development environment (`mw docker`):
