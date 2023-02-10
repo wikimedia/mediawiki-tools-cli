@@ -4,10 +4,10 @@ image-update-build:
     image: golang:1.18
     script:
        - go run ./tools/image-update/check/check.go
-       - cp .gitlab/weekly.image-update.yml .gitlab/weekly.image-update.generated.yml
+       - cp .gitlab/pipelines/weekly.image-update.yml .gitlab/pipelines/weekly.image-update.generated.yml
        - |+
          if [ ! -f "./tools/image-update/.update.sh" ]; then
-           echo "        - COMMAND: echo null" >> .gitlab/weekly.image-update.generated.yml
+           echo "        - COMMAND: echo null" >> .gitlab/pipelines/weekly.image-update.generated.yml
            echo "No update commands to run"
            exit 0
          fi
@@ -16,12 +16,12 @@ image-update-build:
        - |+
          while read line; do
            line=$(echo $line|tr -d '\n')
-           echo "        - COMMAND: ${line}" >> .gitlab/weekly.image-update.generated.yml
+           echo "        - COMMAND: ${line}" >> .gitlab/pipelines/weekly.image-update.generated.yml
          done < ./tools/image-update/.update.sh
-       - cat .gitlab/weekly.image-update.generated.yml
+       - cat .gitlab/pipelines/weekly.image-update.generated.yml
     artifacts:
         paths:
-          - .gitlab/weekly.image-update.generated.yml
+          - .gitlab/pipelines/weekly.image-update.generated.yml
 
 image-update-trigger:
   stage: build
@@ -29,6 +29,6 @@ image-update-trigger:
     - image-update-build
   trigger:
     include:
-      - artifact: .gitlab/weekly.image-update.generated.yml
+      - artifact: .gitlab/pipelines/weekly.image-update.generated.yml
         job: image-update-build
     strategy: depend
