@@ -8,7 +8,6 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Development environment (`mw docker`):
   - Image updates:
     - postgres `postgres:13.6` -> `postgres:13.9`
-    - memcached `memcached:1.6` -> `postgres:1.6.9`
 
 ## v0.19.1
 - Development environment (`mw docker`):

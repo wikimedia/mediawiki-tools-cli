@@ -3,7 +3,7 @@ version: '3.7'
 
 services:
   mysql-replica:
-    image: "${MYSQL_IMAGE:-mariadb:10.9.4}"
+    image: "${MYSQL_IMAGE:-mariadb:10.9}"
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=toor
@@ -21,7 +21,7 @@ services:
     command: "mysqld"
 
   mysql-replica-configure-replication:
-    image: "${MYSQL_IMAGE:-mariadb:10.9.4}"
+    image: "${MYSQL_IMAGE:-mariadb:10.9}"
     environment:
       - "MYSQL_REPLICA_PASSWORD=toor"
       - "MYSQL_MAIN_PASSWORD=toor"

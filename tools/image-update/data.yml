@@ -9,19 +9,19 @@ images:
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1
   # docker dev env: Misc services
   - image: postgres:13.9
-    requireRegex: 13\.\d+(\.\d+)?$
-  - image: mariadb:10.9.4
-    requireRegex: 10\.\d+(\.\d+)?
+    requireRegex: 13\.\d+$
+  - image: mariadb:10.9
+    requireRegex: 10\.\d+$
   - image: phpmyadmin/phpmyadmin:5
     noCheck: true
   - image: adminer:4
     noCheck: true
   - image: mailhog/mailhog:v1.0.1
     requireRegex: v1\.\d+(\.\d+)?
-  - image: memcached:1.6.9
-    requireRegex: 1\.\d+(\.\d+)?$
+  - image: memcached:1.6
+    requireRegex: 1\.\d+$
   - image: redis:6.2
-    requireRegex: 6\.\d+(\.\d+)?$
+    requireRegex: 6\.\d+$
   - image: quay.io/keycloak/keycloak:18.0.0
     requireRegex: 18\.\d+\.\d+
   - image: graphiteapp/graphite-statsd:1.1.10-4
