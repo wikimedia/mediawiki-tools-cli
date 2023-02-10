@@ -18,7 +18,7 @@ images:
     noCheck: true
   - image: mailhog/mailhog:v1.0.1
     requireRegex: v1\.\d+(\.\d+)?
-  - image: memcached:1.6.9
+  - image: memcached:1.6.15
     requireRegex: 1\.\d+(\.\d+)?$
   - image: redis:6.2
     requireRegex: 6\.\d+(\.\d+)?$
