@@ -10,7 +10,7 @@ const DevModeMwdd string = "docker"
 type Config struct {
 	DevMode                string `json:"dev_mode"`
 	Telemetry              string `json:"telemetry"`
-	TimerLastEmmitedEvent  string `json:"_timer_last_emitted_event"`
+	TimerLastEmittedEvent  string `json:"_timer_last_emitted_event"`
 	TimerLastUpdateChecked string `json:"_timer_last_update_checked"`
 }
 
