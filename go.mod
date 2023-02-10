@@ -15,9 +15,9 @@ require (
 	github.com/hashicorp/go-version v1.3.0
 	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
-	github.com/mattn/go-isatty v0.0.16
+	github.com/mattn/go-isatty v0.0.17
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/muesli/termenv v0.13.0
+	github.com/muesli/termenv v0.14.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.1.0
 	github.com/schollz/progressbar/v3 v3.8.5
@@ -44,7 +44,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
-	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
+	github.com/aymanbagabas/go-osc52 v1.2.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.18.1 // indirect
 	github.com/containerd/containerd v1.5.7 // indirect
