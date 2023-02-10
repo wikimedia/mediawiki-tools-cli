@@ -124,8 +124,7 @@ func (e EmbeddingDiskSync) agnosticFileFromEmbed(name string) string {
 }
 
 // agnosticFileFromDisk takes an on disk path and returns the agnostic path
-// On Linux "/home/adam/.mwcli/mwdd/default/shellbox-timeline.yml" => "embed/shellbox-timeline.yml"
-// On Windows "C:\Users\adam\.mwcli\mwdd\default\shellbox-timeline.yml" => "embed/shellbox-timeline.yml".
+// Example on Linux "/home/adam/.config/mwcli/mwdd/default/shellbox-timeline.yml" => "embed/shellbox-timeline.yml".
 func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
 	path := strings.TrimPrefix(name, e.DiskPath+string(os.PathSeparator))
 	// As the input is a disk path, we also need to normalize the separator to the one used by embeds

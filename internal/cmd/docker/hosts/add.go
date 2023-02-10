@@ -10,7 +10,7 @@ func NewHostsAddCmd() *cobra.Command {
 	IP := ""
 	cmd := &cobra.Command{
 		Use:   "add",
-		Short: "Adds development environment hosts into your system hosts file (might need sudo)",
+		Short: "Adds development environment hosts into your system hosts fils",
 		Run: func(cmd *cobra.Command, args []string) {
 			changeResult := hosts.AddHosts(
 				IP,

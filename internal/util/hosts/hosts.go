@@ -54,7 +54,12 @@ func RemoveHostsWithSuffix(ip string, hostSuffix string, tryWrite bool) ChangeRe
 
 /*Writable is the hosts file writable.*/
 func Writable() bool {
-	return fileIsWritable(hosts().HostsConfig.WriteFilePath)
+	return fileIsWritable(FilePath())
+}
+
+// FilePath returns the path to the hosts file.
+func FilePath() string {
+	return hosts().HostsConfig.WriteFilePath
 }
 
 func fileIsWritable(filePath string) bool {
