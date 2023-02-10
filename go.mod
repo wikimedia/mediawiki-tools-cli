@@ -12,7 +12,7 @@ require (
 	github.com/cli/cli/v2 v2.5.1
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/fatih/color v1.14.1
-	github.com/hashicorp/go-version v1.3.0
+	github.com/hashicorp/go-version v1.6.0
 	github.com/itchyny/gojq v0.12.6
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-isatty v0.0.17
