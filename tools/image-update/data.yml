@@ -20,7 +20,7 @@ images:
     requireRegex: v1\.\d+(\.\d+)?
   - image: memcached:1.6.9
     requireRegex: 1\.\d+(\.\d+)?$
-  - image: redis:6.2
+  - image: redis:6.2.7
     requireRegex: 6\.\d+(\.\d+)?$
   - image: quay.io/keycloak/keycloak:18.0.0
     requireRegex: 18\.\d+\.\d+
