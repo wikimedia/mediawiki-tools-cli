@@ -21,7 +21,7 @@ test:
     stage: test
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+    image: docker-registry.wikimedia.org/golang1.19:1.19-1-20230205
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -45,7 +45,7 @@ checks:
     stage: test
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+    image: docker-registry.wikimedia.org/golang1.19:1.19-1-20230205
     parallel:
       matrix:
         - CHECK: lint
@@ -65,7 +65,7 @@ tools:
     stage: test
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+    image: docker-registry.wikimedia.org/golang1.19:1.19-1-20230205
     parallel:
       matrix:
         - TOOL: ./tools/image-update/check/check.go
@@ -79,7 +79,7 @@ build:
     stage: build
     needs: []
     cache: {}
-    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+    image: docker-registry.wikimedia.org/golang1.19:1.19-1-20230205
     artifacts:
       paths:
         - bin/
@@ -120,7 +120,7 @@ build-release:
     stage: release
     needs: [build,integration]
     cache: {}
-    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+    image: docker-registry.wikimedia.org/golang1.19:1.19-1-20230205
     before_script:
       - go install github.com/bwplotka/bingo@v0.7.0
       - bingo get
@@ -133,7 +133,7 @@ build-docs:
     stage: release
     needs: [build,integration]
     cache: {}
-    image: golang:1.18
+    image: golang:1.19
     tags:
     # mwcli while https://phabricator.wikimedia.org/T329216 is open
     - mwcli
@@ -149,7 +149,7 @@ release-build:
     stage: release
     needs: [build,integration]
     cache: {}
-    image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+    image: docker-registry.wikimedia.org/golang1.19:1.19-1-20230205
     artifacts:
       paths:
         - _release/
@@ -206,7 +206,7 @@ release-docs:
     stage: release
     needs: [release-publish]
     cache: {}
-    image: golang:1.18
+    image: golang:1.19
     tags:
     # mwcli while https://phabricator.wikimedia.org/T329216 is open
     - mwcli

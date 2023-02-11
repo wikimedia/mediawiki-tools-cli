@@ -1,7 +1,7 @@
 image-update-build:
     stage: build
     cache: {}
-    image: golang:1.18
+    image: golang:1.19
     tags:
     # mwcli while https://phabricator.wikimedia.org/T329216 is open
     - mwcli
