@@ -58,10 +58,14 @@ func defaultContext() string {
 	return "default"
 }
 
+//go:embed docker.long.md
+var dockerLong string
+
 func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docker",
 		Short: "The MediaWiki-Docker-Dev like development environment",
+		Long:  cli.RenderMarkdown(dockerLong),
 		RunE:  nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmd.Root().PersistentPreRun(cmd, args)
