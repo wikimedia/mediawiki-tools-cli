@@ -10,6 +10,6 @@ services:
     image: "${SHELLBOX_MEDIA_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-media}"
     restart: unless-stopped
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps

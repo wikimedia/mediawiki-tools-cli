@@ -13,7 +13,7 @@ services:
     environment:
       - discovery.type=single-node
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
 

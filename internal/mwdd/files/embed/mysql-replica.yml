@@ -11,7 +11,7 @@ services:
       - mysql
       - mysql-replica-configure-replication
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
     volumes:
@@ -29,7 +29,7 @@ services:
       - "MYSQL_REPLICATION_USER=repl"
       - "MYSQL_REPLICATION_PASSWORD=repl"
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
     volumes:

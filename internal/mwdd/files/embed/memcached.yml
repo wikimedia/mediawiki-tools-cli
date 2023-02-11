@@ -8,6 +8,6 @@ services:
     image: "${MEMCACHED_IMAGE:-memcached:1.6}"
     restart: unless-stopped
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
