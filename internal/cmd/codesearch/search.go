@@ -2,6 +2,7 @@ package codesearch
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 
@@ -11,6 +12,9 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/codesearch"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
+
+//go:embed search.example
+var searchExample string
 
 func NewCodeSearchSearchCmd() *cobra.Command {
 	out := output.Output{
@@ -44,16 +48,25 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	}
 
 	var searchType string
+	var files string
+	var excludeFiles string
+	var repos []string
 	var ignoreCase bool
 	cmd := &cobra.Command{
-		Use:   "search [search-text]",
-		Short: "Search using codesearch",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "search [search-text]",
+		Example: searchExample,
+		Short:   "Search using codesearch",
+		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			searchString := args[0]
 			client := codesearch.NewClient(searchType)
 			ctx := context.Background()
-			response, err := client.Search(ctx, searchType, searchString, &codesearch.SearchOptions{IgnoreCase: ignoreCase})
+			response, err := client.Search(ctx, searchType, searchString, &codesearch.SearchOptions{
+				IgnoreCase:   ignoreCase,
+				Files:        files,
+				ExcludeFiles: excludeFiles,
+				Repos:        repos,
+			})
 			if err != nil {
 				color.Red("Error: %s", err)
 				os.Exit(1)
@@ -70,5 +83,8 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	out.AddFlags(cmd, string(output.TableType))
 	cmd.Flags().StringVarP(&searchType, "type", "t", "search", "Type of search to perform: search|core|extensions|skins|things|bundeled|deployed|libraries|operations|puppet|ooui|milkshake|pywikibot|services|analytics")
 	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "Ignore case in search")
+	cmd.Flags().StringVar(&files, "files", "", "Search only in files matching this pattern")
+	cmd.Flags().StringVar(&excludeFiles, "exclude-files", "", "Exclude files matching this pattern")
+	cmd.Flags().StringSliceVar(&repos, "repos", []string{}, "Search only in these repositories")
 	return cmd
 }

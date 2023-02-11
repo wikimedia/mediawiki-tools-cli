@@ -8,6 +8,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - Added XDG standards usage for config directory location (T305150)
 - Added persistent Gerrit HTTP authentication for cli commands
+- Added `--files`, `--repos` and `--exclude-files` flags to `codesearch search` command
 - Added helpful infomation for the user when service are created, such as `mailhog`, `graphite`, `adminer` and `phpmyadmin`
 - Added long documentation text for the `graphite`, `adminer` and `phpmyadmin` commands
 - Updated `gitlab` command to [1.25.3](https://gitlab.com/gitlab-org/cli/-/releases/v1.25.3)

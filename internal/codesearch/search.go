@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type SearchResponse struct {
@@ -30,24 +33,40 @@ type ResultObject struct {
 }
 
 type SearchOptions struct {
-	IgnoreCase bool
+	IgnoreCase   bool
+	Files        string
+	ExcludeFiles string
+	Repos        []string
 }
 
 func (c *Client) Search(ctx context.Context, flavour string, query string, options *SearchOptions) (*SearchResponse, error) {
-	ignoreCase := ""
-	if options != nil && options.IgnoreCase {
-		ignoreCase = "fosho"
-	} else {
-		ignoreCase = "nope"
-	}
-
 	params := url.Values{}
+
 	params.Add("q", query)
-	params.Add("repos", "*")
-	params.Add("i", ignoreCase)
 	params.Add("stats", "fosho")
 
+	if options != nil && options.IgnoreCase {
+		params.Add("i", "fosho")
+	} else {
+		params.Add("i", "nope")
+	}
+
+	if options != nil && options.Files != "" {
+		params.Add("files", options.Files)
+	}
+
+	if options != nil && options.ExcludeFiles != "" {
+		params.Add("excludeFiles", options.ExcludeFiles)
+	}
+
+	if options != nil && len(options.Repos) > 0 {
+		params.Add("repos", strings.Join(options.Repos, ","))
+	} else {
+		params.Add("repos", "*")
+	}
+
 	url := fmt.Sprintf("%s?%s", BaseURLForFlavour(flavour), params.Encode())
+	logrus.Debugf("URL: %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
