@@ -28,6 +28,7 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritChangesCmd())
 	cmd.AddCommand(NewGerritGroupCmd())
 	cmd.AddCommand(NewGerritProjectCmd())
+	cmd.AddCommand(NewGerritAuthCmd())
 
 	return cmd
 }
