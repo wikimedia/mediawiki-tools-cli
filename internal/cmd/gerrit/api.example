@@ -1,0 +1,2 @@
+api accounts/self/name
+api --auth-user addshore --auth-password 0f38j210 accounts/self/name
