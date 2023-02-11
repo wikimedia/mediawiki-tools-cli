@@ -35,10 +35,20 @@ func main() {
 			numSuggests++
 			color.Green("SUGGEST %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
 		}
+		if thisIssue.Context != "" {
+			fmt.Println(thisIssue.Context)
+		}
+	}
+	for _, thisIssue := range allIssues {
 		if thisIssue.Level == issue.WarningLevel {
 			numWarnings++
 			color.Yellow("WARN %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
 		}
+		if thisIssue.Context != "" {
+			fmt.Println(thisIssue.Context)
+		}
+	}
+	for _, thisIssue := range allIssues {
 		if thisIssue.Level == issue.ErrorLevel {
 			numErrors++
 			color.Red("ERRR %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
