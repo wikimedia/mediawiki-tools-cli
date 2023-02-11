@@ -79,11 +79,14 @@ func NewMediaWikiCmd() *cobra.Command {
 				mwdd.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer")
 			}
 
-			mediawiki, _ := mediawiki.ForDirectory(mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
-			if !mediawiki.MediaWikiIsPresent() || !mediawiki.VectorIsPresent() {
-				fmt.Println("MediaWiki or Vector is not present in the code directory")
-				fmt.Println("You can clone them manually or use `mw docker mediawiki get-code")
-				os.Exit(1)
+			// If we are not running get-code command, make sure we have code!
+			if cmd.Use != "get-code" {
+				mediawiki, _ := mediawiki.ForDirectory(mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+				if !mediawiki.MediaWikiIsPresent() || !mediawiki.VectorIsPresent() {
+					fmt.Println("MediaWiki or Vector is not present in the code directory")
+					fmt.Println("You can clone them manually or use `mw docker mediawiki get-code")
+					os.Exit(1)
+				}
 			}
 		},
 	}
