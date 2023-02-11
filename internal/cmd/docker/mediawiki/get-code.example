@@ -1,0 +1,7 @@
+get-code --core
+get-code --core --use-github --shallow
+get-code --core --gerrit-interaction-type ssh --gerrit-username addshore
+get-code --skin Vector
+get-code --skin Vector -- skin MonoBook
+get-code --extension Wikibase --extension OAuth
+get-code --core --skin Vector --extension Wikibase

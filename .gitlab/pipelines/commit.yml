@@ -103,7 +103,7 @@ integration:
         - TEST_SCRIPT: test-general.sh
         - TEST_SCRIPT: test-general-online.sh
         - TEST_SCRIPT: test-docker-general.sh
-          EXTRA_PACKAGES: docker-compose curl tar
+          EXTRA_PACKAGES: docker-compose curl tar git
         - TEST_SCRIPT: test-docker-mw-all-dbs.sh
           EXTRA_PACKAGES: docker-compose curl tar
         - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
