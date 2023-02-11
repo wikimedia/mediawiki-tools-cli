@@ -46,13 +46,18 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			mediawiki, _ := mediawiki.ForDirectory(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if !mediawiki.LocalSettingsIsPresent() {
 				createDefaultFile := false
-				prompt := &survey.Confirm{
-					Message: "No LocalSettings.php detected. Do you want to create the default mwdd file?",
-				}
-				err := survey.AskOne(prompt, &createDefaultFile)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
+				if !cli.Opts.NoInteraction {
+					createDefaultFile = false
+					prompt := &survey.Confirm{
+						Message: "No LocalSettings.php detected. Do you want to create the default mwdd file?",
+					}
+					err := survey.AskOne(prompt, &createDefaultFile)
+					if err != nil {
+						fmt.Println(err)
+						os.Exit(1)
+					}
+				} else {
+					createDefaultFile = true
 				}
 
 				if createDefaultFile {
@@ -116,14 +121,19 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					fmt.Println("Composer check failed:", composerErr)
 
 					doComposerInstall := false
-					prompt := &survey.Confirm{
-						Message: "Composer dependencies are not up to date, do you want to composer install & update?",
+					if !cli.Opts.NoInteraction {
+						prompt := &survey.Confirm{
+							Message: "Composer dependencies are not up to date, do you want to composer install & update?",
+						}
+						err := survey.AskOne(prompt, &doComposerInstall)
+						if err != nil {
+							fmt.Println(err)
+							os.Exit(1)
+						}
+					} else {
+						doComposerInstall = true
 					}
-					err := survey.AskOne(prompt, &doComposerInstall)
-					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
-					}
+
 					if doComposerInstall {
 						mwdd.DefaultForUser().DockerExec(mwdd.DockerExecCommand{
 							DockerComposeService: "mediawiki",
