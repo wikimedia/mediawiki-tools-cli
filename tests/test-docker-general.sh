@@ -119,7 +119,10 @@ test_command_success "./../bin/mw docker mediawiki quibble quibble -- --help"
 test_command "./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command \"ls\"" "index.php"
 
 # get the example skin using get-code
+# Remove it both before and after incase it is left and to avoid it being left in CI caches
+rm -rf ${MWDIR}/skins/Example
 test_command_success "./../bin/mw docker mediawiki get-code --skin Example"
+rm -rf ${MWDIR}/skins/Example
 
 # cd to Vector
 cd skins/Vector
