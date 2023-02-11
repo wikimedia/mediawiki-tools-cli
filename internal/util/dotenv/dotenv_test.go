@@ -1,7 +1,6 @@
 package dotenv
 
 import (
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -73,7 +72,7 @@ func TestFile_EnsureExists(t *testing.T) {
 			}
 
 			// And is empty
-			b, err := ioutil.ReadFile(tt.f.Path())
+			b, err := os.ReadFile(tt.f.Path())
 			if string(b) != "" {
 				t.Errorf("File.EnsureExists() failed to create empty file: %v", err)
 			}

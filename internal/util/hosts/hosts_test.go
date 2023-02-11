@@ -1,7 +1,6 @@
 package hosts
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -15,7 +14,7 @@ var (
 )
 
 func writeContentToTmpFile(content string) string {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), hostsTmpPrefix+"test-")
+	tmpFile, err := os.CreateTemp(os.TempDir(), hostsTmpPrefix+"test-")
 	if err != nil {
 		panic(err)
 	}

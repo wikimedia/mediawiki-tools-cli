@@ -1,14 +1,13 @@
 package files
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/sirupsen/logrus"
 )
 
 func StringToTempFile(s string) string {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "mwcli-")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "mwcli-")
 	if err != nil {
 		logrus.Fatal("Cannot create temporary file", err)
 	}

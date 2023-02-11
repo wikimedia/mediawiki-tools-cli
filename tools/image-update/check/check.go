@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -27,7 +28,7 @@ type Data struct {
 
 func getData() Data {
 	var data Data
-	content, err := ioutil.ReadFile("tools/image-update/data.yml")
+	content, err := os.ReadFile("tools/image-update/data.yml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -97,7 +98,7 @@ func main() {
 
 	// write commands to file (if there are any)
 	if len(delayOutputCommands) != 0 {
-		err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")+"\n"), 0o755)
+		err := os.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")+"\n"), 0o755)
 		if err != nil {
 			panic(err)
 		}
@@ -214,7 +215,7 @@ func jsonFromURL(url string, unmarshalTo interface{}) (interface{}, error) {
 		defer res.Body.Close()
 	}
 
-	body, readErr := ioutil.ReadAll(res.Body)
+	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
 		return nil, readErr
 	}

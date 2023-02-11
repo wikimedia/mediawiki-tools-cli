@@ -1,9 +1,9 @@
 package gitlab
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 
@@ -15,7 +15,7 @@ func TestLatestReleaseBinary(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		// Test request parameters
 		if req.URL.Path == "/api/v4/projects/16/releases" {
-			b, err := ioutil.ReadFile("testdata/wikimedia_test_data.json")
+			b, err := os.ReadFile("testdata/wikimedia_test_data.json")
 			if err != nil {
 				panic(err)
 			}
@@ -27,8 +27,8 @@ func TestLatestReleaseBinary(t *testing.T) {
 
 	// Override the URL with our test server
 	wikimediav4ApiURL = server.URL + "/api/v4/"
-	os = "fakeOS"
-	arch = "fakeArch"
+	myOs = "fakeOS"
+	myArch = "fakeArch"
 
 	tests := []struct {
 		name    string
@@ -69,7 +69,7 @@ func TestLatestReleaseBinary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os = tt.fakeOS
+			myOs = tt.fakeOS
 			got, err := RelengCliLatestReleaseBinary()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LatestReleaseBinary() error = %v, wantErr %v", err, tt.wantErr)

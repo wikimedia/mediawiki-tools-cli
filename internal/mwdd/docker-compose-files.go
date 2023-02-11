@@ -2,7 +2,6 @@ package mwdd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -50,7 +49,7 @@ type Service struct {
 }
 
 func (m MWDD) dockerComposeFile(fileName string) DockerComposeFile {
-	yamlFile, err := ioutil.ReadFile(m.DockerComposeFileName(fileName))
+	yamlFile, err := os.ReadFile(m.DockerComposeFileName(fileName))
 	if err != nil {
 		panic(err)
 	}

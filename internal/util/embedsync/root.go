@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,7 +103,7 @@ func (e EmbeddingDiskSync) fileString(name string) string {
 
 func (e EmbeddingDiskSync) agnosticEmbedBytes(name string) []byte {
 	fileReader := e.fileReaderOrExit(name)
-	bytes, _ := ioutil.ReadAll(fileReader)
+	bytes, _ := io.ReadAll(fileReader)
 	return bytes
 }
 
@@ -133,7 +132,7 @@ func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
 
 func writeBytesToDisk(bytes []byte, file string) {
 	dirs.EnsureExists(filepath.Dir(file))
-	ioutil.WriteFile(file, bytes, getAssumedFilePerms(file))
+	os.WriteFile(file, bytes, getAssumedFilePerms(file))
 	// TODO check error?
 }
 

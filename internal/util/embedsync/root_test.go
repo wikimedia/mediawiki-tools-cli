@@ -10,7 +10,6 @@ package embedsync
 import (
 	"embed"
 	"errors"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -21,7 +20,7 @@ import (
 var testContent embed.FS
 
 func checkFileContent(t *testing.T, file string, expected string) {
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +39,7 @@ func writeFileContent(t *testing.T, file string, content string) {
 }
 
 func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
-	dir, err := ioutil.TempDir("", "TestEmbeddingDiskSync_EnsureFilesOnDisk")
+	dir, err := os.MkdirTemp("", "TestEmbeddingDiskSync_EnsureFilesOnDisk")
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -55,7 +54,7 @@ func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
 	t.Run("Ensure files are actually on disk and look correct", func(t *testing.T) {
 		e.EnsureFilesOnDisk()
 
-		files, err := ioutil.ReadDir(dir)
+		files, err := os.ReadDir(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -84,7 +83,7 @@ func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
 }
 
 func TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk(t *testing.T) {
-	dir, err := ioutil.TempDir("", "TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk")
+	dir, err := os.MkdirTemp("", "TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk")
 	if err != nil {
 		logrus.Fatal(err)
 	}

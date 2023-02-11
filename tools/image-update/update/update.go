@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -40,7 +39,7 @@ func main() {
 }
 
 func replaceInDirectory(dirPath string, find string, replace string) {
-	files, err := ioutil.ReadDir(dirPath)
+	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		panic(err)
 	}
@@ -55,23 +54,23 @@ func replaceInDirectory(dirPath string, find string, replace string) {
 }
 
 func replaceInFile(filePath string, find string, replace string) {
-	fileContent, err := ioutil.ReadFile(filePath)
+	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
-		logrus.Printf("ioutil.ReadFile err   #%v ", err)
+		logrus.Printf("os.ReadFile err   #%v ", err)
 	}
 
 	text := string(fileContent)
 	newText := strings.ReplaceAll(text, find, replace)
 
 	if text != newText {
-		ioutil.WriteFile(filePath, []byte(newText), 0o755)
+		os.WriteFile(filePath, []byte(newText), 0o755)
 		fmt.Println("Updated " + filePath)
 	}
 }
 
 func getData() Data {
 	var data Data
-	content, err := ioutil.ReadFile("tools/image-update/data.yml")
+	content, err := os.ReadFile("tools/image-update/data.yml")
 	if err != nil {
 		panic(err.Error())
 	}

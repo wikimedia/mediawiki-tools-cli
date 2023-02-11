@@ -1,7 +1,6 @@
 package mediawiki
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -17,7 +16,7 @@ func (m MediaWiki) LocalSettingsIsPresent() bool {
 
 /*LocalSettingsContains ...*/
 func (m MediaWiki) LocalSettingsContains(text string) bool {
-	b, err := ioutil.ReadFile(m.Path("LocalSettings.php"))
+	b, err := os.ReadFile(m.Path("LocalSettings.php"))
 	if err != nil {
 		panic(err)
 	}

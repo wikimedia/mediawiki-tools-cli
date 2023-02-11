@@ -1,7 +1,6 @@
 package hosts
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -72,7 +71,7 @@ func fileIsWritable(filePath string) bool {
 }
 
 func tmpFile() string {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), hostsTmpPrefix)
+	tmpFile, err := os.CreateTemp(os.TempDir(), hostsTmpPrefix)
 	if err != nil {
 		panic(err)
 	}
