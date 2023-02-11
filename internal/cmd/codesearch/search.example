@@ -1,0 +1,4 @@
+search addshore
+search --type extensions --repos "Extension:Wikibase" addshore
+search --files ".*\.md" addshore
+search --output ack --files ".*\.md" addshore
