@@ -15,6 +15,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Removed any suggestions to `sudo` using the CLI, instead providing alternative options
 - Development environment (`mw docker`):
   - Added `docker hosts where` command to show you where the hosts file is
+  - Added `docker mediawiki get-code` command for fetching MediaWiki, skins and extensions from Gerrit
+  - Removed code clone wizard from `docker mediawiki` command startup, insteading prompting users to use `docker mediawiki get-code`
   - Image updates:
     - postgres `postgres:13.6` -> `postgres:13.9`
 

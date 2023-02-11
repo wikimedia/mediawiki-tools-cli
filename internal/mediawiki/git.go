@@ -17,8 +17,8 @@ func exitIfNoGit() {
 	}
 }
 
-/*CloneSetupOpts for use with GithubCloneMediaWiki.*/
-type CloneSetupOpts = struct {
+/*CloneOpts for use with GithubCloneMediaWiki.*/
+type CloneOpts = struct {
 	GetMediaWiki          bool
 	GetVector             bool
 	GetGerritSkins        []string
@@ -30,8 +30,10 @@ type CloneSetupOpts = struct {
 }
 
 /*CloneSetup provides a packages initial setup method for MediaWiki etc with some speedy features.*/
-func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
+func (m MediaWiki) CloneSetup(options CloneOpts) {
 	exitIfNoGit()
+
+	fmt.Println("Cloning repositories...")
 
 	// options.GetVector is deprecated, so shift its info into options.GetGerritSkins
 	if options.GetVector && !stringsutil.StringInSlice("Vector", options.GetGerritSkins) {
@@ -93,6 +95,8 @@ func (m MediaWiki) CloneSetup(options CloneSetupOpts) {
 
 		cloneAndSetRemote(m.Path("extensions/"+extensionName), startRemote, endRemote, options.UseShallow)
 	}
+
+	fmt.Println("Repositories cloned.")
 }
 
 func gerritHTTPRemoteForSkin(skin string) string {

@@ -118,6 +118,9 @@ test_command_success "./../bin/mw docker mediawiki fresh npm run selenium-test -
 test_command_success "./../bin/mw docker mediawiki quibble quibble -- --help"
 test_command "./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command \"ls\"" "index.php"
 
+# get the example skin using get-code
+test_command_success "./../bin/mw docker mediawiki get-code --skin Example"
+
 # cd to Vector
 cd skins/Vector
 
