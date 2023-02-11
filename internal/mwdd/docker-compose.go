@@ -2,11 +2,12 @@ package mwdd
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/files"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 // DockerComposeCommand results in something like: `docker-compose <automatic project stuff> <command> <commandArguments>`.
@@ -111,6 +112,15 @@ func (m MWDD) Restart(services []string) {
 	}.RunTTY()
 }
 
+/*Pull runs `docker-compose pull <services>`.*/
+func (m MWDD) Pull(services []string) {
+	DockerComposeCommand{
+		MWDD:             m,
+		Command:          "pull",
+		CommandArguments: services,
+	}.RunTTY()
+}
+
 /*Rm runs `docker-compose rm --stop --force -v <services>`.*/
 func (m MWDD) Rm(services []string) {
 	DockerComposeCommand{
@@ -139,7 +149,7 @@ func (m MWDD) ServicesWithStatus(statusFilter string) []string {
 		CommandArguments: []string{"--services", "--filter", "status=" + statusFilter},
 	}.Run()
 
-	serviceList := strings.SplitMultiline(stdout.String())
+	serviceList := stringsutil.SplitMultiline(strings.Trim(stdout.String(), "\n"))
 	if stderr.String() != "" || err != nil {
 		logrus.Error(stderr.String())
 	}

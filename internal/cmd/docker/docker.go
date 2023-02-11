@@ -155,6 +155,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewMwddStopCmd())
 	cmd.AddCommand(NewMwddStartCmd())
 	cmd.AddCommand(NewMwddRestartCmd())
+	cmd.AddCommand(NewMwddUpdateCmd())
 	cmd.AddCommand(dockercompose.NewCmd())
 	cmd.AddCommand(env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory))
 	cmd.AddCommand(hosts.NewHostsCmd())
