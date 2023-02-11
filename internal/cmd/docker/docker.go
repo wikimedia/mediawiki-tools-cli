@@ -1,12 +1,17 @@
 package docker
 
 import (
+	"crypto/md5"
 	_ "embed"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/dockercompose"
@@ -74,8 +79,8 @@ func NewCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			mwdd := mwdd.DefaultForUser()
-			mwdd.EnsureReady()
+			thisDev := mwdd.DefaultForUser()
+			thisDev.EnsureReady()
 
 			// Skip the checks and wizard for some sub commands
 			if cobrautil.CommandIsSubCommandOfOneOrMore(cmd, ignoreMwddPersistentRunForPrefixes) {
@@ -86,7 +91,26 @@ func NewCmd() *cobra.Command {
 				return
 			}
 
-			if mwdd.Env().Missing("PORT") {
+			// Different subnets are required for different "contexts" if used, so define them in the .env
+			if thisDev.Env().Missing("NETWORK_SUBNET_PREFIX") {
+				if mwdd.Context == "default" {
+					logrus.Trace(".env NETWORK_SUBNET_PREFIX: ", "10.0.0", " (context: ", mwdd.Context, ")")
+					thisDev.Env().Set("NETWORK_SUBNET_PREFIX", "10.0.0")
+				} else {
+					// Do some evil shit to come up with a kind of probably random subnet to use...
+					rand1 := rand.Intn(10)
+					rand2 := rand.Intn(10)
+					hash := md5.Sum([]byte(mwdd.Context))
+					hex1 := hex.EncodeToString(hash[rand1 : rand1+1])
+					hex2 := hex.EncodeToString(hash[rand2 : rand2+1])
+					dec1, _ := strconv.ParseInt(hex1, 16, 32)
+					dec2, _ := strconv.ParseInt(hex2, 16, 32)
+					logrus.Trace(".env NETWORK_SUBNET_PREFIX: ", fmt.Sprintf("10.%d.%d", dec1, dec2), " (context: ", mwdd.Context, ")")
+					thisDev.Env().Set("NETWORK_SUBNET_PREFIX", fmt.Sprintf("10.%d.%d", dec1, dec2))
+				}
+			}
+
+			if thisDev.Env().Missing("PORT") {
 				if !cli.Opts.NoInteraction {
 					port := ""
 					prompt := &survey.Input{
@@ -104,9 +128,9 @@ func NewCmd() *cobra.Command {
 						os.Exit(1)
 					}
 
-					mwdd.Env().Set("PORT", port)
+					thisDev.Env().Set("PORT", port)
 				} else {
-					mwdd.Env().Set("PORT", ports.FreeUpFrom("8080"))
+					thisDev.Env().Set("PORT", ports.FreeUpFrom("8080"))
 				}
 			}
 		},
@@ -164,8 +188,23 @@ func NewCmd() *cobra.Command {
 
 func envSubst(s string) string {
 	// TODO do this more dynamically... / better...
+	// Resetting is needed here as docker will look at the existing system / content env vars too
+
+	// Record previous env vars...
+	previousPort, portSet := os.LookupEnv("PORT")
+
+	// Set and subst...
 	os.Setenv("PORT", mwdd.DefaultForUser().Env().Get("PORT"))
-	return os.ExpandEnv(s)
+	expanded := os.ExpandEnv(s)
+
+	// Reset
+	if portSet {
+		os.Setenv("PORT", previousPort)
+	} else {
+		os.Unsetenv("PORT")
+	}
+
+	return expanded
 }
 
 //go:embed elasticsearch/elasticsearch.long.md

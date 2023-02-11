@@ -14,7 +14,7 @@ services:
     networks:
       - dps
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     environment:
       # https://www.mediawiki.org/wiki/Selenium/How-to/Run_tests_targeting_MediaWiki-Docker_using_Fresh#Environment_variables
       - MW_SERVER=http://default.mediawiki.mwdd:${PORT}

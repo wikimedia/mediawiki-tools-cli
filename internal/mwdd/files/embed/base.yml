@@ -9,7 +9,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       dps:
-        ipv4_address: 10.0.0.10
+        ipv4_address: ${NETWORK_SUBNET_PREFIX}.10
 
   nginx-proxy:
     image: "${NGINX_PROXY_IMAGE:-jwilder/nginx-proxy:0.10}"
@@ -24,7 +24,7 @@ services:
     depends_on:
       - dps
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
     volumes:
@@ -37,5 +37,5 @@ networks:
     ipam:
       config:
         # TODO this probably wants to be configurable? or more random? as conflicts can happen in the docker network
-        # mwdd uses 172.0.0.0/24
-        - subnet: 10.0.0.0/24
+        # mwdd used 172.0.0.0/24
+        - subnet: ${NETWORK_SUBNET_PREFIX}.0/24

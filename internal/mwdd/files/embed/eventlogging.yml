@@ -11,6 +11,6 @@ services:
       - VIRTUAL_PORT=8192
     entrypoint: /srv/service/node_modules/.bin/eventgate -c config.dev.yaml | /srv/service/node_modules/.bin/bunyan
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
