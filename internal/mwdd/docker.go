@@ -8,12 +8,14 @@ import (
 	gosignal "os/signal"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/sirupsen/logrus"
 	terminal "golang.org/x/term"
 )
 
@@ -54,9 +56,12 @@ func UserAndGroupForDockerExecution() string {
 
 func (m MWDD) containerID(ctx context.Context, cli *client.Client, service string) string {
 	containerFilters := filters.NewArgs()
-	containerFilters.Add("label", "com.docker.compose.project="+m.DockerComposeProjectName())
+	projectname := strings.ToLower(m.DockerComposeProjectName())
+	containerFilters.Add("label", "com.docker.compose.project="+projectname)
 	containerFilters.Add("label", "com.docker.compose.service="+service)
 	containerFilters.Add("label", "com.docker.compose.container-number=1")
+	logrus.Trace("Getting container ID for service: " + service)
+	logrus.Trace("Container filters: project = " + projectname + ", service = " + service)
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Filters: containerFilters})
 	if err != nil {
 		fmt.Println("Error getting containers for service", service)
