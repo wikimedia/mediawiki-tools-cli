@@ -13,7 +13,7 @@ var (
 func NewWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wiki",
-		Short: "Interact with any MediaWiki wiki",
+		Short: "Interact with any MediaWiki wiki (WORK IN PROGRESS)",
 		RunE:  nil,
 	}
 

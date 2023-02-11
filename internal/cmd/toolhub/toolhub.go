@@ -7,7 +7,7 @@ import (
 func NewToolHubCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "toolhub",
-		Short: "Interact with the Wikimedia Toolhub",
+		Short: "Interact with the Wikimedia Toolhub (WORK IN PROGRESS)",
 		RunE:  nil,
 	}
 
