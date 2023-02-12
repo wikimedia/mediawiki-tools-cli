@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -46,6 +47,10 @@ func NewMediaWikiCmd() *cobra.Command {
 					prompt := &survey.Input{
 						Message: "What directory would you like to store MediaWiki source code in?",
 						Default: mediawiki.GuessMediaWikiDirectoryBasedOnContext(),
+						Suggest: func(toComplete string) []string {
+							files, _ := filepath.Glob(toComplete + "*")
+							return files
+						},
 					}
 					err := survey.AskOne(prompt, &dirValue)
 					if err != nil {
