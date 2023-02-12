@@ -54,6 +54,12 @@ func UserAndGroupForDockerExecution() string {
 	return fmt.Sprint(os.Getuid(), ":", os.Getgid())
 }
 
+func (m MWDD) networkName() string {
+	projectname := strings.ToLower(m.DockerComposeProjectName())
+	// Default network is always dps...
+	return projectname + "_dps"
+}
+
 func (m MWDD) containerID(ctx context.Context, cli *client.Client, service string) string {
 	containerFilters := filters.NewArgs()
 	projectname := strings.ToLower(m.DockerComposeProjectName())

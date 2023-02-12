@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=toor
+      - DEFAULT_EXPOSE_PORT=3306
     depends_on:
       - mysql-configure-replication
     dns:

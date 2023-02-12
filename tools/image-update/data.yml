@@ -27,6 +27,9 @@ images:
   - image: graphiteapp/graphite-statsd:1.1.10-4
     requireRegex: 1\.\d+\.\d+(\-\d+)
   - image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
+  # docker dev env: Other stuff
+  - image: alpine/socat:1.7.4.4-r0
+    requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
   # docker dev env: Regularly released WMF production images
   - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-media
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media

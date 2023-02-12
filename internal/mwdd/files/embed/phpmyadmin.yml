@@ -10,6 +10,7 @@ services:
       - PMA_HOSTS=mysql,mysql-replica
       - PMA_ARBITRARY=1
       - VIRTUAL_HOST=phpmyadmin.mwdd.localhost,phpmyadmin.mwdd
+      - DEFAULT_EXPOSE_PORT=80
     depends_on:
       - dps
       - nginx-proxy

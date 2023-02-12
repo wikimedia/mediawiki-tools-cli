@@ -39,6 +39,7 @@ services:
     environment:
       - VIRTUAL_HOST=*.mediawiki.mwdd.localhost,*.mediawiki.mwdd
       - VIRTUAL_PORT=8080
+      - DEFAULT_EXPOSE_PORT=8080
     depends_on:
       - nginx-proxy
     dns:

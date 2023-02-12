@@ -4,6 +4,8 @@ services:
   redis:
     image: "${REDIS_IMAGE:-redis:6.2}"
     restart: unless-stopped
+    environment:
+      - DEFAULT_EXPOSE_PORT=6379
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
