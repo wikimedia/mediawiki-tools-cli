@@ -68,11 +68,15 @@ func (m MWDD) ExecNoOutput(service string, commandAndArgs []string, user string)
 }
 
 /*UpDetached runs `docker-compose up -d <services>`.*/
-func (m MWDD) UpDetached(services []string) {
+func (m MWDD) UpDetached(services []string, forceRecreate bool) {
+	args := []string{"-d"}
+	if forceRecreate {
+		args = append(args, "--force-recreate")
+	}
 	DockerComposeCommand{
 		MWDD:             m,
 		Command:          "up",
-		CommandArguments: append([]string{"-d"}, services...),
+		CommandArguments: append(args, services...),
 	}.RunTTY()
 }
 
