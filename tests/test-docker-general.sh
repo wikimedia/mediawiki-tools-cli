@@ -65,6 +65,9 @@ test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a runnin
 test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
+# Check the doctor
+test_command_success "./bin/mw docker mediawiki doctor"
+
 # Make sure the shellbox service commands work
 # TODO text exec command
 test_command_success "./bin/mw docker shellbox media create"
