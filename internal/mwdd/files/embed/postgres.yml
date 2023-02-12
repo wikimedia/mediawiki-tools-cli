@@ -8,6 +8,7 @@ services:
       # Specify "root" rather than the default "postgres" so that it is similar to the mysql service
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=toor
+      - DEFAULT_EXPOSE_PORT=5432
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:

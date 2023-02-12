@@ -19,6 +19,7 @@ services:
       - VIRTUAL_PORT=${PORT}
       - HOSTNAMES=.mediawiki.mwdd.localhost,.mediawiki.mwdd,keycloak.mwdd.localhost     # wildcard name resolution, thanks to DPS
       - HTTP_PORT=${PORT}      # internal port
+      - DEFAULT_EXPOSE_PORT=${PORT}
     ports:
       - "${PORT}:${PORT}"
     depends_on:

@@ -7,6 +7,7 @@ services:
     environment:
       - VIRTUAL_HOST=adminer.mwdd.localhost,adminer.mwdd
       - VIRTUAL_PORT=8080
+      - DEFAULT_EXPOSE_PORT=8080
     depends_on:
       - dps
       - nginx-proxy

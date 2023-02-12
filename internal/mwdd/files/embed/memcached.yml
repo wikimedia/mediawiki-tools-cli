@@ -7,6 +7,8 @@ services:
     #image: "${MEMCACHED_IMAGE:-docker-registry.wikimedia.org/memcached:1.6.6-1-20211003}"
     image: "${MEMCACHED_IMAGE:-memcached:1.6}"
     restart: unless-stopped
+    environment:
+      - DEFAULT_EXPOSE_PORT=11211
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:

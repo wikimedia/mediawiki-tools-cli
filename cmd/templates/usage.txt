@@ -6,7 +6,7 @@ Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
 Examples:
-{{.Example | indent 2}}{{end}}{{if .HasAvailableSubCommands}}
+{{.Example | indent 2 | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableSubCommands}}
 
 {{range commandGroups .Commands }}{{.Name}} Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }}   {{.Short}}{{end}}{{end}}

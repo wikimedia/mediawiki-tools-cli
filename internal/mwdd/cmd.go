@@ -1,11 +1,19 @@
 package mwdd
 
 import (
+	"context"
 	"fmt"
+	"os"
+	osexec "os/exec"
 	"strconv"
+	"strings"
 
+	"github.com/MakeNowJust/heredoc"
+	"github.com/docker/docker/client"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
 )
 
 type ServiceTexts struct {
@@ -40,6 +48,7 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, texts S
 	cmd.AddCommand(NewServiceDestroyCmd(serviceName))
 	cmd.AddCommand(NewServiceStopCmd(serviceName))
 	cmd.AddCommand(NewServiceStartCmd(serviceName))
+	cmd.AddCommand(NewServiceExposeCmd(serviceName))
 	// There is an expectation that the main service for exec has the same name as the service command overall
 	cmd.AddCommand(NewServiceExecCmd(serviceName, serviceName))
 
@@ -164,6 +173,75 @@ func NewServiceExecCmd(name string, service string) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	return cmd
+}
+
+func NewServiceExposeCmd(name string) *cobra.Command {
+	var externalPort string
+	var internalPort string
+	cmd := &cobra.Command{
+		Use:   "expose",
+		Short: "Expose a port in a running container",
+		Example: heredoc.Doc(`
+		expose --external-port 8899
+		expose --external-port 8899 --internal-port 80
+		`),
+		Run: func(cmd *cobra.Command, args []string) {
+			m := DefaultForUser()
+			m.EnsureReady()
+			m.DockerComposeFileExistsOrExit(name)
+
+			ctx := context.Background()
+			cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+			if err != nil {
+				fmt.Println("Unable to create docker client")
+				panic(err)
+			}
+			containerID := m.containerID(ctx, cli, name)
+
+			// Lookup internal port from an env var if not provided
+			if internalPort == "" {
+				logrus.Debug("No internal port provided, looking up from container env")
+				containerJson, err := cli.ContainerInspect(ctx, containerID)
+				if err != nil {
+					fmt.Println("Unable to inspect container")
+					panic(err)
+				}
+
+				// Get the DEFAULT_EXPOSE_PORT environemtn variable from the containerJson if set
+				for _, env := range containerJson.Config.Env {
+					if strings.HasPrefix(env, "DEFAULT_EXPOSE_PORT=") {
+						internalPort = strings.Split(env, "=")[1]
+					}
+				}
+				if internalPort == "" {
+					fmt.Println("No known default port to expose, please specify one with --internal-port")
+					os.Exit(1)
+				}
+			}
+
+			var publish string
+			if externalPort == "" {
+				// Random port will be chosen by docker
+				publish = internalPort
+			} else {
+				publish = externalPort + ":" + internalPort
+			}
+
+			network := m.networkName()
+
+			exec.RunTTYCommand(osexec.Command(
+				"docker", "run",
+				"--publish", publish,
+				"--link", containerID,
+				"--network", network,
+				"alpine/socat:1.7.4.4-r0",
+				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+name+":"+internalPort,
+			))
+		},
+	}
+	cmd.Flags().StringVarP(&externalPort, "external-port", "e", "", "External port to expose")
+	cmd.Flags().StringVarP(&internalPort, "internal-port", "i", "", "Internal port to expose")
 	return cmd
 }
 
