@@ -15,6 +15,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Fixed `mw gerrit` command output for commands that used ssh
 - Removed any suggestions to `sudo` using the CLI, instead providing alternative options
 - Development environment (`mw docker`):
+  - Added tab completion when `MEDIAWIKI_VOLUMES_CODE` is entered via wizard
   - Added `docker update` command to pull and update all created containers
   - Added `docker hosts where` command to show you where the hosts file is
   - Added the ability to run multiple seperate development environments via the `--context` flag (T301002)
