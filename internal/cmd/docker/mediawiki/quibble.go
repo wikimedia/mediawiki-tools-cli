@@ -24,7 +24,7 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 		Example: mediawikiQuibbleExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
-			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"})
+			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-quibble"}, false)
 			command, env := mwdd.CommandAndEnvFromArgs(args)
 			exitCode := mwdd.DefaultForUser().DockerExec(
 				applyRelevantMediawikiWorkingDirectory(

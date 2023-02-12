@@ -9,6 +9,7 @@ import (
 )
 
 func NewMwddUpdateCmd() *cobra.Command {
+	var forceRecreate bool
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update running containers",
@@ -23,10 +24,11 @@ func NewMwddUpdateCmd() *cobra.Command {
 			logrus.Infof("Updating %d services", len(existingServices))
 			logrus.Tracef("Updating services: %v", existingServices)
 			mwdd.DefaultForUser().Pull(existingServices)
-			mwdd.DefaultForUser().UpDetached(runningServices)
+			mwdd.DefaultForUser().UpDetached(runningServices, forceRecreate)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Control"
+	cmd.Flags().BoolVar(&forceRecreate, "force-recreate", false, "Force recreation of containers")
 	return cmd
 }

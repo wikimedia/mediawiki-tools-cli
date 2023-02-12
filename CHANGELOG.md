@@ -19,6 +19,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Added `docker update` command to pull and update all created containers
   - Added `docker hosts where` command to show you where the hosts file is
   - Added the ability to run multiple seperate development environments via the `--context` flag (T301002)
+  - Added the `--force-recreate` command to service `create` commands (T313411)
   - Added `docker mediawiki get-code` command for fetching MediaWiki, skins and extensions from Gerrit
   - Removed code clone wizard from `docker mediawiki` command startup, insteading prompting users to use `docker mediawiki get-code`
   - Image updates:

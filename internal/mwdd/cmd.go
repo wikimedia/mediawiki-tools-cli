@@ -61,6 +61,7 @@ func NewServicesCmd(groupName string, texts ServiceTexts, aliases []string) *cob
 }
 
 func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
+	var forceRecreate bool
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: fmt.Sprintf("Create the %s containers", name),
@@ -68,7 +69,7 @@ func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerComposeFileExistsOrExit(name)
 			services := DefaultForUser().DockerComposeFileServices(name)
-			DefaultForUser().UpDetached(services)
+			DefaultForUser().UpDetached(services, forceRecreate)
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
 			}
@@ -76,6 +77,7 @@ func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
 	}
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Control"
+	cmd.Flags().BoolVar(&forceRecreate, "force-recreate", false, "Force recreation of containers")
 	return cmd
 }
 

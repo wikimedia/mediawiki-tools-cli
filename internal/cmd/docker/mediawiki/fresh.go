@@ -20,7 +20,7 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Long:  cli.RenderMarkdown(mwddMediawikiFreshLong),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
-			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"})
+			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"}, false)
 			command, env := mwdd.CommandAndEnvFromArgs(args)
 			exitCode := mwdd.DefaultForUser().DockerExec(
 				applyRelevantMediawikiWorkingDirectory(
