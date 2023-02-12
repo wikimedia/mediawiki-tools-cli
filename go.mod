@@ -11,7 +11,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/cli/cli/v2 v2.23.0
-	github.com/docker/docker v20.10.9+incompatible
+	github.com/docker/docker v23.0.1+incompatible
 	github.com/fatih/color v1.14.1
 	github.com/hashicorp/go-version v1.6.0
 	github.com/itchyny/gojq v0.12.11
@@ -48,7 +48,6 @@ require (
 	github.com/aymanbagabas/go-osc52 v1.2.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.18.1 // indirect
-	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -66,7 +65,6 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -90,11 +88,13 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
@@ -121,10 +121,9 @@ require (
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	google.golang.org/grpc v1.49.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gotest.tools/v3 v3.0.3 // indirect
 )
 
 go 1.18
