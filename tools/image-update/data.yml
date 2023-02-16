@@ -41,7 +41,7 @@ images:
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
   - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-timeline
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
-  - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2022-11-28-190331-production
+  - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2023-02-14-162241-production
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
   # Latest images...
   - image: ubuntu:latest
