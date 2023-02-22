@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.21.0
+
+- Development environment (`mw docker`):
+  - Added check to see if docker is running before commands execute (T329920)
+
 ## v0.20.0
 
 - Added XDG standards usage for config directory location (T305150)
