@@ -2,6 +2,7 @@
 ./adminer.yml
 ./base.yml
 ./citoid.yml
+./cxserver.yml
 ./elasticsearch.yml
 ./eventlogging.yml
 ./files.txt

@@ -40,6 +40,8 @@ images:
   # docker dev env: Regularly released WMF production images
   - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2023-10-25-155509-production
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-services-cxserver:2023-02-15-085109-production
+    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
   # Latest images...
   - image: ubuntu:latest
     noCheck: true
