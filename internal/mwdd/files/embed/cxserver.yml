@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+  cxserver:
+    image: "${CXSERVER_IMAGE:-2023-02-15-085109-production}"
+    build:
+        context: ${CXSERVER_VOLUMES_CODE}
+    # Is this the same entrypoint as is in the standard production image?
+    entrypoint: npm start
+    environment:
+      - VIRTUAL_HOST=cxserver.mwdd.localhost, cxserver.mwdd
+      - VIRTUAL_PORT=8080
+      - DEFAULT_EXPOSE_PORT=8080
+    volumes:
+      # Is this code in the same location as the production image?
+      # Using a volume as a fallback will mean that code isn't updated if new images are pulled? Probably not desired
+      - "${CXSERVER_VOLUMES_CODE:-cxserver-code}:/opt/cxserver"
+      # Why is this a volume?
+      - /opt/cxserver/node_modules
+    depends_on:
+      - nginx-proxy
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  cxserver-code:
