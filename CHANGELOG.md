@@ -10,7 +10,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Added check to see if docker is running before commands execute (T329920)
   - Fixed slow DNS lookups when disconnected from the internet, which caused slow MediaWiki requests (T326735)
   - Image updates:
-    - docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3 to 1.5.0
+    - docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3 to 1.5.1
 
 ## v0.20.0
 
