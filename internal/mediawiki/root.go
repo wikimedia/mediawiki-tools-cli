@@ -22,6 +22,12 @@ func (m MediaWiki) MediaWikiIsPresent() bool {
 	return errorIfDirectoryDoesNotLookLikeCore(m.Directory()) == nil
 }
 
+func (m MediaWiki) VendorDirectoryIsPresent() bool {
+	vendorDir := m.Path("vendor")
+	_, err := os.Stat(vendorDir)
+	return err == nil
+}
+
 func errorIfDirectoryDoesNotLookLikeVector(directory string) error {
 	return errorIfDirectoryMissingGitReviewForProject(directory, "mediawiki/skins/Vector")
 }
