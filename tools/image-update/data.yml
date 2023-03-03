@@ -1,4 +1,4 @@
-images:
+images: 
   # docker dev env: Base services
   - image: defreitas/dns-proxy-server:3.5.2
   - image: jwilder/nginx-proxy:0.10
@@ -31,16 +31,6 @@ images:
   - image: alpine/socat:1.7.4.4-r0
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
   # docker dev env: Regularly released WMF production images
-  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-media
-    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-php-rpc
-    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-score
-    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-syntaxhighlight
-    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-timeline
-    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
   - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2023-02-14-162241-production
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
   # Latest images...
@@ -54,6 +44,21 @@ images:
   - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
   - image: golang:1.18
     noCheck: true
+imageGroups:
+  # docker dev env: Regularly released WMF production images
+  - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
+    sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
+    images:
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-media
+        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-php-rpc
+        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-score
+        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-syntaxhighlight
+        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-timeline
+        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:
 directories:

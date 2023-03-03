@@ -25,6 +25,8 @@ func DetectDataIssues() []issue.Issue {
 
 	issues := []issue.Issue{}
 
+	// TODO test rgeex of sameTagMatcher in image groups...
+
 	// Check files in yml exist
 	if dataYml["files"] != nil {
 		dataYmlFiles := dataYml["files"].([]interface{})
@@ -58,7 +60,25 @@ func DetectDataIssues() []issue.Issue {
 	}
 
 	// Check requireRegex in images in data.yml
-	dataYmlImages := dataYml["images"].([]interface{})
+	allImages := []interface{}{}
+
+	// Collect images form imageGroups
+	if dataYml["imageGroups"] != nil {
+		dataYmlImageGroups := dataYml["imageGroups"].([]interface{})
+		for _, imageGroup := range dataYmlImageGroups {
+			imageGroupMap := imageGroup.(map[interface{}]interface{})
+			if imageGroupMap["images"] != nil {
+				imageGroupImages := imageGroupMap["images"].([]interface{})
+				allImages = append(allImages, imageGroupImages...)
+			}
+		}
+	}
+	// And collect normal images
+	if dataYml["images"] != nil {
+		allImages = append(allImages, dataYml["images"].([]interface{})...)
+	}
+	// And make sure the regexes look correct
+	dataYmlImages := allImages
 	for _, image := range dataYmlImages {
 		imageMap := image.(map[interface{}]interface{})
 		if imageMap["requireRegex"] != nil {
@@ -71,6 +91,7 @@ func DetectDataIssues() []issue.Issue {
 					Text:    "Invalid requireRegex",
 					Context: imageMap["requireRegex"].(string),
 				})
+				continue
 			}
 			// get image tag from image name
 			imageTag := imageMap["image"].(string)
