@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
-	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gopkg.in/yaml.v2"
 )
 
@@ -226,7 +226,7 @@ func keepNewerTags(currentTag string, allTags []string) []string {
 	// Parse and compare all fonud tags
 	newerTags := []string{}
 	for _, tag := range allTags {
-		if utilstrings.StringInSlice(tag, skipTags) {
+		if stringsutil.StringInSlice(tag, skipTags) {
 			continue
 		}
 		compare, err := version.NewVersion(tag)

@@ -43,7 +43,7 @@ func LoadConfig() Config {
 		fmt.Printf("Error while reading file. %v", err)
 		panic(err)
 	}
-	yaml.Unmarshal([]byte(fileContents), &config)
+	yaml.Unmarshal(fileContents, &config)
 	return config
 }
 

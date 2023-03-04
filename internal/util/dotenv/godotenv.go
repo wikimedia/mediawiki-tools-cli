@@ -11,15 +11,15 @@ import (
 // https://github.com/joho/godotenv/issues/50#issuecomment-364873528
 // https://github.com/moby/moby/issues/12997
 func writeOverride(envMap map[string]string, filename string) error {
-	content, error := marshelOverride(envMap)
-	if error != nil {
-		return error
+	content, err := marshelOverride(envMap)
+	if err != nil {
+		return err
 	}
-	file, error := os.Create(filename)
-	if error != nil {
-		return error
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
 	}
-	_, err := file.WriteString(content)
+	_, err = file.WriteString(content)
 	return err
 }
 

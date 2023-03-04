@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/glamour"
 	"github.com/muesli/termenv"
-	terminal "golang.org/x/term"
+	"golang.org/x/term"
 )
 
 /*SkipRenderMarkdown allows markdown rendering to be skipped in certain situations.*/
@@ -17,7 +17,7 @@ func RenderMarkdown(markdownIn string) string {
 		return markdownIn
 	}
 
-	width, _, _ := terminal.GetSize(0)
+	width, _, _ := term.GetSize(0)
 
 	// Logic copied from glamour.WithAutoStyle
 	style := glamour.LightStyleConfig
