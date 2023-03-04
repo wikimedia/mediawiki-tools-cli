@@ -9,18 +9,15 @@ image-update-build:
        - go run ./tools/image-update/check/check.go
        - cp .gitlab/pipelines/weekly.image-update.yml .gitlab/pipelines/weekly.image-update.generated.yml
        - |+
-         if [ ! -f "./tools/image-update/.update.sh" ]; then
-           echo "        - COMMAND: echo null" >> .gitlab/pipelines/weekly.image-update.generated.yml
+         if [ ! -f "./tools/image-update/.gitlab.update.yaml" ]; then
+           echo "        - NAME: null" >> .gitlab/pipelines/weekly.image-update.generated.yml
+           echo "          COMMAND: echo null" >> .gitlab/pipelines/weekly.image-update.generated.yml
            echo "No update commands to run"
            exit 0
          fi
        - echo "Update commands collected..."
-       - cat ./tools/image-update/.update.sh
-       - |+
-         while read line; do
-           line=$(echo $line|tr -d '\n')
-           echo "        - COMMAND: ${line}" >> .gitlab/pipelines/weekly.image-update.generated.yml
-         done < ./tools/image-update/.update.sh
+       - cat ./tools/image-update/.gitlab.update.yaml
+       - cat ./tools/image-update/.gitlab.update.yaml >> .gitlab/pipelines/weekly.image-update.generated.yml
        - cat .gitlab/pipelines/weekly.image-update.generated.yml
     artifacts:
         paths:

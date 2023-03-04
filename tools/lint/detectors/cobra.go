@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 )
 
@@ -29,7 +29,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
 			if len(theCmd.Commands()) == 0 && /*No sub commands*/
 				theCmd.Flags().HasFlags() && /*At least one flag*/
-				len(utilstrings.SplitMultiline(theCmd.Example)) <= 0 /*No example lines*/ {
+				len(stringsutil.SplitMultiline(theCmd.Example)) <= 0 /*No example lines*/ {
 				return &issue.Issue{
 					Target: "cmd: " + cmdStirng,
 					Level:  issue.WarningLevel,
@@ -43,7 +43,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 		// This can be 1) The command name 2) a comment "#" 3) be a blank line (separation)
 		// It is common for people to start with `mw`, an alias or for whitespace between lines to be incorrect
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
-			for _, line := range utilstrings.SplitMultiline(theCmd.Example) {
+			for _, line := range stringsutil.SplitMultiline(theCmd.Example) {
 				// TODO check all example lines and return an issue for each?
 				if len(line) > 0 && strings.Index(line, theCmd.Name()) != 0 && strings.Index(line, "#") != 0 {
 					return &issue.Issue{
@@ -68,7 +68,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 			}
 			// TODO check all annotaitons and issue for each
 			for key := range theCmd.Annotations {
-				if !utilstrings.StringInSlice(key, allowedKeys) {
+				if !stringsutil.StringInSlice(key, allowedKeys) {
 					return &issue.Issue{
 						Target:  "cmd: " + cmdStirng,
 						Level:   issue.ErrorLevel,

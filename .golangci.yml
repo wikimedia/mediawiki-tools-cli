@@ -1,9 +1,32 @@
+linters:
+  enable:
+    - errcheck # Default
+    - gosimple # Default
+    - govet # Default
+    - ineffassign # Default
+    - staticcheck # Default
+    - typecheck # Default
+    - unused # Default
+    # Custom enabled linters
+    - bodyclose
+    - gci
+    - godot
+    - gofmt
+    - gofumpt
+    - goimports
+    - importas
+    - misspell
+    - nolintlint
+    - predeclared
+    - reassign
+    - revive
+    - unconvert
+    - whitespace
 issues:
   exclude-rules:
     - path: \.go
       linters:
         - errcheck
-        - govet
 
 # all available settings of specific linters
 linters-settings:
@@ -12,3 +35,23 @@ linters-settings:
       # Ignore blank imports, as "embed" is a valid blank import
       - name: blank-imports
         disabled: true
+  importas:
+    alias:
+      - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra
+        alias: cobrautil
+      - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd
+        alias: cmdutil
+      - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh
+        alias: sshutil
+      - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/strings
+        alias: stringsutil
+      - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/user
+        alias: userutil
+      - pkg: github.com/xanzy/go-gitlab
+        alias: gitlab
+      - pkg: cgt.name/pkg/go-mwclient
+        alias: mwclient
+      - pkg: os/exec
+        alias: osexec
+      - pkg: os/signal
+        alias: ossignal

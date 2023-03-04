@@ -25,14 +25,22 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			}
 
 			if !mw.MediaWikiIsPresent() {
-				logrus.Fatal("MediaWiki is not present in the code volume")
+				logrus.Fatal("⚠️ MediaWiki is not present in the code volume")
 			} else {
 				logrus.Info("✅ MediaWiki is present in the code volume")
 			}
 
+			if !mw.VendorDirectoryIsPresent() {
+				logrus.Warn("⚠️ The vendor directory is not present in the code volume")
+				logrus.Warn("You may not yet have done a composer install")
+				logrus.Warn("✨ You can do this with `mw docker mediawiki composer install`")
+			} else {
+				logrus.Info("✅ The vendor directory is present in the code volume")
+			}
+
 			if len(m.SkinsCheckedOut()) == 0 || !strings.Contains(m.LocalSettingsContents(), "wfLoadSkin") {
-				logrus.Warn("You have no skins checked out or loaded in LocalSettings.php")
-				logrus.Info("You can check the Vector skin with `mwdev docker mediawiki get-code --skin Vector`")
+				logrus.Warn("⚠️ You have no skins checked out or loaded in LocalSettings.php")
+				logrus.Warn("✨ You can check the Vector skin with `mw docker mediawiki get-code --skin Vector`")
 			} else {
 				logrus.Info("✅ A Skin is checked out and loaded in LocalSettings.php")
 			}
@@ -43,18 +51,33 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				// And they are loaded in LocalSettings
 				(strings.Contains(m.LocalSettingsContents(), "wfLoadExtension") || strings.Contains(m.LocalSettingsContents(), "wfLoadSkin")) &&
 				!m.ComposerLocalJsonExists() {
-				logrus.Warn("You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
-				logrus.Info("If the extensions or skins require additional dependencies, they may not function correctly.")
-				logrus.Info("See https://www.mediawiki.org/wiki/Composer#Using_composer-merge-plugin for more information.")
-				logrus.Trace("composer.local.json path: " + m.ComposerLocalJsonPath())
+				logrus.Warn("⚠️ You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
+				// TODO also check they have a composer.json file? Don't warn if they dont need composer
+				logrus.Warn("If the extensions or skins require additional dependencies, they may not function correctly.")
+				logrus.Warn("See https://www.mediawiki.org/wiki/Composer#Using_composer-merge-plugin for more information.")
+				logrus.Warn("✨ You can create a default composer.local.json file with `mw docker mediawiki exec cp /var/www/html/w/composer.local.json-sample /var/www/html/w/composer.local.json`")
 			} else {
 				logrus.Info("✅ composer.local.json file exists or is likely not needed")
 			}
 
-			// TODO check if extension and skin git submodules are loaded
+			// TODO check if extension and skin git submodules are
 
-			logrus.Info("Got more suggestions for things to check? File a ticket!")
-			logrus.Info("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
+			// Check if a site has been installed
+			hasInstalledSite := false
+			for _, host := range m.UsedHosts() {
+				if strings.Contains(host, "mediawiki.mwdd") {
+					hasInstalledSite = true
+				}
+			}
+			if !hasInstalledSite {
+				logrus.Warn("⚠️ You have not installed a site yet")
+				logrus.Warn("✨ You can install a site with `mw docker mediawiki install`")
+			} else {
+				logrus.Info("✅ You have installed a site")
+			}
+
+			logrus.Print("Got more suggestions for things to check? File a ticket!")
+			logrus.Print("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
 		},
 	}
 	return cmd

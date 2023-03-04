@@ -51,7 +51,10 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			if !cloneOpts.GetMediaWiki && len(cloneOpts.GetGerritExtensions) == 0 && len(cloneOpts.GetGerritSkins) == 0 {
 				// If we are in no interaction mode, just print the help and exit
 				if cli.Opts.NoInteraction {
-					cmd.Help()
+					err := cmd.Help()
+					if err != nil {
+						panic(err)
+					}
 					os.Exit(1)
 				}
 

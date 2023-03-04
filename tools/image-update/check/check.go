@@ -11,18 +11,37 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
-	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gopkg.in/yaml.v2"
 )
 
 type Data struct {
-	Images []struct {
-		Image        string `yaml:"image"`
-		RequireRegex string `yaml:"requireRegex,omitempty"`
-		NoCheck      bool   `yaml:"noCheck,omitempty"`
-	} `yaml:"images"`
+	Images      []ImageData `yaml:"images"`
+	ImageGroups []struct {
+		Name           string      `yaml:"name"`
+		SameTagMatcher string      `yaml:"sameTagMatcher"`
+		Images         []ImageData `yaml:"images"`
+	} `yaml:"imageGroups"`
 	Directories []string `yaml:"directories"`
 	Files       []string `yaml:"files"`
+}
+
+type ImageData struct {
+	Image        string `yaml:"image"`
+	RequireRegex string `yaml:"requireRegex,omitempty"`
+	NoCheck      bool   `yaml:"noCheck,omitempty"`
+}
+
+type CommandToRun struct {
+	Name        string
+	Description string
+	Command     string
+}
+
+type CheckResult struct {
+	Skipped   []ImageData
+	NoNewTags []ImageData
+	Commands  []CommandToRun
 }
 
 func getData() Data {
@@ -40,70 +59,147 @@ func getData() Data {
 
 func main() {
 	data := getData()
-
-	delayOutputSkipped := []string{}
-	delayOutputNoNewtags := []string{}
-	delayOutputCommands := []string{}
+	result := CheckResult{}
 
 	for _, imageData := range data.Images {
+		fmt.Println("Checking", imageData.Image)
 		image := imageData.Image
-		r := regexp.MustCompile(`(\$\{.*:\-)?([\w\/\-\.]+):([\w\-\_\.]+)(\})?`)
-		regexSplit := r.FindStringSubmatch(image)
-		imageName := regexSplit[2]
-		imageTag := regexSplit[3]
-		humanCheckURL := humanURLForImageName(imageName)
+		imageName, imageTag := imageData.nameAndTagFromTaggedName()
 
 		if imageData.NoCheck {
-			delayOutputSkipped = append(delayOutputSkipped, fmt.Sprintf("%s, currently using %s", humanCheckURL, image))
+			result.Skipped = append(result.Skipped, imageData)
 			continue
 		}
 
-		// Filter all tags
-		tags := tagsForImageName(imageName)
-		tags = keepNewerTags(imageTag, tags)
-		tags = keepTagsMatchingRegex(tags, imageData.RequireRegex)
+		tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tagsForImageName(imageName)), imageData.RequireRegex)
 
-		if len(tags) > 0 {
-			fmt.Println("-------------------------------------------------------")
-			fmt.Println("Apparently there are newer tags available. You might want to consider updating the image!")
-			fmt.Printf("%s\n", humanCheckURL)
-			fmt.Printf("%s ->> %v\n", imageTag, tags)
-
-			lastTag := tags[len(tags)-1]
-			delayOutputCommands = append(delayOutputCommands, fmt.Sprintf("go run tools/image-update/update/update.go %s %s", image, imageName+":"+lastTag))
+		if len(tagsOfInterest) > 0 {
+			lastTag := tagsOfInterest[len(tagsOfInterest)-1]
+			result.Commands = append(result.Commands, CommandToRun{
+				Name:        imageName,
+				Description: fmt.Sprintf("Bump %s from %s to %s", imageName, imageTag, lastTag),
+				Command:     fmt.Sprintf("go run tools/image-update/update/update.go %s %s", image, imageName+":"+lastTag),
+			})
 		} else {
-			message := fmt.Sprintf("No newer tags found for %s", imageName)
-			if imageData.RequireRegex != "" {
-				message += fmt.Sprintf(" matching regex %s", imageData.RequireRegex)
-			}
-			delayOutputNoNewtags = append(delayOutputNoNewtags, message)
+			result.NoNewTags = append(result.NoNewTags, imageData)
 		}
 	}
 
-	fmt.Println("-------------------------------------------------------")
-	for _, v := range delayOutputNoNewtags {
-		fmt.Println(v)
+	for _, imageGroup := range data.ImageGroups {
+		groupOutputCommands := []string{}
+		oneNewtag := true
+		newTag := ""
+		for _, imageData := range imageGroup.Images {
+			fmt.Println("Checking", imageData.Image)
+			image := imageData.Image
+			imageName, imageTag := imageData.nameAndTagFromTaggedName()
+
+			if imageData.NoCheck {
+				result.Skipped = append(result.Skipped, imageData)
+				continue
+			}
+
+			tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tagsForImageName(imageName)), imageData.RequireRegex)
+
+			if len(tagsOfInterest) > 0 {
+				lastTag := tagsOfInterest[len(tagsOfInterest)-1]
+				groupOutputCommands = append(groupOutputCommands, fmt.Sprintf("go run tools/image-update/update/update.go %s %s", image, imageName+":"+lastTag))
+
+				r := regexp.MustCompile(imageGroup.SameTagMatcher)
+				regexSplit := r.FindStringSubmatch(lastTag)
+				if newTag == "" || regexSplit[1] == newTag {
+					newTag = regexSplit[1]
+				} else {
+					oneNewtag = false
+				}
+			} else {
+				result.NoNewTags = append(result.NoNewTags, imageData)
+			}
+		}
+		if len(groupOutputCommands) > 0 {
+			description := ""
+			if oneNewtag {
+				description = fmt.Sprintf("Bump %s image group to %s", imageGroup.Name, newTag)
+			} else {
+				description = fmt.Sprintf("Bump %s image group", imageGroup.Name)
+			}
+
+			result.Commands = append(result.Commands, CommandToRun{
+				Name:        imageGroup.Name,
+				Description: description,
+				Command:     strings.Join(groupOutputCommands, " && "),
+			})
+		}
 	}
-	fmt.Println("-------------------------------------------------------")
-	fmt.Println("Images that were not checked")
-	for _, v := range delayOutputSkipped {
-		fmt.Println(v)
+	if len(result.Commands) > 0 {
+		fmt.Println("There are newer tags available. You might want to consider updating the image!")
+		for _, v := range result.Commands {
+			fmt.Printf("Update: %s\n", v.Name)
+			fmt.Printf("Command: `%s`\n", v.Command)
+		}
 	}
-	fmt.Println("-------------------------------------------------------")
-	fmt.Println("Commands to update images")
-	for _, v := range delayOutputCommands {
-		fmt.Println(v)
+	if len(result.NoNewTags) > 0 {
+		fmt.Println("There are no newer tags available for the following images:")
+		for _, v := range result.NoNewTags {
+			fmt.Printf("Image: %s\n", v.Image)
+			fmt.Printf("URL: %s\n", v.humanURLForImageName())
+			if v.RequireRegex != "" {
+				fmt.Printf("Require Regex: %s", v.RequireRegex)
+			}
+		}
+	}
+	if len(result.Skipped) > 0 {
+		fmt.Println("The following images were skipped:")
+		for _, v := range result.Skipped {
+			fmt.Printf("Image: %s\n", v.Image)
+			fmt.Printf("URL: %s\n", v.humanURLForImageName())
+		}
 	}
 
-	// write commands to file (if there are any)
-	if len(delayOutputCommands) != 0 {
-		err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(strings.Join(delayOutputCommands, "\n")+"\n"), 0o755)
+	if len(result.Commands) > 0 {
+		bashOutput := ""
+		for _, v := range result.Commands {
+			bashOutput += fmt.Sprintf(`%s`+"\n", v.Command)
+		}
+		err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(bashOutput), 0o755)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("-------------------------------------------------------")
 		fmt.Println("Commands to update images written to tools/image-update/.update.sh")
 	}
+
+	if len(result.Commands) > 0 {
+		gitlabOutput := ""
+		for _, v := range result.Commands {
+			gitlabOutput += fmt.Sprintf(`        - NAME: "%s"`+"\n", v.Name)
+			gitlabOutput += fmt.Sprintf(`          DESCRIPTION: "%s"`+"\n", v.Description)
+			gitlabOutput += fmt.Sprintf(`          COMMAND: "%s"`+"\n", v.Command)
+		}
+		err := ioutil.WriteFile("tools/image-update/.gitlab.update.yaml", []byte(gitlabOutput), 0o755)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("A snippet for use in Gitlab CI is written to tools/image-update/.gitlab.update.sh")
+	}
+}
+
+func (i ImageData) nameAndTagFromTaggedName() (string, string) {
+	r := regexp.MustCompile(`(\$\{.*:\-)?([\w\/\-\.]+):([\w\-\_\.]+)(\})?`)
+	regexSplit := r.FindStringSubmatch(i.Image)
+	imageName := regexSplit[2]
+	imageTag := regexSplit[3]
+	return imageName, imageTag
+}
+
+func (i ImageData) humanURLForImageName() string {
+	imageName, _ := i.nameAndTagFromTaggedName()
+	if stringStartsWith(imageName, "docker-registry.wikimedia.org") {
+		return "https://" + imageName + "/tags"
+	}
+	if strings.Contains(imageName, "/") {
+		return "https://hub.docker.com/r/" + imageName + "/tags"
+	}
+	return "https://hub.docker.com/_/" + imageName + "/tags"
 }
 
 func keepNewerTags(currentTag string, allTags []string) []string {
@@ -130,7 +226,7 @@ func keepNewerTags(currentTag string, allTags []string) []string {
 	// Parse and compare all fonud tags
 	newerTags := []string{}
 	for _, tag := range allTags {
-		if utilstrings.StringInSlice(tag, skipTags) {
+		if stringsutil.StringInSlice(tag, skipTags) {
 			continue
 		}
 		compare, err := version.NewVersion(tag)
@@ -161,16 +257,6 @@ func keepTagsMatchingRegex(tags []string, regex string) []string {
 func stringMatchesRegex(str string, regex string) bool {
 	r := regexp.MustCompile(regex)
 	return r.MatchString(str)
-}
-
-func humanURLForImageName(imageName string) string {
-	if stringStartsWith(imageName, "docker-registry.wikimedia.org") {
-		return "https://" + imageName + "/tags"
-	}
-	if strings.Contains(imageName, "/") {
-		return "https://hub.docker.com/r/" + imageName + "/tags"
-	}
-	return "https://hub.docker.com/_/" + imageName + "/tags"
 }
 
 func tagsForImageName(imageName string) []string {

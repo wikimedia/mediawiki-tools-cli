@@ -61,8 +61,10 @@ test_command_success "./bin/mw docker env list"
 
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
-# Install sqlite & check
-test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
+# Install mysql & check
+# This used to use sqlite, but due to https://phabricator.wikimedia.org/T330940 mysql is needed for the browser tests to not error
+test_command_success "./bin/mw docker mysql create"
+test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
 # Check the doctor

@@ -59,7 +59,10 @@ update --version=0.10 --no-interaction`,
 			bar := progressbar.Default(100, "Updating binary")
 			go func() {
 				for !updateProcessCompleted {
-					bar.Add(1)
+					err := bar.Add(1)
+					if err != nil {
+						fmt.Println(err)
+					}
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
@@ -76,7 +79,10 @@ update --version=0.10 --no-interaction`,
 
 			// Finish the progress bar
 			updateProcessCompleted = true
-			bar.Finish()
+			err := bar.Finish()
+			if err != nil {
+				fmt.Println(err)
+			}
 			fmt.Println("")
 
 			// Output result

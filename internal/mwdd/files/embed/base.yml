@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   dps:
-    image: "${DPS_IMAGE:-defreitas/dns-proxy-server:2.19.0}"
+    image: "${DPS_IMAGE:-defreitas/dns-proxy-server:3.5.2}"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

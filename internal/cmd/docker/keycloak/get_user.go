@@ -4,7 +4,7 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
-	mwdd "gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 )
 
 func NewKeycloakGetUserCmd() *cobra.Command {

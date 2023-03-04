@@ -14,15 +14,15 @@ image-update:
       # https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html#bot-users-for-projects
       - git config --global user.email "project16_bot@noreply.gitlab.wikimedia.org"
       - git config --global user.name "image-update-ci"
-      - NEW_MSG=$(sed 's/go run tools\/image-update\/update\/update.go //g' <<<"$COMMAND")
-      - NEW_MSG=$(echo $NEW_MSG | sed -r "s/ [^:]+:/ to /g")
-      - NEW_BRANCH="${NEW_MSG// /_}"
+      - NEW_MSG=$DESCRIPTION
+      - NEW_BRANCH=$(echo $DESCRIPTION | sed -r "s/ [^:]+:/ to /g")
+      - NEW_BRANCH="${NEW_BRANCH// /_}"
       - NEW_BRANCH="${NEW_BRANCH//:/_}"
-      # Gitlab CI seems to keep branches between runs, os delete any previous branches?
+      # Gitlab CI seems to keep branches between runs, so delete any previous branches?
       - git branch -D $NEW_BRANCH &>/dev/null || true
       - git checkout -b $NEW_BRANCH
-      - git commit -a -m "Bump ${NEW_MSG}"
-      - git push -o merge_request.label="dependencies" -o merge_request.label="docker" -o merge_request.create "https://project_16_bot:${TOKEN_IMAGE_UPDATE_CI}@gitlab.wikimedia.org/repos/releng/cli.git" $NEW_BRANCH
+      - git commit -a -m "${NEW_MSG}"
+      - git push -o merge_request.title="${NEW_MSG}" -o merge_request.label="dependencies" -o merge_request.label="docker" -o merge_request.create "https://project_16_bot:${TOKEN_IMAGE_UPDATE_CI}@gitlab.wikimedia.org/repos/releng/cli.git" $NEW_BRANCH
     parallel:
       matrix:
 # This MUST remain the end of the file and MUST have a newline below it.
