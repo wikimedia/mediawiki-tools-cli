@@ -41,7 +41,7 @@ images:
   - image: registry.gitlab.com/dependabot-gitlab/dependabot:latest
     noCheck: true
   # Golang CI images
-  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230226
   - image: golang:1.18
     noCheck: true
 imageGroups:
