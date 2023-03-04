@@ -49,6 +49,20 @@ func NewMwCliCmd() *cobra.Command {
 			})
 			logrus.Trace("mwcli: PersistentPreRun")
 
+			// Check and set needed config values from various wizards
+			// But don't ask or output to the user, or persist the config, if we are in no-interaction mode
+			if !cli.Opts.NoInteraction {
+				c := config.LoadFromDisk()
+				if !config.DevModeValues.Contains(c.DevMode) {
+					wizardDevMode(&c)
+				}
+				if c.Telemetry == "" {
+					wizardTelemetry(&c)
+				}
+				c.WriteToDisk()
+				cli.Opts.Telemetry = c.Telemetry == "yes"
+			}
+
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
@@ -174,19 +188,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 	}
 
-	// Check and set needed config values from various wizards
 	c := config.LoadFromDisk()
-	if !config.DevModeValues.Contains(c.DevMode) {
-		wizardDevMode(&c)
-	}
-	if c.Telemetry == "" {
-		if cli.Opts.NoInteraction {
-			c.Telemetry = "no"
-		} else {
-			wizardTelemetry(&c)
-		}
-	}
-	c.WriteToDisk()
 
 	// Check various timers and execute tasks if needed
 	{
@@ -195,7 +197,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
 		}
 
-		// Check if timers trigger things
 		// Check for updates every 3 hours
 		lastUpdateCheckedTime, parseError := timers.Parse(c.TimerLastUpdateChecked)
 		if parseError != nil {
@@ -224,8 +225,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	if c.DevMode == config.DevModeMwdd {
 		cli.MwddIsDevAlias = true
 	}
-
-	cli.Opts.Telemetry = c.Telemetry == "yes"
 
 	rootCmd := NewMwCliCmd()
 	// Override the UsageTemplate so that:
