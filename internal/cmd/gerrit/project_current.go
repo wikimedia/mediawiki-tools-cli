@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dotgitreview"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dotgitreview"
 )
 
 func NewGerritProjectCurrentCmd() *cobra.Command {

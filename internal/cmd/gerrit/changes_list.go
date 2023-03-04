@@ -10,9 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dotgitreview"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dotgitreview"
 )
 
 var gerritProject string

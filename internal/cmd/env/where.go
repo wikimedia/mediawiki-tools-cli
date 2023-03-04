@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dotenv"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dotenv"
 )
 
 func envWhere(directory func() string) *cobra.Command {
