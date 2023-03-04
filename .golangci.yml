@@ -27,7 +27,6 @@ issues:
     - path: \.go
       linters:
         - errcheck
-        - govet
 
 # all available settings of specific linters
 linters-settings:

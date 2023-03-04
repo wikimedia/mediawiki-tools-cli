@@ -19,7 +19,10 @@ func writeContentToTmpFile(content string) string {
 	if err != nil {
 		panic(err)
 	}
-	tmpFile.WriteString(content)
+	_, err = tmpFile.WriteString(content)
+	if err != nil {
+		panic(err)
+	}
 	tmpFile.Close()
 	return tmpFile.Name()
 }

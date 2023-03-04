@@ -64,7 +64,10 @@ func replaceInFile(filePath string, find string, replace string) {
 	newText := strings.ReplaceAll(text, find, replace)
 
 	if text != newText {
-		ioutil.WriteFile(filePath, []byte(newText), 0o755)
+		err := ioutil.WriteFile(filePath, []byte(newText), 0o755)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Println("Updated " + filePath)
 	}
 }

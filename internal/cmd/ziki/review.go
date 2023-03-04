@@ -88,7 +88,6 @@ func selectTarget(actors []Actor, selectorIndex int) int {
 			return -1
 		}
 	}
-	return -1
 }
 
 func isReviewEnded(actors []Actor, consensus int) bool {

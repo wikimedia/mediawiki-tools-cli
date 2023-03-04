@@ -31,7 +31,10 @@ func NewGerritAPICmd() *cobra.Command {
 		Long:    `https://gerrit.wikimedia.org/r/Documentation/rest-api.html`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
-				cmd.Help()
+				err := cmd.Help()
+				if err != nil {
+					panic(err)
+				}
 				os.Exit(1)
 			}
 
