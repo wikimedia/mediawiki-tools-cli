@@ -3,7 +3,6 @@ package dirs
 import (
 	"os"
 
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 	userutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/user"
 )
 
@@ -29,7 +28,7 @@ func LegacyUserDirectoryPath(subPath string) string {
 /*EnsureExists Ensures that a directory exists, if it doesn't it and all parent directories will be created.*/
 func EnsureExists(dirPath string) {
 	if _, err := os.Stat(dirPath); err != nil {
-		mkerr := sudoaware.MkdirAll(dirPath, 0o755)
+		mkerr := os.MkdirAll(dirPath, 0o755)
 		if mkerr != nil {
 			panic(mkerr)
 		}
