@@ -36,7 +36,10 @@ func writeFileContent(t *testing.T, file string, content string) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(content)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {

@@ -43,7 +43,10 @@ func LoadConfig() Config {
 		fmt.Printf("Error while reading file. %v", err)
 		panic(err)
 	}
-	yaml.Unmarshal(fileContents, &config)
+	err = yaml.Unmarshal(fileContents, &config)
+	if err != nil {
+		panic(err)
+	}
 	return config
 }
 

@@ -47,7 +47,10 @@ func LoadFromDisk() Config {
 	}
 	defer configFile.Close()
 	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&config)
+	err = jsonParser.Decode(&config)
+	if err != nil {
+		panic(err)
+	}
 	return config
 }
 

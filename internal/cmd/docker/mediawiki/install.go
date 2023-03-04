@@ -169,7 +169,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				}
 
 				// Set up signal handling for graceful shutdown while LocalSettings.php is moved
-				c := make(chan os.Signal)
+				c := make(chan os.Signal, 1)
 				signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 				go func() {
 					<-c
