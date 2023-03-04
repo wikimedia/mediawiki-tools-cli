@@ -14,6 +14,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
     - Check if `vendor` directory exists (T330926)
     - Check if a site has been installed (T330928)
     - Check if a site is accessbile (T330929)
+    - Check if container image overrides are set (T331136)
   - Image updates:
     - docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3 to 1.5.1
     - docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox images to 2023-02-24-002648

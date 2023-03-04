@@ -75,7 +75,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				logrus.Warn("⚠️ You have not installed a site yet")
 				logrus.Warn("✨ You can install a site with `mw docker mediawiki install`")
 			} else {
-				logrus.Info("✅ You have installed a site")
+				logrus.Info("✅ You have installed a site (" + installedSite + ")")
 
 				// Check if the site is accessible
 				port := m.Env().Get("PORT")
@@ -98,6 +98,20 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 					logrus.Info("✅ That site is accessible at " + url)
 				}
 				defer res.Body.Close()
+			}
+
+			// Check for mediawiki image overrides
+			varsToCheck := []string{
+				"MEDIAWIKI_IMAGE",
+				"MEDIAWIKI_WEB_IMAGE",
+			}
+			for _, v := range varsToCheck {
+				if m.Env().Get(v) != "" {
+					logrus.Warn("⚠️ You have an override for " + v + " set that might change expected behaviour")
+					logrus.Warn("✨ You can remove this override with `mw docker env delete " + v + "`")
+				} else {
+					logrus.Info("✅ You do not have an override for " + v + " set")
+				}
 			}
 
 			logrus.Print("Got more suggestions for things to check? File a ticket!")
