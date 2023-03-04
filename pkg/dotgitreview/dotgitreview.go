@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	"gopkg.in/ini.v1"
 )
 
+// GitReview represents a .gitreview file.
 type GitReview struct {
 	Host       string
 	Port       string
@@ -16,12 +18,15 @@ type GitReview struct {
 	RawProject string
 }
 
+// ForCWD returns the GitReview file for the current working directory.
 func ForCWD() (*GitReview, error) {
 	dir, _ := os.Getwd()
 	return ForDirectory(dir)
 }
 
+// ForDirectory returns the GitReview file for the given directory.
 func ForDirectory(dir string) (*GitReview, error) {
+	mwdd.DefaultForUser()
 	for {
 		if _, err := os.Stat(dir + "/.gitreview"); os.IsNotExist(err) {
 			dir = filepath.Dir(dir)
@@ -29,7 +34,7 @@ func ForDirectory(dir string) (*GitReview, error) {
 			break
 		}
 		if dir == "/" {
-			return nil, errors.New("not in a Wikimedia Gerrit repository")
+			return nil, errors.New("not in a Gerrit repository")
 		}
 	}
 

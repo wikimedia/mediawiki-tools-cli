@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"github.com/andygrunwald/go-gerrit"
@@ -63,7 +62,7 @@ func NewGerritAPICmd() *cobra.Command {
 
 			b, err := io.ReadAll(resp.Response.Body)
 			if err != nil {
-				log.Fatalln(err)
+				logrus.Fatalln(err)
 			}
 			b = gerrit.RemoveMagicPrefixLine(b)
 
