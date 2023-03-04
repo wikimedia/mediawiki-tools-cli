@@ -86,6 +86,8 @@ build:
       paths:
         - bin/
     before_script:
+      # go buildvcs needs to be able to read the git repo
+      - git config --global --add safe.directory /builds/repos/releng/cli
       - go install github.com/bwplotka/bingo@v0.7.0
       - bingo get
     script:
