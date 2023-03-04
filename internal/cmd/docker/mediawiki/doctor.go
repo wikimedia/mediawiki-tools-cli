@@ -60,7 +60,21 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				logrus.Info("✅ composer.local.json file exists or is likely not needed")
 			}
 
-			// TODO check if extension and skin git submodules are loaded
+			// TODO check if extension and skin git submodules are
+
+			// Check if a site has been installed
+			hasInstalledSite := false
+			for _, host := range m.UsedHosts() {
+				if strings.Contains(host, "mediawiki.mwdd") {
+					hasInstalledSite = true
+				}
+			}
+			if !hasInstalledSite {
+				logrus.Warn("⚠️ You have not installed a site yet")
+				logrus.Warn("✨ You can install a site with `mw docker mediawiki install`")
+			} else {
+				logrus.Info("✅ You have installed a site")
+			}
 
 			logrus.Print("Got more suggestions for things to check? File a ticket!")
 			logrus.Print("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
