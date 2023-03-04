@@ -6,6 +6,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## v0.21.0
 
+- Fixed `--no-interaction` not working in some situations (T330307)
 - Development environment (`mw docker`):
   - Added check to see if docker is running before commands execute (T329920)
   - Fixed slow DNS lookups when disconnected from the internet, which caused slow MediaWiki requests (T326735)
