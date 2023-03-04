@@ -65,11 +65,12 @@ func EmitEvents() bool {
 	logrus.Tracef("Submitting %d events", eventCount)
 
 	payload := []byte("[" + strings.Join(eventJSON, ",") + "]")
-	_, err := http.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
+	resp, err := http.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		logrus.Debug(err)
 		return false
 	}
+	defer resp.Body.Close() // OK
 
 	truncateErr := os.Truncate(eventFile(), 0)
 	if truncateErr != nil {

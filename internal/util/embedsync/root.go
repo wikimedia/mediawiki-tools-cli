@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
-	utilstrings "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 type EmbeddingDiskSync struct {
@@ -52,7 +52,7 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 			writeBytesToDisk(embedBytes, diskFile)
 		} else {
 			stats, _ := os.Stat(diskFile)
-			if stats.Mode() != os.FileMode(getAssumedFilePerms(diskFile)) {
+			if stats.Mode() != getAssumedFilePerms(diskFile) {
 				logrus.Trace(diskFile + " has different permissions, so set correct permissions...")
 				os.Chmod(diskFile, getAssumedFilePerms(diskFile))
 			}
@@ -68,7 +68,7 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 	for _, diskFile := range diskFiles {
 		agnosticFile := e.agnosticFileFromDisk(diskFile)
 		embedFile := e.EmbedPath + embedSeperator + agnosticFile
-		if !utilstrings.StringInSlice(embedFile, embeddedFiles) && !utilstrings.StringInSlice(agnosticFile, e.IgnoreFiles) {
+		if !stringsutil.StringInSlice(embedFile, embeddedFiles) && !stringsutil.StringInSlice(agnosticFile, e.IgnoreFiles) {
 			logrus.Trace(diskFile + " no longer needed, so removing")
 			err := os.Remove(diskFile)
 			if err != nil {
@@ -82,7 +82,7 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 
 func (e EmbeddingDiskSync) embeddedFiles() []string {
 	// "./" switched for EmbedPath as from content of files.txt
-	return utilstrings.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+embedSeperator)
+	return stringsutil.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+embedSeperator)
 }
 
 func (e EmbeddingDiskSync) diskFiles() []string {

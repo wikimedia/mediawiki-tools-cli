@@ -102,8 +102,8 @@ func wikiDelete(w *mwclient.Client, p params.Values) error {
 			return captchaerr
 		}
 
-		delete, _ := resp.GetValue("delete")
-		return fmt.Errorf("unrecognized response: %v", delete)
+		del, _ := resp.GetValue("delete")
+		return fmt.Errorf("unrecognized response: %v", del)
 	}
 
 	return nil

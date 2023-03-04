@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	gosignal "os/signal"
+	ossignal "os/signal"
 	"regexp"
 	"runtime"
 	"strings"
@@ -16,7 +16,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/sirupsen/logrus"
-	terminal "golang.org/x/term"
+	"golang.org/x/term"
 )
 
 // DockerExecCommand to be run with Docker, which directly uses the docker SDK.
@@ -142,10 +142,10 @@ func (m MWDD) DockerExec(command DockerExecCommand) (ExitCode int) {
 	go io.Copy(waiter.Conn, os.Stdin)
 
 	fd := int(os.Stdin.Fd())
-	var oldState *terminal.State
-	if terminal.IsTerminal(fd) {
-		oldState, _ = terminal.MakeRaw(fd)
-		defer terminal.Restore(fd, oldState)
+	var oldState *term.State
+	if term.IsTerminal(fd) {
+		oldState, _ = term.MakeRaw(fd)
+		defer term.Restore(fd, oldState)
 	}
 
 	for {
@@ -165,14 +165,14 @@ func (m MWDD) DockerExec(command DockerExecCommand) (ExitCode int) {
 func monitorTtySize(ctx context.Context, client client.APIClient, id string, isExec bool) error {
 	// Source: https://github.com/skiffos/skiff-core/blob/82c430e4961453c250883c2e5ebd4bd360fa13a5/shell/tty.go
 	resizeTty := func() {
-		width, height, _ := terminal.GetSize(0)
+		width, height, _ := term.GetSize(0)
 		resizeTtyTo(ctx, client, id, uint(height), uint(width), isExec)
 	}
 
 	resizeTty()
 
 	sigchan := make(chan os.Signal, 1)
-	gosignal.Notify(sigchan, signal.SIGWINCH)
+	ossignal.Notify(sigchan, signal.SIGWINCH)
 	go func() {
 		for range sigchan {
 			resizeTty()

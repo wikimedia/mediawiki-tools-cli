@@ -46,11 +46,11 @@ test: $(GOVVV) generate
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run --timeout 2m -E revive -E gci -E gofmt -E gofumpt -E goimports -E whitespace -E godot -E misspell
+	@$(GOLANGCI_LINT) run --timeout 2m
 
 .PHONY: fix
 fix: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run --fix -E revive -E gci -E gofmt -E gofumpt -E goimports -E whitespace -E godot -E misspell
+	@$(GOLANGCI_LINT) run --fix
 
 .PHONY: generate
 vet: generate
