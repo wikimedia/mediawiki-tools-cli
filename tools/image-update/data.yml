@@ -49,7 +49,7 @@ imageGroups:
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-media
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-02-24-002648-media
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-php-rpc
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc

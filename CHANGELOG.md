@@ -12,6 +12,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Fixed slow DNS lookups when disconnected from the internet, which caused slow MediaWiki requests (T326735)
   - Image updates:
     - docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3 to 1.5.1
+    - docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox images to 2023-02-24-002648
 
 ## v0.20.0
 
