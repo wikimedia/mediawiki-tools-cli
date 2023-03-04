@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
 
 /*File location of the .env file to work on.*/
@@ -25,11 +24,11 @@ func (f File) Path() string {
 /*EnsureExists ensures that the File exists, creating an empty one if not.*/
 func (f File) EnsureExists() {
 	if _, err := os.Stat(f.Path()); err != nil {
-		err := sudoaware.MkdirAll(strings.Replace(f.Path(), filepath.Base(f.Path()), "", -1), 0o700)
+		err := os.MkdirAll(strings.Replace(f.Path(), filepath.Base(f.Path()), "", -1), 0o700)
 		if err != nil {
 			panic(err)
 		}
-		_, err = sudoaware.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		_, err = os.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			panic(err)
 		}
