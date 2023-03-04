@@ -1,6 +1,8 @@
 package mediawiki
 
 import (
+	"context"
+	"net/http"
 	"os"
 	"strings"
 
@@ -63,17 +65,39 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			// TODO check if extension and skin git submodules are
 
 			// Check if a site has been installed
-			hasInstalledSite := false
+			installedSite := ""
 			for _, host := range m.UsedHosts() {
 				if strings.Contains(host, "mediawiki.mwdd") {
-					hasInstalledSite = true
+					installedSite = host
 				}
 			}
-			if !hasInstalledSite {
+			if installedSite == "" {
 				logrus.Warn("⚠️ You have not installed a site yet")
 				logrus.Warn("✨ You can install a site with `mw docker mediawiki install`")
 			} else {
 				logrus.Info("✅ You have installed a site")
+
+				// Check if the site is accessible
+				port := m.Env().Get("PORT")
+				url := "http://" + installedSite + ":" + port
+
+				req, err := http.NewRequest("GET", url, nil)
+				if err != nil {
+					panic(err)
+				}
+
+				ctx := context.Background()
+				c := http.Client{}
+				req = req.WithContext(ctx)
+
+				res, err := c.Do(req)
+				if err != nil || res.StatusCode != 200 {
+					logrus.Warn("⚠️ That site is not accessible at " + url)
+					logrus.Warn("✨ You likely need to use the `mw docker hosts` command to add the site to your hosts file")
+				} else {
+					logrus.Info("✅ That site is accessible at " + url)
+				}
+				defer res.Body.Close()
 			}
 
 			logrus.Print("Got more suggestions for things to check? File a ticket!")
