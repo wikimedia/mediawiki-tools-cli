@@ -89,5 +89,5 @@ docs-publish: docs
 		fileNoExt=$${file::-5}; \
 		echo $${fileNoExt}; \
 		echo $${path}; \
-		printf "__NOTOC__" | cat $${path} - | ./bin/mw --no-interaction wiki --wiki https://www.mediawiki.org/w/api.php --user ${user} --password ${password} page --title Cli/ref/$${fileNoExt} put --summary "Pushing auto generated docs for mwcli from cobra" --minor; \
+		printf "__NOTOC__" | cat $${path} - | ./bin/mw --no-interaction wiki --wiki https://www.mediawiki.org/w/api.php --user ${user} --password ${password} page --title Cli/ref/$${fileNoExt} put --summary "Pushing auto generated docs for mwcli from cobra" --minor --bot; \
 	done
