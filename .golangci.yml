@@ -28,6 +28,11 @@ issues:
     - path: \.go
       linters:
         - errcheck
+    # Generated code makes a couple of mistakes
+    - path: \.gen\.go
+      linters:
+        - gofumpt
+        - goimports
 
 # all available settings of specific linters
 linters-settings:

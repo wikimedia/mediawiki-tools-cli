@@ -1,0 +1,1036 @@
+- use: access
+  short: Access Rights Endpoints
+  sub-commands:
+    - use: list
+      short: List Access Rights
+      string-flags:
+        - name: project
+          required: true
+          usage: The projects for which the access rights should be returned must be specified as project options. The project can be specified multiple times.
+      gerrit-path: /access/
+- use: accounts
+  short: Accounts Endpoints
+  sub-commands:
+    - use: list
+      short: List Accounts
+      string-flags:
+        - name: query
+          usage: The query string to use to find accounts. The query string is a space-separated list of terms. Each term can be a single word or a quoted phrase. A quoted phrase matches the exact string. A single word matches any account that contains that word as a substring. The query string is case-insensitive.
+          gerrit-param: q
+        - name: limit
+          usage: The maximum number of accounts to return. If not specified, the server default is used.
+          gerrit-param: n
+        - name: start
+          usage: The index of the first account to return. If not specified, the server default is used.
+      gerrit-path: /accounts/
+    - use: get
+      short: Get Account
+      string-flags:
+        - name: account
+          required: true
+          usage: The account to get.
+          gerrit-param: account-id
+      gerrit-path: /accounts/{account-id}
+    - use: create
+      short: Create Account
+      string-flags:
+      # TODO In the request body additional data for the account can be provided as AccountInput.
+      # https://gerrit-review.googlesource.com/Documentation/rest-api-accounts.html#create-account
+        - name: username
+          required: true
+          usage: The username to create.
+    - use: details
+      short: Get Account Details
+      string-flags:
+        - name: account
+          required: true
+          usage: The account to get.
+          gerrit-param: account-id
+      gerrit-path: /accounts/{account-id}/detail/
+    - use: name
+      short: Account Name
+      sub-commands:
+        - use: get
+          short: Gets the account name
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/name/
+        - use: set
+          short: Sets the account name
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: name
+              required: true
+              usage: The name to set.
+              body: true
+          gerrit-path: /accounts/{account-id}/name/
+          http-method: PUT
+        - use: delete
+          short: Deletes the account name
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/name/
+          http-method: DELETE
+    - use: status
+      short: Account Status
+      sub-commands:
+        - use: get
+          short: Gets the account status
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/status/
+        - use: set
+          short: Sets the account status
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: status
+              required: true
+              usage: The status to set.
+              body: true
+          gerrit-path: /accounts/{account-id}/status/
+          http-method: PUT
+    - use: username
+      short: Account Username
+      sub-commands:
+        - use: get
+          short: Gets the account username
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/username/
+        - use: set
+          short: Sets the account username
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: username
+              required: true
+              usage: The username to set.
+              body: true
+          gerrit-path: /accounts/{account-id}/username/
+          http-method: PUT
+    - use: displayname
+      short: Account display name
+      sub-commands:
+        - use: set
+          short: Sets the account display name
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: displayname
+              required: true
+              usage: The display name to set.
+              body: true
+          gerrit-path: /accounts/{account-id}/displayname/
+          http-method: PUT
+    - use: active
+      short: Account active
+      sub-commands:
+        - use: get
+          short: Gets the account active status
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/active/
+        - use: set
+          short: Sets the account active status
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/active/
+          http-method: PUT
+        - use: delete
+          short: Deletes the account active status
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/active/
+          http-method: DELETE
+    # # TODO make this work, needs to be able to write a JSON body
+    # - use: http-password
+    #   short: Account HTTP password
+    #   sub-commands:
+    #     - use: generate
+    #       aliases:
+    #         - set
+    #       # TODO could add http_password param, but its only availbile to admins anyway..
+    #       short: Sets/Generates the account HTTP password
+    #       string-flags:
+    #         - name: account
+    #           required: true
+    #           usage: The account to get.
+    #           gerrit-param: account-id
+    #       gerrit-path: /accounts/{account-id}/password.http/
+    #       http-method: PUT
+    # TODO add http-password DELETE
+    - use: oauthtoken
+      short: OAuth access token.
+      sub-commands:
+        - use: get
+          short: Gets the account OAuth access token.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/oauthtoken/
+    - use: emails
+      short: Email addresses that are configured for the specified user.
+      sub-commands:
+        - use: list
+          short: Returns the email addresses of an account.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/emails/
+        - use: get
+          short: Returns the email address specified.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: email
+              required: true
+              usage: The email to get.
+              gerrit-param: email-id
+          gerrit-path: /accounts/{account-id}/emails/{email-id}
+        - use: create
+          short: Creates a new email address for the specified user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: email
+              required: true
+              usage: The email to create.
+              gerrit-param: email-id
+          # TODO allow other options in body https://gerrit-review.googlesource.com/Documentation/rest-api-accounts.html#email-input
+          gerrit-path: /accounts/{account-id}/emails/{email-id}/
+          http-method: POST
+        - use: delete
+          short: Deletes the email address specified.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: email
+              required: true
+              usage: The email to delete.
+              gerrit-param: email-id
+          gerrit-path: /accounts/{account-id}/emails/{email-id}
+          http-method: DELETE
+        - use: prefer
+          short: Sets the preferred email address for the specified user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: email
+              required: true
+              usage: The email to set as preferred.
+              gerrit-param: email-id
+          gerrit-path: /accounts/{account-id}/emails/{email-id}/preferred
+          http-method: PUT
+    - use: sshkeys
+      short: SSH keys of an account.
+      sub-commands:
+        - use: list
+          short: Returns the SSH keys of an account.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/sshkeys/
+        - use: get
+          short: Returns the SSH key specified.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: sshkey
+              required: true
+              usage: The SSH key to get.
+              gerrit-param: ssh-key-id
+          gerrit-path: /accounts/{account-id}/sshkeys/{ssh-key-id}
+        # - use: add
+        #   short: Adds a new SSH key to the specified user.
+        #   string-flags:
+        #     - name: account
+        #       required: true
+        #       usage: The account to get.
+        #       gerrit-param: account-id
+        #     - name: sshkey
+        #       required: true
+        #       usage: The SSH key to add.
+        #       # TODO fixme, needs body of Content-Type: text/plain
+        #       body: true
+        #   gerrit-path: /accounts/{account-id}/sshkeys/
+        #   http-method: POST
+        - use: delete
+          short: Deletes the SSH key specified.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: sshkey
+              required: true
+              usage: The SSH key to delete.
+              gerrit-param: ssh-key-id
+          gerrit-path: /accounts/{account-id}/sshkeys/{ssh-key-id}/access/
+          http-method: DELETE
+    - use: gpgkeys
+      short: GPG keys of an account.
+      # TODO add GPG keys (needs body json)
+      sub-commands:
+        - use: list
+          short: Returns the GPG keys of an account.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/gpgkeys/
+        - use: get
+          short: Returns the GPG key specified.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: gpgkey
+              required: true
+              usage: The GPG key to get.
+              gerrit-param: gpg-key-id
+          gerrit-path: /accounts/{account-id}/gpgkeys/{gpg-key-id}/
+        - use: delete
+          short: Deletes the GPG key specified.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: gpgkey
+              required: true
+              usage: The GPG key to delete.
+              gerrit-param: gpg-key-id
+          gerrit-path: /accounts/{account-id}/gpgkeys/{gpg-key-id}/
+          http-method: DELETE
+    - use: capabilities
+      short: Global capabilities that are enabled for the specified user.
+      sub-commands:
+        - use: list
+          short: Lists the global capabilities that are enabled for the specified user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/capabilities/
+        - use: get
+          aliases:
+            - check
+          short: Gets the global capability that is enabled for the specified user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: capability
+              required: true
+              usage: The capability to get.
+              gerrit-param: capability-id
+          gerrit-path: /accounts/{account-id}/capabilities/{capability-id}
+    - use: groups
+      short: Lists all groups that contain the specified user as a member.
+      sub-commands:
+        - use: list
+          short: Lists all groups that contain the specified user as a member.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/groups/
+    - use: avatar
+      short: Retrieves the avatar image of the user.
+      sub-commands:
+        - use: get
+          short: Retrieves the avatar image of the user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/avatar/
+        - use: get-change-url
+          short: Retrieves the avatar image of the user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/avatar.change.url/
+    - use: preferences
+      short: Retrieves the user’s preferences.
+      sub-commands:
+        # TODO setting preferences requires JSON bodies to work
+        - use: get
+          short: Retrieves the user’s preferences.
+          string-flags:
+          - name: account
+            required: true
+            usage: The account to get.
+            gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/preferences/
+        - use: get-diff
+          short: Retrieves the user’s diff preferences.
+          string-flags:
+          - name: account
+            required: true
+            usage: The account to get.
+            gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/preferences.diff/
+        - use: get-edit
+          short: Retrieves the user’s edit preferences.
+          string-flags:
+          - name: account
+            required: true
+            usage: The account to get.
+            gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/preferences.edit/
+    - use: watched-projects
+      short: Projects a user is watching.
+      # TODO Add/Update a List of Watched Project Entities requires JSON bodies
+      # TODO delete watched projects requires json bodies
+      sub-commands:
+        - use: list
+          short: Lists the projects a user is watching.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/watched.projects/
+    - use: external-ids
+      short: External ids of a user account.
+      # TODO Delete Account External IDs requires json bodies
+      sub-commands:
+        - use: list
+          short: Lists the external ids of a user account.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/external.ids/
+    - use: agreements
+      short: User’s signed contributor agreements.
+      # TODO Sign Contributor Agreement requires json bodies
+      sub-commands:
+        - use: list
+          short: Lists the user’s signed contributor agreements.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/agreements/
+    # TODO Delete Draft Comments requires json bodies
+    - use: starred-changes
+      short: Users starred.changes
+      sub-commands:
+        - use: list
+          short: Lists the users starred.changes
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          gerrit-path: /accounts/{account-id}/starred.changes/
+        - use: star
+          aliases:
+            - add
+          short: Stars a change for the user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: change
+              required: true
+              usage: The change to star.
+              gerrit-param: change-id
+          gerrit-path: /accounts/{account-id}/starred.changes/{change-id}/
+          http-method: PUT
+        - use: unstar
+          aliases:
+            - delete
+          short: Unstars a change for the user.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+            - name: change
+              required: true
+              usage: The change to unstar.
+              gerrit-param: change-id
+          gerrit-path: /accounts/{account-id}/starred.changes/{change-id}/
+          http-method: DELETE
+    - use: index
+      short: Adds or updates the account in the secondary index.
+      string-flags:
+        - name: account
+          required: true
+          usage: The account to get.
+          gerrit-param: account-id
+      gerrit-path: /accounts/{account-id}/index/
+      http-method: POST
+- use: changes
+  short: Access Rights Endpoints
+  # TODO most POST PUT DELETE endpoints in https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html
+  sub-commands:
+    - use: list
+      short: List Changes
+      string-flags:
+        - name: query
+          usage: The query string to use to find changes.
+          gerrit-param: q
+        - name: limit
+          usage: The maximum number of records to return.
+          gerrit-param: n
+      gerrit-path: /changes/
+    - use: get
+      short: Get a Change
+      string-flags:
+        - name: change
+          required: true
+          usage: The change to retrieve.
+          gerrit-param: change-id
+      gerrit-path: /changes/{change-id}/
+    - use: detail
+      short: Get a Change detail
+      string-flags:
+        - name: change
+          required: true
+          usage: The change to retrieve.
+          gerrit-param: change-id
+      gerrit-path: /changes/{change-id}/detail/
+    - use: topic
+      short: Change topic
+      sub-commands:
+        - use: get
+          short: Retrieves the topic of a change.
+          string-flags:
+            - name: change
+              required: true
+              usage: The change to retrieve.
+              gerrit-param: change-id
+          gerrit-path: /changes/{change-id}/topic/
+    - use: in
+      short: Retrieves the branches and tags in which a change is included.
+      string-flags:
+        - name: change
+          required: true
+          usage: The change to retrieve.
+          gerrit-param: change-id
+      gerrit-path: /changes/{change-id}/in/
+    - use: reviewers
+      short: Reviewers.
+      sub-commands:
+        - use: list
+          short: Lists the reviewers of a change.
+          string-flags:
+            - name: change
+              required: true
+              usage: The change to retrieve.
+              gerrit-param: change-id
+          gerrit-path: /changes/{change-id}/reviewers/
+- use: groups
+  short: Group Endpoints
+  # TODO most POST PUT DELETE endpoints in https://gerrit-review.googlesource.com/Documentation/rest-api-groups.html
+  sub-commands:
+    - use: list
+      short: List Groups
+      string-flags:
+        - name: query
+          usage: The query string to use to find changes.
+        - name: limit
+          usage: The maximum number of records to return.
+        - name: start
+          usage: The index of the first record to return.
+      gerrit-path: /groups/
+    - use: get
+      short: Get a Group
+      string-flags:
+        - name: group
+          required: true
+          usage: The group to retrieve.
+          gerrit-param: group-id
+      gerrit-path: /groups/{group-id}/
+    - use: detail
+      short: Get a Group detail
+      string-flags:
+        - name: group
+          required: true
+          usage: The group to retrieve.
+          gerrit-param: group-id
+      gerrit-path: /groups/{group-id}/detail/
+    - use: name
+      short: Group name
+      sub-commands:
+        - use: get
+          short: Retrieves the name of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+          gerrit-path: /groups/{group-id}/name/
+    - use: description
+      short: Get a Group description
+      sub-commands:
+        - use: get
+          short: Retrieves the description of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+          gerrit-path: /groups/{group-id}/description/
+    - use: options
+      short: Get a Group options
+      sub-commands:
+        - use: get
+          short: Retrieves the options of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+          gerrit-path: /groups/{group-id}/options/
+    - use: owner
+      short: Get a Group owner
+      sub-commands:
+        - use: get
+          short: Retrieves the owner of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+          gerrit-path: /groups/{group-id}/owner/
+    - use: get-audit-log
+      short: Get a Group audit log
+      string-flags:
+        - name: group
+          required: true
+          usage: The group to retrieve.
+          gerrit-param: group-id
+      gerrit-path: /groups/{group-id}/log.audit/
+    - use: members
+      short: Group members
+      sub-commands:
+        - use: list
+          short: Lists the members of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+          gerrit-path: /groups/{group-id}/members/
+        - use: get
+          short: Retrieves a member of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+            - name: member
+              required: true
+              usage: The member to retrieve.
+              gerrit-param: member-id
+          gerrit-path: /groups/{group-id}/members/{member-id}/
+    - use: groups
+      short: Group sub groups
+      sub-commands:
+        - use: list
+          short: Lists the sub groups of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+          gerrit-path: /groups/{group-id}/groups/
+        - use: get
+          short: Retrieves a sub group of a group.
+          string-flags:
+            - name: group
+              required: true
+              usage: The group to retrieve.
+              gerrit-param: group-id
+            - name: subgroup
+              required: true
+              usage: The subgroup to retrieve.
+              gerrit-param: subgroup-id
+          gerrit-path: /groups/{group-id}/groups/{subgroup-id}/
+- use: projects
+  short: Project Endpoints
+  # TODO most POST PUT DELETE endpoints from https://gerrit-review.googlesource.com/Documentation/rest-api-projects.html
+  sub-commands:
+    - use: list
+      short: List Projects
+      string-flags:
+        - name: query
+          usage: The query string to use to find projects.
+        - name: limit
+          usage: The maximum number of records to return.
+        - name: start
+          usage: The index of the first record to return.
+      gerrit-path: /projects/
+    - use: get
+      short: Get a Project
+      string-flags:
+        - name: project
+          required: true
+          usage: The project to retrieve.
+          gerrit-param: project-name
+      gerrit-path: /projects/{project-name}/
+    - use: description
+      short: Project description
+      sub-commands:
+        - use: get
+          short: Retrieves the description of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/description/
+    - use: parent
+      short: Project description
+      sub-commands:
+        - use: get
+          short: Retrieves the parent of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/parent/
+    - use: head
+      short: Project HEAD
+      sub-commands:
+        - use: get
+          short: Retrieves the HEAD of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/HEAD/
+    - use: config
+      short: Get a Project config
+      sub-commands:
+        - use: get
+          short: Retrieves the config of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/config/
+    - use: access
+      short: Get a Project access
+      sub-commands:
+        - use: list
+          short: Lists the access of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/access/
+    - use: branches
+      short: Get a Project branches
+      sub-commands:
+        - use: list
+          short: Lists the branches of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/branches/
+        - use: get
+          short: Retrieves a branch of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+            - name: branch
+              required: true
+              usage: The branch to retrieve.
+              gerrit-param: branch-name
+          gerrit-path: /projects/{project-name}/branches/{branch-name}/
+    - use: children
+      short: Get a Project children
+      sub-commands:
+        - use: list
+          short: Lists the children of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/children/
+        - use: get
+          short: Retrieves a child of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+            - name: child
+              required: true
+              usage: The child to retrieve.
+              gerrit-param: child-name
+          gerrit-path: /projects/{project-name}/children/{child-name}/
+    - use: tags
+      short: Get a Project tags
+      sub-commands:
+        - use: list
+          short: Lists the tags of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/tags/
+        - use: get
+          short: Retrieves a tag of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+            - name: tag
+              required: true
+              usage: The tag to retrieve.
+              gerrit-param: tag-name
+          gerrit-path: /projects/{project-name}/tags/{tag-name}/
+    - use: dashboards
+      short: Get a Project dashboards
+      sub-commands:
+        - use: list
+          short: Lists the dashboards of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/dashboards/
+        - use: get
+          short: Retrieves a dashboard of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+            - name: dashboard
+              required: true
+              usage: The dashboard to retrieve.
+              gerrit-param: dashboard-name
+          gerrit-path: /projects/{project-name}/dashboards/{dashboard-name}/
+    - use: labels
+      short: Get a Project labels
+      sub-commands:
+        - use: list
+          short: Lists the labels of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/labels/
+        - use: get
+          short: Retrieves a label of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+            - name: label
+              required: true
+              usage: The label to retrieve.
+              gerrit-param: label-name
+          gerrit-path: /projects/{project-name}/labels/{label-name}/
+    - use: submit_requirements
+      short: Get a Project submit_requirements
+      sub-commands:
+        - use: list
+          short: Lists the submit_requirements of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+          gerrit-path: /projects/{project-name}/submit_requirements/
+        - use: get
+          short: Retrieves a submit_requirement of a project.
+          string-flags:
+            - name: project
+              required: true
+              usage: The project to retrieve.
+              gerrit-param: project-name
+            - name: submit_requirement
+              required: true
+              usage: The submit_requirement to retrieve.
+              gerrit-param: submit_requirement-name
+          gerrit-path: /projects/{project-name}/submit_requirements/{submit_requirement-name}/
+- use: plugins
+  short: Plugin Endpoints
+  sub-commands:
+    # TODO plugin install: https://gerrit-review.googlesource.com/Documentation/rest-api-plugins.html#install-plugin
+    - use: list
+      short: List plugins
+      gerrit-path: /plugins/
+      string-flags:
+        - name: limit
+          usage: Maximum number of plugins to return.
+          gerrit-param: n
+        - name: skip
+          usage: Skip the given number of plugins from the beginning of the list.
+          gerrit-param: S
+        - name: prefix
+          usage: Prefix to filter plugins by.
+          gerrit-param: p
+        - name: regex
+          usage: Regular expression to filter plugins by.
+          gerrit-param: r
+        - name: substring
+          usage: Substring to filter plugins by.
+          gerrit-param: m
+    - use: get
+      short: Get plugin
+      string-flags:
+        - name: plugin
+          required: true
+          usage: The plugin to retrieve.
+          gerrit-param: plugin-id
+      gerrit-path: /plugins/{plugin-id}/gerrit~status/
+    - use: enable
+      short: Enable plugin
+      string-flags:
+        - name: plugin
+          required: true
+          usage: The plugin to enable.
+          gerrit-param: plugin-id
+      gerrit-path: /plugins/{plugin-id}/gerrit~enable/
+      http-method: POST
+    - use: disable
+      short: Disable plugin
+      string-flags:
+        - name: plugin
+          required: true
+          usage: The plugin to disable.
+          gerrit-param: plugin-id
+      gerrit-path: /plugins/{plugin-id}/gerrit~disable/
+      http-method: POST
+    - use: reload
+      short: Reload plugin
+      string-flags:
+        - name: plugin
+          required: true
+          usage: The plugin to reload.
+          gerrit-param: plugin-id
+      gerrit-path: /plugins/{plugin-id}/gerrit~reload/
+      http-method: POST
+- use: server
+  short: Server Config Endpoints
+  # TODO most PUT POST DELETE endpoints from https://gerrit-review.googlesource.com/Documentation/rest-api-config.html
+  sub-commands:
+    - use: version
+      short: Server Version
+      gerrit-path: /config/server/version/
+    - use: info
+      short: Server Info
+      gerrit-path: /config/server/info/
+    - use: caches
+      short: Server Caches
+      gerrit-path: /config/server/caches/
+    - use: summary
+      short: Server summary
+      gerrit-path: /config/server/summary/
+    - use: capabilities
+      short: Server capabilities
+      gerrit-path: /config/server/capabilities/
+    - use: tasks
+      short: Server tasks
+      gerrit-path: /config/server/tasks/
+    - use: top-menus
+      short: Server top-menus
+      gerrit-path: /config/server/top-menus/
+    - use: preferences
+      short: Server preferences.
+      sub-commands:
+        - use: user
+          short: Server user preferences
+          gerrit-path: /config/server/preferences/
+        - use: diff
+          short: Server diff preferences
+          gerrit-path: /config/server/preferences.diff/
+        - use: edit
+          short: Server edit preferences
+          gerrit-path: /config/server/preferences.edit/
+# Please note that this feature is only usable with documentation built-in.
+# You’ll need to bazel build withdocs or bazel build release to test this feature.
+# So we don't add this as the Wikimedia Gerrint install doesn't include it
+# - use: documentation
+#   short: Documentation Search Endpoints
+#   sub-commands:
+#     - use: search
+#       short: Search Documentation
+#       string-flags:
+#         - name: query
+#           required: true
+#           usage: The query to search for.
+#           gerrit-param: q
+#       gerrit-path: /Documentation/
