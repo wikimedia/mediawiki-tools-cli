@@ -64,7 +64,7 @@ staticcheck: $(STATICCHECK) generate
 
 .PHONY: duplicates
 duplicates: $(DUPL)
-	$(DUPL)
+	find ./ -name '*.go' -not -path './vendor/*' -not -name '*.gen.go' -not -name '*_test.go' | $(DUPL) -files
 
 .PHONY: git-state
 git-state: $(GOX) $(GOVVV) release
