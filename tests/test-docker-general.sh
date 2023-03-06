@@ -137,5 +137,5 @@ test_command "./../../../bin/mw docker mediawiki composer home" "http://gerrit.w
 # exec: Make sure a command works from the Vector directory
 test_command "./../../../bin/mw docker mediawiki exec ls" "skin.json"
 
-# gerrit project current
-test_command "./../../../bin/mw gerrit project current" "mediawiki/skins/Vector"
+# gerrit dotgitreview project
+test_command "./../../../bin/mw gerrit dotgitreview project" "mediawiki/skins/Vector"
