@@ -9,6 +9,7 @@ linters:
     - unused # Default
     # Custom enabled linters
     - bodyclose
+    - depguard
     - gci
     - godot
     - gofmt
@@ -27,6 +28,11 @@ issues:
     - path: \.go
       linters:
         - errcheck
+    # Generated code makes a couple of mistakes
+    - path: \.gen\.go
+      linters:
+        - gofumpt
+        - goimports
 
 # all available settings of specific linters
 linters-settings:
@@ -55,3 +61,11 @@ linters-settings:
         alias: osexec
       - pkg: os/signal
         alias: ossignal
+  depguard:
+    # Generally disallowed packages
+    list-type: denylist
+    include-go-root: true
+    packages:
+      - log
+    packages-with-error-message:
+      - log: 'logging is allowed only by github.com/sirupsen/logrus'

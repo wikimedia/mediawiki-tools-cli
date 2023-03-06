@@ -7,7 +7,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/txn2/txeh"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
 
 var (
@@ -63,7 +62,7 @@ func FilePath() string {
 }
 
 func fileIsWritable(filePath string) bool {
-	file, err := sudoaware.OpenFile(filePath, os.O_WRONLY, 0o666)
+	file, err := os.OpenFile(filePath, os.O_WRONLY, 0o666)
 	if err != nil {
 		return false
 	}

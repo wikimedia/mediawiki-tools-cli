@@ -2,7 +2,7 @@ package env
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dotenv"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dotenv"
 )
 
 func envSet(directory func() string) *cobra.Command {

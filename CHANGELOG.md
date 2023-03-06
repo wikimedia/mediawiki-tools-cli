@@ -4,14 +4,24 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.22.0
+
+- Added various boolean flags to `wiki page put` command (T331215)
+- Added many `gerrit` command. See `mw gerrit --help` for more information.
+  - Old gerrit commands based on ssh no longer exist, please use these new API based commands
+  - `mw gerrit project current` is now `mw gerrit dotgitreview project`
+
 ## v0.21.0
 
+- Fixed `--no-interaction` not working in some situations (T330307)
 - Development environment (`mw docker`):
   - Added check to see if docker is running before commands execute (T329920)
   - Fixed slow DNS lookups when disconnected from the internet, which caused slow MediaWiki requests (T326735)
   - Added `mediawiki doctor` checks:
     - Check if `vendor` directory exists (T330926)
     - Check if a site has been installed (T330928)
+    - Check if a site is accessbile (T330929)
+    - Check if container image overrides are set (T331136)
   - Image updates:
     - docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3 to 1.5.1
     - docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox images to 2023-02-24-002648

@@ -9,7 +9,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/sudoaware"
 )
 
 /*Path path of the config file.*/
@@ -19,11 +18,11 @@ func Path() string {
 
 func ensureExists() {
 	if _, err := os.Stat(Path()); err != nil {
-		err := sudoaware.MkdirAll(strings.Replace(Path(), "config.json", "", -1), 0o700)
+		err := os.MkdirAll(strings.Replace(Path(), "config.json", "", -1), 0o700)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		file, err := sudoaware.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -56,7 +55,7 @@ func LoadFromDisk() Config {
 
 /*WriteToDisk writers the config to disk.*/
 func (c Config) WriteToDisk() {
-	file, err := sudoaware.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		logrus.Fatal(err)
 	}

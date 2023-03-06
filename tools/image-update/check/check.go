@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -52,7 +51,7 @@ func getData() Data {
 	}
 	err = yaml.Unmarshal(content, &data)
 	if err != nil {
-		log.Fatal("Failed to parse data file ", err)
+		logrus.Fatal("Failed to parse data file ", err)
 	}
 	return data
 }

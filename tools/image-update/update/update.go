@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
@@ -64,10 +63,7 @@ func replaceInFile(filePath string, find string, replace string) {
 	newText := strings.ReplaceAll(text, find, replace)
 
 	if text != newText {
-		err := ioutil.WriteFile(filePath, []byte(newText), 0o755)
-		if err != nil {
-			panic(err)
-		}
+		ioutil.WriteFile(filePath, []byte(newText), 0o755)
 		fmt.Println("Updated " + filePath)
 	}
 }
@@ -80,7 +76,7 @@ func getData() Data {
 	}
 	err = yaml.Unmarshal(content, &data)
 	if err != nil {
-		log.Fatal("Failed to parse data file ", err)
+		logrus.Fatal("Failed to parse data file ", err)
 	}
 	return data
 }

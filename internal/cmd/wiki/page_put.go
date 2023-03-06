@@ -17,8 +17,12 @@ var pagePutExample string
 
 func NewWikiPagePutCmd() *cobra.Command {
 	var (
-		wikiPagePutSummary string
-		wikiPagePutMinor   bool
+		summary    string
+		minor      bool
+		bot        bool
+		recreate   bool
+		nocreate   bool
+		createonly bool
 	)
 
 	cmd := &cobra.Command{
@@ -61,10 +65,22 @@ func NewWikiPagePutCmd() *cobra.Command {
 			editParams := params.Values{
 				"title":   wikiPageTitle,
 				"text":    text,
-				"summary": wikiPagePutSummary,
+				"summary": summary,
 			}
-			if wikiPagePutMinor {
+			if minor {
 				editParams["minor"] = "1"
+			}
+			if bot {
+				editParams["bot"] = "1"
+			}
+			if recreate {
+				editParams["recreate"] = "1"
+			}
+			if nocreate {
+				editParams["nocreate"] = "1"
+			}
+			if createonly {
+				editParams["createonly"] = "1"
 			}
 
 			editErr := w.Edit(editParams)
@@ -74,8 +90,12 @@ func NewWikiPagePutCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&wikiPagePutSummary, "summary", "mwcli edit", "Summary of the edit")
-	cmd.Flags().BoolVar(&wikiPagePutMinor, "minor", false, "Minor edit")
+	cmd.Flags().StringVar(&summary, "summary", "mwcli edit", "Summary of the edit")
+	cmd.Flags().BoolVar(&minor, "minor", false, "Minor edit")
+	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")
+	cmd.Flags().BoolVar(&recreate, "recreate", false, "Override any errors about the page having been deleted in the meantime.")
+	cmd.Flags().BoolVar(&nocreate, "nocreate", false, "Throw an error if the page doesn't exist.")
+	cmd.Flags().BoolVar(&createonly, "createonly", false, "Don't edit the page if it exists already.")
 
 	return cmd
 }
