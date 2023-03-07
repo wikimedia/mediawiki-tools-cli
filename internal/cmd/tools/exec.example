@@ -1,4 +1,4 @@
-exec whoami                                                     # Run the whoami command as you on tool
+exec whoami                                                     # Run the whoami command as you on tools
 exec --tool=mytool whoami                                       # Run the whoami command as the specified tool
 exec --tool=mytool rm foo                                       # Remove the file called foo from the tool
 exec --tool=mytool webservice -- --backend=kubernetes start     # Starts a kubernetes webservice on mytool
