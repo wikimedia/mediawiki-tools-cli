@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/lookpath"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
 //go:embed exec.example

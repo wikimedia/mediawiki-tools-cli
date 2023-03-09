@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/lookpath"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
 func NewQuipCmd() *cobra.Command {

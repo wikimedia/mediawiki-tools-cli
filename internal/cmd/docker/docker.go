@@ -26,8 +26,8 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/docker"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/lookpath"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/ports"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
 // Detach run docker command with -d.
