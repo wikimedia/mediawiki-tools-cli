@@ -89,7 +89,8 @@ Many other Makefile commands exist that you might find useful:
 - `internal/mwdd`: Package for the docker-compose powered development environment
 - `internal/toolhub`: Client for interacting with https://toolhub.wikimedia.org
 - `internal/updater`: Code for updating the CLI.
-- `internal/util`: Independent packages that do not bind the CLI in any way.
+- `internal/util`: DEPRECATED: Independent packages that do not bind the CLI in any way. (Slowly bring moved to `./pkg`)
+- `pkg`: Independently useful packages that do not bind to mwcli code or concepts.
 - `tests`: Integration tests that are run as part of CI.
 - `tools`: Various tools to make working with this repository easier.
 

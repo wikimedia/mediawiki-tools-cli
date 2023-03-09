@@ -51,8 +51,6 @@ linters-settings:
         alias: sshutil
       - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/strings
         alias: stringsutil
-      - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/user
-        alias: userutil
       - pkg: github.com/xanzy/go-gitlab
         alias: gitlab
       - pkg: cgt.name/pkg/go-mwclient
