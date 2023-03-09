@@ -11,7 +11,7 @@ require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/glamour v0.6.0
-	github.com/cli/cli/v2 v2.23.0
+	github.com/cli/cli/v2 v2.24.0
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/fatih/color v1.14.1
 	github.com/hashicorp/go-version v1.6.0
@@ -115,11 +115,11 @@ require (
 	github.com/yuin/goldmark v1.5.2 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
