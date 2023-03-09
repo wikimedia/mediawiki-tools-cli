@@ -26,10 +26,16 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 			instance := "https://gerrit.wikimedia.org/r/"
 			client, _ := gerrit.NewClient(instance, nil)
 			client.Authentication.SetBasicAuth(config.Username, config.Password)
-			_, err := client.Call("GET", "accounts/self/name", nil, nil)
+			response, err := client.Call("GET", "accounts/self/name", nil, nil)
 
 			if err != nil {
-				cmd.Println("Not authenticated")
+				if response.StatusCode == 401 {
+					cmd.Println("Not authenticated")
+				} else {
+					cmd.Println(response.StatusCode)
+					cmd.PrintErrln(err)
+					cmd.Println("Possibly not authenticated?")
+				}
 				return
 			} else {
 				cmd.Println("Authenticated =]")
