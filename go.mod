@@ -13,7 +13,7 @@ require (
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/cli/cli/v2 v2.24.3
 	github.com/docker/docker v23.0.1+incompatible
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.15.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/itchyny/gojq v0.12.12
 	github.com/joho/godotenv v1.5.1
