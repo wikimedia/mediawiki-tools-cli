@@ -28,7 +28,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/txn2/txeh v1.3.0
 	github.com/xanzy/go-gitlab v0.73.1
-	gitlab.com/gitlab-org/cli v1.25.3
+	gitlab.com/gitlab-org/cli v1.26.0
 	golang.org/x/term v0.6.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
