@@ -2,7 +2,6 @@ package wiki
 
 import (
 	_ "embed"
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -58,7 +57,16 @@ func NewWikiPagePutCmd() *cobra.Command {
 			// TODO only login if user and pass is set
 			err = w.Login(wikiUser, wikiPassword)
 			if err != nil {
-				panic(err)
+				// Print warnings, of fatal on errors
+				if _, ok := err.(mwclient.APIWarnings); ok {
+					// TODO in the future don't just hide the warnings...
+					// // print the warnings
+					// for _, warning := range apiWarnings {
+					// 	logrus.Warn(warning)
+					// }
+				} else {
+					logrus.Panic(err)
+				}
 			}
 
 			// https://www.mediawiki.org/wiki/API:Edit#Parameters
@@ -85,7 +93,7 @@ func NewWikiPagePutCmd() *cobra.Command {
 
 			editErr := w.Edit(editParams)
 			if editErr != nil {
-				fmt.Println(editErr)
+				logrus.Panic(editErr)
 			}
 		},
 	}
