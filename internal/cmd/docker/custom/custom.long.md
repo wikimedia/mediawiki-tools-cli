@@ -1,7 +1,9 @@
 # Custom docker-compose services
 
-You can define your own `docker-compose` file in a `custom.yml` file.
-This file should be created in the location returned by the `mw docker custom where` command.
+You can define one or more custom sets of `docker-compose` services.
+The default service set would be found in `custom.yml`,
+with additional service sets being prefixed with `custom-` such as `custom-two.yml`.
+These files should be created in the location returned by the `mw docker custom where` command.
 
 ## Example internal service
 
@@ -13,7 +15,7 @@ services:
   <service-name>:
     image: <service-image>
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
 ```
@@ -33,7 +35,7 @@ services:
     depends_on:
       - nginx-proxy
     dns:
-      - 10.0.0.10
+      - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
 ```

@@ -42,7 +42,8 @@ func NewCmd() *cobra.Command {
 		"timeline":        shellboxLongTimeline,
 	}
 	for _, flavour := range shellBoxFlavours {
-		shellboxSubCmd := mwdd.NewServiceCmdDifferingNames(flavour, "shellbox-"+flavour, mwdd.ServiceTexts{Long: shellBoxLongDescs[flavour]}, []string{})
+		serviceName := "shellbox-" + flavour
+		shellboxSubCmd := mwdd.NewServiceCmdDifferingNames(flavour, serviceName, mwdd.ServiceTexts{Long: shellBoxLongDescs[flavour]}, []string{})
 		shellbox.AddCommand(shellboxSubCmd)
 	}
 	return shellbox

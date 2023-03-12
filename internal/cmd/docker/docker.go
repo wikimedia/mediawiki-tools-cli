@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/custom"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/dockercompose"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/hosts"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/keycloak"
@@ -183,14 +184,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(keycloak.NewCmd())
 	cmd.AddCommand(shellbox.NewCmd())
 	cmd.AddCommand(redis.NewCmd())
-
-	// Custom creation of custom command to avoid the exec command being added (for now)
-	custom := mwdd.NewServiceCmd("custom", mwdd.ServiceTexts{Long: customLong}, []string{})
-	cmd.AddCommand(custom)
-	custom.AddCommand(mwdd.NewWhereCmd(
-		"the custom docker-compose yml file",
-		func() string { return mwdd.DefaultForUser().Directory() + "/custom.yml" },
-	))
+	cmd.AddCommand(custom.NewCmd())
 
 	return cmd
 }
@@ -236,9 +230,6 @@ var graphiteOnCreate string
 
 //go:embed memcached/memcached.long.md
 var memcachedLong string
-
-//go:embed custom/custom.long.md
-var customLong string
 
 //go:embed adminer/adminer.long.md
 var adminerLong string
