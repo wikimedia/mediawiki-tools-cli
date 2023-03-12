@@ -68,7 +68,7 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 	for _, diskFile := range diskFiles {
 		agnosticFile := e.agnosticFileFromDisk(diskFile)
 		embedFile := e.EmbedPath + embedSeperator + agnosticFile
-		if !stringsutil.StringInSlice(embedFile, embeddedFiles) && !stringsutil.StringInSlice(agnosticFile, e.IgnoreFiles) {
+		if !stringsutil.StringInSlice(embedFile, embeddedFiles) && !stringsutil.StringInRegexSlice(agnosticFile, e.IgnoreFiles) {
 			logrus.Trace(diskFile + " no longer needed, so removing")
 			err := os.Remove(diskFile)
 			if err != nil {

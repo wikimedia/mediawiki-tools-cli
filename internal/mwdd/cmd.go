@@ -23,16 +23,25 @@ type ServiceTexts struct {
 	OnCreate string
 }
 
-/*NewServiceCmd a new command for a single service, such as mailhog.*/
 func NewServiceCmd(name string, texts ServiceTexts, aliases []string) *cobra.Command {
-	return NewServiceCmdDifferingNames(name, name, texts, aliases)
+	return NewServiceCmdP(&name, texts, aliases)
+}
+
+/*NewServiceCmd a new command for a single service, such as mailhog.*/
+func NewServiceCmdP(name *string, texts ServiceTexts, aliases []string) *cobra.Command {
+	return NewServiceCmdDifferingNamesP(name, name, texts, aliases)
+}
+
+func NewServiceCmdDifferingNames(commandName string, serviceName string, texts ServiceTexts, aliases []string) *cobra.Command {
+	return NewServiceCmdDifferingNamesP(&commandName, &serviceName, texts, aliases)
 }
 
 /*NewServiceCmdDifferingNames a new command for a single service, such as mailhog.*/
-func NewServiceCmdDifferingNames(commandName string, serviceName string, texts ServiceTexts, aliases []string) *cobra.Command {
+func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, texts ServiceTexts, aliases []string) *cobra.Command {
+	dereferencedCommandName := *commandName
 	cmd := &cobra.Command{
-		Use:     commandName,
-		Short:   fmt.Sprintf("%s service", commandName),
+		Use:     *commandName,
+		Short:   fmt.Sprintf("%s service", dereferencedCommandName),
 		Aliases: aliases,
 		RunE:    nil,
 	}
@@ -44,13 +53,13 @@ func NewServiceCmdDifferingNames(commandName string, serviceName string, texts S
 		cmd.Long = cli.RenderMarkdown(texts.Long)
 	}
 
-	cmd.AddCommand(NewServiceCreateCmd(serviceName, texts.OnCreate))
-	cmd.AddCommand(NewServiceDestroyCmd(serviceName))
-	cmd.AddCommand(NewServiceStopCmd(serviceName))
-	cmd.AddCommand(NewServiceStartCmd(serviceName))
-	cmd.AddCommand(NewServiceExposeCmd(serviceName))
+	cmd.AddCommand(NewServiceCreateCmdP(serviceName, texts.OnCreate))
+	cmd.AddCommand(NewServiceDestroyCmdP(serviceName))
+	cmd.AddCommand(NewServiceStopCmdP(serviceName))
+	cmd.AddCommand(NewServiceStartCmdP(serviceName))
+	cmd.AddCommand(NewServiceExposeCmdP(serviceName))
 	// There is an expectation that the main service for exec has the same name as the service command overall
-	cmd.AddCommand(NewServiceExecCmd(serviceName, serviceName))
+	cmd.AddCommand(NewServiceExecCmdP(serviceName, serviceName))
 
 	return cmd
 }
@@ -70,14 +79,19 @@ func NewServicesCmd(groupName string, texts ServiceTexts, aliases []string) *cob
 }
 
 func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
+	return NewServiceCreateCmdP(&name, onCreateText)
+}
+
+func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 	var forceRecreate bool
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: fmt.Sprintf("Create the %s containers", name),
+		Short: "Create the containers",
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(name)
-			services := DefaultForUser().DockerComposeFileServices(name)
+			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
+			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
 			DefaultForUser().UpDetached(services, forceRecreate)
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
@@ -91,14 +105,19 @@ func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
 }
 
 func NewServiceDestroyCmd(name string) *cobra.Command {
+	return NewServiceDestroyCmdP(&name)
+}
+
+func NewServiceDestroyCmdP(name *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "destroy",
-		Short: fmt.Sprintf("Destroy the %s containers", name),
+		Short: "Destroy the containers",
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(name)
-			services := DefaultForUser().DockerComposeFileServices(name)
-			volumes := DefaultForUser().DockerComposeFileVolumes(name)
+			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
+			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
+			volumes := DefaultForUser().DockerComposeFileVolumes(dereferencedName)
 
 			DefaultForUser().Rm(services)
 			if len(volumes) > 0 {
@@ -112,14 +131,19 @@ func NewServiceDestroyCmd(name string) *cobra.Command {
 }
 
 func NewServiceStopCmd(name string) *cobra.Command {
+	return NewServiceStopCmdP(&name)
+}
+
+func NewServiceStopCmdP(name *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "stop",
 		Aliases: []string{"suspend"},
-		Short:   fmt.Sprintf("Stop the %s containers", name),
+		Short:   "Stop the containers",
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(name)
-			services := DefaultForUser().DockerComposeFileServices(name)
+			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
+			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
 			DefaultForUser().Stop(services)
 		},
 	}
@@ -129,14 +153,19 @@ func NewServiceStopCmd(name string) *cobra.Command {
 }
 
 func NewServiceStartCmd(name string) *cobra.Command {
+	return NewServiceStartCmdP(&name)
+}
+
+func NewServiceStartCmdP(name *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "start",
 		Aliases: []string{"resume"},
-		Short:   fmt.Sprintf("Start the %s containers", name),
+		Short:   "Start the containers",
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(name)
-			services := DefaultForUser().DockerComposeFileServices(name)
+			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
+			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
 			DefaultForUser().Start(services)
 		},
 	}
@@ -150,19 +179,25 @@ func NewServiceStartCmd(name string) *cobra.Command {
 // TODO exreact the Examples, such as that below into own files
 
 func NewServiceExecCmd(name string, service string) *cobra.Command {
+	return NewServiceExecCmdP(&name, &service)
+}
+
+func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 	var User string
 	cmd := &cobra.Command{
 		Use:     "exec [flags] [command...]",
 		Example: "exec bash\nexec -- bash --help\nexec --user root bash\nexec --user root -- bash --help",
-		Short:   fmt.Sprintf("Execute a command in the main %s container", name),
+		Short:   "Execute a command in the main container",
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *name
+			dereferencedService := *service
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(name)
+			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
 			command, env := CommandAndEnvFromArgs(args)
 			exitCode := DefaultForUser().DockerExec(
 				DockerExecCommand{
-					DockerComposeService: service,
+					DockerComposeService: dereferencedService,
 					Command:              command,
 					Env:                  env,
 					User:                 User,
@@ -179,6 +214,10 @@ func NewServiceExecCmd(name string, service string) *cobra.Command {
 }
 
 func NewServiceExposeCmd(name string) *cobra.Command {
+	return NewServiceExposeCmdP(&name)
+}
+
+func NewServiceExposeCmdP(name *string) *cobra.Command {
 	var externalPort string
 	var internalPort string
 	cmd := &cobra.Command{
@@ -189,9 +228,10 @@ func NewServiceExposeCmd(name string) *cobra.Command {
 		expose --external-port 8899 --internal-port 80
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *name
 			m := DefaultForUser()
 			m.EnsureReady()
-			m.DockerComposeFileExistsOrExit(name)
+			m.DockerComposeFileExistsOrExit(dereferencedName)
 
 			ctx := context.Background()
 			cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -199,7 +239,7 @@ func NewServiceExposeCmd(name string) *cobra.Command {
 				fmt.Println("Unable to create docker client")
 				panic(err)
 			}
-			containerID := m.containerID(ctx, cli, name)
+			containerID := m.containerID(ctx, cli, dereferencedName)
 
 			// Lookup internal port from an env var if not provided
 			if internalPort == "" {
@@ -238,7 +278,7 @@ func NewServiceExposeCmd(name string) *cobra.Command {
 				"--link", containerID,
 				"--network", network,
 				"alpine/socat:1.7.4.4-r0",
-				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+name+":"+internalPort,
+				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+dereferencedName+":"+internalPort,
 			))
 		},
 	}
@@ -248,16 +288,21 @@ func NewServiceExposeCmd(name string) *cobra.Command {
 }
 
 func NewServiceCommandCmd(service string, commands []string, aliases []string) *cobra.Command {
+	return NewServiceCommandCmdP(&service, commands, aliases)
+}
+
+func NewServiceCommandCmdP(service *string, commands []string, aliases []string) *cobra.Command {
 	return &cobra.Command{
 		Use:     commands[0],
 		Aliases: aliases,
-		Short:   fmt.Sprintf("Runs %s in the %s container", commands[0], service),
+		Short:   fmt.Sprintf("Runs %s in the container", commands[0]),
 		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedName := *service
 			DefaultForUser().EnsureReady()
 			userCommand, env := CommandAndEnvFromArgs(args)
 			exitCode := DefaultForUser().DockerExec(
 				DockerExecCommand{
-					DockerComposeService: service,
+					DockerComposeService: dereferencedName,
 					Command:              append(commands, userCommand...),
 					Env:                  env,
 				},

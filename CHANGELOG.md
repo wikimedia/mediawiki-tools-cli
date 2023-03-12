@@ -10,6 +10,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added many `gerrit` command. See `mw gerrit --help` for more information.
   - Old gerrit commands based on ssh no longer exist, please use these new API based commands
   - `mw gerrit project current` is now `mw gerrit dotgitreview project`
+- Development environment (`mw docker`):
+  - Added ability to use multiple `custom` service sets (T327069)
 
 ## v0.21.0
 

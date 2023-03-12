@@ -18,11 +18,12 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 		DiskPath:  projectDirectory,
 		IgnoreFiles: []string{
 			// Used by docker-compose to store current environment variables in
-			".env",
+			`\.env`,
 			// Used by the dev environment to store hosts that need adding to the hosts file
-			"record-hosts",
+			`record\-hosts`,
 			// Used by folks that want to define a custom set of docker-compose services
-			"custom.yml",
+			`custom\.yml`,
+			`custom-\w+\.yml`,
 		},
 	}
 }
