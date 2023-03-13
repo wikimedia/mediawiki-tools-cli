@@ -26,8 +26,8 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/env"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/ports"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
@@ -83,7 +83,7 @@ func NewCmd() *cobra.Command {
 
 			// Bail if docker is not running
 			// TODO allow some commands to run without docker running, such as "where" and "env"
-			if !docker.DockerIsRunning() {
+			if !docker.DockerDaemonIsRunning() {
 				fmt.Println("Docker is not running. Please start it and try again.")
 				os.Exit(1)
 			}

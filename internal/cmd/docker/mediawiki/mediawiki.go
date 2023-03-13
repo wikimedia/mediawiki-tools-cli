@@ -15,6 +15,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/paths"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 )
 
 // User run docker command with the specified -u.
@@ -118,11 +119,11 @@ func NewMediaWikiCmd() *cobra.Command {
 	return cmd
 }
 
-var applyRelevantMediawikiWorkingDirectory = func(dockerExecCommand mwdd.DockerExecCommand, mountTo string) mwdd.DockerExecCommand {
+var applyRelevantMediawikiWorkingDirectory = func(options docker.ExecOptions, mountTo string) docker.ExecOptions {
 	if resolvedPath := paths.ResolveMountForCwd(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"), mountTo); resolvedPath != nil {
-		dockerExecCommand.WorkingDir = *resolvedPath
+		options.WorkingDir = *resolvedPath
 	} else {
-		dockerExecCommand.WorkingDir = mountTo
+		options.WorkingDir = mountTo
 	}
-	return dockerExecCommand
+	return options
 }

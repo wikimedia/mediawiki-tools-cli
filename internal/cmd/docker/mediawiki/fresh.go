@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 //go:embed fresh.long.md
@@ -20,15 +22,21 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Long:  cli.RenderMarkdown(mwddMediawikiFreshLong),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
-			mwdd.DefaultForUser().UpDetached([]string{"mediawiki-fresh"}, false)
+			mwdd.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{
+				Detached: true,
+			})
 			command, env := mwdd.CommandAndEnvFromArgs(args)
-			exitCode := mwdd.DefaultForUser().DockerExec(
+			containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki-fresh")
+			if containerIDErr != nil {
+				panic(containerIDErr)
+			}
+			exitCode := docker.Exec(
+				containerID,
 				applyRelevantMediawikiWorkingDirectory(
-					mwdd.DockerExecCommand{
-						DockerComposeService: "mediawiki-fresh",
-						Command:              command,
-						Env:                  env,
-						User:                 User,
+					docker.ExecOptions{
+						Command: command,
+						Env:     env,
+						User:    User,
 					},
 					"/var/www/html/w",
 				),
@@ -39,6 +47,6 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	return cmd
 }

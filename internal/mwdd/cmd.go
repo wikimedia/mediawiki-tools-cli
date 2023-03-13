@@ -9,11 +9,12 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 type ServiceTexts struct {
@@ -90,9 +91,12 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
-			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
-			DefaultForUser().UpDetached(services, forceRecreate)
+			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
+			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{
+				Detached:      true,
+				ForceRecreate: forceRecreate,
+			})
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
 			}
@@ -115,13 +119,17 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
-			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
-			volumes := DefaultForUser().DockerComposeFileVolumes(dereferencedName)
+			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
+			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			volumes := DefaultForUser().DockerCompose().File(dereferencedName).Contents().VolumeNames()
 
-			DefaultForUser().Rm(services)
+			DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
+				Stop:                   true,
+				Force:                  true,
+				RemoveAnonymousVolumes: true,
+			})
 			if len(volumes) > 0 {
-				DefaultForUser().RmVolumes(volumes)
+				DefaultForUser().DockerCompose().VolumesRm(volumes)
 			}
 		},
 	}
@@ -142,9 +150,9 @@ func NewServiceStopCmdP(name *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
-			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
-			DefaultForUser().Stop(services)
+			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
+			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			DefaultForUser().DockerCompose().Stop(services)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -164,9 +172,9 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
-			services := DefaultForUser().DockerComposeFileServices(dereferencedName)
-			DefaultForUser().Start(services)
+			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
+			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			DefaultForUser().DockerCompose().Start(services)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -193,14 +201,18 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 			dereferencedName := *name
 			dereferencedService := *service
 			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerComposeFileExistsOrExit(dereferencedName)
+			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			command, env := CommandAndEnvFromArgs(args)
-			exitCode := DefaultForUser().DockerExec(
-				DockerExecCommand{
-					DockerComposeService: dereferencedService,
-					Command:              command,
-					Env:                  env,
-					User:                 User,
+			containerID, containerIDErr := DefaultForUser().DockerCompose().ContainerID(dereferencedService)
+			if containerIDErr != nil {
+				panic(containerIDErr)
+			}
+			exitCode := docker.Exec(
+				containerID,
+				docker.ExecOptions{
+					Command: command,
+					Env:     env,
+					User:    User,
 				},
 			)
 			if exitCode != 0 {
@@ -209,7 +221,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	return cmd
 }
 
@@ -231,15 +243,14 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 			dereferencedName := *name
 			m := DefaultForUser()
 			m.EnsureReady()
-			m.DockerComposeFileExistsOrExit(dereferencedName)
+			m.DockerCompose().File(dereferencedName).ExistsOrExit()
 
 			ctx := context.Background()
-			cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+			cli := docker.NewClientFromEnvOrPanic()
+			containerID, err := m.DockerCompose().ContainerID(dereferencedName)
 			if err != nil {
-				fmt.Println("Unable to create docker client")
 				panic(err)
 			}
-			containerID := m.containerID(ctx, cli, dereferencedName)
 
 			// Lookup internal port from an env var if not provided
 			if internalPort == "" {
@@ -270,7 +281,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				publish = externalPort + ":" + internalPort
 			}
 
-			network := m.networkName()
+			network := m.dockerNetworkName()
 
 			exec.RunTTYCommand(osexec.Command(
 				"docker", "run",
@@ -300,11 +311,15 @@ func NewServiceCommandCmdP(service *string, commands []string, aliases []string)
 			dereferencedName := *service
 			DefaultForUser().EnsureReady()
 			userCommand, env := CommandAndEnvFromArgs(args)
-			exitCode := DefaultForUser().DockerExec(
-				DockerExecCommand{
-					DockerComposeService: dereferencedName,
-					Command:              append(commands, userCommand...),
-					Env:                  env,
+			containerId, containerIDErr := DefaultForUser().DockerCompose().ContainerID(dereferencedName)
+			if containerIDErr != nil {
+				panic(containerIDErr)
+			}
+			exitCode := docker.Exec(
+				containerId,
+				docker.ExecOptions{
+					Command: append(commands, userCommand...),
+					Env:     env,
 				},
 			)
 			if exitCode != 0 {
