@@ -6,13 +6,13 @@ import (
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 // ComposeCommandContext ...
 type ComposeCommandContext struct {
 	ProjectDirectory string
 	ProjectName      string
-	Files            []string
 }
 
 /*Command passes through to exec.Command for running generic commands.*/
@@ -22,13 +22,11 @@ func Command(name string, arg ...string) *exec.Cmd {
 
 /*ComposeCommand gets a docker-compose command to run.*/
 func ComposeCommand(context ComposeCommandContext, command string, arg ...string) *exec.Cmd {
-	arg = append([]string{command}, arg...)
-	arg = append([]string{"--project-name", context.ProjectName}, arg...)
-	arg = append([]string{"--project-directory", context.ProjectDirectory}, arg...)
-	for _, element := range context.Files {
-		arg = append([]string{"--file", context.ProjectDirectory + "/" + element}, arg...)
+	dcp := dockercompose.Project{
+		Name:      context.ProjectName,
+		Directory: context.ProjectDirectory,
 	}
-	return exec.Command("docker-compose", arg...)
+	return dcp.Cmd(append([]string{command}, arg...))
 }
 
 /*RunTTYCommand runs a command in an interactive shell.*/

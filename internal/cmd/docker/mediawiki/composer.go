@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 )
 
 //go:embed composer.example
@@ -19,13 +20,17 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := mwdd.CommandAndEnvFromArgs(args)
-			exitCode := mwdd.DefaultForUser().DockerExec(
+			containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki")
+			if containerIDErr != nil {
+				panic(containerIDErr)
+			}
+			exitCode := docker.Exec(
+				containerID,
 				applyRelevantMediawikiWorkingDirectory(
-					mwdd.DockerExecCommand{
-						DockerComposeService: "mediawiki",
-						Command:              append([]string{"composer"}, command...),
-						Env:                  env,
-						User:                 User,
+					docker.ExecOptions{
+						Command: append([]string{"composer"}, command...),
+						Env:     env,
+						User:    User,
 					},
 					"/var/www/html/w",
 				),
@@ -36,6 +41,6 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", mwdd.UserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	return cmd
 }

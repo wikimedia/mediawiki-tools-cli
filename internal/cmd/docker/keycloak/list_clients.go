@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 func NewKeycloakListClientsCmd() *cobra.Command {
@@ -15,15 +16,18 @@ func NewKeycloakListClientsCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			keycloakLogin()
-			mwdd.DefaultForUser().Exec("keycloak", []string{
-				"/opt/keycloak/bin/kcadm.sh",
-				"get",
-				"clients",
-				"--target-realm", args[0],
-				"--fields", "clientId",
-				"--format", "csv",
-				"--noquotes",
-			}, "root")
+			mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
+				User: "root",
+				CommandAndArgs: []string{
+					"/opt/keycloak/bin/kcadm.sh",
+					"get",
+					"clients",
+					"--target-realm", args[0],
+					"--fields", "clientId",
+					"--format", "csv",
+					"--noquotes",
+				},
+			})
 		},
 	}
 	return cmd

@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 //go:embed keycloak.long.md
@@ -33,7 +34,8 @@ func NewCmd() *cobra.Command {
 }
 
 func keycloakLogin() {
-	mwdd.DefaultForUser().ExecNoOutput("keycloak", []string{
-		"/mwdd/login.sh",
-	}, "root")
+	mwdd.DefaultForUser().DockerCompose().ExecCommand("keycloak", dockercompose.ExecOptions{
+		User:           "root",
+		CommandAndArgs: []string{"mwdd/login.sh"},
+	}).RunAndCollect()
 }
