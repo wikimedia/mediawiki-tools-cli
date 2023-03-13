@@ -91,13 +91,15 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				req = req.WithContext(ctx)
 
 				res, err := c.Do(req)
+				if err == nil {
+					defer res.Body.Close()
+				}
 				if err != nil || res.StatusCode != 200 {
 					logrus.Warn("⚠️ That site is not accessible at " + url)
 					logrus.Warn("✨ You likely need to use the `mw docker hosts` command to add the site to your hosts file")
 				} else {
 					logrus.Info("✅ That site is accessible at " + url)
 				}
-				defer res.Body.Close()
 			}
 
 			// Check for mediawiki image overrides

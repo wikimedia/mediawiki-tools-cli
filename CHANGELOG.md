@@ -12,6 +12,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - `mw gerrit project current` is now `mw gerrit dotgitreview project`
 - Development environment (`mw docker`):
   - Added ability to use multiple `custom` service sets (T327069)
+  - Fixed a verbose error in `mediawiki doctor` when a site was inaccessible
 
 ## v0.21.0
 
