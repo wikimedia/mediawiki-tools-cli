@@ -14,12 +14,14 @@
 ./keycloak/login.sh
 ./mailhog.yml
 ./mediawiki-fresh.yml
+./mediawiki-jobrunner.yml
 ./mediawiki-quibble.yml
 ./mediawiki.yml
 ./mediawiki/MwddInstall.php
 ./mediawiki/MwddSettings.php
 ./mediawiki/MwddSpecialPage-aliases.php
 ./mediawiki/MwddSpecialPage.php
+./mediawiki/entrypoint-jobrunner.sh
 ./mediawiki/entrypoint.sh
 ./memcached.yml
 ./mysql-replica.yml

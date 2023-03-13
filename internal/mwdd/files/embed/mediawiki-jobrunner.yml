@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+
+  mediawiki-jobrunner:
+    # TODO FIXME this is the same as mediawiki just with a different entrypoint, can the definition be reused?
+    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0}"
+    restart: unless-stopped
+    entrypoint: "/mwdd/entrypoint-jobrunner.sh"
+    volumes:
+     - ./wait-for-it.sh:/wait-for-it.sh:ro
+     - ./mediawiki:/mwdd:ro
+     - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+     - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
+     - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
+     - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:delegated"
+     - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
+    environment:
+      # Used by various maintenance scripts to find MediaWiki.
+      # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
+      - MW_INSTALL_PATH=/var/www/html/w
+      - COMPOSER_CACHE_DIR=/.composer/cache
+      - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
+      - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-develop,debug}
+      - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
+    depends_on:
+      - mediawiki
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps

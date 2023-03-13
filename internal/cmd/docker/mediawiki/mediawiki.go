@@ -21,6 +21,16 @@ import (
 // User run docker command with the specified -u.
 var User string
 
+func findParentCommandWithUse(cmd *cobra.Command, use string) *cobra.Command {
+	if cmd.Use == use {
+		return cmd
+	}
+	if cmd.Parent() == nil {
+		return nil
+	}
+	return findParentCommandWithUse(cmd.Parent(), use)
+}
+
 func NewMediaWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "mediawiki",
@@ -28,7 +38,8 @@ func NewMediaWikiCmd() *cobra.Command {
 		Aliases: []string{"mw"},
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cmd.Parent().Parent().PersistentPreRun(cmd, args)
+			// Allways run the root level PersistentPreRun first
+			findParentCommandWithUse(cmd, "mw").PersistentPreRun(cmd, args)
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
 
@@ -113,6 +124,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewMediaWikiInstallCmd())
 	cmd.AddCommand(NewMediaWikiGetCodeCmd())
 	cmd.AddCommand(NewMediaWikiComposerCmd())
+	cmd.AddCommand(NewMediaWikiJobRunnerCmd())
 	cmd.AddCommand(NewMediaWikiExecCmd())
 	cmd.AddCommand(NewMediaWikiSitesCmd())
 	cmd.AddCommand(NewMediaWikiDoctorCmd())

@@ -123,6 +123,19 @@ test_command_success "./../bin/mw docker mediawiki fresh npm run selenium-test -
 test_command_success "./../bin/mw docker mediawiki quibble quibble -- --help"
 test_command "./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command \"ls\"" "index.php"
 
+# jobrunner: make sure the jobrunner starts and can run jobs
+test_command_success "./../bin/mw docker mediawiki jobrunner create"
+test_command_success "./../bin/mw docker mediawiki jobrunner add-site default"
+test_command_success "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title 'Testpage1' <<< 'Test content'"
+test_command_success "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title 'Testpage2' <<< 'Test content'"
+# We expect to see all of this output in the logs for the job runner...
+test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " No sites to run jobs for"
+test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " Running jobs for default"
+test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " Job queue is empty"
+test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " STARTING"
+test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " title='Testpage1'"
+test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " good"
+
 # get the example skin using get-code
 # Remove it both before and after incase it is left and to avoid it being left in CI caches
 rm -rf ${MWDIR}/skins/Example
