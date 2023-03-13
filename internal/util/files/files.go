@@ -46,6 +46,22 @@ func AddLine(line string, fileName string) {
 	}
 }
 
+func RemoveAllLinesMatching(line string, fileName string) {
+	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(file)
+	s := buf.String()
+	s = strings.ReplaceAll(s, line+"\n", "")
+	file.Truncate(0)
+	file.Seek(0, 0)
+	file.WriteString(s)
+}
+
 /*Lines reads all lines from a file.*/
 func Lines(fileName string) []string {
 	_, err := os.Stat(fileName)

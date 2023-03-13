@@ -11,6 +11,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Old gerrit commands based on ssh no longer exist, please use these new API based commands
   - `mw gerrit project current` is now `mw gerrit dotgitreview project`
 - Development environment (`mw docker`):
+  - Added a continious job runner, see `mediawiki jobrunner`
   - Added ability to use multiple `custom` service sets (T327069)
   - Fixed a verbose error in `mediawiki doctor` when a site was inaccessible
 
