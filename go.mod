@@ -22,7 +22,7 @@ require (
 	github.com/muesli/termenv v0.15.1
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.1.0
-	github.com/schollz/progressbar/v3 v3.13.0
+	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
@@ -32,10 +32,12 @@ require (
 	golang.org/x/term v0.6.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+require (
+	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -90,7 +92,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/sys/signal v0.7.0 // indirect
+	github.com/moby/sys/signal v0.7.0
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
