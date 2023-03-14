@@ -1,12 +1,12 @@
 version: '3.7'
 
 # Service wrapper around what is provided by fresh
-# https://github.com/wikimedia/fresh/blob/master/bin/fresh-node10
+# https://github.com/wikimedia/fresh/blob/master/bin/fresh-node16
 
 services:
 
   mediawiki-fresh:
-    image: "${MEDIAWIKI_FRESH_IMAGE:-docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s4}"
+    image: "${MEDIAWIKI_FRESH_IMAGE:-docker-registry.wikimedia.org/releng/node16-test-browser:0.1.0}"
     restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "sleep infinity"
