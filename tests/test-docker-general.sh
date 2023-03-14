@@ -136,6 +136,14 @@ test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-job
 test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " title='Testpage1'"
 test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " good"
 
+# image get/set/reset alters env
+test_command "./../bin/mw docker env has MEDIAWIKI_IMAGE" "var does not exist"
+test_command_success "./../bin/mw docker mediawiki image set foo"
+test_command "./../bin/mw docker mediawiki image get" "foo"
+test_command "./../bin/mw docker env has MEDIAWIKI_IMAGE" "var exists"
+test_command_success "./../bin/mw docker mediawiki image reset"
+test_command "./../bin/mw docker env has MEDIAWIKI_IMAGE" "var does not exist"
+
 # get the example skin using get-code
 # Remove it both before and after incase it is left and to avoid it being left in CI caches
 rm -rf ${MWDIR}/skins/Example
