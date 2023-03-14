@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	osexec "os/exec"
+	"strconv"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
@@ -124,6 +126,7 @@ func githubRemoteForExtension(extension string) string {
 }
 
 func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool) {
+	logrus.Trace("Cloning " + startRemote + " to " + directory + " and setting remote to " + endRemote + " (shallow: " + strconv.FormatBool(useShallow) + ")")
 	exec.RunTTYCommand(exec.Command(
 		"git",
 		gitCloneArguments(directory, startRemote, useShallow)...,
