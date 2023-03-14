@@ -21,6 +21,7 @@ func NewCmd() *cobra.Command {
 	}
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Service"
+	cmd.AddCommand(mwdd.NewImageCmd("keycloak"))
 	cmd.AddCommand(mwdd.NewServiceCreateCmd("keycloak", ""))
 	cmd.AddCommand(mwdd.NewServiceDestroyCmd("keycloak"))
 	cmd.AddCommand(mwdd.NewServiceStopCmd("keycloak"))

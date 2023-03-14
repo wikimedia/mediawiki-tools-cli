@@ -54,6 +54,7 @@ func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, text
 		cmd.Long = cli.RenderMarkdown(texts.Long)
 	}
 
+	cmd.AddCommand(NewImageCmdP(serviceName))
 	cmd.AddCommand(NewServiceCreateCmdP(serviceName, texts.OnCreate))
 	cmd.AddCommand(NewServiceDestroyCmdP(serviceName))
 	cmd.AddCommand(NewServiceStopCmdP(serviceName))
@@ -340,4 +341,51 @@ func NewWhereCmd(description string, pathProvider WherePathProvider) *cobra.Comm
 			fmt.Println(pathProvider())
 		},
 	}
+}
+
+func NewImageCmd(service string) *cobra.Command {
+	return NewImageCmdP(&service)
+}
+
+func NewImageCmdP(service *string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "image",
+		Short: "Interact with the image used for the service",
+	}
+
+	get := &cobra.Command{
+		Use:   "get",
+		Short: "Outputs the name of the image currently being used",
+		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			fmt.Println(DefaultForUser().DockerCompose().Config().Services[dereferencedService].Image)
+		},
+	}
+	cmd.AddCommand(get)
+
+	set := &cobra.Command{
+		Use:   "set",
+		Short: "Sets the image to use for the service as an overrides environemtn variable",
+		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			DefaultForUser().Env().Set(strings.ToUpper(dereferencedService)+"_IMAGE", args[0])
+		},
+	}
+	cmd.AddCommand(set)
+
+	reset := &cobra.Command{
+		Use:   "reset",
+		Args:  cobra.NoArgs,
+		Short: "Resets the image to use for the service to the default image specified in the docker-compose.yml file",
+		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			DefaultForUser().Env().Delete(strings.ToUpper(dereferencedService) + "_IMAGE")
+		},
+	}
+	cmd.AddCommand(reset)
+
+	return cmd
 }

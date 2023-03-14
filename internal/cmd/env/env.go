@@ -17,5 +17,6 @@ func Env(Short string, directory func() string) *cobra.Command {
 	cmd.AddCommand(envList(directory))
 	cmd.AddCommand(envWhere(directory))
 	cmd.AddCommand(envClear(directory))
+	cmd.AddCommand(envHas(directory))
 	return cmd
 }

@@ -32,6 +32,7 @@ func NewCmd() *cobra.Command {
 
 	cmd.AddCommand(NewWhereCmd())
 
+	cmd.AddCommand(mwdd.NewImageCmdP(&customName))
 	cmd.AddCommand(mwdd.NewServiceCreateCmdP(&customName, ""))
 	cmd.AddCommand(mwdd.NewServiceDestroyCmdP(&customName))
 	cmd.AddCommand(mwdd.NewServiceStopCmdP(&customName))

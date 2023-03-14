@@ -13,6 +13,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Development environment (`mw docker`):
   - Added a continious job runner, see `mediawiki jobrunner`
   - Added ability to use multiple `custom` service sets (T327069)
+  - Added `<service> image` commands for getting, setting and resetting an services image override (T330954 & T330955)
+  - Added `env has` command to check if an environment variable is set
   - Fixed a verbose error in `mediawiki doctor` when a site was inaccessible
 
 ## v0.21.0
