@@ -15,6 +15,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Added ability to use multiple `custom` service sets (T327069)
   - Added `<service> image` commands for getting, setting and resetting an services image override (T330954 & T330955)
   - Added `env has` command to check if an environment variable is set
+  - Updated `fresh` to use node 16 image. (T331993)
   - Fixed a verbose error in `mediawiki doctor` when a site was inaccessible
 
 ## v0.21.0
