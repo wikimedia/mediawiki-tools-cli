@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-# Can be used to invalidate the cache if you are making structural changes
-CACHE_KEY_DATE="20210809-04"
+# Weekly rotating cache key, to speed up CI, but not get too out of date...
+CURRENT_YEAR=$(date +%Y)
+CURRENT_WEEK=$(date +%V)
+CACHE_KEY_DATE="$CURRENT_YEAR-$CURRENT_WEEK"
 
 # Only re fetch MediaWiki if we don't already have it in the cache for this job
 if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
+  # Delete any previous cache
   rm -rf .mediawiki
 
   mkdir .mediawiki
