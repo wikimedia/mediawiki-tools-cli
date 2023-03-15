@@ -106,9 +106,10 @@ func NewMwCliCmd() *cobra.Command {
 }
 
 func wizardDevMode(c *config.Config) {
-	fmt.Println("\nYou need to choose a development environment mode in order to continue:")
-	fmt.Println(" - '" + config.DevModeMwdd + "' will provide advanced CLI tooling around a new mediawiki-docker-dev inspired development environment.")
-	fmt.Println("\nAs the only environment available currently, it will be set as your default dev environment (alias 'dev')")
+	// Don't bother outputting this for now, as we only have 1 dev mode
+	// fmt.Println("\nYou need to choose a development environment mode in order to continue:")
+	// fmt.Println(" - '" + config.DevModeMwdd + "' will provide advanced CLI tooling around a new mediawiki-docker-dev inspired development environment.")
+	// fmt.Println("\nAs the only environment available currently, it will be set as your default dev environment (alias 'dev')")
 
 	c.DevMode = config.DevModeMwdd
 }
