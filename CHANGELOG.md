@@ -13,6 +13,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Development environment (`mw docker`):
   - Added a continious job runner, see `mediawiki jobrunner`
   - Added ability to use multiple `custom` service sets (T327069)
+  - Added `mediawiki mwscript` command, as a shortcut to the new `maintenance/run.php` script in MediaWiki (T332209)
   - Added `<service> image` commands for getting, setting and resetting an services image override (T330954 & T330955)
   - Added `env has` command to check if an environment variable is set
   - Updated `fresh` to use node 16 image. (T331993)
