@@ -35,11 +35,26 @@ type CloneOpts = struct {
 func (m MediaWiki) CloneSetup(options CloneOpts) {
 	exitIfNoGit()
 
-	fmt.Println("Cloning repositories...")
-
 	// options.GetVector is deprecated, so shift its info into options.GetGerritSkins
 	if options.GetVector && !stringsutil.StringInSlice("Vector", options.GetGerritSkins) {
 		options.GetGerritSkins = append(options.GetGerritSkins, "Vector")
+	}
+
+	fmt.Println("Cloning repositories...")
+	if options.UseShallow {
+		fmt.Println("...using shallow clones...")
+	}
+	if options.UseGithub {
+		fmt.Println("...using Github for speed...")
+	}
+	if options.GetMediaWiki {
+		fmt.Println(" - MediaWiki core")
+	}
+	for _, extensionName := range options.GetGerritExtensions {
+		fmt.Println(" - Extension: " + extensionName)
+	}
+	for _, skinName := range options.GetGerritSkins {
+		fmt.Println(" - Skin: " + skinName)
 	}
 
 	if options.GetMediaWiki {

@@ -109,6 +109,7 @@ Or for the dev environment
 
 ```sh
 ./tests/test-docker-general.sh
+./tests/test-docker-get-code.sh
 ./tests/test-docker-mw-all-dbs.sh
 ./tests/test-docker-mw-mysql-cycle.sh
 ```
