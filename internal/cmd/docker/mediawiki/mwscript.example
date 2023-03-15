@@ -1,0 +1,4 @@
+mwscript                              # Runs run.php and outputs its help
+mwscript update                       # Runs the update script on the default wiki
+mwscript update -- --wiki two         # Runs the update script on the two wiki
+mwscript MW_DB=three update           # Runs the update script on the three wiki

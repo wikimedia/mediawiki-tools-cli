@@ -67,8 +67,25 @@ test_command_success "./bin/mw docker mysql create"
 test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
+# Also install a second site with a non default name
+test_command_success "./bin/mw docker mediawiki install --dbtype mysql --dbname second"
+# Update the hosts file again to include the new site
+if ./bin/mw docker hosts writable --no-interaction; then
+    test_command_success "./bin/mw docker hosts add --no-interaction"
+else
+    echo "sudo needed for hosts file modification!"
+    test_command_success "sudo -E ./bin/mw docker hosts add --no-interaction"
+fi
+test_curl http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+
 # Check the doctor
 test_command_success "./bin/mw docker mediawiki doctor"
+
+# Make sure that mwscript works as expected on the default and other sites
+test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
+test_command_success "./bin/mw docker mediawiki mwscript version"
+test_command_success "./bin/mw docker mediawiki mwscript MW_DB=second version"
+test_command_success "./bin/mw docker mediawiki mwscript version -- --wiki=second"
 
 # Make sure the shellbox service commands work
 # TODO text exec command
