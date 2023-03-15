@@ -10,6 +10,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added many `gerrit` command. See `mw gerrit --help` for more information.
   - Old gerrit commands based on ssh no longer exist, please use these new API based commands
   - `mw gerrit project current` is now `mw gerrit dotgitreview project`
+- Removed spam about "choose a development environment mode" as there is only currently 1 mode.
 - Development environment (`mw docker`):
   - Added a continious job runner, see `mediawiki jobrunner`
   - Added ability to use multiple `custom` service sets (T327069)
