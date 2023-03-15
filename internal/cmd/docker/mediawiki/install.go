@@ -302,7 +302,14 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 	}
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Core"
-	cmd.Flags().StringVarP(&DbName, "dbname", "", "default", "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
+
+	// Figure out the default DB name for the flag, as this is configurable in the .env file by users
+	defaultDbname := "default"
+	if mwdd.DefaultForUser().Env().Has("MEDIAWIKI_DEFAULT_DBNAME") {
+		defaultDbname = mwdd.DefaultForUser().Env().Get("MEDIAWIKI_DEFAULT_DBNAME")
+	}
+
+	cmd.Flags().StringVarP(&DbName, "dbname", "", defaultDbname, "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
 	cmd.Flags().StringVarP(&DbType, "dbtype", "", "", "Type of database to install (mysql, postgres, sqlite)")
 	return cmd
 }

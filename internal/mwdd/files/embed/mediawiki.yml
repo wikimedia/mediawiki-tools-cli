@@ -15,7 +15,8 @@ services:
      - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:delegated"
      - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
     environment:
-      # Used by various maintenance scripts to find MediaWiki.
+      - MW_DB_DEFAULT=${MEDIAWIKI_DEFAULT_DBNAME:-default}
+      # MW_INSTALL_PATH is used by various maintenance scripts to find MediaWiki.
       # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
       - MW_INSTALL_PATH=/var/www/html/w
       - COMPOSER_CACHE_DIR=/.composer/cache

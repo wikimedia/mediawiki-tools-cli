@@ -149,6 +149,8 @@ func NewCmd() *cobra.Command {
 	cmd.Annotations["group"] = "Core"
 
 	cmd.PersistentFlags().StringVarP(&mwdd.Context, "context", "c", defaultContext(), "The context to use")
+	// Parse PersistentFlags early so that the context is already known to other commands that are added
+	cmd.PersistentFlags().Parse(os.Args[1:])
 
 	if cli.MwddIsDevAlias {
 		cmd.Aliases = []string{"dev"}
