@@ -20,7 +20,8 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 # When used via CLI, use the default DB if no MW_DB is specified
 # Maintenance scripts with --wiki passed will set MW_DB
 if ( PHP_SAPI === 'cli' && getenv( 'MW_DB' ) === false ) {
-	putenv( 'MW_DB=default' );
+	// The default is configurable by users via .env, MW_DB_DEFAULT falls back to "default" by default
+	putenv( 'MW_DB=' . getenv( 'MW_DB_DEFAULT' ) );
 }
 if ( getenv( 'MW_DB' ) !== false && !defined( 'MW_DB' ) ) {
 	define( 'MW_DB', getenv( 'MW_DB' ) );

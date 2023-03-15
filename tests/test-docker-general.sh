@@ -62,13 +62,16 @@ test_command_success "./bin/mw docker env list"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
 # Install mysql & check
-# This used to use sqlite, but due to https://phabricator.wikimedia.org/T330940 mysql is needed for the browser tests to not error
+# These used to use sqlite, but due to https://phabricator.wikimedia.org/T330940 mysql is needed for the browser tests to not error
 test_command_success "./bin/mw docker mysql create"
 test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
 test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
-# Also install a second site with a non default name
-test_command_success "./bin/mw docker mediawiki install --dbtype mysql --dbname second"
+# Set the default dbname to something else, restarting the container
+test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME second"
+test_command_success "./bin/mw docker mediawiki create"
+# And install another site
+test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
 # Update the hosts file again to include the new site
 if ./bin/mw docker hosts writable --no-interaction; then
     test_command_success "./bin/mw docker hosts add --no-interaction"
@@ -78,14 +81,21 @@ else
 fi
 test_curl http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
+# Make sure that maintenance scripts run for the current default wiki dbname
+test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
+test_command_success "./bin/mw docker mediawiki mwscript version" # Runs on second
+test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default version" # Runs on default
+test_command_success "./bin/mw docker mediawiki mwscript version -- --wiki=default" # Runs on default
+# If we set to some random dbanme we get errors
+test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME nonexistent"
+test_command_success "./bin/mw docker mediawiki create"
+test_command "./bin/mw docker mediawiki mwscript version" "Unable to find database"
+# An reset eveyrthing to normal, so "default" is used
+test_command_success "./bin/mw docker env delete MEDIAWIKI_DEFAULT_DBNAME nonexistent"
+test_command_success "./bin/mw docker mediawiki create"
+
 # Check the doctor
 test_command_success "./bin/mw docker mediawiki doctor"
-
-# Make sure that mwscript works as expected on the default and other sites
-test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
-test_command_success "./bin/mw docker mediawiki mwscript version"
-test_command_success "./bin/mw docker mediawiki mwscript MW_DB=second version"
-test_command_success "./bin/mw docker mediawiki mwscript version -- --wiki=second"
 
 # Make sure the shellbox service commands work
 # TODO text exec command
