@@ -16,7 +16,7 @@ func NewMwddUpdateCmd() *cobra.Command {
 		Short: "Update running containers",
 		Run: func(cmd *cobra.Command, args []string) {
 			runningServices, runningServicesErr := mwdd.DefaultForUser().DockerCompose().ServicesWithStatus("running")
-			if runningServices != nil {
+			if runningServicesErr != nil {
 				logrus.Panic(runningServicesErr)
 			}
 			stoppedServices, stoppedServicesErr := mwdd.DefaultForUser().DockerCompose().ServicesWithStatus("stopped")
