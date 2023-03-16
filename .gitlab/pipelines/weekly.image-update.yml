@@ -9,6 +9,8 @@ image-update:
       - apt update
       - apt -y install git
     script:
+      - echo ${COMMAND}
+      - set -x
       - ${COMMAND}
       - git diff
       # https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html#bot-users-for-projects
