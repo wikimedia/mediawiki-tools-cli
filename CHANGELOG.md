@@ -19,7 +19,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Added `env has` command to check if an environment variable is set
   - Updated `fresh` to use node 16 image. (T331993)
   - Fixed a verbose error in `mediawiki doctor` when a site was inaccessible
-  - Images updates:
+  - Image updates:
+    - postgres from 13.9 to 13.10
     - docker-registry.wikimedia.org/releng/quibble-buster-php81 from 1.5.1 to 1.5.3
 
 ## v0.21.0
