@@ -131,6 +131,12 @@ test_command_success "./bin/mw docker shellbox media destroy"
 # SUGGEST cmd: mw docker shellbox timeline start: (end-to-end-test) End to end tests are suggested, none found
 # SUGGEST cmd: mw docker shellbox timeline stop: (end-to-end-test) End to end tests are suggested, none found
 
+# Make sure `docker update` works as expected
+test_command_success "./bin/mw docker shellbox media create"
+test_command_success "./bin/mw docker shellbox media stop"
+test_command_success "./bin/mw docker update"
+# TODO could make sure shellbox media is still stopped after the update..
+
 # cd to mediawiki
 cd .mediawiki
 

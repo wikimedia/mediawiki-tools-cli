@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.22.1
+
+- Fixed `mw docker update` which was panicing (T332336)
+
 ## v0.22.0
 
 - Added various boolean flags to `wiki page put` command (T331215)
