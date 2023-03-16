@@ -7,7 +7,7 @@ version: '3.7'
 
 services:
   shellbox-score: 
-    image: "${SHELLBOX_SCORE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2022-12-05-111819-score}"
+    image: "${SHELLBOX_SCORE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-03-12-165531-score}"
     restart: unless-stopped
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10

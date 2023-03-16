@@ -21,6 +21,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Fixed a verbose error in `mediawiki doctor` when a site was inaccessible
   - Images updates:
     - docker-registry.wikimedia.org/releng/quibble-buster-php81 from 1.5.1 to 1.5.3
+    - docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox image group to 2023-03-12-165531
 
 ## v0.21.0
 
