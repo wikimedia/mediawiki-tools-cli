@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/itchyny/gojq v0.12.12
 	github.com/joho/godotenv v1.5.1
-	github.com/mattn/go-isatty v0.0.17
+	github.com/mattn/go-isatty v0.0.18
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.15.1
 	github.com/rhysd/go-github-selfupdate v1.2.3
