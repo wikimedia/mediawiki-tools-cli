@@ -50,8 +50,8 @@ github.com/briandowns/spinner v1.18.1 h1:yhQmQtM1zsqFsouh09Bk/jCjd50pC3EOGsh28gL
 github.com/briandowns/spinner v1.18.1/go.mod h1:mQak9GHqbspjC/5iUx3qMlIho8xBS/ppAL/hX5SmPJU=
 github.com/charmbracelet/glamour v0.6.0 h1:wi8fse3Y7nfcabbbDuwolqTqMQPMnVPeZhDM273bISc=
 github.com/charmbracelet/glamour v0.6.0/go.mod h1:taqWV4swIMMbWALc0m7AfE9JkPSU8om2538k9ITBxOc=
-github.com/cli/cli/v2 v2.24.3 h1:e+K2whvcMarv7sbch0qhuEv7QS104ePxJkYpzjJzw2w=
-github.com/cli/cli/v2 v2.24.3/go.mod h1:PCJKSDgHgmDkWyJZ+KsPJC+5uEc9tlVopzbAnbdOssc=
+github.com/cli/cli/v2 v2.25.1 h1:4xwJfPeo/uNMSrL2aeFbzOUHVB6N6XJSuQyHEF0Dn9E=
+github.com/cli/cli/v2 v2.25.1/go.mod h1:PCJKSDgHgmDkWyJZ+KsPJC+5uEc9tlVopzbAnbdOssc=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
