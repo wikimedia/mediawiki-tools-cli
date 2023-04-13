@@ -7,7 +7,7 @@ version: '3.7'
 
 services:
   shellbox-media: 
-    image: "${SHELLBOX_MEDIA_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-03-12-165531-media}"
+    image: "${SHELLBOX_MEDIA_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-04-11-164715-media}"
     restart: unless-stopped
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
