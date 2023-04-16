@@ -51,13 +51,13 @@ imageGroups:
     images:
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-04-11-164715-media
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-03-12-165531-php-rpc
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-04-11-164715-php-rpc
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-03-12-165531-score
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-04-11-164715-score
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-03-12-165531-syntaxhighlight
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-04-11-164715-syntaxhighlight
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-03-12-165531-timeline
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-04-11-164715-timeline
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:
