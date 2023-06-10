@@ -37,6 +37,8 @@ test_command_success "./bin/mw docker env clear"
 MWDIR=$(pwd)/.mediawiki
 test_command_success "./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR} --no-interaction"
 
+cat /etc/hosts
+
 # Setup the default hosts in hosts file & clear previous env vars
 if ./bin/mw docker hosts writable --no-interaction; then
     test_command_success "./bin/mw docker hosts add --no-interaction"
@@ -44,6 +46,8 @@ else
     echo "sudo needed for hosts file modification!"
     test_command_success "sudo -E ./bin/mw docker hosts add --no-interaction"
 fi
+
+cat /etc/hosts
 
 # Create with  --no-interaction so a port is claimed
 test_command_success "./bin/mw docker mediawiki create"

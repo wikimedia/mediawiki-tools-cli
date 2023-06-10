@@ -36,6 +36,8 @@ cd ./.mediawiki
 
 test_command_success "./../bin/mw docker env clear"
 
+cat /etc/hosts
+
 # Setup the default hosts in hosts file
 if ./../bin/mw docker hosts writable --no-interaction; then
     test_command_success "./../bin/mw docker hosts add --no-interaction"
@@ -43,6 +45,8 @@ else
     echo "sudo needed for hosts file modification!"
     test_command_success "sudo -E ./../bin/mw docker hosts add --no-interaction"
 fi
+
+cat /etc/hosts
 
 # Create, from the mediawiki dir, to allow --no-interaction to detect the existing mediawiki directory, setting the volume path
 test_command_success "./../bin/mw docker mediawiki create --no-interaction"
