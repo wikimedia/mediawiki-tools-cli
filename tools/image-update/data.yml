@@ -8,7 +8,7 @@ images:
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1
   # docker dev env: Misc services
-  - image: postgres:13.10
+  - image: postgres:13.11
     requireRegex: 13\.\d+$
   - image: mariadb:10.9
     requireRegex: 10\.\d+$
