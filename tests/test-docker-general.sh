@@ -63,9 +63,6 @@ PORT=$(./bin/mw docker env get PORT)
 test_command_success "./bin/mw docker docker-compose ps"
 test_command_success "./bin/mw docker env list"
 
-echo "Sleeping for 60 mins..."
-sleep 60m
-
 test_wget http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
 # Install mysql & check
