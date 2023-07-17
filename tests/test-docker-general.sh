@@ -66,13 +66,13 @@ test_command_success "./bin/mw docker env list"
 echo "Sleeping for 60 mins..."
 sleep 60m
 
-test_curl http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
+test_wget http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
 # Install mysql & check
 # These used to use sqlite, but due to https://phabricator.wikimedia.org/T330940 mysql is needed for the browser tests to not error
 test_command_success "./bin/mw docker mysql create"
 test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
-test_curl http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_wget http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
 # Set the default dbname to something else, restarting the container
 test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME second"
@@ -86,7 +86,7 @@ else
     echo "sudo needed for hosts file modification!"
     test_command_success "sudo -E ./bin/mw docker hosts add --no-interaction"
 fi
-test_curl http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_wget http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
 # Make sure that maintenance scripts run for the current default wiki dbname
 test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
