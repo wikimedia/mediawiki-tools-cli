@@ -10,7 +10,7 @@ images:
   # docker dev env: Misc services
   - image: postgres:13.11
     requireRegex: 13\.\d+$
-  - image: mariadb:10.9
+  - image: mariadb:10.11
     requireRegex: 10\.\d+$
   - image: phpmyadmin/phpmyadmin:5
     noCheck: true
