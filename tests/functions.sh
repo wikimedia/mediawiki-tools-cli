@@ -16,12 +16,12 @@ test_file_contains() {
     fi
 }
 
-test_curl() {
+test_wget() {
     url=$1
     expected_match=$2
     set +e
-    CURL=$(curl -v -L -N --no-progress-meter --retry 2 $url)
-    echo "$CURL" | grep -q "$expected_match"
+    WGET=$(wget -qO- $url)
+    echo "$WGET" | grep -q "$expected_match"
     RESULT=$?
     set -e
     if [ $RESULT -eq 0 ]; then
@@ -29,7 +29,7 @@ test_curl() {
     else
         printf "${RED}FAIL:${NC} $url does not contain \"$expected_match\"\n"
         echo "Raw response was..."
-        echo "$CURL"
+        echo "$WGET"
         return 1
     fi
 }
