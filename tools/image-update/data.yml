@@ -4,7 +4,7 @@ images:
   - image: jwilder/nginx-proxy:0.10
   # docker dev env: MediaWiki related services
   - image: docker-registry.wikimedia.org/releng/node16-test-browser:0.1.0
-  - image: docker-registry.wikimedia.org/releng/quibble-buster-php81:1.5.3
+  - image: docker-registry.wikimedia.org/releng/quibble-buster-php81:1.5.5
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1
   # docker dev env: Misc services
