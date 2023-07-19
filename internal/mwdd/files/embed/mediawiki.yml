@@ -31,7 +31,7 @@ services:
       - dps
 
   mediawiki-web:
-    image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s1}"
+    image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s2}"
     restart: unless-stopped
     volumes:
      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
