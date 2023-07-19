@@ -23,6 +23,6 @@ rm -f .mediawiki/LocalSettings.php
 echo "<?php" >> .mediawiki/LocalSettings.php
 echo "//require_once "$IP/includes/PlatformSettings.php";" >> .mediawiki/LocalSettings.php
 echo "require_once '/mwdd/MwddSettings.php';" >> .mediawiki/LocalSettings.php
-echo "error_reporting(error_reporting() & ~E_DEPRECATED);" >> .mediawiki/LocalSettings.php
+echo "error_reporting(error_reporting() & ~(E_WARNING | E_DEPRECATED));" >> .mediawiki/LocalSettings.php
 
 set +e
