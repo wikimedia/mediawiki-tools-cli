@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.23.0
+
+- Development environment (`mw docker`):
+  - Image updates:
+    - mariadb from 10.9 to 10.11
+    - postgres from 13.10 to 13.11
+    - releng/node16-test-browser from 0.1.0 to 0.2.0
+    - releng/quibble-buster-php81 from 1.5.3 to 1.5.5
+    - dev/buster-php81-fpm from 1.0.0 to 1.0.1
+    - dev/buster-apache2 from 2.0.0-s1 to 2.0.0-s2
+    - wikimedia/eventgate-wikimedia from 2023-02-14-162241-production to 2023-06-22-124213-production
+    - wikimedia/mediawiki-libs-shellbox from 2023-03-12-165531 to 2023-05-01-213815
+
 ## v0.22.1
 
 - Fixed `mw docker update` which was panicing (T332336)
