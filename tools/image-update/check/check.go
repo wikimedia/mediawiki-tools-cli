@@ -85,7 +85,7 @@ func main() {
 	}
 
 	for _, imageGroup := range data.ImageGroups {
-		groupOutputCommands := []string{}
+		imageUpdatePairs := []string{}
 		oneNewtag := true
 		newTag := ""
 		for _, imageData := range imageGroup.Images {
@@ -102,7 +102,7 @@ func main() {
 
 			if len(tagsOfInterest) > 0 {
 				lastTag := tagsOfInterest[len(tagsOfInterest)-1]
-				groupOutputCommands = append(groupOutputCommands, fmt.Sprintf("go run tools/image-update/update/update.go %s %s", image, imageName+":"+lastTag))
+				imageUpdatePairs = append(imageUpdatePairs, image, imageName+":"+lastTag)
 
 				r := regexp.MustCompile(imageGroup.SameTagMatcher)
 				regexSplit := r.FindStringSubmatch(lastTag)
@@ -115,7 +115,7 @@ func main() {
 				result.NoNewTags = append(result.NoNewTags, imageData)
 			}
 		}
-		if len(groupOutputCommands) > 0 {
+		if len(imageUpdatePairs) > 0 {
 			description := ""
 			if oneNewtag {
 				description = fmt.Sprintf("Bump %s image group to %s", imageGroup.Name, newTag)
@@ -126,7 +126,7 @@ func main() {
 			result.Commands = append(result.Commands, CommandToRun{
 				Name:        imageGroup.Name,
 				Description: description,
-				Command:     strings.Join(groupOutputCommands, " && "),
+				Command:     "go run tools/image-update/update/update.go " + strings.Join(imageUpdatePairs, " "),
 			})
 		}
 	}
