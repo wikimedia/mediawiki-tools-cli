@@ -40,6 +40,7 @@ func NewMediaWikiCmd() *cobra.Command {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Allways run the root level PersistentPreRun first
 			findParentCommandWithUse(cmd, "mw").PersistentPreRun(cmd, args)
+			findParentCommandWithUse(cmd, "docker").PersistentPreRun(cmd, args)
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
 
