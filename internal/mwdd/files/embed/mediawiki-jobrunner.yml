@@ -4,7 +4,7 @@ services:
 
   mediawiki-jobrunner:
     # TODO FIXME this is the same as mediawiki just with a different entrypoint, can the definition be reused?
-    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.0}"
+    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.1}"
     restart: unless-stopped
     entrypoint: "/mwdd/entrypoint-jobrunner.sh"
     volumes:
