@@ -21,21 +21,28 @@ type Data struct {
 }
 
 func main() {
-	find := os.Args[1]
-	replace := os.Args[2]
-	data := getData()
+	while := true
+	for i := 1; while; i += 2 {
+		if len(os.Args) < i+2 {
+			while = false
+			continue
+		}
+		find := os.Args[i]
+		replace := os.Args[i+1]
+		data := getData()
 
-	fmt.Println("Replacing: " + find)
-	fmt.Println("With: " + replace)
-	fmt.Println("In files and directories defined in data.yml")
+		fmt.Println("Replacing: " + find)
+		fmt.Println("With: " + replace)
+		fmt.Println("In files and directories defined in data.yml")
 
-	for _, v := range data.Directories {
-		replaceInDirectory(v, find, replace)
+		for _, v := range data.Directories {
+			replaceInDirectory(v, find, replace)
+		}
+		for _, v := range data.Files {
+			replaceInFile(v, find, replace)
+		}
+		replaceInFile("tools/image-update/data.yml", find, replace)
 	}
-	for _, v := range data.Files {
-		replaceInFile(v, find, replace)
-	}
-	replaceInFile("tools/image-update/data.yml", find, replace)
 }
 
 func replaceInDirectory(dirPath string, find string, replace string) {

@@ -20,6 +20,12 @@ Those commands will use `update.go`, and look something like this:
 go run ./tools/image-update/update/update.go <old image> <new image>
 ```
 
+Multiple pairs of finds and replaces can be passed to `update.go` at once.
+
+```sh
+go run ./tools/image-update/update/update.go <old image 1> <new image 1> <old image 2> <new image 2>
+```
+
 These commands are also written to a file for convenience...
 
 ```
