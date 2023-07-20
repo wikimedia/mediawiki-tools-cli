@@ -7,6 +7,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.23.0
 
 - Development environment (`mw docker`):
+  - Fix automatic setting of `PORT` and `NETWORK_SUBNET_PREFIX` on `docker mediawiki *` commands (T338235)
   - Image updates:
     - mariadb from 10.9 to 10.11
     - postgres from 13.10 to 13.11
