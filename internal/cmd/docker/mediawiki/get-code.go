@@ -94,6 +94,12 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				// TODO implement cloning of more skins and extensions in the wizard..
 				fmt.Println("If you want to clone more skins and extensions please use the --skin and --extension options...")
 
+				// If nothing to do, bail
+				if !cloneOpts.GetMediaWiki && !cloneOpts.GetVector && len(cloneOpts.GetGerritExtensions) == 0 && len(cloneOpts.GetGerritSkins) == 0 {
+					fmt.Println("Nothing to do")
+					os.Exit(0)
+				}
+
 				finalRemoteType := ""
 				prompt3 := &survey.Select{
 					Message: "How do you want to interact with Gerrit for the cloned repositores?",
