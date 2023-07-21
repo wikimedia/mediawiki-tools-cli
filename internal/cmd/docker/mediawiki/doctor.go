@@ -42,7 +42,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 
 			if len(m.SkinsCheckedOut()) == 0 || !strings.Contains(m.LocalSettingsContents(), "wfLoadSkin") {
 				logrus.Warn("⚠️ You have no skins checked out or loaded in LocalSettings.php")
-				logrus.Warn("✨ You can check the Vector skin with `mw docker mediawiki get-code --skin Vector`")
+				logrus.Warn("✨ You can checkout the Vector skin with `mw docker mediawiki get-code --skin Vector`")
 			} else {
 				logrus.Info("✅ A Skin is checked out and loaded in LocalSettings.php")
 			}
