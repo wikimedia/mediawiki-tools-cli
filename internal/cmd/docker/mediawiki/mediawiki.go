@@ -102,7 +102,7 @@ func NewMediaWikiCmd() *cobra.Command {
 				mediawiki, _ := mediawiki.ForDirectory(mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 				if !mediawiki.MediaWikiIsPresent() || !mediawiki.VectorIsPresent() {
 					fmt.Println("MediaWiki or Vector is not present in the code directory")
-					fmt.Println("You can clone them manually or use `mw docker mediawiki get-code")
+					fmt.Println("You can clone them manually or use `mw docker mediawiki get-code`")
 					os.Exit(1)
 				}
 			}
