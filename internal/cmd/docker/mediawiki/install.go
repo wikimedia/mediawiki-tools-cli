@@ -70,7 +70,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						fmt.Println(err)
 						return
 					}
-					settingsStringToWrite := "<?php\n//require_once \"$IP/includes/PlatformSettings.php\";\nrequire_once '/mwdd/MwddSettings.php';\n"
+					settingsStringToWrite := "<?php\nrequire_once '/mwdd/MwddSettings.php';\n"
 					if mediawiki.VectorIsPresent() {
 						settingsStringToWrite += "\nwfLoadSkin('Vector');\n"
 					}
