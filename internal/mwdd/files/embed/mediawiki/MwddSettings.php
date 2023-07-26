@@ -63,7 +63,8 @@ $dockerServices = [
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 	'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
-	'shellbox-media' => gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ),
+	'shellbox-media' => ( gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ) )
+		? 'http://shellbox-media-httpd:8000' : false,
 	'shellbox-php-rpc' => gethostbyname('shellbox-php-rpc') !== 'shellbox-php-rpc' && !defined( 'MW_PHPUNIT_TEST' ),
 	'shellbox-score' => gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ),
 	'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
@@ -254,6 +255,9 @@ if(gethostbyname('graphite') !== 'graphite') {
 ################################
 # Shellboxes
 ################################
+if(isset($_SERVER['SHELLBOX_SECRET_KEY'])) {
+	$wgShellboxSecretKey = $_SERVER['SHELLBOX_SECRET_KEY'];
+}
 if($dockerServices['shellbox-media']) {
 	$wgShellboxUrls['pagedtiffhandler'] = $dockerServices['shellbox-media'];
 	$wgShellboxUrls['pdfhandler'] = $dockerServices['shellbox-media'];
