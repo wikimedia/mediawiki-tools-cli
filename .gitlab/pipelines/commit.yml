@@ -137,9 +137,6 @@ build-docs:
     needs: [build,integration]
     cache: {}
     image: golang:1.18
-    tags:
-    # mwcli while https://phabricator.wikimedia.org/T329216 is open
-    - mwcli
     before_script:
       - apt update
       - apt -y install pandoc
@@ -170,9 +167,6 @@ release-upload:
   dependencies:
     - release-build
   image: ubuntu:latest
-  tags:
-  # mwcli while https://phabricator.wikimedia.org/T329216 is open
-  - mwcli
   before_script:
     - apt update
     - apt -y install curl
@@ -210,9 +204,6 @@ release-docs:
     needs: [release-publish]
     cache: {}
     image: golang:1.18
-    tags:
-    # mwcli while https://phabricator.wikimedia.org/T329216 is open
-    - mwcli
     before_script:
       - apt update
       - apt -y install pandoc

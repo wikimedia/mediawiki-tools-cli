@@ -2,9 +2,6 @@ image-update-build:
     stage: build
     cache: {}
     image: golang:1.18
-    tags:
-    # mwcli while https://phabricator.wikimedia.org/T329216 is open
-    - mwcli
     script:
        - go run ./tools/image-update/check/check.go
        - cp .gitlab/pipelines/weekly.image-update.yml .gitlab/pipelines/weekly.image-update.generated.yml
