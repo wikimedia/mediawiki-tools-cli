@@ -7,9 +7,33 @@ version: '3.7'
 
 services:
   shellbox-media: 
-    image: "${SHELLBOX_MEDIA_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-05-01-213815-media}"
+    build: ./shellbox/media
     restart: unless-stopped
+    volumes:
+      - shellbox-media-run:/run/shared
+      - ./shellbox/media/config.json:/srv/app/config/config.json:ro
+    environment:
+      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
+      - "FCGI_MODE=FCGI_UNIX"
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
+
+  shellbox-media-httpd:
+    image: docker-registry.wikimedia.org/httpd-fcgi:latest
+    volumes:
+      - shellbox-media-run:/run/shared
+    environment:
+      - "FCGI_MODE=FCGI_UNIX"
+      - "SERVERGROUP=main"
+      - "APACHE_RUN_PORT=8000"
+    depends_on:
+      - shellbox-media
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  shellbox-media-run:
