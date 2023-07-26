@@ -1,0 +1,54 @@
+---
+version: '3.7'
+services:
+  wdqs:
+    image: "wikibase/wdqs:0.3.121-wmde.11"
+    restart: unless-stopped
+    command: /runBlazegraph.sh
+    volumes:
+      - query-service-data:/wdqs/data
+    depends_on:
+      - dps
+      - nginx-proxy
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+    environment:
+      - WIKIBASE_HOST=default.mediawiki.mwdd.localhost
+      - WIKIBASE_PORT=8080
+      - WDQS_HOST=wdqs
+      - WDQS_PORT=9999
+    expose:
+      - 9999
+
+  wdqs-proxy:
+    image: "wikibase/wdqs-proxy:wmde.11"
+    restart: unless-stopped
+    environment:
+      - PROXY_PASS_HOST=wdqs:9999
+    depends_on:
+      - wdqs
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+  wdqs-updater:
+    image: "wikibase/wdqs:0.3.121-wmde.11"
+    restart: unless-stopped
+    command: /runUpdate.sh
+    depends_on:
+      - mediawiki
+      - wdqs
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+    environment:
+      - WIKIBASE_HOST=default.mediawiki.mwdd.localhost:8080
+      - WDQS_HOST=wdqs
+      - WDQS_PORT=9999
+
+volumes:
+  query-service-data:

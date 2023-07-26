@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs"
 	"math/rand"
 	"os"
 	"strconv"
@@ -186,6 +187,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(keycloak.NewCmd())
 	cmd.AddCommand(shellbox.NewCmd())
 	cmd.AddCommand(redis.NewCmd())
+	cmd.AddCommand(wdqs.NewCmd())
 	cmd.AddCommand(custom.NewCmd())
 
 	return cmd
