@@ -23,6 +23,8 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/mysqlreplica"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/redis"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/shellbox"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs"
+	wdqsUi "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs-ui"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/env"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -186,6 +188,8 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(keycloak.NewCmd())
 	cmd.AddCommand(shellbox.NewCmd())
 	cmd.AddCommand(redis.NewCmd())
+	cmd.AddCommand(wdqs.NewCmd())
+	cmd.AddCommand(wdqsUi.NewCmd())
 	cmd.AddCommand(custom.NewCmd())
 
 	return cmd

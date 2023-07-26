@@ -46,3 +46,5 @@
 ./shellbox/media/Dockerfile
 ./shellbox/media/config.json
 ./wait-for-it.sh
+./wdqs-ui.yml
+./wdqs.yml

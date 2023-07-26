@@ -8,6 +8,13 @@ images:
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.1
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.0-s2
   # docker dev env: Misc services
+  # TODO: make wdqs images work with semver
+  - image: wikibase/wdqs-frontend:wmde.11
+    noCheck: true
+  - image: wikibase/wdqs:0.3.121-wmde.11
+    noCheck: true
+  - image: wikibase/wdqs-proxy:wmde.11
+    noCheck: true
   - image: postgres:13.11
     requireRegex: 13\.\d+$
   - image: mariadb:10.11

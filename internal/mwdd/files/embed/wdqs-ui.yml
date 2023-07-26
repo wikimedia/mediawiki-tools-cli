@@ -1,0 +1,20 @@
+---
+version: '3.7'
+services:
+  wdqs-ui:
+    image: "wikibase/wdqs-frontend:wmde.11"
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=wdqs-ui.mwdd.localhost,wdqs-ui.mwdd
+      - DEFAULT_EXPOSE_PORT=80
+      - WIKIBASE_HOST=default.mediawiki.mwdd.localhost
+      - WIKIBASE_PORT=8080
+      - WDQS_HOST=wdqs-proxy
+    depends_on:
+      - dps
+      - nginx-proxy
+      - wdqs-proxy
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
