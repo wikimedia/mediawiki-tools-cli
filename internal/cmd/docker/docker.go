@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs"
+	wdqsUi "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs-ui"
 	"math/rand"
 	"os"
 	"strconv"
@@ -188,6 +189,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(shellbox.NewCmd())
 	cmd.AddCommand(redis.NewCmd())
 	cmd.AddCommand(wdqs.NewCmd())
+	cmd.AddCommand(wdqsUi.NewCmd())
 	cmd.AddCommand(custom.NewCmd())
 
 	return cmd

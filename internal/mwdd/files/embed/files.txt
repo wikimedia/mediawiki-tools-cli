@@ -44,4 +44,5 @@
 ./shellbox-syntaxhighlight.yml
 ./shellbox-timeline.yml
 ./wait-for-it.sh
+./wdqs-ui.yml
 ./wdqs.yml
