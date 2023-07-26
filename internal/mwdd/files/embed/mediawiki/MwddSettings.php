@@ -13,6 +13,8 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit;
 }
 
+require_once "$IP/includes/PlatformSettings.php";
+
 ################################
 # MWDD Setup
 ################################
