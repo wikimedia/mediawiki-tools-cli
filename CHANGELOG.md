@@ -7,8 +7,12 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.23.0
 
 - Development environment (`mw docker`):
+  - Added `wdqs` and `wdqs-ui` services (T292900)
+  - Added a require of `PlatformSettings.php` within the development environment settings file
+    - You no longer need to have a commented out `PlatformSettings.php` require line in your LocalSettings.php
+  - Improved `get-code` command to exit early if there is nothing to do (T342393)
   - Fix automatic setting of `PORT` and `NETWORK_SUBNET_PREFIX` on `docker mediawiki *` commands (T338235)
-  - Imrpoved `get-code` command to exit early if there is nothing to do (T342393)
+  - Fix shellbox-media access from mediawiki (T333183)
   - Image updates:
     - mariadb from 10.9 to 10.11
     - postgres from 13.10 to 13.11
