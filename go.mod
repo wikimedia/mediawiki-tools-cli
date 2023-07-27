@@ -11,7 +11,7 @@ require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/glamour v0.6.0
-	github.com/cli/cli/v2 v2.25.1
+	github.com/cli/cli/v2 v2.32.1
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/fatih/color v1.15.0
 	github.com/hashicorp/go-version v1.6.0
@@ -37,10 +37,10 @@ require (
 require (
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/danieljoos/wincred v1.1.2 // indirect
+	github.com/danieljoos/wincred v1.2.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
-	github.com/zalando/go-keyring v0.2.2 // indirect
+	github.com/zalando/go-keyring v0.2.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
