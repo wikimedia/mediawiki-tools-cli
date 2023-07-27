@@ -1,5 +1,5 @@
-cgt.name/pkg/go-mwclient v1.2.0 h1:/ZMVH+wF62ITK0Uj1KnM1tPtE/AXYQabXe2cTA6JGSQ=
-cgt.name/pkg/go-mwclient v1.2.0/go.mod h1:sxgLqpaVbtOhM1KiAUPkkRdsE6au+E64Bq9a2GyAQdU=
+cgt.name/pkg/go-mwclient v1.3.0 h1:8PtOxq+aL4wtyLZXHPImpNtUioFq/DxBwae2C44j2gE=
+cgt.name/pkg/go-mwclient v1.3.0/go.mod h1:X1auRhzIA0Bz5Yx7Yei29vUqr/Ju+r8IWudnJmmAG30=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
