@@ -19,7 +19,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/muesli/termenv v0.15.1
+	github.com/muesli/termenv v0.15.2
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.1.0
 	github.com/schollz/progressbar/v3 v3.13.1
