@@ -50,7 +50,7 @@ images:
   - image: docker-registry.wikimedia.org/httpd-fcgi:latest
     noCheck: true
   # Golang CI images
-  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230129
+  - image: docker-registry.wikimedia.org/golang1.18:1.18-1-20230723
   - image: golang:1.18
     noCheck: true
 imageGroups:
