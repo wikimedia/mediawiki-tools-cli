@@ -212,7 +212,6 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "name", cmdFlags.name)
 
 			client := authenticatedClient()
 			response, err := client.Call("PUT", path, cmdFlags.name, nil)
@@ -323,7 +322,6 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/accounts/{account-id}/status/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "status", cmdFlags.status)
 
 			client := authenticatedClient()
 			response, err := client.Call("PUT", path, cmdFlags.status, nil)
@@ -402,7 +400,6 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/accounts/{account-id}/username/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "username", cmdFlags.username)
 
 			client := authenticatedClient()
 			response, err := client.Call("PUT", path, cmdFlags.username, nil)
@@ -448,7 +445,6 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/accounts/{account-id}/displayname/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "displayname", cmdFlags.displayname)
 
 			client := authenticatedClient()
 			response, err := client.Call("PUT", path, cmdFlags.displayname, nil)

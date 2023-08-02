@@ -139,6 +139,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 		for _, flag := range c.StringFlags {
 			if flag.Body {
 				body = jen.Id("cmdFlags").Dot(flag.Name)
+				continue
 			}
 			lookFor := flag.Name
 			if flag.GerritParam != "" {
