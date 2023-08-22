@@ -11,7 +11,7 @@ require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/glamour v0.6.0
-	github.com/cli/cli/v2 v2.32.1
+	github.com/cli/cli/v2 v2.33.0
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/fatih/color v1.15.0
 	github.com/hashicorp/go-version v1.6.0

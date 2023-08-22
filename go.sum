@@ -94,8 +94,8 @@ github.com/charmbracelet/glamour v0.6.0/go.mod h1:taqWV4swIMMbWALc0m7AfE9JkPSU8o
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
-github.com/cli/cli/v2 v2.32.1 h1:Yda4g2mMzM0ijK3kpzxAlCDrKM2S3EY3jTpgAcfnmdg=
-github.com/cli/cli/v2 v2.32.1/go.mod h1:miPtgEmgzxcTvjrq8XZ32VvQO6eKr7lCI8fx13L//64=
+github.com/cli/cli/v2 v2.33.0 h1:k64fxtsnhFzVQtMfNw+UgHwyaPaVka6aDWvberKN45c=
+github.com/cli/cli/v2 v2.33.0/go.mod h1:ISe74MoEosR0o5rKdiD4hTWzSvy0KoQt/tghxXpU8cI=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
