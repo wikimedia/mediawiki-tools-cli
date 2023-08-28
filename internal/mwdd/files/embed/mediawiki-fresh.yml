@@ -6,7 +6,7 @@ version: '3.7'
 services:
 
   mediawiki-fresh:
-    image: "${MEDIAWIKI_FRESH_IMAGE:-docker-registry.wikimedia.org/releng/node16-test-browser:0.2.0}"
+    image: "${MEDIAWIKI_FRESH_IMAGE:-docker-registry.wikimedia.org/releng/node16-test-browser:0.2.1}"
     restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "sleep infinity"
