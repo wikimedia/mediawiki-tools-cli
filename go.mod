@@ -29,7 +29,7 @@ require (
 	github.com/txn2/txeh v1.5.3
 	github.com/xanzy/go-gitlab v0.83.0
 	gitlab.com/gitlab-org/cli v1.31.0
-	golang.org/x/term v0.11.0
+	golang.org/x/term v0.12.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -125,7 +125,7 @@ require (
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
