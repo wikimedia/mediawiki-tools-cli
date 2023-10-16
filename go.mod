@@ -26,6 +26,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/testify v1.8.4
 	github.com/txn2/txeh v1.5.3
 	github.com/xanzy/go-gitlab v0.83.0
 	gitlab.com/gitlab-org/cli v1.31.0
@@ -38,8 +39,10 @@ require (
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/danieljoos/wincred v1.2.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/zalando/go-keyring v0.2.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

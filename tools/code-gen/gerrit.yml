@@ -173,22 +173,26 @@
               gerrit-param: account-id
           gerrit-path: /accounts/{account-id}/active/
           http-method: DELETE
-    # # TODO make this work, needs to be able to write a JSON body
-    # - use: http-password
-    #   short: Account HTTP password
-    #   sub-commands:
-    #     - use: generate
-    #       aliases:
-    #         - set
-    #       # TODO could add http_password param, but its only availbile to admins anyway..
-    #       short: Sets/Generates the account HTTP password
-    #       string-flags:
-    #         - name: account
-    #           required: true
-    #           usage: The account to get.
-    #           gerrit-param: account-id
-    #       gerrit-path: /accounts/{account-id}/password.http/
-    #       http-method: PUT
+    - use: http-password
+      short: Account HTTP password
+      sub-commands:
+        - use: generate
+          aliases:
+            - set
+          # TODO could add http_password param, but its only availbile to admins anyway..
+          short: Sets/Generates the account HTTP password
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+          - name: input
+            required: true
+            usage: a HttpPasswordInput entity
+            content-type: application/json
+          gerrit-path: /accounts/{account-id}/password.http/
+          http-method: PUT
     # TODO add http-password DELETE
     - use: oauthtoken
       short: OAuth access token.
@@ -316,7 +320,6 @@
           http-method: DELETE
     - use: gpgkeys
       short: GPG keys of an account.
-      # TODO add GPG keys (needs body json)
       sub-commands:
         - use: list
           short: Returns the GPG keys of an account.
@@ -338,6 +341,19 @@
               usage: The GPG key to get.
               gerrit-param: gpg-key-id
           gerrit-path: /accounts/{account-id}/gpgkeys/{gpg-key-id}/
+        - use: alter
+          short: Add or remove multiple GPG keys
+          gerrit-path: /accounts/{account-id}/gpgkeys/
+          http-method: POST
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+            - name: input
+              required: true
+              usage: a GpgKeysInput entity
         - use: delete
           short: Deletes the GPG key specified.
           string-flags:
@@ -409,7 +425,6 @@
     - use: preferences
       short: Retrieves the user’s preferences.
       sub-commands:
-        # TODO setting preferences requires JSON bodies to work
         - use: get
           short: Retrieves the user’s preferences.
           string-flags:
@@ -418,6 +433,20 @@
             usage: The account to get.
             gerrit-param: account-id
           gerrit-path: /accounts/{account-id}/preferences/
+        - use: set
+          short: Sets the user’s preferences.
+          string-flags:
+          - name: account
+            required: true
+            usage: The account to get.
+            gerrit-param: account-id
+          body-flags:
+          - name: preferences
+            required: true
+            usage: The preferences to set.
+            content-type: application/json
+          gerrit-path: /accounts/{account-id}/preferences/
+          http-method: PUT
         - use: get-diff
           short: Retrieves the user’s diff preferences.
           string-flags:
@@ -436,8 +465,6 @@
           gerrit-path: /accounts/{account-id}/preferences.edit/
     - use: watched-projects
       short: Projects a user is watching.
-      # TODO Add/Update a List of Watched Project Entities requires JSON bodies
-      # TODO delete watched projects requires json bodies
       sub-commands:
         - use: list
           short: Lists the projects a user is watching.
@@ -447,9 +474,36 @@
               usage: The account to get.
               gerrit-param: account-id
           gerrit-path: /accounts/{account-id}/watched.projects/
+        - use: update
+          aliases: 
+            - add
+          short: Add or update projects a user is watching
+          gerrit-path: /accounts/{account-id}/watched.projects/
+          http-method: POST
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+            - name: input
+              required: true
+              usage: ProjectWatchInfo entities
+        - use: delete
+          short: Deletes a projects a user is watching
+          gerrit-path: /accounts/{account-id}/watched.projects:delete/
+          http-method: POST
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+            - name: input
+              required: true
+              usage: ProjectWatchInfo entities
     - use: external-ids
       short: External ids of a user account.
-      # TODO Delete Account External IDs requires json bodies
       sub-commands:
         - use: list
           short: Lists the external ids of a user account.
@@ -459,9 +513,21 @@
               usage: The account to get.
               gerrit-param: account-id
           gerrit-path: /accounts/{account-id}/external.ids/
+        - use: delete
+          short: Delete external ids of a user accounts.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+            - name: external-ids
+              required: true
+              usage: external ids as a list
+          gerrit-path: /accounts/{account-id}/external.ids:delete/
+          http-method: POST
     - use: agreements
       short: User’s signed contributor agreements.
-      # TODO Sign Contributor Agreement requires json bodies
       sub-commands:
         - use: list
           short: Lists the user’s signed contributor agreements.
@@ -471,7 +537,35 @@
               usage: The account to get.
               gerrit-param: account-id
           gerrit-path: /accounts/{account-id}/agreements/
-    # TODO Delete Draft Comments requires json bodies
+        - use: sign
+          short: Signs a contributor agreement.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+            - name: input
+              required: true
+              usage: a ContributorAgreementInput entity
+          gerrit-path: /accounts/{account-id}/agreements/
+          http-method: PUT
+    - use: draft-comments
+      short: Users draft Comments
+      sub-commands:
+        - use: delete
+          short: Deletes the user’s draft comments.
+          string-flags:
+            - name: account
+              required: true
+              usage: The account to get.
+              gerrit-param: account-id
+          body-flags:
+            - name: input
+              required: true
+              usage: a DeleteDraftCommentsInput entity
+          gerrit-path: /accounts/{account-id}/drafts:delete/
+          http-method: POST
     - use: starred-changes
       short: Users starred.changes
       sub-commands:
@@ -985,7 +1079,7 @@
       http-method: POST
 - use: server
   short: Server Config Endpoints
-  # TODO most PUT POST DELETE endpoints from https://gerrit-review.googlesource.com/Documentation/rest-api-config.html
+  # TODO most\ POST DELETE endpoints from https://gerrit-review.googlesource.com/Documentation/rest-api-config.html
   sub-commands:
     - use: version
       short: Server Version
@@ -1013,13 +1107,54 @@
       sub-commands:
         - use: user
           short: Server user preferences
-          gerrit-path: /config/server/preferences/
+          sub-commands:
+            - use: get
+              short: Retrieves the default user preferences.
+              gerrit-path: /config/server/preferences/
+            - use: set
+              short: Sets the default user preferences.
+              gerrit-path: /config/server/preferences/
+              http-method: PUT
+              body-flags:
+                - name: preferences
+                  required: true
+                  usage: The preferences to set.
         - use: diff
           short: Server diff preferences
-          gerrit-path: /config/server/preferences.diff/
+          sub-commands:
+            - use: get
+              short: Retrieves the default diff preferences.
+              gerrit-path: /config/server/preferences.diff/
+            - use: set
+              short: Sets the default diff preferences.
+              gerrit-path: /config/server/preferences.diff/
+              http-method: PUT
+              body-flags:
+                - name: preferences
+                  required: true
+                  usage: The preferences to set.
         - use: edit
           short: Server edit preferences
-          gerrit-path: /config/server/preferences.edit/
+          sub-commands:
+            - use: get
+              short: Retrieves the default edit preferences.
+              gerrit-path: /config/server/preferences.edit/
+            - use: set
+              short: Sets the default edit preferences.
+              gerrit-path: /config/server/preferences.edit/
+              http-method: PUT
+              body-flags:
+                - name: preferences
+                  required: true
+                  usage: The preferences to set.
+    - use: email-confirm
+      short: Server email-confirm
+      gerrit-path: /config/server/email.confirm/
+      http-method: PUT
+      body-flags:
+        - name: input
+          required: true
+          usage: an EmailConfirmationInput entity
 # Please note that this feature is only usable with documentation built-in.
 # You’ll need to bazel build withdocs or bazel build release to test this feature.
 # So we don't add this as the Wikimedia Gerrint install doesn't include it

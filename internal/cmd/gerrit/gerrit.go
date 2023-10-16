@@ -2,6 +2,7 @@ package gerrit
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os/exec"
@@ -78,4 +79,13 @@ func addParamToPath(path string, name string, value string) string {
 		}
 	}
 	return path
+}
+
+func jsonStringToInterface(jsonString string) interface{} {
+	var data interface{}
+	err := json.Unmarshal([]byte(jsonString), &data)
+	if err != nil {
+		fmt.Println("Error decoding JSON:", err)
+	}
+	return data
 }
