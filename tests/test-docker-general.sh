@@ -151,7 +151,7 @@ test_command "./../bin/mw docker mediawiki composer home" "https://www.mediawiki
 test_command "./../bin/mw docker mediawiki exec ls" "api.php"
 
 # exec phpunit: Make sure using exec to run phpunit things works
-test_command "./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/PingbackTest.php" "OK "
+test_command "./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/installer/PingbackTest.php" "OK "
 
 # fresh: Make sue a basic browser test works
 test_command_success "./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js"
