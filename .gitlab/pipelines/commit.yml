@@ -22,6 +22,8 @@ test:
     needs: []
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -46,6 +48,8 @@ checks:
     needs: []
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     parallel:
       matrix:
         - CHECK: lint
@@ -66,6 +70,8 @@ tools:
     needs: []
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     parallel:
       matrix:
         - TOOL: ./tools/image-update/check/check.go
@@ -80,6 +86,8 @@ build:
     needs: []
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     artifacts:
       paths:
         - bin/
@@ -124,6 +132,8 @@ build-release:
     needs: [build,integration]
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     before_script:
       - go install github.com/bwplotka/bingo@v0.7.0
       - bingo get
@@ -137,6 +147,8 @@ build-docs:
     needs: [build,integration]
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     before_script:
       - apt update
       - apt -y install pandoc
@@ -150,6 +162,8 @@ release-build:
     needs: [build,integration]
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     artifacts:
       paths:
         - _release/
@@ -167,6 +181,8 @@ release-upload:
   dependencies:
     - release-build
   image: ubuntu:latest
+  tags:
+  - wmcs
   before_script:
     - apt update
     - apt -y install curl
@@ -187,6 +203,8 @@ release-publish:
   dependencies:
     - release-build
   image: registry.gitlab.com/gitlab-org/release-cli:latest
+  tags:
+  - wmcs
   script:
     - (echo "## ${CI_COMMIT_TAG}" && echo "CHANGELOG extracted from https://gitlab.wikimedia.org/repos/releng/cli/-/blob/main/CHANGELOG.md" && sed "/^## ${CI_COMMIT_TAG}$/,/^## /"'!d'";//d;/\^$/d" CHANGELOG.md) > .gitlab.description.md
     - assets_links=""
@@ -204,6 +222,8 @@ release-docs:
     needs: [release-publish]
     cache: {}
     image: golang:1.18
+    tags:
+    - wmcs
     before_script:
       - apt update
       - apt -y install pandoc
