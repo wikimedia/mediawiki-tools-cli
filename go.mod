@@ -11,7 +11,7 @@ require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/glamour v0.6.0
-	github.com/cli/cli/v2 v2.32.1
+	github.com/cli/cli/v2 v2.37.0
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/fatih/color v1.15.0
 	github.com/hashicorp/go-version v1.6.0
@@ -29,7 +29,7 @@ require (
 	github.com/txn2/txeh v1.5.3
 	github.com/xanzy/go-gitlab v0.83.0
 	gitlab.com/gitlab-org/cli v1.31.0
-	golang.org/x/term v0.11.0
+	golang.org/x/term v0.13.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -51,7 +51,7 @@ require (
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/alecthomas/colour v0.1.0 // indirect
 	github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142 // indirect
-	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -92,7 +92,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/microcosm-cc/bluemonday v1.0.23 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -121,12 +121,12 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/yuin/goldmark v1.5.4 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
