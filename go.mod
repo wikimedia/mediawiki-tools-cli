@@ -27,7 +27,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/txn2/txeh v1.5.3
-	github.com/xanzy/go-gitlab v0.83.0
+	github.com/xanzy/go-gitlab v0.93.2
 	gitlab.com/gitlab-org/cli v1.31.0
 	golang.org/x/term v0.11.0
 	gopkg.in/ini.v1 v1.67.0
