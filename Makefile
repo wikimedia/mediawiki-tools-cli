@@ -67,7 +67,8 @@ duplicates: $(DUPL)
 	find ./ -name '*.go' -not -path './vendor/*' -not -name '*.gen.go' -not -name '*_test.go' | $(DUPL) -files
 
 .PHONY: git-state
-git-state: $(GOX) $(GOVVV) release
+git-state: $(GOX) $(GOVVV)
+	$(MAKE) TARGETS=linux/amd64 release
 	git diff --quiet || (git --no-pager diff && false)
 
 .PHONY: linti
