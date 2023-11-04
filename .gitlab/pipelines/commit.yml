@@ -49,7 +49,8 @@ checks:
     cache: {}
     image: golang:1.18
     tags:
-    - wmcs
+    # - wmcs # Can't use wmcs tag, as these runners seem to lead to git-state being killed?
+    - mwcli
     parallel:
       matrix:
         - CHECK: lint
