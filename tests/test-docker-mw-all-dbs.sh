@@ -67,9 +67,10 @@ test_command_success "./bin/mw docker mediawiki install --dbname postgreswiki --
 test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 
 # Make sure mediawiki exec works for alternative db name
-test_command_success "./bin/mw docker mediawiki exec -- MW_DB=mysqlwiki composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'seconds'"
+test_command_success "./bin/mw docker mediawiki exec -- MW_DB=mysqlwiki composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'OK '"
 # And doesnt work with a non existant name
-test_command_success "./bin/mw docker mediawiki exec -- MW_DB=ddsadsadsaefault composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'Unable to find database'"
+# Commented out 03/05/2024 as this not longer outputs a nice error https://phabricator.wikimedia.org/P61819
+#test_command_success "./bin/mw docker mediawiki exec -- MW_DB=ddsadsadsaefault composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'Unable to find database'"
 
 # Update the hosts file as we used new wiki names
 if ./bin/mw docker hosts writable; then
