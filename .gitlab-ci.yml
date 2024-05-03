@@ -1,3 +1,7 @@
+# set appsec-related template variables
+variables:
+    WM_APPSEC_GOLANG_IMAGE: "bookworm:20231015"
+
 include:
 - local: ".gitlab/pipelines/commit.yml"
   rules:
@@ -15,3 +19,6 @@ include:
 - local: ".gitlab/pipelines/dependabot.yml"
   rules:
   - if: "$GITLAB_SCHEDULE == 'dependabot'"
+- project: 'repos/security/gitlab-ci-security-templates'
+  ref: 0.1.3
+  file: 'golang-gosec/golang-gosec-ci.yml'
