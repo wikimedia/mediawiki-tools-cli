@@ -87,13 +87,13 @@ test_wget http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been insta
 
 # Make sure that maintenance scripts run for the current default wiki dbname
 test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
-test_command_success "./bin/mw docker mediawiki mwscript version" # Runs on second
-test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default version" # Runs on default
-test_command_success "./bin/mw docker mediawiki mwscript version -- --wiki=default" # Runs on default
+test_command_success "./bin/mw docker mediawiki mwscript Version" # Runs on second
+test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default Version" # Runs on default
+test_command_success "./bin/mw docker mediawiki mwscript Version -- --wiki=default" # Runs on default
 # If we set to some random dbanme we get errors
 test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME nonexistent"
 test_command_success "./bin/mw docker mediawiki create"
-test_command "./bin/mw docker mediawiki mwscript version" "Unable to find database"
+test_command "./bin/mw docker mediawiki mwscript Version" "Unable to find database"
 # An reset eveyrthing to normal, so "default" is used
 test_command_success "./bin/mw docker env delete MEDIAWIKI_DEFAULT_DBNAME nonexistent"
 test_command_success "./bin/mw docker mediawiki create"
