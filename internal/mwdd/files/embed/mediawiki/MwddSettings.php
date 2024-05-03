@@ -40,6 +40,10 @@ if(array_key_exists('argv', $_SERVER)){
 # mwdd uses a proxy server with no default ports.
 $wgAssumeProxiesUseDefaultProtocolPorts = false;
 
+# Development settings sets this to a silly low value.
+# So increase it (for example so we can inport large pages for citoid setup)
+$wgMaxArticleSize = 1000000;
+
 # Either use the MW_DB env var, or get the DB from the request
 if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
