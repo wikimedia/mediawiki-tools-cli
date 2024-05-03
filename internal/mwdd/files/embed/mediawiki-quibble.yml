@@ -5,7 +5,7 @@
 services:
 
   mediawiki-quibble:
-    image: "${MEDIAWIKI_QUIBBLE_IMAGE:-docker-registry.wikimedia.org/releng/quibble-buster-php81:1.5.5}"
+    image: "${MEDIAWIKI_QUIBBLE_IMAGE:-docker-registry.wikimedia.org/releng/quibble-buster-php81:1.7.0}"
     restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "sleep infinity"
