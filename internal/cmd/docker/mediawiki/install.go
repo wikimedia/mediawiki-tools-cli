@@ -130,7 +130,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				_, _, composerErr := mwdd.DefaultForUser().DockerCompose().ExecCommand("mediawiki", dockercompose.ExecOptions{
 					User: User,
 					CommandAndArgs: []string{
-						"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
+						"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'MediaWiki\\Installer\\Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
 					},
 				}).RunAndCollect()
 				if composerErr != nil {
