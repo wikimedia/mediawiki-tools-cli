@@ -133,6 +133,8 @@ func NewMediaWikiCmd() *cobra.Command {
 		func() string { return mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE") },
 	))
 	cmd.AddCommand(NewMediaWikiFreshCmd())
+	cmd.AddCommand(NewMediaWikiNPMCmd())
+	cmd.AddCommand(NewMediaWikiNPXCmd())
 	cmd.AddCommand(NewMediaWikiQuibbleCmd())
 	cmd.AddCommand(mwdd.NewImageCmd("mediawiki"))
 	cmd.AddCommand(mwdd.NewServiceCreateCmd("mediawiki", ""))
