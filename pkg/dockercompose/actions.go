@@ -114,7 +114,7 @@ func (p Project) VolumesRm(volumes []string) error {
 	return cmd.RunAttached()
 }
 
-/*ServicesWithStatus lists services in the docker-compose setup that have the given status.*/
+/*ServicesWithStatus lists services in the docker compose setup that have the given status.*/
 func (p Project) ServicesWithStatus(statusFilter string) ([]string, error) {
 	stdout, stderr, err := p.Command([]string{"ps", "--services", "--filter", "status=" + statusFilter}).RunAndCollect()
 

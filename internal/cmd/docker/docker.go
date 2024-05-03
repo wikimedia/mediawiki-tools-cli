@@ -78,7 +78,7 @@ func NewCmd() *cobra.Command {
 		RunE:  nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmd.Root().PersistentPreRun(cmd, args)
-			if _, err := lookpath.NeedExecutables([]string{"docker", "docker-compose"}); err != nil {
+			if _, err := lookpath.NeedExecutables([]string{"docker"}); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}

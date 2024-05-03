@@ -44,7 +44,7 @@ func (f File) Exists() bool {
 
 func (f File) ExistsOrExit() {
 	if !f.Exists() {
-		fmt.Println("docker-compose file " + f.String() + " does not exist")
+		fmt.Println("docker compose file " + f.String() + " does not exist")
 		os.Exit(1)
 	}
 }

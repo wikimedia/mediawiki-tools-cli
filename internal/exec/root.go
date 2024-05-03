@@ -20,7 +20,7 @@ func Command(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
-/*ComposeCommand gets a docker-compose command to run.*/
+/*ComposeCommand gets a docker compose command to run.*/
 func ComposeCommand(context ComposeCommandContext, command string, arg ...string) *exec.Cmd {
 	dcp := dockercompose.Project{
 		Name:      context.ProjectName,

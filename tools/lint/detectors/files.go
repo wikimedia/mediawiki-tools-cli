@@ -15,7 +15,7 @@ type FileDetector struct {
 
 func fileDetectorList() []FileDetector {
 	return []FileDetector{
-		// yml-extension: .yml extensions should be used for docker-compose files
+		// yml-extension: .yml extensions should be used for docker compose files
 		{
 			Path: "internal/mwdd/files/embed",
 			Function: func(file string) *issue.Issue {
