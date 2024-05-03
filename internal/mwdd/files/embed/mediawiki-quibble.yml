@@ -1,4 +1,3 @@
-version: '3.7'
 
 # Service wrapper around what is provided by quibble
 # https://doc.wikimedia.org/quibble/

@@ -1,4 +1,3 @@
-version: '3.7'
 
 # https://www.mediawiki.org/wiki/MediaWiki-Docker/Configuration_recipes/EventGate
 services:
