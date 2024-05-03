@@ -6,7 +6,7 @@
 
 services:
   shellbox-syntaxhighlight: 
-    image: "${SHELLBOX_SYNTAXHIGHLIGHT_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-08-15-040901-syntaxhighlight}"
+    image: "${SHELLBOX_SYNTAXHIGHLIGHT_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-04-28-143648-syntaxhighlight}"
     restart: unless-stopped
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
