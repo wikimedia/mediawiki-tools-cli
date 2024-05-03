@@ -1,6 +1,7 @@
 ./README.md
 ./adminer.yml
 ./base.yml
+./citoid.yml
 ./elasticsearch.yml
 ./eventlogging.yml
 ./files.txt

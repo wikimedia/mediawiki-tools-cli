@@ -64,6 +64,7 @@ $dockerServices = [
 	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
+	'citoid' => gethostbyname('citoid') !== 'citoid' && !defined( 'MW_PHPUNIT_TEST' ),
 	'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
 	'shellbox-media' => ( gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ) )
 		? 'http://shellbox-media-httpd:8000' : false,
@@ -252,6 +253,13 @@ if(gethostbyname('eventlogging') !== 'eventlogging') {
 ################################
 if(gethostbyname('graphite') !== 'graphite') {
 	$wgStatsdServer = "graphite";
+}
+
+################################
+# Citoid
+################################
+if(gethostbyname('citoid') !== 'citoid') {
+	$wgCitoidServiceUrl = 'http://citoid.mwdd.localhost:8080/api';
 }
 
 ################################
