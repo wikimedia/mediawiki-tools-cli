@@ -1,4 +1,3 @@
-version: '3.7'
 
 # Images for these services are from the wikimedia image repo
 # https://docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox/tags/

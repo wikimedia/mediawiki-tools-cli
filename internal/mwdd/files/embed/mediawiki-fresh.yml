@@ -1,4 +1,3 @@
-version: '3.7'
 
 # Service wrapper around what is provided by fresh
 # https://github.com/wikimedia/fresh/blob/master/bin/fresh-node16
