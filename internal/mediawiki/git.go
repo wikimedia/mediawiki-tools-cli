@@ -159,6 +159,7 @@ func gitCloneArguments(directory string, remote string, useShallow bool) []strin
 	if useShallow {
 		args = append(args, "--depth=1")
 	}
+	args = append(args, "--recurse-submodules")
 	args = append(args, remote)
 	args = append(args, directory)
 	return args

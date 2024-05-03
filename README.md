@@ -31,7 +31,7 @@ This repository uses the `bingo` tool.
 You can install it with:
 
 ```sh
-go install github.com/bwplotka/bingo@v0.7.0
+go install github.com/bwplotka/bingo@v0.9.0
 ```
 
 Clone this repository to your `$GOPATH` (probably `~/go`), so it would be at

@@ -1,5 +1,4 @@
 ---
-version: '3.7'
 services:
   wdqs:
     image: "wikibase/wdqs:0.3.121-wmde.11"

@@ -10,7 +10,6 @@ These files should be created in the location returned by the `mw docker custom 
 This service will be accessible within the `docker-compose` network to other services.
 
 ```yaml
-version: '3.7'
 services:
   <service-name>:
     image: <service-image>
@@ -25,7 +24,6 @@ services:
 This services will be accessible on your host machine via the virtual host specified.
 
 ```yaml
-version: '3.7'
 services:
   <service-name>:
     image: <service-image>

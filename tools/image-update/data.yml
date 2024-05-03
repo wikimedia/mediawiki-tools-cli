@@ -3,8 +3,8 @@ images:
   - image: defreitas/dns-proxy-server:3.5.2
   - image: jwilder/nginx-proxy:0.10
   # docker dev env: MediaWiki related services
-  - image: docker-registry.wikimedia.org/releng/node16-test-browser:0.2.1
-  - image: docker-registry.wikimedia.org/releng/quibble-buster-php81:1.5.5
+  - image: docker-registry.wikimedia.org/releng/node16-test-browser:0.3.0
+  - image: docker-registry.wikimedia.org/releng/quibble-buster-php81:1.7.0
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.1
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.1
   # docker dev env: Misc services
@@ -15,7 +15,7 @@ images:
     noCheck: true
   - image: wikibase/wdqs-proxy:wmde.11
     noCheck: true
-  - image: postgres:13.12
+  - image: postgres:13.14
     requireRegex: 13\.\d+$
   - image: mariadb:10.11
     requireRegex: 10\.\d+$
@@ -38,7 +38,7 @@ images:
   - image: alpine/socat:1.7.4.4-r0
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
   # docker dev env: Regularly released WMF production images
-  - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2023-08-02-155403-production
+  - image: docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2023-10-25-155509-production
     requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
   # Latest images...
   - image: ubuntu:latest
@@ -57,15 +57,15 @@ imageGroups:
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-08-15-040901-media
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-04-28-143648-media
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-08-15-040901-php-rpc
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-04-28-143648-php-rpc
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-08-15-040901-score
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-04-28-143648-score
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-08-15-040901-syntaxhighlight
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-04-28-143648-syntaxhighlight
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2023-08-15-040901-timeline
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-04-28-143648-timeline
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:
