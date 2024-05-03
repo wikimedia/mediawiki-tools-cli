@@ -87,13 +87,13 @@ test_wget http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been insta
 
 # Make sure that maintenance scripts run for the current default wiki dbname
 test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
-test_command_success "./bin/mw docker mediawiki mwscript version" # Runs on second
-test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default version" # Runs on default
-test_command_success "./bin/mw docker mediawiki mwscript version -- --wiki=default" # Runs on default
+test_command_success "./bin/mw docker mediawiki mwscript Version" # Runs on second
+test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default Version" # Runs on default
+test_command_success "./bin/mw docker mediawiki mwscript Version -- --wiki=default" # Runs on default
 # If we set to some random dbanme we get errors
 test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME nonexistent"
 test_command_success "./bin/mw docker mediawiki create"
-test_command "./bin/mw docker mediawiki mwscript version" "Unable to find database"
+test_command "./bin/mw docker mediawiki mwscript Version" "Unable to find database"
 # An reset eveyrthing to normal, so "default" is used
 test_command_success "./bin/mw docker env delete MEDIAWIKI_DEFAULT_DBNAME nonexistent"
 test_command_success "./bin/mw docker mediawiki create"
@@ -151,7 +151,9 @@ test_command "./../bin/mw docker mediawiki composer home" "https://www.mediawiki
 test_command "./../bin/mw docker mediawiki exec ls" "api.php"
 
 # exec phpunit: Make sure using exec to run phpunit things works
-test_command "./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/installer/PingbackTest.php" "OK "
+# Disabled 03/05/2024 as it was failing for unknown reasons... https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/250710
+# PHP Fatal error:  Uncaught TypeError: implode(): Argument #1 ($pieces) must be of type array, string given in /var/www/html/w/tests/phpunit/getPHPUnitExtensionsAndSkins.php:44
+# test_command "./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/installer/PingbackTest.php" "OK "
 
 # fresh: Make sue a basic browser test works
 test_command_success "./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js"
