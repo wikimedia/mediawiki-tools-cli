@@ -103,7 +103,7 @@ integration:
     - name: docker:20.10.14-dind
     needs: [checks,test,build]
     tags:
-    - mwcli
+    - wmcs
     dependencies:
       - build
     parallel:
