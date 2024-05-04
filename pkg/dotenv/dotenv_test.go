@@ -1,7 +1,6 @@
 package dotenv
 
 import (
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -11,7 +10,7 @@ import (
 
 func randomString() string {
 	// A bit of randomness so that we don't need to open a file for our non existent test
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	var b strings.Builder
 	for i := 0; i < 10; i++ {
@@ -73,7 +72,7 @@ func TestFile_EnsureExists(t *testing.T) {
 			}
 
 			// And is empty
-			b, err := ioutil.ReadFile(tt.f.Path())
+			b, err := os.ReadFile(tt.f.Path())
 			if string(b) != "" {
 				t.Errorf("File.EnsureExists() failed to create empty file: %v", err)
 			}

@@ -1,4 +1,5 @@
-/*Package embedsync deals with syncing go embedded files onto the system disk
+/*
+Package embedsync deals with syncing go embedded files onto the system disk
 
 NOTE: this requires an index of the files to be part of the embed.
 This can be generated in the MakeFile using a line like this...
@@ -13,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,7 +104,7 @@ func (e EmbeddingDiskSync) fileString(name string) string {
 
 func (e EmbeddingDiskSync) agnosticEmbedBytes(name string) []byte {
 	fileReader := e.fileReaderOrExit(name)
-	bytes, _ := ioutil.ReadAll(fileReader)
+	bytes, _ := io.ReadAll(fileReader)
 	return bytes
 }
 
@@ -133,7 +133,7 @@ func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
 
 func writeBytesToDisk(bytes []byte, file string) {
 	dirs.EnsureExists(filepath.Dir(file))
-	ioutil.WriteFile(file, bytes, getAssumedFilePerms(file))
+	os.WriteFile(file, bytes, getAssumedFilePerms(file))
 	// TODO check error?
 }
 

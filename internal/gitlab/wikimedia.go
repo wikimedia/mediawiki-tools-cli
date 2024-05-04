@@ -12,7 +12,7 @@ import (
 
 var (
 	wikimediav4ApiURL = "https://gitlab.wikimedia.org/api/v4/"
-	os                = runtime.GOOS
+	outOs             = runtime.GOOS
 	arch              = runtime.GOARCH
 )
 
@@ -86,8 +86,8 @@ func RelengCliReleaseBinary(tagName string) (*gitlab.ReleaseLink, error) {
 
 func binaryName(tagName string) string {
 	// something like mw_v0.5.0_linux_386
-	if os == "windows" {
-		return "mw_" + tagName + "_" + os + "_" + arch + ".exe"
+	if outOs == "windows" {
+		return "mw_" + tagName + "_" + outOs + "_" + arch + ".exe"
 	}
-	return "mw_" + tagName + "_" + os + "_" + arch
+	return "mw_" + tagName + "_" + outOs + "_" + arch
 }

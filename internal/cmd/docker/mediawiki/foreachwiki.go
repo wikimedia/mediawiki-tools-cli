@@ -49,9 +49,9 @@ func NewMediaWikiForeachwikiCmd() *cobra.Command {
 								// Pipe the output to sed to prepend the dbname, like scap's foreachwiki(indblist)
 								fmt.Sprintf("set -o pipefail; \"$@\" | sed -u \"s/^/%s:  /\"", strings.ReplaceAll(dbName, "\"", "\\\"")),
 								"--",
-								"php", "maintenance/run.php", "--wiki", dbName,
+								"php", "maintenance/run.php", command[0], "--wiki", dbName,
 							},
-							command...),
+							command[1:]...),
 						Env:        env,
 						User:       User,
 						WorkingDir: "/var/www/html/w",
