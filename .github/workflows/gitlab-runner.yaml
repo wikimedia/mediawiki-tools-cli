@@ -18,7 +18,7 @@ jobs:
         with:
           gitlab-instance: https://gitlab.wikimedia.org/
           registration-token: "${{ secrets.GITLAB_RUNNER_REGISTER_TOKEN }}"
-          docker-image: "docker:20.10.18"
+          docker-image: "docker:26.1.1"
           name: ${{ github.run_id }}
           # We can provide a specific tag when triggering a job, so 1 runner matches to 1 job
           tag-list: "github,dind,${{ github.event.client_payload.extra_tag }}"

@@ -100,7 +100,7 @@ build:
 integration:
     stage: integration
     services:
-    - name: docker:20.10.14-dind
+    - name: docker:26.1.1-dind
     needs: [checks,test,build]
     tags:
     - mwcli

@@ -27,7 +27,7 @@ func (p Project) Command(commandAndArgs []string) Command {
 
 // TODO don't use this externally, use Command?
 func (p Project) Cmd(commandAndArgs []string) *exec.Cmd {
-	return exec.Command("docker-compose", p.argsForExec(commandAndArgs)...)
+	return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...)
 }
 
 func (p Project) argsForExec(commandAndArgs []string) []string {
