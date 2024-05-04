@@ -32,14 +32,14 @@ func NewMwddUpdateCmd() *cobra.Command {
 			logrus.Tracef("Updating services: %v", existingServices)
 			err := mwdd.DefaultForUser().DockerCompose().Pull(existingServices)
 			if err != nil {
-				panic(err)
+				logrus.Error(err)
 			}
-			err2 := mwdd.DefaultForUser().DockerCompose().Up(runningServices, dockercompose.UpOptions{
+			err = mwdd.DefaultForUser().DockerCompose().Up(runningServices, dockercompose.UpOptions{
 				Detached:      true,
 				ForceRecreate: forceRecreate,
 			})
-			if err2 != nil {
-				panic(err2)
+			if err != nil {
+				logrus.Error(err)
 			}
 		},
 	}
