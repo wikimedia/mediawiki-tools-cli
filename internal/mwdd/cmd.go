@@ -305,7 +305,8 @@ func NewServiceCommandCmd(service string, commands []string, aliases []string) *
 
 func NewServiceCommandCmdP(service *string, commands []string, aliases []string) *cobra.Command {
 	return &cobra.Command{
-		Use:     commands[0],
+		// Mention that additional flags will be passed on to the original command
+		Use:     fmt.Sprintf("%s [flags] -- [%s flags]", commands[0], commands[0]),
 		Aliases: aliases,
 		Short:   fmt.Sprintf("Runs %s in the container", commands[0]),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -328,6 +329,7 @@ func NewServiceCommandCmdP(service *string, commands []string, aliases []string)
 				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 			}
 		},
+		DisableFlagsInUseLine: true,
 	}
 }
 
