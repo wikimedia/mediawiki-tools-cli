@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
 type Project struct {
@@ -27,7 +28,16 @@ func (p Project) Command(commandAndArgs []string) Command {
 
 // TODO don't use this externally, use Command?
 func (p Project) Cmd(commandAndArgs []string) *exec.Cmd {
-	return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...)
+	// If we have docker and a compose sub command, we can run it
+	if _, err := lookpath.NeedCommands([]string{"docker", "compose"}); err == nil {
+		return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...)
+	}
+	// If we have docker-compose, we can run it
+	if _, err := lookpath.NeedExecutables([]string{"docker-compose"}); err == nil {
+		return exec.Command("docker-compose", p.argsForExec(commandAndArgs)...)
+	}
+	// Otherwise we have no option (but this should already be checked by callers)
+	panic("No docker-compose or docker compose found in PATH")
 }
 
 func (p Project) argsForExec(commandAndArgs []string) []string {

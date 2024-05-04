@@ -79,6 +79,11 @@ func NewCmd() *cobra.Command {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmd.Root().PersistentPreRun(cmd, args)
 			if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
+				// We can also allow docker-compose, if docker compose is not available
+				if _, err := lookpath.NeedCommands([]string{"docker-compose"}); err != nil {
+					fmt.Println("docker compose is not available. Please install it and try again.")
+					os.Exit(1)
+				}
 				fmt.Println(err)
 				os.Exit(1)
 			}
