@@ -86,7 +86,7 @@ sudo gitlab-runner register -n \
   --executor docker \
   --limit 2 \
   --name "gitlab-runner-addshore-1017-docker" \
-  --docker-image "docker:20.10.14" \
+  --docker-image "docker:26.1.1" \
   --docker-privileged \
   --tag-list mwcli \
   --docker-volumes "/certs/client"
@@ -148,7 +148,7 @@ You can also tweak the pull_policy to fallback to "if-not-present".
   [[runners.docker]]
     pull_policy = ["always", "if-not-present"]
     [[runners.docker.services]]
-      name = "docker:20.10.14-dind"
+      name = "docker:26.1.1-dind"
       command = ["--registry-mirror", "http://172.16.5.159:6000"]
 ```
 
