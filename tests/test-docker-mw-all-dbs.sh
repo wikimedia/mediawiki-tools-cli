@@ -68,6 +68,7 @@ test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 
 # Test foreachwiki
 test_command_success "./bin/mw docker mediawiki foreachwiki showSiteStats.php"
+test_command_success ./bin/mw docker mediawiki foreachwiki sql.php -- --query 'SELECT 1'
 
 # Make sure mediawiki exec works for alternative db name
 # Commented out 03/05/2024 as these not longer outputs a nice error https://phabricator.wikimedia.org/P61819
