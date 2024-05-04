@@ -31,7 +31,7 @@ variables:
 #  DEPENDABOT_IMAGE: registry.gitlab.com/dependabot-gitlab/dependabot:latest
 # But gitlab CI can't pull the digest, so I looked back to find a pinned version that might work?
 #  DEPENDABOT_IMAGE: registry.gitlab.com/dependabot-gitlab/dependabot@sha256:e05bb9f1cd918c91a6584148d8868834194485a1d6b4c5457a1e93a234ee00db
-  DEPENDABOT_IMAGE: ghcr.io/dependabot-gitlab/dependabot-gitlab:0.36.0
+  DEPENDABOT_IMAGE: docker.io/andrcuns/dependabot-gitlab:0.36.0
 
 .dependabot-gitlab:
   image:
