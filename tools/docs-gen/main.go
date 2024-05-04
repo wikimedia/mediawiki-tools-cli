@@ -13,7 +13,10 @@ import (
 
 func main() {
 	// Rendering the markdown before then trying to turn it into markdown does bad things, so skip it
-	os.Setenv("MWCLI_SKIP_RENDER_MARKDOWN", "true")
+	envErr := os.Setenv("MWCLI_SKIP_RENDER_MARKDOWN", "true")
+	if envErr != nil {
+		logrus.Errorln(envErr)
+	} 
 
 	path := "./_docs"
 	dirs.EnsureExists(path)

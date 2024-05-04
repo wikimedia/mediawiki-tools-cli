@@ -16,7 +16,7 @@ func NewKeycloakDeleteClientCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			keycloakLogin()
-			mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
+			err := mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
 					"/mwdd/delete_client.sh",
@@ -24,6 +24,9 @@ func NewKeycloakDeleteClientCmd() *cobra.Command {
 					args[1],
 				},
 			})
+			if err != nil {
+				panic(err)
+			}
 		},
 	}
 	return cmd

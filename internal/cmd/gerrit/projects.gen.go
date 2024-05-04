@@ -97,7 +97,10 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsDescriptionCmd() *cobra.Command {
@@ -139,7 +142,10 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsParentCmd() *cobra.Command {
@@ -181,7 +187,10 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsHeadCmd() *cobra.Command {
@@ -223,7 +232,10 @@ func NewGerritProjectsHeadGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsConfigCmd() *cobra.Command {
@@ -265,7 +277,10 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsAccessCmd() *cobra.Command {
@@ -307,7 +322,10 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsBranchesCmd() *cobra.Command {
@@ -350,7 +368,10 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsBranchesGetCmd() *cobra.Command {
@@ -384,9 +405,15 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to retrieve.")
-	cmd.MarkFlagRequired("branch")
+	err2 := cmd.MarkFlagRequired("branch")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritProjectsChildrenCmd() *cobra.Command {
@@ -429,7 +456,10 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsChildrenGetCmd() *cobra.Command {
@@ -463,9 +493,15 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.child, "child", "", "The child to retrieve.")
-	cmd.MarkFlagRequired("child")
+	err2 := cmd.MarkFlagRequired("child")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritProjectsTagsCmd() *cobra.Command {
@@ -508,7 +544,10 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsTagsGetCmd() *cobra.Command {
@@ -542,9 +581,15 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.tag, "tag", "", "The tag to retrieve.")
-	cmd.MarkFlagRequired("tag")
+	err2 := cmd.MarkFlagRequired("tag")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritProjectsDashboardsCmd() *cobra.Command {
@@ -587,7 +632,10 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
@@ -621,9 +669,15 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.dashboard, "dashboard", "", "The dashboard to retrieve.")
-	cmd.MarkFlagRequired("dashboard")
+	err2 := cmd.MarkFlagRequired("dashboard")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritProjectsLabelsCmd() *cobra.Command {
@@ -666,7 +720,10 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsLabelsGetCmd() *cobra.Command {
@@ -700,9 +757,15 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.label, "label", "", "The label to retrieve.")
-	cmd.MarkFlagRequired("label")
+	err2 := cmd.MarkFlagRequired("label")
+	if err != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritProjectsSubmitRequirementsCmd() *cobra.Command {
@@ -745,7 +808,10 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
@@ -779,8 +845,14 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.submit_requirement, "submit_requirement", "", "The submit_requirement to retrieve.")
-	cmd.MarkFlagRequired("submit_requirement")
+	err2 := cmd.MarkFlagRequired("submit_requirement")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }

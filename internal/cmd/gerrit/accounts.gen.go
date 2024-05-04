@@ -106,7 +106,10 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsCreateCmd() *cobra.Command {
@@ -121,7 +124,10 @@ func NewGerritAccountsCreateCmd() *cobra.Command {
 		Use:     "create",
 	}
 	cmd.Flags().StringVar(&cmdFlags.username, "username", "", "The username to create.")
-	cmd.MarkFlagRequired("username")
+	err := cmd.MarkFlagRequired("username")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsDetailsCmd() *cobra.Command {
@@ -153,7 +159,10 @@ func NewGerritAccountsDetailsCmd() *cobra.Command {
 		Use:   "details",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsNameCmd() *cobra.Command {
@@ -197,7 +206,10 @@ func NewGerritAccountsNameGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsNameSetCmd() *cobra.Command {
@@ -231,9 +243,15 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 		Use:   "set",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.name, "name", "", "The name to set.")
-	cmd.MarkFlagRequired("name")
+	err2 := cmd.MarkFlagRequired("name")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsNameDeleteCmd() *cobra.Command {
@@ -265,7 +283,10 @@ func NewGerritAccountsNameDeleteCmd() *cobra.Command {
 		Use:   "delete",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsStatusCmd() *cobra.Command {
@@ -308,7 +329,10 @@ func NewGerritAccountsStatusGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsStatusSetCmd() *cobra.Command {
@@ -342,9 +366,15 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 		Use:   "set",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.status, "status", "", "The status to set.")
-	cmd.MarkFlagRequired("status")
+	err2 := cmd.MarkFlagRequired("status")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsUsernameCmd() *cobra.Command {
@@ -387,7 +417,10 @@ func NewGerritAccountsUsernameGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsUsernameSetCmd() *cobra.Command {
@@ -421,9 +454,15 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 		Use:   "set",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.username, "username", "", "The username to set.")
-	cmd.MarkFlagRequired("username")
+	err2 := cmd.MarkFlagRequired("username")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsDisplaynameCmd() *cobra.Command {
@@ -467,9 +506,15 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 		Use:   "set",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err  := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.displayname, "displayname", "", "The display name to set.")
-	cmd.MarkFlagRequired("displayname")
+	err2 := cmd.MarkFlagRequired("displayname")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsActiveCmd() *cobra.Command {
@@ -513,7 +558,10 @@ func NewGerritAccountsActiveGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsActiveSetCmd() *cobra.Command {
@@ -545,7 +593,10 @@ func NewGerritAccountsActiveSetCmd() *cobra.Command {
 		Use:   "set",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
@@ -577,7 +628,10 @@ func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
 		Use:   "delete",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsOauthtokenCmd() *cobra.Command {
@@ -619,7 +673,10 @@ func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsEmailsCmd() *cobra.Command {
@@ -665,7 +722,10 @@ func NewGerritAccountsEmailsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsEmailsGetCmd() *cobra.Command {
@@ -699,9 +759,15 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to get.")
-	cmd.MarkFlagRequired("email")
+	err2 := cmd.MarkFlagRequired("email")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
@@ -735,9 +801,15 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 		Use:   "create",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to create.")
-	cmd.MarkFlagRequired("email")
+	err2 := cmd.MarkFlagRequired("email")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
@@ -771,9 +843,15 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 		Use:   "delete",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to delete.")
-	cmd.MarkFlagRequired("email")
+	err2 := cmd.MarkFlagRequired("email")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
@@ -807,9 +885,15 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 		Use:   "prefer",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to set as preferred.")
-	cmd.MarkFlagRequired("email")
+	err2 := cmd.MarkFlagRequired("email")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsSshkeysCmd() *cobra.Command {
@@ -853,7 +937,10 @@ func NewGerritAccountsSshkeysListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
@@ -887,9 +974,15 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.sshkey, "sshkey", "", "The SSH key to get.")
-	cmd.MarkFlagRequired("sshkey")
+	err2 := cmd.MarkFlagRequired("sshkey")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
@@ -923,9 +1016,15 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 		Use:   "delete",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.sshkey, "sshkey", "", "The SSH key to delete.")
-	cmd.MarkFlagRequired("sshkey")
+	err2 := cmd.MarkFlagRequired("sshkey")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsGpgkeysCmd() *cobra.Command {
@@ -969,7 +1068,10 @@ func NewGerritAccountsGpgkeysListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
@@ -1003,9 +1105,15 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.gpgkey, "gpgkey", "", "The GPG key to get.")
-	cmd.MarkFlagRequired("gpgkey")
+	err2 := cmd.MarkFlagRequired("gpgkey")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
@@ -1039,9 +1147,15 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 		Use:   "delete",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.gpgkey, "gpgkey", "", "The GPG key to delete.")
-	cmd.MarkFlagRequired("gpgkey")
+	err2 := cmd.MarkFlagRequired("gpgkey")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsCapabilitiesCmd() *cobra.Command {
@@ -1084,7 +1198,10 @@ func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
@@ -1119,9 +1236,15 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.capability, "capability", "", "The capability to get.")
-	cmd.MarkFlagRequired("capability")
+	err2 := cmd.MarkFlagRequired("capability")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsGroupsCmd() *cobra.Command {
@@ -1163,7 +1286,10 @@ func NewGerritAccountsGroupsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsAvatarCmd() *cobra.Command {
@@ -1206,7 +1332,10 @@ func NewGerritAccountsAvatarGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
@@ -1238,7 +1367,10 @@ func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
 		Use:   "get-change-url",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsPreferencesCmd() *cobra.Command {
@@ -1282,7 +1414,10 @@ func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
@@ -1314,7 +1449,10 @@ func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
 		Use:   "get-diff",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
@@ -1346,7 +1484,10 @@ func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
 		Use:   "get-edit",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsWatchedProjectsCmd() *cobra.Command {
@@ -1388,7 +1529,10 @@ func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsExternalIdsCmd() *cobra.Command {
@@ -1430,7 +1574,10 @@ func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsAgreementsCmd() *cobra.Command {
@@ -1472,7 +1619,10 @@ func NewGerritAccountsAgreementsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsStarredChangesCmd() *cobra.Command {
@@ -1516,7 +1666,10 @@ func NewGerritAccountsStarredChangesListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }
 func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
@@ -1551,9 +1704,15 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 		Use:   "star",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to star.")
-	cmd.MarkFlagRequired("change")
+	err2 := cmd.MarkFlagRequired("change")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
@@ -1588,9 +1747,15 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 		Use:   "unstar",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to unstar.")
-	cmd.MarkFlagRequired("change")
+	err2 := cmd.MarkFlagRequired("change")
+	if err2 != nil {
+		logrus.Error(err2)
+	}
 	return cmd
 }
 func NewGerritAccountsIndexCmd() *cobra.Command {
@@ -1622,6 +1787,9 @@ func NewGerritAccountsIndexCmd() *cobra.Command {
 		Use:   "index",
 	}
 	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	err := cmd.MarkFlagRequired("account")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }

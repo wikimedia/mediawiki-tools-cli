@@ -37,7 +37,7 @@ func LoadConfig() Config {
 		return Config{}
 	}
 	var config Config
-	fileContents, err := os.ReadFile(fileName)
+	fileContents, err := os.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		fmt.Printf("Error while reading file. %v", err)
 		panic(err)

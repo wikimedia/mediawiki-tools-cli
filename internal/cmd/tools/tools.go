@@ -87,7 +87,7 @@ func NewToolsCmd() *cobra.Command {
 			source := args[0]
 			destination := args[1]
 
-			rsync := exec.Command("rsync", "-rtlv", "--rsync-path", rsyncPath, "--port", "22", source, "login.toolforge.org:"+destination)
+			rsync := exec.Command("rsync", "-rtlv", "--rsync-path", rsyncPath, "--port", "22", source, "login.toolforge.org:"+destination)  // #nosec G204
 			logrus.Trace(rsync.String())
 
 			rsync = cmdutil.AttachAllIO(rsync)

@@ -51,7 +51,10 @@ func isFree(port string) error {
 		return errors.New("port is not available to listen on")
 	}
 
-	ln.Close()
+	closeErr := ln.Close()
+	if closeErr != nil {
+		return closeErr
+	}
 	return nil
 }
 

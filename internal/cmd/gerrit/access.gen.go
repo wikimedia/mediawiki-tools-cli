@@ -48,6 +48,9 @@ func NewGerritAccessListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The projects for which the access rights should be returned must be specified as project options. The project can be specified multiple times.")
-	cmd.MarkFlagRequired("project")
+	err := cmd.MarkFlagRequired("project")
+	if err != nil {
+		logrus.Error(err)
+	}
 	return cmd
 }

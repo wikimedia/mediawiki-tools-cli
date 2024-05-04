@@ -161,7 +161,7 @@ func main() {
 		for _, v := range result.Commands {
 			bashOutput += fmt.Sprintf(`%s`+"\n", v.Command)
 		}
-		err := os.WriteFile("tools/image-update/.update.sh", []byte(bashOutput), 0o755)
+		err := os.WriteFile("tools/image-update/.update.sh", []byte(bashOutput), 0o755) // #nosec G306
 		if err != nil {
 			panic(err)
 		}
@@ -175,7 +175,7 @@ func main() {
 			gitlabOutput += fmt.Sprintf(`          DESCRIPTION: "%s"`+"\n", v.Description)
 			gitlabOutput += fmt.Sprintf(`          COMMAND: "%s"`+"\n", v.Command)
 		}
-		err := os.WriteFile("tools/image-update/.gitlab.update.yaml", []byte(gitlabOutput), 0o755)
+		err := os.WriteFile("tools/image-update/.gitlab.update.yaml", []byte(gitlabOutput), 0o755) // #nosec G306
 		if err != nil {
 			panic(err)
 		}

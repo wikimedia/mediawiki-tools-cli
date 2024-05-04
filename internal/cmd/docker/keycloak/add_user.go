@@ -16,7 +16,7 @@ func NewKeycloakAddUserCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			keycloakLogin()
-			mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
+			err := mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
 					"/mwdd/create_user.sh",
@@ -25,6 +25,9 @@ func NewKeycloakAddUserCmd() *cobra.Command {
 					args[2],
 				},
 			})
+			if err != nil {
+				panic(err)
+			}
 		},
 	}
 	return cmd
