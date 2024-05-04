@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.24.0
+
+- Development environment (`mw docker`):
+  - Use `docker compose` by default, rather than `docker-compose` (T283484)
+  - Disable SELinux labels for all containers with volumes.
+  - `podman` should now work as a drop in replacement for `docker` (T291348)
+  - Added `mw docker mediawiki npm` and `npx` commands as shortcuts
+  - Improved `get-code` to also fetch submodules (T353780)
+  - Remove `versions` from docker-compose files to avoid warnings
+  - Default image updates: eventgate, node, shellbox, postgres, quibble
+
 ## v0.23.0
 
 - Development environment (`mw docker`):
