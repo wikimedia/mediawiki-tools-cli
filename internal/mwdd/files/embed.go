@@ -15,13 +15,13 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 		EmbedPath: "embed",
 		DiskPath:  projectDirectory,
 		IgnoreFiles: []string{
-			// Used by docker-compose to store current environment variables in
+			// Used by docker compose to store current environment variables in
 			`\.env`,
 			// Used by the dev environment to store hosts that need adding to the hosts file
 			`record\-hosts`,
 			// Used by the dev environment to store the list of sites to run mediawiki-jobrunner against
 			`mediawiki\/jobrunner\-sites`,
-			// Used by folks that want to define a custom set of docker-compose services
+			// Used by folks that want to define a custom set of docker compose services
 			`custom\.yml`,
 			`custom-\w+\.yml`,
 		},

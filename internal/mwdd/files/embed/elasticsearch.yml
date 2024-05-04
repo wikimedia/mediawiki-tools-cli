@@ -2,6 +2,8 @@
 services:
   elasticsearch:
     image: "${ELASTICSEARCH_IMAGE:-docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     # TODO optionally switch this automatically based on architecture?
     # TODO actually build this image somewhere nicer?

@@ -16,10 +16,10 @@ var dockerComposeExample string
 
 func NewCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "docker-compose [flags] [docker-compose command] -- [docker-compose flags]",
+		Use:     "docker-compose [flags] [docker compose command] -- [docker compose flags]",
 		Example: dockerComposeExample,
 		Aliases: []string{"dc"},
-		Short:   "Interact directly with docker-compose",
+		Short:   "Interact directly with docker compose",
 		Long:    cli.RenderMarkdown(dockerComposeLong),
 		Run: func(cmd *cobra.Command, args []string) {
 			dev := mwdd.DefaultForUser()

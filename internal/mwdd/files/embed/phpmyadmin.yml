@@ -2,6 +2,8 @@
 services:
   phpmyadmin:
     image: "${PHPMYADMIN_IMAGE:-phpmyadmin/phpmyadmin:5}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     environment:
       - PMA_USER=root

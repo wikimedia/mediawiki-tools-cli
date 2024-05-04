@@ -14,7 +14,7 @@ type ServiceConfig struct {
 	Image string `yaml:"image"`
 }
 
-// Config returns the docker-compose config for the project, fully rendered with env vars.
+// Config returns the docker compose config for the project, fully rendered with env vars.
 func (p Project) Config() Config {
 	stdOut, stdErr, err := p.Command([]string{"config"}).RunAndCollect()
 	if err != nil {

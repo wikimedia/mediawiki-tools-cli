@@ -2,6 +2,8 @@
 services:
   postgres: 
     image: "${POSTGRES_IMAGE:-postgres:13.14}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     environment:
       # Specify "root" rather than the default "postgres" so that it is similar to the mysql service
