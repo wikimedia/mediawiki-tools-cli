@@ -40,6 +40,10 @@ if(array_key_exists('argv', $_SERVER)){
 # mwdd uses a proxy server with no default ports.
 $wgAssumeProxiesUseDefaultProtocolPorts = false;
 
+# Development settings sets this to a silly low value.
+# So increase it (for example so we can inport large pages for citoid setup)
+$wgMaxArticleSize = 1000000;
+
 # Either use the MW_DB env var, or get the DB from the request
 if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
@@ -64,6 +68,7 @@ $dockerServices = [
 	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
+	'citoid' => gethostbyname('citoid') !== 'citoid' && !defined( 'MW_PHPUNIT_TEST' ),
 	'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
 	'shellbox-media' => ( gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ) )
 		? 'http://shellbox-media-httpd:8000' : false,
@@ -252,6 +257,13 @@ if(gethostbyname('eventlogging') !== 'eventlogging') {
 ################################
 if(gethostbyname('graphite') !== 'graphite') {
 	$wgStatsdServer = "graphite";
+}
+
+################################
+# Citoid
+################################
+if(gethostbyname('citoid') !== 'citoid') {
+	$wgCitoidServiceUrl = 'http://citoid.mwdd.localhost:8080/api';
 }
 
 ################################
