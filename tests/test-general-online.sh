@@ -7,13 +7,13 @@ source $SCRIPT_DIR/functions.sh
 
 export MWCLI_CONTEXT_TEST=1
 
-test_command_success "./bin/mw quip"
+test_command_success ./bin/mw quip
 
-test_command_success "./bin/mw codesearch search addshore"
+test_command_success ./bin/mw codesearch search addshore
 
-test_command_success "./bin/mw toolhub tools list"
-test_command_success "./bin/mw toolhub tools search addshore"
-test_command_success "./bin/mw toolhub tools get bash"
+test_command_success ./bin/mw toolhub tools list
+test_command_success ./bin/mw toolhub tools search addshore
+test_command_success ./bin/mw toolhub tools get bash
 
 # Ignore linting e2e suggestions for some commands that are too involved with online things for now
 # SUGGEST cmd: mw tools: (end-to-end-test) End to end tests are suggested, none found

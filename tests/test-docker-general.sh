@@ -16,42 +16,42 @@ function finish {
     docker ps
 
     # Destroy it all
-    test_command_success "./bin/mw docker destroy --no-interaction"
+    test_command_success ./bin/mw docker destroy --no-interaction
 
     # Clean up & make sure no services are running
     test_docker_ps_service_count 0
     if ./bin/mw docker hosts writable --no-interaction; then
-        test_command_success "./bin/mw docker hosts remove --no-interaction"
+        test_command_success ./bin/mw docker hosts remove --no-interaction
     else
         echo "sudo needed for hosts file modification!"
-        test_command_success "sudo -E ./bin/mw docker hosts remove --no-interaction"
+        test_command_success sudo -E ./bin/mw docker hosts remove --no-interaction
     fi
-    test_command_success "./bin/mw docker env clear --no-interaction"
+    test_command_success ./bin/mw docker env clear --no-interaction
 }
 trap finish EXIT
 
-test_command_success "./bin/mw docker env clear --no-interaction"
+test_command_success ./bin/mw docker env clear --no-interaction
 
 # Run this integration test using a non standard port, unlikley to conflict, to make sure it works
-test_command_success "./bin/mw docker env set PORT 6194"
+test_command_success ./bin/mw docker env set PORT 6194
 # And already fill in the location of mediawiki
 MWDIR=$(pwd)/.mediawiki
-test_command_success "./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR}"
+test_command_success ./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR}
 
 cat /etc/hosts
 
 # Setup the default hosts in hosts file
 if ./bin/mw docker hosts writable --no-interaction; then
-    test_command_success "./bin/mw docker hosts add --no-interaction"
+    test_command_success ./bin/mw docker hosts add --no-interaction
 else
     echo "sudo needed for hosts file modification!"
-    test_command_success "sudo -E ./bin/mw docker hosts add --no-interaction"
+    test_command_success sudo -E ./bin/mw docker hosts add --no-interaction
 fi
 
 cat /etc/hosts
 
 # Create
-test_command_success "./bin/mw docker mediawiki create"
+test_command_success ./bin/mw docker mediawiki create
 
 # Get the port in use
 PORT=$(./bin/mw docker env get PORT)
@@ -60,55 +60,55 @@ PORT=$(./bin/mw docker env get PORT)
 ./bin/mw docker mediawiki exec -- FOO=bar env | grep FOO
 
 # Validate the basic stuff
-test_command_success "./bin/mw docker docker-compose ps"
-test_command_success "./bin/mw docker env list"
+test_command_success ./bin/mw docker docker-compose ps
+test_command_success ./bin/mw docker env list
 
 test_wget http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
 
 # Install mysql & check
 # These used to use sqlite, but due to https://phabricator.wikimedia.org/T330940 mysql is needed for the browser tests to not error
-test_command_success "./bin/mw docker mysql create"
-test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
+test_command_success ./bin/mw docker mysql create
+test_command_success ./bin/mw docker mediawiki install --dbtype mysql
 test_wget http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
 # Set the default dbname to something else, restarting the container
-test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME second"
-test_command_success "./bin/mw docker mediawiki create"
+test_command_success ./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME second
+test_command_success ./bin/mw docker mediawiki create
 # And install another site
-test_command_success "./bin/mw docker mediawiki install --dbtype mysql"
+test_command_success ./bin/mw docker mediawiki install --dbtype mysql
 # Update the hosts file again to include the new site
 if ./bin/mw docker hosts writable --no-interaction; then
-    test_command_success "./bin/mw docker hosts add --no-interaction"
+    test_command_success ./bin/mw docker hosts add --no-interaction
 else
     echo "sudo needed for hosts file modification!"
-    test_command_success "sudo -E ./bin/mw docker hosts add --no-interaction"
+    test_command_success sudo -E ./bin/mw docker hosts add --no-interaction
 fi
 test_wget http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
 # Make sure that maintenance scripts run for the current default wiki dbname
-test_command "./bin/mw docker mediawiki mwscript" "Error: requires at least 1 arg(s), only received 0"
-test_command_success "./bin/mw docker mediawiki mwscript Version" # Runs on second
-test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default Version" # Runs on default
-test_command_success "./bin/mw docker mediawiki mwscript Version -- --wiki=default" # Runs on default
+test_command ./bin/mw docker mediawiki mwscript "Error: requires at least 1 arg(s), only received 0"
+test_command_success ./bin/mw docker mediawiki mwscript Version # Runs on second
+test_command_success ./bin/mw docker mediawiki mwscript MW_DB=default Version # Runs on default
+test_command_success ./bin/mw docker mediawiki mwscript Version -- --wiki=default # Runs on default
 # If we set to some random dbanme we get errors
-test_command_success "./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME nonexistent"
-test_command_success "./bin/mw docker mediawiki create"
-test_command "./bin/mw docker mediawiki mwscript Version" "Unable to find database"
+test_command_success ./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME nonexistent
+test_command_success ./bin/mw docker mediawiki create
+test_command ./bin/mw docker mediawiki mwscript Version "Unable to find database"
 # An reset eveyrthing to normal, so "default" is used
-test_command_success "./bin/mw docker env delete MEDIAWIKI_DEFAULT_DBNAME nonexistent"
-test_command_success "./bin/mw docker mediawiki create"
+test_command_success ./bin/mw docker env delete MEDIAWIKI_DEFAULT_DBNAME nonexistent
+test_command_success ./bin/mw docker mediawiki create
 
 # Check the doctor
-test_command_success "./bin/mw docker mediawiki doctor"
+test_command_success ./bin/mw docker mediawiki doctor
 
 # Make sure the shellbox service commands work
 # TODO text exec command
-test_command_success "./bin/mw docker shellbox media create"
-test_command_success "./bin/mw docker shellbox media exec echo foo"
-test_command "./bin/mw docker shellbox media exec echo foo" "foo"
-test_command_success "./bin/mw docker shellbox media stop"
-test_command_success "./bin/mw docker shellbox media start"
-test_command_success "./bin/mw docker shellbox media destroy"
+test_command_success ./bin/mw docker shellbox media create
+test_command_success ./bin/mw docker shellbox media exec echo foo
+test_command ./bin/mw docker shellbox media exec echo foo "foo"
+test_command_success ./bin/mw docker shellbox media stop
+test_command_success ./bin/mw docker shellbox media start
+test_command_success ./bin/mw docker shellbox media destroy
 # Internally these all work the same, so this tests "them all"
 # SUGGEST cmd: mw docker shellbox php-rpc: (end-to-end-test) End to end tests are suggested, none found
 # SUGGEST cmd: mw docker shellbox php-rpc create: (end-to-end-test) End to end tests are suggested, none found
@@ -136,19 +136,19 @@ test_command_success "./bin/mw docker shellbox media destroy"
 # SUGGEST cmd: mw docker shellbox timeline stop: (end-to-end-test) End to end tests are suggested, none found
 
 # Make sure `docker update` works as expected
-test_command_success "./bin/mw docker shellbox media create"
-test_command_success "./bin/mw docker shellbox media stop"
-test_command_success "./bin/mw docker update"
+test_command_success ./bin/mw docker shellbox media create
+test_command_success ./bin/mw docker shellbox media stop
+test_command_success ./bin/mw docker update
 # TODO could make sure shellbox media is still stopped after the update..
 
 # cd to mediawiki
 cd .mediawiki
 
 # composer: Make sure a command works in root of the repo
-test_command "./../bin/mw docker mediawiki composer home" "https://www.mediawiki.org/"
+test_command ./../bin/mw docker mediawiki composer home "https://www.mediawiki.org/"
 
 # exec: Make sure a command works in the root of the repo
-test_command "./../bin/mw docker mediawiki exec ls" "api.php"
+test_command ./../bin/mw docker mediawiki exec ls "api.php"
 
 # exec phpunit: Make sure using exec to run phpunit things works
 # Disabled 03/05/2024 as it was failing for unknown reasons... https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/250710
@@ -156,40 +156,40 @@ test_command "./../bin/mw docker mediawiki exec ls" "api.php"
 # test_command "./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/installer/PingbackTest.php" "OK "
 
 # fresh: Make sue a basic browser test works
-test_command_success "./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js"
+test_command_success ./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js
 
 # quibble: Make sure a quibble works
-test_command_success "./../bin/mw docker mediawiki quibble quibble -- --help"
-test_command "./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command \"ls\"" "index.php"
+test_command_success ./../bin/mw docker mediawiki quibble quibble -- --help
+test_command ./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command \"ls\" "index.php"
 
 # jobrunner: make sure the jobrunner starts and can run jobs
-test_command_success "./../bin/mw docker mediawiki jobrunner create"
-test_command_success "./../bin/mw docker mediawiki jobrunner add-site default"
-test_command_success "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title 'Testpage1' <<< 'Test content'"
-test_command_success "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title 'Testpage2' <<< 'Test content'"
+test_command_success ./../bin/mw docker mediawiki jobrunner create
+test_command_success ./../bin/mw docker mediawiki jobrunner add-site default
+test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title Testpage1 <<< 'Test content'"
+test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
 # We expect to see all of this output in the logs for the job runner...
-test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " No sites to run jobs for"
-test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " Running jobs for default"
-test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " Job queue is empty"
-test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " STARTING"
-test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " title='Testpage1'"
-test_command "./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner" " good"
+test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " No sites to run jobs for"
+test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Running jobs for default"
+test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Job queue is empty"
+test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " STARTING"
+test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " title=Testpage1"
+test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " good"
 
 # image get/set/reset alters env
-test_command "./../bin/mw docker env has MEDIAWIKI_IMAGE" "var does not exist"
-test_command_success "./../bin/mw docker mediawiki image set foo"
-test_command "./../bin/mw docker mediawiki image get" "foo"
-test_command "./../bin/mw docker env has MEDIAWIKI_IMAGE" "var exists"
-test_command_success "./../bin/mw docker mediawiki image reset"
-test_command "./../bin/mw docker env has MEDIAWIKI_IMAGE" "var does not exist"
+test_command ./../bin/mw docker env has MEDIAWIKI_IMAGE "var does not exist"
+test_command_success ./../bin/mw docker mediawiki image set foo
+test_command ./../bin/mw docker mediawiki image get "foo"
+test_command ./../bin/mw docker env has MEDIAWIKI_IMAGE "var exists"
+test_command_success ./../bin/mw docker mediawiki image reset
+test_command ./../bin/mw docker env has MEDIAWIKI_IMAGE "var does not exist"
 
 # cd to Vector
 cd skins/Vector
 
 # composer: Make sure a command works from the Vector directory
-test_command "./../../../bin/mw docker mediawiki composer home" "http://gerrit.wikimedia.org/g/mediawiki/skins/Vector"
+test_command ./../../../bin/mw docker mediawiki composer home "http://gerrit.wikimedia.org/g/mediawiki/skins/Vector"
 # exec: Make sure a command works from the Vector directory
-test_command "./../../../bin/mw docker mediawiki exec ls" "skin.json"
+test_command ./../../../bin/mw docker mediawiki exec ls "skin.json"
 
 # gerrit dotgitreview project
-test_command "./../../../bin/mw gerrit dotgitreview project" "mediawiki/skins/Vector"
+test_command ./../../../bin/mw gerrit dotgitreview project "mediawiki/skins/Vector"
