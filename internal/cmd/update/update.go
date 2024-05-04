@@ -132,7 +132,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					}
 
 					// Make sure it is executable
-					err = os.Chmod(os.Args[0], 0755)
+					err = os.Chmod(os.Args[0], 0o755)
 					if err != nil {
 						// Switch them back
 						os.Rename(oldFileName, os.Args[0])
