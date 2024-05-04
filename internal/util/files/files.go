@@ -3,7 +3,6 @@ package files
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -84,7 +83,7 @@ func Lines(fileName string) []string {
 
 /*Bytes gets bytes of a file or panics.*/
 func Bytes(fileName string) []byte {
-	bytes, err := ioutil.ReadFile(fileName)
+	bytes, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(err)
 	}

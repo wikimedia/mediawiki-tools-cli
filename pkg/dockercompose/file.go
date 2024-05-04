@@ -2,7 +2,6 @@ package dockercompose
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -50,7 +49,7 @@ func (f File) ExistsOrExit() {
 }
 
 func (f File) Contents() Contents {
-	yamlFile, err := ioutil.ReadFile(f.String())
+	yamlFile, err := os.ReadFile(f.String())
 	if err != nil {
 		panic(err)
 	}
