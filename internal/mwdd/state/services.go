@@ -1,4 +1,5 @@
-/*Records the state of the various services that have been created or stopped.
+/*
+Records the state of the various services that have been created or stopped.
 This enables various commands , such as stop and start, to be more selective
 about which services they specify.
 
@@ -6,7 +7,7 @@ For example, if you run `create mediawiki` and then `suspend` and `resume`
 you do NOT want to see errors about starting services that you didn't create
 in the first place.
 
-Copyright © 2022 Addshore
+# Copyright © 2022 Addshore
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

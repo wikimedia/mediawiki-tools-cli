@@ -1,4 +1,5 @@
-/*Package embedsync deals with syncing go embedded files onto the system disk
+/*
+Package embedsync deals with syncing go embedded files onto the system disk
 
 NOTE: this requires an index of the files to be part of the embed.
 This can be generated in the MakeFile using a line like this...
