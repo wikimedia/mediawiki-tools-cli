@@ -1,0 +1,12 @@
+services:
+  citoid:
+    # Using this specific has because i found it at https://gitlab.com/wmde/technical-wishes/docker-dev/-/merge_requests/138/diffs
+    image: "${CITOID_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-services-citoid:fcc15c59d18eccc9a0d04f88be64975804233608}"
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=citoid.mwdd.localhost,citoid.mwdd
+      - VIRTUAL_PORT=1970
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
