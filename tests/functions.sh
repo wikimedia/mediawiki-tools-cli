@@ -53,16 +53,18 @@ test_command() {
 }
 
 test_command_success() {
-    command=$@
+    command=$1
+    shift
     set +e
-    OUTPUT=$($command)
+    # XXX: For b/c support the command is not quoted
+    OUTPUT=$($command "$@")
     RESULT=$?
     set -e
     echo "$OUTPUT"
     if [ $RESULT -eq 0 ]; then
-        printf "${GREEN}PASS:${NC} $command returned $RESULT\n"
+        printf "${GREEN}PASS:${NC} $command $@ returned $RESULT\n"
     else
-        printf "${RED}FAIL:${NC} $command returned non-zero code $RESULT\n"
+        printf "${RED}FAIL:${NC} $command $@ returned non-zero code $RESULT\n"
         return 1
     fi
 }
