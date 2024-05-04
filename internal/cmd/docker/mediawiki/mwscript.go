@@ -17,6 +17,7 @@ func NewMediaWikiMWScriptCmd() *cobra.Command {
 		Use:     "mwscript [flags] [script...] -- [script flags]",
 		Example: exampleMediawikiMWScript,
 		Short:   "Executes a MediaWiki script using run.php in the MediaWiki container",
+		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := mwdd.CommandAndEnvFromArgs(args)

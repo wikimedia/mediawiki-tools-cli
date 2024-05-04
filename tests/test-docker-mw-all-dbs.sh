@@ -66,6 +66,9 @@ test_command_success "./bin/mw docker mediawiki install --dbname mysqlwiki --dbt
 test_command_success "./bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres"
 test_command_success "./bin/mw docker mediawiki install --dbtype sqlite"
 
+# Test foreachwiki
+test_command_success "./bin/mw docker mediawiki foreachwiki showSiteStats.php"
+
 # Make sure mediawiki exec works for alternative db name
 # Commented out 03/05/2024 as these not longer outputs a nice error https://phabricator.wikimedia.org/P61819
 # test_command_success "./bin/mw docker mediawiki exec -- MW_DB=mysqlwiki composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'OK '"
