@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // HasExecutable returns true if the given executable is in PATH.
 func HasExecutable(executable string) bool {
 	_, err := exec.LookPath(executable)
+	if err != nil {
+		logrus.Tracef("Has executable failed with error: %s", err)
+	}
 	return err == nil
 }
 
@@ -30,17 +35,20 @@ func NeedExecutables(executables []string) (missing []string, err error) {
 // For example, a command could be "docker compose", which should check for the "docker" executable, and then make sure "docker compose" exits with status 0.
 func NeedCommands(commands []string) (missing []string, err error) {
 	for _, command := range commands {
+		logrus.Trace("Checking for presence of command: ", command)
 		parts := strings.Split(command, " ")
 		if len(parts) == 0 {
 			return missing, fmt.Errorf("command is empty")
 		}
 		if !HasExecutable(parts[0]) {
 			missing = append(missing, parts[0])
+			logrus.Trace("The first part of the passed command is not executable. The passed command was :" + parts[0])
 		}
 		if len(parts) > 1 {
 			cmd := exec.Command(parts[0], parts[1:]...)
 			if err := cmd.Run(); err != nil {
 				missing = append(missing, command)
+				logrus.Trace("Running the command with arguments resulted in an error")
 			}
 		}
 	}
