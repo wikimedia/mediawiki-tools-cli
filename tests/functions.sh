@@ -38,7 +38,7 @@ test_command() {
     command=$1
     expected_match=$2
     set +e
-    OUTPUT=$($command)
+    OUTPUT=$($command 2>&1)
     echo "$OUTPUT" | grep -q "$expected_match"
     RESULT=$?
     set -e
