@@ -86,7 +86,7 @@ fi
 test_wget http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
 # Make sure that maintenance scripts run for the current default wiki dbname
-test_command "./bin/mw docker mediawiki mwscript" "Argument <script> is required!"
+test_command "./bin/mw docker mediawiki mwscript" "Error: requires at least 1 arg(s), only received 0"
 test_command_success "./bin/mw docker mediawiki mwscript Version" # Runs on second
 test_command_success "./bin/mw docker mediawiki mwscript MW_DB=default Version" # Runs on default
 test_command_success "./bin/mw docker mediawiki mwscript Version -- --wiki=default" # Runs on default
