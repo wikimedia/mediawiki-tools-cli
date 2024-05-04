@@ -24,7 +24,7 @@ require (
 	github.com/rodaine/table v1.1.0
 	github.com/schollz/progressbar/v3 v3.14.2
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/txn2/txeh v1.5.3
 	github.com/xanzy/go-gitlab v0.103.0
@@ -71,7 +71,7 @@ require (
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.23.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/dave/jennifer v1.7.0
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
