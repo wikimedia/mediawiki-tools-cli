@@ -1,0 +1,3 @@
+Executes a MediaWiki script using run.php in the MediaWiki container for all known wikis.
+
+The exit code will be the highest exit code encountered.
