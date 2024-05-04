@@ -29,7 +29,7 @@ func (p Project) Command(commandAndArgs []string) Command {
 // TODO don't use this externally, use Command?
 func (p Project) Cmd(commandAndArgs []string) *exec.Cmd {
 	// If we have docker and a compose sub command, we can run it
-	if _, err := lookpath.NeedCommands([]string{"docker", "compose"}); err == nil {
+	if _, err := lookpath.NeedCommands([]string{"docker compose"}); err == nil {
 		return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...)
 	}
 	// If we have docker-compose, we can run it
