@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -45,7 +46,7 @@ type CheckResult struct {
 
 func getData() Data {
 	var data Data
-	content, err := ioutil.ReadFile("tools/image-update/data.yml")
+	content, err := os.ReadFile("tools/image-update/data.yml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -160,7 +161,7 @@ func main() {
 		for _, v := range result.Commands {
 			bashOutput += fmt.Sprintf(`%s`+"\n", v.Command)
 		}
-		err := ioutil.WriteFile("tools/image-update/.update.sh", []byte(bashOutput), 0o755)
+		err := os.WriteFile("tools/image-update/.update.sh", []byte(bashOutput), 0o755)
 		if err != nil {
 			panic(err)
 		}
@@ -174,7 +175,7 @@ func main() {
 			gitlabOutput += fmt.Sprintf(`          DESCRIPTION: "%s"`+"\n", v.Description)
 			gitlabOutput += fmt.Sprintf(`          COMMAND: "%s"`+"\n", v.Command)
 		}
-		err := ioutil.WriteFile("tools/image-update/.gitlab.update.yaml", []byte(gitlabOutput), 0o755)
+		err := os.WriteFile("tools/image-update/.gitlab.update.yaml", []byte(gitlabOutput), 0o755)
 		if err != nil {
 			panic(err)
 		}
@@ -299,7 +300,7 @@ func jsonFromURL(url string, unmarshalTo interface{}) (interface{}, error) {
 		defer res.Body.Close()
 	}
 
-	body, readErr := ioutil.ReadAll(res.Body)
+	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
 		return nil, readErr
 	}

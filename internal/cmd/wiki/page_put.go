@@ -2,7 +2,7 @@ package wiki
 
 import (
 	_ "embed"
-	"io/ioutil"
+	"io"
 	"os"
 
 	mwclient "cgt.name/pkg/go-mwclient"
@@ -43,7 +43,7 @@ func NewWikiPagePutCmd() *cobra.Command {
 				logrus.Fatal("title is not set")
 			}
 
-			bytes, err := ioutil.ReadAll(os.Stdin)
+			bytes, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				panic(err)
 			}

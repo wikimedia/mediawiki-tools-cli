@@ -21,7 +21,7 @@ test:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     coverage: '/Total coverage: \d+.\d+%/'
@@ -47,7 +47,7 @@ checks:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     parallel:
@@ -69,7 +69,7 @@ tools:
     stage: test
     needs: []
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     parallel:
@@ -85,7 +85,7 @@ build:
     stage: build
     needs: []
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     artifacts:
@@ -131,7 +131,7 @@ build-release:
     stage: release
     needs: [build,integration]
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     before_script:
@@ -146,7 +146,7 @@ build-docs:
     stage: release
     needs: [build,integration]
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     before_script:
@@ -161,7 +161,7 @@ release-build:
     stage: release
     needs: [build,integration]
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     artifacts:
@@ -221,7 +221,7 @@ release-docs:
     stage: release
     needs: [release-publish]
     cache: {}
-    image: golang:1.18
+    image: golang:1.21
     tags:
     - wmcs
     before_script:

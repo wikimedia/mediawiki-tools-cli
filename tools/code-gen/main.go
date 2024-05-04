@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -36,7 +35,7 @@ type Flag struct {
 
 func main() {
 	// Load YAMl file
-	yamlFile, err := ioutil.ReadFile("tools/code-gen/gerrit.yml")
+	yamlFile, err := os.ReadFile("tools/code-gen/gerrit.yml")
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -165,7 +164,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 				jen.Qual("github.com/sirupsen/logrus", "Error").Call(jen.Id("err")),
 			),
 			jen.Defer().Id("response").Dot("Body").Dot("Close").Call(),
-			jen.List(jen.Id("body"), jen.Id("err")).Op(":=").Qual("io/ioutil", "ReadAll").Call(jen.Id("response").Dot("Body")),
+			jen.List(jen.Id("body"), jen.Id("err")).Op(":=").Qual("io", "ReadAll").Call(jen.Id("response").Dot("Body")),
 			jen.If(jen.Id("err").Op("!=").Nil()).Block(
 				jen.Panic(jen.Id("err")),
 			),
