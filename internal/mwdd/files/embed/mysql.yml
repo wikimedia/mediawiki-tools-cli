@@ -2,6 +2,8 @@
 services:
   mysql:
     image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=toor
@@ -20,6 +22,8 @@ services:
 
   mysql-configure-replication:
     image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    security_opt:
+      - label:disable
     environment:
       - "MYSQL_REPLICA_PASSWORD=toor"
       - "MYSQL_MAIN_PASSWORD=toor"

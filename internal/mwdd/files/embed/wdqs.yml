@@ -2,6 +2,8 @@
 services:
   wdqs:
     image: "wikibase/wdqs:0.3.121-wmde.11"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     command: /runBlazegraph.sh
     volumes:
