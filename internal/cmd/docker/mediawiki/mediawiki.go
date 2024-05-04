@@ -104,7 +104,7 @@ func NewMediaWikiCmd() *cobra.Command {
 				logrus.Debug("MEDIAWIKI_VOLUMES_DOT_COMPOSER is missing")
 				usrComposerDirectory := usrDir + "/.composer"
 				if _, err := os.Stat(usrComposerDirectory); os.IsNotExist(err) {
-					err := os.Mkdir(usrComposerDirectory, 0o755)
+					err := os.Mkdir(usrComposerDirectory, 0o755) // #nosec G301
 					if err != nil {
 						fmt.Println("Failed to create directory needed for a composer cache")
 						os.Exit(1)

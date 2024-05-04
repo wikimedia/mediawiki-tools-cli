@@ -1,7 +1,6 @@
 package files
 
 import (
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"reflect"
@@ -10,7 +9,7 @@ import (
 )
 
 func writeContentToTmpFile(content string) string {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "mwcli-test-files-")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "mwcli-test-files-")
 	if err != nil {
 		panic(err)
 	}
@@ -84,7 +83,7 @@ func TestAddLinesUnique(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			AddLinesUnique(tt.args.lines, tt.args.filename)
-			got, _ := ioutil.ReadFile(tt.args.filename)
+			got, _ := os.ReadFile(tt.args.filename)
 			if string(got) != tt.want {
 				t.Errorf(tt.args.filename+" AddLinesUnique() = %v, want %v", string(got), tt.want)
 			}

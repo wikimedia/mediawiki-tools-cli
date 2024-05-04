@@ -2,7 +2,6 @@ package gerrit
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -38,7 +37,7 @@ func LoadConfig() Config {
 		return Config{}
 	}
 	var config Config
-	fileContents, err := ioutil.ReadFile(fileName)
+	fileContents, err := os.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("Error while reading file. %v", err)
 		panic(err)
@@ -58,7 +57,7 @@ func (c *Config) Write() {
 		fmt.Printf("Error while Marshaling. %v", err)
 		panic(err)
 	}
-	err = ioutil.WriteFile(fileName, yamlData, 0o600)
+	err = os.WriteFile(fileName, yamlData, 0o600)
 	if err != nil {
 		panic("Unable to write data into the file")
 	}

@@ -16,5 +16,5 @@ func (a *Action) Use() int {
 }
 
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }

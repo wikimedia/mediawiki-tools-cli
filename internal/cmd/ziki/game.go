@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	Out = os.Stdout
 	In = os.Stdin
 }
