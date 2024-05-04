@@ -13,7 +13,7 @@ import (
 func NewMediaWikiNPMCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "npm [flags] [npm-commands]... -- [npm-args]",
-		Short: "Runs commands in a `fresh` container which has 'npn'.",
+		Short: "Runs commands in a `fresh` container which has 'npm'.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
