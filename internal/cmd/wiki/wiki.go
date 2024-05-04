@@ -1,6 +1,7 @@
 package wiki
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +27,7 @@ func NewWikiCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
 	err := cmd.MarkFlagRequired("wiki")
 	if err != nil {
-		panic(err)
+		logrus.Error(err)
 	}
 
 	return cmd

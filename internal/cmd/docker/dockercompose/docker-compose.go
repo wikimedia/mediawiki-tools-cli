@@ -27,7 +27,7 @@ func NewCmd() *cobra.Command {
 			err := dev.DockerCompose().Command(args).RunAttached()
 			if err != nil {
 				panic(err)
-		}
+			}
 		},
 	}
 }

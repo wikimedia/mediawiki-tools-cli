@@ -94,10 +94,7 @@ func NewGerritGroupsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsDetailCmd() *cobra.Command {
@@ -129,10 +126,7 @@ func NewGerritGroupsDetailCmd() *cobra.Command {
 		Use:   "detail",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsNameCmd() *cobra.Command {
@@ -174,10 +168,7 @@ func NewGerritGroupsNameGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsDescriptionCmd() *cobra.Command {
@@ -219,10 +210,7 @@ func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsOptionsCmd() *cobra.Command {
@@ -264,10 +252,7 @@ func NewGerritGroupsOptionsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsOwnerCmd() *cobra.Command {
@@ -309,10 +294,7 @@ func NewGerritGroupsOwnerGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
@@ -344,10 +326,7 @@ func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
 		Use:   "get-audit-log",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsMembersCmd() *cobra.Command {
@@ -390,10 +369,7 @@ func NewGerritGroupsMembersListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsMembersGetCmd() *cobra.Command {
@@ -427,15 +403,9 @@ func NewGerritGroupsMembersGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	cmd.Flags().StringVar(&cmdFlags.member, "member", "", "The member to retrieve.")
-	err2 := cmd.MarkFlagRequired("member")
-	if err2 != nil {
-		logrus.Error(err2)
-	}
+	cmd.MarkFlagRequired("member")
 	return cmd
 }
 func NewGerritGroupsGroupsCmd() *cobra.Command {
@@ -478,10 +448,7 @@ func NewGerritGroupsGroupsListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsGroupsGetCmd() *cobra.Command {
@@ -515,14 +482,8 @@ func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
-	err := cmd.MarkFlagRequired("group")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("group")
 	cmd.Flags().StringVar(&cmdFlags.subgroup, "subgroup", "", "The subgroup to retrieve.")
-	err2 := cmd.MarkFlagRequired("subgroup")
-	if err2 != nil {
-		logrus.Error(err2)
-	}
+	cmd.MarkFlagRequired("subgroup")
 	return cmd
 }

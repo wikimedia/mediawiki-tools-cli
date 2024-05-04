@@ -306,7 +306,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				"--network", network,
 				"alpine/socat:1.7.4.4-r0",
 				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+dereferencedName+":"+internalPort,
-			))  // #nosec G204
+			)) // #nosec G204
 		},
 	}
 	cmd.Flags().StringVarP(&externalPort, "external-port", "e", "", "External port to expose")

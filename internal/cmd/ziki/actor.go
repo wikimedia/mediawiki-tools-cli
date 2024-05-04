@@ -19,7 +19,7 @@ type Actors []Actor
 
 func (a *Actor) Act(actionOption int) (int, string) {
 	if actionOption > len(a.Actions) {
-		randAction := a.Actions[rand.Intn(len(a.Actions)-1)]  // #nosec G404
+		randAction := a.Actions[rand.Intn(len(a.Actions)-1)] // #nosec G404
 		return Actions[randAction].Use(), "no action"
 	}
 	action := a.Actions[actionOption]

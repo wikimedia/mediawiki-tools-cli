@@ -16,7 +16,7 @@ func main() {
 	envErr := os.Setenv("MWCLI_SKIP_RENDER_MARKDOWN", "true")
 	if envErr != nil {
 		logrus.Errorln(envErr)
-	} 
+	}
 
 	path := "./_docs"
 	dirs.EnsureExists(path)

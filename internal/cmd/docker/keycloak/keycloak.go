@@ -35,7 +35,7 @@ func NewCmd() *cobra.Command {
 }
 
 func keycloakLogin() {
-	_,_,err := mwdd.DefaultForUser().DockerCompose().ExecCommand("keycloak", dockercompose.ExecOptions{
+	_, _, err := mwdd.DefaultForUser().DockerCompose().ExecCommand("keycloak", dockercompose.ExecOptions{
 		User:           "root",
 		CommandAndArgs: []string{"mwdd/login.sh"},
 	}).RunAndCollect()

@@ -30,11 +30,11 @@ func ensureExists() {
 		w := bufio.NewWriter(file)
 		_, err = w.WriteString("{}")
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
 		}
 		flushErr := w.Flush()
-		if flushErr !=nil {
-			logrus.Fatal(flushErr)
+		if flushErr != nil {
+			logrus.Error(flushErr)
 		}
 	}
 }
@@ -67,11 +67,11 @@ func (c Config) WriteToDisk() {
 	jsonEncoder := json.NewEncoder(w)
 	jsonErr := jsonEncoder.Encode(c)
 	if jsonErr != nil {
-		logrus.Fatal(jsonErr)
+		logrus.Error(jsonErr)
 	}
 	flushErr := w.Flush()
-	if flushErr !=nil {
-		logrus.Fatal(flushErr)
+	if flushErr != nil {
+		logrus.Error(flushErr)
 	}
 }
 

@@ -79,7 +79,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					if err != nil {
 						fmt.Println(err)
 						fileErr := f.Close()
-						if fileErr!=nil {
+						if fileErr != nil {
 							fmt.Println(fileErr)
 						}
 						return

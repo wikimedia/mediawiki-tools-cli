@@ -87,10 +87,7 @@ func NewGerritChangesGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
-	err := cmd.MarkFlagRequired("change")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("change")
 	return cmd
 }
 func NewGerritChangesDetailCmd() *cobra.Command {
@@ -122,10 +119,7 @@ func NewGerritChangesDetailCmd() *cobra.Command {
 		Use:   "detail",
 	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
-	err := cmd.MarkFlagRequired("change")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("change")
 	return cmd
 }
 func NewGerritChangesTopicCmd() *cobra.Command {
@@ -167,10 +161,7 @@ func NewGerritChangesTopicGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
-	err := cmd.MarkFlagRequired("change")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("change")
 	return cmd
 }
 func NewGerritChangesInCmd() *cobra.Command {
@@ -202,10 +193,7 @@ func NewGerritChangesInCmd() *cobra.Command {
 		Use:   "in",
 	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
-	err := cmd.MarkFlagRequired("change")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("change")
 	return cmd
 }
 func NewGerritChangesReviewersCmd() *cobra.Command {
@@ -247,9 +235,6 @@ func NewGerritChangesReviewersListCmd() *cobra.Command {
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
-	err := cmd.MarkFlagRequired("change")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("change")
 	return cmd
 }

@@ -100,8 +100,8 @@ func (e EmbeddingDiskSync) indexString() string {
 func (e EmbeddingDiskSync) fileString(name string) string {
 	fileReader := e.fileReaderOrExit(name)
 	buf := bytes.NewBuffer(nil)
-	_,ioErr := io.Copy(buf, fileReader)
-	if ioErr !=nil {
+	_, ioErr := io.Copy(buf, fileReader)
+	if ioErr != nil {
 		fmt.Println(ioErr)
 	}
 	err := fileReader.Close()

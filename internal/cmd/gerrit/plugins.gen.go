@@ -95,10 +95,7 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 		Use:   "get",
 	}
 	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to retrieve.")
-	err := cmd.MarkFlagRequired("plugin")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("plugin")
 	return cmd
 }
 func NewGerritPluginsEnableCmd() *cobra.Command {
@@ -130,10 +127,7 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 		Use:   "enable",
 	}
 	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to enable.")
-	err := cmd.MarkFlagRequired("plugin")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("plugin")
 	return cmd
 }
 func NewGerritPluginsDisableCmd() *cobra.Command {
@@ -165,10 +159,7 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 		Use:   "disable",
 	}
 	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to disable.")
-	err := cmd.MarkFlagRequired("plugin")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("plugin")
 	return cmd
 }
 func NewGerritPluginsReloadCmd() *cobra.Command {
@@ -200,9 +191,6 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 		Use:   "reload",
 	}
 	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to reload.")
-	err := cmd.MarkFlagRequired("plugin")
-	if err != nil {
-		logrus.Error(err)
-	}
+	cmd.MarkFlagRequired("plugin")
 	return cmd
 }

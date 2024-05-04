@@ -12,7 +12,7 @@ type Action struct {
 }
 
 func (a *Action) Use() int {
-	return a.base + rand.Intn(a.bonus)  // #nosec G404
+	return a.base + rand.Intn(a.bonus) // #nosec G404
 }
 
 func init() {
