@@ -21,6 +21,8 @@ services:
 
   shellbox-media-httpd:
     image: docker-registry.wikimedia.org/httpd-fcgi:latest
+    security_opt:
+      - label:disable
     volumes:
       - shellbox-media-run:/run/shared
     environment:

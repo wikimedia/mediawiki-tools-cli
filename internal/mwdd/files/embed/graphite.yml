@@ -2,6 +2,8 @@
 services:
   graphite:
     image: "${GRAPHITE_IMAGE:-graphiteapp/graphite-statsd:1.1.10-4}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=graphite.mwdd.localhost,graphite.mwdd

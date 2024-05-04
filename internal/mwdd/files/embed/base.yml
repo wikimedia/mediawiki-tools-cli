@@ -3,6 +3,8 @@ services:
 
   dps:
     image: "${DPS_IMAGE:-defreitas/dns-proxy-server:3.5.2}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -12,6 +14,8 @@ services:
 
   nginx-proxy:
     image: "${NGINX_PROXY_IMAGE:-jwilder/nginx-proxy:0.10}"
+    security_opt:
+      - label:disable
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=proxy.mwdd.localhost,proxy.mwdd
