@@ -1,4 +1,3 @@
-
 services:
   citoid:
     # Using this specific has because i found it at https://gitlab.com/wmde/technical-wishes/docker-dev/-/merge_requests/138/diffs
@@ -11,7 +10,3 @@ services:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
-
-volumes:
-  elasticsearch-data:
-    driver: local
