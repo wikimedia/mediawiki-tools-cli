@@ -2,7 +2,7 @@ package output
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -42,7 +42,7 @@ func mapFromFile(file string) map[interface{}]interface{} {
 
 	// Get a filterable map from the 1 test file
 	filterable := ComplexObjects{}
-	bytes, err := ioutil.ReadFile(file)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		logrus.Fatal(err)
 	}

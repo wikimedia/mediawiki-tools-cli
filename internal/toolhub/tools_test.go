@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -48,7 +48,7 @@ func TestClient_GetTool(t *testing.T) {
 			doFunc: func(*http.Request) (*http.Response, error) {
 				// TODO add more things to the output if we care?
 				json := `{"name":"toolforge-add","title":"Addshore's tools and services","description":"desc","url":"https://toolsadmin.wikimedia.org/tools/id/add","keywords":[]}`
-				r := ioutil.NopCloser(bytes.NewReader([]byte(json)))
+				r := io.NopCloser(bytes.NewReader([]byte(json)))
 				return &http.Response{
 					StatusCode: 200,
 					Body:       r,

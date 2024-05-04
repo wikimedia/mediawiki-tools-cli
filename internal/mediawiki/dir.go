@@ -1,7 +1,6 @@
 package mediawiki
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,7 +63,7 @@ func CheckIfInCoreDirectory() {
 }
 
 func errorIfDirectoryMissingGitReviewForProject(directory string, expectedProject string) error {
-	b, err := ioutil.ReadFile(directory + string(os.PathSeparator) + ".gitreview")
+	b, err := os.ReadFile(directory + string(os.PathSeparator) + ".gitreview")
 	if err != nil || !strings.Contains(string(b), "project="+expectedProject) {
 		return &NotMediaWikiDirectory{directory}
 	}
