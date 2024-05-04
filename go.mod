@@ -22,7 +22,7 @@ require (
 	github.com/muesli/termenv v0.15.2
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.1.0
-	github.com/schollz/progressbar/v3 v3.13.1
+	github.com/schollz/progressbar/v3 v3.14.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
