@@ -11,10 +11,14 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Disable SELinux labels for all containers with volumes.
   - `podman` should now work as a drop in replacement for `docker` (T291348)
   - Added `mw docker mediawiki npm` and `npx` commands as shortcuts
-  - Added `citoid` service
+  - Added `mw docker mediawiki foreachwiki` command
+  - Added `mw docker hosts show` command
+  - Added `mw docker citoid` service
+  - Added `LocalSettings.d` support for MediaWiki settings
   - Improved `get-code` to also fetch submodules (T353780)
+  - Improved `get-code` to not be confusing if there is nothing to clone (T342080)
   - Remove `versions` from docker-compose files to avoid warnings
-  - Default image updates: eventgate, node, shellbox, postgres, quibble
+  - Default image updates: eventgate, node, shellbox, postgres, quibble, fresh
 
 ## v0.23.0
 
