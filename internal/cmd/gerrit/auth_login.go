@@ -41,9 +41,9 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 
 			// Check the credentials
 			instance := "https://gerrit.wikimedia.org/r/"
-			client, _ := gerrit.NewClient(instance, nil)
+			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
 			client.Authentication.SetBasicAuth(username, password)
-			_, err := client.Call("GET", "accounts/self/name", nil, nil)
+			_, err := client.Call(cmd.Context(), "GET", "accounts/self/name", nil, nil)
 			if err != nil {
 				logrus.Errorf("Error making request: %s", err)
 				// Ask if they want to ignore the error and save the credentials anyway

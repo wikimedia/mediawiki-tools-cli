@@ -31,8 +31,8 @@ func NewGerritAccessListCmd() *cobra.Command {
 			path := "/access/"
 			path = addParamToPath(path, "project", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}

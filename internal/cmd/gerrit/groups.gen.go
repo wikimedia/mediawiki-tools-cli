@@ -44,8 +44,8 @@ func NewGerritGroupsListCmd() *cobra.Command {
 			path = addParamToPath(path, "limit", cmdFlags.limit)
 			path = addParamToPath(path, "start", cmdFlags.start)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -77,8 +77,8 @@ func NewGerritGroupsGetCmd() *cobra.Command {
 			path := "/groups/{group-id}/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -109,8 +109,8 @@ func NewGerritGroupsDetailCmd() *cobra.Command {
 			path := "/groups/{group-id}/detail/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -151,8 +151,8 @@ func NewGerritGroupsNameGetCmd() *cobra.Command {
 			path := "/groups/{group-id}/name/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -193,8 +193,8 @@ func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
 			path := "/groups/{group-id}/description/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -235,8 +235,8 @@ func NewGerritGroupsOptionsGetCmd() *cobra.Command {
 			path := "/groups/{group-id}/options/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -277,8 +277,8 @@ func NewGerritGroupsOwnerGetCmd() *cobra.Command {
 			path := "/groups/{group-id}/owner/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -309,8 +309,8 @@ func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
 			path := "/groups/{group-id}/log.audit/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -352,8 +352,8 @@ func NewGerritGroupsMembersListCmd() *cobra.Command {
 			path := "/groups/{group-id}/members/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -386,8 +386,8 @@ func NewGerritGroupsMembersGetCmd() *cobra.Command {
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 			path = addParamToPath(path, "member-id", cmdFlags.member)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -431,8 +431,8 @@ func NewGerritGroupsGroupsListCmd() *cobra.Command {
 			path := "/groups/{group-id}/groups/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -465,8 +465,8 @@ func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 			path = addParamToPath(path, "group-id", cmdFlags.group)
 			path = addParamToPath(path, "subgroup-id", cmdFlags.subgroup)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}

@@ -56,8 +56,8 @@ func NewGerritAccountsListCmd() *cobra.Command {
 			path = addParamToPath(path, "n", cmdFlags.limit)
 			path = addParamToPath(path, "start", cmdFlags.start)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -89,8 +89,8 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -136,8 +136,8 @@ func NewGerritAccountsDetailsCmd() *cobra.Command {
 			path := "/accounts/{account-id}/detail/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -180,8 +180,8 @@ func NewGerritAccountsNameGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -214,8 +214,8 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "name", cmdFlags.name)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, cmdFlags.name, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.name, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -248,8 +248,8 @@ func NewGerritAccountsNameDeleteCmd() *cobra.Command {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("DELETE", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -291,8 +291,8 @@ func NewGerritAccountsStatusGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/status/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -325,8 +325,8 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "status", cmdFlags.status)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, cmdFlags.status, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.status, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -370,8 +370,8 @@ func NewGerritAccountsUsernameGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/username/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -404,8 +404,8 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "username", cmdFlags.username)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, cmdFlags.username, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.username, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -450,8 +450,8 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "displayname", cmdFlags.displayname)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, cmdFlags.displayname, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.displayname, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -496,8 +496,8 @@ func NewGerritAccountsActiveGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/active/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -528,8 +528,8 @@ func NewGerritAccountsActiveSetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/active/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -560,8 +560,8 @@ func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
 			path := "/accounts/{account-id}/active/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("DELETE", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -602,8 +602,8 @@ func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/oauthtoken/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -648,8 +648,8 @@ func NewGerritAccountsEmailsListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/emails/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -682,8 +682,8 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -718,8 +718,8 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
-			client := authenticatedClient()
-			response, err := client.Call("POST", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -754,8 +754,8 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
-			client := authenticatedClient()
-			response, err := client.Call("DELETE", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -790,8 +790,8 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -836,8 +836,8 @@ func NewGerritAccountsSshkeysListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/sshkeys/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -870,8 +870,8 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "ssh-key-id", cmdFlags.sshkey)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -906,8 +906,8 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "ssh-key-id", cmdFlags.sshkey)
 
-			client := authenticatedClient()
-			response, err := client.Call("DELETE", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -952,8 +952,8 @@ func NewGerritAccountsGpgkeysListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/gpgkeys/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -986,8 +986,8 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "gpg-key-id", cmdFlags.gpgkey)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1022,8 +1022,8 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "gpg-key-id", cmdFlags.gpgkey)
 
-			client := authenticatedClient()
-			response, err := client.Call("DELETE", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1067,8 +1067,8 @@ func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/capabilities/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1102,8 +1102,8 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "capability-id", cmdFlags.capability)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1146,8 +1146,8 @@ func NewGerritAccountsGroupsListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/groups/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1189,8 +1189,8 @@ func NewGerritAccountsAvatarGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/avatar/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1221,8 +1221,8 @@ func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
 			path := "/accounts/{account-id}/avatar.change.url/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1265,8 +1265,8 @@ func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
 			path := "/accounts/{account-id}/preferences/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1297,8 +1297,8 @@ func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
 			path := "/accounts/{account-id}/preferences.diff/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1329,8 +1329,8 @@ func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
 			path := "/accounts/{account-id}/preferences.edit/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1371,8 +1371,8 @@ func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/watched.projects/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1413,8 +1413,8 @@ func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/external.ids/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1455,8 +1455,8 @@ func NewGerritAccountsAgreementsListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/agreements/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1499,8 +1499,8 @@ func NewGerritAccountsStarredChangesListCmd() *cobra.Command {
 			path := "/accounts/{account-id}/starred.changes/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1534,8 +1534,8 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("PUT", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1571,8 +1571,8 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("DELETE", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -1605,8 +1605,8 @@ func NewGerritAccountsIndexCmd() *cobra.Command {
 			path := "/accounts/{account-id}/index/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
-			client := authenticatedClient()
-			response, err := client.Call("POST", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
