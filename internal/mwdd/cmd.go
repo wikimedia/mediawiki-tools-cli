@@ -94,10 +94,13 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
-			DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{
+			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{
 				Detached:      true,
 				ForceRecreate: forceRecreate,
 			})
+			if err != nil {
+				logrus.Error(err)
+			}
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
 			}
@@ -124,13 +127,19 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			volumes := DefaultForUser().DockerCompose().File(dereferencedName).Contents().VolumeNames()
 
-			DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
+			err := DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
 				Stop:                   true,
 				Force:                  true,
 				RemoveAnonymousVolumes: true,
 			})
+			if err != nil {
+				logrus.Error(err)
+			}
 			if len(volumes) > 0 {
-				DefaultForUser().DockerCompose().VolumesRm(volumes)
+				err := DefaultForUser().DockerCompose().VolumesRm(volumes)
+				if err != nil {
+					logrus.Error(err)
+				}
 			}
 		},
 	}
@@ -153,7 +162,10 @@ func NewServiceStopCmdP(name *string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
-			DefaultForUser().DockerCompose().Stop(services)
+			err := DefaultForUser().DockerCompose().Stop(services)
+			if err != nil {
+				logrus.Error(err)
+			}
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -175,7 +187,10 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
-			DefaultForUser().DockerCompose().Start(services)
+			err := DefaultForUser().DockerCompose().Start(services)
+			if err != nil {
+				logrus.Error(err)
+			}
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -291,7 +306,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				"--network", network,
 				"alpine/socat:1.7.4.4-r0",
 				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+dereferencedName+":"+internalPort,
-			))
+			)) // #nosec G204
 		},
 	}
 	cmd.Flags().StringVarP(&externalPort, "external-port", "e", "", "External port to expose")

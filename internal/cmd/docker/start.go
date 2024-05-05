@@ -18,7 +18,10 @@ func NewMwddStartCmd() *cobra.Command {
 			if servicesErr != nil {
 				logrus.Error(servicesErr)
 			}
-			mwdd.DefaultForUser().DockerCompose().Start(services)
+			err := mwdd.DefaultForUser().DockerCompose().Start(services)
+			if err != nil {
+				panic(err)
+			}
 		},
 	}
 	cmd.Annotations = make(map[string]string)

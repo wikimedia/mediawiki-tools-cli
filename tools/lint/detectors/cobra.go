@@ -89,7 +89,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 					return nil
 				}
 
-				file, err := os.Open(path)
+				file, err := os.Open(filepath.Clean(path))
 				if err != nil {
 					panic(err)
 				}

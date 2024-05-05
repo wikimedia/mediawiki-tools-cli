@@ -30,11 +30,11 @@ func (p Project) Command(commandAndArgs []string) Command {
 func (p Project) Cmd(commandAndArgs []string) *exec.Cmd {
 	// If we have docker and a compose sub command, we can run it
 	if _, err := lookpath.NeedCommands([]string{"docker compose"}); err == nil {
-		return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...)
+		return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...) // #nosec G204
 	}
 	// If we have docker-compose, we can run it
 	if _, err := lookpath.NeedExecutables([]string{"docker-compose"}); err == nil {
-		return exec.Command("docker-compose", p.argsForExec(commandAndArgs)...)
+		return exec.Command("docker-compose", p.argsForExec(commandAndArgs)...) // #nosec G204
 	}
 	// Otherwise we have no option (but this should already be checked by callers)
 	panic("No docker-compose or docker compose found in PATH")

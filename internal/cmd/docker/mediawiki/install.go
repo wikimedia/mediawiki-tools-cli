@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -65,7 +66,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				if createDefaultFile {
 					lsPath := mediawiki.Path("LocalSettings.php")
 
-					f, err := os.Create(lsPath)
+					f, err := os.Create(filepath.Clean(lsPath))
 					if err != nil {
 						fmt.Println(err)
 						return
@@ -77,7 +78,10 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					_, err = f.WriteString(settingsStringToWrite)
 					if err != nil {
 						fmt.Println(err)
-						f.Close()
+						fileErr := f.Close()
+						if fileErr != nil {
+							fmt.Println(fileErr)
+						}
 						return
 					}
 					err = f.Close()
@@ -98,21 +102,30 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 			// Fix some container mount permission issues
 			// Owned by root, but our webserver needs to be able to write
-			mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+			err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
 				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/www/html/w/cache/docker"},
 			},
 			)
-			mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+			if err != nil {
+				panic(err)
+			}
+			err2 := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
 				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/www/html/w/images/docker"},
 			},
 			)
-			mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+			if err2 != nil {
+				panic(err2)
+			}
+			err3 := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
 				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/log/mediawiki"},
 			},
 			)
+			if err3 != nil {
+				panic(err3)
+			}
 
 			// Record the wiki domain that we are trying to create
 			domain := DbName + ".mediawiki.mwdd.localhost"
@@ -181,7 +194,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					// Move the LocalSettings.php back after install (or SIGTERM cancellation)
 					// TODO Don't do this in docker, do it on disk...
 					// TODO Check that the file we are moving does indeed exist, and we are not overwriting what we actually want!
-					mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "root",
 						CommandAndArgs: []string{
 							"mv",
@@ -189,6 +202,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							"/var/www/html/w/LocalSettings.php",
 						},
 					})
+					if err != nil {
+						panic(err)
+					}
 				}
 
 				// Set up signal handling for graceful shutdown while LocalSettings.php is moved
@@ -204,7 +220,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				}()
 
 				// Move the current LocalSettings "somewhere safe", incase someone needs to restore it
-				mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+				err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 					User: "root",
 					CommandAndArgs: []string{
 						"mv",
@@ -212,10 +228,13 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						"/var/www/html/w/LocalSettings.php.mwdd.bak." + installStartTime,
 					},
 				})
+				if err != nil {
+					panic(err)
+				}
 
 				// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
 				if DbType == "sqlite" {
-					mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
 							"php",
@@ -231,27 +250,36 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							adminUser,
 						},
 					})
+					if err != nil {
+						panic(err)
+					}
 				}
 				if DbType == "mysql" {
-					mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
 							"/wait-for-it.sh",
 							"mysql:3306",
 						},
 					})
+					if err != nil {
+						panic(err)
+					}
 				}
 				if DbType == "postgres" {
-					mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
 							"/wait-for-it.sh",
 							"postgres:5432",
 						},
 					})
+					if err != nil {
+						panic(err)
+					}
 				}
 				if DbType == "mysql" || DbType == "postgres" {
-					mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
 							"php",
@@ -269,13 +297,16 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							adminUser,
 						},
 					})
+					if err != nil {
+						panic(err)
+					}
 				}
 			}
 			runInstall()
 
 			// Run update.php
 			runUpdate := func() {
-				mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+				err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 					User: "nobody",
 					CommandAndArgs: []string{
 						"php",
@@ -284,6 +315,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						"--quick",
 					},
 				})
+				if err != nil {
+					panic(err)
+				}
 			}
 			// TODO if update fails, still output the install message section, BUT tell them they need to fix the issue and run update.php
 			runUpdate()

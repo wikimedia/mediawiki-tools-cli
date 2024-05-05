@@ -41,7 +41,10 @@ func (j JSONFile) EnsureExists() {
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		w.Flush()
+		err = w.Flush()
+		if err != nil {
+			logrus.Fatal(err)
+		}
 	}
 }
 
@@ -58,7 +61,10 @@ func LoadFromDisk(filePath string) JSONFile {
 	}
 	defer openedFile.Close()
 	jsonParser := json.NewDecoder(openedFile)
-	jsonParser.Decode(&file.Contents)
+	jsonErr := jsonParser.Decode(&file.Contents)
+	if jsonErr != nil {
+		logrus.Fatal(jsonErr)
+	}
 	return file
 }
 
@@ -71,8 +77,14 @@ func (j JSONFile) WriteToDisk() {
 	defer file.Close()
 	w := bufio.NewWriter(file)
 	jsonEncoder := json.NewEncoder(w)
-	jsonEncoder.Encode(j.Contents)
-	w.Flush()
+	jsonErr := jsonEncoder.Encode(j.Contents)
+	if jsonErr != nil {
+		logrus.Fatal(jsonErr)
+	}
+	flushErr := w.Flush()
+	if flushErr != nil {
+		logrus.Fatal(flushErr)
+	}
 }
 
 /*PrettyPrint outputs the current config as a pretty string.*/

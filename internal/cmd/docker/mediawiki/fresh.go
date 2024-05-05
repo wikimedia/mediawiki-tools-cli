@@ -22,9 +22,12 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Long:  cli.RenderMarkdown(mwddMediawikiFreshLong),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
-			mwdd.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{
+			err := mwdd.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{
 				Detached: true,
 			})
+			if err != nil {
+				panic(err)
+			}
 			command, env := mwdd.CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki-fresh")
 			if containerIDErr != nil {

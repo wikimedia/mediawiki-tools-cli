@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,14 +17,17 @@ func AddLinesUnique(lines []string, filename string) {
 
 /*AddLineUnique adds the line to the file if it will be the only occurrence of the string.*/
 func AddLineUnique(line string, fileName string) {
-	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
 
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(file)
+	_, bufErr := buf.ReadFrom(file)
+	if bufErr != nil {
+		panic(bufErr)
+	}
 	s := buf.String()
 
 	if !strings.Contains(s, line) {
@@ -34,7 +38,7 @@ func AddLineUnique(line string, fileName string) {
 }
 
 func AddLine(line string, fileName string) {
-	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		panic(err)
 	}
@@ -46,19 +50,31 @@ func AddLine(line string, fileName string) {
 }
 
 func RemoveAllLinesMatching(line string, fileName string) {
-	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
 
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(file)
+	_, bufErr := buf.ReadFrom(file)
+	if bufErr != nil {
+		panic(bufErr)
+	}
 	s := buf.String()
 	s = strings.ReplaceAll(s, line+"\n", "")
-	file.Truncate(0)
-	file.Seek(0, 0)
-	file.WriteString(s)
+	truncErr := file.Truncate(0)
+	if truncErr != nil {
+		panic(truncErr)
+	}
+	_, seekErr := file.Seek(0, 0)
+	if seekErr != nil {
+		panic(seekErr)
+	}
+	_, writeErr := file.WriteString(s)
+	if writeErr != nil {
+		panic(writeErr)
+	}
 }
 
 /*Lines reads all lines from a file.*/
@@ -67,7 +83,7 @@ func Lines(fileName string) []string {
 	if err != nil {
 		return []string{}
 	}
-	file, err := os.Open(fileName)
+	file, err := os.Open(filepath.Clean(fileName))
 	if err != nil {
 		panic(err)
 	}
@@ -83,7 +99,7 @@ func Lines(fileName string) []string {
 
 /*Bytes gets bytes of a file or panics.*/
 func Bytes(fileName string) []byte {
-	bytes, err := os.ReadFile(fileName)
+	bytes, err := os.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		panic(err)
 	}
@@ -97,6 +113,9 @@ func Exists(fileName string) bool {
 
 func RemoveIfExists(fileName string) {
 	if Exists(fileName) {
-		os.Remove(fileName)
+		err := os.Remove(fileName)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
