@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -60,7 +61,7 @@ func replaceInDirectory(dirPath string, find string, replace string) {
 }
 
 func replaceInFile(filePath string, find string, replace string) {
-	fileContent, err := os.ReadFile(filePath)
+	fileContent, err := os.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		logrus.Printf("os.ReadFile err   #%v ", err)
 	}
@@ -69,7 +70,10 @@ func replaceInFile(filePath string, find string, replace string) {
 	newText := strings.ReplaceAll(text, find, replace)
 
 	if text != newText {
-		os.WriteFile(filePath, []byte(newText), 0o755)
+		err := os.WriteFile(filePath, []byte(newText), 0o755) // #nosec G306
+		if err != nil {
+			logrus.Printf("ioutil.WriteFile err   #%v ", err)
+		}
 		fmt.Println("Updated " + filePath)
 	}
 }

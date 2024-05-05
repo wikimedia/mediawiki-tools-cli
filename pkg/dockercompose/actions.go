@@ -109,7 +109,7 @@ func (p Project) VolumesRm(volumes []string) error {
 		dockerVolumes = append(dockerVolumes, p.Name+"_"+dcVolume)
 	}
 	cmd := Command{
-		Cmd: exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...),
+		Cmd: exec.Command("docker", append([]string{"volume", "rm"}, dockerVolumes...)...), // #nosec G204
 	}
 	return cmd.RunAttached()
 }

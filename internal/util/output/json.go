@@ -68,7 +68,10 @@ func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
 	// Convert to a map of interfaces so the j lib doesn't complain about our types
 	var mapOfInterfaces map[string]interface{}
 	data, _ := json.Marshal(in)
-	json.Unmarshal(data, &mapOfInterfaces)
+	err := json.Unmarshal(data, &mapOfInterfaces)
+	if err != nil {
+		logrus.Error(err)
+	}
 
 	iter := query.Run(mapOfInterfaces) // or query.RunWithContext
 	for {
@@ -81,7 +84,10 @@ func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
 		}
 
 		if shouldColor() {
-			jsoncolor.Write(writer, strings.NewReader(interfaceToJSONString(v)), "  ")
+			err := jsoncolor.Write(writer, strings.NewReader(interfaceToJSONString(v)), "  ")
+			if err != nil {
+				logrus.Error(err)
+			}
 		} else {
 			fmt.Fprintf(writer, "%v\n", interfaceToJSONString(v))
 		}

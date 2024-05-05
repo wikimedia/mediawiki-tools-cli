@@ -30,9 +30,12 @@ func ensureExists() {
 		w := bufio.NewWriter(file)
 		_, err = w.WriteString("{}")
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
 		}
-		w.Flush()
+		flushErr := w.Flush()
+		if flushErr != nil {
+			logrus.Error(flushErr)
+		}
 	}
 }
 
@@ -62,8 +65,14 @@ func (c Config) WriteToDisk() {
 	defer file.Close()
 	w := bufio.NewWriter(file)
 	jsonEncoder := json.NewEncoder(w)
-	jsonEncoder.Encode(c)
-	w.Flush()
+	jsonErr := jsonEncoder.Encode(c)
+	if jsonErr != nil {
+		logrus.Error(jsonErr)
+	}
+	flushErr := w.Flush()
+	if flushErr != nil {
+		logrus.Error(flushErr)
+	}
 }
 
 /*PrettyPrint writes the config to disk.*/

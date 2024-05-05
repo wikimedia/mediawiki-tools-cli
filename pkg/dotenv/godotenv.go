@@ -3,6 +3,7 @@ package dotenv
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -15,7 +16,7 @@ func writeOverride(envMap map[string]string, filename string) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(filename)
+	file, err := os.Create(filepath.Clean(filename))
 	if err != nil {
 		return err
 	}

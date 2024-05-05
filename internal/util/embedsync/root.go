@@ -54,7 +54,10 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 			stats, _ := os.Stat(diskFile)
 			if stats.Mode() != getAssumedFilePerms(diskFile) {
 				logrus.Trace(diskFile + " has different permissions, so set correct permissions...")
-				os.Chmod(diskFile, getAssumedFilePerms(diskFile))
+				err := os.Chmod(diskFile, getAssumedFilePerms(diskFile))
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 		}
 	}
@@ -97,8 +100,16 @@ func (e EmbeddingDiskSync) indexString() string {
 func (e EmbeddingDiskSync) fileString(name string) string {
 	fileReader := e.fileReaderOrExit(name)
 	buf := bytes.NewBuffer(nil)
-	io.Copy(buf, fileReader)
-	fileReader.Close()
+	_, ioErr := io.Copy(buf, fileReader)
+	if ioErr != nil {
+		fmt.Println(ioErr)
+	}
+	err := fileReader.Close()
+	if err != nil {
+		fmt.Println("Failed to close file: " + name)
+		fmt.Println(err)
+		panic(err)
+	}
 	return buf.String()
 }
 
@@ -133,8 +144,12 @@ func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
 
 func writeBytesToDisk(bytes []byte, file string) {
 	dirs.EnsureExists(filepath.Dir(file))
-	os.WriteFile(file, bytes, getAssumedFilePerms(file))
-	// TODO check error?
+	err := os.WriteFile(file, bytes, getAssumedFilePerms(file))
+	if err != nil {
+		fmt.Println("Failed to write file: " + file)
+		fmt.Println(err)
+		panic(err)
+	}
 }
 
 func getAssumedFilePerms(filePath string) os.FileMode {

@@ -16,7 +16,7 @@ func NewKeycloakAddRealmCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			keycloakLogin()
-			mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
+			err := mwdd.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
 					"/opt/keycloak/bin/kcadm.sh",
@@ -26,6 +26,9 @@ func NewKeycloakAddRealmCmd() *cobra.Command {
 					"--set", "realm=" + args[0],
 				},
 			})
+			if err != nil {
+				panic(err)
+			}
 		},
 	}
 	return cmd

@@ -14,10 +14,13 @@ func NewMwddDestroyCmd() *cobra.Command {
 		Use:   "destroy",
 		Short: "Destroy all containers and data",
 		Run: func(cmd *cobra.Command, args []string) {
-			mwdd.DefaultForUser().DockerCompose().Down(dockercompose.DownOptions{
+			err := mwdd.DefaultForUser().DockerCompose().Down(dockercompose.DownOptions{
 				Volumes:       true,
 				RemoveOrphans: true,
 			})
+			if err != nil {
+				panic(err)
+			}
 			logrus.Debug("Removing used hosts file")
 			mwdd.DefaultForUser().RemoveUsedHostsIfExists()
 		},

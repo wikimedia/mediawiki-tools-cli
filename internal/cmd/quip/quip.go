@@ -80,7 +80,7 @@ quip --link`,
 				cmds += " | lolcat"
 			}
 
-			execCmd := exec.Command("bash", "-c", cmds)
+			execCmd := exec.Command("bash", "-c", cmds) // #nosec G204
 			execCmd.Stdout = os.Stdout
 			execCmd.Stderr = os.Stderr
 			if err := execCmd.Run(); err != nil {

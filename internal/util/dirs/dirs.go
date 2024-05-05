@@ -7,7 +7,7 @@ import (
 /*EnsureExists Ensures that a directory exists, if it doesn't it and all parent directories will be created.*/
 func EnsureExists(dirPath string) {
 	if _, err := os.Stat(dirPath); err != nil {
-		mkerr := os.MkdirAll(dirPath, 0o755)
+		mkerr := os.MkdirAll(dirPath, 0o755) // #nosec G301
 		if mkerr != nil {
 			panic(mkerr)
 		}

@@ -22,7 +22,10 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 			Headings: []string{"Repository", "File", "Line", "Match"},
 			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
 				typedObject := make(map[string]codesearch.ResultObject, len(objects))
-				mapstructure.Decode(objects, &typedObject)
+				err := mapstructure.Decode(objects, &typedObject)
+				if err != nil {
+					panic(err)
+				}
 				for repository, result := range typedObject {
 					for _, fileMatch := range result.Matches {
 						for _, lineMatch := range fileMatch.Matches {
@@ -34,7 +37,10 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 		},
 		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
 			typedObject := make(map[string]codesearch.ResultObject, len(objects))
-			mapstructure.Decode(objects, &typedObject)
+			err := mapstructure.Decode(objects, &typedObject)
+			if err != nil {
+				panic(err)
+			}
 			for repository, result := range typedObject {
 				for _, fileMatch := range result.Matches {
 					sectionName := repository + " " + fileMatch.Filename

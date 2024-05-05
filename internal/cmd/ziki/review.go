@@ -27,7 +27,7 @@ func runReview(g *Game, actors Actors) int {
 				UserInput(&action)
 				action--
 			} else {
-				action = rand.Intn(len(actors[x].Actions))
+				action = rand.Intn(len(actors[x].Actions)) // #nosec G404
 			}
 			tgt := selectTarget(actors, x)
 			if tgt != -1 {

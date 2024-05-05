@@ -24,7 +24,10 @@ func NewCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dev := mwdd.DefaultForUser()
 			dev.EnsureReady()
-			dev.DockerCompose().Command(args).RunAttached()
+			err := dev.DockerCompose().Command(args).RunAttached()
+			if err != nil {
+				panic(err)
+			}
 		},
 	}
 }

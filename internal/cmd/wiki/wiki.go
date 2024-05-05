@@ -1,6 +1,7 @@
 package wiki
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,10 @@ func NewWikiCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
 	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "A user to interact using")
 	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
-	cmd.MarkFlagRequired("wiki")
+	err := cmd.MarkFlagRequired("wiki")
+	if err != nil {
+		logrus.Error(err)
+	}
 
 	return cmd
 }

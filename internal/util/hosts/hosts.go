@@ -2,6 +2,7 @@ package hosts
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -61,11 +62,14 @@ func FilePath() string {
 }
 
 func fileIsWritable(filePath string) bool {
-	file, err := os.OpenFile(filePath, os.O_WRONLY, 0o666)
+	file, err := os.OpenFile(filepath.Clean(filePath), os.O_WRONLY, 0o666) // #nosec G302
 	if err != nil {
 		return false
 	}
-	file.Close()
+	closeErr := file.Close()
+	if closeErr != nil {
+		panic(closeErr)
+	}
 	return true
 }
 
@@ -74,7 +78,10 @@ func tmpFile() string {
 	if err != nil {
 		panic(err)
 	}
-	tmpFile.Close()
+	closeErr := tmpFile.Close()
+	if closeErr != nil {
+		panic(closeErr)
+	}
 	return tmpFile.Name()
 }
 

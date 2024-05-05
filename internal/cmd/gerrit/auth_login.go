@@ -23,7 +23,10 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 				prompt := &survey.Input{
 					Message: "Gerrit username:",
 				}
-				survey.AskOne(prompt, &username)
+				err := survey.AskOne(prompt, &username)
+				if err != nil {
+					logrus.Error(err)
+				}
 			} else {
 				fmt.Printf("Using username %s, as provided by --username\n", username)
 			}
@@ -34,7 +37,10 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 				prompt := &survey.Password{
 					Message: "Gerrit password:",
 				}
-				survey.AskOne(prompt, &password)
+				err := survey.AskOne(prompt, &password)
+				if err != nil {
+					logrus.Error(err)
+				}
 			} else {
 				fmt.Print("Using password as provided by --password\n", password)
 			}
@@ -51,7 +57,10 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 					Message: "Error checking credentials, do you want to save the credentials anyway?",
 				}
 				var ignoreError bool
-				survey.AskOne(prompt, &ignoreError)
+				err := survey.AskOne(prompt, &ignoreError)
+				if err != nil {
+					logrus.Error(err)
+				}
 				if !ignoreError {
 					// Exit
 					logrus.Error("Credentials not saved, not saved, exiting")

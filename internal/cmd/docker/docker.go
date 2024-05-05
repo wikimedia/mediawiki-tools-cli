@@ -1,11 +1,12 @@
 package docker
 
 import (
-	"crypto/md5"
+	"crypto/rand"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"os"
 	"strconv"
 	"strings"
@@ -114,11 +115,17 @@ func NewCmd() *cobra.Command {
 					thisDev.Env().Set("NETWORK_SUBNET_PREFIX", "10.0.0")
 				} else {
 					// Do some evil shit to come up with a kind of probably random subnet to use...
-					rand1 := rand.Intn(10)
-					rand2 := rand.Intn(10)
-					hash := md5.Sum([]byte(mwdd.Context))
-					hex1 := hex.EncodeToString(hash[rand1 : rand1+1])
-					hex2 := hex.EncodeToString(hash[rand2 : rand2+1])
+					rand1, err := rand.Int(rand.Reader, big.NewInt(10))
+					if err != nil {
+						logrus.Error(err)
+					}
+					rand2, err := rand.Int(rand.Reader, big.NewInt(10))
+					if err != nil {
+						logrus.Error(err)
+					}
+					hash := sha256.Sum256([]byte(mwdd.Context))
+					hex1 := hex.EncodeToString(hash[rand1.Int64() : rand1.Int64()+1])
+					hex2 := hex.EncodeToString(hash[rand2.Int64() : rand2.Int64()+1])
 					dec1, _ := strconv.ParseInt(hex1, 16, 32)
 					dec2, _ := strconv.ParseInt(hex2, 16, 32)
 					logrus.Trace(".env NETWORK_SUBNET_PREFIX: ", fmt.Sprintf("10.%d.%d", dec1, dec2), " (context: ", mwdd.Context, ")")
@@ -157,7 +164,10 @@ func NewCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&mwdd.Context, "context", "c", defaultContext(), "The context to use")
 	// Parse PersistentFlags early so that the context is already known to other commands that are added
-	cmd.PersistentFlags().Parse(os.Args[1:])
+	err := cmd.PersistentFlags().Parse(os.Args[1:])
+	if err != nil {
+		logrus.Error(err)
+	}
 
 	if cli.MwddIsDevAlias {
 		cmd.Aliases = []string{"dev"}
@@ -210,12 +220,18 @@ func envSubst(s string) string {
 	previousPort, portSet := os.LookupEnv("PORT")
 
 	// Set and subst...
-	os.Setenv("PORT", mwdd.DefaultForUser().Env().Get("PORT"))
+	err := os.Setenv("PORT", mwdd.DefaultForUser().Env().Get("PORT"))
+	if err != nil {
+		logrus.Error(err)
+	}
 	expanded := os.ExpandEnv(s)
 
 	// Reset
 	if portSet {
-		os.Setenv("PORT", previousPort)
+		err := os.Setenv("PORT", previousPort)
+		if err != nil {
+			logrus.Error(err)
+		}
 	} else {
 		os.Unsetenv("PORT")
 	}
