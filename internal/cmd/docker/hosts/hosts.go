@@ -17,6 +17,7 @@ func NewHostsCmd() *cobra.Command {
 	cmd.AddCommand(NewHostsAddCmd())
 	cmd.AddCommand(NewHostsRemoveCmd())
 	cmd.AddCommand(NewHostsWhereCmd())
+	cmd.AddCommand(NewHostsShowCmd())
 	cmd.AddCommand(NewHostsWritableCmd())
 	return cmd
 }
