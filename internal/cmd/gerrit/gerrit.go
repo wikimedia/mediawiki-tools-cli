@@ -1,6 +1,7 @@
 package gerrit
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"net/url"
@@ -48,17 +49,17 @@ func sshGerritCommand(args []string) *exec.Cmd {
 	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
 }
 
-func client() *gerrit.Client {
-	client, err := gerrit.NewClient("https://gerrit.wikimedia.org/r/", nil)
+func client(ctx context.Context) *gerrit.Client {
+	client, err := gerrit.NewClient(ctx, "https://gerrit.wikimedia.org/r/", nil)
 	if err != nil {
 		panic(err)
 	}
 	return client
 }
 
-func authenticatedClient() *gerrit.Client {
+func authenticatedClient(ctx context.Context) *gerrit.Client {
 	config := LoadConfig()
-	client := client()
+	client := client(ctx)
 	client.Authentication.SetBasicAuth(config.Username, config.Password)
 	return client
 }
