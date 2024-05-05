@@ -6,9 +6,10 @@ import (
 
 func NewToolHubCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "toolhub",
-		Short: "Interact with the Wikimedia Toolhub (WORK IN PROGRESS)",
-		RunE:  nil,
+		Use:     "toolhub",
+		GroupID: "service",
+		Short:   "Interact with the Wikimedia Toolhub (WORK IN PROGRESS)",
+		RunE:    nil,
 	}
 
 	cmd.Annotations = make(map[string]string)

@@ -24,6 +24,7 @@ func NewGitlabCmd() *cobra.Command {
 	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
 	glabCommand.Short = "Interact with the Wikimedia Gitlab instance"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
+	glabCommand.GroupID = "service"
 	glabCommand.Aliases = []string{"glab", "gl"}
 
 	glabCommand.Annotations["group"] = "Service"
