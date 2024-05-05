@@ -354,8 +354,16 @@ $wgSecretKey = "j8093j903j902jfr9j109j109jf1093jf09j190jfj09fj1jfknnccnmxnmx";
 // TODO check me
 $wgPhpCli = '/usr/local/bin/php';
 
+## Load LocalSettings.d files
+## Load all bottom level files on all wikis
+foreach ( glob( "$IP/LocalSettings.d/*.php" ) as $path ) {
+    require_once $path;
+}
+## And specifically load the files for this wiki (from a directory)
+foreach ( glob( "$IP/LocalSettings.d/${dockerDb}/*.php" ) as $path ) {
+    require_once $path;
+}
+
 ################################
 # MWDD END
 ################################
-
-// TODO add auto loading of other LocalSetting.php files from a directory based on dbname -> file name...
