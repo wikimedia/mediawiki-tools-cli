@@ -74,8 +74,8 @@ github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVK
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
 github.com/andybalholm/cascadia v1.3.2 h1:3Xi6Dw5lHF15JtdcmAHD3i1+T8plmv7BQ/nsViSLyss=
 github.com/andybalholm/cascadia v1.3.2/go.mod h1:7gtRlve5FxPPgIgX36uWBX58OdBsSS6lUvCFb+h7KvU=
-github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb h1:PTlYl9ICHerlw8zCVkjg+hFukK7xCZmNvxeRgSlBNTU=
-github.com/andygrunwald/go-gerrit v0.0.0-20210919125110-ff14d0674afb/go.mod h1:aqcjwEnmLLSalFNYR0p2ttnEXOVVRctIzsUMHbEcruU=
+github.com/andygrunwald/go-gerrit v0.0.0-20240427073835-c725a0f286eb h1:KNXG3OIRQe/+pf8LRwcVGYY3+eDI4iCK6PFk6aP91Gw=
+github.com/andygrunwald/go-gerrit v0.0.0-20240427073835-c725a0f286eb/go.mod h1:SeP12EkHZxEVjuJ2HZET304NBtHGG2X6w2Gzd0QXAZw=
 github.com/antonholmquist/jason v1.0.0 h1:Ytg94Bcf1Bfi965K2q0s22mig/n4eGqEij/atENBhA0=
 github.com/antonholmquist/jason v1.0.0/go.mod h1:+GxMEKI0Va2U8h3os6oiUAetHAlGMvxjdpAH/9uvUMA=
 github.com/avast/retry-go/v4 v4.6.0 h1:K9xNA+KeB8HHc2aWFuLb25Offp+0iVRXEvFx8IinRJA=
