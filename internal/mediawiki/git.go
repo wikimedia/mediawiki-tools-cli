@@ -20,7 +20,7 @@ func exitIfNoGit() {
 }
 
 /*CloneOpts for use with GithubCloneMediaWiki.*/
-type CloneOpts = struct {
+type CloneOpts struct {
 	GetMediaWiki          bool
 	GetVector             bool
 	GetGerritSkins        []string
@@ -29,6 +29,10 @@ type CloneOpts = struct {
 	UseShallow            bool
 	GerritInteractionType string
 	GerritUsername        string
+}
+
+func (cp CloneOpts) AreThereThingsToClone() bool {
+	return cp.GetMediaWiki || cp.GetVector || len(cp.GetGerritSkins) > 0 || len(cp.GetGerritExtensions) > 0
 }
 
 /*CloneSetup provides a packages initial setup method for MediaWiki etc with some speedy features.*/
