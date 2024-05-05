@@ -34,9 +34,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
 
-//go:embed templates/usage.txt
-var usageTemplate string
-
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
 		Use:   "mw",
@@ -71,6 +68,10 @@ func NewMwCliCmd() *cobra.Command {
 			}
 		},
 	}
+	mwcliCmd.AddGroup(&cobra.Group{
+		ID:    "service",
+		Title: "Service Commands",
+	})
 
 	defaultHelpFunc := mwcliCmd.HelpFunc()
 	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
@@ -260,7 +261,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 		return groups
 	})
-	rootCmd.SetUsageTemplate(usageTemplate)
 
 	// Execute the root command
 	err := rootCmd.Execute()

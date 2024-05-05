@@ -26,6 +26,7 @@ var execLong string
 func NewToolsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "tools",
+		GroupID: "service",
 		Aliases: []string{"toolforge"},
 		Short:   "Interact with any Wikimedia \"Tool\"",
 		RunE:    nil,
