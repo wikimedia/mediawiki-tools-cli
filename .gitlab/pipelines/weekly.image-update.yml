@@ -1,6 +1,6 @@
 image-update:
     stage: test
-    image: golang:1.21
+    image: golang:1.22
     cache: {}
     before_script:
       - apt update
