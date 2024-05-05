@@ -47,13 +47,13 @@ func NewGerritAPICmd() *cobra.Command {
 			}
 
 			instance := "https://gerrit.wikimedia.org/r/"
-			client, _ := gerrit.NewClient(instance, nil)
+			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
 			if user != "" && password != "" {
 				client.Authentication.SetBasicAuth(user, password)
 				logrus.Trace("Using username and password")
 			}
 
-			resp, err := client.Call(method, args[0], nil, nil)
+			resp, err := client.Call(cmd.Context(), method, args[0], nil, nil)
 			if err != nil {
 				logrus.Fatalf("Error making request: %s", err)
 			}

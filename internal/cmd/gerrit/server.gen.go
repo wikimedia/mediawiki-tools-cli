@@ -32,8 +32,8 @@ func NewGerritServerVersionCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/version/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -56,8 +56,8 @@ func NewGerritServerInfoCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/info/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -80,8 +80,8 @@ func NewGerritServerCachesCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/caches/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -104,8 +104,8 @@ func NewGerritServerSummaryCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/summary/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -128,8 +128,8 @@ func NewGerritServerCapabilitiesCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/capabilities/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -152,8 +152,8 @@ func NewGerritServerTasksCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/tasks/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -176,8 +176,8 @@ func NewGerritServerTopMenusCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/top-menus/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -212,8 +212,8 @@ func NewGerritServerPreferencesUserCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/preferences/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -236,8 +236,8 @@ func NewGerritServerPreferencesDiffCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/preferences.diff/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -260,8 +260,8 @@ func NewGerritServerPreferencesEditCmd() *cobra.Command {
 		Example: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			path := "/config/server/preferences.edit/"
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}

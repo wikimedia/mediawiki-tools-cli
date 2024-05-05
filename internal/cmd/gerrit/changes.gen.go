@@ -38,8 +38,8 @@ func NewGerritChangesListCmd() *cobra.Command {
 			path = addParamToPath(path, "q", cmdFlags.query)
 			path = addParamToPath(path, "n", cmdFlags.limit)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -70,8 +70,8 @@ func NewGerritChangesGetCmd() *cobra.Command {
 			path := "/changes/{change-id}/"
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -102,8 +102,8 @@ func NewGerritChangesDetailCmd() *cobra.Command {
 			path := "/changes/{change-id}/detail/"
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -144,8 +144,8 @@ func NewGerritChangesTopicGetCmd() *cobra.Command {
 			path := "/changes/{change-id}/topic/"
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -176,8 +176,8 @@ func NewGerritChangesInCmd() *cobra.Command {
 			path := "/changes/{change-id}/in/"
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -218,8 +218,8 @@ func NewGerritChangesReviewersListCmd() *cobra.Command {
 			path := "/changes/{change-id}/reviewers/"
 			path = addParamToPath(path, "change-id", cmdFlags.change)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}

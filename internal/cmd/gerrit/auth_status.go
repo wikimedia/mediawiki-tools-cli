@@ -24,9 +24,9 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 			}
 
 			instance := "https://gerrit.wikimedia.org/r/"
-			client, _ := gerrit.NewClient(instance, nil)
+			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
 			client.Authentication.SetBasicAuth(config.Username, config.Password)
-			response, err := client.Call("GET", "accounts/self/name", nil, nil)
+			response, err := client.Call(cmd.Context(), "GET", "accounts/self/name", nil, nil)
 
 			if err != nil {
 				if response.StatusCode == 401 {

@@ -47,8 +47,8 @@ func NewGerritProjectsListCmd() *cobra.Command {
 			path = addParamToPath(path, "limit", cmdFlags.limit)
 			path = addParamToPath(path, "start", cmdFlags.start)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -80,8 +80,8 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 			path := "/projects/{project-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -122,8 +122,8 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 			path := "/projects/{project-name}/description/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -164,8 +164,8 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 			path := "/projects/{project-name}/parent/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -206,8 +206,8 @@ func NewGerritProjectsHeadGetCmd() *cobra.Command {
 			path := "/projects/{project-name}/HEAD/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -248,8 +248,8 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 			path := "/projects/{project-name}/config/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -290,8 +290,8 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 			path := "/projects/{project-name}/access/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -333,8 +333,8 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 			path := "/projects/{project-name}/branches/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -367,8 +367,8 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "branch-name", cmdFlags.branch)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -412,8 +412,8 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 			path := "/projects/{project-name}/children/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -446,8 +446,8 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "child-name", cmdFlags.child)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -491,8 +491,8 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 			path := "/projects/{project-name}/tags/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -525,8 +525,8 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "tag-name", cmdFlags.tag)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -570,8 +570,8 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 			path := "/projects/{project-name}/dashboards/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -604,8 +604,8 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "dashboard-name", cmdFlags.dashboard)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -649,8 +649,8 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 			path := "/projects/{project-name}/labels/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -683,8 +683,8 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "label-name", cmdFlags.label)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -728,8 +728,8 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 			path := "/projects/{project-name}/submit_requirements/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -762,8 +762,8 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "submit_requirement-name", cmdFlags.submit_requirement)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}

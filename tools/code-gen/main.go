@@ -156,10 +156,10 @@ func cobraCommandDefinition(c Command) jen.Code {
 			jen.Id("path").Op(":=").Lit(c.GerritPath),
 			jen.Add(pathReplacementSteps...),
 
-			jen.Id("client").Op(":=").Id("authenticatedClient").Call(),
+			jen.Id("client").Op(":=").Id("authenticatedClient").Call(jen.Id("cmd").Dot("Context").Call()),
 
 			// Do the query & handle response
-			jen.List(jen.Id("response"), jen.Id("err")).Op(":=").Id("client").Dot("Call").Call(jen.Lit(httpMethod), jen.Id("path"), body, jen.Nil()),
+			jen.List(jen.Id("response"), jen.Id("err")).Op(":=").Id("client").Dot("Call").Call(jen.Id("cmd").Dot("Context").Call(), jen.Lit(httpMethod), jen.Id("path"), body, jen.Nil()),
 			jen.If(jen.Id("err").Op("!=").Nil()).Block(
 				jen.Qual("github.com/sirupsen/logrus", "Error").Call(jen.Id("err")),
 			),

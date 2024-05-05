@@ -43,8 +43,8 @@ func NewGerritPluginsListCmd() *cobra.Command {
 			path = addParamToPath(path, "r", cmdFlags.regex)
 			path = addParamToPath(path, "m", cmdFlags.substring)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -78,8 +78,8 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 			path := "/plugins/{plugin-id}/gerrit~status/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
-			client := authenticatedClient()
-			response, err := client.Call("GET", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -110,8 +110,8 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 			path := "/plugins/{plugin-id}/gerrit~enable/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
-			client := authenticatedClient()
-			response, err := client.Call("POST", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -142,8 +142,8 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 			path := "/plugins/{plugin-id}/gerrit~disable/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
-			client := authenticatedClient()
-			response, err := client.Call("POST", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
@@ -174,8 +174,8 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 			path := "/plugins/{plugin-id}/gerrit~reload/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
-			client := authenticatedClient()
-			response, err := client.Call("POST", path, nil, nil)
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
 				logrus.Error(err)
 			}
