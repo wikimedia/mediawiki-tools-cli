@@ -31,8 +31,7 @@ hosts_command() {
     command=$1
 
     # Output hosts before
-    # TODO use a mw command to do this
-    cat /etc/hosts
+    test_command_success ./bin/mw docker hosts show --no-interaction
 
     # Setup the default hosts in hosts file & clear previous env vars
     if ./bin/mw docker hosts writable --no-interaction; then
@@ -43,8 +42,7 @@ hosts_command() {
     fi
 
     # Output hosts after
-    # TODO use a mw command to do this
-    cat /etc/hosts
+    test_command_success ./bin/mw docker hosts show --no-interaction
 }
 
 # Set some correct values so we don't get asked

@@ -146,3 +146,7 @@ func save(hosts *txeh.Hosts) ChangeResult {
 		WriteFile: hosts.WriteFilePath,
 	}
 }
+
+func FileContent() string {
+	return hosts().RenderHostsFile()
+}
