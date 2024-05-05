@@ -136,6 +136,13 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				os.Exit(0)
 			}
 
+			// Validate some things that we need
+			// Such as IF we are using ssh, we need a username
+			if cloneOpts.GerritInteractionType == "ssh" && len(cloneOpts.GerritUsername) < 1 {
+				fmt.Println("Gerrit username required for ssh interaction type.")
+				os.Exit(1)
+			}
+
 			eventlogging.AddFeatureUsageEvent("mw_docker_mediawiki_get-code", cli.VersionDetails.Version)
 			if cloneOpts.UseGithub {
 				eventlogging.AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-github", cli.VersionDetails.Version)
