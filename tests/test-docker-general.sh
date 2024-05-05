@@ -38,7 +38,7 @@ test_command_success ./bin/mw docker env set PORT 6194
 MWDIR=$(pwd)/.mediawiki
 test_command_success ./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR}
 
-cat /etc/hosts
+test_command_success ./bin/mw docker hosts show --no-interaction
 
 # Setup the default hosts in hosts file
 if ./bin/mw docker hosts writable --no-interaction; then
@@ -48,7 +48,7 @@ else
     test_command_success sudo -E ./bin/mw docker hosts add --no-interaction
 fi
 
-cat /etc/hosts
+test_command_success ./bin/mw docker hosts show --no-interaction
 
 # Create
 test_command_success ./bin/mw docker mediawiki create
