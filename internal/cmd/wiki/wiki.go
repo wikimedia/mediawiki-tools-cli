@@ -12,9 +12,10 @@ var (
 
 func NewWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "wiki",
-		Short: "Interact with any MediaWiki wiki (WORK IN PROGRESS)",
-		RunE:  nil,
+		Use:     "wiki",
+		GroupID: "service",
+		Short:   "Interact with any MediaWiki wiki (WORK IN PROGRESS)",
+		RunE:    nil,
 	}
 
 	cmd.Annotations = make(map[string]string)

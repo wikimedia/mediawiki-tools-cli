@@ -7,6 +7,7 @@ import (
 func NewCodeSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "codesearch",
+		GroupID: "service",
 		Short:   "Search MediaWiki and Wikimedia code",
 		Aliases: []string{"cs"},
 		RunE:    nil,

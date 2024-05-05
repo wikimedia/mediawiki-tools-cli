@@ -18,10 +18,11 @@ var gerritLong string
 
 func NewGerritCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "gerrit",
-		Short: "Interact with the Wikimedia Gerrit instance (WORK IN PROGRESS)",
-		Long:  cli.RenderMarkdown(gerritLong),
-		RunE:  nil,
+		Use:     "gerrit",
+		GroupID: "service",
+		Short:   "Interact with the Wikimedia Gerrit instance (WORK IN PROGRESS)",
+		Long:    cli.RenderMarkdown(gerritLong),
+		RunE:    nil,
 	}
 
 	cmd.Annotations = make(map[string]string)
