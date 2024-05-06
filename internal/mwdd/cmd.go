@@ -42,13 +42,11 @@ func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, text
 	dereferencedCommandName := *commandName
 	cmd := &cobra.Command{
 		Use:     *commandName,
+		GroupID: "service",
 		Short:   fmt.Sprintf("%s service", dereferencedCommandName),
 		Aliases: aliases,
 		RunE:    nil,
 	}
-
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
 
 	if len(texts.Long) > 0 {
 		cmd.Long = cli.RenderMarkdown(texts.Long)
@@ -70,13 +68,16 @@ func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, text
 func NewServicesCmd(groupName string, texts ServiceTexts, aliases []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     groupName,
+		GroupID: "service",
 		Short:   fmt.Sprintf("%s services", groupName),
 		Long:    cli.RenderMarkdown(texts.Long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
+	cmd.AddGroup(&cobra.Group{
+		ID:    "service",
+		Title: "Service Commands",
+	})
 	return cmd
 }
 

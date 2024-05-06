@@ -12,9 +12,6 @@ func NewToolHubCmd() *cobra.Command {
 		RunE:    nil,
 	}
 
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
-
 	cmd.AddCommand(NewToolhubToolsCmd())
 
 	return cmd

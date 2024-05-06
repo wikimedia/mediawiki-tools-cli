@@ -47,6 +47,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "mediawiki",
 		Short:   "MediaWiki service",
+		GroupID: "service",
 		Aliases: []string{"mw"},
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -124,9 +125,6 @@ func NewMediaWikiCmd() *cobra.Command {
 			}
 		},
 	}
-
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
 
 	cmd.AddCommand(mwdd.NewWhereCmd(
 		"the MediaWiki directory",
