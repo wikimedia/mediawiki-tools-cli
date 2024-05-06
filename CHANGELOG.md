@@ -7,6 +7,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.24.1
 
 - Minor internal package adjustments
+- Improved error message for `docker <service> expose` commands when container is not running
 
 ## v0.24.0
 
