@@ -277,7 +277,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	if err != nil {
-		logrus.Error(err)
+		logrus.Errorf("Root cmd Execute error, %s", err)
 		os.Exit(1)
 	}
 }

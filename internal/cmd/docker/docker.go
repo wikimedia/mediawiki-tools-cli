@@ -117,11 +117,11 @@ func NewCmd() *cobra.Command {
 					// Do some evil shit to come up with a kind of probably random subnet to use...
 					rand1, err := rand.Int(rand.Reader, big.NewInt(10))
 					if err != nil {
-						logrus.Error(err)
+						panic(err)
 					}
 					rand2, err := rand.Int(rand.Reader, big.NewInt(10))
 					if err != nil {
-						logrus.Error(err)
+						panic(err)
 					}
 					hash := sha256.Sum256([]byte(mwdd.Context))
 					hex1 := hex.EncodeToString(hash[rand1.Int64() : rand1.Int64()+1])
@@ -166,7 +166,7 @@ func NewCmd() *cobra.Command {
 	// Parse PersistentFlags early so that the context is already known to other commands that are added
 	err := cmd.PersistentFlags().Parse(os.Args[1:])
 	if err != nil {
-		logrus.Error(err)
+		logrus.Tracef("Error parsing persistent flags: %s", err)
 	}
 
 	if cli.MwddIsDevAlias {
@@ -222,7 +222,7 @@ func envSubst(s string) string {
 	// Set and subst...
 	err := os.Setenv("PORT", mwdd.DefaultForUser().Env().Get("PORT"))
 	if err != nil {
-		logrus.Error(err)
+		panic(err)
 	}
 	expanded := os.ExpandEnv(s)
 
@@ -230,7 +230,7 @@ func envSubst(s string) string {
 	if portSet {
 		err := os.Setenv("PORT", previousPort)
 		if err != nil {
-			logrus.Error(err)
+			panic(err)
 		}
 	} else {
 		os.Unsetenv("PORT")

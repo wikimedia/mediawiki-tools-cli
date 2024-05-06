@@ -25,7 +25,7 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 				}
 				err := survey.AskOne(prompt, &username)
 				if err != nil {
-					logrus.Error(err)
+					panic(err)
 				}
 			} else {
 				fmt.Printf("Using username %s, as provided by --username\n", username)
@@ -39,7 +39,7 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 				}
 				err := survey.AskOne(prompt, &password)
 				if err != nil {
-					logrus.Error(err)
+					panic(err)
 				}
 			} else {
 				fmt.Print("Using password as provided by --password\n", password)
@@ -59,7 +59,7 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 				var ignoreError bool
 				err := survey.AskOne(prompt, &ignoreError)
 				if err != nil {
-					logrus.Error(err)
+					panic(err)
 				}
 				if !ignoreError {
 					// Exit

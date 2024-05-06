@@ -70,7 +70,7 @@ func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
 	data, _ := json.Marshal(in)
 	err := json.Unmarshal(data, &mapOfInterfaces)
 	if err != nil {
-		logrus.Error(err)
+		panic(err)
 	}
 
 	iter := query.Run(mapOfInterfaces) // or query.RunWithContext
@@ -86,7 +86,7 @@ func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
 		if shouldColor() {
 			err := jsoncolor.Write(writer, strings.NewReader(interfaceToJSONString(v)), "  ")
 			if err != nil {
-				logrus.Error(err)
+				panic(err)
 			}
 		} else {
 			fmt.Fprintf(writer, "%v\n", interfaceToJSONString(v))
