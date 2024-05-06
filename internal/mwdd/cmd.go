@@ -99,7 +99,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 				ForceRecreate: forceRecreate,
 			})
 			if err != nil {
-				logrus.Error(err)
+				panic(err)
 			}
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
@@ -133,12 +133,12 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 				RemoveAnonymousVolumes: true,
 			})
 			if err != nil {
-				logrus.Error(err)
+				panic(err)
 			}
 			if len(volumes) > 0 {
 				err := DefaultForUser().DockerCompose().VolumesRm(volumes)
 				if err != nil {
-					logrus.Error(err)
+					panic(err)
 				}
 			}
 		},
@@ -164,7 +164,7 @@ func NewServiceStopCmdP(name *string) *cobra.Command {
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Stop(services)
 			if err != nil {
-				logrus.Error(err)
+				panic(err)
 			}
 		},
 	}
@@ -189,7 +189,7 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Start(services)
 			if err != nil {
-				logrus.Error(err)
+				panic(err)
 			}
 		},
 	}

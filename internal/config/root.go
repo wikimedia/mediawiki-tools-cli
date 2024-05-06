@@ -30,7 +30,7 @@ func ensureExists() {
 		w := bufio.NewWriter(file)
 		_, err = w.WriteString("{}")
 		if err != nil {
-			logrus.Error(err)
+			panic(err)
 		}
 		flushErr := w.Flush()
 		if flushErr != nil {
