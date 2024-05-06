@@ -28,7 +28,8 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 				containerID,
 				applyRelevantMediawikiWorkingDirectory(
 					docker.ExecOptions{
-						Command: append([]string{"composer"}, command...),
+						// Composer requires $HOME to be set: Default it to / if we must
+						Command: append([]string{"sh", "-c", "HOME=${HOME:-/} \"$@\"", "--", "composer"}, command...),
 						Env:     env,
 						User:    User,
 					},
