@@ -25,7 +25,7 @@ You can request access to the project by [filing a ticket against the #mwcli pro
 
 ### Repo / Code setup
 
-You need go 1.18+ installed.
+You need go 1.22+ installed.
 
 This repository uses the `bingo` tool.
 You can install it with:
