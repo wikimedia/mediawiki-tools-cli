@@ -1,0 +1,11 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  tracjaegering:
+    otlp/:
+      enabled: true   
+      endpoint: jaeger:4317

@@ -1,0 +1,29 @@
+
+services:
+  jaeger:
+    image: "${OTEL_IMAGE:-jaegertracing/all-in-one:1.57}"
+    restart: unless-stopped
+    depends_on:
+      - otel
+    environment:
+      - VIRTUAL_HOST=jaeger.mwdd.localhost,jaeger.mwdd
+      - VIRTUAL_PORT=16686
+      - DEFAULT_EXPOSE_PORT=16686
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+  # otel:
+  #   image: "${OTEL_IMAGE:-otel/opentelemetry-collector-contrib:0.99.0}"
+  #   command: ["--config=/conf/collector-config.yaml"]
+  #   volumes:
+  #     - ./otel/collector-config.yaml:/conf/collector-config.yaml
+  #   security_opt:
+  #     - label:disable
+  #   restart: unless-stopped
+  #   environment:
+  #     - VIRTUAL_HOST=otel.mwdd.localhost,otel.mwdd
+  #   dns:
+  #     - ${NETWORK_SUBNET_PREFIX}.10
+  #   networks:
+  #     - dps

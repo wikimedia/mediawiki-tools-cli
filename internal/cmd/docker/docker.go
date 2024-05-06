@@ -198,6 +198,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("memcached", mwdd.ServiceTexts{Long: memcachedLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("phpmyadmin", mwdd.ServiceTexts{Long: phpmyadminLong, OnCreate: envSubst(phpmyadminOnCreate)}, []string{"ppma"}))
 	cmd.AddCommand(mwdd.NewServiceCmd("citoid", mwdd.ServiceTexts{Long: citoidLong}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("jaegger", mwdd.ServiceTexts{}, []string{}))
 
 	cmd.AddCommand(mwdd.NewServiceCmd("postgres", mwdd.ServiceTexts{}, []string{}))
 	cmd.AddCommand(mysql.NewCmd())
