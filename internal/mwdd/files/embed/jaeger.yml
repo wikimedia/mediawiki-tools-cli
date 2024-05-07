@@ -1,0 +1,15 @@
+
+services:
+  jaeger:
+    image: "${OTEL_IMAGE:-jaegertracing/all-in-one:1.57}"
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    environment:
+      - VIRTUAL_HOST=jaeger.mwdd.localhost,jaeger.mwdd
+      - VIRTUAL_PORT=16686
+      - DEFAULT_EXPOSE_PORT=16686
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
