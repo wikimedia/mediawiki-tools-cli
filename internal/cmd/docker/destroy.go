@@ -11,8 +11,9 @@ import (
 
 func NewMwddDestroyCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "destroy",
-		Short: "Destroy all containers and data",
+		Use:     "destroy",
+		GroupID: "core",
+		Short:   "Destroy all containers and data",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := mwdd.DefaultForUser().DockerCompose().Down(dockercompose.DownOptions{
 				Volumes:       true,

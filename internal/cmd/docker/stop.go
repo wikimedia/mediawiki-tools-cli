@@ -10,6 +10,7 @@ import (
 func NewMwddStopCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "stop",
+		GroupID: "core",
 		Aliases: []string{"suspend"},
 		Short:   "Stop all currently running containers",
 		Run: func(cmd *cobra.Command, args []string) {

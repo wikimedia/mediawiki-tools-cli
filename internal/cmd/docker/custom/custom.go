@@ -19,13 +19,11 @@ func fileFromCustomName() string {
 
 func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "custom",
-		Short: "custom docker compose service sets",
-		Long:  cli.RenderMarkdown(customLong),
+		Use:     "custom",
+		GroupID: "service",
+		Short:   "custom docker compose service sets",
+		Long:    cli.RenderMarkdown(customLong),
 	}
-
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
 
 	cmd.PersistentFlags().StringVarP(&customName, "name", "n", "custom", "the name of the custom service file, referring to existing docker-compose.yml file in the mwdd directory prefixed with custom-")
 	// TODO verify custom names start with "custom-"

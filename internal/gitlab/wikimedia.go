@@ -12,6 +12,7 @@ import (
 
 var (
 	wikimediav4ApiURL = "https://gitlab.wikimedia.org/api/v4/"
+	projectID         = 16 // ID 16 is releng/mwcli
 	outOs             = runtime.GOOS
 	arch              = runtime.GOARCH
 )
@@ -34,10 +35,49 @@ func wikimediaClient() *gitlab.Client {
 	return git
 }
 
+func RelengCliGetRelease(name string) (*gitlab.Release, error) {
+	release, _, err := wikimediaClient().Releases.GetRelease(projectID, name, nil)
+	return release, err
+}
+
+func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error) {
+	// Get all releases
+	releases, err := RelengCliGetReleases()
+	if err != nil {
+		return nil, err
+	}
+
+	// Assume they are in release order.
+	// Remove everything from the start, up until the value of to
+	// Then remove everything from the end, after the value of from
+	// This will leave us with the releases between the two tags
+	start := -1
+	end := -1
+	for i, release := range releases {
+		if release.TagName == to {
+			end = i
+		}
+		if release.TagName == from {
+			start = i
+		}
+	}
+	if start == -1 {
+		return nil, errors.New("could not find start tag")
+	}
+	if end == -1 {
+		return nil, errors.New("could not find end tag")
+	}
+	return releases[end:start], nil
+}
+
+func RelengCliGetReleases() ([]*gitlab.Release, error) {
+	releases, _, err := wikimediaClient().Releases.ListReleases(projectID, nil)
+	return releases, err
+}
+
 /*RelengCliLatestRelease from gitlab.*/
 func RelengCliLatestRelease() (*gitlab.Release, error) {
-	// ID 16 is releng/mwcli
-	releases, _, err := wikimediaClient().Releases.ListReleases(16, nil)
+	releases, err := RelengCliGetReleases()
 	if err != nil {
 		return nil, err
 	}
