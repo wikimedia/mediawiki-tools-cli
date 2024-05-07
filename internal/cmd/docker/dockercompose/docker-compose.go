@@ -19,7 +19,7 @@ func NewCmd() *cobra.Command {
 		Use:     "compose [flags] [compose command] -- [compose flags]",
 		GroupID: "core",
 		Example: dockerComposeExample,
-		Aliases: []string{"dc", "compose"},
+		Aliases: []string{"dc", "compose", "docker-compose"},
 		Short:   "Interact directly with the docker compose environment",
 		Long:    cli.RenderMarkdown(dockerComposeLong),
 		Run: func(cmd *cobra.Command, args []string) {
