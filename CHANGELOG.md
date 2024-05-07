@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.24.2
+
+- Fixed `slice out of bounds` on retrieving changelog after a successful `mw update` command.
+
 ## v0.24.1
 
 - Added default `HOME` value to `/` for `mw docker mediawiki composer` command. Required in some pdomasituations with `composer` and `podman`.

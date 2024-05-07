@@ -42,7 +42,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			// Manual version is specified, so check it
 			if versionInput != "" {
 				// if manual version looks like a URL, we will just try and download it later
-				if versionInput[:4] == "http" {
+				if len(versionInput) >= 4 && versionInput[:4] == "http" {
 					fmt.Println("Downloading from URL: " + versionInput)
 					targetArtifact = versionInput
 				} else {
