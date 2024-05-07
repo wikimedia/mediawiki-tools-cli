@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.24.3
+
+- Fixed updating, which would ommit the `v` while fetching files for auto update (since v0.24.0).
+
+If you ended up on `v0.24.0` and are unable to udpate, you can still update using `mw update --version v0.24.3`.
+
 ## v0.24.2
 
 - Fixed `slice out of bounds` on retrieving changelog after a successful `mw update` command.
@@ -17,6 +23,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## v0.24.0
 
+- Added the ability to update to development builds if specifically requested.
 - Development environment (`mw docker`):
   - Use `docker compose` by default, rather than `docker-compose` (T283484)
   - Disable SELinux labels for all containers with volumes.

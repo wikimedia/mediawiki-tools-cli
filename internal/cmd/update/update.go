@@ -35,8 +35,10 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(0)
 				}
 
-				fmt.Println("New update found: " + toUpdateToOrMessage)
-				targetVersion = toUpdateToOrMessage
+				// CanUpdateFromGitlab which is called deep down, trims the V, so we need to add it back for now
+				// (And probably refactor this all at some point...)
+				targetVersion = "v" + toUpdateToOrMessage
+				fmt.Println("New update found: " + targetVersion)
 			}
 
 			// Manual version is specified, so check it
