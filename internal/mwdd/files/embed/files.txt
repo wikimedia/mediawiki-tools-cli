@@ -36,7 +36,6 @@
 ./mysql/replica/replica.cnf
 ./nginx/client_max_body_size.conf
 ./nginx/timeouts.conf
-./otel/collector-config.yaml
 ./phpmyadmin.yml
 ./phpmyadmin/config.user.inc.php
 ./postgres.yml

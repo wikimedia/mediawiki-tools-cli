@@ -198,7 +198,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("memcached", mwdd.ServiceTexts{Long: memcachedLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("phpmyadmin", mwdd.ServiceTexts{Long: phpmyadminLong, OnCreate: envSubst(phpmyadminOnCreate)}, []string{"ppma"}))
 	cmd.AddCommand(mwdd.NewServiceCmd("citoid", mwdd.ServiceTexts{Long: citoidLong}, []string{}))
-	cmd.AddCommand(mwdd.NewServiceCmd("jaeger", mwdd.ServiceTexts{}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("jaeger", mwdd.ServiceTexts{Long: jaegerLong, OnCreate: envSubst(jaegerOnCreate)}, []string{}))
 
 	cmd.AddCommand(mwdd.NewServiceCmd("postgres", mwdd.ServiceTexts{}, []string{}))
 	cmd.AddCommand(mysql.NewCmd())
@@ -257,6 +257,12 @@ var graphiteLong string
 
 //go:embed citoid/citoid.long.md
 var citoidLong string
+
+//go:embed jaeger/jaeger.long.md
+var jaegerLong string
+
+//go:embed jaeger/jaeger.oncreate.md
+var jaegerOnCreate string
 
 //go:embed graphite/graphite.oncreate.md
 var graphiteOnCreate string
