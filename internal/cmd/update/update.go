@@ -92,7 +92,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			if targetVersion != "" {
 				updateSuccess, _ = updater.MoveToVersion(targetVersion)
 			}
-			// For from a Gitlab build artifact
+			// Or from a Gitlab build artifact
 			if targetArtifact != "" {
 				tempDownloadFile, err := updater.DownloadFile(targetArtifact)
 				if err != nil {
