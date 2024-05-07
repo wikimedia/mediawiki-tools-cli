@@ -6,6 +6,9 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## v0.24.1
 
+- Added default `HOME` value to `/` for `mw docker mediawiki composer` command. Required in some pdomasituations with `composer` and `podman`.
+- Improved error message for `docker <service> expose` commands when container is not running
+- Improved layout of grouped sub commands
 - Minor internal package adjustments
 
 ## v0.24.0

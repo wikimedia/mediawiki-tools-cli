@@ -42,13 +42,11 @@ func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, text
 	dereferencedCommandName := *commandName
 	cmd := &cobra.Command{
 		Use:     *commandName,
+		GroupID: "service",
 		Short:   fmt.Sprintf("%s service", dereferencedCommandName),
 		Aliases: aliases,
 		RunE:    nil,
 	}
-
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
 
 	if len(texts.Long) > 0 {
 		cmd.Long = cli.RenderMarkdown(texts.Long)
@@ -70,13 +68,16 @@ func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, text
 func NewServicesCmd(groupName string, texts ServiceTexts, aliases []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     groupName,
+		GroupID: "service",
 		Short:   fmt.Sprintf("%s services", groupName),
 		Long:    cli.RenderMarkdown(texts.Long),
 		Aliases: aliases,
 		RunE:    nil,
 	}
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
+	cmd.AddGroup(&cobra.Group{
+		ID:    "service",
+		Title: "Service Commands",
+	})
 	return cmd
 }
 
@@ -252,8 +253,9 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 		Use:   "expose",
 		Short: "Expose a port in a running container",
 		Example: heredoc.Doc(`
-		expose --external-port 8899
-		expose --external-port 8899 --internal-port 80
+		expose
+		expose --external-port 1234
+		expose --external-port 1234 --internal-port 80
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedName := *name
@@ -265,6 +267,11 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 			cli := docker.NewClientFromEnvOrPanic()
 			containerID, err := m.DockerCompose().ContainerID(dereferencedName)
 			if err != nil {
+				// unable to execute command, no container found for service: mysql
+				if strings.Contains(err.Error(), "no container found") {
+					logrus.Error("Container must be running before you can expose a port")
+					return
+				}
 				panic(err)
 			}
 
@@ -277,7 +284,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 					panic(err)
 				}
 
-				// Get the DEFAULT_EXPOSE_PORT environemtn variable from the containerJson if set
+				// Get the DEFAULT_EXPOSE_PORT environment variable from the containerJson if set
 				for _, env := range containerJson.Config.Env {
 					if strings.HasPrefix(env, "DEFAULT_EXPOSE_PORT=") {
 						internalPort = strings.Split(env, "=")[1]
@@ -383,7 +390,7 @@ func NewImageCmdP(service *string) *cobra.Command {
 
 	set := &cobra.Command{
 		Use:   "set",
-		Short: "Sets the image to use for the service as an overrides environemtn variable",
+		Short: "Sets the image to use for the service as an overrides environment variable",
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedService := *service
 			DefaultForUser().EnsureReady()

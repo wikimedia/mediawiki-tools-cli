@@ -12,8 +12,6 @@ func NewCodeSearchCmd() *cobra.Command {
 		Aliases: []string{"cs"},
 		RunE:    nil,
 	}
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
 	cmd.AddCommand(NewCodeSearchSearchCmd())
 	return cmd
 }

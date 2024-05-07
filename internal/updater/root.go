@@ -24,11 +24,6 @@ func CanUpdate(currentVersion string, gitSummary string) (bool, string) {
 	return canUpdate, "No update available"
 }
 
-/*Update perform the latest update.*/
-func Update(currentVersion string, gitSummary string) (bool, string) {
-	return UpdateFromGitlab(currentVersion, gitSummary)
-}
-
 func CanMoveToVersion(targetVersion string) bool {
 	return CanMoveToVersionFromGitlab(targetVersion)
 }

@@ -7,9 +7,10 @@ import (
 // Env command for interacting with a .env file in the given directory.
 func Env(Short string, directory func() string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "env",
-		Short: Short,
-		RunE:  nil,
+		Use:     "env",
+		Short:   Short,
+		GroupID: "core",
+		RunE:    nil,
 	}
 	cmd.AddCommand(envDelete(directory))
 	cmd.AddCommand(envSet(directory))

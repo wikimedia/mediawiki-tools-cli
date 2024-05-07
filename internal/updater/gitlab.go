@@ -6,8 +6,9 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
+	"github.com/xanzy/go-gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
+	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 )
 
 func setLogLevelForSelfUpdate() {
@@ -16,11 +17,15 @@ func setLogLevelForSelfUpdate() {
 	}
 }
 
+func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error) {
+	return gitlabb.RelengCliGetReleasesBetweenTags(from, to)
+}
+
 /*CanUpdateFromGitlab ...*/
 func CanUpdateFromGitlab(version string, gitSummary string) (bool, string) {
 	setLogLevelForSelfUpdate()
 
-	latestRelease, latestErr := gitlab.RelengCliLatestRelease()
+	latestRelease, latestErr := gitlabb.RelengCliLatestRelease()
 	if latestErr != nil {
 		return false, "Could not fetch latest release version from Gitlab"
 	}
@@ -38,7 +43,7 @@ func CanUpdateFromGitlab(version string, gitSummary string) (bool, string) {
 	return currentVersion.Compare(newVersion) == -1, newVersion.String()
 }
 
-/*UpdateFromGitlab ...*/
+// UpdateFromGitlab will update the binary to the latest version from Gitlab.
 func UpdateFromGitlab(currentVersion string, gitSummary string) (success bool, message string) {
 	setLogLevelForSelfUpdate()
 
@@ -48,11 +53,11 @@ func UpdateFromGitlab(currentVersion string, gitSummary string) (success bool, m
 	}
 
 	// TODO refactor to avoid 2 API calls
-	release, err := gitlab.RelengCliLatestRelease()
+	release, err := gitlabb.RelengCliLatestRelease()
 	if err != nil {
 		panic(err)
 	}
-	link, err := gitlab.RelengCliLatestReleaseBinary()
+	link, err := gitlabb.RelengCliLatestReleaseBinary()
 	if err != nil {
 		panic(err)
 	}
@@ -71,17 +76,17 @@ func UpdateFromGitlab(currentVersion string, gitSummary string) (success bool, m
 }
 
 func CanMoveToVersionFromGitlab(targetVersion string) bool {
-	_, err := gitlab.RelengCliReleaseBinary(targetVersion)
+	_, err := gitlabb.RelengCliReleaseBinary(targetVersion)
 	return err == nil
 }
 
 func MoveToVersionFromGitlab(targerVersion string) (success bool, message string) {
 	// TODO refactor to avoid 2 API calls
-	release, err := gitlab.RelengCliRelease(targerVersion)
+	release, err := gitlabb.RelengCliRelease(targerVersion)
 	if err != nil {
 		panic(err)
 	}
-	link, err := gitlab.RelengCliReleaseBinary(targerVersion)
+	link, err := gitlabb.RelengCliReleaseBinary(targerVersion)
 	if err != nil {
 		panic(err)
 	}

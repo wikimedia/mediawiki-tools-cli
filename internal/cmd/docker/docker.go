@@ -73,10 +73,11 @@ var dockerLong string
 
 func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "docker",
-		Short: "The MediaWiki-Docker-Dev like development environment",
-		Long:  cli.RenderMarkdown(dockerLong),
-		RunE:  nil,
+		Use:     "docker",
+		GroupID: "dev",
+		Short:   "An advanced docker compose based development environment",
+		Long:    cli.RenderMarkdown(dockerLong),
+		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmd.Root().PersistentPreRun(cmd, args)
 			if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
@@ -159,8 +160,14 @@ func NewCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Core"
+	cmd.AddGroup(&cobra.Group{
+		ID:    "core",
+		Title: "Core Commands",
+	})
+	cmd.AddGroup(&cobra.Group{
+		ID:    "service",
+		Title: "Service Commands",
+	})
 
 	cmd.PersistentFlags().StringVarP(&mwdd.Context, "context", "c", defaultContext(), "The context to use")
 	// Parse PersistentFlags early so that the context is already known to other commands that are added
