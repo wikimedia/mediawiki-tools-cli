@@ -32,9 +32,6 @@ func NewToolsCmd() *cobra.Command {
 		RunE:    nil,
 	}
 
-	cmd.Annotations = make(map[string]string)
-	cmd.Annotations["group"] = "Service"
-
 	toolName := ""
 	// TODO split exec cmd into own function & own file
 	execCmd := &cobra.Command{

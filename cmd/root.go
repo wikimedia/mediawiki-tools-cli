@@ -69,6 +69,10 @@ func NewMwCliCmd() *cobra.Command {
 		},
 	}
 	mwcliCmd.AddGroup(&cobra.Group{
+		ID:    "dev",
+		Title: "Development Commands",
+	})
+	mwcliCmd.AddGroup(&cobra.Group{
 		ID:    "service",
 		Title: "Service Commands",
 	})

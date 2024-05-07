@@ -27,7 +27,6 @@ func NewGitlabCmd() *cobra.Command {
 	glabCommand.GroupID = "service"
 	glabCommand.Aliases = []string{"glab", "gl"}
 
-	glabCommand.Annotations["group"] = "Service"
 	glabCommand.Annotations["mwcli-lint-skip"] = "yarhar"
 	glabCommand.Annotations["mwcli-lint-skip-children"] = "yarhar"
 

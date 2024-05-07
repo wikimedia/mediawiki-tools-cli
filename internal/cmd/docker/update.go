@@ -12,8 +12,9 @@ import (
 func NewMwddUpdateCmd() *cobra.Command {
 	var forceRecreate bool
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update running containers",
+		Use:     "update",
+		GroupID: "core",
+		Short:   "Update running containers",
 		Run: func(cmd *cobra.Command, args []string) {
 			runningServices, runningServicesErr := mwdd.DefaultForUser().DockerCompose().ServicesWithStatus("running")
 			if runningServicesErr != nil {

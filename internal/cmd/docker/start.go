@@ -11,6 +11,7 @@ import (
 func NewMwddStartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "start",
+		GroupID: "core",
 		Aliases: []string{"resume"},
 		Short:   "Start containers that were running before",
 		Run: func(cmd *cobra.Command, args []string) {
