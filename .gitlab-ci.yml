@@ -20,5 +20,5 @@ include:
   rules:
   - if: "$GITLAB_SCHEDULE == 'dependabot'"
 - project: 'repos/security/gitlab-ci-security-templates'
-  ref: 0.1.5
+  ref: v0.1.5
   file: 'golang-gosec/golang-gosec-ci.yml'
