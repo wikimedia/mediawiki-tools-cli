@@ -6,6 +6,7 @@
 ./eventlogging.yml
 ./files.txt
 ./graphite.yml
+./jaeger.yml
 ./keycloak.yml
 ./keycloak/create_client.sh
 ./keycloak/create_user.sh

@@ -76,7 +76,9 @@ func (p Project) TopLevelFilePaths() ([]string, error) {
 	var files []string
 
 	err := filepath.Walk(p.Directory, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		pathMinusDir := strings.TrimPrefix(path, p.Directory+"/")
+		logrus.Trace("Checking path: " + path + " with pathMinusDir: " + pathMinusDir)
+		if !info.IsDir() && !strings.Contains(pathMinusDir, "/") {
 			files = append(files, path)
 		}
 		return nil
