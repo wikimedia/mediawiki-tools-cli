@@ -1,6 +1,6 @@
 # Jaeger service
 
-Using this will automatically configure a a jaeger service for MediaWiki.
+Using this will automatically configure a jaeger service for MediaWiki.
 
 This relies on code in MediaWiki that is a work in progress.
 See https://phabricator.wikimedia.org/T340552 and https://gerrit.wikimedia.org/r/c/1027519 for more information.
