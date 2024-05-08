@@ -15,6 +15,7 @@ import (
 
 func NewUpdateCmd() *cobra.Command {
 	versionInput := ""
+	dryRun := false
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Checks for and performs updates",
@@ -59,7 +60,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			}
 
 			// If we are in interactive mode, confirm the user wants to continue with the update
-			if !cli.Opts.NoInteraction {
+			if !cli.Opts.NoInteraction && !dryRun {
 				response := false
 				prompt := &survey.Confirm{
 					Message: "Do you want to update?",
@@ -77,25 +78,28 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 			// Start a progress bar
 			updateProcessCompleted := false
-			bar := progressbar.Default(111, "Updating binary")
-			go func() {
-				for !updateProcessCompleted {
-					err := bar.Add(1)
-					if err != nil {
-						fmt.Println(err)
+			var bar *progressbar.ProgressBar
+			if !dryRun {
+				bar = progressbar.Default(111, "Updating binary")
+				go func() {
+					for !updateProcessCompleted {
+						err := bar.Add(1)
+						if err != nil {
+							fmt.Println(err)
+						}
+						time.Sleep(100 * time.Millisecond)
 					}
-					time.Sleep(100 * time.Millisecond)
-				}
-			}()
+				}()
+			}
 
 			// Perform the update
 			var updateSuccess bool
 			// Either from a Gitlab release
-			if targetVersion != "" {
+			if targetVersion != "" && !dryRun {
 				updateSuccess, _ = updater.MoveToVersion(targetVersion)
 			}
 			// Or from a Gitlab build artifact
-			if targetArtifact != "" {
+			if targetArtifact != "" && !dryRun {
 				tempDownloadFile, err := updater.DownloadFile(targetArtifact)
 				if err != nil {
 					fmt.Println(err)
@@ -151,23 +155,40 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 			}
+			if dryRun {
+				fmt.Println("Dry run, no actual update performed")
+				if targetVersion != "" {
+					fmt.Println("Would have updated to version: " + targetVersion + " (using Gitlab releases)")
+				}
+				if targetArtifact != "" {
+					fmt.Println("Would have updated from build artifact: " + targetArtifact + " (using Gitlab CI artifacts)")
+				}
+				updateSuccess = true
+			}
 
 			// Finish the progress bar
 			updateProcessCompleted = true
-			err := bar.Finish()
-			if err != nil {
-				fmt.Println(err)
+			if bar != nil {
+				err := bar.Finish()
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 
 			// Exit with 1 if we didn't update
 			if !updateSuccess {
+				fmt.Println("Update failed")
 				os.Exit(1)
 			}
 
-			// Figure out what to tell the user about the update
-
 			// Output changelog of the versions we are moving between
 			if targetVersion != "" {
+				// If the versions are the same, nothing changes
+				if targetVersion == currentVersion {
+					fmt.Println("No changes between versions")
+					os.Exit(0)
+				}
+
 				releasesUpdatedThrough, err := updater.RelengCliGetReleasesBetweenTags(currentVersion, targetVersion)
 				if err != nil {
 					fmt.Printf("Could not fetch changelog between versions: %s\n", err)
@@ -184,10 +205,15 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			}
 			if targetArtifact != "" {
 				fmt.Println("Updated from a build artifact")
-				// TODO link
+				fmt.Println("Check the CI pipeline for the build for more details")
+				// artifact URL is like this https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download
+				// Remove the /artifacts/download part
+				jobUrl := strings.Split(targetArtifact, "/artifacts/download")[0]
+				fmt.Println("Job URL: " + jobUrl)
 			}
 		},
 	}
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
+	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
 	return cmd
 }

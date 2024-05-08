@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.25.0
+
+- Development environment (`mw docker`):
+  - Added `mw docker jaeger` service
+- Added `--dry-run` option to `mw update` command to show what would be updated without actually updating.
+
 ## v0.24.3
 
 - Fixed updating, which would ommit the `v` while fetching files for auto update (since v0.24.0).

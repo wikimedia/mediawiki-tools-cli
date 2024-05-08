@@ -3,10 +3,12 @@ package gitlab
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"runtime"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
@@ -41,6 +43,8 @@ func RelengCliGetRelease(name string) (*gitlab.Release, error) {
 }
 
 func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error) {
+	logrus.Tracef("Getting releases between tags: %s and %s", from, to)
+
 	// Get all releases
 	releases, err := RelengCliGetReleases()
 	if err != nil {
@@ -62,10 +66,10 @@ func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error)
 		}
 	}
 	if start == -1 {
-		return nil, errors.New("could not find start tag")
+		return nil, fmt.Errorf("could not find start tag: %s", from)
 	}
 	if end == -1 {
-		return nil, errors.New("could not find end tag")
+		return nil, fmt.Errorf("could not find end tag: %s", to)
 	}
 	return releases[end:start], nil
 }
