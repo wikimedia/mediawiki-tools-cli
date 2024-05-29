@@ -18,6 +18,7 @@ func NewMwddDestroyCmd() *cobra.Command {
 			err := mwdd.DefaultForUser().DockerCompose().Down(dockercompose.DownOptions{
 				Volumes:       true,
 				RemoveOrphans: true,
+				Timeout:       1,
 			})
 			if err != nil {
 				panic(err)
