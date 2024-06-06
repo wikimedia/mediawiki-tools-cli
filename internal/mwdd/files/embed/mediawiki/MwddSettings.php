@@ -340,6 +340,9 @@ $wgShowDBErrorBacktrace = true;
 $wgDevelopmentWarnings = true;
 $wgEnableJavaScriptTest = true;
 
+// Set a reasonably large memory limit: 2 GiB (as of 2024-05 WMF production has 1400 MiB)
+ini_set( 'memory_limit', 2 * 1024 ** 3 );
+
 ## Email
 
 # TODO use some mail catcher?
