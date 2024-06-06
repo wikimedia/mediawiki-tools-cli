@@ -5,7 +5,7 @@
 services:
 
   mediawiki-quibble:
-    image: "${MEDIAWIKI_QUIBBLE_IMAGE:-docker-registry.wikimedia.org/releng/quibble-buster-php83:1.7.0-s2}"
+    image: "${MEDIAWIKI_QUIBBLE_IMAGE:-docker-registry.wikimedia.org/releng/quibble-buster-php83:1.8.0}"
     security_opt:
       - label:disable
     restart: unless-stopped
