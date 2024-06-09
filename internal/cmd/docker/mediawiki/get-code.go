@@ -115,7 +115,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				if finalRemoteType == "ssh" {
 					gerritUsername := ""
 					prompt := &survey.Input{
-						Message: "What is your Gerrit username?",
+						Message: "What is your Gerrit username? See https://gerrit.wikimedia.org/r/settings",
 					}
 					err = survey.AskOne(prompt, &gerritUsername)
 					if err != nil {
@@ -124,7 +124,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 					}
 
 					if len(gerritUsername) < 1 {
-						fmt.Println("Gerrit username required for ssh interaction type.")
+						fmt.Println("Gerrit `Username` required for ssh interaction type.")
 						os.Exit(1)
 					}
 					cloneOpts.GerritUsername = gerritUsername

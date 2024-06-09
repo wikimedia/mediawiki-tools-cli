@@ -71,9 +71,13 @@ func (m MediaWiki) CloneSetup(options CloneOpts) {
 		if options.GerritInteractionType == "http" {
 			endRemoteCore = "https://gerrit.wikimedia.org/r/mediawiki/core"
 		} else if options.GerritInteractionType == "ssh" {
+			if options.GerritUsername == "" {
+				fmt.Println("Gerrit username required for ssh interaction type.")
+				os.Exit(1)
+			}
 			endRemoteCore = "ssh://" + options.GerritUsername + "@gerrit.wikimedia.org:29418/mediawiki/core"
 		} else {
-			fmt.Println("Unknown GerritInteractionType")
+			fmt.Println("Unknown Gerrit interaction type.")
 			os.Exit(1)
 		}
 		cloneAndSetRemote(m.Path(""), startRemoteCore, endRemoteCore, options.UseShallow)
