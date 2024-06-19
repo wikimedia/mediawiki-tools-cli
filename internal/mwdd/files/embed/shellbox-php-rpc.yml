@@ -6,7 +6,7 @@
 
 services:
   shellbox-php-rpc: 
-    image: "${SHELLBOX_PHP_RPC_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-05-04-233133-php-rpc}"
+    image: "${SHELLBOX_PHP_RPC_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015-php-rpc}"
     restart: unless-stopped
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
