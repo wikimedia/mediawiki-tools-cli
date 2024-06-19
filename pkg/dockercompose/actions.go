@@ -3,6 +3,7 @@ package dockercompose
 import (
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	// TODO this shoud only use pkgs.
@@ -29,6 +30,7 @@ func (p Project) Up(services []string, opts UpOptions) error {
 type DownOptions struct {
 	Volumes       bool
 	RemoveOrphans bool
+	Timeout       int
 }
 
 func (p Project) Down(opts DownOptions) error {
@@ -38,6 +40,9 @@ func (p Project) Down(opts DownOptions) error {
 	}
 	if opts.RemoveOrphans {
 		args = append(args, "--remove-orphans")
+	}
+	if opts.Timeout != 0 {
+		args = append(args, "--timeout", strconv.Itoa(opts.Timeout))
 	}
 	return p.Command(append([]string{"down"}, args...)).RunAttached()
 }
