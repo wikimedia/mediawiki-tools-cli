@@ -15,7 +15,7 @@ require (
 	github.com/docker/docker v24.0.9+incompatible
 	github.com/fatih/color v1.17.0
 	github.com/hashicorp/go-version v1.6.0
-	github.com/itchyny/gojq v0.12.16
+	github.com/itchyny/gojq v0.12.15
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/mapstructure v1.5.0
