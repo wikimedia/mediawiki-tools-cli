@@ -98,9 +98,11 @@ test_docker_ps_service_count 9
 # Try other DB related commands
 test_command_success ./bin/mw docker postgres stop
 test_command_success ./bin/mw docker postgres start
+sleep 1
 test_command_success ./bin/mw docker postgres exec echo foo
 test_command_success ./bin/mw docker mysql-replica stop
 test_command_success ./bin/mw docker mysql-replica start
+sleep 1
 test_command_success ./bin/mw docker mysql-replica exec echo foo
 # TODO test the mysql and replica "mysql" commands (cli)
 test_command_success ./bin/mw docker mysql exec echo foo
