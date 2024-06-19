@@ -141,7 +141,7 @@ func gerritHTTPRemoteForExtension(extension string) string {
 }
 
 func gerritSSHRemoteForExtension(extension string, username string) string {
-	return "ssh://" + username + "@gerrit.wikimedia.org:29418/mediawiki/skins/" + extension
+	return "ssh://" + username + "@gerrit.wikimedia.org:29418/mediawiki/extensions/" + extension
 }
 
 func githubRemoteForExtension(extension string) string {
