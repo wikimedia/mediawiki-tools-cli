@@ -13,23 +13,23 @@ require (
 	github.com/charmbracelet/glamour v0.7.0
 	github.com/cli/cli/v2 v2.49.0
 	github.com/docker/docker v24.0.9+incompatible
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/hashicorp/go-version v1.6.0
-	github.com/itchyny/gojq v0.12.15
+	github.com/itchyny/gojq v0.12.16
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.15.2
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/rodaine/table v1.2.0
-	github.com/schollz/progressbar/v3 v3.14.2
+	github.com/schollz/progressbar/v3 v3.14.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/txn2/txeh v1.5.4
+	github.com/txn2/txeh v1.5.5
 	github.com/xanzy/go-gitlab v0.103.0
 	gitlab.com/gitlab-org/cli v1.40.0
-	golang.org/x/term v0.19.0
+	golang.org/x/term v0.20.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -102,7 +102,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/itchyny/timefmt-go v0.1.5 // indirect
+	github.com/itchyny/timefmt-go v0.1.6 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
@@ -141,7 +141,7 @@ require (
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
