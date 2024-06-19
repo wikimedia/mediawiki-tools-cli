@@ -126,7 +126,7 @@ Tags should follow [semver](https://semver.org/) and release notes should be wri
 ### Process
 
 1) Add release notes for the release into CHANGELOG.md
-    - You can use a compare link such as [this](https://gitlab.wikimedia.org/repos/releng/cli/-/compare/v0.10.0...main?from_project_id=16) to see what has changed and what needs release notes.
+    - You can use a compare link such as [this](https://gitlab.wikimedia.org/repos/releng/cli/-/compare/v0.24.3...main?from_project_id=16&straight=false) to see what has changed and what needs release notes.
     - Notes should be under a fresh new header of the format `## v0.2.1` so that the release process can extract the notes correctly. These are displayed to users as they update.
 2) Tag the commit for release
     - The format should be `vx.x.x`

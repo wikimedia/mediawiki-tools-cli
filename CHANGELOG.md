@@ -7,8 +7,20 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 ## v0.25.0
 
 - Development environment (`mw docker`):
+  - Fixed extension git remotes in `get-code` command, which were being set incorrectly
   - Added `mw docker jaeger` service
+  - Added PHP `memory_limit` setting to default mediawiki settings (2 GiB, mirroring WMF production)
+  - Added a limit of 1 second to the main `destroy` command, so things get killed faster
+  - Improved handeling of git code fetches when no gerrit username is provided
+  - Updated some documentation
+  - Image updates:
+    - postgres:13.14 -> 13.15
+    - docker-registry.wikimedia.org/releng/quibble-buster-php83:1.7.0-s2 -> 1.8.0
+    - docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2023-10-25-155509-production -> 2024-06-11-192310-production
+    - docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-05-04-233133-* -> 2024-06-10-140015-*
 - Added `--dry-run` option to `mw update` command to show what would be updated without actually updating.
+
+Thanks additionaly to @hoo, @lucaswerkmeister-wmde, @audreypenven for patches this release.
 
 ## v0.24.3
 
