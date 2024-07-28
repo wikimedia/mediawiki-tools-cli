@@ -8,6 +8,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - Development environment (`mw docker`):
   - Image updates: repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-5 -> repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-5 (T369811)
+  - Image updates: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015 -> 2024-06-13-133425
 
 ## v0.25.0
 
