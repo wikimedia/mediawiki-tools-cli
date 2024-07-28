@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.25.1
+
+- Development environment (`mw docker`):
+  - Image updates: repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-5 -> repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-5 (T369811)
+
 ## v0.25.0
 
 - Development environment (`mw docker`):
