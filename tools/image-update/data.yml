@@ -33,7 +33,7 @@ images:
     requireRegex: 18\.\d+\.\d+
   - image: graphiteapp/graphite-statsd:1.1.10-4
     requireRegex: 1\.\d+\.\d+(\-\d+)
-  - image: docker-registry.wikimedia.org/dev/stretch-elasticsearch:0.1.0
+  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-5
   # docker dev env: Other stuff
   - image: alpine/socat:1.7.4.4-r0
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
@@ -57,15 +57,15 @@ imageGroups:
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015-media
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-media
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015-php-rpc
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-php-rpc
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015-score
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-score
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015-syntaxhighlight
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-syntaxhighlight
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-10-140015-timeline
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-timeline
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:
