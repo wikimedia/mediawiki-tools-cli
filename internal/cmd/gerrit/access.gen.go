@@ -1,10 +1,10 @@
 package gerrit
 
 import (
-	"fmt"
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
+	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
 )
 
@@ -42,7 +42,7 @@ func NewGerritAccessListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "List Access Rights",
 		Use:   "list",

@@ -1,10 +1,10 @@
 package gerrit
 
 import (
-	"fmt"
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
+	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
 )
 
@@ -55,7 +55,7 @@ func NewGerritGroupsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "List Groups",
 		Use:   "list",
@@ -88,7 +88,7 @@ func NewGerritGroupsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Get a Group",
 		Use:   "get",
@@ -120,7 +120,7 @@ func NewGerritGroupsDetailCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Get a Group detail",
 		Use:   "detail",
@@ -162,7 +162,7 @@ func NewGerritGroupsNameGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves the name of a group.",
 		Use:   "get",
@@ -204,7 +204,7 @@ func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves the description of a group.",
 		Use:   "get",
@@ -246,7 +246,7 @@ func NewGerritGroupsOptionsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves the options of a group.",
 		Use:   "get",
@@ -288,7 +288,7 @@ func NewGerritGroupsOwnerGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves the owner of a group.",
 		Use:   "get",
@@ -320,7 +320,7 @@ func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Get a Group audit log",
 		Use:   "get-audit-log",
@@ -363,7 +363,7 @@ func NewGerritGroupsMembersListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Lists the members of a group.",
 		Use:   "list",
@@ -397,7 +397,7 @@ func NewGerritGroupsMembersGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves a member of a group.",
 		Use:   "get",
@@ -442,7 +442,7 @@ func NewGerritGroupsGroupsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Lists the sub groups of a group.",
 		Use:   "list",
@@ -476,7 +476,7 @@ func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves a sub group of a group.",
 		Use:   "get",
