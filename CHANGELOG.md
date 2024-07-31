@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## Unreleased
+
+- Development environment (`mw docker`):
+  - Image updates:
+    - quibble-buster-php83:1.8.0 -> :1.9.1
+
 ## v0.25.1
 
 - Development environment (`mw docker`):
