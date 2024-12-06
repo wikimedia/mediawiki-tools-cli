@@ -101,7 +101,7 @@ func (m MWDD) DockerCompose() dockercompose.Project {
 func CommandAndEnvFromArgs(args []string) ([]string, []string) {
 	extractedArgs := []string{}
 	extractedEnvs := []string{}
-	regex, _ := regexp.Compile(`\w+=\w+`)
+	regex, _ := regexp.Compile(`^\w+=\w+$`)
 	for _, arg := range args {
 		matched := regex.MatchString(arg)
 		if matched {
