@@ -20,7 +20,7 @@ func NewUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Checks for and performs updates",
 		Example: `update
-update --version=0.10 --no-interaction
+update --version=v0.10.0 --no-interaction
 update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`,
 		Run: func(cmd *cobra.Command, args []string) {
 			currentVersion := cli.VersionDetails.Version
