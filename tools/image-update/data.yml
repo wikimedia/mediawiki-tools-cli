@@ -57,15 +57,15 @@ imageGroups:
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-media
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-12-07-073046-media81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-php-rpc
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-12-07-073046-php-rpc81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-score
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-12-07-073046-score81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-syntaxhighlight
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-12-07-073046-syntaxhighlight81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-timeline
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-12-07-073046-timeline81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:
