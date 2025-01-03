@@ -33,7 +33,7 @@ images:
     requireRegex: 18\.\d+\.\d+
   - image: graphiteapp/graphite-statsd:1.1.10-4
     requireRegex: 1\.\d+\.\d+(\-\d+)
-  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-5
+  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-12
   # docker dev env: Other stuff
   - image: alpine/socat:1.7.4.4-r0
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
