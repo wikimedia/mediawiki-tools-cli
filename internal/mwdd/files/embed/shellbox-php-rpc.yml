@@ -11,6 +11,9 @@ services:
     volumes:
       - shellbox-php-rpc-run:/run/shared
       - ./shellbox/php-rpc/config.json:/srv/app/config/config.json:ro
+    environment:
+      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
+      - "FCGI_MODE=FCGI_UNIX"
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
