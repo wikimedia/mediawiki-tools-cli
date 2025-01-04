@@ -100,19 +100,20 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return
 			}
 
-			// Fix some container mount permission issues
-			// Owned by root, but our webserver needs to be able to write
+			// MediaWiki will only create the cache dir sometimes (on some web requests?), make sure it exists.
 			err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
-				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/www/html/w/cache/docker"},
+				CommandAndArgs: []string{"mkdir", "-p", "/var/www/html/w/cache/docker/" + DbName},
 			},
 			)
 			if err != nil {
 				panic(err)
 			}
+			// Fix some container mount permission issues
+			// Owned by root, but our webserver needs to be able to write
 			err2 := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
-				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/www/html/w/images/docker"},
+				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/www/html/w/cache/docker", "/var/www/html/w/images/docker", "/var/log/mediawiki"},
 			},
 			)
 			if err2 != nil {
@@ -120,7 +121,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 			err3 := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
-				CommandAndArgs: []string{"chown", "-R", "nobody", "/var/log/mediawiki"},
+				CommandAndArgs: []string{"chmod", "-R", "0777", "/var/www/html/w/cache/docker"},
 			},
 			)
 			if err3 != nil {
