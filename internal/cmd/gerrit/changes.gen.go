@@ -1,10 +1,10 @@
 package gerrit
 
 import (
-	"fmt"
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
+	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
 )
 
@@ -49,7 +49,7 @@ func NewGerritChangesListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "List Changes",
 		Use:   "list",
@@ -81,7 +81,7 @@ func NewGerritChangesGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Get a Change",
 		Use:   "get",
@@ -113,7 +113,7 @@ func NewGerritChangesDetailCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Get a Change detail",
 		Use:   "detail",
@@ -155,7 +155,7 @@ func NewGerritChangesTopicGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves the topic of a change.",
 		Use:   "get",
@@ -187,7 +187,7 @@ func NewGerritChangesInCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Retrieves the branches and tags in which a change is included.",
 		Use:   "in",
@@ -229,7 +229,7 @@ func NewGerritChangesReviewersListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Lists the reviewers of a change.",
 		Use:   "list",

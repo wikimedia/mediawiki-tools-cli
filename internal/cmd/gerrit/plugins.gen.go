@@ -1,10 +1,10 @@
 package gerrit
 
 import (
-	"fmt"
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
+	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
 )
 
@@ -54,7 +54,7 @@ func NewGerritPluginsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "List plugins",
 		Use:   "list",
@@ -89,7 +89,7 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Get plugin",
 		Use:   "get",
@@ -121,7 +121,7 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Enable plugin",
 		Use:   "enable",
@@ -153,7 +153,7 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Disable plugin",
 		Use:   "disable",
@@ -185,7 +185,7 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			fmt.Print(string(body))
+			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
 		},
 		Short: "Reload plugin",
 		Use:   "reload",

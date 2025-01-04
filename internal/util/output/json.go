@@ -28,6 +28,25 @@ func NewJSON(objects map[interface{}]interface{}, format string, topLevelKeys bo
 	}
 }
 
+func NewJSONFromString(objects string, format string, topLevelKeys bool) *JSON {
+	var obj map[string]interface{}
+	err := json.Unmarshal([]byte(objects), &obj)
+	if err != nil {
+		logrus.Panic(err)
+	}
+
+	convertedObjects := make(map[interface{}]interface{})
+	for key, value := range obj {
+		convertedObjects[key] = value
+	}
+
+	return &JSON{
+		Objects:      convertedObjects,
+		Format:       format,
+		TopLevelKeys: topLevelKeys,
+	}
+}
+
 func (j *JSON) Print(writer io.Writer) {
 	if j.TopLevelKeys {
 		printWithKeys(j, writer)
@@ -97,4 +116,13 @@ func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
 func interfaceToJSONString(v interface{}) string {
 	byteSlice, _ := json.Marshal(v)
 	return string(byteSlice)
+}
+
+func JSONStringToInterface(jsonString string) interface{} {
+	var obj interface{}
+	err := json.Unmarshal([]byte(jsonString), &obj)
+	if err != nil {
+		logrus.Panic(err)
+	}
+	return obj
 }
