@@ -9,7 +9,7 @@ When running, this will define:
 
 ```php
 $wgOpenTelemetryConfig = [
-    'samplingProbability' => 1,
+    'samplingProbability' => 100, # a percentage despite the name
     'serviceName' => 'mediawiki',
     'endpoint' => 'http://jaeger:4318/v1/traces',
 ];
