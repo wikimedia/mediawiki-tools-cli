@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -15,7 +16,18 @@ func NewVersionCmd() *cobra.Command {
 		Short: "Output the version information",
 		Example: `version
 version --output=template --format={{.Version}}`,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if output.Type(out.Type) == output.WebType {
+				if cli.VersionDetails.Version == "latest" {
+					return fmt.Errorf("cannot open the latest version in a web browser (no such thing)")
+				}
+				// URLS like https://gitlab.wikimedia.org/repos/releng/cli/-/releases/v0.25.1
+				url := fmt.Sprintf("https://gitlab.wikimedia.org/repos/releng/cli/-/releases/v%s", cli.VersionDetails.Version)
+				fmt.Println("Opening", url)
+				browser.OpenURL(url)
+				return nil
+			}
+
 			objects := make(map[interface{}]interface{}, 7)
 
 			if cli.Opts.Verbosity > 1 {
@@ -30,10 +42,11 @@ version --output=template --format={{.Version}}`,
 			objects["Releases"] = "https://gitlab.wikimedia.org/repos/releng/cli/-/releases"
 
 			out.Print(objects)
+			return nil
 		},
 	}
 
-	out.AddFlags(cmd, string(output.TableType))
+	out.AddFlags(cmd, output.TableType, output.WebType)
 	return cmd
 }
 

@@ -47,6 +47,6 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 			out.Print(objects)
 		},
 	}
-	out.AddFlags(cmd, "table")
+	out.AddFlags(cmd, output.TableType)
 	return cmd
 }

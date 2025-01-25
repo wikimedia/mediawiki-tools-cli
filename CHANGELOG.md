@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## Unreleased
+
+- Added the idea of a `--output web` type, which will open the output in a web browser.
+  - Used in `mw version`
+  - Used in `mw codesearch search`
+
 ## v0.26.0
 
 - Updated `gitlab` command to [1.52.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.52.0)

@@ -36,8 +36,10 @@ import (
 
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
-		Use:   "mw",
-		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
+		Use:           "mw",
+		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
+		SilenceErrors: true,
+		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
 			logrus.SetFormatter(&logrus.TextFormatter{
@@ -281,7 +283,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	if err != nil {
-		logrus.Errorf("Root cmd Execute error, %s", err)
+		logrus.Errorf("%s", err)
 		os.Exit(1)
 	}
 }
