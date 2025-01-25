@@ -37,7 +37,7 @@ func NewGitlabCmd() *cobra.Command {
 	})
 
 	// Remove all "v" shorthands for command flags recursively
-	cobrautil.VisitAllCommands(glabCommand, func(cmd *cobra.Command) {
+	cobrautil.VisitAllSubCommands(glabCommand, func(cmd *cobra.Command) {
 		originalFlags := cmd.Flags()
 		if originalFlags.ShorthandLookup("v") != nil {
 			cmd.ResetFlags()

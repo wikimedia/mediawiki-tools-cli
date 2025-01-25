@@ -101,7 +101,7 @@ func NewCmd() *cobra.Command {
 			thisDev.EnsureReady()
 
 			// Skip the checks and wizard for some sub commands
-			if cobrautil.CommandIsSubCommandOfOneOrMore(cmd, ignoreMwddPersistentRunForPrefixes) {
+			if cobrautil.CommandIsSubCommandOfOneOrMoreStrings(cmd, ignoreMwddPersistentRunForPrefixes) {
 				return
 			}
 			// Skip the checks and wizard for any destroy commands
