@@ -4,10 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.26.0
 
 - Updated `gitlab` command to [1.52.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.52.0)
 - Development environment (`mw docker`):
+  - Fixed podman issue, `mw docker mediawiki install` now creates a cache dir. By @hoo
+  - Fixed parsing of --option=arg as env variable. By @migr
+  - Fixed docs in `mw update --version` example. By @migr
   - Image updates:
     - quibble-buster-php83:1.8.0 -> 1.9.1
     - node20-test-browser:20.16.0 -> 20.18.1
