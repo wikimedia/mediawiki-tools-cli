@@ -40,6 +40,7 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 
 	// Ensure each file is on disk and up to date
 	for _, embedFile := range embeddedFiles {
+		logrus.Trace("Checking " + embedFile)
 		agnosticFile := e.agnosticFileFromEmbed(embedFile)
 		diskFile := e.DiskPath + string(os.PathSeparator) + agnosticFile
 		embedBytes := e.agnosticEmbedBytes(agnosticFile)
