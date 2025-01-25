@@ -193,7 +193,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				releasesUpdatedThrough, err := updater.RelengCliGetReleasesBetweenTags(currDetails.Version.Tag(), targetVersion.Tag())
 				if err != nil {
-					logrus.Error(fmt.Errorf("Could not fetch changelog between versions: %s", err))
+					logrus.Error(fmt.Errorf("could not fetch changelog between versions: %s", err))
 					fmt.Println("You can try running the following command to see the last version's changelog:")
 					fmt.Println("  " + targetVersion.ReleaseNotesCommand())
 					fmt.Println("Or view the changelog online:")
@@ -221,18 +221,4 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
 	return cmd
-}
-
-func versionToTag(version string) string {
-	return shouldStartWithVersion(version)
-}
-
-func shouldStartWithVersion(version string) string {
-	if len(version) < 1 {
-		return ""
-	}
-	if version[0] == 'v' {
-		return version
-	}
-	return "v" + version
 }

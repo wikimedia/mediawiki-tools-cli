@@ -40,12 +40,12 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 			return nil
 		},
 		// examples-expected: All examples need to start with something that is expected
-		// This can be 1) The command name 2) a comment "#" 3) be a blank line (separation)
+		// This can be 1) The command name 2) a comment "#" 3) be a blank line (separation) 4) be two spaces, follow by the command name
 		// It is common for people to start with `mw`, an alias or for whitespace between lines to be incorrect
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
 			for _, line := range stringsutil.SplitMultiline(theCmd.Example) {
 				// TODO check all example lines and return an issue for each?
-				if len(line) > 0 && strings.Index(line, theCmd.Name()) != 0 && strings.Index(line, "#") != 0 {
+				if len(line) > 0 && strings.Index(line, theCmd.Name()) != 0 && strings.Index(line, "#") != 0 && strings.Index(line, "  "+theCmd.Name()) != 0 {
 					return &issue.Issue{
 						Target:  "cmd: " + cmdStirng,
 						Level:   issue.ErrorLevel,
