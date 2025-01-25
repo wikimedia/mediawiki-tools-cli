@@ -52,7 +52,7 @@ linters-settings:
         alias: sshutil
       - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/strings
         alias: stringsutil
-      - pkg: github.com/xanzy/go-gitlab
+      - pkg:   gitlab.com/gitlab-org/api/client-go
         alias: gitlab
       - pkg: cgt.name/pkg/go-mwclient
         alias: mwclient

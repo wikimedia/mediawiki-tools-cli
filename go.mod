@@ -14,6 +14,7 @@ require (
 	github.com/cli/cli/v2 v2.65.0
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/fatih/color v1.18.0
+	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/itchyny/gojq v0.12.15
 	github.com/joho/godotenv v1.5.1
@@ -27,7 +28,6 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/txn2/txeh v1.5.5
-	github.com/xanzy/go-gitlab v0.115.0
 	gitlab.com/gitlab-org/api/client-go v0.116.0
 	gitlab.com/gitlab-org/cli v1.52.0
 	golang.org/x/term v0.28.0

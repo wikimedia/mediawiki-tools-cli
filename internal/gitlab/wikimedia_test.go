@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"reflect"
 	"testing"
 
-	gitlab "github.com/xanzy/go-gitlab"
+	"github.com/google/go-cmp/cmp"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func TestLatestReleaseBinary(t *testing.T) {
@@ -75,8 +75,8 @@ func TestLatestReleaseBinary(t *testing.T) {
 				t.Errorf("LatestReleaseBinary() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("LatestReleaseBinary() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("LatestReleaseBinary() mismatch (-got +want):\n%s", diff)
 			}
 		})
 	}
