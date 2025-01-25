@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"strings"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/browser"
@@ -70,20 +69,15 @@ search --output ack --files ".*\.md" addshore
 		RunE: func(cmd *cobra.Command, args []string) error {
 			searchString := args[0]
 
+			searchOptions := &codesearch.SearchOptions{
+				IgnoreCase:   ignoreCase,
+				Files:        files,
+				ExcludeFiles: excludeFiles,
+				Repos:        repos,
+			}
+
 			if output.Type(out.Type) == output.WebType {
-				url := fmt.Sprintf("https://codesearch.wmcloud.org/%s/?q=%s", searchType, searchString)
-				if files != "" {
-					url += "&files=" + files
-				}
-				if excludeFiles != "" {
-					url += "&excludeFiles=" + excludeFiles
-				}
-				if len(repos) > 0 {
-					url += "&repos=" + strings.Join(repos, "%2C")
-				}
-				if ignoreCase {
-					url += "&i=fosho"
-				}
+				url := codesearch.CraftSearchURL(searchType, false, searchString, searchOptions)
 
 				fmt.Println("Opening", url)
 				browser.OpenURL(url)
@@ -91,12 +85,7 @@ search --output ack --files ".*\.md" addshore
 			}
 
 			client := codesearch.NewClient(searchType)
-			response, err := client.Search(context.Background(), searchType, searchString, &codesearch.SearchOptions{
-				IgnoreCase:   ignoreCase,
-				Files:        files,
-				ExcludeFiles: excludeFiles,
-				Repos:        repos,
-			})
+			response, err := client.Search(context.Background(), searchType, searchString, searchOptions)
 			if err != nil {
 				return err
 			}
