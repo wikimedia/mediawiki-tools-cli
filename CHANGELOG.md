@@ -9,6 +9,18 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added the idea of a `--output web` type, which will open the output in a web browser.
   - Used in `mw version`
   - Used in `mw codesearch search`
+- Improved `update` output when update fails (T368018)
+- Improved `update` output when updating to versions where the changelog can't be shown
+- Fixed exit codes in the case non existent commands are run, where help text used to be displayed (T293062)
+- Fixed `update` command success, when using Gitlab artifacts (T369835)
+- Fixed command `completion` when no config file exists (T330310)
+- Development environment (`mw docker`)
+  - Fixed issue with `docker compose` commands and images on linux arm systems, by adding `DOCKER_DEFAULT_PLATFORM=linux/amd64` in those situations (T355341)
+  - Image updates:
+    - buster-php81-fpm -> bookworm-php83-fpm (Including composer 2.8.3)
+    - buster-apache2 -> bookworm-apache2
+
+You might also be interested in this blog post looking at the [usage of this tool](https://addshore.com/2025/01/mwcli-a-mediawiki-focused-command-line-tool-targeting-developers-over-the-years/).
 
 ## v0.26.0
 
