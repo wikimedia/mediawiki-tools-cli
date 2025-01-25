@@ -10,7 +10,6 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Used in `mw version`
   - Used in `mw codesearch search`
 - Improved `update` output when update fails (T368018)
-- Improved `update` output when updating to versions where the changelog can't be shown
 - Fixed exit codes in the case non existent commands are run, where help text used to be displayed (T293062)
 - Fixed `update` command success, when using Gitlab artifacts (T369835)
 - Fixed command `completion` when no config file exists (T330310)
@@ -21,6 +20,10 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
     - buster-apache2 -> bookworm-apache2
 
 You might also be interested in this blog post looking at the [usage of this tool](https://addshore.com/2025/01/mwcli-a-mediawiki-focused-command-line-tool-targeting-developers-over-the-years/).
+
+## v0.26.1
+
+- Improved and fixed `update` output when updating to versions where the changelog can't be shown
 
 ## v0.26.0
 
