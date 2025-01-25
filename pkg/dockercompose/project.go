@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
@@ -102,7 +102,7 @@ func (p Project) ContainerID(service string) (string, error) {
 	containerFilters.Add("label", "com.docker.compose.container-number=1")
 	logrus.Trace("Getting container ID for service: " + service + " using filters filters: project = " + projectNameLC + ", service = " + service)
 
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Filters: containerFilters})
+	containers, err := cli.ContainerList(ctx, container.ListOptions{Filters: containerFilters})
 	if err != nil {
 		return "", err
 	}
