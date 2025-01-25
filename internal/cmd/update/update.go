@@ -157,6 +157,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					fmt.Println(err)
 					os.Exit(1)
 				}
+				updateSuccess = true
 			}
 			if dryRun {
 				fmt.Println("Dry run, no actual update performed")
