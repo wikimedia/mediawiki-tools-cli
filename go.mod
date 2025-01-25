@@ -8,10 +8,10 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/adrg/xdg v0.5.3
 	github.com/alecthomas/assert v1.0.0
-	github.com/andygrunwald/go-gerrit v0.0.0-20240427073835-c725a0f286eb
+	github.com/andygrunwald/go-gerrit v1.0.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/glamour v0.8.0
-	github.com/cli/cli/v2 v2.49.0
+	github.com/cli/cli/v2 v2.65.0
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/fatih/color v1.18.0
 	github.com/hashicorp/go-version v1.7.0
@@ -97,7 +97,7 @@ require (
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/dave/jennifer v1.7.1
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
