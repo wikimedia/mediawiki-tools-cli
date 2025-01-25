@@ -169,7 +169,7 @@ func tryToEmitEvents() {
 }
 
 /*Execute the root command.*/
-func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version string) {
+func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version cli.Version) {
 	cli.VersionDetails.GitCommit = GitCommit
 	cli.VersionDetails.GitBranch = GitBranch
 	cli.VersionDetails.GitState = GitState

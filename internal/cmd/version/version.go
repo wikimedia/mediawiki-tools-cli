@@ -21,8 +21,7 @@ version --output=template --format={{.Version}}`,
 				if cli.VersionDetails.Version == "latest" {
 					return fmt.Errorf("cannot open the latest version in a web browser (no such thing)")
 				}
-				// URLS like https://gitlab.wikimedia.org/repos/releng/cli/-/releases/v0.25.1
-				url := fmt.Sprintf("https://gitlab.wikimedia.org/repos/releng/cli/-/releases/v%s", cli.VersionDetails.Version)
+				url := cli.VersionDetails.Version.ReleasePage()
 				fmt.Println("Opening", url)
 				browser.OpenURL(url)
 				return nil

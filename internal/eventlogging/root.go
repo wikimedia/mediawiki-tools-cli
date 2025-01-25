@@ -18,7 +18,7 @@ func currentDtString() string {
 	return currentTime.Format("2006-01-02T15:04:05.000Z")
 }
 
-func AddCommandRunEvent(command string, version string) {
+func AddCommandRunEvent(command string, version cli.Version) {
 	AddEventToStore(map[string]interface{}{
 		"$schema": "/analytics/mwcli/command_execute/1.0.0",
 		"meta": map[string]interface{}{
@@ -30,7 +30,7 @@ func AddCommandRunEvent(command string, version string) {
 	})
 }
 
-func AddFeatureUsageEvent(feature string, version string) {
+func AddFeatureUsageEvent(feature string, version cli.Version) {
 	AddEventToStore(map[string]interface{}{
 		"$schema": "/analytics/mwcli/feature_usage/1.0.0",
 		"meta": map[string]interface{}{

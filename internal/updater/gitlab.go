@@ -22,7 +22,7 @@ func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error)
 }
 
 /*CanUpdateFromGitlab ...*/
-func CanUpdateFromGitlab(version string, gitSummary string) (bool, string) {
+func CanUpdateFromGitlab(version cli.Version, gitSummary string) (bool, string) {
 	setLogLevelForSelfUpdate()
 
 	latestRelease, latestErr := gitlabb.RelengCliLatestRelease()
@@ -31,20 +31,20 @@ func CanUpdateFromGitlab(version string, gitSummary string) (bool, string) {
 	}
 
 	newVersion, newErr := semver.Parse(strings.Trim(latestRelease.TagName, "v"))
-	currentVersion, currentErr := semver.Parse(strings.Trim(version, "v"))
+	currentVersion, currentErr := semver.Parse(version.String())
 
 	if newErr != nil {
 		return false, "Could not parse latest release version from Gitlab"
 	}
 	if currentErr != nil {
-		return false, "Could not parse current version '" + version + "'. Next release would be " + newVersion.String()
+		return false, "Could not parse current version '" + version.String() + "'. Next release would be " + newVersion.String()
 	}
 
 	return currentVersion.Compare(newVersion) == -1, newVersion.String()
 }
 
 // UpdateFromGitlab will update the binary to the latest version from Gitlab.
-func UpdateFromGitlab(currentVersion string, gitSummary string) (success bool, message string) {
+func UpdateFromGitlab(currentVersion cli.Version, gitSummary string) (success bool, message string) {
 	setLogLevelForSelfUpdate()
 
 	canUpdate, newVersionOrMessage := CanUpdateFromGitlab(currentVersion, gitSummary)
@@ -75,18 +75,18 @@ func UpdateFromGitlab(currentVersion string, gitSummary string) (success bool, m
 	return true, "Successfully updated to version " + release.TagName + "\n\n" + release.Description
 }
 
-func CanMoveToVersionFromGitlab(targetVersion string) bool {
-	_, err := gitlabb.RelengCliReleaseBinary(targetVersion)
+func CanMoveToVersionFromGitlab(targetVersion cli.Version) bool {
+	_, err := gitlabb.RelengCliReleaseBinary(targetVersion.Tag())
 	return err == nil
 }
 
-func MoveToVersionFromGitlab(targerVersion string) (success bool, message string) {
+func MoveToVersionFromGitlab(targetVersion cli.Version) (success bool, message string) {
 	// TODO refactor to avoid 2 API calls
-	release, err := gitlabb.RelengCliRelease(targerVersion)
+	release, err := gitlabb.RelengCliRelease(targetVersion.Tag())
 	if err != nil {
 		panic(err)
 	}
-	link, err := gitlabb.RelengCliReleaseBinary(targerVersion)
+	link, err := gitlabb.RelengCliReleaseBinary(targetVersion.Tag())
 	if err != nil {
 		panic(err)
 	}
