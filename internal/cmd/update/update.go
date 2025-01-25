@@ -222,17 +222,3 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
 	return cmd
 }
-
-func versionToTag(version string) string {
-	return shouldStartWithVersion(version)
-}
-
-func shouldStartWithVersion(version string) string {
-	if len(version) < 1 {
-		return ""
-	}
-	if version[0] == 'v' {
-		return version
-	}
-	return "v" + version
-}
