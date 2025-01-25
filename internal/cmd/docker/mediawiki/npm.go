@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
@@ -20,7 +21,7 @@ func NewMediaWikiNPMCmd() *cobra.Command {
 			mwdd.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{
 				Detached: true,
 			})
-			command, env := mwdd.CommandAndEnvFromArgs(args)
+			command, env := cobrautil.CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki-fresh")
 			if containerIDErr != nil {
 				panic(containerIDErr)
