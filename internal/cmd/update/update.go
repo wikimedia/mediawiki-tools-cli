@@ -96,9 +96,10 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 			// Perform the update
 			var updateSuccess bool
+			var updateMessage string
 			// Either from a Gitlab release
 			if targetVersion != "" && !dryRun {
-				updateSuccess, _ = updater.MoveToVersion(targetVersion)
+				updateSuccess, updateMessage = updater.MoveToVersion(targetVersion)
 			}
 			// Or from a Gitlab build artifact
 			if targetArtifact != "" && !dryRun {
@@ -179,7 +180,11 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 			// Exit with 1 if we didn't update
 			if !updateSuccess {
-				fmt.Println("Update failed")
+				if updateMessage == "" {
+					fmt.Println("Update failed")
+				} else {
+					fmt.Println("Update failed: " + updateMessage)
+				}
 				os.Exit(1)
 			}
 
