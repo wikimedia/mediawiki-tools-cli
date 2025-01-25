@@ -1,4 +1,5 @@
 linters:
+  disable-all: true
   enable:
     - errcheck # Default
     - gosimple # Default
@@ -60,10 +61,12 @@ linters-settings:
       - pkg: os/signal
         alias: ossignal
   depguard:
-    # Generally disallowed packages
-    list-type: denylist
-    include-go-root: true
-    packages:
-      - log
-    packages-with-error-message:
-      - log: 'logging is allowed only by github.com/sirupsen/logrus'
+    rules:
+      main:
+        files:
+          - $all
+          - "!$test"
+        list-mode: lax
+        deny:
+          - pkg: log
+            desc: 'logging is allowed only by github.com/sirupsen/logrus'
