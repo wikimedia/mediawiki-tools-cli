@@ -6,6 +6,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 ## Unreleased
 
+- Updated `gitlab` command to [1.52.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.52.0)
 - Development environment (`mw docker`):
   - Image updates:
     - quibble-buster-php83:1.8.0 -> :1.9.1
@@ -32,7 +33,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
     - docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-05-04-233133-* -> 2024-06-10-140015-*
 - Added `--dry-run` option to `mw update` command to show what would be updated without actually updating.
 
-Thanks additionaly to @hoo, @lucaswerkmeister-wmde, @audreypenven for patches this release.
+Thanks additionally to @hoo, @lucaswerkmeister-wmde, @audreypenven for patches this release.
 
 ## v0.24.3
 
