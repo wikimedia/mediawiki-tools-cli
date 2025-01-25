@@ -48,7 +48,7 @@ images:
   - image: docker-registry.wikimedia.org/httpd-fcgi:latest
     noCheck: true
   # Golang CI images
-  - image: golang:1.22
+  - image: golang:1.23
     noCheck: true
 imageGroups:
   # docker dev env: Regularly released WMF production images
