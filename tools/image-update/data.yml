@@ -3,7 +3,7 @@ images:
   - image: defreitas/dns-proxy-server:3.5.2
   - image: jwilder/nginx-proxy:0.10
   # docker dev env: MediaWiki related services
-  - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.16.0
+  - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.18.1
   - image: docker-registry.wikimedia.org/releng/quibble-buster-php83:1.9.1
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.1-s2
   - image: docker-registry.wikimedia.org/dev/buster-apache2:2.0.1
@@ -55,15 +55,15 @@ imageGroups:
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-media
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-01-12-210619-media81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-php-rpc
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-01-12-210619-php-rpc81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-score
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-01-12-210619-score81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-syntaxhighlight
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-01-12-210619-syntaxhighlight81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2024-06-13-133425-timeline
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-01-12-210619-timeline81
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:

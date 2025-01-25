@@ -9,7 +9,9 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Updated `gitlab` command to [1.52.0](https://gitlab.com/gitlab-org/cli/-/releases/v1.52.0)
 - Development environment (`mw docker`):
   - Image updates:
-    - quibble-buster-php83:1.8.0 -> :1.9.1
+    - quibble-buster-php83:1.8.0 -> 1.9.1
+    - node20-test-browser:20.16.0 -> 20.18.1
+    - shellbox images 2024-06-13-133425 -> 2025-01-12-210619...81
 
 ## v0.25.1
 
