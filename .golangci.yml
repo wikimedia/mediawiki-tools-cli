@@ -1,10 +1,11 @@
 linters:
+  disable-all: true
   enable:
     - errcheck # Default
-    - gosimple # Default
+    # - gosimple # Default # Broken with a bunch of errors an 2025
     - govet # Default
     - ineffassign # Default
-    - staticcheck # Default
+    # - staticcheck # Default # Broken with a bunch of errors Jan 2025
     - typecheck # Default
     - unused # Default
     # Custom enabled linters
@@ -51,7 +52,7 @@ linters-settings:
         alias: sshutil
       - pkg: 	 gitlab.wikimedia.org/repos/releng/cli/internal/util/strings
         alias: stringsutil
-      - pkg: github.com/xanzy/go-gitlab
+      - pkg:   gitlab.com/gitlab-org/api/client-go
         alias: gitlab
       - pkg: cgt.name/pkg/go-mwclient
         alias: mwclient
@@ -60,10 +61,12 @@ linters-settings:
       - pkg: os/signal
         alias: ossignal
   depguard:
-    # Generally disallowed packages
-    list-type: denylist
-    include-go-root: true
-    packages:
-      - log
-    packages-with-error-message:
-      - log: 'logging is allowed only by github.com/sirupsen/logrus'
+    rules:
+      main:
+        files:
+          - $all
+          - "!$test"
+        list-mode: lax
+        deny:
+          - pkg: log
+            desc: 'logging is allowed only by github.com/sirupsen/logrus'

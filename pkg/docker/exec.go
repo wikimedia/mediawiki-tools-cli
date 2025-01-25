@@ -8,7 +8,7 @@ import (
 	ossignal "os/signal"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/moby/sys/signal"
 	"golang.org/x/term"
@@ -25,7 +25,7 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 	ctx := context.Background()
 	cli := NewClientFromEnvOrPanic()
 
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		AttachStderr: true,
 		AttachStdout: true,
 		AttachStdin:  true,
@@ -49,7 +49,7 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 		return 1
 	}
 
-	execStartCheck := types.ExecStartCheck{
+	execStartCheck := container.ExecAttachOptions{
 		Tty: true,
 	}
 
@@ -118,7 +118,7 @@ func resizeTtyTo(ctx context.Context, client client.ContainerAPIClient, id strin
 		return
 	}
 
-	options := types.ResizeOptions{
+	options := container.ResizeOptions{
 		Height: height,
 		Width:  width,
 	}
