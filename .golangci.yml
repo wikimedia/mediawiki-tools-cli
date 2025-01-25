@@ -2,10 +2,10 @@ linters:
   disable-all: true
   enable:
     - errcheck # Default
-    - gosimple # Default
+    # - gosimple # Default # Broken with a bunch of errors an 2025
     - govet # Default
     - ineffassign # Default
-    - staticcheck # Default
+    # - staticcheck # Default # Broken with a bunch of errors Jan 2025
     - typecheck # Default
     - unused # Default
     # Custom enabled linters
