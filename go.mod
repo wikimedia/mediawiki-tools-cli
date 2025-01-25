@@ -28,6 +28,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/txn2/txeh v1.5.5
 	github.com/xanzy/go-gitlab v0.115.0
+	gitlab.com/gitlab-org/api/client-go v0.116.0
 	gitlab.com/gitlab-org/cli v1.52.0
 	golang.org/x/term v0.28.0
 	gopkg.in/ini.v1 v1.67.0
@@ -66,7 +67,6 @@ require (
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zalando/go-keyring v0.2.6 // indirect
-	gitlab.com/gitlab-org/api/client-go v0.116.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
 	go.opentelemetry.io/otel v1.34.0 // indirect
@@ -166,6 +166,6 @@ require (
 	gotest.tools/v3 v3.0.3 // indirect
 )
 
-go 1.23.4
+go 1.23.0
 
 toolchain go1.23.5

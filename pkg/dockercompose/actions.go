@@ -125,7 +125,7 @@ func (p Project) ServicesWithStatus(statusFilter string) ([]string, error) {
 
 	serviceList := stringsutil.SplitMultiline(strings.Trim(stdout.String(), "\n"))
 	if stderr.String() != "" || err != nil {
-		return nil, fmt.Errorf(stderr.String())
+		return nil, fmt.Errorf("%s", stderr.String())
 	}
 	return serviceList, nil
 }

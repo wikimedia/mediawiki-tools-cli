@@ -6,7 +6,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 )
