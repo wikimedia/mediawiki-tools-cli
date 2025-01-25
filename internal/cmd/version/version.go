@@ -15,7 +15,17 @@ func NewVersionCmd() *cobra.Command {
 		Short: "Output the version information",
 		Example: `version
 version --output=template --format={{.Version}}`,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if output.Type(out.Type) == output.WebType {
+				if cli.VersionDetails.Version == "latest" {
+					return fmt.Errorf("cannot open the latest version in a web browser (no such thing)")
+				}
+				url := cli.VersionDetails.Version.ReleasePage()
+				fmt.Println("Opening", url)
+				browser.OpenURL(url)
+				return nil
+			}
+
 			objects := make(map[interface{}]interface{}, 7)
 
 			if cli.Opts.Verbosity > 1 {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/schollz/progressbar/v3"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
@@ -23,13 +24,13 @@ func NewUpdateCmd() *cobra.Command {
 update --version=v0.10.0 --no-interaction
 update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`,
 		Run: func(cmd *cobra.Command, args []string) {
-			currentVersion := cli.VersionDetails.Version
-			var targetVersion string
+			currDetails := cli.VersionDetails
+			var targetVersion cli.Version
 			var targetArtifact string
 
-			// No manual version, so genrally check for new releases
+			// No manual version, so generally check for new releases
 			if versionInput == "" {
-				canUpdate, toUpdateToOrMessage := updater.CanUpdate(currentVersion, cli.VersionDetails.GitSummary)
+				canUpdate, toUpdateToOrMessage := updater.CanUpdate(currDetails.Version, cli.VersionDetails.GitSummary)
 
 				if !canUpdate {
 					fmt.Println(toUpdateToOrMessage)
@@ -38,8 +39,8 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				// CanUpdateFromGitlab which is called deep down, trims the V, so we need to add it back for now
 				// (And probably refactor this all at some point...)
-				targetVersion = "v" + toUpdateToOrMessage
-				fmt.Println("New update found: " + targetVersion)
+				targetVersion = cli.VersionFromUserInput(toUpdateToOrMessage)
+				fmt.Println("New update found: " + targetVersion.String())
 			}
 
 			// Manual version is specified, so check it
@@ -49,13 +50,14 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					fmt.Println("Downloading from URL: " + versionInput)
 					targetArtifact = versionInput
 				} else {
-					canMoveToVersion := updater.CanMoveToVersion(versionInput)
+					targetInputAsVersion := cli.VersionFromUserInput(versionInput)
+					canMoveToVersion := updater.CanMoveToVersion(targetInputAsVersion)
 					if !canMoveToVersion {
 						fmt.Println("Can not find manual version " + versionInput + " to move to")
 						os.Exit(1)
 					}
 					fmt.Println("Updating to manually selected version: " + versionInput)
-					targetVersion = versionInput
+					targetVersion = targetInputAsVersion
 				}
 			}
 
@@ -184,15 +186,18 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			// Output changelog of the versions we are moving between
 			if targetVersion != "" {
 				// If the versions are the same, nothing changes
-				if targetVersion == currentVersion {
+				if targetVersion == currDetails.Version {
 					fmt.Println("No changes between versions")
 					os.Exit(0)
 				}
 
-				releasesUpdatedThrough, err := updater.RelengCliGetReleasesBetweenTags(currentVersion, targetVersion)
+				releasesUpdatedThrough, err := updater.RelengCliGetReleasesBetweenTags(currDetails.Version.Tag(), targetVersion.Tag())
 				if err != nil {
-					fmt.Printf("Could not fetch changelog between versions: %s\n", err)
-					// TODO link to releases page
+					logrus.Error(fmt.Errorf("Could not fetch changelog between versions: %s", err))
+					fmt.Println("You can try running the following command to see the last version's changelog:")
+					fmt.Println("  " + targetVersion.ReleaseNotesCommand())
+					fmt.Println("Or view the changelog online:")
+					fmt.Println("  " + targetVersion.ReleasePage())
 				} else {
 					fmt.Print("\nChanges between versions:\n\n")
 					for _, release := range releasesUpdatedThrough {
@@ -216,4 +221,18 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
 	return cmd
+}
+
+func versionToTag(version string) string {
+	return shouldStartWithVersion(version)
+}
+
+func shouldStartWithVersion(version string) string {
+	if len(version) < 1 {
+		return ""
+	}
+	if version[0] == 'v' {
+		return version
+	}
+	return "v" + version
 }
