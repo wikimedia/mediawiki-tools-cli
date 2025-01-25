@@ -23,7 +23,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Added `mw docker jaeger` service
   - Added PHP `memory_limit` setting to default mediawiki settings (2 GiB, mirroring WMF production)
   - Added a limit of 1 second to the main `destroy` command, so things get killed faster
-  - Improved handeling of git code fetches when no gerrit username is provided
+  - Improved handling of git code fetches when no gerrit username is provided
   - Updated some documentation
   - Image updates:
     - postgres:13.14 -> 13.15
@@ -46,7 +46,7 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
 
 ## v0.24.1
 
-- Added default `HOME` value to `/` for `mw docker mediawiki composer` command. Required in some pdomasituations with `composer` and `podman`.
+- Added default `HOME` value to `/` for `mw docker mediawiki composer` command. Required in some podman situations with `composer` and `podman`.
 - Improved error message for `docker <service> expose` commands when container is not running
 - Improved layout of grouped sub commands
 - Minor internal package adjustments
@@ -89,7 +89,7 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
 
 ## v0.22.1
 
-- Fixed `mw docker update` which was panicing (T332336)
+- Fixed `mw docker update` which was panicking (T332336)
 
 ## v0.22.0
 
@@ -99,7 +99,7 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
   - `mw gerrit project current` is now `mw gerrit dotgitreview project`
 - Removed spam about "choose a development environment mode" as there is only currently 1 mode.
 - Development environment (`mw docker`):
-  - Added a continious job runner, see `mediawiki jobrunner`
+  - Added a continuous job runner, see `mediawiki jobrunner`
   - Added ability to use multiple `custom` service sets (T327069)
   - Added `mediawiki mwscript` command, as a shortcut to the new `maintenance/run.php` script in MediaWiki (T332209)
   - Added `<service> image` commands for getting, setting and resetting an services image override (T330954 & T330955)
@@ -120,7 +120,7 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
   - Added `mediawiki doctor` checks:
     - Check if `vendor` directory exists (T330926)
     - Check if a site has been installed (T330928)
-    - Check if a site is accessbile (T330929)
+    - Check if a site is accessible (T330929)
     - Check if container image overrides are set (T331136)
   - Image updates:
     - docker-registry.wikimedia.org/releng/quibble-buster-php81:1.4.7-s3 to 1.5.1
@@ -131,7 +131,7 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
 - Added XDG standards usage for config directory location (T305150)
 - Added persistent Gerrit HTTP authentication for cli commands
 - Added `--files`, `--repos` and `--exclude-files` flags to `codesearch search` command
-- Added helpful infomation for the user when service are created, such as `mailhog`, `graphite`, `adminer` and `phpmyadmin`
+- Added helpful information for the user when service are created, such as `mailhog`, `graphite`, `adminer` and `phpmyadmin`
 - Added long documentation text for the `graphite`, `adminer` and `phpmyadmin` commands
 - Updated `gitlab` command to [1.25.3](https://gitlab.com/gitlab-org/cli/-/releases/v1.25.3)
 - Fixed `mw gerrit` command output for commands that used ssh
@@ -141,12 +141,12 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
   - Added `docker update` command to pull and update all created containers
   - Added `docker hosts where` command to show you where the hosts file is
   - Added `docker <service> expose` command for most services, exposing an internal port locally (T299514)
-  - Added the ability to run multiple seperate development environments via the `--context` flag (T301002)
+  - Added the ability to run multiple separate development environments via the `--context` flag (T301002)
   - Added the `--force-recreate` command to service `create` commands (T313411)
   - Added `docker mediawiki get-code` command for fetching MediaWiki, skins and extensions from Gerrit
   - Added notes about Windows hosts files when using WSL and the `docker hosts` commands
   - Added `docker mediawiki doctor` command to help find common issues
-  - Removed code clone wizard from `docker mediawiki` command startup, insteading prompting users to use `docker mediawiki get-code`
+  - Removed code clone wizard from `docker mediawiki` command startup, instead prompting users to use `docker mediawiki get-code`
   - Image updates:
     - postgres `postgres:13.6` -> `postgres:13.9`
 
