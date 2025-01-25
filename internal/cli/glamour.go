@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/glamour"
+	styles "github.com/charmbracelet/glamour/styles"
 	"github.com/muesli/termenv"
 	"golang.org/x/term"
 )
@@ -20,9 +21,9 @@ func RenderMarkdown(markdownIn string) string {
 	width, _, _ := term.GetSize(0)
 
 	// Logic copied from glamour.WithAutoStyle
-	style := glamour.LightStyleConfig
+	style := styles.LightStyleConfig
 	if termenv.HasDarkBackground() {
-		style = glamour.DarkStyleConfig
+		style = styles.DarkStyleConfig
 	}
 
 	// Styletweak: Avoid a 2 char margin along the "document" on output
