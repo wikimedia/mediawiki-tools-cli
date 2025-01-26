@@ -14,6 +14,7 @@ type Config struct {
 	TimerLastUpdateChecked string `koanf:"timer_last_update_checked" json:"timer_last_update_checked"`
 
 	Gerrit GerritConfig `koanf:"gerrit" json:"gerrit"`
+	MwDev  MwDevConfig  `koanf:"mw_dev" json:"mw_dev"`
 }
 
 type GerritConfig struct {
@@ -26,6 +27,16 @@ type GerritConfig struct {
 	// InteractionType for git interaction with Gerrit.
 	// Acceptable values are `http` and `ssh`.
 	InteractionType string `koanf:"interaction_type" json:"interaction_type"`
+}
+
+type MwDevConfig struct {
+	Docker MwDevDockerConfig `koanf:"docker" json:"docker"`
+}
+
+type MwDevDockerConfig struct {
+	// The default DB type to use for the mediawiki service at installation time.
+	// One of sqlite, mysql, postgresql
+	DBType string `koanf:"db_type" json:"db_type"`
 }
 
 func defaultConfig() Config {

@@ -13,23 +13,24 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
-
-/*DbType used by the install command.*/
-var DbType string
-
-/*DbName used by the install command.*/
-var DbName string
 
 //go:embed install.long.md
 var mwddMediawikiInstallLong string
 
 //go:embed install.example
 var mwddMediawikiInstallExample string
+
+var (
+	dbType string
+	dbName string
+)
 
 func NewMediaWikiInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -38,9 +39,20 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 		Short:   "Installs a new MediaWiki site using install.php & update.php",
 		Long:    cli.RenderMarkdown(mwddMediawikiInstallLong),
 		Aliases: []string{"i"},
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cobrautil.CallAllPersistentPreRun(cmd, args)
+			dbType, _ = cmd.Flags().GetString("dbtype")
+			dbName, _ = cmd.Flags().GetString("dbname")
+
+			if dbType == "" {
+				c := config.State()
+				dbType = c.Effective.MwDev.Docker.DBType
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
-			if DbType != "sqlite" && DbType != "mysql" && DbType != "postgres" {
+			if dbType != "sqlite" && dbType != "mysql" && dbType != "postgres" {
 				fmt.Println("You must specify a valid dbtype (mysql, postgres, sqlite)")
+				fmt.Println("You can also set the default in the mwcli config file, for example `mw config set mw_dev.docker.db_type mysql`")
 				os.Exit(1)
 			}
 
@@ -103,7 +115,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			// MediaWiki will only create the cache dir sometimes (on some web requests?), make sure it exists.
 			err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
-				CommandAndArgs: []string{"mkdir", "-p", "/var/www/html/w/cache/docker/" + DbName},
+				CommandAndArgs: []string{"mkdir", "-p", "/var/www/html/w/cache/docker/" + dbName},
 			},
 			)
 			if err != nil {
@@ -129,7 +141,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 
 			// Record the wiki domain that we are trying to create
-			domain := DbName + ".mediawiki.mwdd.localhost"
+			domain := dbName + ".mediawiki.mwdd.localhost"
 			mwdd.DefaultForUser().RecordHostUsageBySite(domain)
 
 			// Figure out what and where we are installing
@@ -234,7 +246,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				}
 
 				// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
-				if DbType == "sqlite" {
+				if dbType == "sqlite" {
 					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
@@ -242,12 +254,12 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							"/mwdd/MwddInstall.php",
 							"--confpath", "/tmp",
 							"--server", serverLink,
-							"--dbtype", DbType,
-							"--dbname", DbName,
+							"--dbtype", dbType,
+							"--dbname", dbName,
 							"--dbpath", "/var/www/html/w/cache/docker",
 							"--lang", "en",
 							"--pass", adminPass,
-							"docker-" + DbName,
+							"docker-" + dbName,
 							adminUser,
 						},
 					})
@@ -255,7 +267,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						panic(err)
 					}
 				}
-				if DbType == "mysql" {
+				if dbType == "mysql" {
 					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
@@ -267,7 +279,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						panic(err)
 					}
 				}
-				if DbType == "postgres" {
+				if dbType == "postgres" {
 					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
@@ -279,7 +291,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						panic(err)
 					}
 				}
-				if DbType == "mysql" || DbType == "postgres" {
+				if dbType == "mysql" || dbType == "postgres" {
 					err := mwdd.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 						User: "nobody",
 						CommandAndArgs: []string{
@@ -287,14 +299,14 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							"/mwdd/MwddInstall.php",
 							"--confpath", "/tmp",
 							"--server", serverLink,
-							"--dbtype", DbType,
+							"--dbtype", dbType,
 							"--dbuser", "root",
 							"--dbpass", "toor",
-							"--dbname", DbName,
-							"--dbserver", DbType,
+							"--dbname", dbName,
+							"--dbserver", dbType,
 							"--lang", "en",
 							"--pass", adminPass,
-							"docker-" + DbName,
+							"docker-" + dbName,
 							adminUser,
 						},
 					})
@@ -312,7 +324,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					CommandAndArgs: []string{
 						"php",
 						"/var/www/html/w/maintenance/update.php",
-						"--wiki", DbName,
+						"--wiki", dbName,
 						"--quick",
 					},
 				})
@@ -344,7 +356,8 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 		defaultDbname = mwdd.DefaultForUser().Env().Get("MEDIAWIKI_DEFAULT_DBNAME")
 	}
 
-	cmd.Flags().StringVarP(&DbName, "dbname", "", defaultDbname, "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
-	cmd.Flags().StringVarP(&DbType, "dbtype", "", "", "Type of database to install (mysql, postgres, sqlite)")
+	cmd.Flags().String("dbname", defaultDbname, "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")
+	cmd.Flags().String("dbtype", "", "Type of database to install. One of mysql, postgres, sqlite (overriding config)")
+
 	return cmd
 }
