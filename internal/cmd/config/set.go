@@ -9,6 +9,7 @@ func NewConfigSetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set",
 		Short: "Sets a setting on the config",
+		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO do this dynamically...
 			// TODO require 2 args...

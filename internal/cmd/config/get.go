@@ -11,6 +11,7 @@ func NewConfigGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get",
 		Short: "Gets a settings from the config",
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO get dynamically...
 			if args[0] == "dev_mode" {

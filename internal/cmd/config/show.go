@@ -9,6 +9,7 @@ func NewConfigShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
 		Short: "Shows the raw config",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			config.LoadFromDisk().PrettyPrint()
 		},

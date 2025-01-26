@@ -21,7 +21,7 @@ test_command_success ./bin/mw config where
 PREVIOUS_TELEMETRY_VAL=$(./bin/mw config get telemetry)
 test_command_success ./bin/mw config set telemetry foo
 test_command ./bin/mw config get telemetry "foo"
-./bin/mw config set telemetry $PREVIOUS_TELEMETRY_VAL
+./bin/mw config set telemetry "$PREVIOUS_TELEMETRY_VAL"
 
 # Help topics...
 test_command_success ./bin/mw output
