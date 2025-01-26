@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/debug"
@@ -112,6 +113,7 @@ func NewMwCliCmd() *cobra.Command {
 		tools.NewToolsCmd(),
 		gitlab.NewGitlabCmd(),
 		gerrit.NewGerritCmd(),
+		cloudvps.NewCloudVPSCmd(),
 		docker.NewCmd(),
 		update.NewUpdateCmd(),
 		version.NewVersionCmd(),

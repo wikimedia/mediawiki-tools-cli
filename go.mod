@@ -17,6 +17,7 @@ require (
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/fatih/color v1.18.0
 	github.com/google/go-cmp v0.6.0
+	github.com/gophercloud/gophercloud/v2 v2.4.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/itchyny/gojq v0.12.15
 	github.com/joho/godotenv v1.5.1

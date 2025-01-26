@@ -13,8 +13,9 @@ type Config struct {
 	TimerLastEmittedEvent  string `koanf:"timer_last_emitted_event" json:"timer_last_emitted_event"`
 	TimerLastUpdateChecked string `koanf:"timer_last_update_checked" json:"timer_last_update_checked"`
 
-	Gerrit GerritConfig `koanf:"gerrit" json:"gerrit"`
-	MwDev  MwDevConfig  `koanf:"mw_dev" json:"mw_dev"`
+	Gerrit   GerritConfig   `koanf:"gerrit" json:"gerrit"`
+	CloudVPS CloudVPSConfig `koanf:"cloud_vps" json:"cloud_vps"`
+	MwDev    MwDevConfig    `koanf:"mw_dev" json:"mw_dev"`
 }
 
 type GerritConfig struct {
@@ -27,6 +28,20 @@ type GerritConfig struct {
 	// InteractionType for git interaction with Gerrit.
 	// Acceptable values are `http` and `ssh`.
 	InteractionType string `koanf:"interaction_type" json:"interaction_type"`
+}
+
+type CloudVPSConfig struct {
+	DefaultProject string                     `koanf:"default_project" json:"default_project"`
+	Projects       map[string]CloudVPSProject `koanf:"projects" json:"projects"`
+}
+
+type CloudVPSProject struct {
+	Credential CloudVPSProjectCredential `koanf:"credential" json:"credential"`
+}
+
+type CloudVPSProjectCredential struct {
+	ID     string `koanf:"id" json:"id"`
+	Secret string `koanf:"secret" json:"secret"`
 }
 
 type MwDevConfig struct {
@@ -45,6 +60,9 @@ func defaultConfig() Config {
 		TimerLastUpdateChecked: timers.String(timers.NowUTC()),
 		Gerrit: GerritConfig{
 			InteractionType: "ssh",
+		},
+		CloudVPS: CloudVPSConfig{
+			Projects: make(map[string]CloudVPSProject),
 		},
 	}
 }

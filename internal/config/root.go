@@ -202,6 +202,7 @@ func PutDiskConfig(kToPut *koanf.Koanf) error {
 	if err != nil {
 		return err
 	}
+	// XXX: TODO validate, and check, this probably doesn't apply deletes correctly
 	ReApplyKoanfConf(kToPut)
 	return nil
 }
@@ -235,6 +236,12 @@ func PutKeyValueOnDisk(key string, value string) error {
 	logrus.Tracef("setting %s to %s", key, value)
 	odk := State().OnDiskKoanf
 	odk.Set(key, value)
+	return PutDiskConfig(odk)
+}
+
+func DeleteKeyValueFromDisk(key string) error {
+	odk := State().OnDiskKoanf
+	odk.Delete(key)
 	return PutDiskConfig(odk)
 }
 
