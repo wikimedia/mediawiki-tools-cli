@@ -55,11 +55,6 @@ var Env []string
 // Workdir run the docker command with this working directory.
 var Workdir string
 
-var ignoreMwddPersistentRunForPrefixes = []string{
-	// env may be used to initially setup the environment, and thus avoid the wizard
-	"mw docker env",
-}
-
 func defaultContext() string {
 	_, inGitlabCi := os.LookupEnv("GITLAB_CI")
 	if !inGitlabCi && os.Getenv("MWCLI_CONTEXT_TEST") != "" {
@@ -100,8 +95,8 @@ func NewCmd() *cobra.Command {
 			thisDev := mwdd.DefaultForUser()
 			thisDev.EnsureReady()
 
-			// Skip the checks and wizard for some sub commands
-			if cobrautil.CommandIsSubCommandOfOneOrMoreStrings(cmd, ignoreMwddPersistentRunForPrefixes) {
+			// Skip the checks and wizard if "MWCLI_ENV_COMMAND" is defined as an env var
+			if _, envCommandDefined := os.LookupEnv("MWCLI_ENV_COMMAND"); envCommandDefined {
 				return
 			}
 			// Skip the checks and wizard for any destroy commands
