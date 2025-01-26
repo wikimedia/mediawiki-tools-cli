@@ -12,6 +12,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
@@ -32,6 +33,9 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 		Use:     "get-code",
 		Example: mediawikiGetCodeExample,
 		Short:   "Gets MediaWiki code from Gerrit",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cobrautil.CallAllPersistentPreRun(cmd, args)
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
@@ -47,7 +51,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			cloneOpts.GerritInteractionType = gerritInteractionType
 			cloneOpts.GerritUsername = gerritUsername
 
-			// If someone runs the command but doesnt ask for anything, run the wizard, or output help in no interaction mode
+			// If someone runs the command but doesn't ask for anything, run the wizard, or output help in no interaction mode
 			if !cloneOpts.GetMediaWiki && len(cloneOpts.GetGerritExtensions) == 0 && len(cloneOpts.GetGerritSkins) == 0 {
 				// If we are in no interaction mode, just print the help and exit
 				if cli.Opts.NoInteraction {

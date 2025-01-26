@@ -79,7 +79,7 @@ func NewCmd() *cobra.Command {
 		Long:    cli.RenderMarkdown(dockerLong),
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cmd.Root().PersistentPreRun(cmd, args)
+			cobrautil.CallAllPersistentPreRun(cmd, args)
 			if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
 				// We can also allow docker-compose, if docker compose is not available
 				if _, err := lookpath.NeedCommands([]string{"docker-compose"}); err != nil {

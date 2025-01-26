@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
 
@@ -31,6 +32,7 @@ func NewGerritCmd() *cobra.Command {
 		Long:    cli.RenderMarkdown(gerritLong),
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cobrautil.CallAllPersistentPreRun(cmd, args)
 			username, _ := cmd.Flags().GetString("username")
 			password, _ := cmd.Flags().GetString("password")
 

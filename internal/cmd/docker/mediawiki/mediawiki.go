@@ -23,16 +23,6 @@ import (
 // User run docker command with the specified -u.
 var User string
 
-func findParentCommandWithUse(cmd *cobra.Command, use string) *cobra.Command {
-	if cmd.Use == use {
-		return cmd
-	}
-	if cmd.Parent() == nil {
-		return nil
-	}
-	return findParentCommandWithUse(cmd.Parent(), use)
-}
-
 func randomString() string {
 	length := 10
 	randomBytes := make([]byte, 32)
@@ -51,9 +41,7 @@ func NewMediaWikiCmd() *cobra.Command {
 		Aliases: []string{"mw"},
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			// Allways run the root level PersistentPreRun first
-			findParentCommandWithUse(cmd, "mw").PersistentPreRun(cmd, args)
-			findParentCommandWithUse(cmd, "docker").PersistentPreRun(cmd, args)
+			cobrautil.CallAllPersistentPreRun(cmd, args)
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
 

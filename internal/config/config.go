@@ -16,6 +16,9 @@ type Config struct {
 	Gerrit struct {
 		Username string `koanf:"username" json:"username"`
 		Password string `koanf:"password" json:"password"`
+		// InteractionType for git interaction with Gerrit.
+		// Acceptable values are `http` and `ssh`.
+		InteractionType string `koanf:"interaction_type" json:"interaction_type"`
 	} `koanf:"gerrit" json:"gerrit"`
 }
 

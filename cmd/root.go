@@ -42,7 +42,7 @@ func NewMwCliCmd() *cobra.Command {
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
-			logrus.Trace("mwcli: PersistentPreRun")
+			logrus.Trace("mwcli: Top level PersistentPreRun")
 
 			// Force the completion command to never ask for user input
 			if cmd.Name() == "__complete" {
