@@ -49,7 +49,7 @@ func NewMwCliCmd() *cobra.Command {
 			logrus.Trace("mwcli: PersistentPreRun")
 
 			// Force the completion command to never ask for user input
-			if cmd.Name() != "__completion" {
+			if cmd.Name() == "__complete" {
 				cli.Opts.NoInteraction = true
 			}
 
