@@ -90,7 +90,7 @@ func NewMwCliCmd() *cobra.Command {
 		// Otherwise we want to output an error saying "unknown command", and do a non 0 exit
 		// See https://github.com/spf13/cobra/issues/706
 		mwa := "mw " + strings.Join(a, " ")
-		if !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
+		if len(a) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
 			logrus.Errorf("unknown command: %s", strings.Join(a, " "))
 			c.Root().Annotations = make(map[string]string)
 			c.Root().Annotations["exitCode"] = "1"
