@@ -9,6 +9,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added the idea of a `--output web` type, which will open the output in a web browser.
   - Used in `mw version`
   - Used in `mw codesearch search`
+- Added an option to `docker mediawiki get-code` to save the Gerrit username and interaction type to the config file.
 - Improved `update` command output, including new real progress bar (related to T369835 & T368018)
 - Improved configuration handling, including less disk reads and writes.
   - Configuration can now how defaults, and be overridden by environment variables with the `MWCLI_` prefix.
