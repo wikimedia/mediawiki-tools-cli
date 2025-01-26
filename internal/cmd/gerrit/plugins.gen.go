@@ -2,7 +2,6 @@ package gerrit
 
 import (
 	gogerrit "github.com/andygrunwald/go-gerrit"
-	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
@@ -35,7 +34,7 @@ func NewGerritPluginsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/plugins/"
 			path = addParamToPath(path, "n", cmdFlags.limit)
 			path = addParamToPath(path, "S", cmdFlags.skip)
@@ -46,7 +45,7 @@ func NewGerritPluginsListCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -55,6 +54,7 @@ func NewGerritPluginsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "List plugins",
 		Use:   "list",
@@ -74,14 +74,14 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/plugins/{plugin-id}/gerrit~status/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -90,6 +90,7 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Get plugin",
 		Use:   "get",
@@ -106,14 +107,14 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/plugins/{plugin-id}/gerrit~enable/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -122,6 +123,7 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Enable plugin",
 		Use:   "enable",
@@ -138,14 +140,14 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/plugins/{plugin-id}/gerrit~disable/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -154,6 +156,7 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Disable plugin",
 		Use:   "disable",
@@ -170,14 +173,14 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/plugins/{plugin-id}/gerrit~reload/"
 			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -186,6 +189,7 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Reload plugin",
 		Use:   "reload",

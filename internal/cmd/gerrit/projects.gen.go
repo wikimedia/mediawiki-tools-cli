@@ -2,7 +2,6 @@ package gerrit
 
 import (
 	gogerrit "github.com/andygrunwald/go-gerrit"
-	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
@@ -41,7 +40,7 @@ func NewGerritProjectsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/"
 			path = addParamToPath(path, "query", cmdFlags.query)
 			path = addParamToPath(path, "limit", cmdFlags.limit)
@@ -50,7 +49,7 @@ func NewGerritProjectsListCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -59,6 +58,7 @@ func NewGerritProjectsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "List Projects",
 		Use:   "list",
@@ -76,14 +76,14 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -92,6 +92,7 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Get a Project",
 		Use:   "get",
@@ -118,14 +119,14 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/description/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -134,6 +135,7 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the description of a project.",
 		Use:   "get",
@@ -160,14 +162,14 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/parent/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -176,6 +178,7 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the parent of a project.",
 		Use:   "get",
@@ -202,14 +205,14 @@ func NewGerritProjectsHeadGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/HEAD/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -218,6 +221,7 @@ func NewGerritProjectsHeadGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the HEAD of a project.",
 		Use:   "get",
@@ -244,14 +248,14 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/config/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -260,6 +264,7 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the config of a project.",
 		Use:   "get",
@@ -286,14 +291,14 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/access/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -302,6 +307,7 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the access of a project.",
 		Use:   "list",
@@ -329,14 +335,14 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/branches/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -345,6 +351,7 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the branches of a project.",
 		Use:   "list",
@@ -362,7 +369,7 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/branches/{branch-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "branch-name", cmdFlags.branch)
@@ -370,7 +377,7 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -379,6 +386,7 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves a branch of a project.",
 		Use:   "get",
@@ -408,14 +416,14 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/children/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -424,6 +432,7 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the children of a project.",
 		Use:   "list",
@@ -441,7 +450,7 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/children/{child-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "child-name", cmdFlags.child)
@@ -449,7 +458,7 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -458,6 +467,7 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves a child of a project.",
 		Use:   "get",
@@ -487,14 +497,14 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/tags/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -503,6 +513,7 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the tags of a project.",
 		Use:   "list",
@@ -520,7 +531,7 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/tags/{tag-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "tag-name", cmdFlags.tag)
@@ -528,7 +539,7 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -537,6 +548,7 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves a tag of a project.",
 		Use:   "get",
@@ -566,14 +578,14 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/dashboards/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -582,6 +594,7 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the dashboards of a project.",
 		Use:   "list",
@@ -599,7 +612,7 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/dashboards/{dashboard-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "dashboard-name", cmdFlags.dashboard)
@@ -607,7 +620,7 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -616,6 +629,7 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves a dashboard of a project.",
 		Use:   "get",
@@ -645,14 +659,14 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/labels/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -661,6 +675,7 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the labels of a project.",
 		Use:   "list",
@@ -678,7 +693,7 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/labels/{label-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "label-name", cmdFlags.label)
@@ -686,7 +701,7 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -695,6 +710,7 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves a label of a project.",
 		Use:   "get",
@@ -724,14 +740,14 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/submit_requirements/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -740,6 +756,7 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the submit_requirements of a project.",
 		Use:   "list",
@@ -757,7 +774,7 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/{project-name}/submit_requirements/{submit_requirement-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
 			path = addParamToPath(path, "submit_requirement-name", cmdFlags.submit_requirement)
@@ -765,7 +782,7 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -774,6 +791,7 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves a submit_requirement of a project.",
 		Use:   "get",

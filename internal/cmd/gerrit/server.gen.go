@@ -2,7 +2,6 @@ package gerrit
 
 import (
 	gogerrit "github.com/andygrunwald/go-gerrit"
-	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
@@ -30,12 +29,12 @@ func NewGerritServerVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/version/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -44,6 +43,7 @@ func NewGerritServerVersionCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server Version",
 		Use:   "version",
@@ -54,12 +54,12 @@ func NewGerritServerInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/info/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -68,6 +68,7 @@ func NewGerritServerInfoCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server Info",
 		Use:   "info",
@@ -78,12 +79,12 @@ func NewGerritServerCachesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/caches/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -92,6 +93,7 @@ func NewGerritServerCachesCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server Caches",
 		Use:   "caches",
@@ -102,12 +104,12 @@ func NewGerritServerSummaryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/summary/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -116,6 +118,7 @@ func NewGerritServerSummaryCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server summary",
 		Use:   "summary",
@@ -126,12 +129,12 @@ func NewGerritServerCapabilitiesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/capabilities/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -140,6 +143,7 @@ func NewGerritServerCapabilitiesCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server capabilities",
 		Use:   "capabilities",
@@ -150,12 +154,12 @@ func NewGerritServerTasksCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/tasks/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -164,6 +168,7 @@ func NewGerritServerTasksCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server tasks",
 		Use:   "tasks",
@@ -174,12 +179,12 @@ func NewGerritServerTopMenusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/top-menus/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -188,6 +193,7 @@ func NewGerritServerTopMenusCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server top-menus",
 		Use:   "top-menus",
@@ -210,12 +216,12 @@ func NewGerritServerPreferencesUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/preferences/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -224,6 +230,7 @@ func NewGerritServerPreferencesUserCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server user preferences",
 		Use:   "user",
@@ -234,12 +241,12 @@ func NewGerritServerPreferencesDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/preferences.diff/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -248,6 +255,7 @@ func NewGerritServerPreferencesDiffCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server diff preferences",
 		Use:   "diff",
@@ -258,12 +266,12 @@ func NewGerritServerPreferencesEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/config/server/preferences.edit/"
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -272,6 +280,7 @@ func NewGerritServerPreferencesEditCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Server edit preferences",
 		Use:   "edit",

@@ -2,7 +2,6 @@ package gerrit
 
 import (
 	gogerrit "github.com/andygrunwald/go-gerrit"
-	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
@@ -50,7 +49,7 @@ func NewGerritAccountsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/"
 			path = addParamToPath(path, "q", cmdFlags.query)
 			path = addParamToPath(path, "n", cmdFlags.limit)
@@ -59,7 +58,7 @@ func NewGerritAccountsListCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -68,6 +67,7 @@ func NewGerritAccountsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "List Accounts",
 		Use:   "list",
@@ -85,14 +85,14 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -101,6 +101,7 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Get Account",
 		Use:   "get",
@@ -132,14 +133,14 @@ func NewGerritAccountsDetailsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/detail/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -148,6 +149,7 @@ func NewGerritAccountsDetailsCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Get Account Details",
 		Use:   "details",
@@ -176,14 +178,14 @@ func NewGerritAccountsNameGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -192,6 +194,7 @@ func NewGerritAccountsNameGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Gets the account name",
 		Use:   "get",
@@ -209,7 +212,7 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "name", cmdFlags.name)
@@ -217,7 +220,7 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.name, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -226,6 +229,7 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Sets the account name",
 		Use:   "set",
@@ -244,14 +248,14 @@ func NewGerritAccountsNameDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -260,6 +264,7 @@ func NewGerritAccountsNameDeleteCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Deletes the account name",
 		Use:   "delete",
@@ -287,14 +292,14 @@ func NewGerritAccountsStatusGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/status/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -303,6 +308,7 @@ func NewGerritAccountsStatusGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Gets the account status",
 		Use:   "get",
@@ -320,7 +326,7 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/status/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "status", cmdFlags.status)
@@ -328,7 +334,7 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.status, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -337,6 +343,7 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Sets the account status",
 		Use:   "set",
@@ -366,14 +373,14 @@ func NewGerritAccountsUsernameGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/username/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -382,6 +389,7 @@ func NewGerritAccountsUsernameGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Gets the account username",
 		Use:   "get",
@@ -399,7 +407,7 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/username/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "username", cmdFlags.username)
@@ -407,7 +415,7 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.username, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -416,6 +424,7 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Sets the account username",
 		Use:   "set",
@@ -445,7 +454,7 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/displayname/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "displayname", cmdFlags.displayname)
@@ -453,7 +462,7 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.displayname, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -462,6 +471,7 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Sets the account display name",
 		Use:   "set",
@@ -492,14 +502,14 @@ func NewGerritAccountsActiveGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/active/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -508,6 +518,7 @@ func NewGerritAccountsActiveGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Gets the account active status",
 		Use:   "get",
@@ -524,14 +535,14 @@ func NewGerritAccountsActiveSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/active/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -540,6 +551,7 @@ func NewGerritAccountsActiveSetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Sets the account active status",
 		Use:   "set",
@@ -556,14 +568,14 @@ func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/active/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -572,6 +584,7 @@ func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Deletes the account active status",
 		Use:   "delete",
@@ -598,14 +611,14 @@ func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/oauthtoken/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -614,6 +627,7 @@ func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Gets the account OAuth access token.",
 		Use:   "get",
@@ -644,14 +658,14 @@ func NewGerritAccountsEmailsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/emails/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -660,6 +674,7 @@ func NewGerritAccountsEmailsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Returns the email addresses of an account.",
 		Use:   "list",
@@ -677,7 +692,7 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/emails/{email-id}"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
@@ -685,7 +700,7 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -694,6 +709,7 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Returns the email address specified.",
 		Use:   "get",
@@ -713,7 +729,7 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/emails/{email-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
@@ -721,7 +737,7 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -730,6 +746,7 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Creates a new email address for the specified user.",
 		Use:   "create",
@@ -749,7 +766,7 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/emails/{email-id}"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
@@ -757,7 +774,7 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -766,6 +783,7 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Deletes the email address specified.",
 		Use:   "delete",
@@ -785,7 +803,7 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/emails/{email-id}/preferred"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
@@ -793,7 +811,7 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -802,6 +820,7 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Sets the preferred email address for the specified user.",
 		Use:   "prefer",
@@ -832,14 +851,14 @@ func NewGerritAccountsSshkeysListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/sshkeys/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -848,6 +867,7 @@ func NewGerritAccountsSshkeysListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Returns the SSH keys of an account.",
 		Use:   "list",
@@ -865,7 +885,7 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/sshkeys/{ssh-key-id}"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "ssh-key-id", cmdFlags.sshkey)
@@ -873,7 +893,7 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -882,6 +902,7 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Returns the SSH key specified.",
 		Use:   "get",
@@ -901,7 +922,7 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/sshkeys/{ssh-key-id}/access/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "ssh-key-id", cmdFlags.sshkey)
@@ -909,7 +930,7 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -918,6 +939,7 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Deletes the SSH key specified.",
 		Use:   "delete",
@@ -948,14 +970,14 @@ func NewGerritAccountsGpgkeysListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/gpgkeys/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -964,6 +986,7 @@ func NewGerritAccountsGpgkeysListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Returns the GPG keys of an account.",
 		Use:   "list",
@@ -981,7 +1004,7 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/gpgkeys/{gpg-key-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "gpg-key-id", cmdFlags.gpgkey)
@@ -989,7 +1012,7 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -998,6 +1021,7 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Returns the GPG key specified.",
 		Use:   "get",
@@ -1017,7 +1041,7 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/gpgkeys/{gpg-key-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "gpg-key-id", cmdFlags.gpgkey)
@@ -1025,7 +1049,7 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1034,6 +1058,7 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Deletes the GPG key specified.",
 		Use:   "delete",
@@ -1063,14 +1088,14 @@ func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/capabilities/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1079,6 +1104,7 @@ func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the global capabilities that are enabled for the specified user.",
 		Use:   "list",
@@ -1097,7 +1123,7 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 
 		Aliases: []string{"check"},
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/capabilities/{capability-id}"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "capability-id", cmdFlags.capability)
@@ -1105,7 +1131,7 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1114,6 +1140,7 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Gets the global capability that is enabled for the specified user.",
 		Use:   "get",
@@ -1142,14 +1169,14 @@ func NewGerritAccountsGroupsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/groups/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1158,6 +1185,7 @@ func NewGerritAccountsGroupsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists all groups that contain the specified user as a member.",
 		Use:   "list",
@@ -1185,14 +1213,14 @@ func NewGerritAccountsAvatarGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/avatar/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1201,6 +1229,7 @@ func NewGerritAccountsAvatarGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the avatar image of the user.",
 		Use:   "get",
@@ -1217,14 +1246,14 @@ func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/avatar.change.url/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1233,6 +1262,7 @@ func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the avatar image of the user.",
 		Use:   "get-change-url",
@@ -1261,14 +1291,14 @@ func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/preferences/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1277,6 +1307,7 @@ func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the user’s preferences.",
 		Use:   "get",
@@ -1293,14 +1324,14 @@ func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/preferences.diff/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1309,6 +1340,7 @@ func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the user’s diff preferences.",
 		Use:   "get-diff",
@@ -1325,14 +1357,14 @@ func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/preferences.edit/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1341,6 +1373,7 @@ func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Retrieves the user’s edit preferences.",
 		Use:   "get-edit",
@@ -1367,14 +1400,14 @@ func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/watched.projects/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1383,6 +1416,7 @@ func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the projects a user is watching.",
 		Use:   "list",
@@ -1409,14 +1443,14 @@ func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/external.ids/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1425,6 +1459,7 @@ func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the external ids of a user account.",
 		Use:   "list",
@@ -1451,14 +1486,14 @@ func NewGerritAccountsAgreementsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/agreements/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1467,6 +1502,7 @@ func NewGerritAccountsAgreementsListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the user’s signed contributor agreements.",
 		Use:   "list",
@@ -1495,14 +1531,14 @@ func NewGerritAccountsStarredChangesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/starred.changes/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1511,6 +1547,7 @@ func NewGerritAccountsStarredChangesListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Lists the users starred.changes",
 		Use:   "list",
@@ -1529,7 +1566,7 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 
 		Aliases: []string{"add"},
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/starred.changes/{change-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "change-id", cmdFlags.change)
@@ -1537,7 +1574,7 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1546,6 +1583,7 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Stars a change for the user.",
 		Use:   "star",
@@ -1566,7 +1604,7 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 
 		Aliases: []string{"delete"},
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/starred.changes/{change-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "change-id", cmdFlags.change)
@@ -1574,7 +1612,7 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1583,6 +1621,7 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Unstars a change for the user.",
 		Use:   "unstar",
@@ -1601,14 +1640,14 @@ func NewGerritAccountsIndexCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/index/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -1617,6 +1656,7 @@ func NewGerritAccountsIndexCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "Adds or updates the account in the secondary index.",
 		Use:   "index",
