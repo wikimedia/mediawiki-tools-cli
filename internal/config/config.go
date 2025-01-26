@@ -12,6 +12,11 @@ type Config struct {
 
 	TimerLastEmittedEvent  string `koanf:"timer_last_emitted_event" json:"timer_last_emitted_event"`
 	TimerLastUpdateChecked string `koanf:"timer_last_update_checked" json:"timer_last_update_checked"`
+
+	Gerrit struct {
+		Username string `koanf:"username" json:"username"`
+		Password string `koanf:"password" json:"password"`
+	} `koanf:"gerrit" json:"gerrit"`
 }
 
 func defaultConfig() Config {

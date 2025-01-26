@@ -3,6 +3,7 @@ package gerrit
 import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 func NewGerritAuthStatusCmd() *cobra.Command {
@@ -10,13 +11,15 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 		Use:   "status",
 		Short: "Status of Wikimedia Gerrit authentication using HTTP credentials",
 		Run: func(cmd *cobra.Command, args []string) {
-			config := LoadConfig()
+			c := config.State()
+			username := c.Effective.Gerrit.Username
+			password := c.Effective.Gerrit.Password
 
-			hasCredentials := config.Username != "" && config.Password != ""
+			hasCredentials := username != "" && password != ""
 
 			if hasCredentials {
 				cmd.Println("Credentials found")
-				cmd.Println("Username:", config.Username)
+				cmd.Println("Username:", username)
 				cmd.Println("Password:", "***...")
 			} else {
 				cmd.Println("No credentials found")
@@ -25,7 +28,7 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 
 			instance := "https://gerrit.wikimedia.org/r/"
 			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
-			client.Authentication.SetBasicAuth(config.Username, config.Password)
+			client.Authentication.SetBasicAuth(username, password)
 			response, err := client.Call(cmd.Context(), "GET", "accounts/self/name", nil, nil)
 
 			if err != nil {

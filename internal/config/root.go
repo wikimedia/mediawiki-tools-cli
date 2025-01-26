@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/knadh/koanf"
@@ -14,6 +15,7 @@ import (
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gopkg.in/yaml.v2"
 )
 
 /*Path path of the config file.*/
@@ -84,11 +86,63 @@ func State() *ConfigState {
 	}
 }
 
+// Can contain various config migrations and other things
+func preload() {
+	// move the legacy Gerrit config, into the main config file :)
+	{
+		// Load the old config
+		gerritYaml := filepath.Join(cli.UserDirectoryPath(), "gerrit.yaml")
+		type gerritConfig struct {
+			Username string `yaml:"username"`
+			Password string `yaml:"password"`
+		}
+		gc := gerritConfig{}
+		if _, err := os.Stat(gerritYaml); os.IsNotExist(err) {
+			// do nothing, as we have an empty one already..
+		} else {
+			fileContents, err := os.ReadFile(filepath.Clean(gerritYaml))
+			if err != nil {
+				logrus.Errorf("Error while reading file. %v", err)
+				panic(err)
+			}
+			err = yaml.Unmarshal(fileContents, &gc)
+			if err != nil {
+				logrus.Error(err)
+				panic(err)
+			}
+			gerritMoveWorked := true
+			if gc.Username != "" {
+				logrus.Tracef("moving gerrit.username to config.json: %s", gc.Username)
+				err := soloPutKeyValueOnDisk("gerrit.username", gc.Username)
+				if err != nil {
+					gerritMoveWorked = false
+				}
+			}
+			if gc.Password != "" {
+				logrus.Tracef("moving gerrit.password to config.json")
+				err := soloPutKeyValueOnDisk("gerrit.password", gc.Password)
+				if err != nil {
+					gerritMoveWorked = false
+				}
+			}
+			if gerritMoveWorked {
+				// Delete the old config file
+				err := os.Remove(gerritYaml)
+				if err != nil {
+					logrus.Errorf("error removing old gerrit config: %v", err)
+				}
+			}
+		}
+	}
+}
+
 func load() *koanf.Koanf {
 	if kLoaded {
 		return k
 	}
 	ensureExists()
+
+	preload()
 
 	logrus.Trace("loading config")
 	logrus.Trace(PrettyPrint(k))
@@ -144,6 +198,15 @@ func PrettyPrint(k *koanf.Koanf) string {
 }
 
 func PutDiskConfig(kToPut *koanf.Koanf) error {
+	err := putDiskConfig(kToPut)
+	if err != nil {
+		return err
+	}
+	ReApplyKoanfConf(kToPut)
+	return nil
+}
+
+func putDiskConfig(kToPut *koanf.Koanf) error {
 	logrus.Tracef("putting config on disk: %s", PrettyPrint(kToPut))
 	bytes, err := Marshal(kToPut)
 	if err != nil {
@@ -165,7 +228,6 @@ func PutDiskConfig(kToPut *koanf.Koanf) error {
 	if flushErr != nil {
 		return flushErr
 	}
-	ReApplyKoanfConf(kToPut)
 	return nil
 }
 
@@ -174,6 +236,16 @@ func PutKeyValueOnDisk(key string, value string) error {
 	odk := State().OnDiskKoanf
 	odk.Set(key, value)
 	return PutDiskConfig(odk)
+}
+
+// Can be called before whole config is actually loaded..
+func soloPutKeyValueOnDisk(key string, value string) error {
+	// Load the config from json in here
+	kTemp := koanf.New(".")
+	f := file.Provider(Path())
+	loadJson(kTemp, f)
+	kTemp.Set(key, value)
+	return putDiskConfig(kTemp) // without reapply
 }
 
 func ReApplyKoanfConf(override *koanf.Koanf) {

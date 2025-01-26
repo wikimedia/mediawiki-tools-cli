@@ -11,6 +11,7 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
 
@@ -56,9 +57,12 @@ func client(ctx context.Context) *gerrit.Client {
 }
 
 func authenticatedClient(ctx context.Context) *gerrit.Client {
-	config := LoadConfig()
+	c := config.State()
 	client := client(ctx)
-	client.Authentication.SetBasicAuth(config.Username, config.Password)
+	client.Authentication.SetBasicAuth(
+		c.Effective.Gerrit.Username,
+		c.Effective.Gerrit.Password,
+	)
 	return client
 }
 
