@@ -100,7 +100,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 				ForceRecreate: forceRecreate,
 			})
 			if err != nil {
-				panic(err)
+				panic(err) //todo
 			}
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
