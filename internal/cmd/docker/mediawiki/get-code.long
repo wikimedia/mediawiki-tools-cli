@@ -1,0 +1,10 @@
+# Mediawiki get-code
+
+Can be used to retrieve code easily from Gerrit.
+
+You can persist some configurable settings in the config.
+
+```sh
+mw config get gerrit.username
+mw config set gerrit.username foo
+```

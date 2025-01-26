@@ -52,8 +52,8 @@ func NewGerritCmd() *cobra.Command {
 	}
 
 	// Add persistent flags for username and password
-	cmd.PersistentFlags().String("username", "", "Gerrit username")
-	cmd.PersistentFlags().String("password", "", "Gerrit password")
+	cmd.PersistentFlags().String("username", "", "Gerrit username (overriding config)")
+	cmd.PersistentFlags().String("password", "", "Gerrit password (overriding config)")
 
 	cmd.AddCommand(NewGerritAPICmd())
 	cmd.AddCommand(NewGerritSSHCmd())

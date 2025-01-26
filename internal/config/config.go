@@ -13,18 +13,23 @@ type Config struct {
 	TimerLastEmittedEvent  string `koanf:"timer_last_emitted_event" json:"timer_last_emitted_event"`
 	TimerLastUpdateChecked string `koanf:"timer_last_update_checked" json:"timer_last_update_checked"`
 
-	Gerrit struct {
-		Username string `koanf:"username" json:"username"`
-		Password string `koanf:"password" json:"password"`
-		// InteractionType for git interaction with Gerrit.
-		// Acceptable values are `http` and `ssh`.
-		InteractionType string `koanf:"interaction_type" json:"interaction_type"`
-	} `koanf:"gerrit" json:"gerrit"`
+	Gerrit GerritConfig `koanf:"gerrit" json:"gerrit"`
+}
+
+type GerritConfig struct {
+	Username string `koanf:"username" json:"username"`
+	Password string `koanf:"password" json:"password"`
+	// InteractionType for git interaction with Gerrit.
+	// Acceptable values are `http` and `ssh`.
+	InteractionType string `koanf:"interaction_type" json:"interaction_type"`
 }
 
 func defaultConfig() Config {
 	return Config{
 		TimerLastEmittedEvent:  timers.String(timers.NowUTC()),
 		TimerLastUpdateChecked: timers.String(timers.NowUTC()),
+		Gerrit: GerritConfig{
+			InteractionType: "ssh",
+		},
 	}
 }
