@@ -17,7 +17,11 @@ type Config struct {
 }
 
 type GerritConfig struct {
+	// Gerrit username / shell name.
+	// Can be retrieved from the Username field of https://gerrit.wikimedia.org/r/settings
 	Username string `koanf:"username" json:"username"`
+	// Gerrit HTTP credentials.
+	// Can be retrieved from https://gerrit.wikimedia.org/r/settings/#HTTPCredentials
 	Password string `koanf:"password" json:"password"`
 	// InteractionType for git interaction with Gerrit.
 	// Acceptable values are `http` and `ssh`.

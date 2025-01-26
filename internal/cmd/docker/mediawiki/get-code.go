@@ -132,7 +132,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				if finalRemoteType == "ssh" {
 					gerritUsername := ""
 					prompt := &survey.Input{
-						Message: "What is your Gerrit username? See https://gerrit.wikimedia.org/r/settings",
+						Message: "What is your Gerrit username / shell name? See the Username field on https://gerrit.wikimedia.org/r/settings",
 					}
 					err = survey.AskOne(prompt, &gerritUsername)
 					if err != nil {
@@ -195,7 +195,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 	cmd.Flags().Bool("shallow", false, "Clone with --depth=1")
 	cmd.Flags().Bool("use-github", false, "Use GitHub for speed & switch to Gerrit remotes after")
 	cmd.Flags().String("gerrit-interaction-type", "", "How to interact with Gerrit (overriding config) (http, ssh)")
-	cmd.Flags().String("gerrit-username", "", "Gerrit username for ssh interaction type (overriding config)")
+	cmd.Flags().String("gerrit-username", "", "Gerrit username / shell name for ssh interaction type (overriding config)")
 
 	return cmd
 }
