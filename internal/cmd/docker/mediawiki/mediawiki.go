@@ -103,7 +103,7 @@ func NewMediaWikiCmd() *cobra.Command {
 			}
 
 			// If we are not running get-code command, make sure we have code!
-			if cmd.Use != "get-code" {
+			if os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" {
 				mediawiki, _ := mediawiki.ForDirectory(mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 				if !mediawiki.MediaWikiIsPresent() || !mediawiki.VectorIsPresent() {
 					fmt.Println("MediaWiki or Vector is not present in the code directory")

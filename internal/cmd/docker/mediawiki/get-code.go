@@ -30,6 +30,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 		Short:   "Gets MediaWiki code from Gerrit",
 		Long:    cli.RenderMarkdown(mediawikiGetCodeLong),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1")
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -117,7 +118,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 
 				finalRemoteType := ""
 				prompt3 := &survey.Select{
-					Message: "How do you want to interact with Gerrit for the cloned repositores?",
+					Message: "How do you want to interact with Gerrit for the cloned repositories?",
 					Options: []string{"ssh", "http"},
 					Default: "ssh",
 				}
@@ -144,6 +145,22 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 						os.Exit(1)
 					}
 					cloneOpts.GerritUsername = gerritUsername
+				}
+
+				// Ask about persisting some answers to config
+				persist := false
+				prompt2 := &survey.Confirm{
+					Message: "Do you want to persist Gerrit username and interaction type to config?",
+				}
+				err = survey.AskOne(prompt2, &persist)
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+
+				if persist {
+					config.PutKeyValueOnDisk("gerrit.username", cloneOpts.GerritUsername)
+					config.PutKeyValueOnDisk("gerrit.interaction_type", cloneOpts.GerritInteractionType)
 				}
 			}
 
