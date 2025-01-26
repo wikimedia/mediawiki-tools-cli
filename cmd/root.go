@@ -53,18 +53,18 @@ func NewMwCliCmd() *cobra.Command {
 				cli.Opts.NoInteraction = true
 			}
 
+			// Load the config early and always
+			config.Load()
+
 			// Check and set needed config values from various wizards
 			// But don't ask or output to the user, or persist the config, if we are in no-interaction mode
 			if !cli.Opts.NoInteraction {
-				c := config.LoadFromDisk()
-				if !config.DevModeValues.Contains(c.DevMode) {
-					wizardDevMode(&c)
-				}
+				c, _ := config.Instance()
 				if c.Telemetry == "" {
-					wizardTelemetry(&c)
+					t := wizardTelemetry()
+					config.PutKeyValueOnDisk("telemetry", t)
+					cli.Opts.Telemetry = t == "yes"
 				}
-				c.WriteToDisk()
-				cli.Opts.Telemetry = c.Telemetry == "yes"
 			}
 
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
@@ -128,20 +128,10 @@ func NewMwCliCmd() *cobra.Command {
 	return mwcliCmd
 }
 
-func wizardDevMode(c *config.Config) {
-	// Don't bother outputting this for now, as we only have 1 dev mode
-	// fmt.Println("\nYou need to choose a development environment mode in order to continue:")
-	// fmt.Println(" - '" + config.DevModeMwdd + "' will provide advanced CLI tooling around a new mediawiki-docker-dev inspired development environment.")
-	// fmt.Println("\nAs the only environment available currently, it will be set as your default dev environment (alias 'dev')")
-
-	c.DevMode = config.DevModeMwdd
-}
-
-func wizardTelemetry(c *config.Config) {
+func wizardTelemetry() string {
 	// Bail early in CI, and DO NOT send telemetry
 	if os.Getenv("MWCLI_CONTEXT_TEST") != "" {
-		c.Telemetry = "no"
-		return
+		return "no"
 	}
 
 	fmt.Println("\nWe would like to collect anonymous usage statistics to help improve this CLI tool.")
@@ -157,19 +147,14 @@ func wizardTelemetry(c *config.Config) {
 		os.Exit(1)
 	}
 
-	// Record string instead of boolean, so that in the future we can re ask this question
 	if telemetryAccept {
-		c.Telemetry = "yes"
-	} else {
-		c.Telemetry = "no"
+		return "yes"
 	}
+	return "no"
 }
 
 func tryToEmitEvents() {
-	c := config.LoadFromDisk()
-	if c.TimerLastEmittedEvent == "" {
-		c.TimerLastEmittedEvent = timers.String(timers.NowUTC())
-	}
+	c, _ := config.Instance()
 
 	// Try to emit events every 1 hour
 	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmittedEvent)
@@ -177,11 +162,9 @@ func tryToEmitEvents() {
 		logrus.Warn("Failed to parse last emitted event time")
 	}
 	if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
-		c.TimerLastEmittedEvent = timers.String(timers.NowUTC())
+		config.PutKeyValueOnDisk("timer_last_emitted_event", c.TimerLastEmittedEvent)
 		eventlogging.EmitEvents()
 	}
-
-	c.WriteToDisk()
 }
 
 /*Execute the root command.*/
@@ -212,22 +195,17 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 	}
 
-	c := config.LoadFromDisk()
+	c, _ := config.Instance()
 
 	// Check various timers and execute tasks if needed
 	{
-		// Setup timers if they are not set
-		if c.TimerLastUpdateChecked == "" {
-			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
-		}
-
 		// Check for updates every 3 hours
 		lastUpdateCheckedTime, parseError := timers.Parse(c.TimerLastUpdateChecked)
 		if parseError != nil {
 			logrus.Warn("Failed to parse last update checked time")
 		}
 		if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
-			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
+			config.PutKeyValueOnDisk("timer_last_update_checked", c.TimerLastUpdateChecked)
 			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
 			if canUpdate {
 				colorReset := "\033[0m"
@@ -240,15 +218,10 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 				)
 			}
 		}
-
-		// Write config back to disk once timers are updated
-		c.WriteToDisk()
 	}
 
-	// mwdd mode
-	if c.DevMode == config.DevModeMwdd {
-		cli.MwddIsDevAlias = true
-	}
+	// mwdd mode (always...)
+	cli.MwddIsDevAlias = true
 
 	rootCmd := NewMwCliCmd()
 	// Override the UsageTemplate so that:

@@ -1,29 +1,22 @@
 package config
 
-/*DevModeValues allowed values for DevMode.*/
-var DevModeValues = AllowedOptions([]string{DevModeMwdd})
-
-/*DevModeMwdd value for DevMode that will use the docker/mediawiki-docker-dev command set.*/
-const DevModeMwdd string = "docker"
+import "gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 
 /*Config representation of a cli config.*/
 type Config struct {
-	DevMode                string `json:"dev_mode"`
-	Telemetry              string `json:"telemetry"`
-	TimerLastEmittedEvent  string `json:"_timer_last_emitted_event"`
-	TimerLastUpdateChecked string `json:"_timer_last_update_checked"`
+	// DevMode the style of dev environment that the `dev` command uses.
+	// This is no longer really used, as the `dev` command is always an alias to `docker` now.
+	DevMode string `koanf:"dev_mode" json:"dev_mode"`
+	// Telemetry whether or not to send telemetry data.
+	Telemetry string `koanf:"telemetry" json:"telemetry"`
+
+	TimerLastEmittedEvent  string `koanf:"timer_last_emitted_event" json:"timer_last_emitted_event"`
+	TimerLastUpdateChecked string `koanf:"timer_last_update_checked" json:"timer_last_update_checked"`
 }
 
-/*AllowedOptions representation of allowed options for a config value.*/
-type AllowedOptions []string
-
-/*Contains do the allowed options contain this value.*/
-func (cao AllowedOptions) Contains(value string) bool {
-	for _, v := range cao {
-		if v == value {
-			return true
-		}
+func defaultConfig() Config {
+	return Config{
+		TimerLastEmittedEvent:  timers.String(timers.NowUTC()),
+		TimerLastUpdateChecked: timers.String(timers.NowUTC()),
 	}
-
-	return false
 }

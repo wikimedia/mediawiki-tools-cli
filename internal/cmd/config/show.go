@@ -11,7 +11,8 @@ func NewConfigShowCmd() *cobra.Command {
 		Short: "Shows the raw config",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			config.LoadFromDisk().PrettyPrint()
+			k := config.GetDiskConfig()
+			config.PrettyPrint(k)
 		},
 	}
 }

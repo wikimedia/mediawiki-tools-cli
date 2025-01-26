@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/itchyny/gojq v0.12.15
 	github.com/joho/godotenv v1.5.1
+	github.com/knadh/koanf v1.5.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a
