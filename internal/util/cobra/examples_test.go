@@ -39,7 +39,7 @@ func TestIndentExamples(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IndentExamples(tt.input)
+			result := NormalizeExample(tt.input)
 			if result != tt.expected {
 				t.Errorf("IndentExamples(%q) = %q, want %q", tt.input, result, tt.expected)
 			}

@@ -58,7 +58,7 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "search [search-text]",
 		Aliases: []string{"s"},
-		Example: cobrautil.IndentExamples(`
+		Example: cobrautil.NormalizeExample(`
 search addshore
 search --type extensions --repos "Extension:Wikibase" addshore
 search --files ".*\.md" addshore

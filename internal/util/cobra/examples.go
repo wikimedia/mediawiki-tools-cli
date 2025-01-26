@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-func IndentExamples(examples string) string {
+func NormalizeExample(examples string) string {
 	lines := strings.Split(examples, "\n")
 	var indentedLines []string
 	for _, line := range lines {
