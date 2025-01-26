@@ -15,7 +15,7 @@ func NewConfigGetCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			keyName := args[0]
 
-			k := config.GetDiskConfig()
+			k := config.State().OnDiskKoanf
 			v := k.Get(keyName)
 
 			fmt.Println(v)

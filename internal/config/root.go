@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	koanfjson "github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/structs"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
@@ -22,7 +22,9 @@ func Path() string {
 }
 
 func ensureExists() {
+	logrus.Trace("ensuring config exists")
 	if _, err := os.Stat(Path()); err != nil {
+		logrus.Trace("config does not exist. Creating...")
 		err := os.MkdirAll(strings.Replace(Path(), "config.json", "", -1), 0o700)
 		if err != nil {
 			logrus.Fatal(err)
@@ -45,42 +47,65 @@ func ensureExists() {
 }
 
 var (
-	k       = koanf.New(".")
-	c       = Config{}
+	// Effective config
+	k = koanf.New(".")
+	// Effective config as a struct
+	c = Config{}
+	// Config that is actually on disk
+	kOnDisk = koanf.New(".")
+	// Config that is actually on disk as a struct
+	cOnDisk = Config{}
+	// Has the config been loaded?
 	kLoaded = false
 )
 
-func Instance() (*Config, *koanf.Koanf) {
-	if !kLoaded {
-		Load()
-	}
-	return &c, k
+// TODO just use the state instead of a bunch of vars
+
+type ConfigState struct {
+	// The current state of the config
+	Effective *Config
+	// The current state of the config on disk
+	OnDisk *Config
+	// The koanf instance of the config
+	EffectiveKoanf *koanf.Koanf
+	// The koanf instance of the config on disk
+	OnDiskKoanf *koanf.Koanf
 }
 
-func Load() *koanf.Koanf {
+func State() *ConfigState {
+	if !kLoaded {
+		load()
+	}
+	return &ConfigState{
+		Effective:      &c,
+		OnDisk:         &cOnDisk,
+		EffectiveKoanf: k,
+		OnDiskKoanf:    kOnDisk,
+	}
+}
+
+func load() *koanf.Koanf {
 	if kLoaded {
 		return k
 	}
 	ensureExists()
 
+	logrus.Trace("loading config")
+	logrus.Trace(PrettyPrint(k))
+	logrus.Trace("loading defaults")
 	loadDefaults()
+	logrus.Trace(PrettyPrint(k))
+	logrus.Trace("loading json")
 	f := file.Provider(Path())
 	loadJson(k, f)
+	loadJson(kOnDisk, f)
+	logrus.Trace(PrettyPrint(k))
+	logrus.Trace("loading env")
+	PrettyPrint(k)
 	loadEnv()
 	c = koanfToConfig(k)
-
-	f.Watch(func(event interface{}, err error) {
-		if err != nil {
-			logrus.Errorf("watch error: %v", err)
-			return
-		}
-
-		logrus.Trace("config file changed. Reloading...")
-		loadDefaults()
-		loadJson(k, f)
-		loadEnv()
-		c = koanfToConfig(k)
-	})
+	cOnDisk = koanfToConfig(kOnDisk)
+	logrus.Trace("config loaded")
 
 	kLoaded = true
 	return k
@@ -101,18 +126,11 @@ func koanfToConfig(k *koanf.Koanf) Config {
 	return c
 }
 
-func GetDiskConfig() *koanf.Koanf {
-	n := koanf.New(".") // Create a new koanf instance.
-	f := file.Provider(Path())
-	loadJson(n, f)
-	return n
-}
-
 func Marshal(k *koanf.Koanf) ([]byte, error) {
 	return k.Marshal(koanfjson.Parser())
 }
 
-func PrettyPrint(k *koanf.Koanf) {
+func PrettyPrint(k *koanf.Koanf) string {
 	m, err := Marshal(k)
 	if err != nil {
 		logrus.Fatalf("%v", err)
@@ -122,11 +140,12 @@ func PrettyPrint(k *koanf.Koanf) {
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}
-	fmt.Printf("%s\n", indented.String())
+	return indented.String()
 }
 
-func PutDiskConfig(k *koanf.Koanf) error {
-	bytes, err := Marshal(k)
+func PutDiskConfig(kToPut *koanf.Koanf) error {
+	logrus.Tracef("putting config on disk: %s", PrettyPrint(kToPut))
+	bytes, err := Marshal(kToPut)
 	if err != nil {
 		return err
 	}
@@ -146,19 +165,30 @@ func PutDiskConfig(k *koanf.Koanf) error {
 	if flushErr != nil {
 		return flushErr
 	}
+	ReApplyKoanfConf(kToPut)
 	return nil
 }
 
 func PutKeyValueOnDisk(key string, value string) error {
-	k := GetDiskConfig()
-	k.Set(key, value)
-	return PutDiskConfig(k)
+	logrus.Tracef("setting %s to %s", key, value)
+	odk := State().OnDiskKoanf
+	odk.Set(key, value)
+	return PutDiskConfig(odk)
+}
+
+func ReApplyKoanfConf(override *koanf.Koanf) {
+	k.Merge(override)
+	kOnDisk.Merge(override)
+	c = koanfToConfig(k)
+	cOnDisk = koanfToConfig(kOnDisk)
 }
 
 func loadDefaults() {
 	defaultConf := defaultConfig()
-	// Load default config.
-	k.Unmarshal(".", defaultConf)
+	err := k.Load(structs.Provider(defaultConf, "koanf"), nil)
+	if err != nil {
+		logrus.Errorf("error loading defaults: %v", err)
+	}
 }
 
 func loadJson(i *koanf.Koanf, f *file.File) {

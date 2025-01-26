@@ -42,10 +42,6 @@ func NewMwCliCmd() *cobra.Command {
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
-			logrus.SetFormatter(&logrus.TextFormatter{
-				DisableTimestamp:       true,
-				DisableLevelTruncation: true,
-			})
 			logrus.Trace("mwcli: PersistentPreRun")
 
 			// Force the completion command to never ask for user input
@@ -53,14 +49,14 @@ func NewMwCliCmd() *cobra.Command {
 				cli.Opts.NoInteraction = true
 			}
 
-			// Load the config early and always
-			config.Load()
+			// Load the config earl
+			c := config.State()
+			cli.Opts.Telemetry = c.Effective.Telemetry == "yes"
 
 			// Check and set needed config values from various wizards
 			// But don't ask or output to the user, or persist the config, if we are in no-interaction mode
 			if !cli.Opts.NoInteraction {
-				c, _ := config.Instance()
-				if c.Telemetry == "" {
+				if c.Effective.Telemetry == "" {
 					t := wizardTelemetry()
 					config.PutKeyValueOnDisk("telemetry", t)
 					cli.Opts.Telemetry = t == "yes"
@@ -134,7 +130,7 @@ func wizardTelemetry() string {
 		return "no"
 	}
 
-	fmt.Println("\nWe would like to collect anonymous usage statistics to help improve this CLI tool.")
+	fmt.Println("We would like to collect anonymous usage statistics to help improve this CLI tool.")
 	fmt.Println("If you accept, these statistics will periodically be submitted to the Wikimedia event intake.")
 
 	telemetryAccept := false
@@ -154,15 +150,26 @@ func wizardTelemetry() string {
 }
 
 func tryToEmitEvents() {
-	c, _ := config.Instance()
+	c := config.State()
 
-	// Try to emit events every 1 hour
-	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmittedEvent)
-	if parseError != nil {
-		logrus.Warn("Failed to parse last emitted event time")
+	shouldTryToEmitEvents := false
+
+	if c.OnDisk.TimerLastEmittedEvent == "" {
+		config.PutKeyValueOnDisk("timer_last_emitted_event", c.Effective.TimerLastEmittedEvent)
+		shouldTryToEmitEvents = true
+	} else {
+		// Try to emit events every 1 hour
+		lastEmittedEventTime, parseError := timers.Parse(c.Effective.TimerLastEmittedEvent)
+		if parseError != nil {
+			logrus.Warn("Failed to parse last emitted event time")
+		}
+		if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
+			shouldTryToEmitEvents = true
+		}
 	}
-	if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
-		config.PutKeyValueOnDisk("timer_last_emitted_event", c.TimerLastEmittedEvent)
+
+	if shouldTryToEmitEvents {
+		config.PutKeyValueOnDisk("timer_last_emitted_event", timers.String(timers.NowUTC()))
 		eventlogging.EmitEvents()
 	}
 }
@@ -195,17 +202,48 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 	}
 
-	c, _ := config.Instance()
+	// Allow setting verbose logging early, via environment variables
+	// This is later overridden by the --verbose flag in the command
+	verbosity := 0
+	if v, ok := os.LookupEnv("VERBOSE"); ok {
+		if vi, err := strconv.Atoi(v); err == nil {
+			verbosity = vi
+		}
+	}
+	if v, ok := os.LookupEnv("MWCLI_VERBOSE"); ok {
+		if vi, err := strconv.Atoi(v); err == nil {
+			verbosity = vi
+		}
+	}
+	logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + verbosity))
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp:       true,
+		DisableLevelTruncation: true,
+	})
+
+	c := config.State()
 
 	// Check various timers and execute tasks if needed
 	{
-		// Check for updates every 3 hours
-		lastUpdateCheckedTime, parseError := timers.Parse(c.TimerLastUpdateChecked)
-		if parseError != nil {
-			logrus.Warn("Failed to parse last update checked time")
+		shouldCheckForUpdates := false
+
+		// If the timer is not stored, store it now, and check for updates now
+		if c.OnDisk.TimerLastUpdateChecked == "" {
+			config.PutKeyValueOnDisk("timer_last_update_checked", c.Effective.TimerLastUpdateChecked)
+			shouldCheckForUpdates = true
+		} else {
+			// Otherwise, check for updates every 3 hours
+			lastUpdateCheckedTime, parseError := timers.Parse(c.Effective.TimerLastUpdateChecked)
+			if parseError != nil {
+				logrus.Warn("Failed to parse last update checked time")
+			}
+			if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
+				shouldCheckForUpdates = true
+			}
 		}
-		if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
-			config.PutKeyValueOnDisk("timer_last_update_checked", c.TimerLastUpdateChecked)
+
+		if shouldCheckForUpdates {
+			config.PutKeyValueOnDisk("timer_last_update_checked", timers.String(timers.NowUTC()))
 			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
 			if canUpdate {
 				colorReset := "\033[0m"

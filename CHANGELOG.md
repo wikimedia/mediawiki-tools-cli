@@ -10,6 +10,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Used in `mw version`
   - Used in `mw codesearch search`
 - Improved `update` command output, including new real progress bar (related to T369835 & T368018)
+- Improved configuration handling, including less disk reads and writes.
+  - Configuration can now how defaults, and be overridden by environment variables with the `MWCLI_` prefix.
 - Fixed exit codes in the case non existent commands are run, where help text used to be displayed (T293062)
 - Fixed command `completion` when no config file exists (T330310)
 - Development environment (`mw docker`)

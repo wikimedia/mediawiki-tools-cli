@@ -18,7 +18,7 @@ func NewConfigSetCmd() *cobra.Command {
 			keyName := args[0]
 			value := args[1]
 
-			k := config.GetDiskConfig()
+			k := config.State().OnDiskKoanf
 			k.Set(keyName, value)
 			err := config.PutDiskConfig(k)
 			if err != nil {
