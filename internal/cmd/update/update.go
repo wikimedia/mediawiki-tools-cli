@@ -7,10 +7,13 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/schollz/progressbar/v3"
+	"github.com/charmbracelet/bubbles/progress"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
+	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 )
 
@@ -30,34 +33,56 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 			// No manual version, so generally check for new releases
 			if versionInput == "" {
-				canUpdate, toUpdateToOrMessage := updater.CanUpdate(currDetails.Version, cli.VersionDetails.GitSummary)
+				targetRelease, err := gitlabb.RelengCliLatestRelease()
+				if err != nil {
+					// TODO allow err of not found?
+					logrus.Error(fmt.Errorf("could not fetch latest release link: %s", err))
+					os.Exit(1)
+				}
 
-				if !canUpdate {
-					fmt.Println(toUpdateToOrMessage)
+				targetVersion = cli.VersionFromUserInput(targetRelease.TagName)
+
+				// Make sure we are not already on the latest version
+				if currDetails.Version == targetVersion {
+					fmt.Println("You are already on the latest version: " + targetVersion.String())
 					os.Exit(0)
 				}
 
-				// CanUpdateFromGitlab which is called deep down, trims the V, so we need to add it back for now
-				// (And probably refactor this all at some point...)
-				targetVersion = cli.VersionFromUserInput(toUpdateToOrMessage)
-				fmt.Println("New update found: " + targetVersion.String())
-			}
+				// TODO actually do semver comparison
+				// But this probably doesn't matter right now, as we generally only have 1 stream of released going at a time...
 
-			// Manual version is specified, so check it
-			if versionInput != "" {
-				// if manual version looks like a URL, we will just try and download it later
+				targetReleaseLink, err := gitlabb.RelengCliReleaseBinary(targetVersion.Tag())
+				if err != nil {
+					// TODO allow err of not found?
+					logrus.Error(fmt.Errorf("could not fetch release binary link: %s", err))
+					os.Exit(1)
+				}
+
+				fmt.Println("New update found: " + targetVersion.String())
+				fmt.Println("Release URL: " + targetVersion.ReleasePage())
+				fmt.Println("Artifact URL: " + targetArtifact)
+				targetArtifact = targetReleaseLink.DirectAssetURL
+			} else {
+				// Manual version is URL?
 				if len(versionInput) >= 4 && versionInput[:4] == "http" {
-					fmt.Println("Downloading from URL: " + versionInput)
+					// TODO if we can auto detect a gitlab build, link to that too
+					fmt.Println("Artifact URL: " + versionInput)
 					targetArtifact = versionInput
 				} else {
-					targetInputAsVersion := cli.VersionFromUserInput(versionInput)
-					canMoveToVersion := updater.CanMoveToVersion(targetInputAsVersion)
-					if !canMoveToVersion {
-						fmt.Println("Can not find manual version " + versionInput + " to move to")
+					// Probably gitlab version of tag
+					targetVersion = cli.VersionFromUserInput(versionInput)
+
+					targetReleaseLink, err := gitlabb.RelengCliReleaseBinary(targetVersion.Tag())
+					if err != nil {
+						// TODO, allow err of not found?
+						logrus.Error(fmt.Errorf("could not fetch release binary link: %s", err))
 						os.Exit(1)
 					}
-					fmt.Println("Updating to manually selected version: " + versionInput)
-					targetVersion = targetInputAsVersion
+
+					fmt.Println("Updating to manually selected version: " + targetVersion.String())
+					fmt.Println("Release URL: " + targetVersion.ReleasePage())
+					fmt.Println("Artifact URL: " + targetReleaseLink.DirectAssetURL)
+					targetArtifact = targetReleaseLink.DirectAssetURL
 				}
 			}
 
@@ -78,88 +103,116 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				}
 			}
 
-			// Start a progress bar
-			updateProcessCompleted := false
-			var bar *progressbar.ProgressBar
-			if !dryRun {
-				bar = progressbar.Default(111, "Updating binary")
-				go func() {
-					for !updateProcessCompleted {
-						err := bar.Add(1)
-						if err != nil {
-							fmt.Println(err)
-						}
-						time.Sleep(100 * time.Millisecond)
-					}
-				}()
-			}
-
 			// Perform the update
-			var updateSuccess bool
-			var updateMessage string
-			// Either from a Gitlab release
-			if targetVersion != "" && !dryRun {
-				updateSuccess, updateMessage = updater.MoveToVersion(targetVersion)
-			}
-			// Or from a Gitlab build artifact
-			if targetArtifact != "" && !dryRun {
-				tempDownloadFile, err := updater.DownloadFile(targetArtifact)
+			var newMwFileLocation string
+			if !dryRun {
+				response, err := updater.DownloadFileResponse(targetArtifact)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(1)
 				}
-				// Extract tempFile which is a zip file
-				tempDir, err := os.MkdirTemp("", "mwcli-update")
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
-				defer os.RemoveAll(tempDir)
+				defer response.Body.Close()
 
-				err = updater.Unzip(tempDownloadFile, tempDir)
+				if response.ContentLength <= 0 {
+					logrus.Warn("Could not parse content length, so download progress display may be broken")
+				}
+
+				tempDirDownload, tempDirDownloadCloser := tmpDir("mwcli-update-download")
+				defer tempDirDownloadCloser()
+				tempDownloadFile, err := os.CreateTemp(tempDirDownload, "download-*.tmp")
 				if err != nil {
-					fmt.Println("Could not unzip the downloaded file: " + tempDownloadFile)
+					logrus.Error(fmt.Errorf("could not create temp file for download: %s", err))
 					os.Exit(1)
 				}
-				// it should contain a dir called bin, and in that a file called mw
-				newMwFileLocation := tempDir + "/bin/mw"
+				defer tempDownloadFile.Close()
+				tempDownloadFilePath := tempDownloadFile.Name()
+
+				var p *tea.Program
+				pw := &cmdgloss.ProgressWriter{
+					Total:  int(response.ContentLength),
+					File:   tempDownloadFile,
+					Reader: response.Body,
+					OnProgress: func(ratio float64) {
+						p.Send(cmdgloss.ProgressMsg(ratio))
+					},
+				}
+				m := cmdgloss.Model{
+					Pw:       pw,
+					Progress: progress.New(progress.WithDefaultGradient()),
+				}
+				p = tea.NewProgram(m)
+				go pw.Start() // Start the download
+				if _, err := p.Run(); err != nil {
+					fmt.Println("error with progress bar:", err)
+					os.Exit(1)
+				}
+
+				// Is the file a zip?
+				if updater.IsZipFile(tempDownloadFilePath) {
+					tempDir, tempDirCloser := tmpDir("mwcli-update-extract")
+					defer tempDirCloser()
+
+					logrus.Trace("Unzipping downloaded file: " + tempDownloadFilePath)
+					err = updater.Unzip(tempDownloadFilePath, tempDir)
+					if err != nil {
+						logrus.Error("could not unzip the downloaded file: "+tempDownloadFilePath, err)
+						os.Exit(1)
+					}
+					// it should contain a dir called bin, and in that a file called mw
+					newMwFileLocation = tempDir + "/bin/mw"
+				} else {
+					newMwFileLocation = tempDownloadFilePath
+				}
 
 				// Make sure it exists or error
 				if _, err := os.Stat(newMwFileLocation); os.IsNotExist(err) {
-					fmt.Println("Could not find the mw binary in the downloaded file: " + newMwFileLocation)
+					logrus.Error(fmt.Errorf("could not find the mw binary in the downloaded file: %s", newMwFileLocation))
 					os.Exit(1)
 				}
 
-				// Move the current bin to a temp location
-				oldFileName := os.Args[0] + ".old." + time.Now().Format("2006-01-02-15-04-05")
-				err = os.Rename(os.Args[0], oldFileName)
+				executablePath, err := os.Executable()
 				if err != nil {
-					fmt.Println(err)
+					logrus.Error(fmt.Errorf("could not get the current executable path: %s", err))
 					os.Exit(1)
 				}
-				// defer deletion of this file
-				defer os.Remove(oldFileName)
+				executableName := executablePath[strings.LastIndex(executablePath, "/")+1:]
+				logrus.Trace("Current executable name: " + executableName)
+				logrus.Trace("Current executable path: " + executablePath)
 
-				// Move the new file to the current location
-				err = os.Rename(newMwFileLocation, os.Args[0])
+				// Make a copy of the current binary, in a temp location
+				tempCopyName := executableName + ".update-copy." + time.Now().Format("2006-01-02-15-04-05")
+				// Get a full path in the temporary dir
+				tempDir, tempDirCloser := tmpDir("mwcli-update-backup")
+				defer tempDirCloser()
+				tempCopyPath := tempDir + "/" + tempCopyName
+
+				// Copy the current binary to a temp location
+				_, err = copyFile(executablePath, tempCopyPath)
 				if err != nil {
+					logrus.Error(fmt.Errorf("could not backup current binary: %s", err))
+					os.Exit(1)
+				}
+				defer os.Remove(tempCopyPath)
+
+				// Move the new file to the desired location
+				err = os.Rename(newMwFileLocation, executablePath)
+				if err != nil {
+					logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
 					// Switch them back
-					os.Rename(oldFileName, os.Args[0])
-					fmt.Println(err)
+					os.Rename(tempCopyPath, executablePath)
 					os.Exit(1)
 				}
 
 				// Make sure it is executable
-				err = os.Chmod(os.Args[0], 0o755)
+				// TODO only do this, if it wasn't already executable?
+				err = os.Chmod(executablePath, 0o755)
 				if err != nil {
+					logrus.Error(fmt.Errorf("could not make new binary executable: %s", err))
 					// Switch them back
-					os.Rename(oldFileName, os.Args[0])
-					fmt.Println(err)
+					os.Rename(tempCopyPath, executablePath)
 					os.Exit(1)
 				}
-				updateSuccess = true
-			}
-			if dryRun {
+			} else {
 				fmt.Println("Dry run, no actual update performed")
 				if targetVersion != "" {
 					fmt.Println("Would have updated to version: " + targetVersion + " (using Gitlab releases)")
@@ -167,27 +220,9 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				if targetArtifact != "" {
 					fmt.Println("Would have updated from build artifact: " + targetArtifact + " (using Gitlab CI artifacts)")
 				}
-				updateSuccess = true
 			}
 
-			// Finish the progress bar
-			updateProcessCompleted = true
-			if bar != nil {
-				err := bar.Finish()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}
-
-			// Exit with 1 if we didn't update
-			if !updateSuccess {
-				if updateMessage == "" {
-					fmt.Println("Update failed")
-				} else {
-					fmt.Println("Update failed: " + updateMessage)
-				}
-				os.Exit(1)
-			}
+			fmt.Println("Update successful")
 
 			// Output changelog of the versions we are moving between
 			if targetVersion != "" {
@@ -214,17 +249,37 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					}
 				}
 			}
-			if targetArtifact != "" {
-				fmt.Println("Updated from a build artifact")
-				fmt.Println("Check the CI pipeline for the build for more details")
-				// artifact URL is like this https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download
-				// Remove the /artifacts/download part
-				jobUrl := strings.Split(targetArtifact, "/artifacts/download")[0]
-				fmt.Println("Job URL: " + jobUrl)
-			}
 		},
 	}
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
 	return cmd
+}
+
+func copyFile(in, out string) (int64, error) {
+	logrus.Trace("Copying file from: " + in + " to: " + out)
+	i, e := os.Open(in)
+	if e != nil {
+		return 0, e
+	}
+	defer i.Close()
+	o, e := os.Create(out)
+	if e != nil {
+		return 0, e
+	}
+	defer o.Close()
+	return o.ReadFrom(i)
+}
+
+func tmpDir(name string) (string, func()) {
+	tempDir, err := os.MkdirTemp(os.TempDir(), name)
+	if err != nil {
+		logrus.Error(fmt.Errorf("could not create temp dir for %s: %s", name, err))
+		os.Exit(1)
+	}
+	logrus.Trace("Created temp dir: " + tempDir)
+	return tempDir, func() {
+		os.RemoveAll(tempDir)
+		logrus.Trace("Removed temp dir: " + tempDir)
+	}
 }

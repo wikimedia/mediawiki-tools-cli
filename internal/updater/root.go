@@ -25,20 +25,7 @@ func CanUpdate(currentVersion cli.Version, gitSummary string) (bool, string) {
 	return canUpdate, "No update available"
 }
 
-func CanMoveToVersion(targetVersion cli.Version) bool {
-	return CanMoveToVersionFromGitlab(targetVersion)
-}
-
-func MoveToVersion(targetVersion cli.Version) (success bool, message string) {
-	return MoveToVersionFromGitlab(targetVersion)
-}
-
-func DownloadFile(fullURLFile string) (string, error) {
-	// Create blank file in a temporary location
-	file, err := os.CreateTemp("", "mwcli-tempfile")
-	if err != nil {
-		logrus.Fatal(err)
-	}
+func DownloadFileResponse(url string) (*http.Response, error) {
 	client := http.Client{
 		CheckRedirect: func(r *http.Request, via []*http.Request) error {
 			r.URL.Opaque = r.URL.Path
@@ -46,21 +33,29 @@ func DownloadFile(fullURLFile string) (string, error) {
 		},
 	}
 
-	// Put content on file
-	resp, err := client.Get(fullURLFile)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(file, resp.Body)
+	resp, err := client.Get(url)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	defer file.Close()
+	return resp, nil
+}
 
-	return file.Name(), nil
+func IsZipFile(file string) bool {
+	f, err := os.Open(file)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer f.Close()
+
+	buf := make([]byte, 4)
+	_, err = f.Read(buf)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	// Check for the zip file signature
+	return string(buf) == "PK\x03\x04"
 }
 
 func Unzip(src, dest string) error {
