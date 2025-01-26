@@ -18,6 +18,11 @@ import (
 //go:embed gerrit.long.md
 var gerritLong string
 
+var (
+	gerritUsername string
+	gerritPassword string
+)
+
 func NewGerritCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "gerrit",
@@ -25,7 +30,28 @@ func NewGerritCmd() *cobra.Command {
 		Short:   "Interact with the Wikimedia Gerrit instance (WORK IN PROGRESS)",
 		Long:    cli.RenderMarkdown(gerritLong),
 		RunE:    nil,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			username, _ := cmd.Flags().GetString("username")
+			password, _ := cmd.Flags().GetString("password")
+
+			if username == "" || password == "" {
+				c := config.State()
+				if username == "" {
+					username = c.Effective.Gerrit.Username
+				}
+				if password == "" {
+					password = c.Effective.Gerrit.Password
+				}
+			}
+
+			gerritUsername = username
+			gerritPassword = password
+		},
 	}
+
+	// Add persistent flags for username and password
+	cmd.PersistentFlags().String("username", "", "Gerrit username")
+	cmd.PersistentFlags().String("password", "", "Gerrit password")
 
 	cmd.AddCommand(NewGerritAPICmd())
 	cmd.AddCommand(NewGerritSSHCmd())
@@ -57,11 +83,10 @@ func client(ctx context.Context) *gerrit.Client {
 }
 
 func authenticatedClient(ctx context.Context) *gerrit.Client {
-	c := config.State()
 	client := client(ctx)
 	client.Authentication.SetBasicAuth(
-		c.Effective.Gerrit.Username,
-		c.Effective.Gerrit.Password,
+		gerritUsername,
+		gerritPassword,
 	)
 	return client
 }

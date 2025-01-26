@@ -14,7 +14,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Configuration can now how defaults, and be overridden by environment variables with the `MWCLI_` prefix.
 - Fixed exit codes in the case non existent commands are run, where help text used to be displayed (T293062)
 - Fixed command `completion` when no config file exists (T330310)
-- `gerrit` command config file merged with main config file.
+- `gerrit` command config file merged with main config file, and command supports `--username` and `--password` flags.
 - Development environment (`mw docker`)
   - Fixed issue with `docker compose` commands and images on linux arm systems, by adding `DOCKER_DEFAULT_PLATFORM=linux/amd64` in those situations (T355341)
   - Image updates:
