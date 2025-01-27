@@ -2,7 +2,6 @@ package gerrit
 
 import (
 	gogerrit "github.com/andygrunwald/go-gerrit"
-	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"io"
@@ -27,14 +26,14 @@ func NewGerritAccessListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/access/"
 			path = addParamToPath(path, "project", cmdFlags.project)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
-				logrus.Error(err)
+				return err
 			}
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
@@ -43,6 +42,7 @@ func NewGerritAccessListCmd() *cobra.Command {
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
 			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			return nil
 		},
 		Short: "List Access Rights",
 		Use:   "list",

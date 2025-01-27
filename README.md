@@ -70,7 +70,6 @@ Many other Makefile commands exist that you might find useful:
 - `make linti`: Run custom mwcli command linting (lint internal)
 - `make fix`: Run basic lint fixes
 - `make vet`: Run `go vet`
-- `make staticcheck`: Run https://staticcheck.io/
 
 ### Packages & Directories
 

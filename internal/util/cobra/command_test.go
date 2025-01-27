@@ -1,4 +1,4 @@
-package cobra
+package cobrautil
 
 import (
 	"testing"
@@ -101,7 +101,7 @@ func TestFullCommandStringWithoutPrefix(t *testing.T) {
 	}
 }
 
-func TestCommandIsSubCommandOf(t *testing.T) {
+func TestCommandIsSubCommandOfString(t *testing.T) {
 	_, _, lv3Cmd := threeFakeCmds()
 
 	type args struct {
@@ -140,14 +140,14 @@ func TestCommandIsSubCommandOf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CommandIsSubCommandOf(tt.args.cmd, tt.args.subCommand); got != tt.want {
+			if got := CommandIsSubCommandOfString(tt.args.cmd, tt.args.subCommand); got != tt.want {
 				t.Errorf("CommandIsSubCommandOf() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestCommandIsSubCommandOfOneOrMore(t *testing.T) {
+func TestCommandIsSubCommandOfOneOrMoreStrings(t *testing.T) {
 	_, _, lv3Cmd := threeFakeCmds()
 
 	type args struct {
@@ -194,8 +194,109 @@ func TestCommandIsSubCommandOfOneOrMore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CommandIsSubCommandOfOneOrMore(tt.args.cmd, tt.args.subCommands); got != tt.want {
+			if got := CommandIsSubCommandOfOneOrMoreStrings(tt.args.cmd, tt.args.subCommands); got != tt.want {
 				t.Errorf("CommandIsSubCommandOfOneOrMore() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFullCommandStrings(t *testing.T) {
+	lv1Cmd := &cobra.Command{
+		Use:     "level1",
+		Aliases: []string{"l1", "one"},
+	}
+	lv2Cmd := &cobra.Command{
+		Use:     "level2",
+		Aliases: []string{"l2", "two"},
+	}
+	lv1Cmd.AddCommand(lv2Cmd)
+	lv3Cmd := &cobra.Command{
+		Use:     "level3",
+		Aliases: []string{"l3", "three"},
+	}
+	lv2Cmd.AddCommand(lv3Cmd)
+
+	tests := []struct {
+		name string
+		cmd  *cobra.Command
+		want []string
+	}{
+		{
+			name: "level 1 command with aliases",
+			cmd:  lv1Cmd,
+			want: []string{"level1", "l1", "one"},
+		},
+		{
+			name: "level 2 command with aliases",
+			cmd:  lv2Cmd,
+			want: []string{
+				"level1 level2",
+				"level1 l2",
+				"level1 two",
+				"l1 level2",
+				"l1 l2",
+				"l1 two",
+				"one level2",
+				"one l2",
+				"one two",
+			},
+		},
+		{
+			name: "level 3 command with aliases",
+			cmd:  lv3Cmd,
+			want: []string{
+				"level1 level2 level3",
+				"level1 level2 l3",
+				"level1 level2 three",
+				"level1 l2 level3",
+				"level1 l2 l3",
+				"level1 l2 three",
+				"level1 two level3",
+				"level1 two l3",
+				"level1 two three",
+				"l1 level2 level3",
+				"l1 level2 l3",
+				"l1 level2 three",
+				"l1 l2 level3",
+				"l1 l2 l3",
+				"l1 l2 three",
+				"l1 two level3",
+				"l1 two l3",
+				"l1 two three",
+				"one level2 level3",
+				"one level2 l3",
+				"one level2 three",
+				"one l2 level3",
+				"one l2 l3",
+				"one l2 three",
+				"one two level3",
+				"one two l3",
+				"one two three",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FullCommandStrings(tt.cmd)
+			gotMap := make(map[string]bool)
+			wantMap := make(map[string]bool)
+			for _, g := range got {
+				gotMap[g] = true
+			}
+			for _, w := range tt.want {
+				wantMap[w] = true
+			}
+			if len(gotMap) != len(wantMap) {
+				t.Errorf("FullCommandStrings() = %v, want %v", got, tt.want)
+				return
+			}
+			for w := range wantMap {
+				if !gotMap[w] {
+					t.Errorf("FullCommandStrings() = %v, want %v", got, tt.want)
+					break
+				}
 			}
 		})
 	}

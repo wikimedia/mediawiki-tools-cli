@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 )
 
@@ -26,7 +27,7 @@ func NewMediaWikiForeachwikiCmd() *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
-			command, env := mwdd.CommandAndEnvFromArgs(args)
+			command, env := cobrautil.CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki")
 			if containerIDErr != nil {
 				panic(containerIDErr)

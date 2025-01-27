@@ -9,13 +9,14 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 //go:embed api.example
 var apiExample string
 
 func NewGerritAPICmd() *cobra.Command {
-	config := LoadConfig()
+	c := config.State()
 
 	var (
 		method   string
@@ -39,11 +40,11 @@ func NewGerritAPICmd() *cobra.Command {
 
 			if user == "" {
 				logrus.Trace("Using username from config")
-				user = config.Username
+				user = c.Effective.Gerrit.Username
 			}
 			if password == "" {
 				logrus.Trace("Using password from config")
-				password = config.Password
+				password = c.Effective.Gerrit.Password
 			}
 
 			instance := "https://gerrit.wikimedia.org/r/"

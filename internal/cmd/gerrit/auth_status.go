@@ -1,46 +1,43 @@
 package gerrit
 
 import (
+	"fmt"
+
 	"github.com/andygrunwald/go-gerrit"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 )
 
 func NewGerritAuthStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Status of Wikimedia Gerrit authentication using HTTP credentials",
-		Run: func(cmd *cobra.Command, args []string) {
-			config := LoadConfig()
-
-			hasCredentials := config.Username != "" && config.Password != ""
+		RunE: func(cmd *cobra.Command, args []string) error {
+			hasCredentials := gerritUsername != "" && gerritPassword != ""
 
 			if hasCredentials {
-				cmd.Println("Credentials found")
-				cmd.Println("Username:", config.Username)
-				cmd.Println("Password:", "***...")
+				cmd.Println("Username:", gerritUsername)
+				cmd.Println("Password:", "*************")
 			} else {
-				cmd.Println("No credentials found")
-				return
+				return fmt.Errorf("no credentials found")
 			}
 
 			instance := "https://gerrit.wikimedia.org/r/"
 			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
-			client.Authentication.SetBasicAuth(config.Username, config.Password)
+			client.Authentication.SetBasicAuth(gerritUsername, gerritPassword)
 			response, err := client.Call(cmd.Context(), "GET", "accounts/self/name", nil, nil)
-
 			if err != nil {
+				logrus.Debugf("Status Code: %v", response.StatusCode)
+				logrus.Debugf("Error: %v", err)
 				if response.StatusCode == 401 {
-					cmd.Println("Not authenticated")
+					return fmt.Errorf("401: not authenticated")
 				} else {
-					cmd.Println(response.StatusCode)
-					cmd.PrintErrln(err)
-					cmd.Println("Possibly not authenticated?")
+					return fmt.Errorf("unknown error")
 				}
-				return
-			} else {
-				cmd.Println("Authenticated =]")
-				return
 			}
+			cmd.Println(cmdgloss.SuccessHeding("Authenticated"))
+			return nil
 		},
 	}
 	return cmd

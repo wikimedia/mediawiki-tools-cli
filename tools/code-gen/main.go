@@ -151,7 +151,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 			httpMethod = c.HttpMethod
 		}
 
-		run = jen.Func().Params(jen.Id("cmd").Op("*").Qual("github.com/spf13/cobra", "Command"), jen.Id("args").Index().String()).Block(
+		run = jen.Func().Params(jen.Id("cmd").Op("*").Qual("github.com/spf13/cobra", "Command"), jen.Id("args").Index().String()).Id("error").Block(
 			// Define the URL path
 			jen.Id("path").Op(":=").Lit(c.GerritPath),
 			jen.Add(pathReplacementSteps...),
@@ -161,7 +161,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 			// Do the query & handle response
 			jen.List(jen.Id("response"), jen.Id("err")).Op(":=").Id("client").Dot("Call").Call(jen.Id("cmd").Dot("Context").Call(), jen.Lit(httpMethod), jen.Id("path"), body, jen.Nil()),
 			jen.If(jen.Id("err").Op("!=").Nil()).Block(
-				jen.Qual("github.com/sirupsen/logrus", "Error").Call(jen.Id("err")),
+				jen.Return(jen.Id("err")),
 			),
 			jen.Defer().Id("response").Dot("Body").Dot("Close").Call(),
 			jen.List(jen.Id("body"), jen.Id("err")).Op(":=").Qual("io", "ReadAll").Call(jen.Id("response").Dot("Body")),
@@ -170,6 +170,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 			),
 			jen.Id("body").Op("=").Qual("github.com/andygrunwald/go-gerrit", "RemoveMagicPrefixLine").Call(jen.Id("body")),
 			jen.Qual("gitlab.wikimedia.org/repos/releng/cli/internal/util/output", "NewJSONFromString").Call(jen.Id("string").Call(jen.Id("body")), jen.Lit(""), jen.Lit(false)).Dot("Print").Call(jen.Id("cmd").Dot("OutOrStdout").Call()),
+			jen.Return(jen.Nil()),
 		)
 	}
 
@@ -186,7 +187,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 		})
 	}
 	if c.GerritPath != "" {
-		cmdDict[jen.Id("Run")] = run
+		cmdDict[jen.Id("RunE")] = run
 	}
 
 	return jen.Op("&").Qual("github.com/spf13/cobra", "Command").Block(cmdDict)

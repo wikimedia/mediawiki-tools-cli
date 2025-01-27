@@ -12,7 +12,6 @@ linters:
     - bodyclose
     - depguard
     - gci
-    - godot
     - gofmt
     - gofumpt
     - goimports

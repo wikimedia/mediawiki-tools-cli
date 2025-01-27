@@ -9,10 +9,8 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
-
-//go:embed page_put.example
-var pagePutExample string
 
 func NewWikiPagePutCmd() *cobra.Command {
 	var (
@@ -25,10 +23,13 @@ func NewWikiPagePutCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "put",
-		Short:   "MediaWiki Wiki Page Put",
-		RunE:    nil,
-		Example: pagePutExample,
+		Use:   "put",
+		Short: "MediaWiki Wiki Page Put",
+		RunE:  nil,
+		Example: cobrautil.NormalizeExample(`
+# Put "foo" on the "mwcli-test" page on test.wikipedia.org
+put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test" <<< "foo"
+`),
 		Run: func(cmd *cobra.Command, args []string) {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
@@ -55,19 +56,7 @@ func NewWikiPagePutCmd() *cobra.Command {
 			}
 
 			// TODO only login if user and pass is set
-			err = w.Login(wikiUser, wikiPassword)
-			if err != nil {
-				// Print warnings, of fatal on errors
-				if _, ok := err.(mwclient.APIWarnings); ok {
-					// TODO in the future don't just hide the warnings...
-					// // print the warnings
-					// for _, warning := range apiWarnings {
-					// 	logrus.Warn(warning)
-					// }
-				} else {
-					logrus.Panic(err)
-				}
-			}
+			defaultErrorHandling().handle(w.Login(wikiUser, wikiPassword))
 
 			// https://www.mediawiki.org/wiki/API:Edit#Parameters
 			editParams := params.Values{
@@ -91,10 +80,16 @@ func NewWikiPagePutCmd() *cobra.Command {
 				editParams["createonly"] = "1"
 			}
 
-			editErr := w.Edit(editParams)
-			if editErr != nil {
-				logrus.Panic(editErr)
+			editErrorHandling := defaultErrorHandling()
+			editErrorHandling.HandleUnknown = func(err error) bool {
+				if err.Error() == "edit successful, but did not change page" {
+					logrus.Info("edit successful, but did not change page")
+					return true
+				}
+				return false
 			}
+
+			editErrorHandling.handle(w.Edit(editParams))
 		},
 	}
 
@@ -106,4 +101,61 @@ func NewWikiPagePutCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&createonly, "createonly", false, "Don't edit the page if it exists already.")
 
 	return cmd
+}
+
+type MwClientErrorHandling struct {
+	// Returns if the error was handled, or should still be classed as an error
+	HandleErr func(mwclient.APIError) bool
+	// Returns if the warning was handled, or should still be classed as a warning
+	HandleWarn func(mwclient.APIWarnings) bool
+	// Returns if the unknown error was handled, or should still be classed as an error
+	HandleUnknown func(error) bool
+	LogErrors     bool
+	LogWarns      bool
+	LogUnknown    bool
+	PanicUnknown  bool
+}
+
+func defaultErrorHandling() MwClientErrorHandling {
+	return MwClientErrorHandling{
+		LogErrors:    true,
+		LogWarns:     true,
+		LogUnknown:   true,
+		PanicUnknown: true,
+	}
+}
+
+func (handler MwClientErrorHandling) handle(err error) {
+	if err != nil {
+		handled := false
+		if _, ok := err.(mwclient.APIWarnings); ok {
+			mwWarn := err.(mwclient.APIWarnings)
+			if handler.HandleWarn != nil {
+				handled = handler.HandleWarn(mwWarn)
+			}
+			if handler.LogWarns && !handled {
+				for _, warning := range mwWarn {
+					logrus.Warn(warning)
+				}
+			}
+		} else if _, ok := err.(mwclient.APIError); ok {
+			mwError := err.(mwclient.APIError)
+			if handler.HandleErr != nil {
+				handled = handler.HandleErr(mwError)
+			}
+			if handler.LogErrors && !handled {
+				logrus.Errorf("API Error: %s: %s", mwError.Code, mwError.Info)
+			}
+		} else {
+			if handler.HandleUnknown != nil {
+				handled = handler.HandleUnknown(err)
+			}
+			if handler.LogUnknown && !handled {
+				logrus.Error(err)
+			}
+			if handler.PanicUnknown && !handled {
+				logrus.Panic(err)
+			}
+		}
+	}
 }

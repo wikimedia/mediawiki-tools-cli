@@ -4,17 +4,14 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"os"
 
-	"github.com/fatih/color"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/codesearch"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
-
-//go:embed search.example
-var searchExample string
 
 func NewCodeSearchSearchCmd() *cobra.Command {
 	out := output.Output{
@@ -60,22 +57,37 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	var ignoreCase bool
 	cmd := &cobra.Command{
 		Use:     "search [search-text]",
-		Example: searchExample,
-		Short:   "Search using codesearch",
-		Args:    cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Aliases: []string{"s"},
+		Example: cobrautil.NormalizeExample(`
+search addshore
+search --type extensions --repos "Extension:Wikibase" addshore
+search --files ".*\.md" addshore
+search --output ack --files ".*\.md" addshore
+`),
+		Short: "Search using codesearch",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
 			searchString := args[0]
-			client := codesearch.NewClient(searchType)
-			ctx := context.Background()
-			response, err := client.Search(ctx, searchType, searchString, &codesearch.SearchOptions{
+
+			searchOptions := &codesearch.SearchOptions{
 				IgnoreCase:   ignoreCase,
 				Files:        files,
 				ExcludeFiles: excludeFiles,
 				Repos:        repos,
-			})
+			}
+
+			if output.Type(out.Type) == output.WebType {
+				url := codesearch.CraftSearchURL(searchType, false, searchString, searchOptions)
+
+				fmt.Println("Opening", url)
+				browser.OpenURL(url)
+				return nil
+			}
+
+			client := codesearch.NewClient(searchType)
+			response, err := client.Search(context.Background(), searchType, searchString, searchOptions)
 			if err != nil {
-				color.Red("Error: %s", err)
-				os.Exit(1)
+				return err
 			}
 
 			objects := make(map[interface{}]interface{}, len(response.Results))
@@ -84,10 +96,14 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 			}
 
 			out.Print(objects)
+			return nil
 		},
 	}
-	out.AddFlags(cmd, string(output.TableType))
-	cmd.Flags().StringVarP(&searchType, "type", "t", "search", "Type of search to perform: search|core|extensions|skins|things|bundeled|deployed|libraries|operations|puppet|ooui|milkshake|pywikibot|services|analytics")
+	out.AddFlags(cmd, output.TableType, output.WebType)
+	// TODO automate generation of this list?
+	// Type can currently be updated from https://github.com/wikimedia/labs-codesearch/blob/master/manage.sh
+	// This would probably be a "tool" that is periodically run, to update a set of strings to be included here. (as there is no API spec for this)
+	cmd.Flags().StringVarP(&searchType, "type", "t", "search", "Type of search to perform: search|core|extensions|skins|things|bundled|deployed|libraries|operations|puppet|ooui|milkshake|pywikibot|services|analytics|devtools|wmcs|armchairgm|shouthow")
 	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "Ignore case in search")
 	cmd.Flags().StringVar(&files, "files", "", "Search only in files matching this pattern")
 	cmd.Flags().StringVar(&excludeFiles, "exclude-files", "", "Exclude files matching this pattern")

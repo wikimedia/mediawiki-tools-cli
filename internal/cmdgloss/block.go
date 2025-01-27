@@ -2,10 +2,11 @@ package cmdgloss
 
 import (
 	"fmt"
+	"strings"
 )
 
 func SuccessHeding(text string) string {
-	return text + " 🎉"
+	return strings.TrimSpace(text) + " 🎉"
 }
 
 func ThreePartBlock(heading string, details map[string]string, footer string) string {

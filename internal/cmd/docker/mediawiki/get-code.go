@@ -9,45 +9,62 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 //go:embed get-code.example
 var mediawikiGetCodeExample string
 
+//go:embed get-code.long
+var mediawikiGetCodeLong string
+
 func NewMediaWikiGetCodeCmd() *cobra.Command {
-	core := false
-	extensions := []string{}
-	skins := []string{}
-
-	shallow := false
-	useGithub := false
-	gerritInteractionType := "http"
-	gerritUsername := ""
-
 	cmd := &cobra.Command{
 		Use:     "get-code",
-		Example: mediawikiGetCodeExample,
+		Example: cobrautil.NormalizeExample(mediawikiGetCodeExample),
 		Short:   "Gets MediaWiki code from Gerrit",
+		Long:    cli.RenderMarkdown(mediawikiGetCodeLong),
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1")
+			cobrautil.CallAllPersistentPreRun(cmd, args)
+		},
 		Run: func(cmd *cobra.Command, args []string) {
+			core, _ := cmd.Flags().GetBool("core")
+			extensions, _ := cmd.Flags().GetStringSlice("extension")
+			skins, _ := cmd.Flags().GetStringSlice("skin")
+			shallow, _ := cmd.Flags().GetBool("shallow")
+			useGithub, _ := cmd.Flags().GetBool("use-github")
+			gerritInteractionType, _ := cmd.Flags().GetString("gerrit-interaction-type")
+			gerritUsername, _ := cmd.Flags().GetString("gerrit-username")
+
+			if gerritUsername == "" {
+				c := config.State()
+				gerritUsername = c.Effective.Gerrit.Username
+			}
+			if gerritInteractionType == "" {
+				c := config.State()
+				gerritInteractionType = c.Effective.Gerrit.InteractionType
+			}
+
 			mwdd := mwdd.DefaultForUser()
 			mwdd.EnsureReady()
 			thisMw, _ := mediawiki.ForDirectory(mwdd.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
-			cloneOpts := mediawiki.CloneOpts{}
+			cloneOpts := mediawiki.CloneOpts{
+				GetMediaWiki:          core,
+				GetGerritExtensions:   extensions,
+				GetGerritSkins:        skins,
+				UseShallow:            shallow,
+				UseGithub:             useGithub,
+				GerritInteractionType: gerritInteractionType,
+				GerritUsername:        gerritUsername,
+			}
 
-			// Set any known options from the command line
-			cloneOpts.GetMediaWiki = core
-			cloneOpts.GetGerritExtensions = extensions
-			cloneOpts.GetGerritSkins = skins
-			cloneOpts.UseShallow = shallow
-			cloneOpts.UseGithub = useGithub
-			cloneOpts.GerritInteractionType = gerritInteractionType
-			cloneOpts.GerritUsername = gerritUsername
-
-			// If someone runs the command but doesnt ask for anything, run the wizard, or output help in no interaction mode
+			// If someone runs the command but doesn't ask for anything, run the wizard, or output help in no interaction mode
 			if !cloneOpts.GetMediaWiki && len(cloneOpts.GetGerritExtensions) == 0 && len(cloneOpts.GetGerritSkins) == 0 {
 				// If we are in no interaction mode, just print the help and exit
 				if cli.Opts.NoInteraction {
@@ -101,7 +118,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 
 				finalRemoteType := ""
 				prompt3 := &survey.Select{
-					Message: "How do you want to interact with Gerrit for the cloned repositores?",
+					Message: "How do you want to interact with Gerrit for the cloned repositories?",
 					Options: []string{"ssh", "http"},
 					Default: "ssh",
 				}
@@ -115,7 +132,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				if finalRemoteType == "ssh" {
 					gerritUsername := ""
 					prompt := &survey.Input{
-						Message: "What is your Gerrit username? See https://gerrit.wikimedia.org/r/settings",
+						Message: "What is your Gerrit username / shell name? See the Username field on https://gerrit.wikimedia.org/r/settings",
 					}
 					err = survey.AskOne(prompt, &gerritUsername)
 					if err != nil {
@@ -128,6 +145,22 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 						os.Exit(1)
 					}
 					cloneOpts.GerritUsername = gerritUsername
+				}
+
+				// Ask about persisting some answers to config
+				persist := false
+				prompt2 := &survey.Confirm{
+					Message: "Do you want to persist Gerrit username and interaction type to config?",
+				}
+				err = survey.AskOne(prompt2, &persist)
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+
+				if persist {
+					config.PutKeyValueOnDisk("gerrit.username", cloneOpts.GerritUsername)
+					config.PutKeyValueOnDisk("gerrit.interaction_type", cloneOpts.GerritInteractionType)
 				}
 			}
 
@@ -156,13 +189,13 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Core"
 
-	cmd.Flags().BoolVar(&core, "core", false, "Get MediaWiki core")
-	cmd.Flags().StringSliceVar(&extensions, "extension", []string{}, "Get MediaWiki extension")
-	cmd.Flags().StringSliceVar(&skins, "skin", []string{}, "Get MediaWiki skin")
-	cmd.Flags().BoolVar(&shallow, "shallow", false, "Clone with --depth=1")
-	cmd.Flags().BoolVar(&useGithub, "use-github", false, "Use GitHub for speed & switch to Gerrit remotes after")
-	cmd.Flags().StringVar(&gerritInteractionType, "gerrit-interaction-type", "ssh", "How to interact with Gerrit (http, ssh)")
-	cmd.Flags().StringVar(&gerritUsername, "gerrit-username", "", "Gerrit username for ssh interaction type")
+	cmd.Flags().Bool("core", false, "Get MediaWiki core")
+	cmd.Flags().StringSlice("extension", []string{}, "Get MediaWiki extension")
+	cmd.Flags().StringSlice("skin", []string{}, "Get MediaWiki skin")
+	cmd.Flags().Bool("shallow", false, "Clone with --depth=1")
+	cmd.Flags().Bool("use-github", false, "Use GitHub for speed & switch to Gerrit remotes after")
+	cmd.Flags().String("gerrit-interaction-type", "", "How to interact with Gerrit (overriding config) (http, ssh)")
+	cmd.Flags().String("gerrit-username", "", "Gerrit username / shell name for ssh interaction type (overriding config)")
 
 	return cmd
 }

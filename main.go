@@ -2,6 +2,7 @@ package main
 
 import (
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 // Following variables will be statically linked at the time of compiling
@@ -26,5 +27,5 @@ var Version string
 
 func main() {
 	// Alternatively, execute the command
-	cmd.Execute(GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
+	cmd.Execute(GitCommit, GitBranch, GitState, GitSummary, BuildDate, cli.Version(Version))
 }

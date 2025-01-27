@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/debug"
@@ -36,28 +37,31 @@ import (
 
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
-		Use:   "mw",
-		Short: "Developer utilities for working with MediaWiki and Wikimedia services.",
+		Use:           "mw",
+		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
+		SilenceErrors: true,
+		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
-			logrus.SetFormatter(&logrus.TextFormatter{
-				DisableTimestamp:       true,
-				DisableLevelTruncation: true,
-			})
-			logrus.Trace("mwcli: PersistentPreRun")
+			logrus.Trace("mwcli: Top level PersistentPreRun")
+
+			// Force the completion command to never ask for user input
+			if cmd.Name() == "__complete" {
+				cli.Opts.NoInteraction = true
+			}
+
+			// Load the config earl
+			c := config.State()
+			cli.Opts.Telemetry = c.Effective.Telemetry == "yes"
 
 			// Check and set needed config values from various wizards
 			// But don't ask or output to the user, or persist the config, if we are in no-interaction mode
 			if !cli.Opts.NoInteraction {
-				c := config.LoadFromDisk()
-				if !config.DevModeValues.Contains(c.DevMode) {
-					wizardDevMode(&c)
+				if c.Effective.Telemetry == "" {
+					t := wizardTelemetry()
+					config.PutKeyValueOnDisk("telemetry", t)
+					cli.Opts.Telemetry = t == "yes"
 				}
-				if c.Telemetry == "" {
-					wizardTelemetry(&c)
-				}
-				c.WriteToDisk()
-				cli.Opts.Telemetry = c.Telemetry == "yes"
 			}
 
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
@@ -79,6 +83,17 @@ func NewMwCliCmd() *cobra.Command {
 
 	defaultHelpFunc := mwcliCmd.HelpFunc()
 	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
+		// Check that the command being run is actually a known command (or alias)
+		// Otherwise we want to output an error saying "unknown command", and do a non 0 exit
+		// See https://github.com/spf13/cobra/issues/706
+		mwa := "mw " + strings.Join(a, " ")
+		if len(a) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
+			logrus.Errorf("unknown command: %s", strings.Join(a, " "))
+			c.Root().Annotations = make(map[string]string)
+			c.Root().Annotations["exitCode"] = "1"
+			return
+		}
+
 		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
 		defaultHelpFunc(c, a)
 	})
@@ -98,6 +113,7 @@ func NewMwCliCmd() *cobra.Command {
 		tools.NewToolsCmd(),
 		gitlab.NewGitlabCmd(),
 		gerrit.NewGerritCmd(),
+		cloudvps.NewCloudVPSCmd(),
 		docker.NewCmd(),
 		update.NewUpdateCmd(),
 		version.NewVersionCmd(),
@@ -110,23 +126,13 @@ func NewMwCliCmd() *cobra.Command {
 	return mwcliCmd
 }
 
-func wizardDevMode(c *config.Config) {
-	// Don't bother outputting this for now, as we only have 1 dev mode
-	// fmt.Println("\nYou need to choose a development environment mode in order to continue:")
-	// fmt.Println(" - '" + config.DevModeMwdd + "' will provide advanced CLI tooling around a new mediawiki-docker-dev inspired development environment.")
-	// fmt.Println("\nAs the only environment available currently, it will be set as your default dev environment (alias 'dev')")
-
-	c.DevMode = config.DevModeMwdd
-}
-
-func wizardTelemetry(c *config.Config) {
+func wizardTelemetry() string {
 	// Bail early in CI, and DO NOT send telemetry
 	if os.Getenv("MWCLI_CONTEXT_TEST") != "" {
-		c.Telemetry = "no"
-		return
+		return "no"
 	}
 
-	fmt.Println("\nWe would like to collect anonymous usage statistics to help improve this CLI tool.")
+	fmt.Println("We would like to collect anonymous usage statistics to help improve this CLI tool.")
 	fmt.Println("If you accept, these statistics will periodically be submitted to the Wikimedia event intake.")
 
 	telemetryAccept := false
@@ -139,35 +145,39 @@ func wizardTelemetry(c *config.Config) {
 		os.Exit(1)
 	}
 
-	// Record string instead of boolean, so that in the future we can re ask this question
 	if telemetryAccept {
-		c.Telemetry = "yes"
-	} else {
-		c.Telemetry = "no"
+		return "yes"
 	}
+	return "no"
 }
 
 func tryToEmitEvents() {
-	c := config.LoadFromDisk()
-	if c.TimerLastEmittedEvent == "" {
-		c.TimerLastEmittedEvent = timers.String(timers.NowUTC())
+	c := config.State()
+
+	shouldTryToEmitEvents := false
+
+	if c.OnDisk.TimerLastEmittedEvent == "" {
+		config.PutKeyValueOnDisk("timer_last_emitted_event", c.Effective.TimerLastEmittedEvent)
+		shouldTryToEmitEvents = true
+	} else {
+		// Try to emit events every 1 hour
+		lastEmittedEventTime, parseError := timers.Parse(c.Effective.TimerLastEmittedEvent)
+		if parseError != nil {
+			logrus.Warn("Failed to parse last emitted event time")
+		}
+		if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
+			shouldTryToEmitEvents = true
+		}
 	}
 
-	// Try to emit events every 1 hour
-	lastEmittedEventTime, parseError := timers.Parse(c.TimerLastEmittedEvent)
-	if parseError != nil {
-		logrus.Warn("Failed to parse last emitted event time")
-	}
-	if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
-		c.TimerLastEmittedEvent = timers.String(timers.NowUTC())
+	if shouldTryToEmitEvents {
+		config.PutKeyValueOnDisk("timer_last_emitted_event", timers.String(timers.NowUTC()))
 		eventlogging.EmitEvents()
 	}
-
-	c.WriteToDisk()
 }
 
 /*Execute the root command.*/
-func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version string) {
+func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version cli.Version) {
 	cli.VersionDetails.GitCommit = GitCommit
 	cli.VersionDetails.GitBranch = GitBranch
 	cli.VersionDetails.GitState = GitState
@@ -194,22 +204,48 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 	}
 
-	c := config.LoadFromDisk()
+	// Allow setting verbose logging early, via environment variables
+	// This is later overridden by the --verbose flag in the command
+	verbosity := 0
+	if v, ok := os.LookupEnv("VERBOSE"); ok {
+		if vi, err := strconv.Atoi(v); err == nil {
+			verbosity = vi
+		}
+	}
+	if v, ok := os.LookupEnv("MWCLI_VERBOSE"); ok {
+		if vi, err := strconv.Atoi(v); err == nil {
+			verbosity = vi
+		}
+	}
+	logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + verbosity))
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp:       true,
+		DisableLevelTruncation: true,
+	})
+
+	c := config.State()
 
 	// Check various timers and execute tasks if needed
 	{
-		// Setup timers if they are not set
-		if c.TimerLastUpdateChecked == "" {
-			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
+		shouldCheckForUpdates := false
+
+		// If the timer is not stored, store it now, and check for updates now
+		if c.OnDisk.TimerLastUpdateChecked == "" {
+			config.PutKeyValueOnDisk("timer_last_update_checked", c.Effective.TimerLastUpdateChecked)
+			shouldCheckForUpdates = true
+		} else {
+			// Otherwise, check for updates every 3 hours
+			lastUpdateCheckedTime, parseError := timers.Parse(c.Effective.TimerLastUpdateChecked)
+			if parseError != nil {
+				logrus.Warn("Failed to parse last update checked time")
+			}
+			if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
+				shouldCheckForUpdates = true
+			}
 		}
 
-		// Check for updates every 3 hours
-		lastUpdateCheckedTime, parseError := timers.Parse(c.TimerLastUpdateChecked)
-		if parseError != nil {
-			logrus.Warn("Failed to parse last update checked time")
-		}
-		if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
-			c.TimerLastUpdateChecked = timers.String(timers.NowUTC())
+		if shouldCheckForUpdates {
+			config.PutKeyValueOnDisk("timer_last_update_checked", timers.String(timers.NowUTC()))
 			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
 			if canUpdate {
 				colorReset := "\033[0m"
@@ -222,15 +258,10 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 				)
 			}
 		}
-
-		// Write config back to disk once timers are updated
-		c.WriteToDisk()
 	}
 
-	// mwdd mode
-	if c.DevMode == config.DevModeMwdd {
-		cli.MwddIsDevAlias = true
-	}
+	// mwdd mode (always...)
+	cli.MwddIsDevAlias = true
 
 	rootCmd := NewMwCliCmd()
 	// Override the UsageTemplate so that:
@@ -281,7 +312,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	if err != nil {
-		logrus.Errorf("Root cmd Execute error, %s", err)
+		logrus.Errorf("%s", err)
 		os.Exit(1)
 	}
 }

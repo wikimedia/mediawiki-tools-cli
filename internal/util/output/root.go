@@ -34,6 +34,10 @@ const (
 	GoTmplType Type = "template"
 	TableType  Type = "table"
 	AckType    Type = "ack"
+
+	// WebType is a special type that is used to output to a web interface.
+	// This is not available by default, and must be provided to additionalTypes, and handled by the caller.
+	WebType Type = "web"
 )
 
 type TableBinding struct {
@@ -58,8 +62,13 @@ func (o *Output) ConfiguredOutputTypesString() string {
 	return strings.Join(o.ConfiguredOutputTypes(), ", ")
 }
 
-func (o *Output) AddFlags(cmd *cobra.Command, defaultOutput string) {
-	cmd.Flags().StringVarP(&o.Type, "output", "", defaultOutput, "How to output the results "+o.ConfiguredOutputTypesString())
+func (o *Output) AddFlags(cmd *cobra.Command, defaultOutput Type, additionalTypes ...Type) {
+	allTypes := append(AllTypes, additionalTypes...)
+	allowedTypes := make([]string, len(allTypes))
+	for i, t := range allTypes {
+		allowedTypes[i] = string(t)
+	}
+	cmd.Flags().StringVarP(&o.Type, "output", "", string(defaultOutput), "How to output the results "+strings.Join(allowedTypes, ", "))
 	cmd.Flags().StringVarP(&o.Format, "format", "", "", "Format the specified output")
 	cmd.Flags().StringSliceVarP(&o.Filter, "filter", "f", []string{}, "Filter output based on conditions provided")
 }

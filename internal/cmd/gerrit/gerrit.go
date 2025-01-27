@@ -11,11 +11,18 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
 
 //go:embed gerrit.long.md
 var gerritLong string
+
+var (
+	gerritUsername string
+	gerritPassword string
+)
 
 func NewGerritCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -24,7 +31,29 @@ func NewGerritCmd() *cobra.Command {
 		Short:   "Interact with the Wikimedia Gerrit instance (WORK IN PROGRESS)",
 		Long:    cli.RenderMarkdown(gerritLong),
 		RunE:    nil,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cobrautil.CallAllPersistentPreRun(cmd, args)
+			username, _ := cmd.Flags().GetString("username")
+			password, _ := cmd.Flags().GetString("password")
+
+			if username == "" || password == "" {
+				c := config.State()
+				if username == "" {
+					username = c.Effective.Gerrit.Username
+				}
+				if password == "" {
+					password = c.Effective.Gerrit.Password
+				}
+			}
+
+			gerritUsername = username
+			gerritPassword = password
+		},
 	}
+
+	// Add persistent flags for username and password
+	cmd.PersistentFlags().String("username", "", "Gerrit username (overriding config)")
+	cmd.PersistentFlags().String("password", "", "Gerrit password (overriding config)")
 
 	cmd.AddCommand(NewGerritAPICmd())
 	cmd.AddCommand(NewGerritSSHCmd())
@@ -56,9 +85,11 @@ func client(ctx context.Context) *gerrit.Client {
 }
 
 func authenticatedClient(ctx context.Context) *gerrit.Client {
-	config := LoadConfig()
 	client := client(ctx)
-	client.Authentication.SetBasicAuth(config.Username, config.Password)
+	client.Authentication.SetBasicAuth(
+		gerritUsername,
+		gerritPassword,
+	)
 	return client
 }
 

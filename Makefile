@@ -57,11 +57,6 @@ fix: $(GOLANGCI_LINT) generate
 vet: generate
 	go vet -composites=false $(GO_PACKAGES)
 
-.PHONY: staticcheck
-staticcheck: $(STATICCHECK) generate
-	$(STATICCHECK) -version
-	$(STATICCHECK) -- ./...
-
 .PHONY: duplicates
 duplicates: $(DUPL)
 	find ./ -name '*.go' -not -path './vendor/*' -not -name '*.gen.go' -not -name '*_test.go' | $(DUPL) -files

@@ -8,6 +8,7 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 func NewGerritAuthLoginCmd() *cobra.Command {
@@ -69,11 +70,8 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 			}
 			logrus.Info("Credentials checked")
 
-			config := &Config{
-				Username: username,
-				Password: password,
-			}
-			config.Write()
+			config.PutKeyValueOnDisk("gerrit.username", username)
+			config.PutKeyValueOnDisk("gerrit.password", password)
 			logrus.Info("Credentials saved")
 		},
 	}

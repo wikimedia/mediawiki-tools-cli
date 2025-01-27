@@ -3,7 +3,6 @@ package mwdd
 import (
 	"context"
 	"fmt"
-	"os"
 	osexec "os/exec"
 	"strconv"
 	"strings"
@@ -90,7 +89,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create the containers",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
@@ -100,11 +99,12 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 				ForceRecreate: forceRecreate,
 			})
 			if err != nil {
-				panic(err)
+				return err
 			}
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
 			}
+			return nil
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -121,7 +121,7 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "destroy",
 		Short: "Destroy the containers",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
@@ -134,14 +134,15 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 				RemoveAnonymousVolumes: true,
 			})
 			if err != nil {
-				panic(err)
+				return err
 			}
 			if len(volumes) > 0 {
 				err := DefaultForUser().DockerCompose().VolumesRm(volumes)
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
+			return nil
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -158,15 +159,13 @@ func NewServiceStopCmdP(name *string) *cobra.Command {
 		Use:     "stop",
 		Aliases: []string{"suspend"},
 		Short:   "Stop the containers",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Stop(services)
-			if err != nil {
-				panic(err)
-			}
+			return err
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -183,15 +182,13 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 		Use:     "start",
 		Aliases: []string{"resume"},
 		Short:   "Start the containers",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Start(services)
-			if err != nil {
-				panic(err)
-			}
+			return err
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -214,7 +211,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 		Example: "exec bash\nexec -- bash --help\nexec --user root bash\nexec --user root -- bash --help",
 		Short:   "Execute a command in the main container",
 		Args:    cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			dereferencedService := *service
 			DefaultForUser().EnsureReady()
@@ -222,7 +219,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 			command, env := CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := DefaultForUser().DockerCompose().ContainerID(dereferencedService)
 			if containerIDErr != nil {
-				panic(containerIDErr)
+				return containerIDErr
 			}
 			exitCode := docker.Exec(
 				containerID,
@@ -236,6 +233,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 				cmd.Root().Annotations = make(map[string]string)
 				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
@@ -257,7 +255,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 		expose --external-port 1234
 		expose --external-port 1234 --internal-port 80
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			m := DefaultForUser()
 			m.EnsureReady()
@@ -269,10 +267,9 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 			if err != nil {
 				// unable to execute command, no container found for service: mysql
 				if strings.Contains(err.Error(), "no container found") {
-					logrus.Error("Container must be running before you can expose a port")
-					return
+					return fmt.Errorf("Container must be running before you can expose a port")
 				}
-				panic(err)
+				return err
 			}
 
 			// Lookup internal port from an env var if not provided
@@ -280,8 +277,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				logrus.Debug("No internal port provided, looking up from container env")
 				containerJson, err := cli.ContainerInspect(ctx, containerID)
 				if err != nil {
-					fmt.Println("Unable to inspect container")
-					panic(err)
+					return fmt.Errorf("Unable to inspect container" + err.Error())
 				}
 
 				// Get the DEFAULT_EXPOSE_PORT environment variable from the containerJson if set
@@ -291,8 +287,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 					}
 				}
 				if internalPort == "" {
-					fmt.Println("No known default port to expose, please specify one with --internal-port")
-					os.Exit(1)
+					return fmt.Errorf("No known default port to expose, please specify one with --internal-port")
 				}
 			}
 
@@ -314,6 +309,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				"alpine/socat:1.7.4.4-r0",
 				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+dereferencedName+":"+internalPort,
 			)) // #nosec G204
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&externalPort, "external-port", "e", "", "External port to expose")
@@ -331,13 +327,13 @@ func NewServiceCommandCmdP(service *string, commands []string, aliases []string)
 		Use:     fmt.Sprintf("%s [flags] -- [%s flags]", commands[0], commands[0]),
 		Aliases: aliases,
 		Short:   fmt.Sprintf("Runs %s in the container", commands[0]),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *service
 			DefaultForUser().EnsureReady()
 			userCommand, env := CommandAndEnvFromArgs(args)
 			containerId, containerIDErr := DefaultForUser().DockerCompose().ContainerID(dereferencedName)
 			if containerIDErr != nil {
-				panic(containerIDErr)
+				return containerIDErr
 			}
 			exitCode := docker.Exec(
 				containerId,
@@ -350,6 +346,7 @@ func NewServiceCommandCmdP(service *string, commands []string, aliases []string)
 				cmd.Root().Annotations = make(map[string]string)
 				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 			}
+			return nil
 		},
 		DisableFlagsInUseLine: true,
 	}

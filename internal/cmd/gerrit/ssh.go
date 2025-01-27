@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
@@ -14,7 +15,7 @@ func NewGerritSSHCmd() *cobra.Command {
 		Use:   "ssh",
 		Short: "Gerrit's SSH interface",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cmd.Root().PersistentPreRun(cmd, args)
+			cobrautil.CallAllPersistentPreRun(cmd, args)
 			if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {
 				fmt.Println(err)
 				os.Exit(1)

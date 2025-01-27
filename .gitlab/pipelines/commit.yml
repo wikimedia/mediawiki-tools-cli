@@ -55,13 +55,12 @@ checks:
         - CHECK: lint
         - CHECK: linti
         - CHECK: vet
-        - CHECK: staticcheck
         - CHECK: git-state
     before_script:
       - go install github.com/bwplotka/bingo@v0.9.0
       - bingo get
     script:
-      # XDG_CACHE_HOME is needed by staticcheck
+      # XDG_CACHE_HOME was needed by staticcheck
       - export XDG_CACHE_HOME=/tmp/mwcli-cache
       - make $CHECK
 

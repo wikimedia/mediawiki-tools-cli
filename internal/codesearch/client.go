@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -19,17 +21,48 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
-func BaseURLForFlavour(flavour string) string {
-	return "https://codesearch.wmcloud.org/" + flavour + "/api/v1/search"
+func BaseURLForFlavour(flavour string, isApi bool) string {
+	if isApi {
+		return "https://codesearch.wmcloud.org/" + flavour + "/api/v1/search"
+	}
+	return "https://codesearch.wmcloud.org/" + flavour + "/"
 }
 
 func NewClient(flavour string) *Client {
 	return &Client{
-		BaseURL: BaseURLForFlavour(flavour),
+		BaseURL: BaseURLForFlavour(flavour, true),
 		HTTPClient: &http.Client{
 			Timeout: time.Minute,
 		},
 	}
+}
+
+func CraftSearchURL(flavour string, isApi bool, query string, options *SearchOptions) string {
+	params := url.Values{}
+	params.Add("q", query)
+	params.Add("stats", "fosho")
+
+	if options != nil && options.IgnoreCase {
+		params.Add("i", "fosho")
+	} else {
+		params.Add("i", "nope")
+	}
+
+	if options != nil && options.Files != "" {
+		params.Add("files", options.Files)
+	}
+
+	if options != nil && options.ExcludeFiles != "" {
+		params.Add("excludeFiles", options.ExcludeFiles)
+	}
+
+	if options != nil && len(options.Repos) > 0 {
+		params.Add("repos", strings.Join(options.Repos, ","))
+	} else {
+		params.Add("repos", "*")
+	}
+
+	return fmt.Sprintf("%s?%s", BaseURLForFlavour(flavour, isApi), params.Encode())
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
