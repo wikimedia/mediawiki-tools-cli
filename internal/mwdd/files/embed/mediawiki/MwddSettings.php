@@ -376,7 +376,7 @@ foreach ( glob( "$IP/LocalSettings.d/*.php" ) as $path ) {
     require_once $path;
 }
 ## And specifically load the files for this wiki (from a directory)
-foreach ( glob( "$IP/LocalSettings.d/${dockerDb}/*.php" ) as $path ) {
+foreach ( glob( "$IP/LocalSettings.d/{$dockerDb}/*.php" ) as $path ) {
     require_once $path;
 }
 
