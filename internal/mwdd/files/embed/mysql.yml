@@ -14,6 +14,8 @@ services:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
+    ports:
+      - "${MYSQL_PORT:-3306}${MYSQL_PORT:+:3306}"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql/main:/mwdd-custom
