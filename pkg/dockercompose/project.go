@@ -50,9 +50,16 @@ func (p Project) argsForExec(commandAndArgs []string) []string {
 		// TODO bubble this error up?
 		panic(composeFilesErr)
 	}
+	// Position custom files last, so that they can override defaults
+	var lastArgs []string
 	for _, fileName := range composeFiles {
-		args = append(args, "--file", p.Directory+"/"+fileName)
+		if strings.HasPrefix(fileName, "custom-") || strings.HasPrefix(fileName, "custom.") {
+			lastArgs = append(lastArgs, "--file", p.Directory+"/"+fileName)
+		} else {
+			args = append(args, "--file", p.Directory+"/"+fileName)
+		}
 	}
+	args = append(args, lastArgs...)
 
 	args = append(args, commandAndArgs...)
 	return args

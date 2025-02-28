@@ -21,6 +21,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Development environment (`mw docker`)
   - Added exposure `mysql`, `redis`, `elasticsearch` and `postgres` services by default to ephemeral ports.
   - Added `*_PORT` environment variables to `mysql`, `redis`, `elasticsearch` and `postgres` services, allowing local mapping.
+  - Fixed order of custom yml files (not positioned last) to enabled overriding of default services and values.
   - Fixed issue with `docker compose` commands and images on linux arm systems, by adding `DOCKER_DEFAULT_PLATFORM=linux/amd64` in those situations (T355341)
   - Fixed use of deprecated `${var}` format in `MwddSettings.php` in favour of `{$var}` format. Thanks @dcausse!
   - Image updates:

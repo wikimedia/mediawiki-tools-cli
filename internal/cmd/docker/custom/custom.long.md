@@ -1,13 +1,26 @@
 # Custom docker-compose services
 
-You can define one or more custom sets of `docker-compose` services.
-The default service set would be found in `custom.yml`,
-with additional service sets being prefixed with `custom-` such as `custom-two.yml`.
+You can define one or more custom sets of `docker compose` services or files.
+The default service and file would be found in `custom.yml`,
+with additional service sets and files being prefixed with `custom-` such as `custom-two.yml`.
 These files should be created in the location returned by the `mw docker custom where` command.
+
+## Example override
+
+You can use these files to override any default docker compose attributes.
+
+Such as defining a custom environment variable for a service.
+
+```yaml
+services:
+  mysql:
+    environment:
+      - CUSTOM=yes
+```
 
 ## Example internal service
 
-This service will be accessible within the `docker-compose` network to other services.
+This service will be accessible within the `docker compose` network to other services.
 
 ```yaml
 services:
