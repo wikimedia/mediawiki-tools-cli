@@ -2,6 +2,7 @@ package mwdd
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	osexec "os/exec"
 	"strconv"
@@ -244,12 +245,17 @@ func NewServiceExposeCmd(name string) *cobra.Command {
 	return NewServiceExposeCmdP(&name)
 }
 
+//go:embed expose.long.md
+var mwddExposeLong string
+
 func NewServiceExposeCmdP(name *string) *cobra.Command {
 	var externalPort string
 	var internalPort string
 	cmd := &cobra.Command{
-		Use:   "expose",
-		Short: "Expose a port in a running container",
+		Use:    "expose",
+		Hidden: true, // Hide as deprecated
+		Short:  "DEPRECATED: Expose a port in a running container",
+		Long:   cli.RenderMarkdown(mwddExposeLong),
 		Example: heredoc.Doc(`
 		expose
 		expose --external-port 1234

@@ -9,6 +9,17 @@ $wgObjectCaches['redis'] = [
 ];
 ```
 
+## Exposing locally
+
+To expose the Redis service locally, you can set the `REDIS_PORT` environment variable to a port on your host machine.
+
+For example, to expose the Redis service on port 6379:
+
+```bash
+mw docker env set REDIS_PORT 6379
+mw docker redis create
+```
+
 ## Documentation
 
 - [Redis](https://www.mediawiki.org/wiki/Redis)

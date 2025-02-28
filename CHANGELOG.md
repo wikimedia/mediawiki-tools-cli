@@ -19,6 +19,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Fixed command `completion` when no config file exists (T330310)
 - Fixed panics when receiving 401 responses from `gerrit` API commands, now correctly errors.
 - Development environment (`mw docker`)
+  - Added exposure `mysql`, `redis`, `elasticsearch` and `postgres` services by default to ephemeral ports.
+  - Added `*_PORT` environment variables to `mysql`, `redis`, `elasticsearch` and `postgres` services, allowing local mapping.
   - Fixed issue with `docker compose` commands and images on linux arm systems, by adding `DOCKER_DEFAULT_PLATFORM=linux/amd64` in those situations (T355341)
   - Image updates:
     - buster-php81-fpm -> bookworm-php83-fpm (Including composer 2.8.3)

@@ -202,7 +202,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("citoid", mwdd.ServiceTexts{Long: citoidLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("jaeger", mwdd.ServiceTexts{Long: jaegerLong, OnCreate: envSubst(jaegerOnCreate)}, []string{}))
 
-	cmd.AddCommand(mwdd.NewServiceCmd("postgres", mwdd.ServiceTexts{}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("postgres", mwdd.ServiceTexts{Long: postgresLong}, []string{}))
 	cmd.AddCommand(mysql.NewCmd())
 	cmd.AddCommand(mysqlreplica.NewCmd())
 	cmd.AddCommand(keycloak.NewCmd())
@@ -265,6 +265,9 @@ var jaegerLong string
 
 //go:embed jaeger/jaeger.oncreate.md
 var jaegerOnCreate string
+
+//go:embed postgres/postgres.long.md
+var postgresLong string
 
 //go:embed graphite/graphite.oncreate.md
 var graphiteOnCreate string
