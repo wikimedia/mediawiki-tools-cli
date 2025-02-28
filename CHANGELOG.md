@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.27.0
 
 - Added the idea of a `--output web` type, which will open the output in a web browser.
   - Used in `mw version`
