@@ -22,6 +22,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Added exposure `mysql`, `redis`, `elasticsearch` and `postgres` services by default to ephemeral ports.
   - Added `*_PORT` environment variables to `mysql`, `redis`, `elasticsearch` and `postgres` services, allowing local mapping.
   - Fixed issue with `docker compose` commands and images on linux arm systems, by adding `DOCKER_DEFAULT_PLATFORM=linux/amd64` in those situations (T355341)
+  - Fixed use of deprecated `${var}` format in `MwddSettings.php` in favour of `{$var}` format. Thanks @dcausse!
   - Image updates:
     - buster-php81-fpm -> bookworm-php83-fpm (Including composer 2.8.3)
     - buster-apache2 -> bookworm-apache2
