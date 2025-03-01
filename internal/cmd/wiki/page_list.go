@@ -25,6 +25,7 @@ func NewWikiPageListCmd() *cobra.Command {
 	var prfiltercascade string
 	var prexpiry string
 	var dir string
+	var dryRun bool
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -35,6 +36,13 @@ func NewWikiPageListCmd() *cobra.Command {
 list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --prefix ${prefix} --namespace ${namespace} --limit ${limit}
 `),
 		Run: func(cmd *cobra.Command, args []string) {
+			if dryRun {
+				fmt.Println("Dry run mode: Listing pages with the following parameters:")
+				fmt.Printf("wiki: %s, user: %s, prefix: %s, namespace: %d, limit: %d, from: %s, to: %s, filterredir: %s, filterlanglinks: %s, minsize: %d, maxsize: %d, prtype: %s, prlevel: %s, prfiltercascade: %s, prexpiry: %s, dir: %s\n",
+					wiki, wikiUser, prefix, namespace, limit, from, to, filterredir, filterlanglinks, minsize, maxsize, prtype, prlevel, prfiltercascade, prexpiry, dir)
+				return
+			}
+
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
 			}
@@ -177,6 +185,7 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 	cmd.Flags().StringVar(&prfiltercascade, "prfiltercascade", "all", "Filter protections based on cascadingness (all, cascading, noncascading)")
 	cmd.Flags().StringVar(&prexpiry, "prexpiry", "all", "Which protection expiry to filter the page on (all, definite, indefinite)")
 	cmd.Flags().StringVar(&dir, "dir", "ascending", "The direction in which to list (ascending, descending)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
 
 	return cmd
 }

@@ -4,6 +4,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
@@ -16,6 +19,8 @@ var pageDeleteExample string
 
 func NewWikiPageDeleteCmd() *cobra.Command {
 	var wikiPageDeleteReason string
+	var dryRun bool
+	var wikiPageTitle string
 
 	cmd := &cobra.Command{
 		Use:     "delete",
@@ -32,11 +37,30 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 			if wikiPassword == "" {
 				logrus.Fatal("wiki is not set")
 			}
-			if wikiPageTitle == "" {
-				logrus.Fatal("title is not set")
+
+			var titles []string
+			if wikiPageTitle != "" {
+				titles = append(titles, wikiPageTitle)
+			} else if len(args) > 0 {
+				titles = args
+			} else {
+				bytes, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					panic(err)
+				}
+				titles = strings.Split(strings.TrimSpace(string(bytes)), "\n")
 			}
 
-			w, err := mwclient.New(wiki, "mwcli")
+			if dryRun {
+				fmt.Println("Dry run mode: Deleting pages with the following parameters:")
+				fmt.Printf("wiki: %s, user: %s, reason: %s\n", wiki, wikiUser, wikiPageDeleteReason)
+				for _, title := range titles {
+					fmt.Printf("title: %s\n", title)
+				}
+				return
+			}
+
+			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
 			if err != nil {
 				panic(err)
 			}
@@ -47,20 +71,28 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 
-			// https://www.mediawiki.org/wiki/API:Edit#Parameters
-			deleteParams := params.Values{
-				"title":  wikiPageTitle,
-				"reason": wikiPageDeleteReason,
-			}
+			for _, title := range titles {
+				if title == "" {
+					continue
+				}
 
-			deleteErr := wikiDelete(w, deleteParams)
-			if deleteErr != nil {
-				fmt.Println(deleteErr)
+				// https://www.mediawiki.org/wiki/API:Edit#Parameters
+				deleteParams := params.Values{
+					"title":  title,
+					"reason": wikiPageDeleteReason,
+				}
+
+				deleteErr := wikiDelete(w, deleteParams)
+				if deleteErr != nil {
+					fmt.Println(deleteErr)
+				}
 			}
 		},
 	}
 
 	cmd.Flags().StringVar(&wikiPageDeleteReason, "reason", "mwcli deletion", "Reason for the deletion")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
+	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to delete")
 
 	return cmd
 }
