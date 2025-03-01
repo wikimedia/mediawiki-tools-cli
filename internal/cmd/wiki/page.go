@@ -15,6 +15,7 @@ func NewWikiPageCmd() *cobra.Command {
 
 	cmd.AddCommand(NewWikiPagePutCmd())
 	cmd.AddCommand(NewWikiPageDeleteCmd())
+	cmd.AddCommand(NewWikiPageListCmd())
 	cmd.PersistentFlags().StringVar(&wikiPageTitle, "title", "", "Title of the page")
 
 	return cmd

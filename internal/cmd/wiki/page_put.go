@@ -128,6 +128,7 @@ func defaultErrorHandling() MwClientErrorHandling {
 func (handler MwClientErrorHandling) handle(err error) {
 	if err != nil {
 		handled := false
+		logrus.Trace(err)
 		if _, ok := err.(mwclient.APIWarnings); ok {
 			mwWarn := err.(mwclient.APIWarnings)
 			if handler.HandleWarn != nil {
