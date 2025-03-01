@@ -59,7 +59,7 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 			}
 			text := string(bytes)
 
-			w, err := mwclient.New(wiki, "mwcli")
+			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
 			if err != nil {
 				panic(err)
 			}
