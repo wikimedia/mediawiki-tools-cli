@@ -3,6 +3,7 @@ package wiki
 import (
 	_ "embed"
 	"fmt"
+	"strings"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/sirupsen/logrus"
@@ -26,6 +27,7 @@ func NewWikiPageListCmd() *cobra.Command {
 	var prexpiry string
 	var dir string
 	var dryRun bool
+	var grep string
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -38,8 +40,8 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 		Run: func(cmd *cobra.Command, args []string) {
 			if dryRun {
 				fmt.Println("Dry run mode: Listing pages with the following parameters:")
-				fmt.Printf("wiki: %s, user: %s, prefix: %s, namespace: %d, limit: %d, from: %s, to: %s, filterredir: %s, filterlanglinks: %s, minsize: %d, maxsize: %d, prtype: %s, prlevel: %s, prfiltercascade: %s, prexpiry: %s, dir: %s\n",
-					wiki, wikiUser, prefix, namespace, limit, from, to, filterredir, filterlanglinks, minsize, maxsize, prtype, prlevel, prfiltercascade, prexpiry, dir)
+				fmt.Printf("wiki: %s, user: %s, prefix: %s, namespace: %d, limit: %d, from: %s, to: %s, filterredir: %s, filterlanglinks: %s, minsize: %d, maxsize: %d, prtype: %s, prlevel: %s, prfiltercascade: %s, prexpiry: %s, dir: %s, grep: %s\n",
+					wiki, wikiUser, prefix, namespace, limit, from, to, filterredir, filterlanglinks, minsize, maxsize, prtype, prlevel, prfiltercascade, prexpiry, dir, grep)
 				return
 			}
 
@@ -76,7 +78,7 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 				listParams["apnamespace"] = fmt.Sprintf("%d", namespace)
 			}
 
-			if limit > 0 {
+			if limit > 0 && grep == "" {
 				listParams["aplimit"] = fmt.Sprintf("%d", limit)
 			}
 
@@ -151,10 +153,12 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 					if err != nil {
 						panic(err)
 					}
-					fmt.Println(title)
-					totalPages++
-					if limit > 0 && totalPages >= limit {
-						return
+					if grep == "" || strings.Contains(title, grep) {
+						fmt.Println(title)
+						totalPages++
+						if limit > 0 && totalPages >= limit {
+							return
+						}
 					}
 				}
 
@@ -186,6 +190,7 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 	cmd.Flags().StringVar(&prexpiry, "prexpiry", "all", "Which protection expiry to filter the page on (all, definite, indefinite)")
 	cmd.Flags().StringVar(&dir, "dir", "ascending", "The direction in which to list (ascending, descending)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
+	cmd.Flags().StringVar(&grep, "grep", "", "Filter the resulting list to only include titles that contain this string")
 
 	return cmd
 }
