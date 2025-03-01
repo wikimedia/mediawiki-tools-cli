@@ -92,7 +92,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&wikiPageDeleteReason, "reason", "mwcli deletion", "Reason for the deletion")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
-	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to delete")
+	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to delete. You can also pipe the titles to delete to stdin.")
 
 	return cmd
 }
