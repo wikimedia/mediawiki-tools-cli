@@ -1,6 +1,8 @@
 package wiki
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 )
 
@@ -28,4 +30,16 @@ func NewWikiCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func normalizeWiki(wiki string) string {
+	// If there is no protocol, assume https
+	if !strings.HasPrefix(wiki, "http://") && !strings.HasPrefix(wiki, "https://") {
+		wiki = "https://" + wiki
+	}
+	// If it doesn't end in api.php, assume /w/api.php
+	if !strings.HasSuffix(wiki, "/api.php") {
+		wiki = strings.TrimSuffix(wiki, "/") + "/w/api.php"
+	}
+	return wiki
 }

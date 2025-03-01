@@ -2,6 +2,7 @@ package wiki
 
 import (
 	_ "embed"
+	"fmt"
 	"io"
 	"os"
 
@@ -20,6 +21,7 @@ func NewWikiPagePutCmd() *cobra.Command {
 		recreate   bool
 		nocreate   bool
 		createonly bool
+		dryRun     bool
 	)
 
 	cmd := &cobra.Command{
@@ -31,6 +33,13 @@ func NewWikiPagePutCmd() *cobra.Command {
 put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test" <<< "foo"
 `),
 		Run: func(cmd *cobra.Command, args []string) {
+			if dryRun {
+				fmt.Println("Dry run mode: Putting page with the following parameters:")
+				fmt.Printf("wiki: %s, user: %s, title: %s, summary: %s, minor: %t, bot: %t, recreate: %t, nocreate: %t, createonly: %t\n",
+					wiki, wikiUser, wikiPageTitle, summary, minor, bot, recreate, nocreate, createonly)
+				return
+			}
+
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
 			}
@@ -50,7 +59,7 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 			}
 			text := string(bytes)
 
-			w, err := mwclient.New(wiki, "mwcli")
+			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
 			if err != nil {
 				panic(err)
 			}
@@ -99,6 +108,7 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 	cmd.Flags().BoolVar(&recreate, "recreate", false, "Override any errors about the page having been deleted in the meantime.")
 	cmd.Flags().BoolVar(&nocreate, "nocreate", false, "Throw an error if the page doesn't exist.")
 	cmd.Flags().BoolVar(&createonly, "createonly", false, "Don't edit the page if it exists already.")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
 
 	return cmd
 }
@@ -128,6 +138,7 @@ func defaultErrorHandling() MwClientErrorHandling {
 func (handler MwClientErrorHandling) handle(err error) {
 	if err != nil {
 		handled := false
+		logrus.Trace(err)
 		if _, ok := err.(mwclient.APIWarnings); ok {
 			mwWarn := err.(mwclient.APIWarnings)
 			if handler.HandleWarn != nil {
