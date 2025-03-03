@@ -18,9 +18,8 @@ services:
     networks:
       - dps
     ports:
-      - "${ELASTICSEARCH_PORT:-9200}${ELASTICSEARCH_PORT:+:9200}"
-      - "${ELASTICSEARCH_PORT_9200:-9200}${ELASTICSEARCH_PORT_9200:+:9200}"
-      - "${ELASTICSEARCH_PORT_9300:-9300}${ELASTICSEARCH_PORT_9300:+:9300}"
+      - ${ELASTICSEARCH_PORT_9200-}:9200
+      - ${ELASTICSEARCH_PORT_9300-}:9300
 
 volumes:
   elasticsearch-data:

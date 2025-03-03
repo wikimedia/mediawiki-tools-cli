@@ -15,7 +15,7 @@ services:
     networks:
       - dps
     ports:
-      - "${MYSQL_PORT:-3306}${MYSQL_PORT:+:3306}"
+      - ${MYSQL_PORT_3306-}:3306
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql/main:/mwdd-custom
