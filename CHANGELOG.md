@@ -4,12 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## v0.27.1
+## Unreleased
 
-- Fixed bug if elasticsearch service created and `ELASTICSEARCH_PORT` env var is not set (T387729)
 - Added `mw wiki page list` command
 - Added `--dry-run` option to all `mw wiki page` commands
 - Added ability to pass a list of title to `mw wiki page delete`
+
+## v0.27.1
+
+- Fixed bug if elasticsearch service created and `ELASTICSEARCH_PORT` env var is not set (T387729)
 
 ## v0.27.0
 
