@@ -8,6 +8,6 @@ services:
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     ports:
-      - "${REDIS_PORT:-6379}${REDIS_PORT:+:6379}"
+      - ${REDIS_PORT_6379-}:6379
     networks:
       - dps

@@ -24,16 +24,15 @@ php maintenance/runJobs.php
 
 ## Exposing locally
 
-To expose the Elasticsearch service locally, you can set the `ELASTICSEARCH_PORT` environment variable to a port on your host machine.
+To expose the Elasticsearch service locally, you can set the `ELASTICSEARCH_PORT_9200` and `ELASTICSEARCH_PORT_9300` 
+environment variables to a port on your host machine.
 
-For example, to expose the Elasticsearch service on port 9200:
+For example, to expose the internal port `9200` to port `9200` on your host machine:
 
 ```bash
-mw docker env set ELASTICSEARCH_PORT 9200
+mw docker env set ELASTICSEARCH_PORT_9200 9200
 mw docker elasticsearch create
 ```
-
-You can also make use of `ELASTICSEARCH_PORT_9200` and `ELASTICSEARCH_PORT_9300` environment variables.
 
 ## Documentation
 
