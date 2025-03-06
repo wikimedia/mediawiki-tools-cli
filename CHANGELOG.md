@@ -4,8 +4,9 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.27.1
 
+- Fixed bug if elasticsearch service created and `ELASTICSEARCH_PORT` env var is not set (T387729)
 - Added `mw wiki page list` command
 - Added `--dry-run` option to all `mw wiki page` commands
 - Added ability to pass a list of title to `mw wiki page delete`
@@ -18,10 +19,10 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added an option to `docker mediawiki get-code` to save the Gerrit username and interaction type to the config file.
 - Improved `update` command output, including new real progress bar (related to T369835 & T368018)
 - Improved configuration handling, including less disk reads and writes.
-  - Configuration can now how defaults, and be overridden by environment variables with the `MWCLI_` prefix.
+  - Configuration can now have defaults, and be overridden by environment variables with the `MWCLI_` prefix.
 - Improved `gerrit` command config by merging with main config file, and command supports `--username` and `--password` flags.
 - Improved many error cases, returning errors, rather than panics.
-- Fixed exit codes in the case non existent commands are run, where help text used to be displayed (T293062)
+- Fixed exit codes in the case non-existent commands are run, where help text used to be displayed (T293062)
 - Fixed command `completion` when no config file exists (T330310)
 - Fixed panics when receiving 401 responses from `gerrit` API commands, now correctly errors.
 - Development environment (`mw docker`)
