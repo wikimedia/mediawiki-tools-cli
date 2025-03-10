@@ -5,7 +5,7 @@ images:
   # docker dev env: MediaWiki related services
   - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.18.1
   - image: docker-registry.wikimedia.org/releng/quibble-buster-php83:1.9.1
-  - image: docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0
+  - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.1-s2
   - image: docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1
   # docker dev env: Misc services
   # TODO: make wdqs images work with semver
