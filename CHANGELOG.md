@@ -10,6 +10,10 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added `--dry-run` option to all `mw wiki page` commands
 - Added ability to pass a list of title to `mw wiki page delete`
 
+## v0.27.2
+
+- Revert to using the `buster-php81-fpm:1.0.1-s2` image by default for the `mediawiki` services as `bookworm-php83-fpm:1.0.0` contains a version of `libcurl` that breaks mwcli (T388411)
+
 ## v0.27.1
 
 - Fixed bug if elasticsearch service created and `ELASTICSEARCH_PORT` env var is not set (T387729)
