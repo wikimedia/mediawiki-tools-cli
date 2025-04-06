@@ -34,7 +34,7 @@ func handleChangeResult(result hosts.ChangeResult) {
 		}
 	} else if result.Altered {
 		// TODO nicer coloured output
-		fmt.Println("Wanted to alter your hosts file bu could not.")
+		fmt.Println("Wanted to alter your hosts file but could not.")
 		fmt.Println("You need to edit the file yourself")
 		fmt.Println("Temporary file: " + result.WriteFile)
 		fmt.Println("")
