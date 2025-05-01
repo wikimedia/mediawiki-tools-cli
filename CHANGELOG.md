@@ -9,6 +9,8 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added `mw wiki page list` command
 - Added `--dry-run` option to all `mw wiki page` commands
 - Added ability to pass a list of title to `mw wiki page delete`
+- Improved error page when trying to access a non installed site to show the `mediawiki sites` command.
+- Improved `update` changelog output, adding a newline between the different versions if many are upgraded through.
 
 ## v0.27.2
 
