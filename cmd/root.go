@@ -81,14 +81,31 @@ func NewMwCliCmd() *cobra.Command {
 		Title: "Service Commands",
 	})
 
+	// Override the default help function to check for unknown commands, which we want to return non zero exit codes for...
 	defaultHelpFunc := mwcliCmd.HelpFunc()
 	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
-		// Remove flags (arguments starting with -) from a, so we only check actual command words
+		// Remove flags (arguments starting with -) and their values from a, so we only check actual command words
+		// Currently this might miss bool flags??! ;(
 		commandWords := []string{}
-		for _, arg := range a {
-			if !strings.HasPrefix(arg, "-") {
-				commandWords = append(commandWords, arg)
+		skipNext := false
+		for i := 0; i < len(a); i++ {
+			arg := a[i]
+			if skipNext {
+				skipNext = false
+				continue
 			}
+			if strings.HasPrefix(arg, "-") {
+				// If it's --flag=value or -f=value, skip this arg only
+				if strings.Contains(arg, "=") {
+					continue
+				}
+				// If next arg exists and does not start with -, treat as value for this flag
+				if i+1 < len(a) && !strings.HasPrefix(a[i+1], "-") {
+					skipNext = true
+				}
+				continue
+			}
+			commandWords = append(commandWords, arg)
 		}
 		mwa := "mw " + strings.Join(commandWords, " ")
 		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
