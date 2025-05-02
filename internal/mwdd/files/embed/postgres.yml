@@ -1,7 +1,7 @@
 
 services:
   postgres: 
-    image: "${POSTGRES_IMAGE:-postgres:13.18}"
+    image: "${POSTGRES_IMAGE:-postgres:13.20}"
     security_opt:
       - label:disable
     restart: unless-stopped
