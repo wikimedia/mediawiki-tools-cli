@@ -4,6 +4,8 @@ You can define one or more custom sets of `docker compose` services or files.
 The default service and file would be found in `custom.yml`,
 with additional service sets and files being prefixed with `custom-` such as `custom-two.yml`.
 These files should be created in the location returned by the `mw docker custom where` command.
+You can then create these services by running the `mw docker custom` command,
+optionally with a `--name` flag, such as `mw docker custom --name custom-two create`.
 
 ## Example override
 
