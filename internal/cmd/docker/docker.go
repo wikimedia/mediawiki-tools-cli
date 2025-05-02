@@ -168,7 +168,7 @@ func NewCmd() *cobra.Command {
 	// Parse PersistentFlags early so that the context is already known to other commands that are added
 	err := cmd.PersistentFlags().Parse(os.Args[1:])
 	if err != nil {
-		logrus.Tracef("Error parsing persistent flags: %s", err)
+		logrus.Tracef("Error parsing persistent flags in docker command: %s", err)
 	}
 
 	if cli.MwddIsDevAlias {

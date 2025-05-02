@@ -32,6 +32,10 @@ trap finish EXIT
 
 test_command_success ./bin/mw docker env clear --no-interaction
 
+# Also test using and clearing a different context...
+
+test_command_success ./bin/mw docker env clear --no-interaction --context=anotherone
+
 # Run this integration test using a non standard port, unlikley to conflict, to make sure it works
 test_command_success ./bin/mw docker env set PORT 6194
 # And already fill in the location of mediawiki
