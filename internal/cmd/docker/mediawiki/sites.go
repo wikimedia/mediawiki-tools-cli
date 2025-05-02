@@ -12,26 +12,30 @@ import (
 func NewMediaWikiSitesCmd() *cobra.Command {
 	type Site struct {
 		Host string
+		URL  string
 	}
 	out := output.Output{
 		TopLevelKeys: false,
 		TableBinding: &output.TableBinding{
-			Headings: []string{"Host"},
+			Headings: []string{"Host", "URL"},
 			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
-				for key := range objects {
-					table.AddRowS(fmt.Sprintf("%s", key))
+				for _, object := range objects {
+					typedObject := object.(Site)
+					table.AddRowS(typedObject.Host, typedObject.URL)
 				}
 			},
 		},
 		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
-			for key := range objects {
-				ack.AddItem("Host", fmt.Sprintf("%s", key))
+			for _, object := range objects {
+				typedObject := object.(Site)
+				ack.AddItem(typedObject.Host, fmt.Sprintf("Host: %s", typedObject.Host))
+				ack.AddItem(typedObject.Host, fmt.Sprintf("URL: %s", typedObject.URL))
 			}
 		},
 	}
 	cmd := &cobra.Command{
 		Use:   "sites",
-		Short: "Lists sites created since the last top level destroy command was run",
+		Short: "Lists sites created in your environment (since the last top level destroy command was run)",
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 
@@ -41,6 +45,7 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 				if strings.Contains(host, "mediawiki.mwdd") {
 					objects[host] = Site{
 						Host: host,
+						URL:  fmt.Sprintf("http://%s:%s", host, mwdd.DefaultForUser().Env().Get("PORT")),
 					}
 				}
 			}

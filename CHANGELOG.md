@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## Unreleased
+
+- Added URL to the `docker mediawiki sites` command output
+- Improved error page when trying to access a non installed site to show the `mediawiki sites` command.
+- Improved `update` changelog output, adding a newline between the different versions if many are upgraded through.
+
 ## v0.28.0
 
 - Added `mw wiki page list` command
