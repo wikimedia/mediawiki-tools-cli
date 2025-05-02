@@ -26,6 +26,8 @@ This service will be accessible within the `docker compose` network to other ser
 services:
   <service-name>:
     image: <service-image>
+    security_opt:
+      - label:disable
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
@@ -45,6 +47,8 @@ services:
       - VIRTUAL_PORT=<service-port>
     depends_on:
       - nginx-proxy
+    security_opt:
+      - label:disable
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
