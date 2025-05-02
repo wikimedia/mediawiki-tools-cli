@@ -18,7 +18,7 @@ import (
 func NewToolhubToolsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tools",
-		Short: "Interact with Toolhub tools",
+		Short: "Toolhub tools",
 	}
 	cmd.AddCommand(NewToolHubToolsListCmd())
 	cmd.AddCommand(NewToolHubToolsSearchCmd())

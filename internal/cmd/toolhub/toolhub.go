@@ -9,6 +9,7 @@ func NewToolHubCmd() *cobra.Command {
 		Use:     "toolhub",
 		GroupID: "service",
 		Short:   "Interact with the Wikimedia Toolhub (WORK IN PROGRESS)",
+		Hidden:  true, // for now, as WIP
 		RunE:    nil,
 	}
 

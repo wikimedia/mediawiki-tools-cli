@@ -23,7 +23,7 @@ func NewCloudVPSCmd() *cobra.Command {
 		GroupID: "service",
 		Short:   "Interact with the Wikimedia Cloud VPS setup (WORK IN PROGRESS)",
 		RunE:    nil,
-		Hidden:  true, // for now
+		Hidden:  true, // for now, as WIP
 	}
 
 	cmd.AddCommand(NewComputeCmd())

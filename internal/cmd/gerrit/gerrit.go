@@ -28,9 +28,10 @@ func NewGerritCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "gerrit",
 		GroupID: "service",
-		Short:   "Interact with the Wikimedia Gerrit instance (WORK IN PROGRESS)",
+		Short:   "Wikimedia Gerrit instance (WORK IN PROGRESS)",
 		Long:    cli.RenderMarkdown(gerritLong),
 		RunE:    nil,
+		Hidden:  true, // for now, as WIP
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			username, _ := cmd.Flags().GetString("username")

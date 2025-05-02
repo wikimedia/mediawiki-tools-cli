@@ -16,7 +16,7 @@ func NewWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "wiki",
 		GroupID: "service",
-		Short:   "Interact with any MediaWiki wiki (WORK IN PROGRESS)",
+		Short:   "Interact with any MediaWiki wiki",
 		RunE:    nil,
 	}
 
