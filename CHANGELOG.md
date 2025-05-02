@@ -9,6 +9,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added URL to the `docker mediawiki sites` command output
 - Improved error page when trying to access a non installed site to show the `mediawiki sites` command.
 - Improved `update` changelog output, adding a newline between the different versions if many are upgraded through.
+- Improved global command validation when using `--help`
 - Development environment (`mw docker`)
   - Image updates:
     - postgres 13.18 -> 13.20

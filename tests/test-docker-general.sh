@@ -32,9 +32,12 @@ trap finish EXIT
 
 test_command_success ./bin/mw docker env clear --no-interaction
 
-# Also test using and clearing a different context...
-
-test_command_success ./bin/mw docker env clear --no-interaction --context=anotherone
+# Also test using --context as well in a few ways with valid commands
+test_command_success ./bin/mw docker env list --no-interaction --context=anotherone
+test_command_success ./bin/mw docker --context=anotherone env list --no-interaction
+test_command_success ./bin/mw docker --context=anotherone env list --no-interaction --help
+test_command_success ./bin/mw docker --context anotherone env list --no-interaction --help
+test_command_success ./bin/mw docker -c anotherone env list --no-interaction --help
 
 # Run this integration test using a non standard port, unlikley to conflict, to make sure it works
 test_command_success ./bin/mw docker env set PORT 6194
