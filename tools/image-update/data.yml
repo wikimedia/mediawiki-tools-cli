@@ -15,7 +15,7 @@ images:
     noCheck: true
   - image: wikibase/wdqs-proxy:wmde.11
     noCheck: true
-  - image: postgres:13.18
+  - image: postgres:13.20
     requireRegex: 13\.\d+$
   - image: mariadb:10.11
     requireRegex: 10\.\d+$
