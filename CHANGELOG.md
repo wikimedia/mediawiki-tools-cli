@@ -9,6 +9,11 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Added URL to the `docker mediawiki sites` command output
 - Improved error page when trying to access a non installed site to show the `mediawiki sites` command.
 - Improved `update` changelog output, adding a newline between the different versions if many are upgraded through.
+- Development environment (`mw docker`)
+  - Image updates:
+    - postgres 13.18 -> 13.20
+    - node20-test-browser 20.18.1 -> 20.19.1
+    - shellbox 2025-01-12-210619-php-rpc81 -> 2025-04-16-162025-php-rpc81
 
 ## v0.28.0
 
