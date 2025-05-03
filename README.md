@@ -4,18 +4,18 @@ This project contains a command-line interface for MediaWiki and Wikimedia devel
 
 It includes a MediaWiki development environment modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev).
 
-Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli
+Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli.
 
 ## Support
 
 - Code Repository: [releng/cli on gitlab.wikimedia.org](https://gitlab.wikimedia.org/repos/releng/cli)
 - Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
 - Phabricator: [#mwcli on phabricator.wikimedia.org](https://phabricator.wikimedia.org/project/view/5331/)
-- IRC: `#mediawiki` on [Libera.​Chat](https://libera.chat/)
+- IRC: `#mediawiki` on [Libera.Chat](https://libera.chat/)
 
 ## Contributing
 
-If you want to contribute tp this repository, please [ask an existing maintainer](https://gitlab.wikimedia.org/repos/releng/cli/-/project_members) to be added as a developer.
+If you want to contribute to this repository, please [ask an existing maintainer](https://gitlab.wikimedia.org/repos/releng/cli/-/project_members) to be added as a developer.
 
 Once this has happened you will be able to make branches in this repository and CI will run for you.
 
@@ -78,15 +78,15 @@ Many other Makefile commands exist that you might find useful:
 - `cmd`: Creation and execution of the top level Cobra command.
 - `internal/cli`: High level things used across the CLI.
 - `internal/cmd`: Packages for commands that make up part of the CLI, binding to cobra.
-- `internal/cmdgloss`: Glossy output for users
-- `internal/codesearch`: Client for interacting with https://codesearch.wikimedia.org
+- `internal/cmdgloss`: Glossy output for users.
+- `internal/codesearch`: Client for interacting with https://codesearch.wikimedia.org.
 - `internal/config`: CLI wide configuration.
-- `internal/eventlogging`: Client to submit events to Wikimedia Event Logging
-- `internal/exec`: Wrapper around `exec` for easily running commands and capturing output. TODO clean this up
-- `internal/gitlab`: Client for interacting with https://gitlab.wikimedia.org
-- `internal/mediawiki`: Interact with a MediaWiki installation directory on disk
-- `internal/mwdd`: Package for the docker-compose powered development environment
-- `internal/toolhub`: Client for interacting with https://toolhub.wikimedia.org
+- `internal/eventlogging`: Client to submit events to Wikimedia Event Logging.
+- `internal/exec`: Wrapper around `exec` for easily running commands and capturing output. TODO clean this up.
+- `internal/gitlab`: Client for interacting with https://gitlab.wikimedia.org.
+- `internal/mediawiki`: Interact with a MediaWiki installation directory on disk.
+- `internal/mwdd`: Package for the docker-compose powered development environment.
+- `internal/toolhub`: Client for interacting with https://toolhub.wikimedia.org.
 - `internal/updater`: Code for updating the CLI.
 - `internal/util`: DEPRECATED: Independent packages that do not bind the CLI in any way. (Slowly bring moved to `./pkg`)
 - `pkg`: Independently useful packages that do not bind to mwcli code or concepts.
@@ -124,23 +124,23 @@ Tags should follow [semver](https://semver.org/) and release notes should be wri
 
 ### Process
 
-1) Add release notes for the release into CHANGELOG.md
-    - You can use a compare link such as [this](https://gitlab.wikimedia.org/repos/releng/cli/-/compare/v0.24.3...main?from_project_id=16&straight=false) to see what has changed and what needs release notes.
+1) Add release notes for the release into CHANGELOG.md:
+    - You can use a compare link ([example](https://gitlab.wikimedia.org/repos/releng/cli/-/compare/v0.24.3...main?from_project_id=16&straight=false)) to see what has changed and what needs release notes.
     - Notes should be under a fresh new header of the format `## v0.2.1` so that the release process can extract the notes correctly. These are displayed to users as they update.
-2) Tag the commit for release
-    - The format should be `vx.x.x`
-    - The `v` prefix is needed for the release CI to run for the tag
+2) Tag the commit for release:
+    - The format should be `vx.x.x`.
+    - The `v` prefix is needed for the release CI to run for the tag.
 3) [Watch the pipeline run](https://gitlab.wikimedia.org/repos/releng/cli/-/pipelines) that is building, uploading and publishing the release.
-4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/repos/releng/cli/-/releases)
+4) Check that the release appear [on the releases page](https://gitlab.wikimedia.org/repos/releng/cli/-/releases).
 5) You should now be able to run `mw update` to grab the latest release.
-6) Update the version in the [installation docs code snippets](https://www.mediawiki.org/wiki/Cli/guide/Installation)
+6) Update the version in the [installation docs code snippets](https://www.mediawiki.org/wiki/Cli/guide/Installation).
 
 ## Docs
 
-Docs for mediawiki.org are automatically generated by CI when a release is made.
-They can also be manually generated from this repository and pushed to mediawiki.org
+Docs for [mediawiki.org] are automatically generated by CI when a release is made.
+They can also be manually generated from this repository and pushed to mediawiki.org.
 
-Note: You will need `pandoc` installed. https://pandoc.org/
+Note: You will need [pandoc] installed.
 
 ```sh
 make docs
@@ -152,5 +152,8 @@ If you also want to publish them, you'll need something like this:
 make user="someUser" password="somePassword" docs-publish
 ```
 
-You can use a bot password for this https://mediawiki.org/wiki/Special:BotPasswords \
+You can use a [bot password](https://mediawiki.org/wiki/Special:BotPasswords) for this.
 The bot will need at least the `Basic rights` and `High-volume editing` permissions.
+
+[mediawiki.org]: https://mediawiki.org
+[pandoc]: https://pandoc.org/
