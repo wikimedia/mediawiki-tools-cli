@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/hosts"
 )
@@ -33,13 +34,12 @@ func handleChangeResult(result hosts.ChangeResult) {
 			fmt.Println("sudo cp --no-preserve=mode,ownership " + result.WriteFile + " " + wslHostsFile)
 		}
 	} else if result.Altered {
-		// TODO nicer coloured output
 		fmt.Println("Wanted to alter your hosts file but could not.")
 		fmt.Println("You need to edit the file yourself")
 		fmt.Println("Temporary file: " + result.WriteFile)
 		fmt.Println("")
-		fmt.Println("To apply the changes, run:")
-		fmt.Println("sudo cp --no-preserve=mode,ownership " + result.WriteFile + " " + hosts.FilePath())
+		color.Blue("To apply the changes, run:")
+		color.Blue("sudo cp --no-preserve=mode,ownership " + result.WriteFile + " " + hosts.FilePath())
 		if hasWSLHostsFile() {
 			fmt.Println("")
 			fmt.Println("Note: You appear to be using WSL, so you may want to also run:")
