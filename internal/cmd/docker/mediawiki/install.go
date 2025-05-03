@@ -343,7 +343,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			outputDetails["Pass"] = adminPass
 			outputDetails["Link"] = serverLink
 			cmdgloss.PrintThreePartBlock(
-				cmdgloss.SuccessHeding("Installation successful"),
+				cmdgloss.SuccessHeading("Installation successful"),
 				outputDetails,
 				"If you want to access the wiki from your command line you may need to add it to your hosts file.\n"+
 					"You can do this with the `hosts add` command that is part of this development environment.",

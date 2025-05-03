@@ -36,7 +36,7 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 					return fmt.Errorf("unknown error")
 				}
 			}
-			cmd.Println(cmdgloss.SuccessHeding("Authenticated"))
+			cmd.Println(cmdgloss.SuccessHeading("Authenticated"))
 			return nil
 		},
 	}
