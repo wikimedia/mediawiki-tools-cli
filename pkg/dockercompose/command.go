@@ -13,7 +13,6 @@ type Command struct {
 }
 
 func (c Command) logRun() {
-	logrus.SetReportCaller(true)
 	logrus.Trace(c.Cmd.String())
 }
 
