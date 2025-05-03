@@ -27,7 +27,6 @@ func NewCmd() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().StringVarP(&customName, "name", "n", "custom", "the name of the custom service file, referring to existing docker-compose.yml file in the mwdd directory prefixed with custom-")
-	// TODO verify custom names start with "custom-"
 
 	cmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		// Validate the customName, make sure it starts with "custom", or warn the user that that is the intention..
