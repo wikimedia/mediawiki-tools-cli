@@ -2,6 +2,8 @@ package mediawiki
 
 import (
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 /*MediaWiki representation of a MediaWiki install directory.*/
@@ -35,4 +37,58 @@ func errorIfDirectoryDoesNotLookLikeVector(directory string) error {
 /*VectorIsPresent ...*/
 func (m MediaWiki) VectorIsPresent() bool {
 	return errorIfDirectoryDoesNotLookLikeVector(m.Path("skins/Vector")) == nil
+}
+
+func (m MediaWiki) ComposerLocalJsonPath() string {
+	return m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "composer.local.json"
+}
+
+func (m MediaWiki) ComposerLocalJsonExists() bool {
+	_, err := os.Stat(m.ComposerLocalJsonPath())
+	return !os.IsNotExist(err)
+}
+
+func (m MediaWiki) ComposerJsonPath() string {
+	return m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "composer.json"
+}
+
+func (m MediaWiki) ComposerJsonExists() bool {
+	_, err := os.Stat(m.ComposerJsonPath())
+	return !os.IsNotExist(err)
+}
+
+func (m MediaWiki) LocalSettingsPath() string {
+	return m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "LocalSettings.php"
+}
+
+func (m MediaWiki) LocalSettingsContents() string {
+	bytes, err := os.ReadFile(m.LocalSettingsPath())
+	if err != nil {
+		logrus.Fatal(err)
+		os.Exit(1)
+	}
+	return string(bytes)
+}
+
+func (m MediaWiki) ExtensionsCheckedOut() []string {
+	return directoriesInDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "extensions")
+}
+
+func (m MediaWiki) SkinsCheckedOut() []string {
+	return directoriesInDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "skins")
+}
+
+func directoriesInDirectory(directory string) []string {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		logrus.Fatal(err)
+		os.Exit(1)
+	}
+	directories := []string{}
+	for _, e := range entries {
+		if e.IsDir() {
+			directories = append(directories, e.Name())
+		}
+	}
+	return directories
 }

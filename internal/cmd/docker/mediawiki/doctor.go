@@ -40,7 +40,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				logrus.Info("✅ The vendor directory is present in the code volume")
 			}
 
-			if len(m.SkinsCheckedOut()) == 0 || !strings.Contains(m.LocalSettingsContents(), "wfLoadSkin") {
+			if len(mw.SkinsCheckedOut()) == 0 || !strings.Contains(mw.LocalSettingsContents(), "wfLoadSkin") {
 				logrus.Warn("⚠️ You have no skins checked out or loaded in LocalSettings.php")
 				logrus.Warn("✨ You can checkout the Vector skin with `mw docker mediawiki get-code --skin Vector`")
 			} else {
@@ -49,12 +49,11 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 
 			if (
 			// We have extensions or skins
-			len(m.ExtensionsCheckedOut()) != 0 || len(m.SkinsCheckedOut()) != 0) &&
+			len(mw.ExtensionsCheckedOut()) != 0 || len(mw.SkinsCheckedOut()) != 0) &&
 				// And they are loaded in LocalSettings
-				(strings.Contains(m.LocalSettingsContents(), "wfLoadExtension") || strings.Contains(m.LocalSettingsContents(), "wfLoadSkin")) &&
-				!m.ComposerLocalJsonExists() {
+				(strings.Contains(mw.LocalSettingsContents(), "wfLoadExtension") || strings.Contains(mw.LocalSettingsContents(), "wfLoadSkin")) &&
+				!mw.ComposerLocalJsonExists() || !mw.ComposerJsonExists() {
 				logrus.Warn("⚠️ You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
-				// TODO also check they have a composer.json file? Don't warn if they dont need composer
 				logrus.Warn("If the extensions or skins require additional dependencies, they may not function correctly.")
 				logrus.Warn("See https://www.mediawiki.org/wiki/Composer#Using_composer-merge-plugin for more information.")
 				logrus.Warn("✨ You can create a default composer.local.json file with `mw docker mediawiki exec cp /var/www/html/w/composer.local.json-sample /var/www/html/w/composer.local.json`")
