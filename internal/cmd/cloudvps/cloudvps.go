@@ -77,7 +77,7 @@ func NewAuthAddCmd() *cobra.Command {
 			config.PutKeyValueOnDisk("cloud_vps.projects."+project+".credential.id", id)
 			config.PutKeyValueOnDisk("cloud_vps.projects."+project+".credential.secret", secret)
 
-			fmt.Print(cmdgloss.SuccessHeding(fmt.Sprintf("Added new application credential for project: %s", project)))
+			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Added new application credential for project: %s", project)))
 			return nil
 		},
 	}
@@ -111,7 +111,7 @@ func NewAuthRemoveCmd() *cobra.Command {
 			config.DeleteKeyValueFromDisk("cloud_vps.projects." + project + ".credential.id")
 			config.DeleteKeyValueFromDisk("cloud_vps.projects." + project + ".credential.secret")
 
-			fmt.Print(cmdgloss.SuccessHeding(fmt.Sprintf("Removed application credential for project: %s", project)))
+			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Removed application credential for project: %s", project)))
 			return nil
 		},
 	}
@@ -152,7 +152,7 @@ func NewAuthCheckCmd() *cobra.Command {
 				return fmt.Errorf("failed to authenticate: %v", err)
 			}
 
-			fmt.Print(cmdgloss.SuccessHeding(fmt.Sprintf("Credentials for project %s are valid", project)))
+			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Credentials for project %s are valid", project)))
 			return nil
 		},
 	}
