@@ -332,10 +332,10 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				})
 				return err
 			}
-			// TODO if update fails, still output the install message section, BUT tell them they need to fix the issue and run update.php
+
 			err = runUpdate()
 			if err != nil {
-				return err
+				logrus.Error(fmt.Errorf("update.php was unable to run, please fix the issue and run update.php: %s", err))
 			}
 
 			outputDetails := make(map[string]string)
@@ -343,7 +343,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			outputDetails["Pass"] = adminPass
 			outputDetails["Link"] = serverLink
 			cmdgloss.PrintThreePartBlock(
-				cmdgloss.SuccessHeding("Installation successful"),
+				cmdgloss.SuccessHeading("Installation successful"),
 				outputDetails,
 				"If you want to access the wiki from your command line you may need to add it to your hosts file.\n"+
 					"You can do this with the `hosts add` command that is part of this development environment.",

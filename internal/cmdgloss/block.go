@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func SuccessHeding(text string) string {
+func SuccessHeading(text string) string {
 	return strings.TrimSpace(text) + " 🎉"
 }
 
