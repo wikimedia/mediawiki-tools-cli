@@ -60,6 +60,10 @@ func defaultContext() string {
 	if !inGitlabCi && os.Getenv("MWCLI_CONTEXT_TEST") != "" {
 		return "test"
 	}
+	// For now, allow the default context to be set using the CONTEXT env var too
+	if context, ok := os.LookupEnv("CONTEXT"); ok {
+		return context
+	}
 	return "default"
 }
 
