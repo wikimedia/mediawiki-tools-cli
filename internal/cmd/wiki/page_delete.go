@@ -65,7 +65,6 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 
-			// TODO only login if user and pass is set
 			err = w.Login(wikiUser, wikiPassword)
 			if err != nil {
 				panic(err)

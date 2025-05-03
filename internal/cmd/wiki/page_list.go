@@ -60,7 +60,6 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 				panic(err)
 			}
 
-			// TODO only login if user and pass is set
 			defaultErrorHandling().handle(w.Login(wikiUser, wikiPassword))
 
 			// List pages with pagination

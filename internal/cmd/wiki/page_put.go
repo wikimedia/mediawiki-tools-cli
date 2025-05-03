@@ -64,7 +64,6 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 				panic(err)
 			}
 
-			// TODO only login if user and pass is set
 			defaultErrorHandling().handle(w.Login(wikiUser, wikiPassword))
 
 			// https://www.mediawiki.org/wiki/API:Edit#Parameters
