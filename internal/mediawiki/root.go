@@ -40,7 +40,7 @@ func (m MediaWiki) VectorIsPresent() bool {
 }
 
 func (m MediaWiki) ComposerLocalJsonPath() string {
-	return m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "composer.local.json"
+	return m.Path("composer.local.json")
 }
 
 func (m MediaWiki) ComposerLocalJsonExists() bool {
@@ -49,7 +49,7 @@ func (m MediaWiki) ComposerLocalJsonExists() bool {
 }
 
 func (m MediaWiki) ComposerJsonPath() string {
-	return m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "composer.json"
+	return m.Path("composer.json")
 }
 
 func (m MediaWiki) ComposerJsonExists() bool {
@@ -58,7 +58,7 @@ func (m MediaWiki) ComposerJsonExists() bool {
 }
 
 func (m MediaWiki) LocalSettingsPath() string {
-	return m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "LocalSettings.php"
+	return m.Path("LocalSettings.php")
 }
 
 func (m MediaWiki) LocalSettingsContents() string {
@@ -71,11 +71,11 @@ func (m MediaWiki) LocalSettingsContents() string {
 }
 
 func (m MediaWiki) ExtensionsCheckedOut() []string {
-	return directoriesInDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "extensions")
+	return directoriesInDirectory(m.Path("extensions"))
 }
 
 func (m MediaWiki) SkinsCheckedOut() []string {
-	return directoriesInDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE") + string(os.PathSeparator) + "skins")
+	return directoriesInDirectory(m.Path("skins"))
 }
 
 func directoriesInDirectory(directory string) []string {
