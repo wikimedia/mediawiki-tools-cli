@@ -30,7 +30,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/txn2/txeh v1.5.5
+	github.com/txn2/txeh v1.5.4
 	gitlab.com/gitlab-org/api/client-go v0.116.0
 	gitlab.com/gitlab-org/cli v1.52.0
 	golang.org/x/term v0.28.0
