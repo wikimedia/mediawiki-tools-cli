@@ -10,7 +10,7 @@ import (
 //go:embed README.md
 var zikiReadme string
 
-func NewZikiCmd() *cobra.Command {
+func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ziki",
 		Short: "Text-based game",

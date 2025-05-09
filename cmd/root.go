@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
+	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/codesearch"
@@ -26,7 +27,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/tools"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/wiki"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
@@ -129,6 +129,7 @@ func NewMwCliCmd() *cobra.Command {
 	mwcliCmd.AddCommand([]*cobra.Command{
 		versioncmd.Cmd(),
 		updatecmd.Cmd(),
+		zikicmd.Cmd(),
 
 		codesearch.NewCodeSearchCmd(),
 		configcmd.NewConfigCmd(),
@@ -140,7 +141,6 @@ func NewMwCliCmd() *cobra.Command {
 		cloudvps.NewCloudVPSCmd(),
 		docker.NewCmd(),
 		wiki.NewWikiCmd(),
-		ziki.NewZikiCmd(),
 		quip.NewQuipCmd(),
 		help.NewOutputTopicCmd(),
 	}...)
