@@ -1,8 +1,6 @@
 package debug
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 )
@@ -14,7 +12,7 @@ func DebugEventsEmitCmd() *cobra.Command {
 		Aliases: []string{"emit"},
 		Short:   "Submit events now",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Submitting events")
+			cmd.Println("Submitting events")
 			eventlogging.EmitEvents()
 		},
 	}

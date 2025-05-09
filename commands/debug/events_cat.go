@@ -1,8 +1,6 @@
 package debug
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 )
@@ -15,7 +13,7 @@ func DebugEventsCatCmd() *cobra.Command {
 		Short:   "List events pending submission",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, line := range eventlogging.RawEvents() {
-				fmt.Println(line)
+				cmd.Println(line)
 			}
 		},
 	}
