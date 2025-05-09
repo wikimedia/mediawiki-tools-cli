@@ -8,6 +8,7 @@ import (
 )
 
 // Env command for interacting with a .env file in the given directory.
+// This command can be used in multiple different settings, simply by passing in a different directory
 func Env(Short string, directory func() string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "env",
