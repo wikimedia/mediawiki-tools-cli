@@ -15,7 +15,7 @@ import (
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
-func NewGitlabCmd() *cobra.Command {
+func Cmd() *cobra.Command {
 	cmdFactory := cmdutils.NewFactory()
 
 	glinstance.OverrideDefault("gitlab.wikimedia.org")

@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
+	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
@@ -21,7 +22,6 @@ import (
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gerrit"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/help"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
@@ -131,13 +131,13 @@ func NewMwCliCmd() *cobra.Command {
 		updatecmd.Cmd(),
 		debugcmd.Cmd(),
 
+		gitlabcmd.Cmd(),
 		zikicmd.Cmd(),
 
 		codesearch.NewCodeSearchCmd(),
 		configcmd.NewConfigCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
-		gitlab.NewGitlabCmd(),
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
 		docker.NewCmd(),
