@@ -1,6 +1,7 @@
 package output
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -148,10 +149,11 @@ func (o *Output) AddFlagsWithOpts(cmd *cobra.Command, opts ...AddFlagsOption) {
 	}
 	allTypes = append(allTypes, cfg.additionalTypes...)
 	allowedTypes := make([]string, len(allTypes))
-	for i, t := range allowedTypes {
+	for i, t := range allTypes {
 		allowedTypes[i] = string(t)
 	}
-	cmd.Flags().StringVarP(&o.Type, "output", "", string(cfg.defaultOutput), "How to output the results "+strings.Join(allowedTypes, ", "))
+	sort.Strings(allowedTypes)
+	cmd.Flags().StringVarP(&o.Type, "output", "o", string(cfg.defaultOutput), "How to output the results "+strings.Join(allowedTypes, ", "))
 	cmd.Flags().StringVarP(&o.Format, "format", "", "", "Format the specified output")
 	if !cfg.disableFilterFlag {
 		cmd.Flags().StringSliceVarP(&o.Filter, "filter", "f", []string{}, "Filter output based on conditions provided")
@@ -172,8 +174,6 @@ func (o *Output) Print(cmd *cobra.Command, objects any) {
 	switch o.Type {
 	case string(JSONType):
 		NewJSON(filteredObjects, o.Format).Print(writer)
-	case string(GoTmplType):
-		NewGoTmpl(filteredObjects, o.Format).Print(writer)
 	case string(TableType):
 		if o.TableBinding == nil {
 			logrus.Trace("TableBinding is nil")

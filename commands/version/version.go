@@ -10,32 +10,31 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-type VersionInfo struct {
-	BuildDate  string
-	Version    string
-	Releases   string
-	GitCommit  string
-	GitBranch  string
-	GitState   string
-	GitSummary string
-}
-
-// NewVersionCmd returns the cobra command for the version command
 func NewVersionCmd() *cobra.Command {
+	type VersionInfo struct {
+		BuildDate  string `json:"build_date"`
+		Version    string `json:"version"`
+		Releases   string `json:"releases"`
+		GitCommit  string `json:"git_commit"`
+		GitBranch  string `json:"git_branch"`
+		GitState   string `json:"git_state"`
+		GitSummary string `json:"git_summary"`
+	}
+
 	var out = output.Output{}
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Output the version information",
 		Example: `version
-version --output=template --format={{.Version}}`,
+version --output=json --format=.version`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if output.Type(out.Type) == output.WebType {
 				if cli.VersionDetails.Version == "latest" {
-					fmt.Println("You are using a 'latest' which indicates you built this yourself!")
+					cmd.Println("You are using a 'latest' which indicates you built this yourself!")
 					return nil
 				}
 				url := cli.VersionDetails.Version.ReleasePage()
-				fmt.Println("Opening", url)
+				cmd.Println("Opening", url)
 				browser.OpenURL(url)
 				return nil
 			}
