@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -176,12 +175,12 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			eventlogging.AddFeatureUsageEvent("mw_docker_mediawiki_get-code", cli.VersionDetails.Version)
+			cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code", cli.VersionDetails.Version)
 			if cloneOpts.UseGithub {
-				eventlogging.AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-github", cli.VersionDetails.Version)
+				cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-github", cli.VersionDetails.Version)
 			}
 			if cloneOpts.UseShallow {
-				eventlogging.AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-shallow", cli.VersionDetails.Version)
+				cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-shallow", cli.VersionDetails.Version)
 			}
 			thisMw.CloneSetup(cloneOpts)
 		},

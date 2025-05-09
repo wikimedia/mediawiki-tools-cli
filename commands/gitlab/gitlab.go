@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"os"
 	"runtime/debug"
 	"strings"
 
@@ -10,7 +11,6 @@ import (
 	"gitlab.com/gitlab-org/cli/commands/cmdutils"
 	"gitlab.com/gitlab-org/cli/pkg/glinstance"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
@@ -32,7 +32,7 @@ func Cmd() *cobra.Command {
 
 	defaultHelpFunc := glabCommand.HelpFunc()
 	glabCommand.SetHelpFunc(func(c *cobra.Command, a []string) {
-		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
 		defaultHelpFunc(c, a)
 	})
 

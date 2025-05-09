@@ -28,12 +28,13 @@ import (
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
+
+var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
 
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
@@ -68,7 +69,7 @@ func NewMwCliCmd() *cobra.Command {
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
 			if cli.Opts.Telemetry {
-				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
+				events.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
 			}
 		},
 	}
@@ -115,7 +116,7 @@ func NewMwCliCmd() *cobra.Command {
 			return
 		}
 
-		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		events.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
 		defaultHelpFunc(c, a)
 	})
 
@@ -198,7 +199,7 @@ func tryToEmitEvents() {
 
 	if shouldTryToEmitEvents {
 		config.PutKeyValueOnDisk("timer_last_emitted_event", timers.String(timers.NowUTC()))
-		eventlogging.EmitEvents()
+		events.EmitEvents()
 	}
 }
 
