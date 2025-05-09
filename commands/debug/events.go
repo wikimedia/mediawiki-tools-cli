@@ -4,14 +4,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewDebugEventsCmd() *cobra.Command {
+func DebugEventsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Hidden:  debugCommandsAreHidden(),
 		Short:   "Debug events / telemetry",
 		Use:     "events",
 		Aliases: []string{"telemetry"},
 	}
-	cmd.AddCommand(NewDebugEventsEmitCmd())
-	cmd.AddCommand(NewDebugEventsCatCmd())
+	cmd.AddCommand(DebugEventsEmitCmd())
+	cmd.AddCommand(DebugEventsCatCmd())
 	return cmd
 }

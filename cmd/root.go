@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
@@ -18,7 +19,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/config"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/debug"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gitlab"
@@ -129,11 +129,12 @@ func NewMwCliCmd() *cobra.Command {
 	mwcliCmd.AddCommand([]*cobra.Command{
 		versioncmd.Cmd(),
 		updatecmd.Cmd(),
+		debugcmd.Cmd(),
+
 		zikicmd.Cmd(),
 
 		codesearch.NewCodeSearchCmd(),
 		configcmd.NewConfigCmd(),
-		debug.NewDebugCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
 		gitlab.NewGitlabCmd(),

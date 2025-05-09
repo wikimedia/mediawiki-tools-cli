@@ -7,7 +7,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 )
 
-func NewDebugEventsEmitCmd() *cobra.Command {
+func DebugEventsEmitCmd() *cobra.Command {
 	return &cobra.Command{
 		Hidden:  debugCommandsAreHidden(),
 		Use:     "submit",

@@ -9,14 +9,14 @@ func debugCommandsAreHidden() bool {
 	return cli.VersionDetails.Version != "latest"
 }
 
-func NewDebugCmd() *cobra.Command {
+func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "debug",
-		Short:  "mwcli debug commands (only in dev builds)",
+		Short:  "CLI debug commands (only in dev builds)",
 		Hidden: debugCommandsAreHidden(),
 	}
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Debug"
-	cmd.AddCommand(NewDebugEventsCmd())
+	cmd.AddCommand(DebugEventsCmd())
 	return cmd
 }

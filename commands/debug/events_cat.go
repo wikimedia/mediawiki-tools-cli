@@ -7,7 +7,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 )
 
-func NewDebugEventsCatCmd() *cobra.Command {
+func DebugEventsCatCmd() *cobra.Command {
 	return &cobra.Command{
 		Hidden:  debugCommandsAreHidden(),
 		Use:     "cat",
