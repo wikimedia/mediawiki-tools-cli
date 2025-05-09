@@ -17,8 +17,8 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Repository", "File", "Line", "Match"},
-			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
-				typedObject := make(map[string]codesearch.ResultObject, len(objects))
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
 				err := mapstructure.Decode(objects, &typedObject)
 				if err != nil {
 					panic(err)
@@ -32,8 +32,8 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 				}
 			},
 		},
-		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
-			typedObject := make(map[string]codesearch.ResultObject, len(objects))
+		AckBinding: func(objects interface{}, ack *output.Ack) {
+			typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
 			err := mapstructure.Decode(objects, &typedObject)
 			if err != nil {
 				panic(err)

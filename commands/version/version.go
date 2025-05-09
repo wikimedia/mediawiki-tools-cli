@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
@@ -30,7 +31,7 @@ version --output=template --format={{.Version}}`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if output.Type(out.Type) == output.WebType {
 				if cli.VersionDetails.Version == "latest" {
-					fmt.Println("You are already using the latest version.")
+					fmt.Println("You are using a 'latest' which indicates you built this yourself!")
 					return nil
 				}
 				url := cli.VersionDetails.Version.ReleasePage()
@@ -51,19 +52,7 @@ version --output=template --format={{.Version}}`,
 				info.GitSummary = cli.VersionDetails.GitSummary
 			}
 
-			// Convert struct to map for output
-			objects := map[interface{}]interface{}{}
-			objects["BuildDate"] = info.BuildDate
-			objects["Version"] = info.Version
-			objects["Releases"] = info.Releases
-			if cli.Opts.Verbosity > 1 {
-				objects["GitCommit"] = info.GitCommit
-				objects["GitBranch"] = info.GitBranch
-				objects["GitState"] = info.GitState
-				objects["GitSummary"] = info.GitSummary
-			}
-
-			out.Print(cmd, objects)
+			out.Print(cmd, info)
 			return nil
 		},
 	}
@@ -75,16 +64,32 @@ version --output=template --format={{.Version}}`,
 		output.WithFilterFlagDisabled(),
 		output.WithTableBinding(&output.TableBinding{
 			Headings: []string{"Version Information", "Value"},
-			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
-				for key, value := range objects {
-					table.AddRowS(fmt.Sprintf("%s", key), fmt.Sprintf("%s", value))
+			ProcessObjects: func(object interface{}, table *output.Table) {
+				info, ok := object.(VersionInfo)
+				if ok {
+					val := reflect.ValueOf(info)
+					typ := val.Type()
+					for i := 0; i < val.NumField(); i++ {
+						field := typ.Field(i)
+						value := val.Field(i).Interface()
+						table.AddRowS(field.Name, fmt.Sprintf("%v", value))
+					}
 				}
+
 			},
 		}),
-		output.WithAckBinding(func(objects map[interface{}]interface{}, ack *output.Ack) {
-			for key, value := range objects {
-				ack.AddItem("Version Information", fmt.Sprintf("%s: %s", key, value))
+		output.WithAckBinding(func(object interface{}, ack *output.Ack) {
+			info, ok := object.(VersionInfo)
+			if ok {
+				val := reflect.ValueOf(info)
+				typ := val.Type()
+				for i := 0; i < val.NumField(); i++ {
+					field := typ.Field(i)
+					value := val.Field(i).Interface()
+					ack.AddItem("Version Information", fmt.Sprintf("%s: %v", field.Name, value))
+				}
 			}
+
 		}),
 	)
 

@@ -19,15 +19,15 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Host", "URL"},
-			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
-				for _, object := range objects {
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				for _, object := range objects.(map[interface{}]interface{}) {
 					typedObject := object.(Site)
 					table.AddRowS(typedObject.Name, typedObject.Host, typedObject.URL)
 				}
 			},
 		},
-		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
-			for _, object := range objects {
+		AckBinding: func(objects interface{}, ack *output.Ack) {
+			for _, object := range objects.(map[interface{}]interface{}) {
 				typedObject := object.(Site)
 				ack.AddItem(typedObject.Host, fmt.Sprintf("Name: %s", typedObject.Name))
 				ack.AddItem(typedObject.Host, fmt.Sprintf("Host: %s", typedObject.Host))

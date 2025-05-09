@@ -39,10 +39,10 @@ const (
 
 type TableBinding struct {
 	Headings       []string
-	ProcessObjects func(map[interface{}]interface{}, *Table)
+	ProcessObjects func(interface{}, *Table)
 }
 
-type AckBinding func(map[interface{}]interface{}, *Ack)
+type AckBinding func(interface{}, *Ack)
 
 func (o *Output) ConfiguredOutputTypes() []string {
 	outputTypes := []string{string(JSONType), string(GoTmplType)}
@@ -159,31 +159,40 @@ func (o *Output) AddFlagsWithOpts(cmd *cobra.Command, opts ...AddFlagsOption) {
 }
 
 // Print outputs the objects using the configured output type and writes to the provided cobra command's output.
-func (o *Output) Print(cmd *cobra.Command, objects map[interface{}]interface{}) {
-	objects = Filter(objects, o.Filter)
+func (o *Output) Print(cmd *cobra.Command, objects any) {
+	// Filtering only applies to maps
+	var filteredObjects interface{}
+	switch objs := objects.(type) {
+	case map[interface{}]interface{}:
+		filteredObjects = Filter(objs, o.Filter)
+	default:
+		filteredObjects = objects
+	}
 	writer := cmd.OutOrStderr()
 	switch o.Type {
 	case string(JSONType):
-		NewJSON(objects, o.Format).Print(writer)
+		NewJSON(filteredObjects, o.Format).Print(writer)
 	case string(GoTmplType):
-		NewGoTmpl(objects, o.Format).Print(writer)
+		NewGoTmpl(filteredObjects, o.Format).Print(writer)
 	case string(TableType):
 		if o.TableBinding == nil {
 			logrus.Trace("TableBinding is nil")
 			logrus.Error("Output type not supported for current operation.")
+			return
 		}
-		TableFromObjects(
-			objects,
-			o.TableBinding.Headings,
-			o.TableBinding.ProcessObjects,
-		).Print(writer)
+		table := &Table{}
+		o.TableBinding.ProcessObjects(filteredObjects, table)
+		table.Headings = []interface{}{}
+		table.AddHeadingsS(o.TableBinding.Headings...)
+		table.Print(writer)
 	case string(AckType):
 		if o.AckBinding == nil {
 			logrus.Trace("AckBinding is nil")
 			logrus.Error("Output type not supported for current operation.")
+			return
 		}
 		ack := Ack{}
-		o.AckBinding(objects, &ack)
+		o.AckBinding(filteredObjects, &ack)
 		ack.Print(writer)
 	default:
 		logrus.Errorf("Unknown output type: %v. Allowed types are: %v", o.Type, AllTypes)

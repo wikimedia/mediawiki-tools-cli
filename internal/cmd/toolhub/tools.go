@@ -30,17 +30,29 @@ func toolOutput() output.Output {
 	return output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Type", "URL"},
-			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
-				for _, object := range objects {
-					typedObject := object.(toolhub.Tool)
-					table.AddRowS(typedObject.Name, typedObject.Type, typedObject.URL)
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				objMap, ok := objects.(map[interface{}]interface{})
+				if ok {
+					for _, object := range objMap {
+						typedObject, ok := object.(toolhub.Tool)
+						if !ok {
+							continue
+						}
+						table.AddRowS(typedObject.Name, typedObject.Type, typedObject.URL)
+					}
 				}
 			},
 		},
-		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
-			for _, object := range objects {
-				typedObject := object.(toolhub.Tool)
-				ack.AddItem(typedObject.Type, typedObject.Name+" ("+typedObject.Type+") @ "+typedObject.URL)
+		AckBinding: func(objects interface{}, ack *output.Ack) {
+			objMap, ok := objects.(map[interface{}]interface{})
+			if ok {
+				for _, object := range objMap {
+					typedObject, ok := object.(toolhub.Tool)
+					if !ok {
+						continue
+					}
+					ack.AddItem(typedObject.Type, typedObject.Name+" ("+typedObject.Type+") @ "+typedObject.URL)
+				}
 			}
 		},
 	}

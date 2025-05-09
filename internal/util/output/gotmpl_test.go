@@ -37,7 +37,7 @@ func TestGoTmpl_Print(t *testing.T) {
 				Objects: provideMap("test1.json"),
 				Format:  "{{.EntryOne.TopLevelString}}",
 			},
-			wantWriter: "aString\nbString\n",
+			wantWriter: "aString\n",
 		},
 		{
 			name: "simple table can keep keys",

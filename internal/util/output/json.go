@@ -15,11 +15,11 @@ import (
 )
 
 type JSON struct {
-	Objects map[interface{}]interface{}
+	Objects interface{}
 	Format  string
 }
 
-func NewJSON(objects map[interface{}]interface{}, format string) *JSON {
+func NewJSON(objects interface{}, format string) *JSON {
 	return &JSON{
 		Objects: objects,
 		Format:  format,
@@ -51,13 +51,17 @@ func (j *JSON) Print(writer io.Writer) {
 func printWithKeys(j *JSON, writer io.Writer) {
 	query := parseFormatQueryOrPanic(j.Format)
 
-	// Convert from interface => interface, to string => interface
-	mapOfInterfaces := make(map[string]interface{}, len(j.Objects))
-	for key, value := range j.Objects {
-		mapOfInterfaces[fmt.Sprintf("%v", key)] = value
+	// If it's a map[interface{}]interface{}, convert keys to string for JSON
+	switch objs := j.Objects.(type) {
+	case map[interface{}]interface{}:
+		mapOfInterfaces := make(map[string]interface{}, len(objs))
+		for key, value := range objs {
+			mapOfInterfaces[fmt.Sprintf("%v", key)] = value
+		}
+		marshalAndPrint(mapOfInterfaces, query, writer)
+	default:
+		marshalAndPrint(j.Objects, query, writer)
 	}
-
-	marshalAndPrint(mapOfInterfaces, query, writer)
 }
 
 func parseFormatQueryOrPanic(format string) *gojq.Query {

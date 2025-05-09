@@ -178,17 +178,29 @@ func NewComputeListCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Status", "ID"},
-			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
-				for _, object := range objects {
-					typedObject := object.(servers.Server)
-					table.AddRowS(typedObject.Name, typedObject.Status, typedObject.ID)
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				objMap, ok := objects.(map[interface{}]interface{})
+				if ok {
+					for _, object := range objMap {
+						typedObject, ok := object.(servers.Server)
+						if !ok {
+							continue
+						}
+						table.AddRowS(typedObject.Name, typedObject.Status, typedObject.ID)
+					}
 				}
 			},
 		},
-		AckBinding: func(objects map[interface{}]interface{}, ack *output.Ack) {
-			for _, object := range objects {
-				typedObject := object.(servers.Server)
-				ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
+		AckBinding: func(objects interface{}, ack *output.Ack) {
+			objMap, ok := objects.(map[interface{}]interface{})
+			if ok {
+				for _, object := range objMap {
+					typedObject, ok := object.(servers.Server)
+					if !ok {
+						continue
+					}
+					ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
+				}
 			}
 		},
 	}
