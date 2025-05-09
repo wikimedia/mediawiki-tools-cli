@@ -7,10 +7,11 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-func NewVersionCmd() *cobra.Command {
+func Cmd() *cobra.Command {
 	type VersionInfo struct {
 		BuildDate  string `json:"build_date"`
 		Version    string `json:"version"`
@@ -21,12 +22,12 @@ func NewVersionCmd() *cobra.Command {
 		GitSummary string `json:"git_summary"`
 	}
 
-	var out = output.Output{}
+	out := output.Output{}
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Output the version information",
-		Example: `version
-version --output=json --format=.version`,
+		Example: cobrautil.NormalizeExample(`version
+version --output=json --format=.version`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if output.Type(out.Type) == output.WebType {
 				if cli.VersionDetails.Version == "latest" {
@@ -74,7 +75,6 @@ version --output=json --format=.version`,
 						table.AddRowS(field.Name, fmt.Sprintf("%v", value))
 					}
 				}
-
 			},
 		}),
 		output.WithAckBinding(func(object interface{}, ack *output.Ack) {
@@ -88,7 +88,6 @@ version --output=json --format=.version`,
 					ack.AddItem("Version Information", fmt.Sprintf("%s: %v", field.Name, value))
 				}
 			}
-
 		}),
 	)
 

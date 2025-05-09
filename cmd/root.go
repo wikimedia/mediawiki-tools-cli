@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
@@ -24,7 +25,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/tools"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/update"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/wiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
@@ -127,6 +127,9 @@ func NewMwCliCmd() *cobra.Command {
 	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
 
 	mwcliCmd.AddCommand([]*cobra.Command{
+		versioncmd.Cmd(),
+		updatecmd.Cmd(),
+
 		codesearch.NewCodeSearchCmd(),
 		configcmd.NewConfigCmd(),
 		debug.NewDebugCmd(),
@@ -136,13 +139,10 @@ func NewMwCliCmd() *cobra.Command {
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
 		docker.NewCmd(),
-		update.NewUpdateCmd(),
-		versioncmd.NewVersionCmd(),
 		wiki.NewWikiCmd(),
 		ziki.NewZikiCmd(),
 		quip.NewQuipCmd(),
 		help.NewOutputTopicCmd(),
-		versioncmd.NewVersionCmd(),
 	}...)
 
 	return mwcliCmd

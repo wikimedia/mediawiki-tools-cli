@@ -15,17 +15,18 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
-func NewUpdateCmd() *cobra.Command {
+func Cmd() *cobra.Command {
 	versionInput := ""
 	dryRun := false
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Checks for and performs updates",
-		Example: `update
+		Example: cobrautil.NormalizeExample(`update
 update --version=v0.10.0 --no-interaction
-update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`,
+update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`),
 		Run: func(cmd *cobra.Command, args []string) {
 			currDetails := cli.VersionDetails
 			var targetVersion cli.Version
@@ -44,7 +45,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				// Make sure we are not already on the latest version
 				if currDetails.Version == targetVersion {
-					fmt.Println("You are already on the latest version: " + targetVersion.String())
+					cmd.Println("You are already on the latest version: " + targetVersion.String())
 					os.Exit(0)
 				}
 
@@ -58,15 +59,15 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 
-				fmt.Println("New update found: " + targetVersion.String())
-				fmt.Println("Release URL: " + targetVersion.ReleasePage())
-				fmt.Println("Artifact URL: " + targetArtifact)
+				cmd.Println("New update found: " + targetVersion.String())
+				cmd.Println("Release URL: " + targetVersion.ReleasePage())
+				cmd.Println("Artifact URL: " + targetArtifact)
 				targetArtifact = targetReleaseLink.DirectAssetURL
 			} else {
 				// Manual version is URL?
 				if len(versionInput) >= 4 && versionInput[:4] == "http" {
 					// TODO if we can auto detect a gitlab build, link to that too
-					fmt.Println("Artifact URL: " + versionInput)
+					cmd.Println("Artifact URL: " + versionInput)
 					targetArtifact = versionInput
 				} else {
 					// Probably gitlab version of tag
@@ -79,9 +80,9 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 						os.Exit(1)
 					}
 
-					fmt.Println("Updating to manually selected version: " + targetVersion.String())
-					fmt.Println("Release URL: " + targetVersion.ReleasePage())
-					fmt.Println("Artifact URL: " + targetReleaseLink.DirectAssetURL)
+					cmd.Println("Updating to manually selected version: " + targetVersion.String())
+					cmd.Println("Release URL: " + targetVersion.ReleasePage())
+					cmd.Println("Artifact URL: " + targetReleaseLink.DirectAssetURL)
 					targetArtifact = targetReleaseLink.DirectAssetURL
 				}
 			}
@@ -94,11 +95,11 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				}
 				err := survey.AskOne(prompt, &response)
 				if err != nil {
-					fmt.Println(err)
+					cmd.Println(err)
 					os.Exit(1)
 				}
 				if !response {
-					fmt.Println("Update cancelled")
+					cmd.Println("Update cancelled")
 					os.Exit(0)
 				}
 			}
@@ -108,7 +109,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			if !dryRun {
 				response, err := updater.DownloadFileResponse(targetArtifact)
 				if err != nil {
-					fmt.Println(err)
+					cmd.Println(err)
 					os.Exit(1)
 				}
 				defer response.Body.Close()
@@ -143,7 +144,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				p = tea.NewProgram(m)
 				go pw.Start() // Start the download
 				if _, err := p.Run(); err != nil {
-					fmt.Println("error with progress bar:", err)
+					cmd.Println("error with progress bar:", err)
 					os.Exit(1)
 				}
 
@@ -213,39 +214,39 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 			} else {
-				fmt.Println("Dry run, no actual update performed")
+				cmd.Println("Dry run, no actual update performed")
 				if targetVersion != "" {
-					fmt.Println("Would have updated to version: " + targetVersion + " (using Gitlab releases)")
+					cmd.Println("Would have updated to version: " + targetVersion + " (using Gitlab releases)")
 				}
 				if targetArtifact != "" {
-					fmt.Println("Would have updated from build artifact: " + targetArtifact + " (using Gitlab CI artifacts)")
+					cmd.Println("Would have updated from build artifact: " + targetArtifact + " (using Gitlab CI artifacts)")
 				}
 			}
 
-			fmt.Println("Update successful")
+			cmd.Println("Update successful")
 
 			// Output changelog of the versions we are moving between
 			if targetVersion != "" {
 				// If the versions are the same, nothing changes
 				if targetVersion == currDetails.Version {
-					fmt.Println("No changes between versions")
+					cmd.Println("No changes between versions")
 					os.Exit(0)
 				}
 
 				releasesUpdatedThrough, err := updater.RelengCliGetReleasesBetweenTags(currDetails.Version.Tag(), targetVersion.Tag())
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not fetch changelog between versions: %s", err))
-					fmt.Println("You can try running the following command to see the last version's changelog:")
-					fmt.Println("  " + targetVersion.ReleaseNotesCommand())
-					fmt.Println("Or view the changelog online:")
-					fmt.Println("  " + targetVersion.ReleasePage())
+					cmd.Println("You can try running the following command to see the last version's changelog:")
+					cmd.Println("  " + targetVersion.ReleaseNotesCommand())
+					cmd.Println("Or view the changelog online:")
+					cmd.Println("  " + targetVersion.ReleasePage())
 				} else {
-					fmt.Print("\nChanges between versions:\n\n")
+					cmd.Print("\nChanges between versions:\n\n")
 					for _, release := range releasesUpdatedThrough {
 						desc := strings.Trim(release.Description, "\r\n")
 						// TODO Remove any lines that start with "CHANGELOG extracted from"
 						formatted := strings.Trim(cli.RenderMarkdown(desc), "\r\n")
-						fmt.Println(formatted)
+						cmd.Println(formatted)
 					}
 				}
 			}
