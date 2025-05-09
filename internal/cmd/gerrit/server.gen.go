@@ -42,7 +42,7 @@ func NewGerritServerVersionCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server Version",
@@ -67,7 +67,7 @@ func NewGerritServerInfoCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server Info",
@@ -92,7 +92,7 @@ func NewGerritServerCachesCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server Caches",
@@ -117,7 +117,7 @@ func NewGerritServerSummaryCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server summary",
@@ -142,7 +142,7 @@ func NewGerritServerCapabilitiesCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server capabilities",
@@ -167,7 +167,7 @@ func NewGerritServerTasksCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server tasks",
@@ -192,7 +192,7 @@ func NewGerritServerTopMenusCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server top-menus",
@@ -229,7 +229,7 @@ func NewGerritServerPreferencesUserCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server user preferences",
@@ -254,7 +254,7 @@ func NewGerritServerPreferencesDiffCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server diff preferences",
@@ -279,7 +279,7 @@ func NewGerritServerPreferencesEditCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Server edit preferences",

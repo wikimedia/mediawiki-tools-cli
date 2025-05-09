@@ -169,7 +169,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 				jen.Panic(jen.Id("err")),
 			),
 			jen.Id("body").Op("=").Qual("github.com/andygrunwald/go-gerrit", "RemoveMagicPrefixLine").Call(jen.Id("body")),
-			jen.Qual("gitlab.wikimedia.org/repos/releng/cli/internal/util/output", "NewJSONFromString").Call(jen.Id("string").Call(jen.Id("body")), jen.Lit(""), jen.Lit(false)).Dot("Print").Call(jen.Id("cmd").Dot("OutOrStdout").Call()),
+			jen.Qual("gitlab.wikimedia.org/repos/releng/cli/internal/util/output", "NewJSONFromString").Call(jen.Id("string").Call(jen.Id("body")), jen.Lit("")).Dot("Print").Call(jen.Id("cmd").Dot("OutOrStdout").Call()),
 			jen.Return(jen.Nil()),
 		)
 	}

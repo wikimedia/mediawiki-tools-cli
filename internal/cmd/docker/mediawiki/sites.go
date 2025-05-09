@@ -17,7 +17,6 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 		URL  string
 	}
 	out := output.Output{
-		TopLevelKeys: false,
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Host", "URL"},
 			ProcessObjects: func(objects map[interface{}]interface{}, table *output.Table) {
@@ -59,7 +58,7 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 					}
 				}
 			}
-			out.Print(objects)
+			out.Print(cmd, objects)
 		},
 	}
 	out.AddFlags(cmd, output.TableType)

@@ -54,7 +54,7 @@ func NewGerritGroupsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "List Groups",
@@ -88,7 +88,7 @@ func NewGerritGroupsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get a Group",
@@ -121,7 +121,7 @@ func NewGerritGroupsDetailCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get a Group detail",
@@ -164,7 +164,7 @@ func NewGerritGroupsNameGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the name of a group.",
@@ -207,7 +207,7 @@ func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the description of a group.",
@@ -250,7 +250,7 @@ func NewGerritGroupsOptionsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the options of a group.",
@@ -293,7 +293,7 @@ func NewGerritGroupsOwnerGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the owner of a group.",
@@ -326,7 +326,7 @@ func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get a Group audit log",
@@ -370,7 +370,7 @@ func NewGerritGroupsMembersListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the members of a group.",
@@ -405,7 +405,7 @@ func NewGerritGroupsMembersGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a member of a group.",
@@ -451,7 +451,7 @@ func NewGerritGroupsGroupsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the sub groups of a group.",
@@ -486,7 +486,7 @@ func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a sub group of a group.",

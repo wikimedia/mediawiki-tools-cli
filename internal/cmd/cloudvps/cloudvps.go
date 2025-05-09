@@ -250,7 +250,7 @@ func NewComputeListCmd() *cobra.Command {
 				objects[key] = server
 			}
 
-			out.Print(objects)
+			out.Print(cmd, objects)
 
 			return nil
 		},

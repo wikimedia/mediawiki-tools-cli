@@ -57,7 +57,7 @@ func NewGerritProjectsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "List Projects",
@@ -91,7 +91,7 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get a Project",
@@ -134,7 +134,7 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the description of a project.",
@@ -177,7 +177,7 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the parent of a project.",
@@ -220,7 +220,7 @@ func NewGerritProjectsHeadGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the HEAD of a project.",
@@ -263,7 +263,7 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the config of a project.",
@@ -306,7 +306,7 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the access of a project.",
@@ -350,7 +350,7 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the branches of a project.",
@@ -385,7 +385,7 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a branch of a project.",
@@ -431,7 +431,7 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the children of a project.",
@@ -466,7 +466,7 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a child of a project.",
@@ -512,7 +512,7 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the tags of a project.",
@@ -547,7 +547,7 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a tag of a project.",
@@ -593,7 +593,7 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the dashboards of a project.",
@@ -628,7 +628,7 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a dashboard of a project.",
@@ -674,7 +674,7 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the labels of a project.",
@@ -709,7 +709,7 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a label of a project.",
@@ -755,7 +755,7 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the submit_requirements of a project.",
@@ -790,7 +790,7 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves a submit_requirement of a project.",

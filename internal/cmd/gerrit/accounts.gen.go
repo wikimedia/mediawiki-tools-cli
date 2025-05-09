@@ -66,7 +66,7 @@ func NewGerritAccountsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "List Accounts",
@@ -100,7 +100,7 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get Account",
@@ -148,7 +148,7 @@ func NewGerritAccountsDetailsCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get Account Details",
@@ -193,7 +193,7 @@ func NewGerritAccountsNameGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Gets the account name",
@@ -228,7 +228,7 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Sets the account name",
@@ -263,7 +263,7 @@ func NewGerritAccountsNameDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Deletes the account name",
@@ -307,7 +307,7 @@ func NewGerritAccountsStatusGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Gets the account status",
@@ -342,7 +342,7 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Sets the account status",
@@ -388,7 +388,7 @@ func NewGerritAccountsUsernameGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Gets the account username",
@@ -423,7 +423,7 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Sets the account username",
@@ -470,7 +470,7 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Sets the account display name",
@@ -517,7 +517,7 @@ func NewGerritAccountsActiveGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Gets the account active status",
@@ -550,7 +550,7 @@ func NewGerritAccountsActiveSetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Sets the account active status",
@@ -583,7 +583,7 @@ func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Deletes the account active status",
@@ -626,7 +626,7 @@ func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Gets the account OAuth access token.",
@@ -673,7 +673,7 @@ func NewGerritAccountsEmailsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Returns the email addresses of an account.",
@@ -708,7 +708,7 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Returns the email address specified.",
@@ -745,7 +745,7 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Creates a new email address for the specified user.",
@@ -782,7 +782,7 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Deletes the email address specified.",
@@ -819,7 +819,7 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Sets the preferred email address for the specified user.",
@@ -866,7 +866,7 @@ func NewGerritAccountsSshkeysListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Returns the SSH keys of an account.",
@@ -901,7 +901,7 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Returns the SSH key specified.",
@@ -938,7 +938,7 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Deletes the SSH key specified.",
@@ -985,7 +985,7 @@ func NewGerritAccountsGpgkeysListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Returns the GPG keys of an account.",
@@ -1020,7 +1020,7 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Returns the GPG key specified.",
@@ -1057,7 +1057,7 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Deletes the GPG key specified.",
@@ -1103,7 +1103,7 @@ func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the global capabilities that are enabled for the specified user.",
@@ -1139,7 +1139,7 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Gets the global capability that is enabled for the specified user.",
@@ -1184,7 +1184,7 @@ func NewGerritAccountsGroupsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists all groups that contain the specified user as a member.",
@@ -1228,7 +1228,7 @@ func NewGerritAccountsAvatarGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the avatar image of the user.",
@@ -1261,7 +1261,7 @@ func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the avatar image of the user.",
@@ -1306,7 +1306,7 @@ func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the user’s preferences.",
@@ -1339,7 +1339,7 @@ func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the user’s diff preferences.",
@@ -1372,7 +1372,7 @@ func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Retrieves the user’s edit preferences.",
@@ -1415,7 +1415,7 @@ func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the projects a user is watching.",
@@ -1458,7 +1458,7 @@ func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the external ids of a user account.",
@@ -1501,7 +1501,7 @@ func NewGerritAccountsAgreementsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the user’s signed contributor agreements.",
@@ -1546,7 +1546,7 @@ func NewGerritAccountsStarredChangesListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Lists the users starred.changes",
@@ -1582,7 +1582,7 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Stars a change for the user.",
@@ -1620,7 +1620,7 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Unstars a change for the user.",
@@ -1655,7 +1655,7 @@ func NewGerritAccountsIndexCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Adds or updates the account in the secondary index.",

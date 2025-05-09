@@ -75,7 +75,7 @@ func NewToolHubToolsListCmd() *cobra.Command {
 				color.Red("Error: %s", err)
 				os.Exit(1)
 			}
-			out.Print(resultsToObjects(tools.Results, toolType))
+			out.Print(cmd, resultsToObjects(tools.Results, toolType))
 		},
 	}
 	out.AddFlags(cmd, output.TableType)
@@ -104,7 +104,7 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 				color.Red("Error: %s", err)
 				os.Exit(1)
 			}
-			out.Print(resultsToObjects(tools.Results, toolType))
+			out.Print(cmd, resultsToObjects(tools.Results, toolType))
 		},
 	}
 	out.AddFlags(cmd, output.TableType)

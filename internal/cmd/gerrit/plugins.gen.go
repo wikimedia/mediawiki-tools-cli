@@ -53,7 +53,7 @@ func NewGerritPluginsListCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "List plugins",
@@ -89,7 +89,7 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Get plugin",
@@ -122,7 +122,7 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Enable plugin",
@@ -155,7 +155,7 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Disable plugin",
@@ -188,7 +188,7 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 				panic(err)
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "", false).Print(cmd.OutOrStdout())
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
 		Short: "Reload plugin",

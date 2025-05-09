@@ -11,16 +11,14 @@ import (
 )
 
 type GoTmpl struct {
-	Objects      map[interface{}]interface{}
-	Format       string
-	TopLevelKeys bool
+	Objects map[interface{}]interface{}
+	Format  string
 }
 
-func NewGoTmpl(objects map[interface{}]interface{}, format string, topLevelKeys bool) *GoTmpl {
+func NewGoTmpl(objects map[interface{}]interface{}, format string) *GoTmpl {
 	return &GoTmpl{
-		Objects:      objects,
-		Format:       format,
-		TopLevelKeys: topLevelKeys,
+		Objects: objects,
+		Format:  format,
 	}
 }
 
@@ -37,13 +35,6 @@ func (m *GoTmpl) Print(writer io.Writer) {
 			},
 		}).
 		Parse(m.Format))
-	if m.TopLevelKeys {
-		_ = tmpl.Execute(writer, m.Objects)
-		fmt.Fprintln(writer)
-	} else {
-		for _, change := range m.Objects {
-			_ = tmpl.Execute(writer, change)
-			fmt.Fprintln(writer)
-		}
-	}
+	_ = tmpl.Execute(writer, m.Objects)
+	fmt.Fprintln(writer)
 }

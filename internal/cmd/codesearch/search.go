@@ -95,7 +95,7 @@ search --output ack --files ".*\.md" addshore
 				objects[key] = result
 			}
 
-			out.Print(objects)
+			out.Print(cmd, objects)
 			return nil
 		},
 	}
