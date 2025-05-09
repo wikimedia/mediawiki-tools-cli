@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
@@ -19,7 +20,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/codesearch"
-	configcmd "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/help"
@@ -127,15 +127,18 @@ func NewMwCliCmd() *cobra.Command {
 	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
 
 	mwcliCmd.AddCommand([]*cobra.Command{
+		// Core CLI command
 		versioncmd.Cmd(),
 		updatecmd.Cmd(),
+		configcmd.Cmd(),
 		debugcmd.Cmd(),
 
+		// Built in sub commands
 		gitlabcmd.Cmd(),
 		zikicmd.Cmd(),
 
+		// Older commands, not yet moved to the /commands directory
 		codesearch.NewCodeSearchCmd(),
-		configcmd.NewConfigCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),

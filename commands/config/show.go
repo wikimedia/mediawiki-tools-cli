@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
@@ -17,9 +15,9 @@ func NewConfigShowCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			s := config.State()
 			if effective {
-				fmt.Printf("%s\n", config.PrettyPrint(s.EffectiveKoanf))
+				cmd.Printf("%s\n", config.PrettyPrint(s.EffectiveKoanf))
 			} else {
-				fmt.Printf("%s\n", config.PrettyPrint(s.OnDiskKoanf))
+				cmd.Printf("%s\n", config.PrettyPrint(s.OnDiskKoanf))
 			}
 		},
 	}
