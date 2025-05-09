@@ -21,7 +21,7 @@ var longMediawikiForeachwiki string
 func NewMediaWikiForeachwikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "foreachwiki [flags] [script...] -- [script flags]",
-		Example: exampleMediawikiForeachwiki,
+		Example: cobrautil.NormalizeExample(exampleMediawikiForeachwiki),
 		Short:   "Executes a MediaWiki script using run.php in the MediaWiki container for all known wikis.",
 		Long:    longMediawikiForeachwiki,
 		Args:    cobra.MinimumNArgs(1),

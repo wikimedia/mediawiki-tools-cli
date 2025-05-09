@@ -16,7 +16,7 @@ var exampleMediawikiExec string
 func NewMediaWikiExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "exec [flags] [command...]",
-		Example: exampleMediawikiExec,
+		Example: cobrautil.NormalizeExample(exampleMediawikiExec),
 		Short:   "Executes a command in the MediaWiki container",
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

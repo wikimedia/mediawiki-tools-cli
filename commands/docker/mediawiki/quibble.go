@@ -24,7 +24,7 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 		Short:   "Runs commands in a 'quibble' container.",
 		Args:    cobra.MinimumNArgs(1),
 		Long:    cli.RenderMarkdown(mwddMediawikiQuibbleLong),
-		Example: mediawikiQuibbleExample,
+		Example: cobrautil.NormalizeExample(mediawikiQuibbleExample),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			err := mwdd.DefaultForUser().DockerCompose().Up([]string{"mediawiki-quibble"}, dockercompose.UpOptions{

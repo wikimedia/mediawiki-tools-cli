@@ -12,6 +12,7 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
 //go:embed page_delete.example
@@ -26,7 +27,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 		Use:     "delete",
 		Short:   "MediaWiki Wiki Page Delete",
 		RunE:    nil,
-		Example: pageDeleteExample,
+		Example: cobrautil.NormalizeExample(pageDeleteExample),
 		Run: func(cmd *cobra.Command, args []string) {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
@@ -38,7 +39,7 @@ func NewToolsCmd() *cobra.Command {
 		Use:     "exec [flags] [command & arguments] -- [command flags]",
 		Short:   "Execute commands as a tool",
 		Args:    cobra.MinimumNArgs(1),
-		Example: execExample,
+		Example: cobrautil.NormalizeExample(execExample),
 		Long:    cli.RenderMarkdown(execLong),
 		Run: func(cmd *cobra.Command, args []string) {
 			if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {
@@ -69,7 +70,7 @@ func NewToolsCmd() *cobra.Command {
 		Use:     "cp [flags] [source] [destination]",
 		Short:   "Copy files to a tool using rsync",
 		Args:    cobra.MinimumNArgs(2),
-		Example: cpExample,
+		Example: cobrautil.NormalizeExample(cpExample),
 		Run: func(cmd *cobra.Command, args []string) {
 			if _, err := lookpath.NeedExecutables([]string{"rsync"}); err != nil {
 				fmt.Println(err)

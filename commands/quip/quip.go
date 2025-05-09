@@ -11,6 +11,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
@@ -19,8 +20,8 @@ func NewQuipCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "quip",
 		Short: "Outputs a quip from bash.toolforge.org",
-		Example: `quip
-quip --link`,
+		Example: cobrautil.NormalizeExample(`quip
+quip --link`),
 		Hidden: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			req, err := http.NewRequest("GET", "https://bash.toolforge.org/random", nil)

@@ -17,7 +17,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "composer",
 		Short:   "Runs composer in a container in the context of MediaWiki",
-		Example: composerExample,
+		Example: cobrautil.NormalizeExample(composerExample),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()
 			command, env := cobrautil.CommandAndEnvFromArgs(args)

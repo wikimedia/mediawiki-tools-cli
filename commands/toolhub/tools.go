@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/toolhub"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -78,7 +79,7 @@ func NewToolHubToolsListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List Toolhub Tools",
-		Example: toolhubToolsList,
+		Example: cobrautil.NormalizeExample(toolhubToolsList),
 		Run: func(cmd *cobra.Command, args []string) {
 			client := toolhub.NewClient()
 			ctx := context.Background()
@@ -105,7 +106,7 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "search",
 		Short:   "Search Toolhub Tools",
-		Example: toolhubToolsSearch,
+		Example: cobrautil.NormalizeExample(toolhubToolsSearch),
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			searchString := args[0]
