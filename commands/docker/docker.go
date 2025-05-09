@@ -99,8 +99,8 @@ func NewCmd() *cobra.Command {
 			thisDev := mwdd.DefaultForUser()
 			thisDev.EnsureReady()
 
-			// Skip the checks and wizard if "MWCLI_ENV_COMMAND" is defined as an env var
-			if _, envCommandDefined := os.LookupEnv("MWCLI_ENV_COMMAND"); envCommandDefined {
+			// Skip the checks and wizard if "MWCLI_MEDIAWIKI_ENV_COMMAND" is defined as an env var
+			if _, envCommandDefined := os.LookupEnv("MWCLI_MEDIAWIKI_ENV_COMMAND"); envCommandDefined {
 				return
 			}
 			// Skip the checks and wizard for any destroy commands
@@ -191,7 +191,12 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewMwddRestartCmd())
 	cmd.AddCommand(NewMwddUpdateCmd())
 	cmd.AddCommand(dockercompose.NewCmd())
-	cmd.AddCommand(env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory))
+	envCmd := env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory)
+	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		os.Setenv("MWCLI_MEDIAWIKI_ENV_COMMAND", "1")
+		cobrautil.CallAllPersistentPreRun(cmd, args)
+	}
+	cmd.AddCommand(envCmd)
 	cmd.AddCommand(hosts.NewHostsCmd())
 
 	// Service commands
