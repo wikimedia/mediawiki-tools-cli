@@ -146,6 +146,10 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					fmt.Println("error with progress bar:", err)
 					os.Exit(1)
 				}
+				if int64(pw.Downloaded) < response.ContentLength {
+					logrus.Error("Download seems incomplete.")
+					os.Exit(1)
+				}
 
 				// Is the file a zip?
 				if updater.IsZipFile(tempDownloadFilePath) {
