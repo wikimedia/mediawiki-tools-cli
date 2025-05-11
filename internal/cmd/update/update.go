@@ -195,21 +195,23 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				defer os.Remove(tempCopyPath)
 
 				// Move the new file to the desired location
-				err = os.Rename(newMwFileLocation, executablePath)
+				_, err = copyFile(newMwFileLocation, executablePath)
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
 					// Switch them back
-					os.Rename(tempCopyPath, executablePath)
+					copyFile(tempCopyPath, executablePath)
 					os.Exit(1)
 				}
+				defer os.Remove(newMwFileLocation)
 
 				// Make sure it is executable
 				// TODO only do this, if it wasn't already executable?
 				err = os.Chmod(executablePath, 0o755)
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not make new binary executable: %s", err))
-					// Switch them back
-					os.Rename(tempCopyPath, executablePath)
+					// Switch them back.
+					// TODO: This wont restore the +x, will it?
+					copyFile(tempCopyPath, executablePath)
 					os.Exit(1)
 				}
 			} else {
