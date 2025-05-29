@@ -14,18 +14,18 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/custom"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/dockercompose"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/hosts"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/keycloak"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/mediawiki"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/mysql"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/mysqlreplica"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/redis"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/shellbox"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/wdqs"
+	wdqsUi "gitlab.wikimedia.org/repos/releng/cli/commands/docker/wdqs-ui"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/custom"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/dockercompose"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/hosts"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/keycloak"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/mediawiki"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/mysql"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/mysqlreplica"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/redis"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/shellbox"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs"
-	wdqsUi "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker/wdqs-ui"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/env"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -99,8 +99,8 @@ func NewCmd() *cobra.Command {
 			thisDev := mwdd.DefaultForUser()
 			thisDev.EnsureReady()
 
-			// Skip the checks and wizard if "MWCLI_ENV_COMMAND" is defined as an env var
-			if _, envCommandDefined := os.LookupEnv("MWCLI_ENV_COMMAND"); envCommandDefined {
+			// Skip the checks and wizard if "MWCLI_MEDIAWIKI_ENV_COMMAND" is defined as an env var
+			if _, envCommandDefined := os.LookupEnv("MWCLI_MEDIAWIKI_ENV_COMMAND"); envCommandDefined {
 				return
 			}
 			// Skip the checks and wizard for any destroy commands
@@ -191,7 +191,12 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewMwddRestartCmd())
 	cmd.AddCommand(NewMwddUpdateCmd())
 	cmd.AddCommand(dockercompose.NewCmd())
-	cmd.AddCommand(env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory))
+	envCmd := env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory)
+	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		os.Setenv("MWCLI_MEDIAWIKI_ENV_COMMAND", "1")
+		cobrautil.CallAllPersistentPreRun(cmd, args)
+	}
+	cmd.AddCommand(envCmd)
 	cmd.AddCommand(hosts.NewHostsCmd())
 
 	// Service commands
