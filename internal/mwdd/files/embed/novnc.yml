@@ -1,6 +1,6 @@
 services:
   novnc:
-    image: "${NOVNC_IMAGE:-ghcr.io/montehurd/mediawiki-docker-images/novnc:latest}"
+    image: "${NOVNC_IMAGE:-ghcr.io/montehurd/mediawiki-docker-images/novnc@sha256:57358bd7ab04bf4b39405369cc8e896bb5571251edd97671d8d6227b639bd2e1}"
     restart: unless-stopped
     environment:
       - NOVNC_PORT=8086

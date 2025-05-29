@@ -202,6 +202,7 @@ func NewCmd() *cobra.Command {
 	// Service commands
 	cmd.AddCommand(mediawiki.NewMediaWikiCmd())
 	cmd.AddCommand(mwdd.NewServiceCmd("adminer", mwdd.ServiceTexts{Long: adminerLong, OnCreate: envSubst(adminerOnCreate)}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("novnc", mwdd.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("elasticsearch", mwdd.ServiceTexts{Long: elasticsearchLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("eventlogging", mwdd.ServiceTexts{Long: eventLoggingLong}, []string{"eventgate"}))
 	cmd.AddCommand(mwdd.NewServiceCmd("graphite", mwdd.ServiceTexts{Long: graphiteLong, OnCreate: envSubst(graphiteOnCreate)}, []string{}))
