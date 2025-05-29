@@ -29,6 +29,7 @@ type CloneOpts struct {
 	UseShallow            bool
 	GerritInteractionType string
 	GerritUsername        string
+	DryRun                bool
 }
 
 func (cp CloneOpts) AreThereThingsToClone() bool {
@@ -45,6 +46,9 @@ func (m MediaWiki) CloneSetup(options CloneOpts) {
 	}
 
 	fmt.Println("Cloning repositories...")
+	if options.DryRun {
+		fmt.Println("...DRY RUN - no actual operations will be performed...")
+	}
 	if options.UseShallow {
 		fmt.Println("...using shallow clones...")
 	}
@@ -80,7 +84,7 @@ func (m MediaWiki) CloneSetup(options CloneOpts) {
 			fmt.Println("Unknown Gerrit interaction type.")
 			os.Exit(1)
 		}
-		cloneAndSetRemote(m.Path(""), startRemoteCore, endRemoteCore, options.UseShallow)
+		cloneAndSetRemote(m.Path(""), startRemoteCore, endRemoteCore, options.UseShallow, options.DryRun)
 	}
 
 	for _, skinName := range options.GetGerritSkins {
@@ -99,7 +103,7 @@ func (m MediaWiki) CloneSetup(options CloneOpts) {
 			os.Exit(1)
 		}
 
-		cloneAndSetRemote(m.Path("skins/"+skinName), startRemote, endRemote, options.UseShallow)
+		cloneAndSetRemote(m.Path("skins/"+skinName), startRemote, endRemote, options.UseShallow, options.DryRun)
 	}
 
 	for _, extensionName := range options.GetGerritExtensions {
@@ -118,7 +122,7 @@ func (m MediaWiki) CloneSetup(options CloneOpts) {
 			os.Exit(1)
 		}
 
-		cloneAndSetRemote(m.Path("extensions/"+extensionName), startRemote, endRemote, options.UseShallow)
+		cloneAndSetRemote(m.Path("extensions/"+extensionName), startRemote, endRemote, options.UseShallow, options.DryRun)
 	}
 
 	fmt.Println("Repositories cloned.")
@@ -148,8 +152,15 @@ func githubRemoteForExtension(extension string) string {
 	return "https://github.com/wikimedia/mediawiki-extensions-" + extension + ".git"
 }
 
-func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool) {
+func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool, dryRun bool) {
 	logrus.Trace("Cloning " + startRemote + " to " + directory + " and setting remote to " + endRemote + " (shallow: " + strconv.FormatBool(useShallow) + ")")
+	if dryRun {
+		fmt.Printf("Would clone %s to %s\n", startRemote, directory)
+		if startRemote != endRemote {
+			fmt.Printf("Would set remote origin to %s\n", endRemote)
+		}
+		return
+	}
 	exec.RunTTYCommand(exec.Command(
 		"git",
 		gitCloneArguments(directory, startRemote, useShallow)...,

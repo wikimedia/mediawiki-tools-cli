@@ -40,6 +40,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			useGithub, _ := cmd.Flags().GetBool("use-github")
 			gerritInteractionType, _ := cmd.Flags().GetString("gerrit-interaction-type")
 			gerritUsername, _ := cmd.Flags().GetString("gerrit-username")
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 			if gerritUsername == "" {
 				c := config.State()
@@ -61,6 +62,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				UseGithub:             useGithub,
 				GerritInteractionType: gerritInteractionType,
 				GerritUsername:        gerritUsername,
+				DryRun:                dryRun,
 			}
 
 			// If someone runs the command but doesn't ask for anything, run the wizard, or output help in no interaction mode
@@ -195,6 +197,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 	cmd.Flags().Bool("use-github", false, "Use GitHub for speed & switch to Gerrit remotes after")
 	cmd.Flags().String("gerrit-interaction-type", "", "How to interact with Gerrit (overriding config) (http, ssh)")
 	cmd.Flags().String("gerrit-username", "", "Gerrit username / shell name for ssh interaction type (overriding config)")
+	cmd.Flags().Bool("dry-run", false, "Show what would be done without actually doing it")
 
 	return cmd
 }
