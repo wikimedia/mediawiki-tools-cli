@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
 const authUrl = "https://openstack.eqiad1.wikimediacloud.org:25000/v3"
@@ -22,7 +23,8 @@ func NewAuthCmd() *cobra.Command {
 
 	cmd.AddCommand(NewAuthAddCmd())
 	cmd.AddCommand(NewAuthRemoveCmd())
-	cmd.AddCommand(NewAuthCheckCmd()) // Add the check command
+	cmd.AddCommand(NewAuthCheckCmd())
+	cmd.AddCommand(NewAuthListCmd())
 
 	return cmd
 }
@@ -137,5 +139,62 @@ func NewAuthCheckCmd() *cobra.Command {
 
 	cmd.Flags().String("project", "", "Project name (required)")
 
+	return cmd
+}
+
+func NewAuthListCmd() *cobra.Command {
+	out := output.Output{
+		TableBinding: &output.TableBinding{
+			Headings: []string{"Project", "Credential ID"},
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				objMap, ok := objects.(map[string]interface{})
+				if ok {
+					for name, object := range objMap {
+						cred, ok := object.(string)
+						if !ok {
+							cred = "(no credential ID)"
+						}
+						table.AddRowS(name, cred)
+					}
+				}
+			},
+		},
+		AckBinding: func(objects interface{}, ack *output.Ack) {
+			objMap, ok := objects.(map[string]interface{})
+			if ok {
+				for name, object := range objMap {
+					cred, ok := object.(string)
+					if !ok {
+						cred = "(no credential ID)"
+					}
+					ack.AddItem(cred, name+" ("+cred+")")
+				}
+			}
+		},
+	}
+
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List configured Cloud VPS projects and their credential IDs",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := config.State()
+			projects := c.Effective.CloudVPS.Projects
+			if len(projects) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "No Cloud VPS projects configured.")
+				return nil
+			}
+			objects := make(map[string]interface{}, len(projects))
+			for name, proj := range projects {
+				id := proj.Credential.ID
+				if id == "" {
+					id = "(no credential ID)"
+				}
+				objects[name] = id
+			}
+			out.Print(cmd, objects)
+			return nil
+		},
+	}
+	out.AddFlags(cmd, output.TableType)
 	return cmd
 }
