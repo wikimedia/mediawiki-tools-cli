@@ -35,11 +35,25 @@ func NewComputeGetCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "get <id>",
-		Short: "Get a compute resource by ID",
-		Args:  cobra.ExactArgs(1),
+		Use:   "get [name-or-id]",
+		Short: "Get a compute resource by name or ID",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id := args[0]
+			name, _ := cmd.Flags().GetString("name")
+			id, _ := cmd.Flags().GetString("id")
+			nameOrID := ""
+			if len(args) > 0 {
+				nameOrID = args[0]
+			}
+
+			// Validate that only one of name, id, or nameOrID is provided
+			if (name != "" && id != "") || (name != "" && nameOrID != "") || (id != "" && nameOrID != "") {
+				return fmt.Errorf("only one of --name, --id, or positional argument can be provided")
+			}
+			if name == "" && id == "" && nameOrID == "" {
+				return fmt.Errorf("one of --name, --id, or positional argument must be provided")
+			}
+
 			project, _ := cmd.Flags().GetString("project")
 			if project == "" {
 				c := config.State()
@@ -76,7 +90,33 @@ func NewComputeGetCmd() *cobra.Command {
 				return err
 			}
 
-			server, err := servers.Get(context.Background(), computeClient, id).Extract()
+			var server *servers.Server
+
+			if id != "" {
+				server, err = servers.Get(context.Background(), computeClient, id).Extract()
+			} else if name != "" {
+				listOpts := servers.ListOpts{
+					Name: name,
+				}
+				allPages, listErr := servers.List(computeClient, listOpts).AllPages(context.Background())
+				if listErr != nil {
+					return listErr
+				}
+				allServers, extractErr := servers.ExtractServers(allPages)
+				if extractErr != nil {
+					return extractErr
+				}
+				if len(allServers) == 0 {
+					return fmt.Errorf("no server found with name: %s", name)
+				}
+				if len(allServers) > 1 {
+					return fmt.Errorf("multiple servers found with name: %s, please use ID", name)
+				}
+				server = &allServers[0]
+			} else if nameOrID != "" {
+				server, err = resolveServerNameOrID(context.Background(), computeClient, nameOrID)
+			}
+
 			if err != nil {
 				return err
 			}
@@ -89,6 +129,8 @@ func NewComputeGetCmd() *cobra.Command {
 
 	out.AddFlags(cmd, output.TableType, output.AckType)
 	cmd.Flags().String("project", "", "Project name (optional, uses default project if not specified)")
+	cmd.Flags().String("name", "", "Compute resource name")
+	cmd.Flags().String("id", "", "Compute resource ID")
 
 	return cmd
 }

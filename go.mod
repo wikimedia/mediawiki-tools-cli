@@ -3,7 +3,6 @@ module gitlab.wikimedia.org/repos/releng/cli
 require (
 	cgt.name/pkg/go-mwclient v1.3.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
-	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/adrg/xdg v0.5.3
