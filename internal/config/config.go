@@ -13,9 +13,15 @@ type Config struct {
 	TimerLastEmittedEvent  string `koanf:"timer_last_emitted_event" json:"timer_last_emitted_event"`
 	TimerLastUpdateChecked string `koanf:"timer_last_update_checked" json:"timer_last_update_checked"`
 
-	Gerrit   GerritConfig   `koanf:"gerrit" json:"gerrit"`
-	CloudVPS CloudVPSConfig `koanf:"cloud_vps" json:"cloud_vps"`
-	MwDev    MwDevConfig    `koanf:"mw_dev" json:"mw_dev"`
+	Gerrit    GerritConfig    `koanf:"gerrit" json:"gerrit"`
+	CloudVPS  CloudVPSConfig  `koanf:"cloud_vps" json:"cloud_vps"`
+	MwDev     MwDevConfig     `koanf:"mw_dev" json:"mw_dev"`
+	Developer DeveloperConfig `koanf:"developer" json:"developer"`
+}
+
+type DeveloperConfig struct {
+	Username   string `koanf:"username" json:"username"`
+	SSHKeyPath string `koanf:"ssh_key_path" json:"ssh_key_path"`
 }
 
 type GerritConfig struct {
@@ -64,5 +70,6 @@ func defaultConfig() Config {
 		CloudVPS: CloudVPSConfig{
 			Projects: make(map[string]CloudVPSProject),
 		},
+		Developer: DeveloperConfig{},
 	}
 }

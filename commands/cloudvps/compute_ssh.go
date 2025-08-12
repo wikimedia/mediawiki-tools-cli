@@ -1,4 +1,3 @@
-
 package cloudvps
 
 import (
@@ -71,7 +70,6 @@ func NewComputeSshCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			var server *servers.Server
 
 			if id != "" {
@@ -104,9 +102,32 @@ func NewComputeSshCmd() *cobra.Command {
 			}
 
 			hostname := fmt.Sprintf("%s.%s.eqiad1.wikimedia.cloud", server.Name, server.TenantID)
-			logrus.Infof("SSHing to %s", hostname)
+			logrus.Debugf("SSHing to %s", hostname)
 
-			sshCmd := exec.Command("ssh", hostname)
+			devConfig := c.Effective.Developer
+			var sshCmd *exec.Cmd
+
+			if devConfig.Username != "" {
+				// Configured SSH
+				logrus.Debugf("Using configured developer username %s and ssh key path %s", devConfig.Username, devConfig.SSHKeyPath)
+
+				userHost := fmt.Sprintf("%s@%s", devConfig.Username, hostname)
+				bastion := fmt.Sprintf("%s@bastion.wmcloud.org:22", devConfig.Username)
+
+				args := []string{"-J", bastion, userHost}
+				// only use the key if defined
+				if devConfig.SSHKeyPath != "" {
+					args = append([]string{"-i", devConfig.SSHKeyPath}, args...)
+				}
+
+				sshCmd = exec.Command("ssh", args...)
+
+			} else {
+				// Unconfigured SSH, rely on user's environment
+				logrus.Debug("No developer username configured, using system ssh")
+				sshCmd = exec.Command("ssh", hostname)
+			}
+
 			sshCmd.Stdin = os.Stdin
 			sshCmd.Stdout = os.Stdout
 			sshCmd.Stderr = os.Stderr
