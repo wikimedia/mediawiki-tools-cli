@@ -21,6 +21,7 @@ func NewComputeCmd() *cobra.Command {
 
 	cmd.AddCommand(NewComputeListCmd())
 	cmd.AddCommand(NewComputeGetCmd())
+	cmd.AddCommand(NewComputeSshCmd())
 
 	return cmd
 }
