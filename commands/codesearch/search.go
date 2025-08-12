@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/codesearch"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )

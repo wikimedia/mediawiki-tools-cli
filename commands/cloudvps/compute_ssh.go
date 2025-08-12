@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
@@ -105,29 +107,47 @@ func NewComputeSshCmd() *cobra.Command {
 			logrus.Debugf("SSHing to %s", hostname)
 
 			devConfig := c.Effective.Developer
-			var sshCmd *exec.Cmd
+			var sshArgs []string
 
 			if devConfig.Username != "" {
 				// Configured SSH
 				logrus.Debugf("Using configured developer username %s and ssh key path %s", devConfig.Username, devConfig.SSHKeyPath)
 
 				userHost := fmt.Sprintf("%s@%s", devConfig.Username, hostname)
-				bastion := fmt.Sprintf("%s@bastion.wmcloud.org:22", devConfig.Username)
 
-				args := []string{"-J", bastion, userHost}
-				// only use the key if defined
 				if devConfig.SSHKeyPath != "" {
-					args = append([]string{"-i", devConfig.SSHKeyPath}, args...)
+					// If we have both username and key, ignore the on-disk config
+					sshArgs = append(sshArgs, "-F", "/dev/null")
+					sshArgs = append(sshArgs, "-i", devConfig.SSHKeyPath)
 				}
 
-				sshCmd = exec.Command("ssh", args...)
+				if cli.Opts.Verbosity > 0 {
+					sshArgs = append(sshArgs, "-"+strings.Repeat("v", cli.Opts.Verbosity))
+				}
+
+				proxyCommand := fmt.Sprintf("ssh -W %%h:%%p %s@bastion.wmcloud.org", devConfig.Username)
+				if devConfig.SSHKeyPath != "" {
+					verbosity := ""
+					if cli.Opts.Verbosity > 0 {
+						verbosity = "-" + strings.Repeat("v", cli.Opts.Verbosity)
+					}
+					proxyCommand = fmt.Sprintf("ssh -F /dev/null %s -i %s -W %%h:%%p %s@bastion.wmcloud.org", verbosity, devConfig.SSHKeyPath, devConfig.Username)
+				}
+				sshArgs = append(sshArgs, "-o", "ProxyCommand="+proxyCommand)
+
+				sshArgs = append(sshArgs, userHost)
 
 			} else {
 				// Unconfigured SSH, rely on user's environment
 				logrus.Debug("No developer username configured, using system ssh")
-				sshCmd = exec.Command("ssh", hostname)
+				sshArgs = []string{}
+				if cli.Opts.Verbosity > 0 {
+					sshArgs = append(sshArgs, "-"+strings.Repeat("v", cli.Opts.Verbosity))
+				}
+				sshArgs = append(sshArgs, hostname)
 			}
 
+			sshCmd := exec.Command("ssh", sshArgs...)
 			sshCmd.Stdin = os.Stdin
 			sshCmd.Stdout = os.Stdout
 			sshCmd.Stderr = os.Stderr

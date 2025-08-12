@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	authcmd "gitlab.wikimedia.org/repos/releng/cli/commands/auth"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
@@ -133,6 +134,7 @@ func NewMwCliCmd() *cobra.Command {
 		updatecmd.Cmd(),
 		configcmd.Cmd(),
 		debugcmd.Cmd(),
+		authcmd.NewAuthCmd(),
 
 		// Built in sub commands
 		gitlabcmd.Cmd(),
