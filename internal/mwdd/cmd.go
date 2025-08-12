@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
@@ -209,7 +209,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 	var User string
 	cmd := &cobra.Command{
 		Use:     "exec [flags] [command...]",
-		Example: "exec bash\nexec -- bash --help\nexec --user root bash\nexec --user root -- bash --help",
+		Example: cobrautil.NormalizeExample("exec bash\nexec -- bash --help\nexec --user root bash\nexec --user root -- bash --help"),
 		Short:   "Execute a command in the main container",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -256,7 +256,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 		Hidden: true, // Hide as deprecated
 		Short:  "DEPRECATED: Expose a port in a running container",
 		Long:   cli.RenderMarkdown(mwddExposeLong),
-		Example: heredoc.Doc(`
+		Example: cobrautil.NormalizeExample(`
 		expose
 		expose --external-port 1234
 		expose --external-port 1234 --internal-port 80

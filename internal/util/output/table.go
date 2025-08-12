@@ -32,7 +32,7 @@ func NewTable(headings []interface{}, rows [][]interface{}) *Table {
 	}
 }
 
-func TableFromObjects(objects map[interface{}]interface{}, headings []string, processObjects func(map[interface{}]interface{}, *Table)) *Table {
+func TableFromObjects(objects interface{}, headings []string, processObjects func(interface{}, *Table)) *Table {
 	var thisTable Table
 	thisTable.AddHeadingsS(headings...)
 	processObjects(objects, &thisTable)

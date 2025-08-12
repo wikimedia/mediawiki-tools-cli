@@ -11,29 +11,30 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/cloudvps"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/codesearch"
+	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
+	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
+	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/toolhub"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/tools"
+	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
+	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
+	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/cloudvps"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/codesearch"
-	configcmd "gitlab.wikimedia.org/repos/releng/cli/internal/cmd/config"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/debug"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/docker"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gerrit"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/gitlab"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/help"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/quip"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/toolhub"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/tools"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/update"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/version"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/wiki"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmd/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/eventlogging"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
+
+var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
 
 func NewMwCliCmd() *cobra.Command {
 	mwcliCmd := &cobra.Command{
@@ -68,7 +69,7 @@ func NewMwCliCmd() *cobra.Command {
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
 			if cli.Opts.Telemetry {
-				eventlogging.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
+				events.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
 			}
 		},
 	}
@@ -115,7 +116,7 @@ func NewMwCliCmd() *cobra.Command {
 			return
 		}
 
-		eventlogging.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		events.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
 		defaultHelpFunc(c, a)
 	})
 
@@ -127,19 +128,24 @@ func NewMwCliCmd() *cobra.Command {
 	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
 
 	mwcliCmd.AddCommand([]*cobra.Command{
+		// Core CLI command
+		versioncmd.Cmd(),
+		updatecmd.Cmd(),
+		configcmd.Cmd(),
+		debugcmd.Cmd(),
+
+		// Built in sub commands
+		gitlabcmd.Cmd(),
+		zikicmd.Cmd(),
+
+		// Older commands, not yet moved to the /commands directory
 		codesearch.NewCodeSearchCmd(),
-		configcmd.NewConfigCmd(),
-		debug.NewDebugCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
-		gitlab.NewGitlabCmd(),
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
 		docker.NewCmd(),
-		update.NewUpdateCmd(),
-		version.NewVersionCmd(),
 		wiki.NewWikiCmd(),
-		ziki.NewZikiCmd(),
 		quip.NewQuipCmd(),
 		help.NewOutputTopicCmd(),
 	}...)
@@ -193,7 +199,7 @@ func tryToEmitEvents() {
 
 	if shouldTryToEmitEvents {
 		config.PutKeyValueOnDisk("timer_last_emitted_event", timers.String(timers.NowUTC()))
-		eventlogging.EmitEvents()
+		events.EmitEvents()
 	}
 }
 

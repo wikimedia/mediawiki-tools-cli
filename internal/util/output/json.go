@@ -15,20 +15,18 @@ import (
 )
 
 type JSON struct {
-	Objects      map[interface{}]interface{}
-	Format       string
-	TopLevelKeys bool
+	Objects interface{}
+	Format  string
 }
 
-func NewJSON(objects map[interface{}]interface{}, format string, topLevelKeys bool) *JSON {
+func NewJSON(objects interface{}, format string) *JSON {
 	return &JSON{
-		Objects:      objects,
-		Format:       format,
-		TopLevelKeys: topLevelKeys,
+		Objects: objects,
+		Format:  format,
 	}
 }
 
-func NewJSONFromString(objects string, format string, topLevelKeys bool) *JSON {
+func NewJSONFromString(objects string, format string) *JSON {
 	var obj map[string]interface{}
 	err := json.Unmarshal([]byte(objects), &obj)
 	if err != nil {
@@ -41,43 +39,35 @@ func NewJSONFromString(objects string, format string, topLevelKeys bool) *JSON {
 	}
 
 	return &JSON{
-		Objects:      convertedObjects,
-		Format:       format,
-		TopLevelKeys: topLevelKeys,
+		Objects: convertedObjects,
+		Format:  format,
 	}
 }
 
 func (j *JSON) Print(writer io.Writer) {
-	if j.TopLevelKeys {
-		printWithKeys(j, writer)
-	} else {
-		printIgnoringKeys(j, writer)
-	}
+	printWithKeys(j, writer)
 }
 
 func printWithKeys(j *JSON, writer io.Writer) {
 	query := parseFormatQueryOrPanic(j.Format)
 
-	// Convert from interface => interface, to string => interface
-	mapOfInterfaces := make(map[string]interface{}, len(j.Objects))
-	for key, value := range j.Objects {
-		mapOfInterfaces[fmt.Sprintf("%v", key)] = value
-	}
-
-	marshalAndPrint(mapOfInterfaces, query, writer)
-}
-
-func printIgnoringKeys(j *JSON, writer io.Writer) {
-	query := parseFormatQueryOrPanic(j.Format)
-	for _, obj := range j.Objects {
-		marshalAndPrint(obj, query, writer)
+	// If it's a map[interface{}]interface{}, convert keys to string for JSON
+	switch objs := j.Objects.(type) {
+	case map[interface{}]interface{}:
+		mapOfInterfaces := make(map[string]interface{}, len(objs))
+		for key, value := range objs {
+			mapOfInterfaces[fmt.Sprintf("%v", key)] = value
+		}
+		marshalAndPrint(mapOfInterfaces, query, writer)
+	default:
+		marshalAndPrint(j.Objects, query, writer)
 	}
 }
 
 func parseFormatQueryOrPanic(format string) *gojq.Query {
 	query, err := gojq.Parse(format)
 	if err != nil {
-		logrus.Panic(err)
+		logrus.Error("Error parsing jq query: ", err)
 	}
 	logrus.Trace(query.String())
 	return query
