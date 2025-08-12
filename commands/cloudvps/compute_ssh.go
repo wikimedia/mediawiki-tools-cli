@@ -107,6 +107,14 @@ func NewComputeSshCmd() *cobra.Command {
 			logrus.Debugf("SSHing to %s", hostname)
 
 			devConfig := c.Effective.Developer
+
+			if devConfig.Username != "" && devConfig.SSHKeyPath != "" {
+				err := ensureSshAgentKey(devConfig.SSHKeyPath)
+				if err != nil {
+					return err
+				}
+			}
+
 			var sshArgs []string
 
 			if devConfig.Username != "" {
@@ -118,6 +126,7 @@ func NewComputeSshCmd() *cobra.Command {
 				if devConfig.SSHKeyPath != "" {
 					// If we have both username and key, ignore the on-disk config
 					sshArgs = append(sshArgs, "-F", "/dev/null")
+					sshArgs = append(sshArgs, "-o", "IdentitiesOnly=yes")
 					sshArgs = append(sshArgs, "-i", devConfig.SSHKeyPath)
 				}
 
@@ -161,4 +170,41 @@ func NewComputeSshCmd() *cobra.Command {
 	cmd.Flags().String("id", "", "Compute resource ID")
 
 	return cmd
+}
+
+func ensureSshAgentKey(keyPath string) error {
+	// Check if SSH_AUTH_SOCK is set
+	if os.Getenv("SSH_AUTH_SOCK") == "" {
+		logrus.Debug("SSH_AUTH_SOCK not set, not using ssh-agent")
+		return nil
+	}
+
+	// Get fingerprint of the key
+	out, err := exec.Command("ssh-keygen", "-lf", keyPath).Output()
+	if err != nil {
+		return fmt.Errorf("could not get fingerprint of key %s: %w", keyPath, err)
+	}
+	fingerprint := strings.Split(string(out), " ")[1]
+
+	// Check if key is already in agent
+	out, err = exec.Command("ssh-add", "-l").Output()
+	if err != nil {
+		// ssh-add returns 1 if there are no identities, so we don't treat that as an error
+		if exitError, ok := err.(*exec.ExitError); !ok || exitError.ExitCode() != 1 {
+			return fmt.Errorf("could not list ssh keys in agent: %w", err)
+		}
+	}
+
+	if strings.Contains(string(out), fingerprint) {
+		logrus.Debugf("SSH key %s already in agent", keyPath)
+		return nil
+	}
+
+	// Add key to agent
+	logrus.Debugf("Adding SSH key %s to agent", keyPath)
+	cmd := exec.Command("ssh-add", keyPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }

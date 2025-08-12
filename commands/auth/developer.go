@@ -11,6 +11,7 @@ func NewDeveloperCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewDeveloperCreateCmd())
+	cmd.AddCommand(NewDeveloperAgentCmd())
 
 	return cmd
 }
