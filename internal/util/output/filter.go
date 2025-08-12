@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Filter(objects map[interface{}]interface{}, filterList []string) map[interface{}]interface{} {
+func Filter(objects map[any]any, filterList []string) map[any]any {
 	if len(filterList) == 0 {
 		return objects
 	}
@@ -47,13 +47,22 @@ func getValueAtKey(object interface{}, key string) reflect.Value {
 	fields := strings.Split(key, ".")
 	// Look down through each key split from . recursively
 	for _, field := range fields {
-		reflectedValue = reflect.Indirect(reflectedValue).FieldByName(field)
+		reflectedValue = reflect.Indirect(reflectedValue)
+		if reflectedValue.Kind() == reflect.Struct {
+			reflectedValue = reflectedValue.FieldByName(field)
+		} else {
+			// If not a struct, cannot go deeper, return invalid value
+			return reflect.Value{}
+		}
 	}
 	return reflectedValue
 }
 
 func filterKeyAndValue(userInput string) (key string, value string) {
-	split := strings.Split(userInput, "=")
+	split := strings.SplitN(userInput, "=", 2)
+	if len(split) < 2 {
+		return split[0], ""
+	}
 	return split[0], split[1]
 }
 

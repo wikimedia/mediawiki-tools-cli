@@ -64,7 +64,9 @@ test_command_success ./bin/mw docker adminer create
 # Install everything (mysql, postgres, sqlite)
 test_command_success ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
 test_command_success ./bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres
-test_command_success ./bin/mw docker mediawiki install --dbtype sqlite
+# This is currently disabled, as Warning: you have SQLite 3.27.2, which is lower than minimum required version 3.31.0. SQLite will be unavailable.
+# This is due to still using an older mediawiki image due to https://phabricator.wikimedia.org/T388411
+# test_command_success ./bin/mw docker mediawiki install --dbtype sqlite
 
 # Test foreachwiki
 test_command_success ./bin/mw docker mediawiki foreachwiki showSiteStats.php
@@ -88,7 +90,7 @@ test_wget http://phpmyadmin.mwdd.localhost:$PORT "Open new phpMyAdmin window"
 test_wget http://adminer.mwdd.localhost:$PORT "Login - Adminer"
 
 # And check the installed sites (mysql, postgres, sqlite)
-test_wget http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+# test_wget http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 test_wget http://postgreswiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 test_wget http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
 
