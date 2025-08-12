@@ -13,53 +13,33 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-func NewComputeCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "compute",
-		Short: "Manage compute resources",
-	}
-
-	cmd.AddCommand(NewComputeListCmd())
-	cmd.AddCommand(NewComputeGetCmd())
-
-	return cmd
-}
-
-func NewComputeListCmd() *cobra.Command {
+func NewComputeGetCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Status", "ID"},
 			ProcessObjects: func(objects interface{}, table *output.Table) {
-				objMap, ok := objects.(map[interface{}]interface{})
-				if ok {
-					for _, object := range objMap {
-						typedObject, ok := object.(servers.Server)
-						if !ok {
-							continue
-						}
-						table.AddRowS(typedObject.Name, typedObject.Status, typedObject.ID)
-					}
+				typedObject, ok := objects.(*servers.Server)
+				if !ok {
+					return
 				}
+				table.AddRowS(typedObject.Name, typedObject.Status, typedObject.ID)
 			},
 		},
 		AckBinding: func(objects interface{}, ack *output.Ack) {
-			objMap, ok := objects.(map[interface{}]interface{})
-			if ok {
-				for _, object := range objMap {
-					typedObject, ok := object.(servers.Server)
-					if !ok {
-						continue
-					}
-					ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
-				}
+			typedObject, ok := objects.(*servers.Server)
+			if !ok {
+				return
 			}
+			ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
 		},
 	}
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List compute resources",
+		Use:   "get <id>",
+		Short: "Get a compute resource by ID",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			id := args[0]
 			project, _ := cmd.Flags().GetString("project")
 			if project == "" {
 				c := config.State()
@@ -88,37 +68,26 @@ func NewComputeListCmd() *cobra.Command {
 
 			providerClient, err := openstack.AuthenticatedClient(context.Background(), auth)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			computeClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{})
 			if err != nil {
-				panic(err)
+				return err
 			}
 
-			// List all servers
-			allPages, err := servers.List(computeClient, servers.ListOpts{}).AllPages(context.Background())
+			server, err := servers.Get(context.Background(), computeClient, id).Extract()
 			if err != nil {
-				panic(err)
+				return err
 			}
 
-			allServers, err := servers.ExtractServers(allPages)
-			if err != nil {
-				panic(err)
-			}
-
-			objects := make(map[interface{}]interface{}, len(allServers))
-			for key, server := range allServers {
-				objects[key] = server
-			}
-
-			out.Print(cmd, objects)
+			out.Print(cmd, server)
 
 			return nil
 		},
 	}
 
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlags(cmd, output.TableType, output.AckType)
 	cmd.Flags().String("project", "", "Project name (optional, uses default project if not specified)")
 
 	return cmd
