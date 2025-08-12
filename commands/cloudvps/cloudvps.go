@@ -48,9 +48,8 @@ func NewAuthCmd() *cobra.Command {
 
 func NewAuthAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "add",
-		Short:  "Add a new application credential",
-		Hidden: true, // for now
+		Use:   "add",
+		Short: "Add a new application credential",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 			id, _ := cmd.Flags().GetString("id")
@@ -91,9 +90,8 @@ func NewAuthAddCmd() *cobra.Command {
 
 func NewAuthRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "remove",
-		Short:  "Remove application credential",
-		Hidden: true, // for now
+		Use:   "remove",
+		Short: "Remove application credential",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 
@@ -123,9 +121,8 @@ func NewAuthRemoveCmd() *cobra.Command {
 
 func NewAuthCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "check",
-		Short:  "Check if the application credential is valid",
-		Hidden: true, // for now
+		Use:   "check",
+		Short: "Check if the application credential is valid",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 
@@ -164,9 +161,8 @@ func NewAuthCheckCmd() *cobra.Command {
 
 func NewComputeCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "compute",
-		Short:  "Manage compute resources",
-		Hidden: true, // for now
+		Use:   "compute",
+		Short: "Manage compute resources",
 	}
 
 	cmd.AddCommand(NewComputeListCmd())
@@ -206,9 +202,8 @@ func NewComputeListCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:    "list",
-		Short:  "List compute resources",
-		Hidden: true, // for now
+		Use:   "list",
+		Short: "List compute resources",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 			if project == "" {
