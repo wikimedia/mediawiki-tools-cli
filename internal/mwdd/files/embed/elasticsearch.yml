@@ -1,7 +1,7 @@
 
 services:
   elasticsearch:
-    image: "${ELASTICSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-6}"
+    image: "${ELASTICSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-12}"
     security_opt:
       - label:disable
     restart: unless-stopped
@@ -11,6 +11,7 @@ services:
     # see https://gitlab.wikimedia.org/kharlan/wmf-elasticsearch-arm64/
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
+      - elasticsearch-data:/usr/share/opensearch/data
     environment:
       - discovery.type=single-node
     dns:
