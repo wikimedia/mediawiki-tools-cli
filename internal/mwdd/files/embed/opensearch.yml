@@ -1,0 +1,26 @@
+
+services:
+  opensearch:
+    image: "${OPENSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-12}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    # TODO optionally switch this automatically based on architecture?
+    # TODO actually build this image somewhere nicer?
+    # on an Apple M1 / arm64 system, you can build this image yourself following the instructions
+    # at https://gitlab.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    environment:
+      - discovery.type=single-node
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+    ports:
+      - ${OPENSEARCH_PORT_9200-}:9200
+      - ${OPENSEARCH_PORT_9300-}:9300
+
+volumes:
+  opensearch-data:
+    driver: local

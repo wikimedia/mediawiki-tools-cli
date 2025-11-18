@@ -37,6 +37,7 @@
 ./nginx/client_max_body_size.conf
 ./nginx/timeouts.conf
 ./novnc.yml
+./opensearch.yml
 ./phpmyadmin.yml
 ./phpmyadmin/config.user.inc.php
 ./postgres.yml

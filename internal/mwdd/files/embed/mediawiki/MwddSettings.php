@@ -67,6 +67,7 @@ $dockerServices = [
 	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
 	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
 	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
+	'opensearch' => gethostbyname('opensearch') !== 'opensearch' && !defined( 'MW_PHPUNIT_TEST' ),
 	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
 	'citoid' => gethostbyname('citoid') !== 'citoid' && !defined( 'MW_PHPUNIT_TEST' ),
 	'jaeger' => gethostbyname('jaeger') !== 'jaeger' && !defined( 'MW_PHPUNIT_TEST' ),
@@ -239,6 +240,13 @@ if(gethostbyname('memcached') !== 'memcached') {
 ################################
 if(gethostbyname('elasticsearch') !== 'elasticsearch') {
 	$wgCirrusSearchServers = [ 'elasticsearch' ];
+}
+
+################################
+# MWDD OpenSearch
+################################
+if(gethostbyname('opensearch') !== 'opensearch') {
+	$wgCirrusSearchServers = [ 'opensearch' ];
 }
 
 ################################

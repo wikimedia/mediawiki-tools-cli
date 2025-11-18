@@ -204,6 +204,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("adminer", mwdd.ServiceTexts{Long: adminerLong, OnCreate: envSubst(adminerOnCreate)}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("novnc", mwdd.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("elasticsearch", mwdd.ServiceTexts{Long: elasticsearchLong}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("opensearch", mwdd.ServiceTexts{Long: opensearchLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("eventlogging", mwdd.ServiceTexts{Long: eventLoggingLong}, []string{"eventgate"}))
 	cmd.AddCommand(mwdd.NewServiceCmd("graphite", mwdd.ServiceTexts{Long: graphiteLong, OnCreate: envSubst(graphiteOnCreate)}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("mailhog", mwdd.ServiceTexts{Long: mailhogLong, OnCreate: envSubst(mailhogOnCreate)}, []string{}))
@@ -255,6 +256,9 @@ func envSubst(s string) string {
 
 //go:embed elasticsearch/elasticsearch.long.md
 var elasticsearchLong string
+
+//go:embed opensearch/opensearch.long.md
+var opensearchLong string
 
 //go:embed eventlogging/eventlogging.long.md
 var eventLoggingLong string
