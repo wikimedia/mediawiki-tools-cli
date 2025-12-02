@@ -3,7 +3,7 @@ images:
   - image: defreitas/dns-proxy-server:3.5.2
   - image: jwilder/nginx-proxy:0.10
   # docker dev env: MediaWiki related services
-  - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.19.1
+  - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.19.5
   - image: docker-registry.wikimedia.org/releng/quibble-buster-php83:1.9.1
   - image: docker-registry.wikimedia.org/dev/buster-php81-fpm:1.0.1-s2
   - image: docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1
@@ -15,7 +15,7 @@ images:
     noCheck: true
   - image: wikibase/wdqs-proxy:wmde.11
     noCheck: true
-  - image: postgres:13.20
+  - image: postgres:13.23
     requireRegex: 13\.\d+$
   - image: mariadb:10.11
     requireRegex: 10\.\d+$
@@ -55,15 +55,15 @@ imageGroups:
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-04-16-162025-media81
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-media83
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-04-16-162025-php-rpc81
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-php-rpc83
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-04-16-162025-score81
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-score83
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-04-16-162025-syntaxhighlight81
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-syntaxhighlight83
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-04-16-162025-timeline81
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-timeline83
         requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
 # Files and directories to check
 files:

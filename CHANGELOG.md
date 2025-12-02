@@ -13,9 +13,9 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Fixed telemetry event submission user agent and success check.
 - Development environment (`mw docker`)
   - Image updates:
-    - postgres 13.18 -> 13.20
-    - node20-test-browser 20.18.1 -> 20.19.1
-    - shellbox 2025-01-12-210619-php-rpc81 -> 2025-04-16-162025-php-rpc81
+    - postgres 13.18 -> 13.23
+    - node20-test-browser 20.18.1 -> 20.19.5
+    - shellbox 2025-01-12-210619 -> 2025-11-26-175023
     - search-platform/cirrussearch-elasticsearch-image:v7.10.2-12 -> search-platform/cirrussearch-opensearch-image:v1.3.20-6
 - Improved README.
 
