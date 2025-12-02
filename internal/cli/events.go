@@ -68,12 +68,29 @@ func (e *Events) EmitEvents() bool {
 	logrus.Tracef("Submitting %d events", eventCount)
 
 	payload := []byte("[" + strings.Join(eventJSON, ",") + "]")
-	resp, err := nethttp.Post("https://intake-analytics.wikimedia.org/v1/events?hasty=true", "application/json", bytes.NewBuffer(payload))
+	req, err := nethttp.NewRequest("POST", "https://intake-analytics.wikimedia.org/v1/events?hasty=true", bytes.NewBuffer(payload))
+	if err != nil {
+		logrus.Debug(err)
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "mwcli")
+
+	client := &nethttp.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Debug(err)
 		return false
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		logrus.Debugf("Event submission failed with status code %d", resp.StatusCode)
+		// Log the response body for debugging from resp
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		logrus.Debugf("Response body: %s", buf.String())
+		return false
+	}
 
 	truncateErr := os.Truncate(e.EventFile, 0)
 	if truncateErr != nil {
