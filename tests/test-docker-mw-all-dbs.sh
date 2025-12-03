@@ -29,7 +29,11 @@ function finish {
     fi
     test_command_success ./bin/mw docker env clear --no-interaction
 }
-trap finish EXIT
+
+# Handle FINISH=1 environment variable
+_handle_finish_if_needed
+
+trap _finish_wrapper EXIT
 
 # Change into the mediawiki directory, so we can auto detect the code!
 cd ./.mediawiki
