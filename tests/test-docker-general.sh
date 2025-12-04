@@ -10,6 +10,9 @@ source $SCRIPT_DIR/pretest-mediawiki.sh
 export MWCLI_CONTEXT_TEST=1
 
 function finish {
+    echo "---------------------------------------"
+    echo "Finishing up and cleaning up tests..."
+    echo "---------------------------------------"
     cd $SCRIPT_DIR/..
 
     # Show it all
