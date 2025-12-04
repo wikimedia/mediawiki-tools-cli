@@ -11,7 +11,7 @@ services:
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      - VIRTUAL_HOST=keycloak.mwdd.localhost,keycloak.mwdd
+      - VIRTUAL_HOST=keycloak.local.wmftest.net
       - VIRTUAL_PORT=8080
     depends_on:
       - dps

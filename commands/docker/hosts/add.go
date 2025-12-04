@@ -17,14 +17,14 @@ func NewHostsAddCmd() *cobra.Command {
 				append(
 					[]string{
 						// TODO generate these by reading the yml files?
-						"proxy.mwdd.localhost",
-						"eventlogging.mwdd.localhost",
-						"adminer.mwdd.localhost",
-						"mailhog.mwdd.localhost",
-						"graphite.mwdd.localhost",
-						"keycloak.mwdd.localhost",
-						"phpmyadmin.mwdd.localhost",
-						"default.mediawiki.mwdd.localhost",
+						"proxy.local.wmftest.net",
+						"eventlogging.local.wmftest.net",
+						"adminer.local.wmftest.net",
+						"mailhog.local.wmftest.net",
+						"graphite.local.wmftest.net",
+						"keycloak.local.wmftest.net",
+						"phpmyadmin.local.wmftest.net",
+						"default.mediawiki.local.wmftest.net",
 					},
 					mwdd.DefaultForUser().UsedHosts()...,
 				),

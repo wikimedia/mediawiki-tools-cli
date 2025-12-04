@@ -42,7 +42,7 @@ services:
      - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
      - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
     environment:
-      - VIRTUAL_HOST=*.mediawiki.mwdd.localhost,*.mediawiki.mwdd
+      - VIRTUAL_HOST=*.mediawiki.local.wmftest.net
       - VIRTUAL_PORT=8080
       - DEFAULT_EXPOSE_PORT=8080
     depends_on:

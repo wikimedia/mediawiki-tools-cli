@@ -11,7 +11,7 @@ func NewHostsRemoveCmd() *cobra.Command {
 		Use:   "remove",
 		Short: "Removes development environment hosts from your system hosts file",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleChangeResult(hosts.RemoveHostsWithSuffix(IP, "mwdd.localhost", true))
+			handleChangeResult(hosts.RemoveHostsWithSuffix(IP, "local.wmftest.net", true))
 		},
 	}
 	cmd.Flags().StringVar(&IP, "ip", hosts.LocalIP(), "IP address to interact with hosts for")

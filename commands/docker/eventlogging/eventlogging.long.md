@@ -17,7 +17,7 @@ Using this will automatically configure a eventlogging server for MediaWiki.
 $wgEventServices = [ '*' => [ 'url' => 'http://eventlogging:8192/v1/events' ] ];
 $wgEventServiceDefault = '*';
 $wgEventLoggingStreamNames = false;
-$wgEventLoggingServiceUri = "http://eventlogging.mwdd.localhost:" . parse_url($wgServer)['port'] . "/v1/events";
+$wgEventLoggingServiceUri = "http://eventlogging.local.wmftest.net:" . parse_url($wgServer)['port'] . "/v1/events";
 $wgEventLoggingQueueLingerSeconds = 1;
 $wgEnableEventBus = defined( "MW_PHPUNIT_TEST" ) ? "TYPE_NONE" : "TYPE_ALL";
 ```

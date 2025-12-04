@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       - NOVNC_PORT=8086
-      - VIRTUAL_HOST=novnc.mwdd.localhost,novnc.mwdd
+      - VIRTUAL_HOST=novnc.local.wmftest.net
       - VIRTUAL_PORT=8086
       - DEFAULT_EXPOSE_PORT=8086
     depends_on:

@@ -47,7 +47,7 @@ $wgMaxArticleSize = 1000000;
 # Either use the MW_DB env var, or get the DB from the request
 if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
-    $wgServer = "//$dockerDb.mediawiki.mwdd.localhost:80";
+    $wgServer = "//$dockerDb.mediawiki.local.wmftest.net:80";
 } elseif( array_key_exists( 'SERVER_NAME', $_SERVER ) ) {
     $dockerHostParts = explode( '.', $_SERVER['SERVER_NAME'] );
     $dockerDb = $dockerHostParts[0];
@@ -250,7 +250,7 @@ if(gethostbyname('eventlogging') !== 'eventlogging') {
 	];
 	$wgEventServiceDefault = '*';
 	$wgEventLoggingStreamNames = false;
-	$wgEventLoggingServiceUri = "http://eventlogging.mwdd.localhost:" . parse_url($wgServer)['port'] . "/v1/events";
+	$wgEventLoggingServiceUri = "http://eventlogging.local.wmftest.net:" . parse_url($wgServer)['port'] . "/v1/events";
 	$wgEventLoggingQueueLingerSeconds = 1;
 	$wgEnableEventBus = defined( "MW_PHPUNIT_TEST" ) ? "TYPE_NONE" : "TYPE_ALL";
 }
@@ -266,7 +266,7 @@ if(gethostbyname('graphite') !== 'graphite') {
 # Citoid
 ################################
 if(gethostbyname('citoid') !== 'citoid') {
-	$wgCitoidServiceUrl = 'http://citoid.mwdd.localhost:8080/api';
+	$wgCitoidServiceUrl = 'http://citoid.local.wmftest.net:8080/api';
 }
 
 ################################

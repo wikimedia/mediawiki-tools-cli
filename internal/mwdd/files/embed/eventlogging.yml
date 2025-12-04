@@ -6,7 +6,7 @@ services:
     image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2024-06-11-192310-production}"
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=eventlogging.mwdd.localhost,eventlogging.mwdd
+      - VIRTUAL_HOST=eventlogging.local.wmftest.net
       - VIRTUAL_PORT=8192
     entrypoint: /srv/service/node_modules/.bin/eventgate -c config.dev.yaml | /srv/service/node_modules/.bin/bunyan
     dns:

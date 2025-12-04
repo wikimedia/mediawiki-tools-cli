@@ -4,7 +4,7 @@ services:
     image: "${MAILHOG_IMAGE:-mailhog/mailhog:v1.0.1}"
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=mailhog.mwdd.localhost,mailhog.mwdd
+      - VIRTUAL_HOST=mailhog.local.wmftest.net
       - VIRTUAL_PORT=8025
       - DEFAULT_EXPOSE_PORT=8025
     depends_on:

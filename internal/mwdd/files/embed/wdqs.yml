@@ -16,7 +16,7 @@ services:
     networks:
       - dps
     environment:
-      - WIKIBASE_HOST=default.mediawiki.mwdd.localhost
+      - WIKIBASE_HOST=default.mediawiki.local.wmftest.net
       - WIKIBASE_PORT=8080
       - WDQS_HOST=wdqs
       - WDQS_PORT=9999
@@ -47,7 +47,7 @@ services:
     networks:
       - dps
     environment:
-      - WIKIBASE_HOST=default.mediawiki.mwdd.localhost:8080
+      - WIKIBASE_HOST=default.mediawiki.local.wmftest.net:8080
       - WDQS_HOST=wdqs
       - WDQS_PORT=9999
 

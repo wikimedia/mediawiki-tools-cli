@@ -48,7 +48,7 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 			// For now just retrieve the mwdd hosts, and reverse engineer sites installed...
 			objects := make(map[interface{}]interface{})
 			for _, host := range mwdd.DefaultForUser().UsedHosts() {
-				if strings.Contains(host, "mediawiki.mwdd") {
+				if strings.Contains(host, "mediawiki.local.wmftest.net") {
 					// Make a horrible assumption that the bit before the first dot is the site name
 					name := strings.Split(host, ".")[0]
 					objects[host] = Site{

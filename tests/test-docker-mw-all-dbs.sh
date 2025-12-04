@@ -56,7 +56,7 @@ cd ./..
 PORT=$(./bin/mw docker env get PORT)
 
 # Make sure a site is running and not connected to a db
-test_wget http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
+test_wget http://default.mediawiki.local.wmftest.net:$PORT "Could not find a running database for the database name"
 
 # Turn on all of the services
 test_command_success ./bin/mw docker mysql-replica create
@@ -90,13 +90,13 @@ else
 fi
 
 # Check the DB tools (phpmyadmin, adminer)
-test_wget http://phpmyadmin.mwdd.localhost:$PORT "Open new phpMyAdmin window"
-test_wget http://adminer.mwdd.localhost:$PORT "Login - Adminer"
+test_wget http://phpmyadmin.local.wmftest.net:$PORT "Open new phpMyAdmin window"
+test_wget http://adminer.local.wmftest.net:$PORT "Login - Adminer"
 
 # And check the installed sites (mysql, postgres, sqlite)
-# test_wget http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
-test_wget http://postgreswiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
-test_wget http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+# test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+test_wget http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 
 # Make sure the expected number of services appear
 test_docker_ps_service_count 9
