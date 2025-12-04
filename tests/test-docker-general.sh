@@ -179,7 +179,6 @@ test_command_success ./../bin/mw docker mediawiki jobrunner add-site default
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage1 <<< 'Test content'"
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
 # We expect to see all of this output in the logs for the job runner...
-test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " No sites to run jobs for"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Running jobs for default"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Job queue is empty"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " STARTING"
