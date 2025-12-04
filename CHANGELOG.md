@@ -12,6 +12,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Improved global command validation when using `--help`
 - Fixed telemetry event submission user agent and success check.
 - Development environment (`mw docker`)
+  - Domains switched to using `*.local.wmftest.net` for better modern curl support. (T388411)
   - Image updates:
     - mediawiki buster-php81-fpm:1.0.1-s2 -> bookworm-php83-fpm:1.0.0
     - postgres 13.18 -> 13.23
