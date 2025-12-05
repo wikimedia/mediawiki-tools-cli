@@ -3,7 +3,7 @@
 services:
   eventlogging:
     # https://docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia/tags/
-    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia:2024-06-11-192310-production}"
+    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.26.0}"
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=eventlogging.local.wmftest.net
