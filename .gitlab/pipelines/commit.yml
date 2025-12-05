@@ -101,6 +101,7 @@ integration:
     services:
     - name: docker:26.1.1-dind
     needs: [checks,test,build]
+    image: docker:26.1.1
     tags:
     - cloud
     dependencies:
