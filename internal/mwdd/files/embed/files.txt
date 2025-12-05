@@ -2,6 +2,7 @@
 ./adminer.yml
 ./base.yml
 ./citoid.yml
+./dashboard/main.go
 ./elasticsearch.yml
 ./eventlogging.yml
 ./files.txt

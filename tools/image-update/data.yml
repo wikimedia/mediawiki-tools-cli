@@ -46,6 +46,9 @@ images:
     noCheck: true
   - image: docker-registry.wikimedia.org/httpd-fcgi:latest
     noCheck: true
+  # Golang images
+  - image: golang:1.23-alpine
+    noCheck: true
   # Golang CI images
   - image: golang:1.23
     noCheck: true

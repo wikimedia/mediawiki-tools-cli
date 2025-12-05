@@ -13,7 +13,7 @@ class MwddSpecial extends SpecialPage {
 	 */
 	public function execute( $subPage ) {
 		parent::execute( $subPage );
-		global $dockerServices, $dockerDbType;
+		global $dockerServices, $dockerDbType, $wgServer;
 
 		// TODO output db type, dbname & other db settings here
 		$this->getOutput()->addHTML( "Which services are running?" );
@@ -27,7 +27,8 @@ class MwddSpecial extends SpecialPage {
 		$this->getOutput()->addHTML( "How does DB lag look?" );
 		$this->getOutput()->addHTML( "</br>" );
 		$this->getOutput()->addHTML( json_encode( \MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancer()->getMaxLag()[1] ) );
-
+		$this->getOutput()->addHTML( "</br>" );
+		$this->getOutput()->addHTML( "Consider looking at http://dashboard.local.wmftest.net:" . parse_url($wgServer)['port'] . "/" );
 	}
 
 }

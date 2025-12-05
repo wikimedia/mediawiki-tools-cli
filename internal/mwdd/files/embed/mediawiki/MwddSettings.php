@@ -59,27 +59,96 @@ if ( defined( "MW_DB" ) ) {
 # Only use "advanced" services if they can be seen, and if we are not in tests
 # TODO this is confusing, tidy it up, what is it?
 # TODO do we want this running in phpunit tests? maybe we need a way to specify that we do?
-# TODO cache these existence checks for at least 1 second to avoid hammering looking for these services..
-$dockerServices = [
-	'mysql' => gethostbyname('mysql') !== 'mysql',
-	'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
-	'eventlogging' => gethostbyname('eventlogging') !== 'eventlogging' && !defined( 'MW_PHPUNIT_TEST' ),
-	'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
-	'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
-	'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
-	'opensearch' => gethostbyname('opensearch') !== 'opensearch' && !defined( 'MW_PHPUNIT_TEST' ),
-	'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
-	'citoid' => gethostbyname('citoid') !== 'citoid' && !defined( 'MW_PHPUNIT_TEST' ),
-	'jaeger' => gethostbyname('jaeger') !== 'jaeger' && !defined( 'MW_PHPUNIT_TEST' ),
-	'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
-	'shellbox-media' => ( gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ) )
-		? 'http://shellbox-media-httpd:8000' : false,
-	'shellbox-php-rpc' => ( gethostbyname('shellbox-php-rpc') !== 'shellbox-php-rpc' && !defined( 'MW_PHPUNIT_TEST' ) )
-		? 'http://shellbox-php-rpc-httpd:8000' : false,
-	'shellbox-score' => gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ),
-	'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
-	'shellbox-timeline' => gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ),
-];
+# Service detection is done via the dashboard API for speed, with in-memory caching
+$dockerServices = [];
+
+// Try to get services from dashboard API (fast, parallel checks, cached)
+$dashboardServicesCache = null;
+$dashboardServicesCacheTime = 0;
+$dashboardServicesCacheTTL = 5; // Cache for 5 seconds in memory
+
+// Use APCu if available for caching, otherwise use a static variable
+if ( function_exists( 'apcu_fetch' ) ) {
+	$cached = apcu_fetch( 'mwdd_docker_services' );
+	if ( $cached !== false ) {
+		$dashboardServicesCache = $cached;
+	}
+}
+
+if ( $dashboardServicesCache === null ) {
+	// Try to fetch from dashboard API
+	$dashboardApiUrl = 'http://dashboard:8080/api/services';
+	$ctx = stream_context_create( [
+		'http' => [
+			'timeout' => 2, // 2 second timeout
+			'ignore_errors' => true,
+		],
+	] );
+	$servicesJson = @file_get_contents( $dashboardApiUrl, false, $ctx );
+	if ( $servicesJson !== false ) {
+		$servicesData = json_decode( $servicesJson, true );
+		if ( is_array( $servicesData ) ) {
+			$dashboardServicesCache = [];
+			foreach ( $servicesData as $svc ) {
+				$dashboardServicesCache[$svc['name']] = $svc['running'];
+			}
+			// Cache in APCu if available
+			if ( function_exists( 'apcu_store' ) ) {
+				apcu_store( 'mwdd_docker_services', $dashboardServicesCache, $dashboardServicesCacheTTL );
+			}
+		}
+	}
+}
+
+// Build $dockerServices array from cache or fallback to DNS checks
+// $serviceLookupStartTime = microtime( true );
+if ( $dashboardServicesCache !== null ) {
+	// Use cached data from dashboard API
+	$dockerServices = [
+		'mysql' => $dashboardServicesCache['mysql'] ?? false,
+		'mysql-replica' => ( $dashboardServicesCache['mysql-replica'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
+		'eventlogging' => ( $dashboardServicesCache['eventlogging'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'redis' => ( $dashboardServicesCache['redis'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'memcached' => ( $dashboardServicesCache['memcached'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'elasticsearch' => ( $dashboardServicesCache['elasticsearch'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'opensearch' => ( $dashboardServicesCache['opensearch'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'graphite' => ( $dashboardServicesCache['graphite'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'citoid' => ( $dashboardServicesCache['citoid'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'jaeger' => ( $dashboardServicesCache['jaeger'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'mailhog' => ( $dashboardServicesCache['mailhog'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-media' => ( ( $dashboardServicesCache['shellbox-media'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-media-httpd:8000' : false,
+		'shellbox-php-rpc' => ( ( $dashboardServicesCache['shellbox-php-rpc'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-php-rpc-httpd:8000' : false,
+		'shellbox-score' => ( $dashboardServicesCache['shellbox-score'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-syntaxhighlight' => ( $dashboardServicesCache['shellbox-syntaxhighlight'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-timeline' => ( $dashboardServicesCache['shellbox-timeline'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+	];
+} else {
+	// Fallback to direct DNS checks (slow, but works if dashboard is not running)
+	$dockerServices = [
+		'mysql' => gethostbyname('mysql') !== 'mysql',
+		'mysql-replica' => gethostbyname('mysql-replica') !== 'mysql-replica' && !defined( 'MW_PHPUNIT_TEST' ) && !$dockerIsRunningUpdate,
+		'eventlogging' => gethostbyname('eventlogging') !== 'eventlogging' && !defined( 'MW_PHPUNIT_TEST' ),
+		'redis' => gethostbyname('redis') !== 'redis' && !defined( 'MW_PHPUNIT_TEST' ),
+		'memcached' => gethostbyname('memcached') !== 'memcached' && !defined( 'MW_PHPUNIT_TEST' ),
+		'elasticsearch' => gethostbyname('elasticsearch') !== 'elasticsearch' && !defined( 'MW_PHPUNIT_TEST' ),
+		'opensearch' => gethostbyname('opensearch') !== 'opensearch' && !defined( 'MW_PHPUNIT_TEST' ),
+		'graphite' => gethostbyname('graphite') !== 'graphite' && !defined( 'MW_PHPUNIT_TEST' ),
+		'citoid' => gethostbyname('citoid') !== 'citoid' && !defined( 'MW_PHPUNIT_TEST' ),
+		'jaeger' => gethostbyname('jaeger') !== 'jaeger' && !defined( 'MW_PHPUNIT_TEST' ),
+		'mailhog' => gethostbyname('mailhog') !== 'mailhog' && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-media' => ( gethostbyname('shellbox-media') !== 'shellbox-media' && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-media-httpd:8000' : false,
+		'shellbox-php-rpc' => ( gethostbyname('shellbox-php-rpc') !== 'shellbox-php-rpc' && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-php-rpc-httpd:8000' : false,
+		'shellbox-score' => gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-timeline' => gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ),
+	];
+}
+// $serviceLookupEndTime = microtime( true );
+// $serviceLookupDuration = $serviceLookupEndTime - $serviceLookupStartTime;
 
 ################################
 # MWDD Database
