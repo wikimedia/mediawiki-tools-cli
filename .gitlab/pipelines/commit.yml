@@ -102,7 +102,7 @@ integration:
     - name: docker:26.1.1-dind
     needs: [checks,test,build]
     tags:
-    - mwcli
+    - cloud
     dependencies:
       - build
     parallel:
