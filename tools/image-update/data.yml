@@ -39,7 +39,6 @@ images:
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
   # docker dev env: Regularly released WMF production images
   - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.26.0
-    requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-production
   # Latest images...
   - image: ubuntu:latest
     noCheck: true
