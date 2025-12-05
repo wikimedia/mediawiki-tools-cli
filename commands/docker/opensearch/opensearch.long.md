@@ -1,10 +1,10 @@
-# Elasticsearch service (deprecated, use opensearch)
+# OpenSearch service
 
-Using this will automatically configure an elasticsearch server for MediaWiki via the [CirrusSearch](https://www.mediawiki.org/wiki/Extension:CirrusSearch) extension.
+Using this will automatically configure an opensearch server for MediaWiki via the [CirrusSearch](https://www.mediawiki.org/wiki/Extension:CirrusSearch) extension.
 In order for this to do anything you will need to CirrusSearch extension installed and enabled.
 
 ```php
-$wgCirrusSearchServers = [ 'elasticsearch' ];
+$wgCirrusSearchServers = [ 'opensearch' ];
 ```
 
 In order to configure a search index for a wiki, you'll need to run some maintenance scripts:
@@ -16,7 +16,7 @@ php extensions/CirrusSearch/maintenance/ForceSearchIndex.php --skipLinks --index
 php extensions/CirrusSearch/maintenance/ForceSearchIndex.php --skipParse
 ```
 
-And you'll need to process the job queue any time you add/update content and want it updated in ElasticSearch
+And you'll need to process the job queue any time you add/update content and want it updated in OpenSearch
 
 ```sh
 php maintenance/runJobs.php
@@ -24,14 +24,14 @@ php maintenance/runJobs.php
 
 ## Exposing locally
 
-To expose the Elasticsearch service locally, you can set the `ELASTICSEARCH_PORT_9200` and `ELASTICSEARCH_PORT_9300` 
+To expose the OpenSearch service locally, you can set the `OPENSEARCH_PORT_9200` and `OPENSEARCH_PORT_9300` 
 environment variables to a port on your host machine.
 
 For example, to expose the internal port `9200` to port `9200` on your host machine:
 
 ```bash
-mw docker env set ELASTICSEARCH_PORT_9200 9200
-mw docker elasticsearch create
+mw docker env set OPENSEARCH_PORT_9200 9200
+mw docker opensearch create
 ```
 
 ## Documentation

@@ -19,6 +19,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
     - node20-test-browser 20.18.1 -> 20.19.5
     - shellbox 2025-01-12-210619 -> 2025-11-26-175023
     - search-platform/cirrussearch-elasticsearch-image:v7.10.2-12 -> search-platform/cirrussearch-opensearch-image:v1.3.20-6
+    - deprecate elasticsearch in favor of opensearch
 - Improved README.
 
 ## v0.28.0
