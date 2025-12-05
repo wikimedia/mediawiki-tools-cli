@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.29.0
+
+If you use the docker based development environment, this release contains a large change to how you access your sites.
+Due to upgrading curl in the mediawiki images, *.localhost domains can no longer resolve to the correct services.
+As a result all domains have been switched to use the `*.local.wmftest.net` domain instead, which resolves to 127.0.0.1.
+This means if you do offline development, you will need to add hosts file entries, see `mw docker hosts` for more information.
 
 - Added URL to the `docker mediawiki sites` command output
 - Improved error page when trying to access a non installed site to show the `mediawiki sites` command.
