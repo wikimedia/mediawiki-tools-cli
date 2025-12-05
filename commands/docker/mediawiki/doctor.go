@@ -66,7 +66,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			// Check if a site has been installed
 			installedSite := ""
 			for _, host := range m.UsedHosts() {
-				if strings.Contains(host, "mediawiki.mwdd") {
+				if strings.Contains(host, "mediawiki.local.wmftest.net") {
 					installedSite = host
 				}
 			}

@@ -38,7 +38,7 @@ $wgPluggableAuth_Config = [
   "Keycloak" => [
     'plugin' => 'OpenIDConnect',
     'data' => [
-      'providerURL' => 'http://keycloak.mwdd.localhost:8080/realms/<realmname>',
+      'providerURL' => 'http://keycloak.local.wmftest.net:8080/realms/<realmname>',
       'clientID' => '<clientname>',
       'clientsecret' => '<clientsecret>'
     ]

@@ -18,7 +18,7 @@ services:
       - ${NETWORK_SUBNET_PREFIX}.10
     environment:
       # https://www.mediawiki.org/wiki/Selenium/How-to/Run_tests_targeting_MediaWiki-Docker_using_Fresh#Environment_variables
-      - MW_SERVER=http://default.mediawiki.mwdd:${PORT}
+      - MW_SERVER=http://default.mediawiki.local.wmftest.net:${PORT}
       - MW_SCRIPT_PATH=/w
       - MEDIAWIKI_USER=Admin
       - MEDIAWIKI_PASSWORD=mwddpassword

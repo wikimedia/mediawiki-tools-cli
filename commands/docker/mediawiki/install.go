@@ -132,7 +132,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 
 			// Record the wiki domain that we are trying to create
-			domain := dbName + ".mediawiki.mwdd.localhost"
+			domain := dbName + ".mediawiki.local.wmftest.net"
 			mwdd.DefaultForUser().RecordHostUsageBySite(domain)
 
 			// Figure out what and where we are installing

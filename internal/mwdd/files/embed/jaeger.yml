@@ -6,7 +6,7 @@ services:
     depends_on:
       - nginx-proxy
     environment:
-      - VIRTUAL_HOST=jaeger.mwdd.localhost,jaeger.mwdd
+      - VIRTUAL_HOST=jaeger.local.wmftest.net
       - VIRTUAL_PORT=16686
       - DEFAULT_EXPOSE_PORT=16686
     dns:

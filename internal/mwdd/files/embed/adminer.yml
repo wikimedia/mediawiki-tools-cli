@@ -4,7 +4,7 @@ services:
     image: "${ADMINER_IMAGE:-adminer:4}"
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=adminer.mwdd.localhost,adminer.mwdd
+      - VIRTUAL_HOST=adminer.local.wmftest.net
       - VIRTUAL_PORT=8080
       - DEFAULT_EXPOSE_PORT=8080
     depends_on:

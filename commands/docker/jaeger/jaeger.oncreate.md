@@ -1,3 +1,3 @@
 # Jaeger access
 
-You can access the service at http://jaeger.mwdd.localhost:${PORT}/
+You can access the service at http://jaeger.local.wmftest.net:${PORT}/

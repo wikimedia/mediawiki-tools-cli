@@ -6,15 +6,13 @@ Including Node.js, and headless browsers. It aims to help to run npm packages on
 Some default environment variables will be provided for you in the fresh container.
 
 ```sh
-MW_SERVER=http://default.mediawiki.mwdd:${PORT}
+MW_SERVER=http://default.mediawiki.local.wmftest.net:${PORT}
 MW_SCRIPT_PATH=/w
 MEDIAWIKI_USER=Admin
 MEDIAWIKI_PASSWORD=mwddpassword
 ```
 
 ## Usage
-
-Note: the lack of `.localhost` at the end of the site name. Using `.localhost` will NOT work in this container.
 
 Start an interactive terminal in the fresh container
 

@@ -18,9 +18,9 @@ services:
       - label:disable
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=proxy.mwdd.localhost,proxy.mwdd
+      - VIRTUAL_HOST=proxy.local.wmftest.net
       - VIRTUAL_PORT=${PORT}
-      - HOSTNAMES=.mediawiki.mwdd.localhost,.mediawiki.mwdd,keycloak.mwdd.localhost     # wildcard name resolution, thanks to DPS
+      - HOSTNAMES=.mediawiki.local.wmftest.net,keycloak.local.wmftest.net     # wildcard name resolution, thanks to DPS
       - HTTP_PORT=${PORT}      # internal port
       - DEFAULT_EXPOSE_PORT=${PORT}
     ports:

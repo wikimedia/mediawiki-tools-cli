@@ -34,7 +34,7 @@ func NewMediaWikiForeachwikiCmd() *cobra.Command {
 			}
 			var dbNames []string
 			for _, host := range mwdd.DefaultForUser().UsedHosts() {
-				if strings.Contains(host, "mediawiki.mwdd") {
+				if strings.Contains(host, "mediawiki.local.wmftest.net") {
 					// This is what MwddSettings.php does.
 					dbNames = append(dbNames, strings.Split(host, ".")[0])
 				}

@@ -6,7 +6,7 @@ services:
       - label:disable
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=graphite.mwdd.localhost,graphite.mwdd
+      - VIRTUAL_HOST=graphite.local.wmftest.net
     depends_on:
       - nginx-proxy
     dns:

@@ -5,7 +5,7 @@ Using this will automatically configure a citoid service for MediaWiki.
 When running, this will define:
 
 ```php
-$wgCitoidServiceUrl = 'http://citoid.mwdd.localhost:8080/api';
+$wgCitoidServiceUrl = 'http://citoid.local.wmftest.net:8080/api';
 ```
 
 A common usecase for this service requires installation of some additional extensions.

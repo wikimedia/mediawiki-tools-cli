@@ -12,6 +12,9 @@ source $SCRIPT_DIR/pretest-mediawiki.sh
 export MWCLI_CONTEXT_TEST=1
 
 function finish {
+    echo "---------------------------------------"
+    echo "Finishing up and cleaning up tests..."
+    echo "---------------------------------------"
     cd $SCRIPT_DIR/..
 
     # Show it all
@@ -25,7 +28,11 @@ function finish {
     hosts_command "remove"
     test_command_success ./bin/mw docker env clear --no-interaction
 }
-trap finish EXIT
+
+# Handle FINISH=1 environment variable
+_handle_finish_if_needed
+
+trap _finish_wrapper EXIT
 
 hosts_command() {
     command=$1
@@ -62,17 +69,17 @@ PORT=$(./bin/mw docker env get PORT)
 # Install, add host & check
 test_command_success ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
 hosts_command "add"
-test_file_contains "/etc/hosts" "mysqlwiki.mediawiki.mwdd.localhost"
-test_wget http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_file_contains "/etc/hosts" "mysqlwiki.mediawiki.local.wmftest.net"
+test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 
 # Stop and start and check the site is still there
 test_command_success ./bin/mw docker mysql stop
 test_command_success ./bin/mw docker mysql start
 sleep 5
-test_wget http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 
 # Destroy and restart mysql, reinstalling mediawiki
 test_command_success ./bin/mw docker mysql destroy
 test_command_success ./bin/mw docker mysql create
 test_command_success ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
-test_wget http://mysqlwiki.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"

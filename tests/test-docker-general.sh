@@ -10,6 +10,9 @@ source $SCRIPT_DIR/pretest-mediawiki.sh
 export MWCLI_CONTEXT_TEST=1
 
 function finish {
+    echo "---------------------------------------"
+    echo "Finishing up and cleaning up tests..."
+    echo "---------------------------------------"
     cd $SCRIPT_DIR/..
 
     # Show it all
@@ -28,7 +31,11 @@ function finish {
     fi
     test_command_success ./bin/mw docker env clear --no-interaction
 }
-trap finish EXIT
+
+# Handle FINISH=1 environment variable
+_handle_finish_if_needed
+
+trap _finish_wrapper EXIT
 
 test_command_success ./bin/mw docker env clear --no-interaction
 
@@ -70,13 +77,13 @@ PORT=$(./bin/mw docker env get PORT)
 test_command_success ./bin/mw docker docker-compose ps
 test_command_success ./bin/mw docker env list
 
-test_wget http://default.mediawiki.mwdd.localhost:$PORT "Could not find a running database for the database name"
+test_wget http://default.mediawiki.local.wmftest.net:$PORT "Could not find a running database for the database name"
 
 # Install mysql & check
 # These used to use sqlite, but due to https://phabricator.wikimedia.org/T330940 mysql is needed for the browser tests to not error
 test_command_success ./bin/mw docker mysql create
 test_command_success ./bin/mw docker mediawiki install --dbtype mysql
-test_wget http://default.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 
 # Set the default dbname to something else, restarting the container
 test_command_success ./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME second
@@ -90,7 +97,7 @@ else
     echo "sudo needed for hosts file modification!"
     test_command_success sudo -E ./bin/mw docker hosts add --no-interaction
 fi
-test_wget http://second.mediawiki.mwdd.localhost:$PORT "MediaWiki has been installed"
+test_wget http://second.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 
 # Make sure that maintenance scripts run for the current default wiki dbname
 test_command ./bin/mw docker mediawiki mwscript "requires at least 1 arg(s), only received 0"
@@ -172,10 +179,9 @@ test_command ./../bin/mw docker mediawiki quibble quibble -- --skip-zuul --skip-
 # jobrunner: make sure the jobrunner starts and can run jobs
 test_command_success ./../bin/mw docker mediawiki jobrunner create
 test_command_success ./../bin/mw docker mediawiki jobrunner add-site default
-test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title Testpage1 <<< 'Test content'"
-test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.mwdd.localhost:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
+test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage1 <<< 'Test content'"
+test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
 # We expect to see all of this output in the logs for the job runner...
-test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " No sites to run jobs for"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Running jobs for default"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Job queue is empty"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " STARTING"

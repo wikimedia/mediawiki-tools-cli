@@ -45,7 +45,7 @@ services:
   <service-name>:
     image: <service-image>
     environment:
-      - VIRTUAL_HOST=<service-name>.mwdd.localhost,<service-name>.mwdd
+      - VIRTUAL_HOST=<service-name>.local.wmftest.net
       - VIRTUAL_PORT=<service-port>
     depends_on:
       - nginx-proxy
