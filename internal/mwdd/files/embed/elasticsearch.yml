@@ -1,7 +1,7 @@
 
 services:
   elasticsearch:
-    image: "${ELASTICSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-6}"
+    image: "${ELASTICSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-12}"
     security_opt:
       - label:disable
     restart: unless-stopped
