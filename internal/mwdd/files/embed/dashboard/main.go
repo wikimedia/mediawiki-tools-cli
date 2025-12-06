@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Service represents a docker service and its status
@@ -141,7 +142,7 @@ func getSites() []Site {
 	// The record-hosts file is mounted at /data/record-hosts
 	data, err := os.ReadFile("/data/record-hosts")
 	if err != nil {
-		log.Printf("Could not read record-hosts file: %v", err)
+		logrus.Printf("Could not read record-hosts file: %v", err)
 		return []Site{}
 	}
 
@@ -455,13 +456,13 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.New("dashboard").Parse(dashboardHTML)
 	if err != nil {
 		http.Error(w, "Template error", http.StatusInternalServerError)
-		log.Printf("Template error: %v", err)
+		logrus.Printf("Template error: %v", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := tmpl.Execute(w, response); err != nil {
-		log.Printf("Template execution error: %v", err)
+		logrus.Printf("Template execution error: %v", err)
 	}
 }
 
@@ -483,15 +484,15 @@ func main() {
 	http.HandleFunc("/api/sites", apiSitesHandler)
 	http.HandleFunc("/health", healthHandler)
 
-	log.Printf("MWDD Dashboard starting on port %s", listenPort)
-	log.Printf("Dashboard: http://localhost:%s", listenPort)
-	log.Printf("API endpoints:")
-	log.Printf("  - GET /api/status   - Full status (services + sites)")
-	log.Printf("  - GET /api/services - Service status only")
-	log.Printf("  - GET /api/sites    - Installed sites only")
-	log.Printf("  - GET /health       - Health check")
+	logrus.Printf("MWDD Dashboard starting on port %s", listenPort)
+	logrus.Printf("Dashboard: http://localhost:%s", listenPort)
+	logrus.Printf("API endpoints:")
+	logrus.Printf("  - GET /api/status   - Full status (services + sites)")
+	logrus.Printf("  - GET /api/services - Service status only")
+	logrus.Printf("  - GET /api/sites    - Installed sites only")
+	logrus.Printf("  - GET /health       - Health check")
 
 	if err := http.ListenAndServe(":"+listenPort, nil); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		logrus.Fatalf("Failed to start server: %v", err)
 	}
 }
