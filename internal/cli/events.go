@@ -74,7 +74,7 @@ func (e *Events) EmitEvents() bool {
 		return false
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "mwcli")
+	req.Header.Set("User-Agent", "https://mediawiki.org/wiki/Cli internal event client")
 
 	client := &nethttp.Client{}
 	resp, err := client.Do(req)

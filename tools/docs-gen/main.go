@@ -20,7 +20,7 @@ func main() {
 
 	path := "./_docs"
 	dirs.EnsureExists(path)
-	cmdForDocs := cmd.NewMwCliCmd()
+	cmdForDocs := cmd.NewRootCliCmd()
 
 	// Disable this tag while we push docs to MediaWiki pages, to avoid a new edit even if there are no doc changes.
 	// https://phabricator.wikimedia.org/T299976

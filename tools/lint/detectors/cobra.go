@@ -68,8 +68,8 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 			allowedKeys := []string{
 				"exitCode",
 				"group",
-				"mwcli-lint-skip",
-				"mwcli-lint-skip-children",
+				"cli-lint-skip",
+				"cli-lint-skip-children",
 			}
 			// TODO check all annotaitons and issue for each
 			for key := range theCmd.Annotations {
@@ -139,11 +139,11 @@ func detectCobraCommandIssuesRecursively(theCmd *cobra.Command, parentNamePrefix
 	issues := []issue.Issue{}
 	theCmdName := parentNamePrefix + theCmd.Name()
 
-	if len(theCmd.Annotations["mwcli-lint-skip"]) == 0 {
+	if len(theCmd.Annotations["cli-lint-skip"]) == 0 {
 		issues = append(issues, detectCobraCommandIssues(theCmd, theCmdName)...)
 	}
 
-	if len(theCmd.Annotations["mwcli-lint-skip-children"]) == 0 {
+	if len(theCmd.Annotations["cli-lint-skip-children"]) == 0 {
 		for _, nextCmd := range theCmd.Commands() {
 			issues = append(issues, detectCobraCommandIssuesRecursively(nextCmd, theCmdName+" ")...)
 		}

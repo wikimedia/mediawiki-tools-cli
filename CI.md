@@ -1,9 +1,9 @@
 # CI
 
-Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom mwcli runners.
+Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom runners.
 
 The shared runners are used where possible.
-The custom mwcli runners are used when docker in docker is needed (integration tests).
+The custom runners are used when docker in docker is needed (integration tests).
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
@@ -12,6 +12,8 @@ This means that the FULL CI will NOT work for forks of this project, only for ac
 There are currently 2 runners:
  - gitlab-runner-addshore-1016.mwcli.eqiad1.wikimedia.cloud
  - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud
+
+Note: `mwcli` is the legacy name of this CLI project.
 
 ### Maintenance
 

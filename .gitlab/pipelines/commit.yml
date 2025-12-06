@@ -61,7 +61,7 @@ checks:
       - bingo get
     script:
       # XDG_CACHE_HOME was needed by staticcheck
-      - export XDG_CACHE_HOME=/tmp/mwcli-cache
+      - export XDG_CACHE_HOME=/tmp/cli-cache
       - make $CHECK
 
 tools:

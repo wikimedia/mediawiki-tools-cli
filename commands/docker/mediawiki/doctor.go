@@ -116,7 +116,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			}
 
 			logrus.Print("Got more suggestions for things to check? File a ticket!")
-			logrus.Print("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
+			logrus.Print("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=wmcli")
 		},
 	}
 	return cmd

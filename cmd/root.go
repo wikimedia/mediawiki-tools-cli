@@ -36,15 +36,15 @@ import (
 
 var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
 
-func NewMwCliCmd() *cobra.Command {
-	mwcliCmd := &cobra.Command{
+func NewRootCliCmd() *cobra.Command {
+	rootCmd := &cobra.Command{
 		Use:           "mw",
 		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
-			logrus.Trace("mwcli: Top level PersistentPreRun")
+			logrus.Trace("Top level PersistentPreRun")
 
 			// Force the completion command to never ask for user input
 			if cmd.Name() == "__complete" {
@@ -73,18 +73,18 @@ func NewMwCliCmd() *cobra.Command {
 			}
 		},
 	}
-	mwcliCmd.AddGroup(&cobra.Group{
+	rootCmd.AddGroup(&cobra.Group{
 		ID:    "dev",
 		Title: "Development Commands",
 	})
-	mwcliCmd.AddGroup(&cobra.Group{
+	rootCmd.AddGroup(&cobra.Group{
 		ID:    "service",
 		Title: "Service Commands",
 	})
 
 	// Override the default help function to check for unknown commands, which we want to return non zero exit codes for...
-	defaultHelpFunc := mwcliCmd.HelpFunc()
-	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
+	defaultHelpFunc := rootCmd.HelpFunc()
+	rootCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
 		// Remove flags (arguments starting with -) and their values from a, so we only check actual command words
 		// Currently this might miss bool flags??! ;(
 		commandWords := []string{}
@@ -109,7 +109,7 @@ func NewMwCliCmd() *cobra.Command {
 			commandWords = append(commandWords, arg)
 		}
 		mwa := "mw " + strings.Join(commandWords, " ")
-		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
+		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(rootCmd)) {
 			logrus.Errorf("unknown command: %s", strings.Join(commandWords, " "))
 			c.Root().Annotations = make(map[string]string)
 			c.Root().Annotations["exitCode"] = "1"
@@ -121,13 +121,13 @@ func NewMwCliCmd() *cobra.Command {
 	})
 
 	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
-	mwcliCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
+	rootCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 
-	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
+	rootCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
 	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
-	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
+	rootCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
 
-	mwcliCmd.AddCommand([]*cobra.Command{
+	rootCmd.AddCommand([]*cobra.Command{
 		// Core CLI command
 		versioncmd.Cmd(),
 		updatecmd.Cmd(),
@@ -150,7 +150,7 @@ func NewMwCliCmd() *cobra.Command {
 		help.NewOutputTopicCmd(),
 	}...)
 
-	return mwcliCmd
+	return rootCmd
 }
 
 func wizardTelemetry() string {
@@ -290,7 +290,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// mwdd mode (always...)
 	cli.MwddIsDevAlias = true
 
-	rootCmd := NewMwCliCmd()
+	rootCmd := NewRootCliCmd()
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
 	// - Commands can be split into sections based on annotations

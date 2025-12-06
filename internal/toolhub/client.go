@@ -33,7 +33,7 @@ func NewClient() *Client {
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
-	req.Header.Set("User-Agent", "mwcli toolhub")
+	req.Header.Set("User-Agent", "https://mediawiki.org/wiki/Cli toolhub client")
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return err

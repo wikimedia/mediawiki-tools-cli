@@ -27,8 +27,8 @@ func Cmd() *cobra.Command {
 	glabCommand.GroupID = "service"
 	glabCommand.Aliases = []string{"glab", "gl"}
 
-	glabCommand.Annotations["mwcli-lint-skip"] = "yarhar"
-	glabCommand.Annotations["mwcli-lint-skip-children"] = "yarhar"
+	glabCommand.Annotations["cli-lint-skip"] = "yarhar"
+	glabCommand.Annotations["cli-lint-skip-children"] = "yarhar"
 
 	defaultHelpFunc := glabCommand.HelpFunc()
 	glabCommand.SetHelpFunc(func(c *cobra.Command, a []string) {

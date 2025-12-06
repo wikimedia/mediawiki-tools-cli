@@ -53,7 +53,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dbType != "sqlite" && dbType != "mysql" && dbType != "postgres" {
 				fmt.Println("You must specify a valid dbtype (mysql, postgres, sqlite)")
-				fmt.Println("You can also set the default in the mwcli config file, for example `mw config set mw_dev.docker.db_type mysql`")
+				fmt.Println("You can also set the default in the cli config file, for example `mw config set mw_dev.docker.db_type mysql`")
 				return fmt.Errorf("invalid dbtype")
 			}
 
@@ -100,7 +100,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 
 			if !mediawiki.LocalSettingsContains("/mwdd/MwddSettings.php") {
-				return fmt.Errorf("LocalSettings.php file exists, but doesn't look right (missing mwcli mwdd shim)")
+				return fmt.Errorf("LocalSettings.php file exists, but doesn't look right (missing cli development environment shim)")
 			}
 
 			// MediaWiki will only create the cache dir sometimes (on some web requests?), make sure it exists.

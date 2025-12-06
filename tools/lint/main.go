@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	rootCmd := cmd.NewMwCliCmd()
+	rootCmd := cmd.NewRootCliCmd()
 
 	// Collect all issues
 	allIssues := detectors.DetectCobraCommandIssuesRoot(rootCmd)

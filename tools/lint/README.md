@@ -31,5 +31,5 @@ Skipping can be done by adding annotations to commands
 You can skip linting certain commands children.
 
 ```go
-cmd.Annotations["mwcli-lint-skip-children"] = "yarhar"
+cmd.Annotations["cli-lint-skip-children"] = "yarhar"
 ```

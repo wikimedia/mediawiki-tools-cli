@@ -37,7 +37,7 @@ This means if you do offline development, you will need to add hosts file entrie
 
 ## v0.27.2
 
-- Revert to using the `buster-php81-fpm:1.0.1-s2` image by default for the `mediawiki` services as `bookworm-php83-fpm:1.0.0` contains a version of `libcurl` that breaks mwcli (T388411)
+- Revert to using the `buster-php81-fpm:1.0.1-s2` image by default for the `mediawiki` services as `bookworm-php83-fpm:1.0.0` contains a version of `libcurl` that breaks the cli (T388411)
 
 ## v0.27.1
 

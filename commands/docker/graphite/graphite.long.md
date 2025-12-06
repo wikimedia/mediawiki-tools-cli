@@ -6,7 +6,7 @@ Creating this service will automatically configure `$wgStatsdServer` for MediaWi
 $wgStatsdServer = "graphite";
 ```
 
-NOTE: The Graphite config differs between mwcli and graphite.wikimedia.org, see https://phabricator.wikimedia.org/T307366
+NOTE: The Graphite config differs between this setup graphite.wikimedia.org, see https://phabricator.wikimedia.org/T307366
 
 ## Documentation
 
