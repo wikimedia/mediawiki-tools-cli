@@ -1,31 +1,27 @@
-# MediaWiki CLI
+# a Wikimedia CLI
 
-This project contains a command-line interface for MediaWiki and Wikimedia developers.
+A command-line interface for Wikimedia and MediaWiki developers, with an extensible, flexible, reproducible docker based development environment, and access to tools such as [Gitlab](https://gitlab.wikimedia.org/), [Codesearch](https://codesearch.wmflabs.org/), and more.
 
-It includes a MediaWiki development environment modeled after [mediawiki-docker-dev](https://www.mediawiki.org/wiki/MediaWiki-Docker-Dev).
+User facing documentation can be found on [mediawiki.org](https://www.mediawiki.org/wiki/Cli).
 
-Take a look at the user facing docs https://www.mediawiki.org/wiki/Cli.
+## Links
 
-## Support
-
-- Code Repository: [releng/cli on gitlab.wikimedia.org](https://gitlab.wikimedia.org/repos/releng/cli)
 - Documentation: [Cli page on mediawiki.org](https://www.mediawiki.org/wiki/Cli)
-- Phabricator: [#mwcli on phabricator.wikimedia.org](https://phabricator.wikimedia.org/project/view/5331/)
-- IRC: `#mediawiki` on [Libera.Chat](https://libera.chat/)
+- Issues: [#wmcli on phabricator.wikimedia.org](https://phabricator.wikimedia.org/project/view/5331/)
+- Telegram: [Wikimedia CLI group](https://t.me/+SnnGQakA9YkwNTI0)
+- Code Repository: [releng/cli on gitlab.wikimedia.org](https://gitlab.wikimedia.org/repos/releng/cli)
 
 ## Contributing
 
-If you want to contribute to this repository, please [ask an existing maintainer](https://gitlab.wikimedia.org/repos/releng/cli/-/project_members) to be added as a developer.
+If you want to contribute to this repository, please [ask an existing maintainer](https://gitlab.wikimedia.org/repos/releng/cli/-/project_members) to be added as a developer. Once this has happened you will be able to make branches in this repository and CI will run for you.
 
-Once this has happened you will be able to make branches in this repository and CI will run for you.
+If you create merge requests from forks, **CI will not run**. In this case, your forked branch, will be merged into an in repo branch to then continue review and have CI run.
 
-If you create merge requests from forks, CI will not run.
-
-You can request access to the project by [filing a ticket against the #mwcli project on phabricator](https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli&title=Request%20access%20to%20mwcli%20gitlab%20project%20for%20%3CUSER%3E).
+You can request access to the project by [filing a ticket against the #wmcli project on phabricator](https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=wmcli&title=Request%20access%20to%20wmcli%20gitlab%20project%20for%20%3CUSER%3E).
 
 ### Repo / Code setup
 
-You need go 1.22+ installed.
+You need go 1.3+ installed.
 
 This repository uses the `bingo` tool.
 You can install it with:
@@ -67,7 +63,7 @@ Many other Makefile commands exist that you might find useful:
 - `make release`: Builds multiple release binaries to `_release`
 - `make test`: Run unit tests
 - `make lint`: Run basic go linting
-- `make linti`: Run custom mwcli command linting (lint internal)
+- `make linti`: Run custom cli command linting (lint internal)
 - `make fix`: Run basic lint fixes
 - `make vet`: Run `go vet`
 
@@ -89,7 +85,7 @@ Many other Makefile commands exist that you might find useful:
 - `internal/toolhub`: Client for interacting with https://toolhub.wikimedia.org.
 - `internal/updater`: Code for updating the CLI.
 - `internal/util`: DEPRECATED: Independent packages that do not bind the CLI in any way. (Slowly bring moved to `./pkg`)
-- `pkg`: Independently useful packages that do not bind to mwcli code or concepts.
+- `pkg`: Independently useful packages that do not bind to application code or concepts.
 - `tests`: Integration tests that are run as part of CI.
 - `tools`: Various tools to make working with this repository easier.
 
