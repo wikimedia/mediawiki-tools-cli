@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.29.1
+
+Minor fix removing logging library that was incorrectly imported in the dashboard embed code (resulting in non operation).
+
 ## v0.29.0
 
 If you use the docker based development environment, this release contains a large change to how you access your sites.
