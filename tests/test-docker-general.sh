@@ -170,7 +170,7 @@ test_command ./../bin/mw docker mediawiki exec ls "api.php"
 # test_command "./../bin/mw docker mediawiki exec -- composer phpunit tests/phpunit/unit/includes/installer/PingbackTest.php" "OK "
 
 # fresh: Make sue a basic browser test works
-test_command_success ./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/page.js
+test_command_success ./../bin/mw docker mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
 
 # quibble: Make sure a quibble works
 test_command_success ./../bin/mw docker mediawiki quibble quibble -- --help
