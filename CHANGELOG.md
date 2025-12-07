@@ -18,6 +18,8 @@ This means if you do offline development, you will need to add hosts file entrie
 - Fixed telemetry event submission user agent and success check.
 - Development environment (`mw docker`)
   - Domains switched to using `*.local.wmftest.net` for better modern curl support. (T388411)
+  - Added a dashboard at dash.local.wmftest.net that shows service and site status.
+  - MediaWiki service discovery is now done via cached dashboard API data, rather than individual DNS lookups at runtime, increasing speed in some situations.
   - Deprecate `elasticsearch` service in favour of `opensearch`
   - Image updates:
     - postgres 13.18 -> 13.23

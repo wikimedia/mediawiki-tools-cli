@@ -102,7 +102,7 @@ test_wget http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has b
 test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 
 # Make sure the expected number of services appear
-test_docker_ps_service_count 9
+test_docker_ps_service_count 10
 
 # Try other DB related commands
 test_command_success ./bin/mw docker postgres stop

@@ -12,6 +12,29 @@ services:
       dps:
         ipv4_address: ${NETWORK_SUBNET_PREFIX}.10
 
+  dashboard:
+    image: "${DASHBOARD_IMAGE:-golang:1.23-alpine}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    working_dir: /app
+    command: ["go", "run", "main.go"]
+    environment:
+      - VIRTUAL_HOST=dashboard.local.wmftest.net,dash.local.wmftest.net
+      - VIRTUAL_PORT=8080
+      - DEFAULT_EXPOSE_PORT=8080
+      - PORT=${PORT}
+      - DASHBOARD_PORT=8080
+    volumes:
+      - ./dashboard:/app:ro
+      - .:/data:ro
+    depends_on:
+      - dps
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
   nginx-proxy:
     image: "${NGINX_PROXY_IMAGE:-jwilder/nginx-proxy:0.10}"
     security_opt:
@@ -20,13 +43,14 @@ services:
     environment:
       - VIRTUAL_HOST=proxy.local.wmftest.net
       - VIRTUAL_PORT=${PORT}
-      - HOSTNAMES=.mediawiki.local.wmftest.net,keycloak.local.wmftest.net     # wildcard name resolution, thanks to DPS
+      - HOSTNAMES=.mediawiki.local.wmftest.net,keycloak.local.wmftest.net,dashboard.local.wmftest.net     # wildcard name resolution, thanks to DPS
       - HTTP_PORT=${PORT}      # internal port
       - DEFAULT_EXPOSE_PORT=${PORT}
     ports:
       - "${PORT}:${PORT}"
     depends_on:
       - dps
+      - dashboard # For now always load the dashboard...
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
