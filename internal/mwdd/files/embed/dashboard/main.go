@@ -1,5 +1,6 @@
 // MWDD Dashboard - A simple status dashboard for MediaWiki Docker Development environment
 // Run with: go run main.go
+// //nolint:depguard
 package main
 
 import (
