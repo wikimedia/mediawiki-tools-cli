@@ -1,0 +1,18 @@
+{
+        "url": "http://shellbox-score-httpd:8000/",
+        "tempDir": "/tmp",
+        "logFormat": "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n",
+        "logFile": false,
+        "jsonLogFile": false,
+        "logToStderr": false,
+        "jsonLogToStderr": true,
+        "syslogIdent": "shellbox",
+        "logToSyslog": false,
+        "logToClient": true,
+        "allowedActions": [ "call", "shell" ],
+        "useSystemd": false,
+        "useBashWrapper": true,
+        "useFirejail": false,
+        "firejailPath": "/usr/bin/firejail",
+        "firejailProfile": false
+}
