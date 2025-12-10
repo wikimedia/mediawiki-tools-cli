@@ -116,11 +116,13 @@ if ( $dashboardServicesCache !== null ) {
 		'citoid' => ( $dashboardServicesCache['citoid'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'jaeger' => ( $dashboardServicesCache['jaeger'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'mailhog' => ( $dashboardServicesCache['mailhog'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
-		'shellbox-media' => ( ( $dashboardServicesCache['shellbox-media'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
+		'shellbox-media' => ( ( $dashboardServicesCache['shellbox-media'] ?? false ) && !defined
+	( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-media-httpd:8000' : false,
 		'shellbox-php-rpc' => ( ( $dashboardServicesCache['shellbox-php-rpc'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-php-rpc-httpd:8000' : false,
-		'shellbox-score' => ( $dashboardServicesCache['shellbox-score'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-score' => ( ( $dashboardServicesCache['shellbox-score'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-score-httpd:8000' : false,
 		'shellbox-syntaxhighlight' => ( $dashboardServicesCache['shellbox-syntaxhighlight'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'shellbox-timeline' => ( $dashboardServicesCache['shellbox-timeline'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 	];
