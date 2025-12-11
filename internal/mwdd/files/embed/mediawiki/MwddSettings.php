@@ -116,11 +116,13 @@ if ( $dashboardServicesCache !== null ) {
 		'citoid' => ( $dashboardServicesCache['citoid'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'jaeger' => ( $dashboardServicesCache['jaeger'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'mailhog' => ( $dashboardServicesCache['mailhog'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
-		'shellbox-media' => ( ( $dashboardServicesCache['shellbox-media'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
+		'shellbox-media' => ( ( $dashboardServicesCache['shellbox-media'] ?? false ) && !defined
+	( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-media-httpd:8000' : false,
 		'shellbox-php-rpc' => ( ( $dashboardServicesCache['shellbox-php-rpc'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-php-rpc-httpd:8000' : false,
-		'shellbox-score' => ( $dashboardServicesCache['shellbox-score'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-score' => ( ( $dashboardServicesCache['shellbox-score'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-score-httpd:8000' : false,
 		'shellbox-syntaxhighlight' => ( $dashboardServicesCache['shellbox-syntaxhighlight'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'shellbox-timeline' => ( $dashboardServicesCache['shellbox-timeline'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 	];
@@ -142,7 +144,8 @@ if ( $dashboardServicesCache !== null ) {
 			? 'http://shellbox-media-httpd:8000' : false,
 		'shellbox-php-rpc' => ( gethostbyname('shellbox-php-rpc') !== 'shellbox-php-rpc' && !defined( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-php-rpc-httpd:8000' : false,
-		'shellbox-score' => gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-score' => ( gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ) )
+			? 'http://shellbox-score-httpd:8000' : false,
 		'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
 		'shellbox-timeline' => gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ),
 	];
@@ -371,7 +374,7 @@ if($dockerServices['shellbox-php-rpc']) {
 	$wgShellboxUrls['constraint-regex-checker'] = $dockerServices['shellbox-php-rpc'];
 }
 if($dockerServices['shellbox-score']) {
-	$wgShellboxUrls['score'] = $dockerServices['shellbox-score'];// XXX: This won't work yet, as no http service is infront of the score service
+	$wgShellboxUrls['score'] = $dockerServices['shellbox-score'];
 }
 if($dockerServices['shellbox-syntaxhighlight']) {
 	$wgShellboxUrls['syntaxhighlight'] = $dockerServices['shellbox-syntaxhighlight']; // XXX: This won't work yet, as no http service is infront of the syntaxhighlight service

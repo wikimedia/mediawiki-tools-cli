@@ -5,10 +5,36 @@
 # TODO can we use the simply named images? or must we use the dated ones to stay up to date?
 
 services:
-  shellbox-score: 
-    image: "${SHELLBOX_SCORE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-score83}"
+  shellbox-score:
+    build: ./shellbox/score
     restart: unless-stopped
+    volumes:
+      - shellbox-score-run:/run/shared
+      - ./shellbox/score/config.json:/srv/app/config/config.json:ro
+    environment:
+      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
+      - "FCGI_MODE=FCGI_UNIX"
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
+
+  shellbox-score-httpd:
+    image: docker-registry.wikimedia.org/httpd-fcgi:latest
+    security_opt:
+      - label:disable
+    volumes:
+      - shellbox-score-run:/run/shared
+    environment:
+      - "FCGI_MODE=FCGI_UNIX"
+      - "SERVERGROUP=main"
+      - "APACHE_RUN_PORT=8000"
+    depends_on:
+      - shellbox-score
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  shellbox-score-run:

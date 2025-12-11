@@ -52,6 +52,8 @@
 ./shellbox/media/config.json
 ./shellbox/php-rpc/Dockerfile
 ./shellbox/php-rpc/config.json
+./shellbox/score/Dockerfile
+./shellbox/score/config.json
 ./wait-for-it.sh
 ./wdqs-ui.yml
 ./wdqs.yml
