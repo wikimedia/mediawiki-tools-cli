@@ -4,10 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
-## Unreleased
+## v0.29.2
 
 - Development environment (`mw docker`)
-  - Adds support for shellbox-score with httpd service
+  - Adds support for shellbox-score with httpd service (Thanks @audreypenven)
 
 ## v0.29.1
 
