@@ -5,6 +5,7 @@ services:
       - grafana-storage:/var/lib/grafana
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards/dashboards:ro
     ports:
       - "3000:3000"
     depends_on:

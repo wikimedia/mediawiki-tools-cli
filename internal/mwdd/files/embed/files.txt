@@ -8,6 +8,7 @@
 ./files.txt
 ./grafana.yml
 ./grafana/dashboards.yml
+./grafana/dashboards/mediawiki-rest-api.json
 ./grafana/datasources.yml
 ./graphite.yml
 ./jaeger.yml
