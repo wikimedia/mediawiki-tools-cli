@@ -8,7 +8,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 
 - Development environment (`mw docker`)
   - Added `mw docker prometheus` service
-  - Added `mw docker grafana` service with automatic Prometheus integration
+  - Added `mw docker grafana` service with automatic Prometheus, Jaeger and Graphite integration
 
 ## v0.29.2
 
