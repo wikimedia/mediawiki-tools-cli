@@ -16,6 +16,7 @@ import (
 	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	"golang.org/x/term"
 )
 
 func Cmd() *cobra.Command {
@@ -138,28 +139,53 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				defer tempDownloadFile.Close()
 				tempDownloadFilePath := tempDownloadFile.Name()
 
-				var p *tea.Program
-				pw := &cmdgloss.ProgressWriter{
-					Total:  int(response.ContentLength),
-					File:   tempDownloadFile,
-					Reader: response.Body,
-					OnProgress: func(ratio float64) {
-						p.Send(cmdgloss.ProgressMsg(ratio))
-					},
-				}
-				m := cmdgloss.Model{
-					Pw:       pw,
-					Progress: progress.New(progress.WithDefaultGradient()),
-				}
-				p = tea.NewProgram(m)
-				go pw.Start() // Start the download
-				if _, err := p.Run(); err != nil {
-					cmd.Println("error with progress bar:", err)
-					os.Exit(1)
-				}
-				if int64(pw.Downloaded) < response.ContentLength {
-					logrus.Error("Download seems incomplete.")
-					os.Exit(1)
+				// Check if we have a TTY for progress bar display
+				isTTY := term.IsTerminal(int(os.Stdout.Fd()))
+
+				if isTTY {
+					// Show progress bar only in TTY environments
+					var p *tea.Program
+					pw := &cmdgloss.ProgressWriter{
+						Total:  int(response.ContentLength),
+						File:   tempDownloadFile,
+						Reader: response.Body,
+						OnProgress: func(ratio float64) {
+							p.Send(cmdgloss.ProgressMsg(ratio))
+						},
+					}
+					m := cmdgloss.Model{
+						Pw:       pw,
+						Progress: progress.New(progress.WithDefaultGradient()),
+					}
+					p = tea.NewProgram(m)
+					go pw.Start() // Start the download
+					if _, err := p.Run(); err != nil {
+						cmd.Println("error with progress bar:", err)
+						os.Exit(1)
+					}
+					if int64(pw.Downloaded) < response.ContentLength {
+						logrus.Error("Download seems incomplete.")
+						os.Exit(1)
+					}
+				} else {
+					// No TTY available, just copy directly without progress bar
+					_, err := tempDownloadFile.ReadFrom(response.Body)
+					if err != nil {
+						logrus.Error(fmt.Errorf("could not download file: %s", err))
+						os.Exit(1)
+					}
+					if response.ContentLength > 0 {
+						// Get the actual file size to verify download
+						fileInfo, err := tempDownloadFile.Stat()
+						if err != nil {
+							logrus.Error(fmt.Errorf("could not get temp file size: %s", err))
+							os.Exit(1)
+						}
+						if fileInfo.Size() < response.ContentLength {
+							logrus.Error("Download seems incomplete.")
+							os.Exit(1)
+						}
+					}
 				}
 
 				// Is the file a zip?
