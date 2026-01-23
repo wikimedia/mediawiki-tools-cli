@@ -6,6 +6,9 @@
 ./elasticsearch.yml
 ./eventlogging.yml
 ./files.txt
+./grafana.yml
+./grafana/dashboards.yml
+./grafana/datasources.yml
 ./graphite.yml
 ./jaeger.yml
 ./keycloak.yml
