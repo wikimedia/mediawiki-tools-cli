@@ -21,11 +21,13 @@ import (
 func Cmd() *cobra.Command {
 	versionInput := ""
 	dryRun := false
+	force := false
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Checks for and performs updates",
 		Example: cobrautil.NormalizeExample(`update
 update --version=v0.10.0 --no-interaction
+update --force
 update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`),
 		Run: func(cmd *cobra.Command, args []string) {
 			currDetails := cli.VersionDetails
@@ -43,8 +45,8 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				targetVersion = cli.VersionFromUserInput(targetRelease.TagName)
 
-				// Make sure we are not already on the latest version
-				if currDetails.Version == targetVersion {
+				// Make sure we are not already on the latest version (unless --force is set)
+				if !force && currDetails.Version == targetVersion {
 					cmd.Println("You are already on the latest version: " + targetVersion.String())
 					os.Exit(0)
 				}
@@ -64,11 +66,19 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				cmd.Println("Artifact URL: " + targetArtifact)
 				targetArtifact = targetReleaseLink.DirectAssetURL
 			} else {
-				// Manual version is URL?
-				if len(versionInput) >= 4 && versionInput[:4] == "http" {
+				// Manual version is URL or local file path?
+				isURL := len(versionInput) >= 4 && (versionInput[:4] == "http" || (len(versionInput) >= 7 && versionInput[:7] == "file://"))
+				isLocalFile := len(versionInput) > 0 && (versionInput[0] == '/' || (len(versionInput) > 1 && versionInput[1] == ':')) // Unix path or Windows path
+
+				if isURL || isLocalFile {
 					// TODO if we can auto detect a gitlab build, link to that too
 					cmd.Println("Artifact URL: " + versionInput)
-					targetArtifact = versionInput
+					// Convert local file paths to file:// URLs
+					if isLocalFile && !(len(versionInput) >= 7 && versionInput[:7] == "file://") {
+						targetArtifact = "file://" + versionInput
+					} else {
+						targetArtifact = versionInput
+					}
 				} else {
 					// Probably gitlab version of tag
 					targetVersion = cli.VersionFromUserInput(versionInput)
@@ -200,12 +210,19 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				defer os.Remove(tempCopyPath)
 
 				// Move the new file to the desired location
-				_, err = copyFile(newMwFileLocation, executablePath)
+				// First try os.Rename() which is atomic and fast on the same filesystem
+				err = os.Rename(newMwFileLocation, executablePath)
 				if err != nil {
-					logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
-					// Switch them back
-					copyFile(tempCopyPath, executablePath)
-					os.Exit(1)
+					logrus.Trace("os.Rename failed, trying fallback copy method: " + err.Error())
+					// If Rename failed, try copying as a fallback (e.g., for cross-device)
+					// This might still fail if the binary is currently running with locked permissions
+					_, err = copyFile(newMwFileLocation, executablePath)
+					if err != nil {
+						logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
+						// Switch them back
+						copyFile(tempCopyPath, executablePath)
+						os.Exit(1)
+					}
 				}
 				defer os.Remove(newMwFileLocation)
 
@@ -214,8 +231,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				err = os.Chmod(executablePath, 0o755)
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not make new binary executable: %s", err))
-					// Switch them back.
-					// TODO: This wont restore the +x, will it?
+					// Switch them back
 					copyFile(tempCopyPath, executablePath)
 					os.Exit(1)
 				}
@@ -260,6 +276,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	}
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
+	cmd.Flags().BoolVarP(&force, "force", "", false, "Force force and reinstall even if already on the latest version.")
 	return cmd
 }
 

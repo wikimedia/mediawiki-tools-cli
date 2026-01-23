@@ -9,6 +9,9 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
 - Development environment (`mw docker`)
   - Added `mw docker prometheus` service
   - Added `mw docker grafana` service with automatic Prometheus, Jaeger and Graphite integration
+- `update` command
+  - Added `--force` option to force force and reinstall even if already on the latest version
+  - Fixed cross-device update failures by attempting `os.Rename()` first with fallback to copy if needed (T414004)
 
 ## v0.29.2
 

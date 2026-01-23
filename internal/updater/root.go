@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,44 @@ func CanUpdate(currentVersion cli.Version, gitSummary string) (bool, string) {
 	return canUpdate, "No update available"
 }
 
-func DownloadFileResponse(url string) (*http.Response, error) {
+func DownloadFileResponse(urlStr string) (*http.Response, error) {
+	// Check if it's a file:// URL
+	if strings.HasPrefix(urlStr, "file://") {
+		// Parse the file URL to get the path
+		parsedURL, err := url.Parse(urlStr)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		filePath := parsedURL.Path
+
+		// Open the file
+		file, err := os.Open(filePath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Get file info for content length
+		fileInfo, err := file.Stat()
+		if err != nil {
+			file.Close()
+			logrus.Fatal(err)
+		}
+
+		// Create a fake HTTP response for the file
+		resp := &http.Response{
+			Status:        "200 OK",
+			StatusCode:    200,
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			Header:        make(http.Header),
+			Body:          file,
+			ContentLength: fileInfo.Size(),
+		}
+		return resp, nil
+	}
+
+	// Handle regular HTTP(S) URLs
 	client := http.Client{
 		CheckRedirect: func(r *http.Request, via []*http.Request) error {
 			r.URL.Opaque = r.URL.Path
@@ -33,7 +71,7 @@ func DownloadFileResponse(url string) (*http.Response, error) {
 		},
 	}
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(urlStr)
 	if err != nil {
 		logrus.Fatal(err)
 	}
