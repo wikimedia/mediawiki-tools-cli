@@ -1,0 +1,34 @@
+services:
+  statsd-exporter:
+    image: prom/statsd-exporter:v0.28.0
+    ports:
+      - "8125:8125/udp"
+      - "9102:9102"
+    command:
+      - "--statsd.listen-udp=:8125"
+      - "--web.listen-address=:9102"
+    environment:
+      - VIRTUAL_HOST=statsd-exporter.local.wmftest.net
+      - VIRTUAL_PORT=9102
+      - DEFAULT_EXPOSE_PORT=9102
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+  prometheus:
+    image: prom/prometheus:v3.9.1
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - statsd-exporter
+    environment:
+      - VIRTUAL_HOST=prometheus.local.wmftest.net
+      - VIRTUAL_PORT=9090
+      - DEFAULT_EXPOSE_PORT=9090
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
