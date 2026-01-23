@@ -125,6 +125,7 @@ if ( $dashboardServicesCache !== null ) {
 			? 'http://shellbox-score-httpd:8000' : false,
 		'shellbox-syntaxhighlight' => ( $dashboardServicesCache['shellbox-syntaxhighlight'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'shellbox-timeline' => ( $dashboardServicesCache['shellbox-timeline'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'prometheus' => ( $dashboardServicesCache['prometheus'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 	];
 } else {
 	// Fallback to direct DNS checks (slow, but works if dashboard is not running)
@@ -148,6 +149,7 @@ if ( $dashboardServicesCache !== null ) {
 			? 'http://shellbox-score-httpd:8000' : false,
 		'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
 		'shellbox-timeline' => gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ),
+		'prometheus' => gethostbyname('prometheus') !== 'prometheus' && !defined( 'MW_PHPUNIT_TEST' ),
 	];
 }
 // $serviceLookupEndTime = microtime( true );
@@ -381,6 +383,14 @@ if($dockerServices['shellbox-syntaxhighlight']) {
 }
 if($dockerServices['shellbox-timeline']) {
 	$wgShellboxUrls['easytimeline'] = $dockerServices['shellbox-timeline']; // XXX: This won't work yet, as no http service is infront of the timeline service
+}
+
+################################
+# Prometheus
+################################
+if(gethostbyname('prometheus') !== 'prometheus') {
+	$wgStatsTarget = 'udp://statsd-exporter:8125';
+	$wgStatsFormat = 'dogstatsd';
 }
 
 ################################

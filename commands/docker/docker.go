@@ -213,6 +213,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceCmd("citoid", mwdd.ServiceTexts{Long: citoidLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("novnc", mwdd.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("jaeger", mwdd.ServiceTexts{Long: jaegerLong, OnCreate: envSubst(jaegerOnCreate)}, []string{}))
+	cmd.AddCommand(mwdd.NewServiceCmd("prometheus", mwdd.ServiceTexts{Long: prometheusLong, OnCreate: envSubst(prometheusOnCreate)}, []string{}))
 
 	cmd.AddCommand(mwdd.NewServiceCmd("postgres", mwdd.ServiceTexts{Long: postgresLong}, []string{}))
 	cmd.AddCommand(mysql.NewCmd())
@@ -304,3 +305,9 @@ var phpmyadminLong string
 
 //go:embed phpmyadmin/phpmyadmin.oncreate.md
 var phpmyadminOnCreate string
+
+//go:embed prometheus/prometheus.long.md
+var prometheusLong string
+
+//go:embed prometheus/prometheus.oncreate.md
+var prometheusOnCreate string

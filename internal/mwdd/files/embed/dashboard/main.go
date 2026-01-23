@@ -74,6 +74,7 @@ var (
 		{Name: "shellbox-timeline", HasUI: false},
 		{Name: "keycloak", HasUI: true, UIHost: "keycloak.local.wmftest.net"},
 		{Name: "novnc", HasUI: true, UIHost: "novnc.local.wmftest.net"},
+		{Name: "prometheus", HasUI: true, UIHost: "prometheus.local.wmftest.net"},
 	}
 
 	// Cache for status
@@ -380,7 +381,7 @@ const dashboardHTML = `<!DOCTYPE html>
     <div class="container">
         <h1>🐳 MWDD Dashboard</h1>
         <p class="subtitle">MediaWiki Docker Development Environment Status</p>
-        
+
         <div class="api-links">
             <a href="/api/status">API: Full Status</a>
             <a href="/api/services">API: Services</a>

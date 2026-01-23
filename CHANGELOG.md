@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.30.0
+
+- Development environment (`mw docker`)
+  - Added `mw docker prometheus` service
+
 ## v0.29.2
 
 - Development environment (`mw docker`)
@@ -239,7 +244,7 @@ If you ended up on `v0.24.0` and are unable to udpate, you can still update usin
 ## v0.19.1
 
 - Development environment (`mw docker`):
-  - Fixed `MW_DB` handling for `mediawiki exec` commands 
+  - Fixed `MW_DB` handling for `mediawiki exec` commands
 
 ## v0.19.0
 
@@ -398,7 +403,7 @@ Docker development environment:
 - Added 5 `shellbox <type>` service commands for commonly used shellbox services
 - Improved `docker resume` output to not show "failed" services, that have never even been started (T299631)
 - Improved formatting of long command descriptions
-- Updated `nginx-proxy` image from `jwilder/nginx-proxy:0.9` to `jwilder/nginx-proxy:0.10` 
+- Updated `nginx-proxy` image from `jwilder/nginx-proxy:0.9` to `jwilder/nginx-proxy:0.10`
 - Updated `mediawiki-fresh` image from `wm.o/releng/node14-test-browser:0.0.2` to `wm.o/releng/node14-test-browser:0.0.2-s3`
 - Updated `mediawiki-quibble` image from `wm.o/releng//quibble-buster-php74:1.1.1` to `wm.o/releng//quibble-buster-php74:1.3.0-s1`
 - Updated `mysql` images from `mariadb:10.6` to `mariadb:10.7`
