@@ -3,6 +3,7 @@ package update
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -211,11 +212,12 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 
-				executablePath, err := os.Executable()
+				executablePath, err := getExecutablePath()
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not get the current executable path: %s", err))
 					os.Exit(1)
 				}
+
 				executableName := executablePath[strings.LastIndex(executablePath, "/")+1:]
 				logrus.Trace("Current executable name: " + executableName)
 				logrus.Trace("Current executable path: " + executablePath)
@@ -332,4 +334,37 @@ func tmpDir(name string) (string, func()) {
 		os.RemoveAll(tempDir)
 		logrus.Trace("Removed temp dir: " + tempDir)
 	}
+}
+
+// getExecutablePath returns a reliable path to the current executable.
+// On Linux, it uses /proc/self/exe which is more reliable than os.Executable()
+// in containerized environments. Falls back to os.Executable() on other systems.
+func getExecutablePath() (string, error) {
+	// On Linux, try /proc/self/exe first (more reliable in containers)
+	procExe := "/proc/self/exe"
+	if fi, err := os.Lstat(procExe); err == nil && (fi.Mode()&os.ModeSymlink) != 0 {
+		// It's a symlink, resolve it
+		target, err := os.Readlink(procExe)
+		if err == nil && target != "" {
+			logrus.Trace("Using /proc/self/exe: " + target)
+			return target, nil
+		}
+	}
+
+	// Fall back to os.Executable()
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	// Try to resolve symlinks using filepath.EvalSymlinks for a more stable result
+	resolvedPath, err := filepath.EvalSymlinks(execPath)
+	if err == nil && resolvedPath != "" {
+		logrus.Trace("Using resolved executable path: " + resolvedPath)
+		return resolvedPath, nil
+	}
+
+	// If resolution fails, use the original path
+	logrus.Trace("Using os.Executable path: " + execPath)
+	return execPath, nil
 }

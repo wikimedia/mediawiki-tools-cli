@@ -41,5 +41,7 @@ cp ./bin/mw "$TEST_BINARY_PATH"
 # Test updating with local file path (non-interactive)
 test_command_success ./bin/mw update -vv --version "$TEST_BINARY_PATH" --no-interaction
 
-# Cleanup
-rm -rf "$TEST_BINARY_DIR"
+# Cleanup (skip in CI since container is ephemeral)
+if [ -z "$CI" ] && [ -z "$GITLAB_CI" ]; then
+	rm -rf "$TEST_BINARY_DIR"
+fi
