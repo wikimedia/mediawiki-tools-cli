@@ -29,3 +29,19 @@ test_command_success ./bin/mw output
 # gitlab: Test command is registered and generally works
 test_command_success ./bin/mw gitlab
 test_command_success ./bin/mw gitlab alias list
+
+# update: Test with local file copy (actually exercises file replacement logic)
+# Create a temporary directory for test binary
+TEST_BINARY_DIR=$(mktemp -d)
+TEST_BINARY_PATH="$TEST_BINARY_DIR/mw"
+
+# Copy the current binary to temp location
+cp ./bin/mw "$TEST_BINARY_PATH"
+
+# Test updating with local file path (non-interactive)
+test_command_success ./bin/mw update -vv --version "$TEST_BINARY_PATH" --no-interaction
+
+# Cleanup (skip in CI since container is ephemeral)
+if [ -z "$CI" ] && [ -z "$GITLAB_CI" ]; then
+	rm -rf "$TEST_BINARY_DIR"
+fi

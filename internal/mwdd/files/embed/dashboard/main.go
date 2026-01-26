@@ -75,6 +75,7 @@ var (
 		{Name: "keycloak", HasUI: true, UIHost: "keycloak.local.wmftest.net"},
 		{Name: "novnc", HasUI: true, UIHost: "novnc.local.wmftest.net"},
 		{Name: "prometheus", HasUI: true, UIHost: "prometheus.local.wmftest.net"},
+		{Name: "grafana", HasUI: true, UIHost: "grafana.local.wmftest.net"},
 	}
 
 	// Cache for status

@@ -3,6 +3,7 @@ package update
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -16,16 +17,19 @@ import (
 	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	"golang.org/x/term"
 )
 
 func Cmd() *cobra.Command {
 	versionInput := ""
 	dryRun := false
+	force := false
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Checks for and performs updates",
 		Example: cobrautil.NormalizeExample(`update
 update --version=v0.10.0 --no-interaction
+update --force
 update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`),
 		Run: func(cmd *cobra.Command, args []string) {
 			currDetails := cli.VersionDetails
@@ -43,8 +47,8 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				targetVersion = cli.VersionFromUserInput(targetRelease.TagName)
 
-				// Make sure we are not already on the latest version
-				if currDetails.Version == targetVersion {
+				// Make sure we are not already on the latest version (unless --force is set)
+				if !force && currDetails.Version == targetVersion {
 					cmd.Println("You are already on the latest version: " + targetVersion.String())
 					os.Exit(0)
 				}
@@ -64,11 +68,19 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				cmd.Println("Artifact URL: " + targetArtifact)
 				targetArtifact = targetReleaseLink.DirectAssetURL
 			} else {
-				// Manual version is URL?
-				if len(versionInput) >= 4 && versionInput[:4] == "http" {
+				// Manual version is URL or local file path?
+				isURL := len(versionInput) >= 4 && (versionInput[:4] == "http" || (len(versionInput) >= 7 && versionInput[:7] == "file://"))
+				isLocalFile := len(versionInput) > 0 && (versionInput[0] == '/' || (len(versionInput) > 1 && versionInput[1] == ':')) // Unix path or Windows path
+
+				if isURL || isLocalFile {
 					// TODO if we can auto detect a gitlab build, link to that too
 					cmd.Println("Artifact URL: " + versionInput)
-					targetArtifact = versionInput
+					// Convert local file paths to file:// URLs
+					if isLocalFile && !(len(versionInput) >= 7 && versionInput[:7] == "file://") {
+						targetArtifact = "file://" + versionInput
+					} else {
+						targetArtifact = versionInput
+					}
 				} else {
 					// Probably gitlab version of tag
 					targetVersion = cli.VersionFromUserInput(versionInput)
@@ -128,28 +140,53 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				defer tempDownloadFile.Close()
 				tempDownloadFilePath := tempDownloadFile.Name()
 
-				var p *tea.Program
-				pw := &cmdgloss.ProgressWriter{
-					Total:  int(response.ContentLength),
-					File:   tempDownloadFile,
-					Reader: response.Body,
-					OnProgress: func(ratio float64) {
-						p.Send(cmdgloss.ProgressMsg(ratio))
-					},
-				}
-				m := cmdgloss.Model{
-					Pw:       pw,
-					Progress: progress.New(progress.WithDefaultGradient()),
-				}
-				p = tea.NewProgram(m)
-				go pw.Start() // Start the download
-				if _, err := p.Run(); err != nil {
-					cmd.Println("error with progress bar:", err)
-					os.Exit(1)
-				}
-				if int64(pw.Downloaded) < response.ContentLength {
-					logrus.Error("Download seems incomplete.")
-					os.Exit(1)
+				// Check if we have a TTY for progress bar display
+				isTTY := term.IsTerminal(int(os.Stdout.Fd()))
+
+				if isTTY {
+					// Show progress bar only in TTY environments
+					var p *tea.Program
+					pw := &cmdgloss.ProgressWriter{
+						Total:  int(response.ContentLength),
+						File:   tempDownloadFile,
+						Reader: response.Body,
+						OnProgress: func(ratio float64) {
+							p.Send(cmdgloss.ProgressMsg(ratio))
+						},
+					}
+					m := cmdgloss.Model{
+						Pw:       pw,
+						Progress: progress.New(progress.WithDefaultGradient()),
+					}
+					p = tea.NewProgram(m)
+					go pw.Start() // Start the download
+					if _, err := p.Run(); err != nil {
+						cmd.Println("error with progress bar:", err)
+						os.Exit(1)
+					}
+					if int64(pw.Downloaded) < response.ContentLength {
+						logrus.Error("Download seems incomplete.")
+						os.Exit(1)
+					}
+				} else {
+					// No TTY available, just copy directly without progress bar
+					_, err := tempDownloadFile.ReadFrom(response.Body)
+					if err != nil {
+						logrus.Error(fmt.Errorf("could not download file: %s", err))
+						os.Exit(1)
+					}
+					if response.ContentLength > 0 {
+						// Get the actual file size to verify download
+						fileInfo, err := tempDownloadFile.Stat()
+						if err != nil {
+							logrus.Error(fmt.Errorf("could not get temp file size: %s", err))
+							os.Exit(1)
+						}
+						if fileInfo.Size() < response.ContentLength {
+							logrus.Error("Download seems incomplete.")
+							os.Exit(1)
+						}
+					}
 				}
 
 				// Is the file a zip?
@@ -175,11 +212,12 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 
-				executablePath, err := os.Executable()
+				executablePath, err := getExecutablePath()
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not get the current executable path: %s", err))
 					os.Exit(1)
 				}
+
 				executableName := executablePath[strings.LastIndex(executablePath, "/")+1:]
 				logrus.Trace("Current executable name: " + executableName)
 				logrus.Trace("Current executable path: " + executablePath)
@@ -200,12 +238,19 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				defer os.Remove(tempCopyPath)
 
 				// Move the new file to the desired location
-				_, err = copyFile(newMwFileLocation, executablePath)
+				// First try os.Rename() which is atomic and fast on the same filesystem
+				err = os.Rename(newMwFileLocation, executablePath)
 				if err != nil {
-					logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
-					// Switch them back
-					copyFile(tempCopyPath, executablePath)
-					os.Exit(1)
+					logrus.Trace("os.Rename failed, trying fallback copy method: " + err.Error())
+					// If Rename failed, try copying as a fallback (e.g., for cross-device)
+					// This might still fail if the binary is currently running with locked permissions
+					_, err = copyFile(newMwFileLocation, executablePath)
+					if err != nil {
+						logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
+						// Switch them back
+						copyFile(tempCopyPath, executablePath)
+						os.Exit(1)
+					}
 				}
 				defer os.Remove(newMwFileLocation)
 
@@ -214,8 +259,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				err = os.Chmod(executablePath, 0o755)
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not make new binary executable: %s", err))
-					// Switch them back.
-					// TODO: This wont restore the +x, will it?
+					// Switch them back
 					copyFile(tempCopyPath, executablePath)
 					os.Exit(1)
 				}
@@ -260,6 +304,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	}
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
+	cmd.Flags().BoolVarP(&force, "force", "", false, "Force force and reinstall even if already on the latest version.")
 	return cmd
 }
 
@@ -289,4 +334,37 @@ func tmpDir(name string) (string, func()) {
 		os.RemoveAll(tempDir)
 		logrus.Trace("Removed temp dir: " + tempDir)
 	}
+}
+
+// getExecutablePath returns a reliable path to the current executable.
+// On Linux, it uses /proc/self/exe which is more reliable than os.Executable()
+// in containerized environments. Falls back to os.Executable() on other systems.
+func getExecutablePath() (string, error) {
+	// On Linux, try /proc/self/exe first (more reliable in containers)
+	procExe := "/proc/self/exe"
+	if fi, err := os.Lstat(procExe); err == nil && (fi.Mode()&os.ModeSymlink) != 0 {
+		// It's a symlink, resolve it
+		target, err := os.Readlink(procExe)
+		if err == nil && target != "" {
+			logrus.Trace("Using /proc/self/exe: " + target)
+			return target, nil
+		}
+	}
+
+	// Fall back to os.Executable()
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	// Try to resolve symlinks using filepath.EvalSymlinks for a more stable result
+	resolvedPath, err := filepath.EvalSymlinks(execPath)
+	if err == nil && resolvedPath != "" {
+		logrus.Trace("Using resolved executable path: " + resolvedPath)
+		return resolvedPath, nil
+	}
+
+	// If resolution fails, use the original path
+	logrus.Trace("Using os.Executable path: " + execPath)
+	return execPath, nil
 }
