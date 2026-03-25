@@ -22,7 +22,7 @@ services:
       - MW_INSTALL_PATH=/var/www/html/w
       - COMPOSER_CACHE_DIR=/.composer/cache
       - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
-      - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-develop,debug}
+      - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-debug}
       - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
       - SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}
     depends_on:
