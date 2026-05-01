@@ -150,13 +150,22 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'MediaWiki\\Installer\\Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
 					},
 				}).RunAndCollect()
-				if composerErr != nil {
-					fmt.Println("Composer check failed:", composerErr)
+
+				// composer.local.json can add or remove packages via the composer merge plugin.
+				// checkComposerLockUpToDate.php only checks composer.json, so it cannot detect
+				// when composer.local.json changes the effective dependency set (T300989 / T393088).
+				// Always run composer update when composer.local.json is present.
+				composerLocalJsonExists := mediawiki.ComposerLocalJsonExists()
+
+				if composerErr != nil || composerLocalJsonExists {
+					if composerErr != nil {
+						fmt.Println("Composer check failed:", composerErr)
+					}
 
 					doComposerInstall := false
 					if !cli.Opts.NoInteraction {
 						prompt := &survey.Confirm{
-							Message: "Composer dependencies are not up to date, do you want to composer install & update?",
+							Message: "Composer dependencies may not be up to date, do you want to run composer update?",
 						}
 						err := survey.AskOne(prompt, &doComposerInstall)
 						if err != nil {
@@ -167,8 +176,13 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					}
 
 					if doComposerInstall {
-						// Do it twice to make sure we get all the dependencies from the composer merge plugin
-						for i := 0; i < 2; i++ {
+						// Run composer update to regenerate the lock file (handles composer.local.json
+						// additions/removals via the merge plugin, see T300989 / T393088).
+						// Then run composer install to ensure all deps from the merge plugin are present.
+						for _, composerCmd := range [][]string{
+							{"composer", "update", "--ignore-platform-reqs", "--no-interaction"},
+							{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+						} {
 							containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki")
 							if containerIDErr != nil {
 								return fmt.Errorf("failed to get container ID %v", containerIDErr)
@@ -176,12 +190,12 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							docker.Exec(
 								containerID,
 								docker.ExecOptions{
-									Command: []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+									Command: composerCmd,
 									User:    User,
 								},
 							)
 						}
-					} else {
+					} else if composerErr != nil {
 						return fmt.Errorf("can't install without up to date composer dependencies")
 					}
 				}
