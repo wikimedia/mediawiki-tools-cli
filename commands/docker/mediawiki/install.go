@@ -167,8 +167,13 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					}
 
 					if doComposerInstall {
-						// Do it twice to make sure we get all the dependencies from the composer merge plugin
-						for i := 0; i < 2; i++ {
+						// Run composer update first to regenerate the lock file (needed when composer.local.json
+						// adds packages that change the merged composer.json, see T300989 / T393088).
+						// Then run composer install to ensure all deps from the merge plugin are present.
+						for _, composerCmd := range [][]string{
+							{"composer", "update", "--ignore-platform-reqs", "--no-interaction"},
+							{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+						} {
 							containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki")
 							if containerIDErr != nil {
 								return fmt.Errorf("failed to get container ID %v", containerIDErr)
@@ -176,7 +181,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							docker.Exec(
 								containerID,
 								docker.ExecOptions{
-									Command: []string{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
+									Command: composerCmd,
 									User:    User,
 								},
 							)
