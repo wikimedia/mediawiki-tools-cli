@@ -1,0 +1,158 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: wikifamily-wikibase
+description: >-
+  WikiFamily Wikibase setup with a repo wiki ("default") and a client wiki
+  ("client"). The repo wiki hosts Wikibase entities; the client wiki reads
+  from the repo via entity sources and cross-wiki links.
+
+source:
+  shallow: true
+
+services:
+  - name: mediawiki
+  - name: mysql
+
+code:
+  core: true
+  skins:
+    - name: Vector
+  extensions:
+    - name: Wikibase
+    - name: ParserFunctions
+
+sites:
+  - dbname: default
+    dbtype: mysql
+  - dbname: client
+    dbtype: mysql
+
+jobRunner:
+  sites:
+    - default
+    - client
+
+localSettings:
+  appendPHP: |
+    wfLoadSkin( 'Vector' );
+
+    wfLoadExtension( 'ParserFunctions' );
+
+    $entitySources = [
+      'local' => [
+        'repoDatabase' => 'default',
+        'baseUri' => 'http://default.mediawiki.local.wmftest.net:8080/entity/',
+        'entityNamespaces' => [ 'item' => 120, 'property' => 122 ],
+        'rdfNodeNamespacePrefix' => 'wd',
+        'rdfPredicateNamespacePrefix' => 'wdt',
+        'interwikiPrefix' => 'local',
+        'type' => 'db',
+      ],
+    ];
+
+    // Per-wiki Wikibase configuration
+    if ( $wgDBname === 'default' ) {
+        // Repo wiki: hosts Wikibase entities
+        wfLoadExtension( 'WikibaseRepository', "$IP/extensions/Wikibase/extension-repo.json" );
+        require_once "$IP/extensions/Wikibase/repo/ExampleSettings.php";
+
+        $wgWBRepoSettings['entitySources'] = $entitySources;
+        $wgWBRepoSettings['localEntitySourceName'] = 'local';
+    } elseif ( $wgDBname === 'client' ) {
+        // Client wiki: reads entities from the repo wiki
+        wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
+        require_once "$IP/extensions/Wikibase/client/config/WikibaseClient.example.php";
+
+        $wgWBClientSettings['repoUrl'] = 'http://default.mediawiki.local.wmftest.net:8080';
+        $wgWBClientSettings['repoSiteName'] = 'default';
+        $wgWBClientSettings['repoArticlePath'] = '/wiki/$1';
+        $wgWBClientSettings['repoScriptPath'] = '/w';
+
+        $wgWBClientSettings['entitySources'] = $entitySources;
+        $wgWBClientSettings['itemAndPropertySourceName'] = 'local';
+        $wgWBClientSettings['siteLinkGroups'] = [ 'local' ];
+        $wgWBClientSettings['siteGlobalID'] = 'client';
+    }
+
+maintenance:
+  - name: update-default
+    command: ["php", "maintenance/run.php", "update.php", "--wiki", "default", "--quick"]
+  - name: update-client
+    command: ["php", "maintenance/run.php", "update.php", "--wiki", "client", "--quick"]
+  - name: rebuild-l10n-cache-default
+    command: ["php", "maintenance/run.php", "rebuildLocalisationCache.php", "--wiki", "default", "--lang", "en"]
+  - name: rebuild-l10n-cache-client
+    command: ["php", "maintenance/run.php", "rebuildLocalisationCache.php", "--wiki", "client", "--lang", "en"]
+  - name: populate-sites-table-client
+    command: ["php", "maintenance/run.php", "./extensions/Wikibase/lib/maintenance/populateSitesTable.php", "--wiki", "client"]
+  - name: add-site-default-on-client
+    command:
+      - "php"
+      - "maintenance/run.php"
+      - "addSite.php"
+      - "--"
+      - "default"
+      - "local"
+      - "--interwiki-id"
+      - "default"
+      - "--pagepath"
+      - "http://default.mediawiki.local.wmftest.net:8080/w/index.php?title=$1"
+      - "--language"
+      - "en"
+      - "--filepath"
+      - "http://default.mediawiki.local.wmftest.net:8080/w/$1"
+      - "--wiki"
+      - "client"
+  - name: add-site-client-on-client
+    command:
+      - "php"
+      - "maintenance/run.php"
+      - "addSite.php"
+      - "--"
+      - "client"
+      - "local"
+      - "--interwiki-id"
+      - "client"
+      - "--pagepath"
+      - "http://client.mediawiki.local.wmftest.net:8080/w/index.php?title=$1"
+      - "--language"
+      - "en"
+      - "--filepath"
+      - "http://client.mediawiki.local.wmftest.net:8080/w/$1"
+      - "--wiki"
+      - "client"
+  - name: wait-for-repo-site
+    command:
+      - "sh"
+      - "-lc"
+      - |
+        set -eu
+        API_URL="http://default.mediawiki.local.wmftest.net:8080/w/api.php"
+        echo "Waiting for repo site to respond..."
+        for i in $(seq 1 30); do
+          if curl -sf --max-time 5 "${API_URL}?action=query&format=json" >/dev/null 2>&1; then
+            echo "Site is ready."
+            exit 0
+          fi
+          echo "  attempt $i/30, retrying in 2s..."
+          sleep 2
+        done
+        echo "Timed out waiting for repo site" >&2
+        exit 1
+
+content:
+  wikibase:
+    properties:
+      - id: P1
+        label: text
+        datatype: string
+    items:
+      - id: Q1
+        label: first
+        claims:
+          - property: P1
+            value: hello
+  pages:
+    - wiki: client
+      title: Main_Page
+      text: "{{#property:P1|from=Q1}}"

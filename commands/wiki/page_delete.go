@@ -32,12 +32,6 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
 			}
-			if wikiUser == "" {
-				logrus.Fatal("wiki is not set")
-			}
-			if wikiPassword == "" {
-				logrus.Fatal("wiki is not set")
-			}
 
 			var titles []string
 			if wikiPageTitle != "" {
@@ -66,7 +60,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 				panic(err)
 			}
 
-			err = w.Login(wikiUser, wikiPassword)
+			err = loginIfCredentialsProvided(w)
 			if err != nil {
 				panic(err)
 			}

@@ -1,8 +1,10 @@
 package wiki
 
 import (
+	"fmt"
 	"strings"
 
+	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +23,7 @@ func NewWikiCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewWikiPageCmd())
+	cmd.AddCommand(NewWikiExtCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
 	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "A user to interact using")
 	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
@@ -42,4 +45,14 @@ func normalizeWiki(wiki string) string {
 		wiki = strings.TrimSuffix(wiki, "/") + "/w/api.php"
 	}
 	return wiki
+}
+
+func loginIfCredentialsProvided(w *mwclient.Client) error {
+	if wikiUser == "" && wikiPassword == "" {
+		return nil
+	}
+	if wikiUser == "" || wikiPassword == "" {
+		return fmt.Errorf("--user and --password must either both be set or both be omitted")
+	}
+	return w.Login(wikiUser, wikiPassword)
 }

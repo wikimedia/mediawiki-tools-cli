@@ -1,0 +1,124 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: mediasearch
+description: >-
+  MediaSearch-oriented setup based on MediaWiki-Docker/Extension/MediaSearch.
+  Uses ElasticSearch to mirror the documented setup.
+
+source:
+  shallow: true
+
+services:
+  - name: mediawiki
+  - name: mysql
+  - name: elasticsearch
+
+code:
+  core: true
+  skins:
+    - name: Vector
+    - name: MinervaNeue
+  extensions:
+    - name: CirrusSearch
+    - name: Cite
+    - name: CommonsMetadata
+    - name: Echo
+    - name: Elastica
+    - name: EventBus
+    - name: EventLogging
+    - name: EventStreamConfig
+    - name: JsonConfig
+    - name: MediaSearch
+    - name: MobileFrontend
+    - name: ParserFunctions
+    - name: Scribunto
+    - name: TemplateData
+    - name: TemplateStyles
+    - name: UniversalLanguageSelector
+    - name: Wikibase
+    - name: WikibaseCirrusSearch
+    - name: WikibaseMediaInfo
+
+sites:
+  - dbname: default
+    dbtype: mysql
+
+jobRunner:
+  sites:
+    - default
+
+localSettings:
+  appendPHP: |
+    wfLoadSkin( 'Vector' );
+    wfLoadSkin( 'MinervaNeue' );
+
+    wfLoadExtension( 'CirrusSearch' );
+    wfLoadExtension( 'Cite' );
+    wfLoadExtension( 'CommonsMetadata' );
+    wfLoadExtension( 'Echo' );
+    wfLoadExtension( 'Elastica' );
+    wfLoadExtension( 'EventLogging' );
+    wfLoadExtension( 'EventStreamConfig' );
+    wfLoadExtension( 'JsonConfig' );
+    wfLoadExtension( 'MediaSearch' );
+    wfLoadExtension( 'MobileFrontend' );
+    wfLoadExtension( 'ParserFunctions' );
+    wfLoadExtension( 'Scribunto' );
+    wfLoadExtension( 'TemplateData' );
+    wfLoadExtension( 'TemplateStyles' );
+    wfLoadExtension( 'UniversalLanguageSelector' );
+    wfLoadExtension( 'WikibaseCirrusSearch' );
+    wfLoadExtension( 'WikibaseMediaInfo' );
+
+    $wgUseInstantCommons = true;
+    $wgEnableUploads = true;
+    $wgUseImageMagick = true;
+    $wgScribuntoDefaultEngine = 'luastandalone';
+    $wgMediaViewerEnableByDefault = true;
+    $wgPFEnableStringFunctions = true;
+    $wgApiFrameOptions = 'SAMEORIGIN';
+    $wgCacheDirectory = "$IP/cache";
+
+    require_once "$IP/extensions/CirrusSearch/tests/jenkins/FullyFeaturedConfig.php";
+    $wgCirrusSearchServers = [ "elasticsearch" ];
+    $wgSearchType = 'CirrusSearch';
+
+    wfLoadExtension( 'WikibaseRepository', "$IP/extensions/Wikibase/extension-repo.json" );
+    require_once "$IP/extensions/Wikibase/repo/ExampleSettings.php";
+    wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
+    require_once "$IP/extensions/Wikibase/client/ExampleSettings.php";
+
+    $wgEnableWikibaseRepo = true;
+    $wgEnableWikibaseClient = true;
+
+    $wgWBClientSettings['dataBridgeEnabled'] = true;
+    $wgWBClientSettings['dataBridgeHrefRegExp'] = '[/=]((?:Item:)?(Q[1-9][0-9]*)).*#(P[1-9][0-9]*)$';
+    $wgWBClientSettings['dataBridgeEditTags'] = [ 'Data Bridge' ];
+
+    $wgWBRepoSettings['dataBridgeEnabled'] = true;
+    $wgWBRepoSettings['taintedReferencesEnabled'] = true;
+    $wgWBRepoSettings['termboxEnabled'] = true;
+
+    $wgMediaInfoEnableFilePageDepicts = true;
+    $wgMediaInfoEnableOtherStatements = true;
+    $wgMediaInfoShowQualifiers = true;
+    $wgMediaInfoProperties = [ 'depicts' => 'P1' ];
+    $wgDepictsQualifierProperties = [ 'depicts' => 'P1' ];
+
+    $useProductionSearchApi = true;
+    $wgMediaSearchExternalSearchUri = $useProductionSearchApi ? 'https://commons.wikimedia.org/w/api.php' : '';
+    $wgMediaSearchExternalEntitySearchBaseUri = $useProductionSearchApi ? 'https://www.wikidata.org/w/api.php' : '';
+
+maintenance:
+  - name: update-db
+    command: ["php", "maintenance/run.php", "update.php"]
+  - name: cirrus-config
+    command: ["php", "extensions/CirrusSearch/maintenance/UpdateSearchIndexConfig.php"]
+  - name: force-index-a
+    command: ["php", "extensions/CirrusSearch/maintenance/forceSearchIndex.php", "--skipLinks", "--indexOnSkip"]
+  - name: force-index-b
+    command: ["php", "extensions/CirrusSearch/maintenance/forceSearchIndex.php", "--skipParse"]
+  - name: wikibase-sites
+    command: ["php", "extensions/Wikibase/lib/maintenance/populateSitesTable.php"]
+  - name: wikibase-rebuild
+    command: ["php", "extensions/Wikibase/repo/maintenance/rebuildItemsPerSite.php"]

@@ -1,0 +1,72 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: contenttranslation
+description: >-
+  ContentTranslation developer setup inspired by MediaWiki-Docker extension guide.
+
+source:
+  useGithub: false
+  shallow: true
+
+services:
+  - name: mediawiki
+  - name: mysql
+  - name: eventlogging
+
+code:
+  core: true
+  skins:
+    - name: Vector
+  extensions:
+    - name: BetaFeatures
+    - name: Cite
+    - name: ContentTranslation
+    - name: EventLogging
+    - name: GlobalPreferences
+    - name: MobileFrontend
+    - name: UniversalLanguageSelector
+    - name: VisualEditor
+
+sites:
+  - dbname: default
+    dbtype: mysql
+
+localSettings:
+  appendPHP: |
+    $wgLanguageCode = $wgDBname;
+
+    wfLoadSkin( 'Vector' );
+
+    wfLoadExtension( 'Cite' );
+    wfLoadExtension( 'ContentTranslation' );
+    wfLoadExtension( 'UniversalLanguageSelector' );
+    wfLoadExtension( 'BetaFeatures' );
+    wfLoadExtension( 'VisualEditor' );
+    wfLoadExtension( 'MobileFrontend' );
+    wfLoadExtension( 'GlobalPreferences' );
+    wfLoadExtension( 'EventLogging' );
+
+    $wgDefaultUserOptions['visualeditor-enable'] = 1;
+    $wgEnableRestAPI = true;
+    wfLoadExtension( 'Parsoid', 'vendor/wikimedia/parsoid/extension.json' );
+    $wgVirtualRestConfig['modules']['parsoid'] = [
+      'url' => $wgServer . $wgScriptPath . '/rest.php',
+    ];
+
+    $wgContentTranslationVueDashboard = true;
+    $wgContentTranslationSiteTemplates = [
+      "view" => "//$1.wikipedia.org/wiki/$2",
+      "action" => "//$1.wikipedia.org/w/index.php?title=$2",
+      "api" => "https://$1.wikipedia.org/w/api.php",
+      "cx" => "https://cxserver.wikimedia.org/v2",
+      "restbase" => "https://$1.wikipedia.org/api/rest_v1"
+    ];
+
+    $wgEventLoggingServiceUri = 'http://eventlogging.local.wmftest.net:' . parse_url($wgServer)['port'] . '/v1/events';
+    $wgEventLoggingQueueLingerSeconds = 1;
+    $wgEventLoggingStreamNames = false;
+    $GLOBALS['wgGlobalPreferencesDB'] = 'default';
+
+maintenance:
+  - name: update-database
+    command: ["php", "maintenance/run.php", "update"]

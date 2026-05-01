@@ -1,0 +1,46 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: example-git-clone
+description: >-
+  Example recipe demonstrating the two checkout patterns for extensions and
+  skins: short Gerrit name, and arbitrary git URL with explicit destination path.
+
+source:
+  shallow: true
+
+services:
+  - name: mediawiki
+  - name: mysql
+
+code:
+  core: true
+
+  extensions:
+    # Pattern 1: Gerrit shorthand — clones from gerrit.wikimedia.org using your
+    # configured interaction type (https or ssh) and username.
+    - name: VisualEditor
+
+    # Pattern 2: Arbitrary git URL — clones the repo to the given path
+    # (relative to the MediaWiki root). Useful for forks, mirrors, or repos
+    # not hosted on Gerrit.
+    - url: https://gerrit.wikimedia.org/r/mediawiki/extensions/examples
+      path: extensions/examples
+
+  skins:
+    # Pattern 1: Gerrit shorthand
+    - name: Vector
+
+    # Pattern 2: Arbitrary git URL
+    - url: https://gerrit.wikimedia.org/r/mediawiki/skins/Vector
+      path: skins/VectorFromURL
+
+sites:
+  - dbname: default
+    dbtype: mysql
+
+localSettings:
+  appendPHP: |
+    wfLoadSkin( 'Vector' );
+    wfLoadExtension( 'VisualEditor' );
+    wfLoadExtension( 'examples' );
+    // wfLoadSkin( 'VectorFromURL' );
