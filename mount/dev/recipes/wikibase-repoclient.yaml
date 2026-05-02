@@ -38,7 +38,7 @@ localSettings:
           $entitySources = [
             'local' => [
               'repoDatabase' => 'default',
-              'baseUri' => 'http://default.mediawiki.local.wmftest.net:8080/entity/',
+              'baseUri' => 'http://default.mediawiki.local.wmftest.net:${PORT}/entity/',
               'entityNamespaces' => [ 'item' => 120, 'property' => 122 ],
               'rdfNodeNamespacePrefix' => 'wd',
               'rdfPredicateNamespacePrefix' => 'wdt',
@@ -59,7 +59,7 @@ localSettings:
             wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
             require_once "$IP/extensions/Wikibase/client/config/WikibaseClient.example.php";
 
-            $wgWBClientSettings['repoUrl'] = 'http://default.mediawiki.local.wmftest.net:8080';
+            $wgWBClientSettings['repoUrl'] = 'http://default.mediawiki.local.wmftest.net:${PORT}';
             $wgWBClientSettings['repoSiteName'] = 'default';
             $wgWBClientSettings['repoArticlePath'] = '/wiki/$1';
             $wgWBClientSettings['repoScriptPath'] = '/w';
@@ -77,9 +77,9 @@ maintenance:
   - name: populate-sites-table-client
     command: ["php", "maintenance/run.php", "./extensions/Wikibase/lib/maintenance/populateSitesTable.php", "--wiki", "client"]
   - name: add-site-default-on-client
-    command: ["php", "maintenance/run.php", "addSite.php", "--", "default", "local", "--interwiki-id", "default", "--pagepath", "http://default.mediawiki.local.wmftest.net:8080/w/index.php?title=$1", "--language", "en", "--filepath", "http://default.mediawiki.local.wmftest.net:8080/w/$1", "--wiki", "client"]
+    command: ["php", "maintenance/run.php", "addSite.php", "--", "default", "local", "--interwiki-id", "default", "--pagepath", "http://default.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://default.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "client"]
   - name: add-site-client-on-client
-    command: ["php", "maintenance/run.php", "addSite.php", "--", "client", "local", "--interwiki-id", "client", "--pagepath", "http://client.mediawiki.local.wmftest.net:8080/w/index.php?title=$1", "--language", "en", "--filepath", "http://client.mediawiki.local.wmftest.net:8080/w/$1", "--wiki", "client"]
+    command: ["php", "maintenance/run.php", "addSite.php", "--", "client", "local", "--interwiki-id", "client", "--pagepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "client"]
 
 content:
   wikibase:

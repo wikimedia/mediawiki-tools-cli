@@ -9,6 +9,7 @@ import (
 	"os"
 	osexec "os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -28,6 +29,8 @@ import (
 
 const recipeRuntimeStateFileName = ".mwcli-recipe-state.json"
 const recipeManagedComposeHeader = "# Managed by mwcli recipe"
+
+var recipeEnvVarPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
 
 type recipeRuntimeState struct {
 	EnvKeys        []string `json:"envKeys"`
@@ -93,6 +96,8 @@ func NewRecipeCmd() *cobra.Command {
 					m.Env().Set("MEDIAWIKI_VOLUMES_CODE", guess)
 				}
 			}
+
+			spec = expandRecipeTemplateVars(spec, m.Env().List())
 
 			mediaWikiPath := m.Env().Get("MEDIAWIKI_VOLUMES_CODE")
 			if mediaWikiPath == "" {
@@ -473,6 +478,137 @@ func loadRecipe(recipeFile string, recipeURL string, recipeName string, m mwdd.M
 	}
 
 	return recipe.Parse(content)
+}
+
+func expandRecipeTemplateVars(spec recipe.Spec, env map[string]string) recipe.Spec {
+	expand := func(v string) string {
+		return expandRecipeEnvVars(v, env)
+	}
+
+	spec.Type = expand(spec.Type)
+	spec.Version = expand(spec.Version)
+	spec.Name = expand(spec.Name)
+	spec.Description = expand(spec.Description)
+
+	spec.Source.GerritInteractionType = expand(spec.Source.GerritInteractionType)
+	spec.Source.GerritUsername = expand(spec.Source.GerritUsername)
+
+	for k, v := range spec.Env {
+		spec.Env[k] = expand(v)
+	}
+
+	for i := range spec.Code.Extensions {
+		spec.Code.Extensions[i].Name = expand(spec.Code.Extensions[i].Name)
+		spec.Code.Extensions[i].URL = expand(spec.Code.Extensions[i].URL)
+		spec.Code.Extensions[i].Path = expand(spec.Code.Extensions[i].Path)
+	}
+	for i := range spec.Code.Skins {
+		spec.Code.Skins[i].Name = expand(spec.Code.Skins[i].Name)
+		spec.Code.Skins[i].URL = expand(spec.Code.Skins[i].URL)
+		spec.Code.Skins[i].Path = expand(spec.Code.Skins[i].Path)
+	}
+
+	for i := range spec.Services {
+		spec.Services[i].Name = expand(spec.Services[i].Name)
+		spec.Services[i].State = expand(spec.Services[i].State)
+	}
+
+	for i := range spec.Sites {
+		spec.Sites[i].DBName = expand(spec.Sites[i].DBName)
+		spec.Sites[i].DBType = expand(spec.Sites[i].DBType)
+	}
+
+	for i := range spec.JobRunner.Sites {
+		spec.JobRunner.Sites[i] = expand(spec.JobRunner.Sites[i])
+	}
+
+	spec.LocalSettings.AppendPHP = expand(spec.LocalSettings.AppendPHP)
+	spec.LocalSettings.YAMLSettingsFile = expand(spec.LocalSettings.YAMLSettingsFile)
+	spec.LocalSettings.YAMLSettings = expand(spec.LocalSettings.YAMLSettings)
+	for i := range spec.LocalSettings.Files.Shared {
+		spec.LocalSettings.Files.Shared[i].Path = expand(spec.LocalSettings.Files.Shared[i].Path)
+		spec.LocalSettings.Files.Shared[i].Content = expand(spec.LocalSettings.Files.Shared[i].Content)
+	}
+	if len(spec.LocalSettings.Files.PerWiki) > 0 {
+		expandedPerWiki := make(map[string][]recipe.LocalSettingsFile, len(spec.LocalSettings.Files.PerWiki))
+		for wiki, files := range spec.LocalSettings.Files.PerWiki {
+			expandedFiles := make([]recipe.LocalSettingsFile, 0, len(files))
+			for _, f := range files {
+				expandedFiles = append(expandedFiles, recipe.LocalSettingsFile{
+					Path:    expand(f.Path),
+					Content: expand(f.Content),
+				})
+			}
+			expandedPerWiki[expand(wiki)] = expandedFiles
+		}
+		spec.LocalSettings.Files.PerWiki = expandedPerWiki
+	}
+
+	for i := range spec.Content.Wikibase.Properties {
+		spec.Content.Wikibase.Properties[i].ID = expand(spec.Content.Wikibase.Properties[i].ID)
+		spec.Content.Wikibase.Properties[i].Label = expand(spec.Content.Wikibase.Properties[i].Label)
+		spec.Content.Wikibase.Properties[i].Datatype = expand(spec.Content.Wikibase.Properties[i].Datatype)
+	}
+	for i := range spec.Content.Wikibase.Items {
+		spec.Content.Wikibase.Items[i].ID = expand(spec.Content.Wikibase.Items[i].ID)
+		spec.Content.Wikibase.Items[i].Label = expand(spec.Content.Wikibase.Items[i].Label)
+		for j := range spec.Content.Wikibase.Items[i].Claims {
+			spec.Content.Wikibase.Items[i].Claims[j].Property = expand(spec.Content.Wikibase.Items[i].Claims[j].Property)
+			spec.Content.Wikibase.Items[i].Claims[j].Value = expand(spec.Content.Wikibase.Items[i].Claims[j].Value)
+		}
+	}
+	for i := range spec.Content.Pages {
+		spec.Content.Pages[i].Wiki = expand(spec.Content.Pages[i].Wiki)
+		spec.Content.Pages[i].Title = expand(spec.Content.Pages[i].Title)
+		spec.Content.Pages[i].Text = expand(spec.Content.Pages[i].Text)
+	}
+
+	for i := range spec.Maintenance {
+		spec.Maintenance[i].Name = expand(spec.Maintenance[i].Name)
+		spec.Maintenance[i].User = expand(spec.Maintenance[i].User)
+		spec.Maintenance[i].WorkingDir = expand(spec.Maintenance[i].WorkingDir)
+		for j := range spec.Maintenance[i].Command {
+			spec.Maintenance[i].Command[j] = expand(spec.Maintenance[i].Command[j])
+		}
+		for k, v := range spec.Maintenance[i].Env {
+			spec.Maintenance[i].Env[k] = expand(v)
+		}
+	}
+
+	for i := range spec.Patches {
+		spec.Patches[i].Name = expand(spec.Patches[i].Name)
+		spec.Patches[i].RepoPath = expand(spec.Patches[i].RepoPath)
+		spec.Patches[i].CherryPick = expand(spec.Patches[i].CherryPick)
+		for j := range spec.Patches[i].Fetch {
+			spec.Patches[i].Fetch[j] = expand(spec.Patches[i].Fetch[j])
+		}
+	}
+
+	spec.CustomCompose.Name = expand(spec.CustomCompose.Name)
+	spec.CustomCompose.Content = expand(spec.CustomCompose.Content)
+
+	return spec
+}
+
+func expandRecipeEnvVars(value string, env map[string]string) string {
+	if value == "" {
+		return value
+	}
+
+	return recipeEnvVarPattern.ReplaceAllStringFunc(value, func(match string) string {
+		matches := recipeEnvVarPattern.FindStringSubmatch(match)
+		if len(matches) != 2 {
+			return match
+		}
+		name := matches[1]
+		if v, ok := env[name]; ok {
+			return v
+		}
+		if v, ok := os.LookupEnv(name); ok {
+			return v
+		}
+		return match
+	})
 }
 
 func writeCustomComposeFile(m mwdd.MWDD, custom recipe.CustomCompose, dryRun bool) error {

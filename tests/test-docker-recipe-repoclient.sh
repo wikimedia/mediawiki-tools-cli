@@ -65,4 +65,4 @@ test_file_contains "/etc/hosts" "client.mediawiki.local.wmftest.net"
 # Check both sites respond
 PORT=$(./bin/mw docker env get PORT)
 test_wget http://default.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page "MediaWiki"
-test_wget http://client.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page "MediaWiki"
+test_wget http://client.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page "hello"
