@@ -45,6 +45,10 @@ test: $(GOVVV) $(GOTESTSUM) $(GOCOVER_COBERTURA) generate
 	@$(GOCOVER_COBERTURA) < coverage.txt > coverage.xml
 	@echo "$$(sed -n 's/^<coverage line-rate="\([0-9.]*\)".*$$/\1/p' coverage.xml)" | awk '{printf "Total coverage: %.2f%%\n",$$1*100}'
 
+.PHONY: recipe-validate
+recipe-validate:
+	go test ./internal/mwdd/recipe -run TestParseRecipeExamples
+
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
 	@$(GOLANGCI_LINT) run --timeout 2m
