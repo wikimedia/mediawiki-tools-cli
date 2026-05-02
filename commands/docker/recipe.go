@@ -30,6 +30,7 @@ import (
 const (
 	recipeRuntimeStateFileName = ".mwcli-recipe-state.json"
 	recipeManagedComposeHeader = "# Managed by mwcli recipe"
+	recipeSiteWaitAttempts     = 60
 )
 
 var recipeEnvVarPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
@@ -1449,25 +1450,51 @@ func waitForSites(sites []recipe.Site, port string, dryRun bool) error {
 	client := &http.Client{Timeout: 5 * time.Second}
 	for _, site := range sites {
 		apiURL := "http://" + site.DBName + ".mediawiki.local.wmftest.net:" + port + "/w/api.php?action=query&format=json"
-		fmt.Printf("Waiting for %s site to respond...\n", site.DBName)
-		ready := false
-		for i := 0; i < 30; i++ {
-			resp, err := client.Get(apiURL)
-			if err == nil {
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					ready = true
-					break
-				}
-			}
-			time.Sleep(2 * time.Second)
+		if err := waitForSiteURL(site.DBName, apiURL, client, recipeSiteWaitAttempts, 2*time.Second); err != nil {
+			return err
 		}
-		if !ready {
-			return fmt.Errorf("timed out waiting for %s site to respond", site.DBName)
-		}
-		fmt.Printf("%s site is ready.\n", site.DBName)
 	}
 	return nil
+}
+
+func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempts int, delay time.Duration) error {
+	if attempts <= 0 {
+		attempts = 1
+	}
+
+	fmt.Printf("Waiting for %s site to respond...\n", siteName)
+
+	lastStatus := 0
+	lastErr := error(nil)
+
+	for i := 0; i < attempts; i++ {
+		resp, err := client.Get(apiURL)
+		if err == nil {
+			lastStatus = resp.StatusCode
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				fmt.Printf("%s site is ready.\n", siteName)
+				return nil
+			}
+			lastErr = nil
+		} else {
+			lastErr = err
+		}
+
+		if i < attempts-1 {
+			time.Sleep(delay)
+		}
+	}
+
+	message := fmt.Sprintf("timed out waiting for %s site to respond after %d attempts", siteName, attempts)
+	if lastStatus != 0 {
+		message += fmt.Sprintf(" (last HTTP status: %d)", lastStatus)
+	}
+	if lastErr != nil {
+		message += fmt.Sprintf(" (last error: %v)", lastErr)
+	}
+
+	return fmt.Errorf(message)
 }
 
 func applyContent(m mwdd.MWDD, sites []recipe.Site, content recipe.Content, dryRun bool) error {

@@ -188,7 +188,7 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
-			err := DefaultForUser().DockerCompose().Start(services)
+			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
 			return err
 		},
 	}

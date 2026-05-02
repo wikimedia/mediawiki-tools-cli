@@ -1,9 +1,34 @@
 package files
 
 import (
+	"os"
+	"path/filepath"
+
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/embedsync"
 	"gitlab.wikimedia.org/repos/releng/cli/mount"
 )
+
+func ensureJobRunnerSitesFile(projectDirectory string) {
+	mediaWikiDir := filepath.Clean(filepath.Join(projectDirectory, "mediawiki"))
+	if err := os.MkdirAll(mediaWikiDir, 0o755); err != nil {
+		panic(err)
+	}
+
+	jobRunnerSitesPath := filepath.Clean(filepath.Join(mediaWikiDir, "jobrunner-sites"))
+	if info, err := os.Stat(jobRunnerSitesPath); err == nil && info.IsDir() {
+		if removeErr := os.RemoveAll(jobRunnerSitesPath); removeErr != nil {
+			panic(removeErr)
+		}
+	}
+
+	file, err := os.OpenFile(jobRunnerSitesPath, os.O_RDWR|os.O_CREATE, 0o600)
+	if err != nil {
+		panic(err)
+	}
+	if err := file.Close(); err != nil {
+		panic(err)
+	}
+}
 
 func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 	return embedsync.EmbeddingDiskSync{
@@ -27,5 +52,6 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 func EnsureReady(projectDirectory string) {
 	syncer := syncer(projectDirectory)
 	syncer.EnsureFilesOnDisk()
+	ensureJobRunnerSitesFile(projectDirectory)
 	syncer.EnsureNoExtraFilesOnDisk()
 }

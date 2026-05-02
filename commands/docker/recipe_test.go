@@ -1,6 +1,9 @@
 package docker
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/recipe"
@@ -42,5 +45,47 @@ func TestExpandRecipeEnvVars_UnknownVariableIsPreserved(t *testing.T) {
 	want := "http://example:${UNKNOWN}/x"
 	if got != want {
 		t.Fatalf("expandRecipeEnvVars() = %q, want %q", got, want)
+	}
+}
+
+func TestWaitForSiteURL_EventuallyReady(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts < 3 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := server.Client()
+	if err := waitForSiteURL("client", server.URL, client, 5, 0); err != nil {
+		t.Fatalf("waitForSiteURL() unexpected error: %v", err)
+	}
+
+	if attempts != 3 {
+		t.Fatalf("waitForSiteURL() attempts = %d, want 3", attempts)
+	}
+}
+
+func TestWaitForSiteURL_TimeoutIncludesLastStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := server.Client()
+	err := waitForSiteURL("client", server.URL, client, 3, 0)
+	if err == nil {
+		t.Fatal("waitForSiteURL() error = nil, want timeout error")
+	}
+
+	if !strings.Contains(err.Error(), "timed out waiting for client site to respond after 3 attempts") {
+		t.Fatalf("waitForSiteURL() error = %q, want attempts detail", err.Error())
+	}
+	if !strings.Contains(err.Error(), "last HTTP status: 503") {
+		t.Fatalf("waitForSiteURL() error = %q, want last status detail", err.Error())
 	}
 }

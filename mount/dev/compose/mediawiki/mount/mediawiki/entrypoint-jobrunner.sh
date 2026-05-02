@@ -9,6 +9,7 @@ set -o pipefail
 
 # Print the last modified time of this file
 RUN_LAST_MODIFIED=$(stat -c %y /mwdd/entrypoint-jobrunner.sh)
+JOBRUNNER_SITES_FILE=/mwdd-runtime/jobrunner-sites
 echo "Last modified: $RUN_LAST_MODIFIED"
 echo "Running..."
 
@@ -16,14 +17,14 @@ echo "Running..."
 # This means file changes will exit, and cause a restart
 while [ "$RUN_LAST_MODIFIED" = "$(stat -c %y /mwdd/entrypoint-jobrunner.sh)" ]; do
     # If the file doesnt exist, or is empty, sleep and skip
-    if [ ! -f /mwdd/jobrunner-sites ] || [ ! -s /mwdd/jobrunner-sites ]; then
+    if [ ! -f "$JOBRUNNER_SITES_FILE" ] || [ ! -s "$JOBRUNNER_SITES_FILE" ]; then
         echo "No sites to run jobs for, sleeping..."
         sleep 1
         continue
     fi
 
-    # Iterate through lines of /mwdd/jobrunner-sites and run the runJobs.php script for each
-    for site in $(cat /mwdd/jobrunner-sites); do
+    # Iterate through lines of the jobrunner sites file and run the runJobs.php script for each
+    for site in $(cat "$JOBRUNNER_SITES_FILE"); do
         echo "Running jobs for $site"
         php /var/www/html/w/maintenance/runJobs.php --wiki $site
     done

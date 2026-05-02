@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+func ensureParentDir(fileName string) {
+	dir := filepath.Dir(filepath.Clean(fileName))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		panic(err)
+	}
+}
+
 /*AddLinesUnique adds all lines to the file if each one will be the only occurrence of the string.*/
 func AddLinesUnique(lines []string, filename string) {
 	for _, line := range lines {
@@ -17,6 +24,7 @@ func AddLinesUnique(lines []string, filename string) {
 
 /*AddLineUnique adds the line to the file if it will be the only occurrence of the string.*/
 func AddLineUnique(line string, fileName string) {
+	ensureParentDir(fileName)
 	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		panic(err)
@@ -38,6 +46,7 @@ func AddLineUnique(line string, fileName string) {
 }
 
 func AddLine(line string, fileName string) {
+	ensureParentDir(fileName)
 	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		panic(err)
@@ -50,6 +59,7 @@ func AddLine(line string, fileName string) {
 }
 
 func RemoveAllLinesMatching(line string, fileName string) {
+	ensureParentDir(fileName)
 	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		panic(err)

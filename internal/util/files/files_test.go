@@ -3,6 +3,7 @@ package files
 import (
 	"math/rand"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -139,5 +140,20 @@ func TestLines(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAddLineUniqueCreatesParentDirectories(t *testing.T) {
+	tempDir := t.TempDir()
+	path := filepath.Join(tempDir, "nested", "jobrunner-sites")
+
+	AddLineUnique("default", path)
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile(%q): %v", path, err)
+	}
+	if string(content) != "default\n" {
+		t.Fatalf("content = %q, want %q", string(content), "default\n")
 	}
 }

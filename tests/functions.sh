@@ -50,6 +50,109 @@ test_wget() {
     fi
 }
 
+test_wget_eventually_contains() {
+    local url="$1"
+    local expected_match="$2"
+    local max_attempts="${3:-5}"
+    local sleep_seconds="${4:-0.5}"
+
+    local attempt=1
+    local saw_http_200=0
+    local last_status=""
+    local last_body=""
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        set +e
+        local response
+        response=$(curl -sS -L -w "\n%{http_code}" "$url")
+        local curl_result=$?
+        set -e
+
+        if [ "$curl_result" -eq 0 ]; then
+            local status
+            status=$(echo "$response" | tail -n 1)
+            local body
+            body=$(echo "$response" | sed '$d')
+
+            last_status="$status"
+            last_body="$body"
+
+            if [ "$status" = "200" ]; then
+                saw_http_200=1
+                if echo "$body" | grep -q "$expected_match"; then
+                    echo -e "${GREEN}PASS:${NC} $url returned 200 and contained \"$expected_match\" on attempt $attempt/$max_attempts"
+                    return 0
+                fi
+            fi
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            sleep "$sleep_seconds"
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    if [ "$saw_http_200" -eq 0 ]; then
+        echo -e "${RED}FAIL:${NC} $url never returned HTTP 200 after $max_attempts attempts"
+        if [ -n "$last_status" ]; then
+            echo "Last HTTP status: $last_status"
+        fi
+    else
+        echo -e "${RED}FAIL:${NC} $url returned HTTP 200 but did not contain \"$expected_match\" after $max_attempts attempts"
+    fi
+
+    if [ -n "$last_body" ]; then
+        echo "Last response body was..."
+        echo "$last_body"
+    fi
+
+    if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+        echo "STOP_ON_FAIL=1 detected, exiting immediately"
+        exit 1
+    fi
+    return 1
+}
+
+test_wget_eventually_200() {
+    local url="$1"
+    local max_attempts="${2:-5}"
+    local sleep_seconds="${3:-0.5}"
+
+    local attempt=1
+    local last_status=""
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        set +e
+        local status
+        status=$(curl -sS -L -o /dev/null -w "%{http_code}" "$url")
+        local curl_result=$?
+        set -e
+
+        if [ "$curl_result" -eq 0 ]; then
+            last_status="$status"
+            if [ "$status" = "200" ]; then
+                echo -e "${GREEN}PASS:${NC} $url returned HTTP 200 on attempt $attempt/$max_attempts"
+                return 0
+            fi
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            sleep "$sleep_seconds"
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    echo -e "${RED}FAIL:${NC} $url did not return HTTP 200 after $max_attempts attempts"
+    if [ -n "$last_status" ]; then
+        echo "Last HTTP status: $last_status"
+    fi
+    if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+        echo "STOP_ON_FAIL=1 detected, exiting immediately"
+        exit 1
+    fi
+    return 1
+}
+
 test_command() {
     # Last argument is the expected match
     local expected_match="${*: -1}"
@@ -95,14 +198,21 @@ test_command_success() {
 
 test_docker_ps_service_count() {
     local expected_count="$1"
+    local context="default"
+    if [ -z "${GITLAB_CI:-}" ] && [ -n "${MWCLI_CONTEXT_TEST:-}" ]; then
+        context="test"
+    elif [ -n "${CONTEXT:-}" ]; then
+        context="${CONTEXT}"
+    fi
+
     set +e
     local COUNT
-    COUNT="$(docker ps | grep -c mwcli)"
+    COUNT="$(docker ps --format '{{.Names}}' | grep -c "^mwcli-mwdd-${context}-")"
     set -e
     if [ "$COUNT" -eq "$expected_count" ]; then
-        echo -e "${GREEN}PASS:${NC} docker has $expected_count containers"
+        echo -e "${GREEN}PASS:${NC} docker context $context has $expected_count containers"
     else
-        echo -e "${RED}FAIL:${NC} docker has $COUNT containers, expected $expected_count"
+        echo -e "${RED}FAIL:${NC} docker context $context has $COUNT containers, expected $expected_count"
         docker ps
         if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
             echo "STOP_ON_FAIL=1 detected, exiting immediately"

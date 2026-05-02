@@ -1,6 +1,8 @@
 package files
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
@@ -30,5 +32,20 @@ func TestSyncerIgnoreFiles_KeepCustomComposeFiles(t *testing.T) {
 				t.Fatalf("StringInRegexSlice(%q, IgnoreFiles) = %v, want %v", tc.path, got, tc.expected)
 			}
 		})
+	}
+}
+
+func TestEnsureReadyCreatesJobRunnerSitesFile(t *testing.T) {
+	projectDir := t.TempDir()
+
+	EnsureReady(projectDir)
+
+	jobRunnerSitesPath := filepath.Join(projectDir, "mediawiki", "jobrunner-sites")
+	info, err := os.Stat(jobRunnerSitesPath)
+	if err != nil {
+		t.Fatalf("Stat(%q): %v", jobRunnerSitesPath, err)
+	}
+	if info.IsDir() {
+		t.Fatalf("%q is a directory, want file", jobRunnerSitesPath)
 	}
 }
