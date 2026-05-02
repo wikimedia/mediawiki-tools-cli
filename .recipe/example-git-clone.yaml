@@ -5,9 +5,6 @@ description: >-
   Example recipe demonstrating the two checkout patterns for extensions and
   skins: short Gerrit name, and arbitrary git URL with explicit destination path.
 
-source:
-  shallow: true
-
 services:
   - name: mediawiki
   - name: mysql
@@ -39,8 +36,10 @@ sites:
     dbtype: mysql
 
 localSettings:
-  appendPHP: |
-    wfLoadSkin( 'Vector' );
-    wfLoadExtension( 'VisualEditor' );
-    wfLoadExtension( 'examples' );
-    // wfLoadSkin( 'VectorFromURL' );
+  files:
+    shared:
+      - content: |
+          wfLoadSkin( 'Vector' );
+          wfLoadExtension( 'VisualEditor' );
+          wfLoadExtension( 'examples' );
+          // wfLoadSkin( 'VectorFromURL' );

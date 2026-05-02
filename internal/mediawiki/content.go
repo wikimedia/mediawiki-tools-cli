@@ -35,6 +35,9 @@ type PageInput struct {
 	Summary string
 }
 
+// anonCSRFToken is the well-known anonymous CSRF token accepted by MediaWiki.
+const anonCSRFToken = `+\`
+
 // CreateWikibaseProperty creates a Wikibase property on the given wiki
 func CreateWikibaseProperty(wikiURL, username, password string, prop WikibasePropertyInput) error {
 	w, err := mwclient.New(normalizeWikiURL(wikiURL), "mwcli")
@@ -42,11 +45,16 @@ func CreateWikibaseProperty(wikiURL, username, password string, prop WikibasePro
 		return err
 	}
 
-	// Login if credentials provided
+	token := anonCSRFToken
 	if username != "" && password != "" {
 		if err := w.Login(username, password); err != nil {
 			return fmt.Errorf("login failed: %w", err)
 		}
+		t, err := w.GetToken(mwclient.CSRFToken)
+		if err != nil {
+			return fmt.Errorf("unable to obtain csrf token: %w", err)
+		}
+		token = t
 	}
 
 	data := map[string]interface{}{
@@ -60,11 +68,6 @@ func CreateWikibaseProperty(wikiURL, username, password string, prop WikibasePro
 	}
 
 	dataJSON := mustMarshalJSON(data)
-
-	token, err := w.GetToken(mwclient.CSRFToken)
-	if err != nil {
-		return fmt.Errorf("unable to obtain csrf token: %w", err)
-	}
 
 	editParams := params.Values{
 		"action":  "wbeditentity",
@@ -96,14 +99,18 @@ func CreateWikibaseItem(wikiURL, username, password string, item WikibaseItemInp
 		return err
 	}
 
-	// Login if credentials provided
+	token := anonCSRFToken
 	if username != "" && password != "" {
 		if err := w.Login(username, password); err != nil {
 			return fmt.Errorf("login failed: %w", err)
 		}
+		t, err := w.GetToken(mwclient.CSRFToken)
+		if err != nil {
+			return fmt.Errorf("unable to obtain csrf token: %w", err)
+		}
+		token = t
 	}
 
-	// Build claims
 	claims := []interface{}{}
 	for _, claim := range item.Claims {
 		claims = append(claims, map[string]interface{}{
@@ -131,11 +138,6 @@ func CreateWikibaseItem(wikiURL, username, password string, item WikibaseItemInp
 	}
 
 	dataJSON := mustMarshalJSON(data)
-
-	token, err := w.GetToken(mwclient.CSRFToken)
-	if err != nil {
-		return fmt.Errorf("unable to obtain csrf token: %w", err)
-	}
 
 	editParams := params.Values{
 		"action":  "wbeditentity",
@@ -167,16 +169,16 @@ func CreatePage(wikiURL, username, password string, page PageInput) error {
 		return err
 	}
 
-	// Login if credentials provided
+	token := anonCSRFToken
 	if username != "" && password != "" {
 		if err := w.Login(username, password); err != nil {
 			return fmt.Errorf("login failed: %w", err)
 		}
-	}
-
-	token, err := w.GetToken(mwclient.CSRFToken)
-	if err != nil {
-		return fmt.Errorf("unable to obtain csrf token: %w", err)
+		t, err := w.GetToken(mwclient.CSRFToken)
+		if err != nil {
+			return fmt.Errorf("unable to obtain csrf token: %w", err)
+		}
+		token = t
 	}
 
 	editParams := params.Values{

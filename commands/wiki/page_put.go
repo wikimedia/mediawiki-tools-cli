@@ -66,6 +66,9 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 				"text":    text,
 				"summary": summary,
 			}
+			if wikiAnon {
+				editParams["token"] = anonCSRFToken
+			}
 			if minor {
 				editParams["minor"] = "1"
 			}

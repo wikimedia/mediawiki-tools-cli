@@ -1,0 +1,10 @@
+{
+  "gerrit": {
+    "interaction_type": "http"
+  },
+  "mw_dev": {
+    "docker": {
+      "shallow_clones": true
+    }
+  }
+}

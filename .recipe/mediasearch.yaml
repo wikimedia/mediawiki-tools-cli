@@ -3,15 +3,12 @@ version: 0.1
 name: mediasearch
 description: >-
   MediaSearch-oriented setup based on MediaWiki-Docker/Extension/MediaSearch.
-  Uses ElasticSearch to mirror the documented setup.
-
-source:
-  shallow: true
+  Uses OpenSearch for CirrusSearch indexing.
 
 services:
   - name: mediawiki
   - name: mysql
-  - name: elasticsearch
+  - name: opensearch
 
 code:
   core: true
@@ -48,76 +45,76 @@ jobRunner:
     - default
 
 localSettings:
-  appendPHP: |
-    wfLoadSkin( 'Vector' );
-    wfLoadSkin( 'MinervaNeue' );
+  files:
+    shared:
+      - content: |
+          wfLoadSkin( 'Vector' );
+          wfLoadSkin( 'MinervaNeue' );
 
-    wfLoadExtension( 'CirrusSearch' );
-    wfLoadExtension( 'Cite' );
-    wfLoadExtension( 'CommonsMetadata' );
-    wfLoadExtension( 'Echo' );
-    wfLoadExtension( 'Elastica' );
-    wfLoadExtension( 'EventLogging' );
-    wfLoadExtension( 'EventStreamConfig' );
-    wfLoadExtension( 'JsonConfig' );
-    wfLoadExtension( 'MediaSearch' );
-    wfLoadExtension( 'MobileFrontend' );
-    wfLoadExtension( 'ParserFunctions' );
-    wfLoadExtension( 'Scribunto' );
-    wfLoadExtension( 'TemplateData' );
-    wfLoadExtension( 'TemplateStyles' );
-    wfLoadExtension( 'UniversalLanguageSelector' );
-    wfLoadExtension( 'WikibaseCirrusSearch' );
-    wfLoadExtension( 'WikibaseMediaInfo' );
+          wfLoadExtension( 'CirrusSearch' );
+          wfLoadExtension( 'Cite' );
+          wfLoadExtension( 'CommonsMetadata' );
+          wfLoadExtension( 'Echo' );
+          wfLoadExtension( 'Elastica' );
+          wfLoadExtension( 'EventLogging' );
+          wfLoadExtension( 'EventStreamConfig' );
+          wfLoadExtension( 'JsonConfig' );
+          wfLoadExtension( 'MediaSearch' );
+          wfLoadExtension( 'MobileFrontend' );
+          wfLoadExtension( 'ParserFunctions' );
+          wfLoadExtension( 'Scribunto' );
+          wfLoadExtension( 'TemplateData' );
+          wfLoadExtension( 'TemplateStyles' );
+          wfLoadExtension( 'UniversalLanguageSelector' );
+          wfLoadExtension( 'WikibaseCirrusSearch' );
+          wfLoadExtension( 'WikibaseMediaInfo' );
 
-    $wgUseInstantCommons = true;
-    $wgEnableUploads = true;
-    $wgUseImageMagick = true;
-    $wgScribuntoDefaultEngine = 'luastandalone';
-    $wgMediaViewerEnableByDefault = true;
-    $wgPFEnableStringFunctions = true;
-    $wgApiFrameOptions = 'SAMEORIGIN';
-    $wgCacheDirectory = "$IP/cache";
+          $wgUseInstantCommons = true;
+          $wgEnableUploads = true;
+          $wgUseImageMagick = true;
+          $wgScribuntoDefaultEngine = 'luastandalone';
+          $wgMediaViewerEnableByDefault = true;
+          $wgPFEnableStringFunctions = true;
+          $wgApiFrameOptions = 'SAMEORIGIN';
+          $wgCacheDirectory = "$IP/cache";
 
-    require_once "$IP/extensions/CirrusSearch/tests/jenkins/FullyFeaturedConfig.php";
-    $wgCirrusSearchServers = [ "elasticsearch" ];
-    $wgSearchType = 'CirrusSearch';
+          $wgCirrusSearchServers = [ "opensearch" ];
+          $wgSearchType = 'CirrusSearch';
+          $wgWBCSUseCirrus = true;
 
-    wfLoadExtension( 'WikibaseRepository', "$IP/extensions/Wikibase/extension-repo.json" );
-    require_once "$IP/extensions/Wikibase/repo/ExampleSettings.php";
-    wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
-    require_once "$IP/extensions/Wikibase/client/ExampleSettings.php";
+          wfLoadExtension( 'WikibaseRepository', "$IP/extensions/Wikibase/extension-repo.json" );
+          require_once "$IP/extensions/Wikibase/repo/ExampleSettings.php";
+          wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
+          require_once "$IP/extensions/Wikibase/client/ExampleSettings.php";
 
-    $wgEnableWikibaseRepo = true;
-    $wgEnableWikibaseClient = true;
+          $wgEnableWikibaseRepo = true;
+          $wgEnableWikibaseClient = true;
 
-    $wgWBClientSettings['dataBridgeEnabled'] = true;
-    $wgWBClientSettings['dataBridgeHrefRegExp'] = '[/=]((?:Item:)?(Q[1-9][0-9]*)).*#(P[1-9][0-9]*)$';
-    $wgWBClientSettings['dataBridgeEditTags'] = [ 'Data Bridge' ];
+          $wgWBClientSettings['dataBridgeEnabled'] = true;
+          $wgWBClientSettings['dataBridgeHrefRegExp'] = '[/=]((?:Item:)?(Q[1-9][0-9]*)).*#(P[1-9][0-9]*)$';
+          $wgWBClientSettings['dataBridgeEditTags'] = [ 'Data Bridge' ];
 
-    $wgWBRepoSettings['dataBridgeEnabled'] = true;
-    $wgWBRepoSettings['taintedReferencesEnabled'] = true;
-    $wgWBRepoSettings['termboxEnabled'] = true;
+          $wgWBRepoSettings['dataBridgeEnabled'] = true;
+          $wgWBRepoSettings['taintedReferencesEnabled'] = true;
+          $wgWBRepoSettings['termboxEnabled'] = true;
 
-    $wgMediaInfoEnableFilePageDepicts = true;
-    $wgMediaInfoEnableOtherStatements = true;
-    $wgMediaInfoShowQualifiers = true;
-    $wgMediaInfoProperties = [ 'depicts' => 'P1' ];
-    $wgDepictsQualifierProperties = [ 'depicts' => 'P1' ];
+          $wgMediaInfoEnableFilePageDepicts = true;
+          $wgMediaInfoEnableOtherStatements = true;
+          $wgMediaInfoShowQualifiers = true;
+          $wgMediaInfoProperties = [ 'depicts' => 'P1' ];
+          $wgDepictsQualifierProperties = [ 'depicts' => 'P1' ];
 
-    $useProductionSearchApi = true;
-    $wgMediaSearchExternalSearchUri = $useProductionSearchApi ? 'https://commons.wikimedia.org/w/api.php' : '';
-    $wgMediaSearchExternalEntitySearchBaseUri = $useProductionSearchApi ? 'https://www.wikidata.org/w/api.php' : '';
+          $useProductionSearchApi = true;
+          $wgMediaSearchExternalSearchUri = $useProductionSearchApi ? 'https://commons.wikimedia.org/w/api.php' : '';
+          $wgMediaSearchExternalEntitySearchBaseUri = $useProductionSearchApi ? 'https://www.wikidata.org/w/api.php' : '';
 
 maintenance:
-  - name: update-db
-    command: ["php", "maintenance/run.php", "update.php"]
   - name: cirrus-config
     command: ["php", "extensions/CirrusSearch/maintenance/UpdateSearchIndexConfig.php"]
   - name: force-index-a
-    command: ["php", "extensions/CirrusSearch/maintenance/forceSearchIndex.php", "--skipLinks", "--indexOnSkip"]
+    command: ["php", "extensions/CirrusSearch/maintenance/ForceSearchIndex.php", "--skipLinks", "--indexOnSkip"]
   - name: force-index-b
-    command: ["php", "extensions/CirrusSearch/maintenance/forceSearchIndex.php", "--skipParse"]
+    command: ["php", "extensions/CirrusSearch/maintenance/ForceSearchIndex.php", "--skipParse"]
   - name: wikibase-sites
     command: ["php", "extensions/Wikibase/lib/maintenance/populateSitesTable.php"]
   - name: wikibase-rebuild

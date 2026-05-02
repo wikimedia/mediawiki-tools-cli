@@ -1,0 +1,99 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: wikibase-repoclient
+description: >-
+  Wikibase repo+client setup. The repo wiki ("default") hosts Wikibase
+  entities; the client wiki ("client") reads from the repo via entity
+  sources and cross-wiki links.
+
+services:
+  - name: mediawiki
+  - name: mysql
+
+code:
+  core: true
+  skins:
+    - name: Vector
+  extensions:
+    - name: Wikibase
+    - name: ParserFunctions
+
+sites:
+  - dbname: default
+    dbtype: mysql
+  - dbname: client
+    dbtype: mysql
+
+jobRunner:
+  sites:
+    - default
+    - client
+
+localSettings:
+  files:
+    shared:
+      - content: |
+          wfLoadExtension( 'ParserFunctions' );
+
+          $entitySources = [
+            'local' => [
+              'repoDatabase' => 'default',
+              'baseUri' => 'http://default.mediawiki.local.wmftest.net:8080/entity/',
+              'entityNamespaces' => [ 'item' => 120, 'property' => 122 ],
+              'rdfNodeNamespacePrefix' => 'wd',
+              'rdfPredicateNamespacePrefix' => 'wdt',
+              'interwikiPrefix' => 'local',
+              'type' => 'db',
+            ],
+          ];
+    perWiki:
+      default:
+        - content: |
+            wfLoadExtension( 'WikibaseRepository', "$IP/extensions/Wikibase/extension-repo.json" );
+            require_once "$IP/extensions/Wikibase/repo/ExampleSettings.php";
+
+            $wgWBRepoSettings['entitySources'] = $entitySources;
+            $wgWBRepoSettings['localEntitySourceName'] = 'local';
+      client:
+        - content: |
+            wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
+            require_once "$IP/extensions/Wikibase/client/config/WikibaseClient.example.php";
+
+            $wgWBClientSettings['repoUrl'] = 'http://default.mediawiki.local.wmftest.net:8080';
+            $wgWBClientSettings['repoSiteName'] = 'default';
+            $wgWBClientSettings['repoArticlePath'] = '/wiki/$1';
+            $wgWBClientSettings['repoScriptPath'] = '/w';
+
+            $wgWBClientSettings['entitySources'] = $entitySources;
+            $wgWBClientSettings['itemAndPropertySourceName'] = 'local';
+            $wgWBClientSettings['siteLinkGroups'] = [ 'local' ];
+            $wgWBClientSettings['siteGlobalID'] = 'client';
+
+maintenance:
+  - name: rebuild-l10n-cache-default
+    command: ["php", "maintenance/run.php", "rebuildLocalisationCache.php", "--wiki", "default", "--lang", "en"]
+  - name: rebuild-l10n-cache-client
+    command: ["php", "maintenance/run.php", "rebuildLocalisationCache.php", "--wiki", "client", "--lang", "en"]
+  - name: populate-sites-table-client
+    command: ["php", "maintenance/run.php", "./extensions/Wikibase/lib/maintenance/populateSitesTable.php", "--wiki", "client"]
+  - name: add-site-default-on-client
+    command: ["php", "maintenance/run.php", "addSite.php", "--", "default", "local", "--interwiki-id", "default", "--pagepath", "http://default.mediawiki.local.wmftest.net:8080/w/index.php?title=$1", "--language", "en", "--filepath", "http://default.mediawiki.local.wmftest.net:8080/w/$1", "--wiki", "client"]
+  - name: add-site-client-on-client
+    command: ["php", "maintenance/run.php", "addSite.php", "--", "client", "local", "--interwiki-id", "client", "--pagepath", "http://client.mediawiki.local.wmftest.net:8080/w/index.php?title=$1", "--language", "en", "--filepath", "http://client.mediawiki.local.wmftest.net:8080/w/$1", "--wiki", "client"]
+
+content:
+  wikibase:
+    properties:
+      - id: P1
+        label: text
+        datatype: string
+    items:
+      - id: Q1
+        label: first
+        claims:
+          - property: P1
+            value: hello
+  pages:
+    - wiki: client
+      title: Main_Page
+      text: "{{#property:P1|from=Q1}}"

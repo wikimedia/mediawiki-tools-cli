@@ -74,6 +74,9 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 				"data":    dataJSON,
 				"summary": summary,
 			}
+			if wikiAnon {
+				editParams["token"] = anonCSRFToken
+			}
 			if bot {
 				editParams["bot"] = "1"
 			}

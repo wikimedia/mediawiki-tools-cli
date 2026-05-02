@@ -12,6 +12,7 @@ var (
 	wiki         string
 	wikiUser     string
 	wikiPassword string
+	wikiAnon     bool
 )
 
 func NewWikiCmd() *cobra.Command {
@@ -27,6 +28,7 @@ func NewWikiCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
 	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "A user to interact using")
 	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
+	cmd.PersistentFlags().BoolVar(&wikiAnon, "anon", false, "Perform anonymous edits using the anonymous CSRF token")
 	err := cmd.MarkPersistentFlagRequired("wiki")
 	if err != nil {
 		panic(err)
@@ -47,7 +49,14 @@ func normalizeWiki(wiki string) string {
 	return wiki
 }
 
+// anonCSRFToken is the well-known anonymous CSRF token accepted by MediaWiki
+// for edits that do not require authentication.
+const anonCSRFToken = `+\`
+
 func loginIfCredentialsProvided(w *mwclient.Client) error {
+	if wikiAnon {
+		return nil
+	}
 	if wikiUser == "" && wikiPassword == "" {
 		return nil
 	}

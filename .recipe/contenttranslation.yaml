@@ -4,10 +4,6 @@ name: contenttranslation
 description: >-
   ContentTranslation developer setup inspired by MediaWiki-Docker extension guide.
 
-source:
-  useGithub: false
-  shallow: true
-
 services:
   - name: mediawiki
   - name: mysql
@@ -22,6 +18,7 @@ code:
     - name: Cite
     - name: ContentTranslation
     - name: EventLogging
+    - name: WikimediaMessages
     - name: GlobalPreferences
     - name: MobileFrontend
     - name: UniversalLanguageSelector
@@ -32,41 +29,40 @@ sites:
     dbtype: mysql
 
 localSettings:
-  appendPHP: |
-    $wgLanguageCode = $wgDBname;
+  files:
+    shared:
+      - content: |
+          $wgLanguageCode = $wgDBname;
 
-    wfLoadSkin( 'Vector' );
+          wfLoadSkin( 'Vector' );
 
-    wfLoadExtension( 'Cite' );
-    wfLoadExtension( 'ContentTranslation' );
-    wfLoadExtension( 'UniversalLanguageSelector' );
-    wfLoadExtension( 'BetaFeatures' );
-    wfLoadExtension( 'VisualEditor' );
-    wfLoadExtension( 'MobileFrontend' );
-    wfLoadExtension( 'GlobalPreferences' );
-    wfLoadExtension( 'EventLogging' );
+          wfLoadExtension( 'Cite' );
+          wfLoadExtension( 'ContentTranslation' );
+          wfLoadExtension( 'WikimediaMessages' );
+          wfLoadExtension( 'UniversalLanguageSelector' );
+          wfLoadExtension( 'BetaFeatures' );
+          wfLoadExtension( 'VisualEditor' );
+          wfLoadExtension( 'MobileFrontend' );
+          wfLoadExtension( 'GlobalPreferences' );
+          wfLoadExtension( 'EventLogging' );
 
-    $wgDefaultUserOptions['visualeditor-enable'] = 1;
-    $wgEnableRestAPI = true;
-    wfLoadExtension( 'Parsoid', 'vendor/wikimedia/parsoid/extension.json' );
-    $wgVirtualRestConfig['modules']['parsoid'] = [
-      'url' => $wgServer . $wgScriptPath . '/rest.php',
-    ];
+          $wgDefaultUserOptions['visualeditor-enable'] = 1;
+          $wgEnableRestAPI = true;
+          wfLoadExtension( 'Parsoid', 'vendor/wikimedia/parsoid/extension.json' );
+          $wgVirtualRestConfig['modules']['parsoid'] = [
+            'url' => $wgServer . $wgScriptPath . '/rest.php',
+          ];
 
-    $wgContentTranslationVueDashboard = true;
-    $wgContentTranslationSiteTemplates = [
-      "view" => "//$1.wikipedia.org/wiki/$2",
-      "action" => "//$1.wikipedia.org/w/index.php?title=$2",
-      "api" => "https://$1.wikipedia.org/w/api.php",
-      "cx" => "https://cxserver.wikimedia.org/v2",
-      "restbase" => "https://$1.wikipedia.org/api/rest_v1"
-    ];
+          $wgContentTranslationVueDashboard = true;
+          $wgContentTranslationSiteTemplates = [
+            "view" => "//$1.wikipedia.org/wiki/$2",
+            "action" => "//$1.wikipedia.org/w/index.php?title=$2",
+            "api" => "https://$1.wikipedia.org/w/api.php",
+            "cx" => "https://cxserver.wikimedia.org/v2",
+            "restbase" => "https://$1.wikipedia.org/api/rest_v1"
+          ];
 
-    $wgEventLoggingServiceUri = 'http://eventlogging.local.wmftest.net:' . parse_url($wgServer)['port'] . '/v1/events';
-    $wgEventLoggingQueueLingerSeconds = 1;
-    $wgEventLoggingStreamNames = false;
-    $GLOBALS['wgGlobalPreferencesDB'] = 'default';
-
-maintenance:
-  - name: update-database
-    command: ["php", "maintenance/run.php", "update"]
+          $wgEventLoggingServiceUri = 'http://eventlogging.local.wmftest.net:' . parse_url($wgServer)['port'] . '/v1/events';
+          $wgEventLoggingQueueLingerSeconds = 1;
+          $wgEventLoggingStreamNames = false;
+          $GLOBALS['wgGlobalPreferencesDB'] = 'default';
