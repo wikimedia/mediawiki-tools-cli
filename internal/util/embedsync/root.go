@@ -4,7 +4,7 @@ Package embedsync deals with syncing go embedded files onto the system disk
 NOTE: this requires an index of the files to be part of the embed.
 This can be generated in the MakeFile using a line like this...
 
-@cd ./internal/mwdd/files/embed/ && find . -type f | sort > files.txt
+@cd ./mount/dev/ && find . -type f | sort > files.txt
 */
 package embedsync
 
@@ -136,7 +136,7 @@ func (e EmbeddingDiskSync) agnosticFileFromEmbed(name string) string {
 }
 
 // agnosticFileFromDisk takes an on disk path and returns the agnostic path
-// Example on Linux "/home/adam/.config/mwcli/mwdd/default/shellbox-timeline.yml" => "embed/shellbox-timeline.yml".
+// Example on Linux "/home/adam/.config/mwcli/mwdd/default/compose/shellbox-timeline/compose.yml" => "dev/compose/shellbox-timeline/compose.yml".
 func (e EmbeddingDiskSync) agnosticFileFromDisk(name string) string {
 	path := strings.TrimPrefix(name, e.DiskPath+string(os.PathSeparator))
 	// As the input is a disk path, we also need to normalize the separator to the one used by embeds

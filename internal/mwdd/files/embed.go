@@ -1,18 +1,14 @@
 package files
 
 import (
-	"embed"
-
+	"gitlab.wikimedia.org/repos/releng/cli/mount"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/embedsync"
 )
 
-//go:embed embed
-var content embed.FS
-
 func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 	return embedsync.EmbeddingDiskSync{
-		Embed:     content,
-		EmbedPath: "embed",
+		Embed:     mount.DevContent,
+		EmbedPath: mount.DevEmbedPath,
 		DiskPath:  projectDirectory,
 		IgnoreFiles: []string{
 			// Used by docker compose to store current environment variables in

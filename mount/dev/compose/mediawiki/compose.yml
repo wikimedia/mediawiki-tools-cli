@@ -1,0 +1,59 @@
+
+services:
+
+  mediawiki:
+    image: "${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    entrypoint: "/mwdd/entrypoint.sh"
+    volumes:
+      - ./compose/mediawiki/mount/wait-for-it.sh:/wait-for-it.sh:ro
+      - ./compose/mediawiki/mount/mediawiki:/mwdd:ro
+      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+      - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
+      - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
+      - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:delegated"
+      - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
+    environment:
+      - MW_DB_DEFAULT=${MEDIAWIKI_DEFAULT_DBNAME:-default}
+      # MW_INSTALL_PATH is used by various maintenance scripts to find MediaWiki.
+      # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
+      - MW_INSTALL_PATH=/var/www/html/w
+      - COMPOSER_CACHE_DIR=/.composer/cache
+      - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-}
+      - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-debug}
+      - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
+      - SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}
+    depends_on:
+      - mediawiki-web
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+  mediawiki-web:
+    image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    volumes:
+      - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+      - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
+      - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
+    environment:
+      - VIRTUAL_HOST=*.mediawiki.local.wmftest.net
+      - VIRTUAL_PORT=8080
+      - DEFAULT_EXPOSE_PORT=8080
+    depends_on:
+      - nginx-proxy
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  mediawiki-data:
+  mediawiki-images:
+  mediawiki-logs:
+  mediawiki-dot-composer:

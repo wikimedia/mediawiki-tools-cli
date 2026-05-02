@@ -7,13 +7,13 @@ import (
 )
 
 func TestParseRecipeExamples(t *testing.T) {
-	paths, err := filepath.Glob(filepath.Join("..", "..", "..", ".recipe", "*.yaml"))
+	paths, err := filepath.Glob(filepath.Join("..", "..", "..", "mount", "dev", "recipes", "*.yaml"))
 	if err != nil {
-		t.Fatalf("glob .recipe/*.yaml: %v", err)
+		t.Fatalf("glob mount/dev/recipes/*.yaml: %v", err)
 	}
 
 	if len(paths) == 0 {
-		t.Fatalf("no recipe examples found at .recipe/*.yaml")
+		t.Fatalf("no recipe examples found at mount/dev/recipes/*.yaml")
 	}
 
 	for _, path := range paths {

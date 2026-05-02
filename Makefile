@@ -30,7 +30,7 @@ release: $(GOX) $(GOVVV) generate
 .PHONY: generate
 generate:
 	go run tools/code-gen/main.go
-	@cd ./internal/mwdd/files/embed/ && find . -type f | LC_ALL=C sort > files.txt
+	@cd ./mount/dev/ && find . -type f | LC_ALL=C sort > files.txt
 	go generate $(GO_PACKAGES)
 
 .PHONY: clean

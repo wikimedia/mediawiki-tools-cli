@@ -38,6 +38,7 @@ type recipeRuntimeState struct {
 func NewRecipeCmd() *cobra.Command {
 	var recipeFile string
 	var recipeURL string
+	var recipeName string
 	var dryRun bool
 	var skipCode bool
 	var skipServices bool
@@ -49,8 +50,16 @@ func NewRecipeCmd() *cobra.Command {
 		Use:   "recipe",
 		Short: "Apply a YAML recipe to set up a complete dev environment",
 		Long:  "Apply a YAML recipe to set up services, checkout code, install sites, apply LocalSettings config, and run maintenance commands.",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			spec, err := loadRecipe(recipeFile, recipeURL)
+			m := mwdd.DefaultForUser()
+			m.EnsureReady()
+
+			if len(args) > 0 {
+				recipeName = args[0]
+			}
+
+			spec, err := loadRecipe(recipeFile, recipeURL, recipeName, m)
 			if err != nil {
 				return err
 			}
@@ -59,9 +68,6 @@ func NewRecipeCmd() *cobra.Command {
 			if dryRun {
 				fmt.Println("Dry run mode enabled. No changes will be made.")
 			}
-
-			m := mwdd.DefaultForUser()
-			m.EnsureReady()
 
 			// Ensure recipe-scoped state from previous runs does not leak into this run.
 			if err := cleanupRecipeRuntimeState(m, dryRun); err != nil {
@@ -201,13 +207,14 @@ func NewRecipeCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&recipeFile, "file", "f", "", "Path to recipe YAML file")
 	cmd.Flags().StringVar(&recipeURL, "url", "", "URL to recipe YAML file")
+	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a recipe in the local extracted recipes directory")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show planned operations without changing anything")
 	cmd.Flags().BoolVar(&skipCode, "skip-code", false, "Skip code checkout phase")
 	cmd.Flags().BoolVar(&skipServices, "skip-services", false, "Skip service create/start phase")
 	cmd.Flags().BoolVar(&skipSites, "skip-sites", false, "Skip site installation phase")
 	cmd.Flags().BoolVar(&skipMaintenance, "skip-maintenance", false, "Skip maintenance commands phase")
 	cmd.Flags().BoolVar(&skipPatches, "skip-patches", false, "Skip patch apply phase")
-	cmd.MarkFlagsMutuallyExclusive("file", "url")
+	cmd.MarkFlagsMutuallyExclusive("file", "url", "name")
 
 	cmd.AddCommand(newRecipeValidateCmd())
 	return cmd
@@ -372,12 +379,21 @@ func nonEmptyStrings(in []string) []string {
 func newRecipeValidateCmd() *cobra.Command {
 	var recipeFile string
 	var recipeURL string
+	var recipeName string
 
 	cmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Validate a recipe YAML file",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			spec, err := loadRecipe(recipeFile, recipeURL)
+			m := mwdd.DefaultForUser()
+			m.EnsureReady()
+
+			if len(args) > 0 {
+				recipeName = args[0]
+			}
+
+			spec, err := loadRecipe(recipeFile, recipeURL, recipeName, m)
 			if err != nil {
 				return err
 			}
@@ -390,13 +406,14 @@ func newRecipeValidateCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&recipeFile, "file", "f", "", "Path to recipe YAML file")
 	cmd.Flags().StringVar(&recipeURL, "url", "", "URL to recipe YAML file")
-	cmd.MarkFlagsMutuallyExclusive("file", "url")
+	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a recipe in the local extracted recipes directory")
+	cmd.MarkFlagsMutuallyExclusive("file", "url", "name")
 	return cmd
 }
 
-func loadRecipe(recipeFile string, recipeURL string) (recipe.Spec, error) {
-	if recipeFile == "" && recipeURL == "" {
-		return recipe.Spec{}, fmt.Errorf("you must provide either --file or --url")
+func loadRecipe(recipeFile string, recipeURL string, recipeName string, m mwdd.MWDD) (recipe.Spec, error) {
+	if recipeFile == "" && recipeURL == "" && recipeName == "" {
+		return recipe.Spec{}, fmt.Errorf("you must provide either --file, --url, or a recipe name")
 	}
 
 	var content []byte
@@ -426,6 +443,33 @@ func loadRecipe(recipeFile string, recipeURL string) (recipe.Spec, error) {
 			return recipe.Spec{}, err
 		}
 		content = b
+	}
+
+	if recipeName != "" {
+		name := strings.TrimSpace(recipeName)
+		candidates := []string{}
+		if strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml") {
+			candidates = append(candidates, name)
+		} else {
+			candidates = append(candidates, name+".yaml", name+".yml")
+		}
+
+		var firstErr error
+		for _, candidate := range candidates {
+			resolved := filepath.Clean(filepath.Join(m.Directory(), "recipes", candidate))
+			b, err := os.ReadFile(resolved)
+			if err == nil {
+				content = b
+				break
+			}
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
+
+		if len(content) == 0 {
+			return recipe.Spec{}, fmt.Errorf("failed to load local recipe %q from %s/recipes: %w", recipeName, m.Directory(), firstErr)
+		}
 	}
 
 	return recipe.Parse(content)

@@ -1,0 +1,69 @@
+
+services:
+
+  dps:
+    image: "${DPS_IMAGE:-defreitas/dns-proxy-server:3.5.2}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      dps:
+        ipv4_address: ${NETWORK_SUBNET_PREFIX}.10
+
+  dashboard:
+    image: "${DASHBOARD_IMAGE:-golang:1.23-alpine}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    working_dir: /app
+    command: ["go", "run", "main.go"]
+    environment:
+      - VIRTUAL_HOST=dashboard.local.wmftest.net,dash.local.wmftest.net
+      - VIRTUAL_PORT=8080
+      - DEFAULT_EXPOSE_PORT=8080
+      - PORT=${PORT}
+      - DASHBOARD_PORT=8080
+    volumes:
+      - ./compose/base/mount/dashboard:/app:ro
+      - ./:/data:ro
+    depends_on:
+      - dps
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+  nginx-proxy:
+    image: "${NGINX_PROXY_IMAGE:-jwilder/nginx-proxy:0.10}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=proxy.local.wmftest.net
+      - VIRTUAL_PORT=${PORT}
+      - HOSTNAMES=.mediawiki.local.wmftest.net,keycloak.local.wmftest.net,dashboard.local.wmftest.net     # wildcard name resolution, thanks to DPS
+      - HTTP_PORT=${PORT}      # internal port
+      - DEFAULT_EXPOSE_PORT=${PORT}
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - dps
+      - dashboard # For now always load the dashboard...
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./compose/base/mount/nginx/client_max_body_size.conf:/etc/nginx/conf.d/client_max_body_size.conf:ro
+      - ./compose/base/mount/nginx/timeouts.conf:/etc/nginx/conf.d/timeouts.conf:ro
+
+networks:
+  dps:
+    ipam:
+      config:
+        # TODO this probably wants to be configurable? or more random? as conflicts can happen in the docker network
+        # mwdd used 172.0.0.0/24
+        - subnet: ${NETWORK_SUBNET_PREFIX}.0/24

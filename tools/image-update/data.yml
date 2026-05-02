@@ -70,5 +70,5 @@ imageGroups:
 # Files and directories to check
 files:
 directories:
-  - internal/mwdd/files/embed
+  - mount/dev
   - .gitlab/pipelines

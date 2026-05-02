@@ -3,6 +3,7 @@ package dockercompose
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -26,8 +27,13 @@ type ServiceContents struct {
 }
 
 func (p Project) File(name string) File {
-	// XXX: Assumption that .yml is always used
-	return File(p.Directory + string(os.PathSeparator) + name + ".yml")
+	preferred := filepath.Join(p.Directory, "compose", name, "compose.yml")
+	if _, err := os.Stat(preferred); err == nil {
+		return File(preferred)
+	}
+
+	// Legacy fallback.
+	return File(filepath.Join(p.Directory, name+".yml"))
 }
 
 func (f File) String() string {

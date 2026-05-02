@@ -1,0 +1,40 @@
+
+# Images for these services are from the wikimedia image repo
+# https://docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox/tags/
+# There is one service per image
+# TODO can we use the simply named images? or must we use the dated ones to stay up to date?
+
+services:
+  shellbox-media: 
+    build: ./compose/shellbox-media/mount/shellbox/media
+    restart: unless-stopped
+    volumes:
+      - shellbox-media-run:/run/shared
+      - ./compose/shellbox-media/mount/shellbox/media/config.json:/srv/app/config/config.json:ro
+    environment:
+      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
+      - "FCGI_MODE=FCGI_UNIX"
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+  shellbox-media-httpd:
+    image: docker-registry.wikimedia.org/httpd-fcgi:latest
+    security_opt:
+      - label:disable
+    volumes:
+      - shellbox-media-run:/run/shared
+    environment:
+      - "FCGI_MODE=FCGI_UNIX"
+      - "SERVERGROUP=main"
+      - "APACHE_RUN_PORT=8000"
+    depends_on:
+      - shellbox-media
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  shellbox-media-run:

@@ -1,0 +1,32 @@
+
+# Service wrapper around what is provided by quibble
+# https://doc.wikimedia.org/quibble/
+
+services:
+
+  mediawiki-quibble:
+    image: "${MEDIAWIKI_QUIBBLE_IMAGE:-docker-registry.wikimedia.org/releng/quibble-buster-php83:1.9.1}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command: -c "sleep infinity"
+    working_dir: /var/www/html/w
+    networks:
+      - dps
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    volumes:
+      # Only mount code and config, don't mount logs or image
+      # TODO is this bit of config even needed?
+      - "${MEDIAWIKI_VOLUMES_CODE}:/workspace/src:cached"
+      - ./compose/mediawiki/mount/mediawiki:/mwdd:ro
+      # TODO cache should be mounted from the user machine?
+      - mw-quibble-workspace-cache:/workspace/cache
+      - mw-quibble-workspace-log:/workspace/log
+      - mw-quibble-workspace-ref:/workspace/ref
+
+volumes:
+  mw-quibble-workspace-cache:
+  mw-quibble-workspace-log:
+  mw-quibble-workspace-ref:

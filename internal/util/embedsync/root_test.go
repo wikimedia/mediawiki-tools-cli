@@ -4,7 +4,7 @@ Package embedsync deals with syncing go embedded files onto the system disk
 NOTE: this requires an index of the files to be part of the embed.
 This can be generated in the MakeFile using a line like this...
 
-@cd ./internal/mwdd/files/embed/ && find . -type f | sort > files.txt
+@cd ./mount/dev/ && find . -type f | sort > files.txt
 */
 package embedsync
 
