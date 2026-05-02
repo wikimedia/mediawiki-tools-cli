@@ -131,6 +131,7 @@ Or for the dev environment
 ./tests/test-docker-get-code.sh
 ./tests/test-docker-mw-all-dbs.sh
 ./tests/test-docker-mw-mysql-cycle.sh
+./tests/test-docker-recipe-repoclient.sh
 ```
 
 These tests should clean up after themselves.

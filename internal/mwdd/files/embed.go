@@ -1,8 +1,8 @@
 package files
 
 import (
-	"gitlab.wikimedia.org/repos/releng/cli/mount"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/embedsync"
+	"gitlab.wikimedia.org/repos/releng/cli/mount"
 )
 
 func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
@@ -18,8 +18,7 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 			// Used by the dev environment to store the list of sites to run mediawiki-jobrunner against
 			`mediawiki\/jobrunner\-sites`,
 			// Used by folks that want to define a custom set of docker compose services
-			`custom\.yml`,
-			`custom-\w+\.yml`,
+			`custom(?:[-.][A-Za-z0-9_.-]+)?\.ya?ml`,
 		},
 	}
 }

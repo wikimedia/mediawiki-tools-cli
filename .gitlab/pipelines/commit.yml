@@ -118,6 +118,8 @@ integration:
           EXTRA_PACKAGES: docker-compose curl tar
         - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
           EXTRA_PACKAGES: docker-compose curl tar
+        - TEST_SCRIPT: test-docker-recipe-repoclient.sh
+          EXTRA_PACKAGES: docker-compose curl tar git
     before_script:
       # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
       - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
