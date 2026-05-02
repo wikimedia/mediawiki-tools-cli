@@ -1,5 +1,4 @@
 package custom
-package custom
 
 import "testing"
 

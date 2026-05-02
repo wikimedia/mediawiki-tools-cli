@@ -66,9 +66,9 @@
 ./compose/wdqs-ui/compose.yml
 ./compose/wdqs/compose.yml
 ./files.txt
-./recipes/contenttranslation.yaml
-./recipes/example-git-clone.yaml
-./recipes/mediasearch.yaml
+./recipes/contenttranslation.yml
+./recipes/example-git-clone.yml
+./recipes/mediasearch.yml
 ./recipes/mwcli.config.json
-./recipes/wikibase-repoclient.yaml
+./recipes/wikibase-repoclient.yml
 ./wait-for-it.sh

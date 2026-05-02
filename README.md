@@ -66,13 +66,13 @@ Many other Makefile commands exist that you might find useful:
 - `make build`: Builds a new binary
 - `make release`: Builds multiple release binaries to `_release`
 - `make test`: Run unit tests
-- `make recipe-validate`: Validate all checked-in `mount/dev/recipes/*.yaml` files against the recipe parser/validator in `internal/mwdd/recipe/spec.go`
+- `make recipe-validate`: Validate all checked-in `mount/dev/recipes/*.yml` files against the recipe parser/validator in `internal/mwdd/recipe/spec.go`
 - `make lint`: Run basic go linting
 - `make linti`: Run custom mwcli command linting (lint internal)
 - `make fix`: Run basic lint fixes
 - `make vet`: Run `go vet`
 
-### Dev recipe files (`mount/dev/recipes/*.yaml`)
+### Dev recipe files (`mount/dev/recipes/*.yml`)
 
 This repo includes sample/dev recipe files under `mount/dev/recipes/`.
 They are embedded into the binary and extracted into your mwdd context under `recipes/`, so you can apply/validate by name:

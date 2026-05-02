@@ -66,10 +66,10 @@ type JobRunner struct {
 }
 
 type LocalSettings struct {
-	AppendPHP        string                    `yaml:"appendPHP"`
-	Files            LocalSettingsFiles        `yaml:"files"`
-	YAMLSettingsFile string                    `yaml:"yamlSettingsFile"`
-	YAMLSettings     string                    `yaml:"yamlSettings"`
+	AppendPHP        string             `yaml:"appendPHP"`
+	Files            LocalSettingsFiles `yaml:"files"`
+	YAMLSettingsFile string             `yaml:"yamlSettingsFile"`
+	YAMLSettings     string             `yaml:"yamlSettings"`
 }
 
 type LocalSettingsFiles struct {
@@ -99,9 +99,9 @@ type WikibaseProperty struct {
 }
 
 type WikibaseItem struct {
-	ID     string                  `yaml:"id"`
-	Label  string                  `yaml:"label"`
-	Claims []WikibaseItemClaim     `yaml:"claims"`
+	ID     string              `yaml:"id"`
+	Label  string              `yaml:"label"`
+	Claims []WikibaseItemClaim `yaml:"claims"`
 }
 
 type WikibaseItemClaim struct {

@@ -27,8 +27,10 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
-const recipeRuntimeStateFileName = ".mwcli-recipe-state.json"
-const recipeManagedComposeHeader = "# Managed by mwcli recipe"
+const (
+	recipeRuntimeStateFileName = ".mwcli-recipe-state.json"
+	recipeManagedComposeHeader = "# Managed by mwcli recipe"
+)
 
 var recipeEnvVarPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
 
@@ -724,7 +726,7 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 		if dryRun {
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 			return fmt.Errorf("creating parent directory for %s: %w", co.Path, err)
 		}
 		cmd := osexec.Command("git", "clone", co.URL, destPath)
@@ -736,16 +738,6 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 	}
 
 	return nil
-}
-
-func checkoutNames(items []recipe.Checkout) []string {
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if item.Name != "" {
-			out = append(out, item.Name)
-		}
-	}
-	return out
 }
 
 func filterMissingRepos(thisMW mediawiki.MediaWiki, kind string, names []string) []string {
