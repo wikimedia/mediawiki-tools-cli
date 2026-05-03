@@ -1,6 +1,7 @@
 package gerrit
 
 import (
+	"encoding/json"
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	cobra "github.com/spf13/cobra"
 	output "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -18,12 +19,14 @@ func NewGerritAccountsCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAccountsListCmd())
 	cmd.AddCommand(NewGerritAccountsGetCmd())
 	cmd.AddCommand(NewGerritAccountsCreateCmd())
-	cmd.AddCommand(NewGerritAccountsDetailsCmd())
+	cmd.AddCommand(NewGerritAccountsDeleteCmd())
+	cmd.AddCommand(NewGerritAccountsDetailCmd())
 	cmd.AddCommand(NewGerritAccountsNameCmd())
 	cmd.AddCommand(NewGerritAccountsStatusCmd())
 	cmd.AddCommand(NewGerritAccountsUsernameCmd())
 	cmd.AddCommand(NewGerritAccountsDisplaynameCmd())
 	cmd.AddCommand(NewGerritAccountsActiveCmd())
+	cmd.AddCommand(NewGerritAccountsPasswordCmd())
 	cmd.AddCommand(NewGerritAccountsOauthtokenCmd())
 	cmd.AddCommand(NewGerritAccountsEmailsCmd())
 	cmd.AddCommand(NewGerritAccountsSshkeysCmd())
@@ -32,11 +35,12 @@ func NewGerritAccountsCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAccountsGroupsCmd())
 	cmd.AddCommand(NewGerritAccountsAvatarCmd())
 	cmd.AddCommand(NewGerritAccountsPreferencesCmd())
-	cmd.AddCommand(NewGerritAccountsWatchedProjectsCmd())
-	cmd.AddCommand(NewGerritAccountsExternalIdsCmd())
+	cmd.AddCommand(NewGerritAccountsWatchedCmd())
+	cmd.AddCommand(NewGerritAccountsExternalCmd())
 	cmd.AddCommand(NewGerritAccountsAgreementsCmd())
-	cmd.AddCommand(NewGerritAccountsStarredChangesCmd())
+	cmd.AddCommand(NewGerritAccountsDraftsCmd())
 	cmd.AddCommand(NewGerritAccountsIndexCmd())
+	cmd.AddCommand(NewGerritAccountsStarredCmd())
 	return cmd
 }
 func NewGerritAccountsListCmd() *cobra.Command {
@@ -53,7 +57,7 @@ func NewGerritAccountsListCmd() *cobra.Command {
 			path := "/accounts/"
 			path = addParamToPath(path, "q", cmdFlags.query)
 			path = addParamToPath(path, "n", cmdFlags.limit)
-			path = addParamToPath(path, "start", cmdFlags.start)
+			path = addParamToPath(path, "S", cmdFlags.start)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -69,12 +73,12 @@ func NewGerritAccountsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "List Accounts",
+		Short: "Query Account",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "The query string to use to find accounts. The query string is a space-separated list of terms. Each term can be a single word or a quoted phrase. A quoted phrase matches the exact string. A single word matches any account that contains that word as a substring. The query string is case-insensitive.")
-	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "The maximum number of accounts to return. If not specified, the server default is used.")
-	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "The index of the first account to return. If not specified, the server default is used.")
+	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "Query string to find accounts.")
+	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "Maximum number of accounts to return.")
+	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "Number of accounts to skip.")
 	return cmd
 }
 func NewGerritAccountsGetCmd() *cobra.Command {
@@ -86,7 +90,7 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}"
+			path := "/accounts/{account-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
@@ -106,8 +110,7 @@ func NewGerritAccountsGetCmd() *cobra.Command {
 		Short: "Get Account",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsCreateCmd() *cobra.Command {
@@ -118,14 +121,64 @@ func NewGerritAccountsCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Create Account",
-		Use:     "create",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{username}/"
+			path = addParamToPath(path, "username", cmdFlags.username)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Account",
+		Use:   "create",
 	}
-	cmd.Flags().StringVar(&cmdFlags.username, "username", "", "The username to create.")
+	cmd.Flags().StringVar(&cmdFlags.username, "username", "", "The username to operate on.")
 	cmd.MarkFlagRequired("username")
 	return cmd
 }
-func NewGerritAccountsDetailsCmd() *cobra.Command {
+func NewGerritAccountsDeleteCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Account",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsDetailCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -152,17 +205,16 @@ func NewGerritAccountsDetailsCmd() *cobra.Command {
 			return nil
 		},
 		Short: "Get Account Details",
-		Use:   "details",
+		Use:   "detail",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsNameCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Account Name",
+		Short:   "Name",
 		Use:     "name",
 	}
 	cmd.AddCommand(NewGerritAccountsNameGetCmd())
@@ -196,17 +248,15 @@ func NewGerritAccountsNameGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Gets the account name",
+		Short: "Get Account Name",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsNameSetCmd() *cobra.Command {
 	type flags struct {
 		account string
-		name    string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
@@ -215,10 +265,9 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/name/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "name", cmdFlags.name)
 
 			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.name, nil)
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -231,13 +280,10 @@ func NewGerritAccountsNameSetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Sets the account name",
+		Short: "Set Account Name",
 		Use:   "set",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.name, "name", "", "The name to set.")
-	cmd.MarkFlagRequired("name")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsNameDeleteCmd() *cobra.Command {
@@ -266,18 +312,17 @@ func NewGerritAccountsNameDeleteCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Deletes the account name",
+		Short: "Delete Account Name",
 		Use:   "delete",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Account Status",
+		Short:   "Status",
 		Use:     "status",
 	}
 	cmd.AddCommand(NewGerritAccountsStatusGetCmd())
@@ -310,17 +355,15 @@ func NewGerritAccountsStatusGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Gets the account status",
+		Short: "Get Account Status",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsStatusSetCmd() *cobra.Command {
 	type flags struct {
 		account string
-		status  string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
@@ -329,10 +372,9 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/status/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "status", cmdFlags.status)
 
 			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.status, nil)
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -345,20 +387,17 @@ func NewGerritAccountsStatusSetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Sets the account status",
+		Short: "Set Account Status",
 		Use:   "set",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.status, "status", "", "The status to set.")
-	cmd.MarkFlagRequired("status")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsUsernameCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Account Username",
+		Short:   "Username",
 		Use:     "username",
 	}
 	cmd.AddCommand(NewGerritAccountsUsernameGetCmd())
@@ -391,17 +430,15 @@ func NewGerritAccountsUsernameGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Gets the account username",
+		Short: "Get Username",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 	type flags struct {
-		account  string
-		username string
+		account string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
@@ -410,10 +447,9 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/username/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "username", cmdFlags.username)
 
 			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.username, nil)
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -426,29 +462,15 @@ func NewGerritAccountsUsernameSetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Sets the account username",
+		Short: "Set Username",
 		Use:   "set",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.username, "username", "", "The username to set.")
-	cmd.MarkFlagRequired("username")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsDisplaynameCmd() *cobra.Command {
-	cmd := &cobra.Command{
-
-		Example: "",
-		Short:   "Account display name",
-		Use:     "displayname",
-	}
-	cmd.AddCommand(NewGerritAccountsDisplaynameSetCmd())
-	return cmd
-}
-func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 	type flags struct {
-		account     string
-		displayname string
+		account string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
@@ -457,10 +479,9 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/displayname/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
-			path = addParamToPath(path, "displayname", cmdFlags.displayname)
 
 			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "PUT", path, cmdFlags.displayname, nil)
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -473,20 +494,17 @@ func NewGerritAccountsDisplaynameSetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Sets the account display name",
-		Use:   "set",
+		Short: "Set Display Name",
+		Use:   "displayname",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.displayname, "displayname", "", "The display name to set.")
-	cmd.MarkFlagRequired("displayname")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsActiveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Account active",
+		Short:   "Active",
 		Use:     "active",
 	}
 	cmd.AddCommand(NewGerritAccountsActiveGetCmd())
@@ -520,11 +538,10 @@ func NewGerritAccountsActiveGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Gets the account active status",
+		Short: "Get Active",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsActiveSetCmd() *cobra.Command {
@@ -553,11 +570,10 @@ func NewGerritAccountsActiveSetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Sets the account active status",
+		Short: "Set Active",
 		Use:   "set",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
@@ -586,24 +602,104 @@ func NewGerritAccountsActiveDeleteCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Deletes the account active status",
+		Short: "Delete Active",
 		Use:   "delete",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
-func NewGerritAccountsOauthtokenCmd() *cobra.Command {
+func NewGerritAccountsPasswordCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "OAuth access token.",
-		Use:     "oauthtoken",
+		Short:   "Password",
+		Use:     "password",
 	}
-	cmd.AddCommand(NewGerritAccountsOauthtokenGetCmd())
+	cmd.AddCommand(NewGerritAccountsPasswordHttpCmd())
 	return cmd
 }
-func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
+func NewGerritAccountsPasswordHttpCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Http",
+		Use:     "http",
+	}
+	cmd.AddCommand(NewGerritAccountsPasswordHttpGenerateCmd())
+	cmd.AddCommand(NewGerritAccountsPasswordHttpDeleteCmd())
+	return cmd
+}
+func NewGerritAccountsPasswordHttpGenerateCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/password.http/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			var reqBody interface{}
+			err := json.Unmarshal([]byte("{\"generate\": true}"), &reqBody)
+			if err != nil {
+				return err
+			}
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, reqBody, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set/Generate HTTP Password",
+		Use:   "generate",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsPasswordHttpDeleteCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/password.http/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete HTTP Password",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsOauthtokenCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -629,25 +725,24 @@ func NewGerritAccountsOauthtokenGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Gets the account OAuth access token.",
-		Use:   "get",
+		Short: "Get OAuth Access Token",
+		Use:   "oauthtoken",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsEmailsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Email addresses that are configured for the specified user.",
+		Short:   "Emails",
 		Use:     "emails",
 	}
 	cmd.AddCommand(NewGerritAccountsEmailsListCmd())
 	cmd.AddCommand(NewGerritAccountsEmailsGetCmd())
 	cmd.AddCommand(NewGerritAccountsEmailsCreateCmd())
 	cmd.AddCommand(NewGerritAccountsEmailsDeleteCmd())
-	cmd.AddCommand(NewGerritAccountsEmailsPreferCmd())
+	cmd.AddCommand(NewGerritAccountsEmailsPreferredCmd())
 	return cmd
 }
 func NewGerritAccountsEmailsListCmd() *cobra.Command {
@@ -676,11 +771,10 @@ func NewGerritAccountsEmailsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Returns the email addresses of an account.",
+		Short: "List Account Emails",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsEmailsGetCmd() *cobra.Command {
@@ -693,7 +787,7 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/emails/{email-id}"
+			path := "/accounts/{account-id}/emails/{email-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
@@ -711,12 +805,11 @@ func NewGerritAccountsEmailsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Returns the email address specified.",
+		Short: "Get Account Email",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to get.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to operate on.")
 	cmd.MarkFlagRequired("email")
 	return cmd
 }
@@ -735,7 +828,7 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
 			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -748,12 +841,11 @@ func NewGerritAccountsEmailsCreateCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Creates a new email address for the specified user.",
+		Short: "Create Account Email",
 		Use:   "create",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to create.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to operate on.")
 	cmd.MarkFlagRequired("email")
 	return cmd
 }
@@ -767,7 +859,7 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/emails/{email-id}"
+			path := "/accounts/{account-id}/emails/{email-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
@@ -785,16 +877,15 @@ func NewGerritAccountsEmailsDeleteCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Deletes the email address specified.",
+		Short: "Delete Account Email",
 		Use:   "delete",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to delete.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to operate on.")
 	cmd.MarkFlagRequired("email")
 	return cmd
 }
-func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
+func NewGerritAccountsEmailsPreferredCmd() *cobra.Command {
 	type flags struct {
 		account string
 		email   string
@@ -804,7 +895,7 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/emails/{email-id}/preferred"
+			path := "/accounts/{account-id}/emails/{email-id}/preferred/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "email-id", cmdFlags.email)
 
@@ -822,12 +913,11 @@ func NewGerritAccountsEmailsPreferCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Sets the preferred email address for the specified user.",
-		Use:   "prefer",
+		Short: "Set Preferred Email",
+		Use:   "preferred",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to set as preferred.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.email, "email", "", "The email to operate on.")
 	cmd.MarkFlagRequired("email")
 	return cmd
 }
@@ -835,7 +925,7 @@ func NewGerritAccountsSshkeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "SSH keys of an account.",
+		Short:   "Sshkeys",
 		Use:     "sshkeys",
 	}
 	cmd.AddCommand(NewGerritAccountsSshkeysListCmd())
@@ -869,11 +959,10 @@ func NewGerritAccountsSshkeysListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Returns the SSH keys of an account.",
+		Short: "List SSH Keys",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
@@ -886,7 +975,7 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/sshkeys/{ssh-key-id}"
+			path := "/accounts/{account-id}/sshkeys/{ssh-key-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "ssh-key-id", cmdFlags.sshkey)
 
@@ -904,12 +993,11 @@ func NewGerritAccountsSshkeysGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Returns the SSH key specified.",
+		Short: "Get SSH Key",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.sshkey, "sshkey", "", "The SSH key to get.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.sshkey, "sshkey", "", "The sshkey to operate on.")
 	cmd.MarkFlagRequired("sshkey")
 	return cmd
 }
@@ -923,7 +1011,7 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/sshkeys/{ssh-key-id}/access/"
+			path := "/accounts/{account-id}/sshkeys/{ssh-key-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "ssh-key-id", cmdFlags.sshkey)
 
@@ -941,12 +1029,11 @@ func NewGerritAccountsSshkeysDeleteCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Deletes the SSH key specified.",
+		Short: "Delete SSH Key",
 		Use:   "delete",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.sshkey, "sshkey", "", "The SSH key to delete.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.sshkey, "sshkey", "", "The sshkey to operate on.")
 	cmd.MarkFlagRequired("sshkey")
 	return cmd
 }
@@ -954,11 +1041,12 @@ func NewGerritAccountsGpgkeysCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "GPG keys of an account.",
+		Short:   "Gpgkeys",
 		Use:     "gpgkeys",
 	}
 	cmd.AddCommand(NewGerritAccountsGpgkeysListCmd())
 	cmd.AddCommand(NewGerritAccountsGpgkeysGetCmd())
+	cmd.AddCommand(NewGerritAccountsGpgkeysPostCmd())
 	cmd.AddCommand(NewGerritAccountsGpgkeysDeleteCmd())
 	return cmd
 }
@@ -988,11 +1076,10 @@ func NewGerritAccountsGpgkeysListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Returns the GPG keys of an account.",
+		Short: "List GPG Keys",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
@@ -1023,13 +1110,44 @@ func NewGerritAccountsGpgkeysGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Returns the GPG key specified.",
+		Short: "Get GPG Key",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.gpgkey, "gpgkey", "", "The GPG key to get.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.gpgkey, "gpgkey", "", "The gpgkey to operate on.")
 	cmd.MarkFlagRequired("gpgkey")
+	return cmd
+}
+func NewGerritAccountsGpgkeysPostCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/gpgkeys/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add/Delete GPG Keys",
+		Use:   "post",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
@@ -1060,12 +1178,11 @@ func NewGerritAccountsGpgkeysDeleteCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Deletes the GPG key specified.",
+		Short: "Delete GPG Key",
 		Use:   "delete",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.gpgkey, "gpgkey", "", "The GPG key to delete.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.gpgkey, "gpgkey", "", "The gpgkey to operate on.")
 	cmd.MarkFlagRequired("gpgkey")
 	return cmd
 }
@@ -1073,11 +1190,11 @@ func NewGerritAccountsCapabilitiesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Global capabilities that are enabled for the specified user.",
+		Short:   "Capabilities",
 		Use:     "capabilities",
 	}
 	cmd.AddCommand(NewGerritAccountsCapabilitiesListCmd())
-	cmd.AddCommand(NewGerritAccountsCapabilitiesGetCmd())
+	cmd.AddCommand(NewGerritAccountsCapabilitiesCheckCmd())
 	return cmd
 }
 func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
@@ -1106,14 +1223,13 @@ func NewGerritAccountsCapabilitiesListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the global capabilities that are enabled for the specified user.",
+		Short: "List Account Capabilities",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
-func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
+func NewGerritAccountsCapabilitiesCheckCmd() *cobra.Command {
 	type flags struct {
 		account    string
 		capability string
@@ -1121,10 +1237,9 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
-		Aliases: []string{"check"},
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/capabilities/{capability-id}"
+			path := "/accounts/{account-id}/capabilities/{capability-id}/"
 			path = addParamToPath(path, "account-id", cmdFlags.account)
 			path = addParamToPath(path, "capability-id", cmdFlags.capability)
 
@@ -1142,26 +1257,15 @@ func NewGerritAccountsCapabilitiesGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Gets the global capability that is enabled for the specified user.",
-		Use:   "get",
+		Short: "Check Account Capability",
+		Use:   "check",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.capability, "capability", "", "The capability to get.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.capability, "capability", "", "The capability to operate on.")
 	cmd.MarkFlagRequired("capability")
 	return cmd
 }
 func NewGerritAccountsGroupsCmd() *cobra.Command {
-	cmd := &cobra.Command{
-
-		Example: "",
-		Short:   "Lists all groups that contain the specified user as a member.",
-		Use:     "groups",
-	}
-	cmd.AddCommand(NewGerritAccountsGroupsListCmd())
-	return cmd
-}
-func NewGerritAccountsGroupsListCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -1187,22 +1291,21 @@ func NewGerritAccountsGroupsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists all groups that contain the specified user as a member.",
-		Use:   "list",
+		Short: "List Groups",
+		Use:   "groups",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsAvatarCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Retrieves the avatar image of the user.",
+		Short:   "Avatar",
 		Use:     "avatar",
 	}
 	cmd.AddCommand(NewGerritAccountsAvatarGetCmd())
-	cmd.AddCommand(NewGerritAccountsAvatarGetChangeUrlCmd())
+	cmd.AddCommand(NewGerritAccountsAvatarChangeCmd())
 	return cmd
 }
 func NewGerritAccountsAvatarGetCmd() *cobra.Command {
@@ -1231,14 +1334,13 @@ func NewGerritAccountsAvatarGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the avatar image of the user.",
+		Short: "Get Avatar",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
-func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
+func NewGerritAccountsAvatarChangeCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -1264,23 +1366,23 @@ func NewGerritAccountsAvatarGetChangeUrlCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the avatar image of the user.",
-		Use:   "get-change-url",
+		Short: "Get Avatar Change URL",
+		Use:   "change",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsPreferencesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Retrieves the user’s preferences.",
+		Short:   "Preferences",
 		Use:     "preferences",
 	}
 	cmd.AddCommand(NewGerritAccountsPreferencesGetCmd())
-	cmd.AddCommand(NewGerritAccountsPreferencesGetDiffCmd())
-	cmd.AddCommand(NewGerritAccountsPreferencesGetEditCmd())
+	cmd.AddCommand(NewGerritAccountsPreferencesSetCmd())
+	cmd.AddCommand(NewGerritAccountsPreferencesDiffCmd())
+	cmd.AddCommand(NewGerritAccountsPreferencesEditCmd())
 	return cmd
 }
 func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
@@ -1309,14 +1411,56 @@ func NewGerritAccountsPreferencesGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the user’s preferences.",
+		Short: "Get User Preferences",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
-func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
+func NewGerritAccountsPreferencesSetCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/preferences/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set User Preferences",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsPreferencesDiffCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Diff",
+		Use:     "diff",
+	}
+	cmd.AddCommand(NewGerritAccountsPreferencesDiffGetCmd())
+	cmd.AddCommand(NewGerritAccountsPreferencesDiffSetCmd())
+	return cmd
+}
+func NewGerritAccountsPreferencesDiffGetCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -1342,14 +1486,56 @@ func NewGerritAccountsPreferencesGetDiffCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the user’s diff preferences.",
-		Use:   "get-diff",
+		Short: "Get Diff Preferences",
+		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
-func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
+func NewGerritAccountsPreferencesDiffSetCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/preferences.diff/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Diff Preferences",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsPreferencesEditCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Edit",
+		Use:     "edit",
+	}
+	cmd.AddCommand(NewGerritAccountsPreferencesEditGetCmd())
+	cmd.AddCommand(NewGerritAccountsPreferencesEditSetCmd())
+	return cmd
+}
+func NewGerritAccountsPreferencesEditGetCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -1375,24 +1561,67 @@ func NewGerritAccountsPreferencesGetEditCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the user’s edit preferences.",
-		Use:   "get-edit",
+		Short: "Get Edit Preferences",
+		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsPreferencesEditSetCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/preferences.edit/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Edit Preferences",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsWatchedCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Watched",
+		Use:     "watched",
+	}
+	cmd.AddCommand(NewGerritAccountsWatchedProjectsCmd())
 	return cmd
 }
 func NewGerritAccountsWatchedProjectsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Projects a user is watching.",
-		Use:     "watched-projects",
+		Short:   "Projects",
+		Use:     "projects",
 	}
-	cmd.AddCommand(NewGerritAccountsWatchedProjectsListCmd())
+	cmd.AddCommand(NewGerritAccountsWatchedProjectsGetCmd())
+	cmd.AddCommand(NewGerritAccountsWatchedProjectsSetCmd())
+	cmd.AddCommand(NewGerritAccountsWatchedProjectsDeleteCmd())
 	return cmd
 }
-func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
+func NewGerritAccountsWatchedProjectsGetCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -1418,24 +1647,98 @@ func NewGerritAccountsWatchedProjectsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the projects a user is watching.",
-		Use:   "list",
+		Short: "Get Watched Projects",
+		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsWatchedProjectsSetCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/watched.projects/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add/Update a List of Watched Project Entities",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsWatchedProjectsDeleteCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/watched.projects:delete/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Watched Projects",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsExternalCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "External",
+		Use:     "external",
+	}
+	cmd.AddCommand(NewGerritAccountsExternalIdsCmd())
 	return cmd
 }
 func NewGerritAccountsExternalIdsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "External ids of a user account.",
-		Use:     "external-ids",
+		Short:   "Ids",
+		Use:     "ids",
 	}
-	cmd.AddCommand(NewGerritAccountsExternalIdsListCmd())
+	cmd.AddCommand(NewGerritAccountsExternalIdsGetCmd())
+	cmd.AddCommand(NewGerritAccountsExternalIdsDeleteCmd())
 	return cmd
 }
-func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
+func NewGerritAccountsExternalIdsGetCmd() *cobra.Command {
 	type flags struct {
 		account string
 	}
@@ -1461,21 +1764,53 @@ func NewGerritAccountsExternalIdsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the external ids of a user account.",
-		Use:   "list",
+		Short: "Get Account External IDs",
+		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsExternalIdsDeleteCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/external.ids:delete/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Account External IDs",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsAgreementsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "User’s signed contributor agreements.",
+		Short:   "Agreements",
 		Use:     "agreements",
 	}
 	cmd.AddCommand(NewGerritAccountsAgreementsListCmd())
+	cmd.AddCommand(NewGerritAccountsAgreementsSignCmd())
 	return cmd
 }
 func NewGerritAccountsAgreementsListCmd() *cobra.Command {
@@ -1504,19 +1839,134 @@ func NewGerritAccountsAgreementsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the user’s signed contributor agreements.",
+		Short: "List Contributor Agreements",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsAgreementsSignCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/agreements/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Sign Contributor Agreement",
+		Use:   "sign",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsDraftsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Drafts",
+		Use:     "drafts",
+	}
+	cmd.AddCommand(NewGerritAccountsDraftsDeleteCmd())
+	return cmd
+}
+func NewGerritAccountsDraftsDeleteCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/drafts:delete/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Draft Comments",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsIndexCmd() *cobra.Command {
+	type flags struct {
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/accounts/{account-id}/index/"
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Index Account",
+		Use:   "index",
+	}
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritAccountsStarredCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Starred",
+		Use:     "starred",
+	}
+	cmd.AddCommand(NewGerritAccountsStarredChangesCmd())
 	return cmd
 }
 func NewGerritAccountsStarredChangesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Users starred.changes",
-		Use:     "starred-changes",
+		Short:   "Changes",
+		Use:     "changes",
 	}
 	cmd.AddCommand(NewGerritAccountsStarredChangesListCmd())
 	cmd.AddCommand(NewGerritAccountsStarredChangesStarCmd())
@@ -1549,11 +1999,10 @@ func NewGerritAccountsStarredChangesListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the users starred.changes",
+		Short: "Get Changes With Default Star",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
@@ -1564,7 +2013,6 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
-		Aliases: []string{"add"},
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/starred.changes/{change-id}/"
@@ -1585,12 +2033,11 @@ func NewGerritAccountsStarredChangesStarCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Stars a change for the user.",
+		Short: "Put Default Star On Change",
 		Use:   "star",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to star.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
 	return cmd
 }
@@ -1602,7 +2049,6 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
-		Aliases: []string{"delete"},
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/accounts/{account-id}/starred.changes/{change-id}/"
@@ -1623,45 +2069,11 @@ func NewGerritAccountsStarredChangesUnstarCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Unstars a change for the user.",
+		Short: "Remove Default Star From Change",
 		Use:   "unstar",
 	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to unstar.")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
-	return cmd
-}
-func NewGerritAccountsIndexCmd() *cobra.Command {
-	type flags struct {
-		account string
-	}
-	cmdFlags := flags{}
-	cmd := &cobra.Command{
-
-		Example: "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/accounts/{account-id}/index/"
-			path = addParamToPath(path, "account-id", cmdFlags.account)
-
-			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
-			if err != nil {
-				return err
-			}
-			defer response.Body.Close()
-			body, err := io.ReadAll(response.Body)
-			if err != nil {
-				panic(err)
-			}
-			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
-		},
-		Short: "Adds or updates the account in the secondary index.",
-		Use:   "index",
-	}
-	cmd.Flags().StringVar(&cmdFlags.account, "account", "", "The account to get.")
-	cmd.MarkFlagRequired("account")
 	return cmd
 }

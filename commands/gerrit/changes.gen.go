@@ -12,21 +12,77 @@ func NewGerritChangesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Access Rights Endpoints",
+		Short:   "Changes Endpoints",
 		Use:     "changes",
 	}
+	cmd.AddCommand(NewGerritChangesCreateCmd())
 	cmd.AddCommand(NewGerritChangesListCmd())
 	cmd.AddCommand(NewGerritChangesGetCmd())
+	cmd.AddCommand(NewGerritChangesDeleteCmd())
+	cmd.AddCommand(NewGerritChangesMetaDiffCmd())
 	cmd.AddCommand(NewGerritChangesDetailCmd())
+	cmd.AddCommand(NewGerritChangesMergeCmd())
+	cmd.AddCommand(NewGerritChangesMessageCmd())
 	cmd.AddCommand(NewGerritChangesTopicCmd())
+	cmd.AddCommand(NewGerritChangesPureRevertCmd())
+	cmd.AddCommand(NewGerritChangesAbandonCmd())
+	cmd.AddCommand(NewGerritChangesRestoreCmd())
+	cmd.AddCommand(NewGerritChangesRebaseCmd())
+	cmd.AddCommand(NewGerritChangesMoveCmd())
+	cmd.AddCommand(NewGerritChangesRevertCmd())
+	cmd.AddCommand(NewGerritChangesRevertSubmissionCmd())
+	cmd.AddCommand(NewGerritChangesSubmitCmd())
+	cmd.AddCommand(NewGerritChangesSubmittedTogetherCmd())
+	cmd.AddCommand(NewGerritChangesPatchCmd())
 	cmd.AddCommand(NewGerritChangesInCmd())
+	cmd.AddCommand(NewGerritChangesIndexCmd())
+	cmd.AddCommand(NewGerritChangesCommentsCmd())
+	cmd.AddCommand(NewGerritChangesRobotcommentsCmd())
+	cmd.AddCommand(NewGerritChangesDraftsCmd())
+	cmd.AddCommand(NewGerritChangesCheckCmd())
+	cmd.AddCommand(NewGerritChangesWipCmd())
+	cmd.AddCommand(NewGerritChangesReadyCmd())
+	cmd.AddCommand(NewGerritChangesPrivateCmd())
+	cmd.AddCommand(NewGerritChangesHashtagsCmd())
+	cmd.AddCommand(NewGerritChangesCustomKeyedValuesCmd())
+	cmd.AddCommand(NewGerritChangesMessagesCmd())
+	cmd.AddCommand(NewGerritChangesEditCmd())
 	cmd.AddCommand(NewGerritChangesReviewersCmd())
+	cmd.AddCommand(NewGerritChangesSuggestReviewersCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsCmd())
+	cmd.AddCommand(NewGerritChangesAttentionCmd())
+	return cmd
+}
+func NewGerritChangesCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Change",
+		Use:   "create",
+	}
 	return cmd
 }
 func NewGerritChangesListCmd() *cobra.Command {
 	type flags struct {
 		query string
 		limit string
+		start string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
@@ -36,6 +92,7 @@ func NewGerritChangesListCmd() *cobra.Command {
 			path := "/changes/"
 			path = addParamToPath(path, "q", cmdFlags.query)
 			path = addParamToPath(path, "n", cmdFlags.limit)
+			path = addParamToPath(path, "S", cmdFlags.start)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -51,11 +108,12 @@ func NewGerritChangesListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "List Changes",
+		Short: "Query Changes",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "The query string to use to find changes.")
-	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "The maximum number of records to return.")
+	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "Query string to find changes.")
+	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "Maximum number of changes to return.")
+	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "Number of changes to skip.")
 	return cmd
 }
 func NewGerritChangesGetCmd() *cobra.Command {
@@ -84,10 +142,76 @@ func NewGerritChangesGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get a Change",
+		Short: "Get Change",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesDeleteCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Change",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMetaDiffCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/meta_diff/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Meta Diff",
+		Use:   "meta-diff",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
 	return cmd
 }
@@ -117,10 +241,120 @@ func NewGerritChangesDetailCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get a Change detail",
+		Short: "Get Change Detail",
 		Use:   "detail",
 	}
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMergeCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/merge/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Merge Patch Set For Change",
+		Use:   "merge",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMessageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Message",
+		Use:     "message",
+	}
+	cmd.AddCommand(NewGerritChangesMessageGetCmd())
+	cmd.AddCommand(NewGerritChangesMessageSetCmd())
+	return cmd
+}
+func NewGerritChangesMessageGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/message/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Commit Message",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMessageSetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/message/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Commit Message",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
 	return cmd
 }
@@ -128,10 +362,12 @@ func NewGerritChangesTopicCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Change topic",
+		Short:   "Topic",
 		Use:     "topic",
 	}
 	cmd.AddCommand(NewGerritChangesTopicGetCmd())
+	cmd.AddCommand(NewGerritChangesTopicSetCmd())
+	cmd.AddCommand(NewGerritChangesTopicDeleteCmd())
 	return cmd
 }
 func NewGerritChangesTopicGetCmd() *cobra.Command {
@@ -160,10 +396,460 @@ func NewGerritChangesTopicGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the topic of a change.",
+		Short: "Get Topic",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesTopicSetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/topic/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Topic",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesTopicDeleteCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/topic/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Topic",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesPureRevertCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/pure_revert/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Pure Revert",
+		Use:   "pure-revert",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesAbandonCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/abandon/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Abandon Change",
+		Use:   "abandon",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRestoreCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/restore/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Restore Change",
+		Use:   "restore",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRebaseCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Rebase",
+		Use:     "rebase",
+	}
+	cmd.AddCommand(NewGerritChangesRebaseRebaseCmd())
+	cmd.AddCommand(NewGerritChangesRebaseChainCmd())
+	return cmd
+}
+func NewGerritChangesRebaseRebaseCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/rebase/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Rebase Change",
+		Use:   "rebase",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRebaseChainCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/rebase:chain/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Rebase Chain",
+		Use:   "chain",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMoveCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/move/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Move Change",
+		Use:   "move",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRevertCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revert/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Revert Change",
+		Use:   "revert",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRevertSubmissionCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revert_submission/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Revert Submission",
+		Use:   "revert-submission",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesSubmitCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/submit/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Submit Change",
+		Use:   "submit",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesSubmittedTogetherCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/submitted_together/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Changes Submitted Together",
+		Use:   "submitted-together",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesPatchCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Patch",
+		Use:     "patch",
+	}
+	cmd.AddCommand(NewGerritChangesPatchApplyCmd())
+	return cmd
+}
+func NewGerritChangesPatchApplyCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/patch:apply/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create patch-set from patch",
+		Use:   "apply",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
 	return cmd
 }
@@ -193,10 +879,1068 @@ func NewGerritChangesInCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the branches and tags in which a change is included.",
+		Short: "Get Included In",
 		Use:   "in",
 	}
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesIndexCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/index/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Index Change",
+		Use:   "index",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesCommentsCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/comments/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Change Comments",
+		Use:   "comments",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRobotcommentsCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/robotcomments/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Change Robot Comments (deprecated)",
+		Use:   "robotcomments",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesDraftsCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/drafts/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Change Drafts",
+		Use:   "drafts",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesCheckCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Check",
+		Use:     "check",
+	}
+	cmd.AddCommand(NewGerritChangesCheckCheckCmd())
+	cmd.AddCommand(NewGerritChangesCheckCreateCmd())
+	cmd.AddCommand(NewGerritChangesCheckSubmitRequirementCmd())
+	return cmd
+}
+func NewGerritChangesCheckCheckCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/check/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Check Change",
+		Use:   "check",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesCheckCreateCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/check/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Fix Change",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesCheckSubmitRequirementCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/check.submit_requirement/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Check Submit Requirement",
+		Use:   "submit-requirement",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesWipCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/wip/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Work-In-Progress",
+		Use:   "wip",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesReadyCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/ready/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Ready-For-Review",
+		Use:   "ready",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesPrivateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Private",
+		Use:     "private",
+	}
+	cmd.AddCommand(NewGerritChangesPrivatePrivateCmd())
+	cmd.AddCommand(NewGerritChangesPrivateUnprivateCmd())
+	return cmd
+}
+func NewGerritChangesPrivatePrivateCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/private/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Mark Private",
+		Use:   "private",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesPrivateUnprivateCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/private/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Unmark Private",
+		Use:   "unprivate",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesHashtagsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Hashtags",
+		Use:     "hashtags",
+	}
+	cmd.AddCommand(NewGerritChangesHashtagsGetCmd())
+	cmd.AddCommand(NewGerritChangesHashtagsSetCmd())
+	return cmd
+}
+func NewGerritChangesHashtagsGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/hashtags/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Hashtags",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesHashtagsSetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/hashtags/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Hashtags",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesCustomKeyedValuesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Custom Keyed Values",
+		Use:     "custom-keyed-values",
+	}
+	cmd.AddCommand(NewGerritChangesCustomKeyedValuesGetCmd())
+	cmd.AddCommand(NewGerritChangesCustomKeyedValuesSetCmd())
+	return cmd
+}
+func NewGerritChangesCustomKeyedValuesGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/custom_keyed_values/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Custom Keyed Values",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesCustomKeyedValuesSetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/custom_keyed_values/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Custom Keyed Values",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMessagesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Messages",
+		Use:     "messages",
+	}
+	cmd.AddCommand(NewGerritChangesMessagesListCmd())
+	cmd.AddCommand(NewGerritChangesMessagesGetCmd())
+	return cmd
+}
+func NewGerritChangesMessagesListCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/messages/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Change Messages",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesMessagesGetCmd() *cobra.Command {
+	type flags struct {
+		change        string
+		changemessage string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/messages/{change-message-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "change-message-id", cmdFlags.changemessage)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Change Message",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.changemessage, "changemessage", "", "The changemessage to operate on.")
+	cmd.MarkFlagRequired("changemessage")
+	return cmd
+}
+func NewGerritChangesEditCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Edit",
+		Use:     "edit",
+	}
+	cmd.AddCommand(NewGerritChangesEditGetCmd())
+	cmd.AddCommand(NewGerritChangesEditRestoreCmd())
+	cmd.AddCommand(NewGerritChangesEditDeleteCmd())
+	cmd.AddCommand(NewGerritChangesEditPathToFileCmd())
+	cmd.AddCommand(NewGerritChangesEditMessageCmd())
+	cmd.AddCommand(NewGerritChangesEditIdentityCmd())
+	cmd.AddCommand(NewGerritChangesEditPublishCmd())
+	cmd.AddCommand(NewGerritChangesEditRebaseCmd())
+	return cmd
+}
+func NewGerritChangesEditGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Change Edit Details",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditRestoreCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Restore file content or rename files in Change Edit",
+		Use:   "restore",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditDeleteCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Change Edit",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditPathToFileCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Path To File",
+		Use:     "path-to-file",
+	}
+	cmd.AddCommand(NewGerritChangesEditPathToFileSetCmd())
+	cmd.AddCommand(NewGerritChangesEditPathToFileDeleteCmd())
+	cmd.AddCommand(NewGerritChangesEditPathToFileGetCmd())
+	cmd.AddCommand(NewGerritChangesEditPathToFileMetaCmd())
+	return cmd
+}
+func NewGerritChangesEditPathToFileSetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/path%2fto%2ffile/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Change file content in Change Edit",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditPathToFileDeleteCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/path%2fto%2ffile/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete file in Change Edit",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditPathToFileGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/path%2fto%2ffile/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Retrieve file content from Change Edit",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditPathToFileMetaCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit/path%2fto%2ffile/meta/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Retrieve meta data of a file from Change Edit",
+		Use:   "meta",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditMessageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Message",
+		Use:     "message",
+	}
+	cmd.AddCommand(NewGerritChangesEditMessageSetCmd())
+	cmd.AddCommand(NewGerritChangesEditMessageGetCmd())
+	return cmd
+}
+func NewGerritChangesEditMessageSetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit:message/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Change commit message in Change Edit",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditMessageGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit:message/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Retrieve commit message from Change Edit or current patch set of the change",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditIdentityCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit:identity/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Change author or committer identity in Change Edit",
+		Use:   "identity",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditPublishCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit:publish/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Publish Change Edit",
+		Use:   "publish",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesEditRebaseCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/edit:rebase/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Rebase Change Edit",
+		Use:   "rebase",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
 	return cmd
 }
@@ -204,10 +1948,13 @@ func NewGerritChangesReviewersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Reviewers.",
+		Short:   "Reviewers",
 		Use:     "reviewers",
 	}
 	cmd.AddCommand(NewGerritChangesReviewersListCmd())
+	cmd.AddCommand(NewGerritChangesReviewersGetCmd())
+	cmd.AddCommand(NewGerritChangesReviewersAddCmd())
+	cmd.AddCommand(NewGerritChangesReviewersVotesCmd())
 	return cmd
 }
 func NewGerritChangesReviewersListCmd() *cobra.Command {
@@ -236,10 +1983,1919 @@ func NewGerritChangesReviewersListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the reviewers of a change.",
+		Short: "List Reviewers",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesReviewersGetCmd() *cobra.Command {
+	type flags struct {
+		change  string
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/reviewers/{account-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Reviewer",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritChangesReviewersAddCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/reviewers/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add Reviewer",
+		Use:   "add",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesReviewersVotesCmd() *cobra.Command {
+	type flags struct {
+		change  string
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/reviewers/{account-id}/votes/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Votes",
+		Use:   "votes",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritChangesSuggestReviewersCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/suggest_reviewers/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Suggest Reviewers",
+		Use:   "suggest-reviewers",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesRevisionsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Revisions",
+		Use:     "revisions",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsCommitCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDescriptionCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsMergelistCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsActionsCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsReviewCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsRelatedCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsRebaseCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsSubmitCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsPatchCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsMergeableCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsSubmitTypeCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsTestCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDraftsCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsCommentsCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsRobotcommentsCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsPortedCommentsCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsPortedDraftsCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFixesCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFixCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsCherrypickCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsReviewersCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsCommitCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/commit/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Commit",
+		Use:   "commit",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsDescriptionCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Description",
+		Use:     "description",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsDescriptionGetCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDescriptionSetCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsDescriptionGetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/description/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Description",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsDescriptionSetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/description/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Description",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsMergelistCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/mergelist/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Merge List",
+		Use:   "mergelist",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsActionsCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/actions/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Revision Actions",
+		Use:   "actions",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsReviewCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Review",
+		Use:     "review",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsReviewGetCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsReviewSetCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsReviewGetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/review/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Review",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsReviewSetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/review/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Review",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsRelatedCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/related/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Related Changes",
+		Use:   "related",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsRebaseCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/rebase/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Rebase Revision",
+		Use:   "rebase",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsSubmitCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/submit/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Submit Revision",
+		Use:   "submit",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsPatchCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/patch/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Patch",
+		Use:   "patch",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsMergeableCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/mergeable/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Mergeable",
+		Use:   "mergeable",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsSubmitTypeCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/submit_type/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Submit Type",
+		Use:   "submit-type",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsTestCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Test",
+		Use:     "test",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsTestSubmitTypeCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsTestSubmitRuleCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsTestSubmitTypeCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/test.submit_type/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Test Submit Type",
+		Use:   "submit-type",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsTestSubmitRuleCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/test.submit_rule/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Test Submit Rule",
+		Use:   "submit-rule",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsDraftsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Drafts",
+		Use:     "drafts",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsDraftsListCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDraftsCreateCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDraftsGetCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDraftsSetCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsDraftsDeleteCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsDraftsListCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/drafts/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Revision Drafts",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsDraftsCreateCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/drafts/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Draft",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsDraftsGetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		draft    string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/drafts/{draft-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "draft-id", cmdFlags.draft)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Draft",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.draft, "draft", "", "The draft to operate on.")
+	cmd.MarkFlagRequired("draft")
+	return cmd
+}
+func NewGerritChangesRevisionsDraftsSetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		draft    string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/drafts/{draft-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "draft-id", cmdFlags.draft)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Update Draft",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.draft, "draft", "", "The draft to operate on.")
+	cmd.MarkFlagRequired("draft")
+	return cmd
+}
+func NewGerritChangesRevisionsDraftsDeleteCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		draft    string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/drafts/{draft-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "draft-id", cmdFlags.draft)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Draft",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.draft, "draft", "", "The draft to operate on.")
+	cmd.MarkFlagRequired("draft")
+	return cmd
+}
+func NewGerritChangesRevisionsCommentsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Comments",
+		Use:     "comments",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsCommentsListCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsCommentsGetCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsCommentsListCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/comments/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Revision Comments",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsCommentsGetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		comment  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/comments/{comment-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "comment-id", cmdFlags.comment)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Comment",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.comment, "comment", "", "The comment to operate on.")
+	cmd.MarkFlagRequired("comment")
+	return cmd
+}
+func NewGerritChangesRevisionsRobotcommentsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Robotcomments",
+		Use:     "robotcomments",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsRobotcommentsListCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsRobotcommentsGetCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsRobotcommentsListCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/robotcomments/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Robot Comments (deprecated)",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsRobotcommentsGetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		comment  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/robotcomments/{comment-id}/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "comment-id", cmdFlags.comment)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Robot Comment (deprecated)",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.comment, "comment", "", "The comment to operate on.")
+	cmd.MarkFlagRequired("comment")
+	return cmd
+}
+func NewGerritChangesRevisionsPortedCommentsCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/ported_comments/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Ported Comments",
+		Use:   "ported-comments",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsPortedDraftsCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/ported_drafts/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Ported Drafts",
+		Use:   "ported-drafts",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsFixesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Fixes",
+		Use:     "fixes",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsFixesApplyCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFixesPreviewCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsFixesApplyCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		fix      string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/fixes/{fix-id}/apply/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "fix-id", cmdFlags.fix)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Apply Stored Fix",
+		Use:   "apply",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.fix, "fix", "", "The fix to operate on.")
+	cmd.MarkFlagRequired("fix")
+	return cmd
+}
+func NewGerritChangesRevisionsFixesPreviewCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		fix      string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/fixes/{fix-id}/preview/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "fix-id", cmdFlags.fix)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Preview Stored Fix",
+		Use:   "preview",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.fix, "fix", "", "The fix to operate on.")
+	cmd.MarkFlagRequired("fix")
+	return cmd
+}
+func NewGerritChangesRevisionsFixCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Fix",
+		Use:     "fix",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsFixApplyCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFixPreviewCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsFixApplyCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/fix:apply/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Apply Stored Fix",
+		Use:   "apply",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsFixPreviewCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/fix:preview/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Preview Provided fix",
+		Use:   "preview",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Files",
+		Use:     "files",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsFilesListCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesContentCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesDownloadCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesDiffCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesBlameCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesReviewedCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsFilesListCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Files",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesContentCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		file     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/{file-id}/content/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Content",
+		Use:   "content",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesDownloadCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		file     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/{file-id}/download/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Download Content",
+		Use:   "download",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesDiffCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		file     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/{file-id}/diff/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Diff",
+		Use:   "diff",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesBlameCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		file     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/{file-id}/blame/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Blame",
+		Use:   "blame",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesReviewedCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Reviewed",
+		Use:     "reviewed",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsFilesReviewedSetCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsFilesReviewedDeleteCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsFilesReviewedSetCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		file     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/{file-id}/reviewed/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Reviewed",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritChangesRevisionsFilesReviewedDeleteCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		file     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/files/{file-id}/reviewed/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Reviewed",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritChangesRevisionsCherrypickCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/cherrypick/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Cherry Pick Revision",
+		Use:   "cherrypick",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsReviewersCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Reviewers",
+		Use:     "reviewers",
+	}
+	cmd.AddCommand(NewGerritChangesRevisionsReviewersListCmd())
+	cmd.AddCommand(NewGerritChangesRevisionsReviewersVotesCmd())
+	return cmd
+}
+func NewGerritChangesRevisionsReviewersListCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/reviewers/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Revision Reviewers",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	return cmd
+}
+func NewGerritChangesRevisionsReviewersVotesCmd() *cobra.Command {
+	type flags struct {
+		change   string
+		revision string
+		account  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/revisions/{revision-id}/reviewers/{account-id}/votes/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+			path = addParamToPath(path, "revision-id", cmdFlags.revision)
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Revision Votes",
+		Use:   "votes",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	cmd.Flags().StringVar(&cmdFlags.revision, "revision", "", "The revision to operate on.")
+	cmd.MarkFlagRequired("revision")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritChangesAttentionCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Attention",
+		Use:     "attention",
+	}
+	cmd.AddCommand(NewGerritChangesAttentionGetCmd())
+	cmd.AddCommand(NewGerritChangesAttentionAddCmd())
+	return cmd
+}
+func NewGerritChangesAttentionGetCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/attention/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Attention Set",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
+	cmd.MarkFlagRequired("change")
+	return cmd
+}
+func NewGerritChangesAttentionAddCmd() *cobra.Command {
+	type flags struct {
+		change string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{change-id}/attention/"
+			path = addParamToPath(path, "change-id", cmdFlags.change)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add To Attention Set",
+		Use:   "add",
+	}
+	cmd.Flags().StringVar(&cmdFlags.change, "change", "", "The change to operate on.")
 	cmd.MarkFlagRequired("change")
 	return cmd
 }

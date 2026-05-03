@@ -17,12 +17,14 @@ func NewGerritGroupsCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewGerritGroupsListCmd())
 	cmd.AddCommand(NewGerritGroupsGetCmd())
+	cmd.AddCommand(NewGerritGroupsCreateCmd())
 	cmd.AddCommand(NewGerritGroupsDetailCmd())
 	cmd.AddCommand(NewGerritGroupsNameCmd())
 	cmd.AddCommand(NewGerritGroupsDescriptionCmd())
 	cmd.AddCommand(NewGerritGroupsOptionsCmd())
 	cmd.AddCommand(NewGerritGroupsOwnerCmd())
-	cmd.AddCommand(NewGerritGroupsGetAuditLogCmd())
+	cmd.AddCommand(NewGerritGroupsLogCmd())
+	cmd.AddCommand(NewGerritGroupsIndexCmd())
 	cmd.AddCommand(NewGerritGroupsMembersCmd())
 	cmd.AddCommand(NewGerritGroupsGroupsCmd())
 	return cmd
@@ -39,9 +41,9 @@ func NewGerritGroupsListCmd() *cobra.Command {
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/groups/"
-			path = addParamToPath(path, "query", cmdFlags.query)
-			path = addParamToPath(path, "limit", cmdFlags.limit)
-			path = addParamToPath(path, "start", cmdFlags.start)
+			path = addParamToPath(path, "q", cmdFlags.query)
+			path = addParamToPath(path, "n", cmdFlags.limit)
+			path = addParamToPath(path, "S", cmdFlags.start)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -60,9 +62,9 @@ func NewGerritGroupsListCmd() *cobra.Command {
 		Short: "List Groups",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "The query string to use to find changes.")
-	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "The maximum number of records to return.")
-	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "The index of the first record to return.")
+	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "Query string to find groups.")
+	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "Maximum number of groups to return.")
+	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "Number of groups to skip.")
 	return cmd
 }
 func NewGerritGroupsGetCmd() *cobra.Command {
@@ -91,10 +93,43 @@ func NewGerritGroupsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get a Group",
+		Short: "Get Group",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsCreateCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-name}/"
+			path = addParamToPath(path, "group-name", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Group",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
@@ -124,10 +159,10 @@ func NewGerritGroupsDetailCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get a Group detail",
+		Short: "Get Group Detail",
 		Use:   "detail",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
@@ -135,10 +170,11 @@ func NewGerritGroupsNameCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Group name",
+		Short:   "Name",
 		Use:     "name",
 	}
 	cmd.AddCommand(NewGerritGroupsNameGetCmd())
+	cmd.AddCommand(NewGerritGroupsNameSetCmd())
 	return cmd
 }
 func NewGerritGroupsNameGetCmd() *cobra.Command {
@@ -167,10 +203,43 @@ func NewGerritGroupsNameGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the name of a group.",
+		Short: "Get Group Name",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsNameSetCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/name/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Rename Group",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
@@ -178,10 +247,12 @@ func NewGerritGroupsDescriptionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Group description",
+		Short:   "Description",
 		Use:     "description",
 	}
 	cmd.AddCommand(NewGerritGroupsDescriptionGetCmd())
+	cmd.AddCommand(NewGerritGroupsDescriptionSetCmd())
+	cmd.AddCommand(NewGerritGroupsDescriptionDeleteCmd())
 	return cmd
 }
 func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
@@ -210,10 +281,76 @@ func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the description of a group.",
+		Short: "Get Group Description",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsDescriptionSetCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/description/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Group Description",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsDescriptionDeleteCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/description/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Group Description",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
@@ -221,10 +358,11 @@ func NewGerritGroupsOptionsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Group options",
+		Short:   "Options",
 		Use:     "options",
 	}
 	cmd.AddCommand(NewGerritGroupsOptionsGetCmd())
+	cmd.AddCommand(NewGerritGroupsOptionsSetCmd())
 	return cmd
 }
 func NewGerritGroupsOptionsGetCmd() *cobra.Command {
@@ -253,10 +391,43 @@ func NewGerritGroupsOptionsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the options of a group.",
+		Short: "Get Group Options",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsOptionsSetCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/options/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Group Options",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
@@ -264,10 +435,11 @@ func NewGerritGroupsOwnerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Group owner",
+		Short:   "Owner",
 		Use:     "owner",
 	}
 	cmd.AddCommand(NewGerritGroupsOwnerGetCmd())
+	cmd.AddCommand(NewGerritGroupsOwnerSetCmd())
 	return cmd
 }
 func NewGerritGroupsOwnerGetCmd() *cobra.Command {
@@ -296,14 +468,57 @@ func NewGerritGroupsOwnerGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the owner of a group.",
+		Short: "Get Group Owner",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
-func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
+func NewGerritGroupsOwnerSetCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/owner/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Group Owner",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsLogCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Log",
+		Use:     "log",
+	}
+	cmd.AddCommand(NewGerritGroupsLogAuditCmd())
+	return cmd
+}
+func NewGerritGroupsLogAuditCmd() *cobra.Command {
 	type flags struct {
 		group string
 	}
@@ -329,10 +544,43 @@ func NewGerritGroupsGetAuditLogCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get a Group audit log",
-		Use:   "get-audit-log",
+		Short: "Get Audit Log",
+		Use:   "audit",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsIndexCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/index/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Index Group",
+		Use:   "index",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
@@ -340,11 +588,14 @@ func NewGerritGroupsMembersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Group members",
+		Short:   "Members",
 		Use:     "members",
 	}
 	cmd.AddCommand(NewGerritGroupsMembersListCmd())
 	cmd.AddCommand(NewGerritGroupsMembersGetCmd())
+	cmd.AddCommand(NewGerritGroupsMembersAddCmd())
+	cmd.AddCommand(NewGerritGroupsMembersAdd2Cmd())
+	cmd.AddCommand(NewGerritGroupsMembersDeleteCmd())
 	return cmd
 }
 func NewGerritGroupsMembersListCmd() *cobra.Command {
@@ -373,26 +624,26 @@ func NewGerritGroupsMembersListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the members of a group.",
+		Short: "List Group Members",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsMembersGetCmd() *cobra.Command {
 	type flags struct {
-		group  string
-		member string
+		group   string
+		account string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/groups/{group-id}/members/{member-id}/"
+			path := "/groups/{group-id}/members/{account-id}/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
-			path = addParamToPath(path, "member-id", cmdFlags.member)
+			path = addParamToPath(path, "account-id", cmdFlags.account)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -408,24 +659,131 @@ func NewGerritGroupsMembersGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a member of a group.",
+		Short: "Get Group Member",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
-	cmd.Flags().StringVar(&cmdFlags.member, "member", "", "The member to retrieve.")
-	cmd.MarkFlagRequired("member")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritGroupsMembersAddCmd() *cobra.Command {
+	type flags struct {
+		group   string
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/members/{account-id}/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add Group Member",
+		Use:   "add",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
+	return cmd
+}
+func NewGerritGroupsMembersAdd2Cmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/members/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add Group Members",
+		Use:   "add-2",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsMembersDeleteCmd() *cobra.Command {
+	type flags struct {
+		group   string
+		account string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/members/{account-id}/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+			path = addParamToPath(path, "account-id", cmdFlags.account)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Remove Group Member",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	cmd.Flags().StringVar(&cmdFlags.account, "account", "self", "The account identifier.")
 	return cmd
 }
 func NewGerritGroupsGroupsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Group sub groups",
+		Short:   "Groups",
 		Use:     "groups",
 	}
 	cmd.AddCommand(NewGerritGroupsGroupsListCmd())
 	cmd.AddCommand(NewGerritGroupsGroupsGetCmd())
+	cmd.AddCommand(NewGerritGroupsGroupsAddCmd())
+	cmd.AddCommand(NewGerritGroupsGroupsAdd2Cmd())
+	cmd.AddCommand(NewGerritGroupsGroupsDeleteCmd())
 	return cmd
 }
 func NewGerritGroupsGroupsListCmd() *cobra.Command {
@@ -454,26 +812,24 @@ func NewGerritGroupsGroupsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the sub groups of a group.",
+		Short: "List Subgroups",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
 	return cmd
 }
 func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 	type flags struct {
-		group    string
-		subgroup string
+		group string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/groups/{group-id}/groups/{subgroup-id}/"
+			path := "/groups/{group-id}/groups/{group-id}/"
 			path = addParamToPath(path, "group-id", cmdFlags.group)
-			path = addParamToPath(path, "subgroup-id", cmdFlags.subgroup)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -489,12 +845,109 @@ func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a sub group of a group.",
+		Short: "Get Subgroup",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
 	cmd.MarkFlagRequired("group")
-	cmd.Flags().StringVar(&cmdFlags.subgroup, "subgroup", "", "The subgroup to retrieve.")
-	cmd.MarkFlagRequired("subgroup")
+	return cmd
+}
+func NewGerritGroupsGroupsAddCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/groups/{group-id}/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add Subgroup",
+		Use:   "add",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsGroupsAdd2Cmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/groups/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add Subgroups",
+		Use:   "add-2",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
+	return cmd
+}
+func NewGerritGroupsGroupsDeleteCmd() *cobra.Command {
+	type flags struct {
+		group string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/groups/{group-id}/groups/{group-id}/"
+			path = addParamToPath(path, "group-id", cmdFlags.group)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Remove Subgroup",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.group, "group", "", "The group to operate on.")
+	cmd.MarkFlagRequired("group")
 	return cmd
 }

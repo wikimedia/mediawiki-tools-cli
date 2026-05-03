@@ -27,19 +27,14 @@ func NewJSON(objects interface{}, format string) *JSON {
 }
 
 func NewJSONFromString(objects string, format string) *JSON {
-	var obj map[string]interface{}
+	var obj interface{}
 	err := json.Unmarshal([]byte(objects), &obj)
 	if err != nil {
 		logrus.Panic(err)
 	}
 
-	convertedObjects := make(map[interface{}]interface{})
-	for key, value := range obj {
-		convertedObjects[key] = value
-	}
-
 	return &JSON{
-		Objects: convertedObjects,
+		Objects: obj,
 		Format:  format,
 	}
 }
@@ -74,15 +69,15 @@ func parseFormatQueryOrPanic(format string) *gojq.Query {
 }
 
 func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
-	// Convert to a map of interfaces so the j lib doesn't complain about our types
-	var mapOfInterfaces map[string]interface{}
+	// Convert to a normalised interface{} so gojq can handle both arrays and objects
+	var obj interface{}
 	data, _ := json.Marshal(in)
-	err := json.Unmarshal(data, &mapOfInterfaces)
+	err := json.Unmarshal(data, &obj)
 	if err != nil {
 		panic(err)
 	}
 
-	iter := query.Run(mapOfInterfaces) // or query.RunWithContext
+	iter := query.Run(obj) // or query.RunWithContext
 	for {
 		v, ok := iter.Next()
 		if !ok {

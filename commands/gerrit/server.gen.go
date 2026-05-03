@@ -17,12 +17,18 @@ func NewGerritServerCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewGerritServerVersionCmd())
 	cmd.AddCommand(NewGerritServerInfoCmd())
+	cmd.AddCommand(NewGerritServerCheckCmd())
+	cmd.AddCommand(NewGerritServerReloadCmd())
+	cmd.AddCommand(NewGerritServerEmailCmd())
 	cmd.AddCommand(NewGerritServerCachesCmd())
 	cmd.AddCommand(NewGerritServerSummaryCmd())
 	cmd.AddCommand(NewGerritServerCapabilitiesCmd())
+	cmd.AddCommand(NewGerritServerExperimentsCmd())
 	cmd.AddCommand(NewGerritServerTasksCmd())
 	cmd.AddCommand(NewGerritServerTopMenusCmd())
 	cmd.AddCommand(NewGerritServerPreferencesCmd())
+	cmd.AddCommand(NewGerritServerIndexesCmd())
+	cmd.AddCommand(NewGerritServerSnapshotCmd())
 	return cmd
 }
 func NewGerritServerVersionCmd() *cobra.Command {
@@ -45,7 +51,7 @@ func NewGerritServerVersionCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server Version",
+		Short: "Get Version",
 		Use:   "version",
 	}
 	return cmd
@@ -70,12 +76,120 @@ func NewGerritServerInfoCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server Info",
+		Short: "Get Server Info",
 		Use:   "info",
 	}
 	return cmd
 }
+func NewGerritServerCheckCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Check",
+		Use:     "check",
+	}
+	cmd.AddCommand(NewGerritServerCheckConsistencyCmd())
+	return cmd
+}
+func NewGerritServerCheckConsistencyCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/check.consistency/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Check Consistency",
+		Use:   "consistency",
+	}
+	return cmd
+}
+func NewGerritServerReloadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/reload/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Reload Config",
+		Use:   "reload",
+	}
+	return cmd
+}
+func NewGerritServerEmailCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Email",
+		Use:     "email",
+	}
+	cmd.AddCommand(NewGerritServerEmailConfirmCmd())
+	return cmd
+}
+func NewGerritServerEmailConfirmCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/email.confirm/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Confirm Email",
+		Use:   "confirm",
+	}
+	return cmd
+}
 func NewGerritServerCachesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Caches",
+		Use:     "caches",
+	}
+	cmd.AddCommand(NewGerritServerCachesListCmd())
+	cmd.AddCommand(NewGerritServerCachesCreateCmd())
+	cmd.AddCommand(NewGerritServerCachesGetCmd())
+	cmd.AddCommand(NewGerritServerCachesFlushCmd())
+	return cmd
+}
+func NewGerritServerCachesListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
@@ -95,9 +209,100 @@ func NewGerritServerCachesCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server Caches",
-		Use:   "caches",
+		Short: "List Caches",
+		Use:   "list",
 	}
+	return cmd
+}
+func NewGerritServerCachesCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/caches/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Cache Operations",
+		Use:   "create",
+	}
+	return cmd
+}
+func NewGerritServerCachesGetCmd() *cobra.Command {
+	type flags struct {
+		cache string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/caches/{cache-name}/"
+			path = addParamToPath(path, "cache-name", cmdFlags.cache)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Cache",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.cache, "cache", "", "The cache to operate on.")
+	cmd.MarkFlagRequired("cache")
+	return cmd
+}
+func NewGerritServerCachesFlushCmd() *cobra.Command {
+	type flags struct {
+		cache string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/caches/{cache-name}/flush/"
+			path = addParamToPath(path, "cache-name", cmdFlags.cache)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Flush Cache",
+		Use:   "flush",
+	}
+	cmd.Flags().StringVar(&cmdFlags.cache, "cache", "", "The cache to operate on.")
+	cmd.MarkFlagRequired("cache")
 	return cmd
 }
 func NewGerritServerSummaryCmd() *cobra.Command {
@@ -120,7 +325,7 @@ func NewGerritServerSummaryCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server summary",
+		Short: "Get Summary",
 		Use:   "summary",
 	}
 	return cmd
@@ -145,12 +350,93 @@ func NewGerritServerCapabilitiesCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server capabilities",
+		Short: "List Capabilities",
 		Use:   "capabilities",
 	}
 	return cmd
 }
+func NewGerritServerExperimentsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Experiments",
+		Use:     "experiments",
+	}
+	cmd.AddCommand(NewGerritServerExperimentsListCmd())
+	cmd.AddCommand(NewGerritServerExperimentsGetCmd())
+	return cmd
+}
+func NewGerritServerExperimentsListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/experiments/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Experiments",
+		Use:   "list",
+	}
+	return cmd
+}
+func NewGerritServerExperimentsGetCmd() *cobra.Command {
+	type flags struct {
+		experiment string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/experiments/{experiment-name}/"
+			path = addParamToPath(path, "experiment-name", cmdFlags.experiment)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Experiment",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.experiment, "experiment", "", "The experiment to operate on.")
+	cmd.MarkFlagRequired("experiment")
+	return cmd
+}
 func NewGerritServerTasksCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Tasks",
+		Use:     "tasks",
+	}
+	cmd.AddCommand(NewGerritServerTasksListCmd())
+	cmd.AddCommand(NewGerritServerTasksGetCmd())
+	cmd.AddCommand(NewGerritServerTasksDeleteCmd())
+	return cmd
+}
+func NewGerritServerTasksListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
@@ -170,9 +456,75 @@ func NewGerritServerTasksCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server tasks",
-		Use:   "tasks",
+		Short: "List Tasks",
+		Use:   "list",
 	}
+	return cmd
+}
+func NewGerritServerTasksGetCmd() *cobra.Command {
+	type flags struct {
+		task string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/tasks/{task-id}/"
+			path = addParamToPath(path, "task-id", cmdFlags.task)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Task",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.task, "task", "", "The task to operate on.")
+	cmd.MarkFlagRequired("task")
+	return cmd
+}
+func NewGerritServerTasksDeleteCmd() *cobra.Command {
+	type flags struct {
+		task string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/tasks/{task-id}/"
+			path = addParamToPath(path, "task-id", cmdFlags.task)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Task",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.task, "task", "", "The task to operate on.")
+	cmd.MarkFlagRequired("task")
 	return cmd
 }
 func NewGerritServerTopMenusCmd() *cobra.Command {
@@ -195,7 +547,7 @@ func NewGerritServerTopMenusCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server top-menus",
+		Short: "Get Top Menus",
 		Use:   "top-menus",
 	}
 	return cmd
@@ -204,15 +556,16 @@ func NewGerritServerPreferencesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Server preferences.",
+		Short:   "Preferences",
 		Use:     "preferences",
 	}
-	cmd.AddCommand(NewGerritServerPreferencesUserCmd())
+	cmd.AddCommand(NewGerritServerPreferencesGetCmd())
+	cmd.AddCommand(NewGerritServerPreferencesSetCmd())
 	cmd.AddCommand(NewGerritServerPreferencesDiffCmd())
 	cmd.AddCommand(NewGerritServerPreferencesEditCmd())
 	return cmd
 }
-func NewGerritServerPreferencesUserCmd() *cobra.Command {
+func NewGerritServerPreferencesGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
@@ -232,12 +585,48 @@ func NewGerritServerPreferencesUserCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server user preferences",
-		Use:   "user",
+		Short: "Get Default User Preferences",
+		Use:   "get",
+	}
+	return cmd
+}
+func NewGerritServerPreferencesSetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/preferences/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Default User Preferences",
+		Use:   "set",
 	}
 	return cmd
 }
 func NewGerritServerPreferencesDiffCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Diff",
+		Use:     "diff",
+	}
+	cmd.AddCommand(NewGerritServerPreferencesDiffGetCmd())
+	cmd.AddCommand(NewGerritServerPreferencesDiffSetCmd())
+	return cmd
+}
+func NewGerritServerPreferencesDiffGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
@@ -257,12 +646,48 @@ func NewGerritServerPreferencesDiffCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server diff preferences",
-		Use:   "diff",
+		Short: "Get Default Diff Preferences",
+		Use:   "get",
+	}
+	return cmd
+}
+func NewGerritServerPreferencesDiffSetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/preferences.diff/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Default Diff Preferences",
+		Use:   "set",
 	}
 	return cmd
 }
 func NewGerritServerPreferencesEditCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Edit",
+		Use:     "edit",
+	}
+	cmd.AddCommand(NewGerritServerPreferencesEditGetCmd())
+	cmd.AddCommand(NewGerritServerPreferencesEditSetCmd())
+	return cmd
+}
+func NewGerritServerPreferencesEditGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
@@ -282,8 +707,285 @@ func NewGerritServerPreferencesEditCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Server edit preferences",
-		Use:   "edit",
+		Short: "Get Default Edit Preferences",
+		Use:   "get",
+	}
+	return cmd
+}
+func NewGerritServerPreferencesEditSetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/preferences.edit/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Default Edit Preferences",
+		Use:   "set",
+	}
+	return cmd
+}
+func NewGerritServerIndexesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Indexes",
+		Use:     "indexes",
+	}
+	cmd.AddCommand(NewGerritServerIndexesListCmd())
+	cmd.AddCommand(NewGerritServerIndexesChangesCmd())
+	cmd.AddCommand(NewGerritServerIndexesSnapshotCmd())
+	cmd.AddCommand(NewGerritServerIndexesVersionsCmd())
+	return cmd
+}
+func NewGerritServerIndexesListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/indexes/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Indexes",
+		Use:   "list",
+	}
+	return cmd
+}
+func NewGerritServerIndexesChangesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Changes",
+		Use:     "changes",
+	}
+	cmd.AddCommand(NewGerritServerIndexesChangesGetCmd())
+	cmd.AddCommand(NewGerritServerIndexesChangesVersionsCmd())
+	return cmd
+}
+func NewGerritServerIndexesChangesGetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/indexes/changes/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Index",
+		Use:   "get",
+	}
+	return cmd
+}
+func NewGerritServerIndexesChangesVersionsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/indexes/changes/versions/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Index Versions",
+		Use:   "versions",
+	}
+	return cmd
+}
+func NewGerritServerIndexesSnapshotCmd() *cobra.Command {
+	type flags struct {
+		index string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/indexes/{index-name}/snapshot/"
+			path = addParamToPath(path, "index-name", cmdFlags.index)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Index Snapshot",
+		Use:   "snapshot",
+	}
+	cmd.Flags().StringVar(&cmdFlags.index, "index", "", "The index to operate on.")
+	cmd.MarkFlagRequired("index")
+	return cmd
+}
+func NewGerritServerIndexesVersionsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Versions",
+		Use:     "versions",
+	}
+	cmd.AddCommand(NewGerritServerIndexesVersionsSnapshotCmd())
+	cmd.AddCommand(NewGerritServerIndexesVersionsReindexCmd())
+	return cmd
+}
+func NewGerritServerIndexesVersionsSnapshotCmd() *cobra.Command {
+	type flags struct {
+		index        string
+		indexversion string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/indexes/{index-name}/versions/{index-version}/snapshot/"
+			path = addParamToPath(path, "index-name", cmdFlags.index)
+			path = addParamToPath(path, "index-version", cmdFlags.indexversion)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Index Snapshot",
+		Use:   "snapshot",
+	}
+	cmd.Flags().StringVar(&cmdFlags.index, "index", "", "The index to operate on.")
+	cmd.MarkFlagRequired("index")
+	cmd.Flags().StringVar(&cmdFlags.indexversion, "indexversion", "", "The indexversion to operate on.")
+	cmd.MarkFlagRequired("indexversion")
+	return cmd
+}
+func NewGerritServerIndexesVersionsReindexCmd() *cobra.Command {
+	type flags struct {
+		index        string
+		indexversion string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/indexes/{index-name}/versions/{index-version}/reindex/"
+			path = addParamToPath(path, "index-name", cmdFlags.index)
+			path = addParamToPath(path, "index-version", cmdFlags.indexversion)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Reindex an Index Version",
+		Use:   "reindex",
+	}
+	cmd.Flags().StringVar(&cmdFlags.index, "index", "", "The index to operate on.")
+	cmd.MarkFlagRequired("index")
+	cmd.Flags().StringVar(&cmdFlags.indexversion, "indexversion", "", "The indexversion to operate on.")
+	cmd.MarkFlagRequired("indexversion")
+	return cmd
+}
+func NewGerritServerSnapshotCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Snapshot",
+		Use:     "snapshot",
+	}
+	cmd.AddCommand(NewGerritServerSnapshotIndexesCmd())
+	return cmd
+}
+func NewGerritServerSnapshotIndexesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/config/server/snapshot.indexes/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Index Snapshot",
+		Use:   "indexes",
 	}
 	return cmd
 }

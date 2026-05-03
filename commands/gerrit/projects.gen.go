@@ -17,14 +17,21 @@ func NewGerritProjectsCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewGerritProjectsListCmd())
 	cmd.AddCommand(NewGerritProjectsGetCmd())
+	cmd.AddCommand(NewGerritProjectsCreateCmd())
 	cmd.AddCommand(NewGerritProjectsDescriptionCmd())
 	cmd.AddCommand(NewGerritProjectsParentCmd())
-	cmd.AddCommand(NewGerritProjectsHeadCmd())
+	cmd.AddCommand(NewGerritProjectsHEADCmd())
+	cmd.AddCommand(NewGerritProjectsStatisticsCmd())
 	cmd.AddCommand(NewGerritProjectsConfigCmd())
+	cmd.AddCommand(NewGerritProjectsGcCmd())
+	cmd.AddCommand(NewGerritProjectsBanCmd())
 	cmd.AddCommand(NewGerritProjectsAccessCmd())
+	cmd.AddCommand(NewGerritProjectsMyProjectCmd())
 	cmd.AddCommand(NewGerritProjectsBranchesCmd())
+	cmd.AddCommand(NewGerritProjectsChangesCmd())
 	cmd.AddCommand(NewGerritProjectsChildrenCmd())
 	cmd.AddCommand(NewGerritProjectsTagsCmd())
+	cmd.AddCommand(NewGerritProjectsCommitsCmd())
 	cmd.AddCommand(NewGerritProjectsDashboardsCmd())
 	cmd.AddCommand(NewGerritProjectsLabelsCmd())
 	cmd.AddCommand(NewGerritProjectsSubmitRequirementsCmd())
@@ -42,9 +49,9 @@ func NewGerritProjectsListCmd() *cobra.Command {
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/projects/"
-			path = addParamToPath(path, "query", cmdFlags.query)
-			path = addParamToPath(path, "limit", cmdFlags.limit)
-			path = addParamToPath(path, "start", cmdFlags.start)
+			path = addParamToPath(path, "q", cmdFlags.query)
+			path = addParamToPath(path, "n", cmdFlags.limit)
+			path = addParamToPath(path, "S", cmdFlags.start)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -63,9 +70,9 @@ func NewGerritProjectsListCmd() *cobra.Command {
 		Short: "List Projects",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "The query string to use to find projects.")
-	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "The maximum number of records to return.")
-	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "The index of the first record to return.")
+	cmd.Flags().StringVar(&cmdFlags.query, "query", "", "Query string to find projects.")
+	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "Maximum number of projects to return.")
+	cmd.Flags().StringVar(&cmdFlags.start, "start", "", "Number of projects to skip.")
 	return cmd
 }
 func NewGerritProjectsGetCmd() *cobra.Command {
@@ -94,10 +101,43 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get a Project",
+		Short: "Get Project",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsCreateCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Project",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -105,10 +145,12 @@ func NewGerritProjectsDescriptionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Project description",
+		Short:   "Description",
 		Use:     "description",
 	}
 	cmd.AddCommand(NewGerritProjectsDescriptionGetCmd())
+	cmd.AddCommand(NewGerritProjectsDescriptionSetCmd())
+	cmd.AddCommand(NewGerritProjectsDescriptionDeleteCmd())
 	return cmd
 }
 func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
@@ -137,10 +179,76 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the description of a project.",
+		Short: "Get Project Description",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsDescriptionSetCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/description/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Project Description",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsDescriptionDeleteCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/description/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Project Description",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -148,10 +256,11 @@ func NewGerritProjectsParentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Project description",
+		Short:   "Parent",
 		Use:     "parent",
 	}
 	cmd.AddCommand(NewGerritProjectsParentGetCmd())
+	cmd.AddCommand(NewGerritProjectsParentSetCmd())
 	return cmd
 }
 func NewGerritProjectsParentGetCmd() *cobra.Command {
@@ -180,24 +289,58 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the parent of a project.",
+		Short: "Get Project Parent",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
-func NewGerritProjectsHeadCmd() *cobra.Command {
+func NewGerritProjectsParentSetCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Project HEAD",
-		Use:     "head",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/parent/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Project Parent",
+		Use:   "set",
 	}
-	cmd.AddCommand(NewGerritProjectsHeadGetCmd())
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
 	return cmd
 }
-func NewGerritProjectsHeadGetCmd() *cobra.Command {
+func NewGerritProjectsHEADCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "HEAD",
+		Use:     "HEAD",
+	}
+	cmd.AddCommand(NewGerritProjectsHEADGetCmd())
+	cmd.AddCommand(NewGerritProjectsHEADSetCmd())
+	return cmd
+}
+func NewGerritProjectsHEADGetCmd() *cobra.Command {
 	type flags struct {
 		project string
 	}
@@ -223,10 +366,86 @@ func NewGerritProjectsHeadGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the HEAD of a project.",
+		Short: "Get HEAD",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsHEADSetCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/HEAD/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set HEAD",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsStatisticsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Statistics",
+		Use:     "statistics",
+	}
+	cmd.AddCommand(NewGerritProjectsStatisticsGitCmd())
+	return cmd
+}
+func NewGerritProjectsStatisticsGitCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/statistics.git/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Repository Statistics",
+		Use:   "git",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -234,10 +453,11 @@ func NewGerritProjectsConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project config",
+		Short:   "Config",
 		Use:     "config",
 	}
 	cmd.AddCommand(NewGerritProjectsConfigGetCmd())
+	cmd.AddCommand(NewGerritProjectsConfigSetCmd())
 	return cmd
 }
 func NewGerritProjectsConfigGetCmd() *cobra.Command {
@@ -266,10 +486,109 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves the config of a project.",
+		Short: "Get Config",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsConfigSetCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/config/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Set Config",
+		Use:   "set",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsGcCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/gc/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Run GC",
+		Use:   "gc",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsBanCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/ban/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Ban Commit",
+		Use:   "ban",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -277,10 +596,12 @@ func NewGerritProjectsAccessCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project access",
+		Short:   "Access",
 		Use:     "access",
 	}
 	cmd.AddCommand(NewGerritProjectsAccessListCmd())
+	cmd.AddCommand(NewGerritProjectsAccessAddCmd())
+	cmd.AddCommand(NewGerritProjectsAccessReviewCmd())
 	return cmd
 }
 func NewGerritProjectsAccessListCmd() *cobra.Command {
@@ -309,22 +630,130 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the access of a project.",
+		Short: "List Access Rights for Project",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsAccessAddCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/access/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Add, Update and Delete Access Rights for Project",
+		Use:   "add",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsAccessReviewCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/access:review/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Access Rights Change for review.",
+		Use:   "review",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsMyProjectCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "MyProject",
+		Use:     "MyProject",
+	}
+	cmd.AddCommand(NewGerritProjectsMyProjectCheckCmd())
+	return cmd
+}
+func NewGerritProjectsMyProjectCheckCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/MyProject/check.access/"
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Check Access",
+		Use:   "check",
+	}
 	return cmd
 }
 func NewGerritProjectsBranchesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project branches",
+		Short:   "Branches",
 		Use:     "branches",
 	}
 	cmd.AddCommand(NewGerritProjectsBranchesListCmd())
 	cmd.AddCommand(NewGerritProjectsBranchesGetCmd())
+	cmd.AddCommand(NewGerritProjectsBranchesCreateCmd())
+	cmd.AddCommand(NewGerritProjectsBranchesDeleteCmd())
+	cmd.AddCommand(NewGerritProjectsBranchesDelete2Cmd())
+	cmd.AddCommand(NewGerritProjectsBranchesFilesCmd())
+	cmd.AddCommand(NewGerritProjectsBranchesSuggestReviewersCmd())
+	cmd.AddCommand(NewGerritProjectsBranchesMergeableCmd())
+	cmd.AddCommand(NewGerritProjectsBranchesReflogCmd())
 	return cmd
 }
 func NewGerritProjectsBranchesListCmd() *cobra.Command {
@@ -353,10 +782,10 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the branches of a project.",
+		Short: "List Branches",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -370,9 +799,9 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/projects/{project-name}/branches/{branch-name}/"
+			path := "/projects/{project-name}/branches/{branch-id}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
-			path = addParamToPath(path, "branch-name", cmdFlags.branch)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -388,12 +817,318 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a branch of a project.",
+		Short: "Get Branch",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
-	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	return cmd
+}
+func NewGerritProjectsBranchesCreateCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches/{branch-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Branch",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	return cmd
+}
+func NewGerritProjectsBranchesDeleteCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches/{branch-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Branch",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	return cmd
+}
+func NewGerritProjectsBranchesDelete2Cmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches:delete/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Branches",
+		Use:   "delete-2",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsBranchesFilesCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+		file    string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches/{branch-id}/files/{file-id}/content/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Content",
+		Use:   "files",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritProjectsBranchesSuggestReviewersCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches/{branch-id}/suggest_reviewers/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Suggest Reviewers",
+		Use:   "suggest-reviewers",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	return cmd
+}
+func NewGerritProjectsBranchesMergeableCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches/{branch-id}/mergeable/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Mergeable Information",
+		Use:   "mergeable",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	return cmd
+}
+func NewGerritProjectsBranchesReflogCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/branches/{branch-id}/reflog/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Reflog",
+		Use:   "reflog",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
+	cmd.MarkFlagRequired("branch")
+	return cmd
+}
+func NewGerritProjectsChangesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Changes",
+		Use:     "changes",
+	}
+	cmd.AddCommand(NewGerritProjectsChangesBranchesCmd())
+	return cmd
+}
+func NewGerritProjectsChangesBranchesCmd() *cobra.Command {
+	type flags struct {
+		project string
+		branch  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/changes/{project-name}/branches/{branch-id}/suggest_reviewers/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "branch-id", cmdFlags.branch)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Suggest Reviewers",
+		Use:   "branches",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.branch, "branch", "", "The branch to operate on.")
 	cmd.MarkFlagRequired("branch")
 	return cmd
 }
@@ -401,7 +1136,7 @@ func NewGerritProjectsChildrenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project children",
+		Short:   "Children",
 		Use:     "children",
 	}
 	cmd.AddCommand(NewGerritProjectsChildrenListCmd())
@@ -434,26 +1169,24 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the children of a project.",
+		Short: "List Child Projects",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
 func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 	type flags struct {
 		project string
-		child   string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/projects/{project-name}/children/{child-name}/"
+			path := "/projects/{project-name}/children/{project-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
-			path = addParamToPath(path, "child-name", cmdFlags.child)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -469,24 +1202,62 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a child of a project.",
+		Short: "Get Child Project",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
-	cmd.Flags().StringVar(&cmdFlags.child, "child", "", "The child to retrieve.")
-	cmd.MarkFlagRequired("child")
 	return cmd
 }
 func NewGerritProjectsTagsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project tags",
+		Short:   "Tags",
 		Use:     "tags",
 	}
+	cmd.AddCommand(NewGerritProjectsTagsCreateCmd())
 	cmd.AddCommand(NewGerritProjectsTagsListCmd())
 	cmd.AddCommand(NewGerritProjectsTagsGetCmd())
+	cmd.AddCommand(NewGerritProjectsTagsDeleteCmd())
+	cmd.AddCommand(NewGerritProjectsTagsDelete2Cmd())
+	return cmd
+}
+func NewGerritProjectsTagsCreateCmd() *cobra.Command {
+	type flags struct {
+		project string
+		tag     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/tags/{tag-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "tag-id", cmdFlags.tag)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Tag",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.tag, "tag", "", "The tag to operate on.")
+	cmd.MarkFlagRequired("tag")
 	return cmd
 }
 func NewGerritProjectsTagsListCmd() *cobra.Command {
@@ -515,10 +1286,10 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the tags of a project.",
+		Short: "List Tags",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -532,9 +1303,9 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/projects/{project-name}/tags/{tag-name}/"
+			path := "/projects/{project-name}/tags/{tag-id}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
-			path = addParamToPath(path, "tag-name", cmdFlags.tag)
+			path = addParamToPath(path, "tag-id", cmdFlags.tag)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -550,24 +1321,309 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a tag of a project.",
+		Short: "Get Tag",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
-	cmd.Flags().StringVar(&cmdFlags.tag, "tag", "", "The tag to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.tag, "tag", "", "The tag to operate on.")
 	cmd.MarkFlagRequired("tag")
+	return cmd
+}
+func NewGerritProjectsTagsDeleteCmd() *cobra.Command {
+	type flags struct {
+		project string
+		tag     string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/tags/{tag-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "tag-id", cmdFlags.tag)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Tag",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.tag, "tag", "", "The tag to operate on.")
+	cmd.MarkFlagRequired("tag")
+	return cmd
+}
+func NewGerritProjectsTagsDelete2Cmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/tags:delete/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Tags",
+		Use:   "delete-2",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	return cmd
+}
+func NewGerritProjectsCommitsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Commits",
+		Use:     "commits",
+	}
+	cmd.AddCommand(NewGerritProjectsCommitsGetCmd())
+	cmd.AddCommand(NewGerritProjectsCommitsInCmd())
+	cmd.AddCommand(NewGerritProjectsCommitsFilesCmd())
+	cmd.AddCommand(NewGerritProjectsCommitsCherrypickCmd())
+	return cmd
+}
+func NewGerritProjectsCommitsGetCmd() *cobra.Command {
+	type flags struct {
+		project string
+		commit  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/commits/{commit-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "commit-id", cmdFlags.commit)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Commit",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.commit, "commit", "", "The commit to operate on.")
+	cmd.MarkFlagRequired("commit")
+	return cmd
+}
+func NewGerritProjectsCommitsInCmd() *cobra.Command {
+	type flags struct {
+		project string
+		commit  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/commits/{commit-id}/in/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "commit-id", cmdFlags.commit)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Included In",
+		Use:   "in",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.commit, "commit", "", "The commit to operate on.")
+	cmd.MarkFlagRequired("commit")
+	return cmd
+}
+func NewGerritProjectsCommitsFilesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Files",
+		Use:     "files",
+	}
+	cmd.AddCommand(NewGerritProjectsCommitsFilesListCmd())
+	cmd.AddCommand(NewGerritProjectsCommitsFilesContentCmd())
+	return cmd
+}
+func NewGerritProjectsCommitsFilesListCmd() *cobra.Command {
+	type flags struct {
+		project string
+		commit  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/commits/{commit-id}/files/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "commit-id", cmdFlags.commit)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "List Files",
+		Use:   "list",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.commit, "commit", "", "The commit to operate on.")
+	cmd.MarkFlagRequired("commit")
+	return cmd
+}
+func NewGerritProjectsCommitsFilesContentCmd() *cobra.Command {
+	type flags struct {
+		project string
+		commit  string
+		file    string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/commits/{commit-id}/files/{file-id}/content/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "commit-id", cmdFlags.commit)
+			path = addParamToPath(path, "file-id", cmdFlags.file)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Content",
+		Use:   "content",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.commit, "commit", "", "The commit to operate on.")
+	cmd.MarkFlagRequired("commit")
+	cmd.Flags().StringVar(&cmdFlags.file, "file", "", "The file to operate on.")
+	cmd.MarkFlagRequired("file")
+	return cmd
+}
+func NewGerritProjectsCommitsCherrypickCmd() *cobra.Command {
+	type flags struct {
+		project string
+		commit  string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/commits/{commit-id}/cherrypick/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "commit-id", cmdFlags.commit)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Cherry Pick Commit",
+		Use:   "cherrypick",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.commit, "commit", "", "The commit to operate on.")
+	cmd.MarkFlagRequired("commit")
 	return cmd
 }
 func NewGerritProjectsDashboardsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project dashboards",
+		Short:   "Dashboards",
 		Use:     "dashboards",
 	}
 	cmd.AddCommand(NewGerritProjectsDashboardsListCmd())
 	cmd.AddCommand(NewGerritProjectsDashboardsGetCmd())
+	cmd.AddCommand(NewGerritProjectsDashboardsCreateCmd())
+	cmd.AddCommand(NewGerritProjectsDashboardsDeleteCmd())
 	return cmd
 }
 func NewGerritProjectsDashboardsListCmd() *cobra.Command {
@@ -596,10 +1652,10 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the dashboards of a project.",
+		Short: "List Dashboards",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -613,9 +1669,9 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/projects/{project-name}/dashboards/{dashboard-name}/"
+			path := "/projects/{project-name}/dashboards/{dashboard-id}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
-			path = addParamToPath(path, "dashboard-name", cmdFlags.dashboard)
+			path = addParamToPath(path, "dashboard-id", cmdFlags.dashboard)
 
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
@@ -631,12 +1687,86 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a dashboard of a project.",
+		Short: "Get Dashboard",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
-	cmd.Flags().StringVar(&cmdFlags.dashboard, "dashboard", "", "The dashboard to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.dashboard, "dashboard", "", "The dashboard to operate on.")
+	cmd.MarkFlagRequired("dashboard")
+	return cmd
+}
+func NewGerritProjectsDashboardsCreateCmd() *cobra.Command {
+	type flags struct {
+		project   string
+		dashboard string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/dashboards/{dashboard-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "dashboard-id", cmdFlags.dashboard)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Dashboard",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.dashboard, "dashboard", "", "The dashboard to operate on.")
+	cmd.MarkFlagRequired("dashboard")
+	return cmd
+}
+func NewGerritProjectsDashboardsDeleteCmd() *cobra.Command {
+	type flags struct {
+		project   string
+		dashboard string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/dashboards/{dashboard-id}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "dashboard-id", cmdFlags.dashboard)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Dashboard",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.dashboard, "dashboard", "", "The dashboard to operate on.")
 	cmd.MarkFlagRequired("dashboard")
 	return cmd
 }
@@ -644,11 +1774,14 @@ func NewGerritProjectsLabelsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project labels",
+		Short:   "Labels",
 		Use:     "labels",
 	}
 	cmd.AddCommand(NewGerritProjectsLabelsListCmd())
 	cmd.AddCommand(NewGerritProjectsLabelsGetCmd())
+	cmd.AddCommand(NewGerritProjectsLabelsCreateCmd())
+	cmd.AddCommand(NewGerritProjectsLabelsDeleteCmd())
+	cmd.AddCommand(NewGerritProjectsLabelsBatchUpdateCmd())
 	return cmd
 }
 func NewGerritProjectsLabelsListCmd() *cobra.Command {
@@ -677,10 +1810,10 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the labels of a project.",
+		Short: "List Labels",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
@@ -712,24 +1845,207 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a label of a project.",
+		Short: "Get Label",
 		Use:   "get",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
-	cmd.Flags().StringVar(&cmdFlags.label, "label", "", "The label to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.label, "label", "", "The label to operate on.")
 	cmd.MarkFlagRequired("label")
+	return cmd
+}
+func NewGerritProjectsLabelsCreateCmd() *cobra.Command {
+	type flags struct {
+		project string
+		label   string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/labels/{label-name}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "label-name", cmdFlags.label)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Label",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.label, "label", "", "The label to operate on.")
+	cmd.MarkFlagRequired("label")
+	return cmd
+}
+func NewGerritProjectsLabelsDeleteCmd() *cobra.Command {
+	type flags struct {
+		project string
+		label   string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/labels/{label-name}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "label-name", cmdFlags.label)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Delete Label",
+		Use:   "delete",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.label, "label", "", "The label to operate on.")
+	cmd.MarkFlagRequired("label")
+	return cmd
+}
+func NewGerritProjectsLabelsBatchUpdateCmd() *cobra.Command {
+	type flags struct {
+		project string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/labels/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "POST", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Batch Update Labels",
+		Use:   "batch-update",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
 	return cmd
 }
 func NewGerritProjectsSubmitRequirementsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 
 		Example: "",
-		Short:   "Get a Project submit_requirements",
-		Use:     "submit_requirements",
+		Short:   "Submit Requirements",
+		Use:     "submit-requirements",
 	}
-	cmd.AddCommand(NewGerritProjectsSubmitRequirementsListCmd())
+	cmd.AddCommand(NewGerritProjectsSubmitRequirementsCreateCmd())
 	cmd.AddCommand(NewGerritProjectsSubmitRequirementsGetCmd())
+	cmd.AddCommand(NewGerritProjectsSubmitRequirementsListCmd())
+	cmd.AddCommand(NewGerritProjectsSubmitRequirementsDeleteCmd())
+	return cmd
+}
+func NewGerritProjectsSubmitRequirementsCreateCmd() *cobra.Command {
+	type flags struct {
+		project           string
+		submitrequirement string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/submit_requirements/{submit-requirement-name}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "submit-requirement-name", cmdFlags.submitrequirement)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Create Submit Requirement",
+		Use:   "create",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.submitrequirement, "submitrequirement", "", "The submitrequirement to operate on.")
+	cmd.MarkFlagRequired("submitrequirement")
+	return cmd
+}
+func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
+	type flags struct {
+		project           string
+		submitrequirement string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/projects/{project-name}/submit_requirements/{submit-requirement-name}/"
+			path = addParamToPath(path, "project-name", cmdFlags.project)
+			path = addParamToPath(path, "submit-requirement-name", cmdFlags.submitrequirement)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Get Submit Requirement",
+		Use:   "get",
+	}
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
+	cmd.MarkFlagRequired("project")
+	cmd.Flags().StringVar(&cmdFlags.submitrequirement, "submitrequirement", "", "The submitrequirement to operate on.")
+	cmd.MarkFlagRequired("submitrequirement")
 	return cmd
 }
 func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
@@ -758,29 +2074,29 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Lists the submit_requirements of a project.",
+		Short: "List Submit Requirements",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
 	return cmd
 }
-func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
+func NewGerritProjectsSubmitRequirementsDeleteCmd() *cobra.Command {
 	type flags struct {
-		project            string
-		submit_requirement string
+		project           string
+		submitrequirement string
 	}
 	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := "/projects/{project-name}/submit_requirements/{submit_requirement-name}/"
+			path := "/projects/{project-name}/submit_requirements/{submit-requirement-name}/"
 			path = addParamToPath(path, "project-name", cmdFlags.project)
-			path = addParamToPath(path, "submit_requirement-name", cmdFlags.submit_requirement)
+			path = addParamToPath(path, "submit-requirement-name", cmdFlags.submitrequirement)
 
 			client := authenticatedClient(cmd.Context())
-			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
 			if err != nil {
 				return err
 			}
@@ -793,12 +2109,12 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Retrieves a submit_requirement of a project.",
-		Use:   "get",
+		Short: "Delete Submit Requirement",
+		Use:   "delete",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The project to operate on.")
 	cmd.MarkFlagRequired("project")
-	cmd.Flags().StringVar(&cmdFlags.submit_requirement, "submit_requirement", "", "The submit_requirement to retrieve.")
-	cmd.MarkFlagRequired("submit_requirement")
+	cmd.Flags().StringVar(&cmdFlags.submitrequirement, "submitrequirement", "", "The submitrequirement to operate on.")
+	cmd.MarkFlagRequired("submitrequirement")
 	return cmd
 }

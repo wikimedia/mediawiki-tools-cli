@@ -62,3 +62,33 @@ func TestJSON_Print(t *testing.T) {
 		})
 	}
 }
+
+func TestNewJSONFromString_Array(t *testing.T) {
+	tests := []struct {
+		name       string
+		jsonStr    string
+		format     string
+		wantWriter string
+	}{
+		{
+			name:       "JSON array is handled without panic",
+			jsonStr:    `[{"id":1},{"id":2}]`,
+			format:     "",
+			wantWriter: `[{"id":1},{"id":2}]` + "\n",
+		},
+		{
+			name:       "JSON object still works",
+			jsonStr:    `{"k1":"v1","k2":"v2"}`,
+			format:     "",
+			wantWriter: `{"k1":"v1","k2":"v2"}` + "\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			j := NewJSONFromString(tt.jsonStr, tt.format)
+			writer := &bytes.Buffer{}
+			j.Print(writer)
+			checkStringContainLinesInAnyOrder(t, writer.String(), tt.wantWriter)
+		})
+	}
+}

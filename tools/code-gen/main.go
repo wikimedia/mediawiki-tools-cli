@@ -14,14 +14,15 @@ import (
 type Spec []Command
 
 type Command struct {
-	Use         string    `yaml:"use"`
-	Aliases     []string  `yaml:"aliases,omitempty"`
-	Short       string    `yaml:"short,omitempty"`
-	Example     string    `yaml:"example,omitempty"`
-	StringFlags []Flag    `yaml:"string-flags,omitempty"`
-	SubCommands []Command `yaml:"sub-commands,omitempty"`
-	GerritPath  string    `yaml:"gerrit-path,omitempty"`
-	HttpMethod  string    `yaml:"http-method,omitempty"`
+	Use           string    `yaml:"use"`
+	Aliases       []string  `yaml:"aliases,omitempty"`
+	Short         string    `yaml:"short,omitempty"`
+	Example       string    `yaml:"example,omitempty"`
+	StringFlags   []Flag    `yaml:"string-flags,omitempty"`
+	SubCommands   []Command `yaml:"sub-commands,omitempty"`
+	GerritPath    string    `yaml:"gerrit-path,omitempty"`
+	HttpMethod    string    `yaml:"http-method,omitempty"`
+	FixedJsonBody string    `yaml:"fixed-json-body,omitempty"`
 }
 
 type Flag struct {
@@ -31,6 +32,8 @@ type Flag struct {
 	Usage       string `yaml:"usage,omitempty"`
 	GerritParam string `yaml:"gerrit-param,omitempty"`
 	Body        bool   `yaml:"body,omitempty"`
+	JsonKey     string `yaml:"json-key,omitempty"`
+	JsonRawBody bool   `yaml:"json-raw-body,omitempty"`
 }
 
 func main() {
@@ -135,15 +138,79 @@ func cobraCommandDefinition(c Command) jen.Code {
 		body := jen.Nil()
 
 		pathReplacementSteps := []jen.Code{}
+		bodySetupSteps := []jen.Code{}
+
+		hasJsonKeyFlags := false
+		hasJsonRawBodyFlag := false
+		for _, flag := range c.StringFlags {
+			if flag.JsonKey != "" {
+				hasJsonKeyFlags = true
+			}
+			if flag.JsonRawBody {
+				hasJsonRawBodyFlag = true
+			}
+		}
+
 		for _, flag := range c.StringFlags {
 			if flag.Body {
 				body = jen.Id("cmdFlags").Dot(flag.Name)
 			}
-			lookFor := flag.Name
-			if flag.GerritParam != "" {
-				lookFor = flag.GerritParam
+			// Flags with json-key or json-raw-body go into the body, not the path
+			if flag.JsonKey == "" && !flag.JsonRawBody {
+				lookFor := flag.Name
+				if flag.GerritParam != "" {
+					lookFor = flag.GerritParam
+				}
+				pathReplacementSteps = append(pathReplacementSteps, jen.Id("path").Op("=").Id("addParamToPath").Call(jen.Id("path"), jen.Lit(lookFor), jen.Id("cmdFlags").Dot(flag.Name)).Line())
 			}
-			pathReplacementSteps = append(pathReplacementSteps, jen.Id("path").Op("=").Id("addParamToPath").Call(jen.Id("path"), jen.Lit(lookFor), jen.Id("cmdFlags").Dot(flag.Name)).Line())
+		}
+
+		if hasJsonKeyFlags {
+			// Build a JSON object body from flags with json-key
+			bodySetupSteps = append(bodySetupSteps, jen.Id("reqBody").Op(":=").Map(jen.String()).Interface().Values().Line())
+			for _, flag := range c.StringFlags {
+				if flag.JsonKey != "" {
+					if flag.Required {
+						bodySetupSteps = append(bodySetupSteps, jen.Id("reqBody").Index(jen.Lit(flag.JsonKey)).Op("=").Id("cmdFlags").Dot(flag.Name).Line())
+					} else {
+						bodySetupSteps = append(bodySetupSteps, jen.If(jen.Id("cmdFlags").Dot(flag.Name).Op("!=").Lit("")).Block(
+							jen.Id("reqBody").Index(jen.Lit(flag.JsonKey)).Op("=").Id("cmdFlags").Dot(flag.Name),
+						).Line())
+					}
+				}
+			}
+			body = jen.Id("reqBody")
+		} else if hasJsonRawBodyFlag {
+			// Parse raw JSON from a flag and use as body
+			for _, flag := range c.StringFlags {
+				if flag.JsonRawBody {
+					bodySetupSteps = append(bodySetupSteps,
+						jen.Var().Id("reqBody").Interface().Line(),
+						jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
+							jen.Index().Byte().Parens(jen.Id("cmdFlags").Dot(flag.Name)),
+							jen.Op("&").Id("reqBody"),
+						).Line(),
+						jen.If(jen.Id("err").Op("!=").Nil()).Block(
+							jen.Return(jen.Id("err")),
+						).Line(),
+					)
+					body = jen.Id("reqBody")
+					break
+				}
+			}
+		} else if c.FixedJsonBody != "" {
+			// Use a fixed JSON body defined in the YAML
+			bodySetupSteps = append(bodySetupSteps,
+				jen.Var().Id("reqBody").Interface().Line(),
+				jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
+					jen.Index().Byte().Parens(jen.Lit(c.FixedJsonBody)),
+					jen.Op("&").Id("reqBody"),
+				).Line(),
+				jen.If(jen.Id("err").Op("!=").Nil()).Block(
+					jen.Return(jen.Id("err")),
+				).Line(),
+			)
+			body = jen.Id("reqBody")
 		}
 
 		httpMethod := "GET"
@@ -155,6 +222,7 @@ func cobraCommandDefinition(c Command) jen.Code {
 			// Define the URL path
 			jen.Id("path").Op(":=").Lit(c.GerritPath),
 			jen.Add(pathReplacementSteps...),
+			jen.Add(bodySetupSteps...),
 
 			jen.Id("client").Op(":=").Id("authenticatedClient").Call(jen.Id("cmd").Dot("Context").Call()),
 
