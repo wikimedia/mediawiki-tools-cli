@@ -96,7 +96,7 @@ func (j JSONFile) PrettyPrint() {
 func (j JSONFile) String() string {
 	empJSON, err := json.MarshalIndent(j.Contents, "", "  ")
 	if err != nil {
-		logrus.Fatalf(err.Error())
+		logrus.Fatalf("%v", err)
 	}
 	return string(empJSON)
 }

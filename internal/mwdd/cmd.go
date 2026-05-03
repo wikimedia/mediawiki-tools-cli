@@ -283,7 +283,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				logrus.Debug("No internal port provided, looking up from container env")
 				containerJson, err := cli.ContainerInspect(ctx, containerID)
 				if err != nil {
-					return fmt.Errorf("Unable to inspect container" + err.Error())
+					return fmt.Errorf("unable to inspect container: %w", err)
 				}
 
 				// Get the DEFAULT_EXPOSE_PORT environment variable from the containerJson if set
