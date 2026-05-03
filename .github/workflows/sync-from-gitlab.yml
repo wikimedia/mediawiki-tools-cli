@@ -1,0 +1,65 @@
+name: Sync from GitLab
+
+on:
+#   schedule:
+#     # Every 15 minutes
+#     - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-from-gitlab-main
+  cancel-in-progress: false
+
+jobs:
+  sync-main:
+    runs-on: ubuntu-latest
+
+    env:
+      GITLAB_DEFAULT_URL: https://gitlab.wikimedia.org/repos/releng/cli.git
+
+    steps:
+      - name: Check out GitHub main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Configure GitLab remote URL
+        shell: bash
+        run: |
+          if [[ -n "${{ secrets.GITLAB_TOKEN }}" ]]; then
+            gitlab_url="https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.wikimedia.org/repos/releng/cli.git"
+          else
+            gitlab_url="$GITLAB_DEFAULT_URL"
+          fi
+
+          if git remote get-url gitlab >/dev/null 2>&1; then
+            git remote set-url gitlab "$gitlab_url"
+          else
+            git remote add gitlab "$gitlab_url"
+          fi
+
+      - name: Fetch GitLab main
+        run: git fetch --prune gitlab main
+
+      - name: Sync GitHub main to GitLab main
+        shell: bash
+        run: |
+          git checkout main
+          git reset --hard FETCH_HEAD
+
+          if git push origin main --force-with-lease; then
+            echo "GitHub main synchronized with GitLab main"
+          else
+            echo "Push with --force-with-lease failed (branch moved), retrying once"
+            git fetch origin main
+            git push origin main --force-with-lease
+          fi
