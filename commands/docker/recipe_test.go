@@ -3,6 +3,9 @@ package docker
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -87,5 +90,67 @@ func TestWaitForSiteURL_TimeoutIncludesLastStatus(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "last HTTP status: 503") {
 		t.Fatalf("waitForSiteURL() error = %q, want last status detail", err.Error())
+	}
+}
+
+func TestListLocalRecipeCompletions_WithoutExtension(t *testing.T) {
+	dir := t.TempDir()
+	recipesDir := filepath.Join(dir, "recipes")
+	if err := os.MkdirAll(recipesDir, 0o755); err != nil {
+		t.Fatalf("os.MkdirAll() error = %v", err)
+	}
+
+	files := []string{"foo.yaml", "bar.yml", "baz.txt"}
+	for _, file := range files {
+		if err := os.WriteFile(filepath.Join(recipesDir, file), []byte("x"), 0o644); err != nil {
+			t.Fatalf("os.WriteFile(%q) error = %v", file, err)
+		}
+	}
+
+	got, err := listLocalRecipeCompletions(dir, "")
+	if err != nil {
+		t.Fatalf("listLocalRecipeCompletions() error = %v", err)
+	}
+
+	want := []string{"bar", "foo"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("listLocalRecipeCompletions() = %v, want %v", got, want)
+	}
+}
+
+func TestListLocalRecipeCompletions_WithExtension(t *testing.T) {
+	dir := t.TempDir()
+	recipesDir := filepath.Join(dir, "recipes")
+	if err := os.MkdirAll(recipesDir, 0o755); err != nil {
+		t.Fatalf("os.MkdirAll() error = %v", err)
+	}
+
+	files := []string{"alpha.yaml", "alpha.yml", "beta.yml"}
+	for _, file := range files {
+		if err := os.WriteFile(filepath.Join(recipesDir, file), []byte("x"), 0o644); err != nil {
+			t.Fatalf("os.WriteFile(%q) error = %v", file, err)
+		}
+	}
+
+	got, err := listLocalRecipeCompletions(dir, "alpha.")
+	if err != nil {
+		t.Fatalf("listLocalRecipeCompletions() error = %v", err)
+	}
+
+	want := []string{"alpha.yaml", "alpha.yml"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("listLocalRecipeCompletions() = %v, want %v", got, want)
+	}
+}
+
+func TestListLocalRecipeCompletions_MissingRecipesDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	got, err := listLocalRecipeCompletions(dir, "")
+	if err != nil {
+		t.Fatalf("listLocalRecipeCompletions() error = %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("listLocalRecipeCompletions() = %v, want empty slice", got)
 	}
 }

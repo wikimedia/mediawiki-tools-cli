@@ -57,6 +57,12 @@ func NewRecipeCmd() *cobra.Command {
 		Short: "Apply a YAML recipe to set up a complete dev environment",
 		Long:  "Apply a YAML recipe to set up services, checkout code, install sites, apply LocalSettings config, and run maintenance commands.",
 		Args:  cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) > 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+			return completeRecipeNames(cmd, toComplete)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := mwdd.DefaultForUser()
 			m.EnsureReady()
@@ -223,6 +229,9 @@ func NewRecipeCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&skipMaintenance, "skip-maintenance", false, "Skip maintenance commands phase")
 	cmd.Flags().BoolVar(&skipPatches, "skip-patches", false, "Skip patch apply phase")
 	cmd.MarkFlagsMutuallyExclusive("file", "url", "name")
+	_ = cmd.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completeRecipeNames(cmd, toComplete)
+	})
 
 	cmd.AddCommand(newRecipeValidateCmd())
 	return cmd
@@ -393,6 +402,12 @@ func newRecipeValidateCmd() *cobra.Command {
 		Use:   "validate",
 		Short: "Validate a recipe YAML file",
 		Args:  cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) > 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+			return completeRecipeNames(cmd, toComplete)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := mwdd.DefaultForUser()
 			m.EnsureReady()
@@ -416,7 +431,66 @@ func newRecipeValidateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&recipeURL, "url", "", "URL to recipe YAML file")
 	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a recipe in the local extracted recipes directory")
 	cmd.MarkFlagsMutuallyExclusive("file", "url", "name")
+	_ = cmd.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completeRecipeNames(cmd, toComplete)
+	})
 	return cmd
+}
+
+func completeRecipeNames(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
+	recipeFile, _ := cmd.Flags().GetString("file")
+	recipeURL, _ := cmd.Flags().GetString("url")
+	if strings.TrimSpace(recipeFile) != "" || strings.TrimSpace(recipeURL) != "" {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	m := mwdd.DefaultForUser()
+	recipes, err := listLocalRecipeCompletions(m.Directory(), toComplete)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	return recipes, cobra.ShellCompDirectiveNoFileComp
+}
+
+func listLocalRecipeCompletions(mwddDir string, toComplete string) ([]string, error) {
+	recipesDir := filepath.Clean(filepath.Join(mwddDir, "recipes"))
+	entries, err := os.ReadDir(recipesDir)
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	wantsExt := strings.Contains(toComplete, ".")
+	completions := []string{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+		if ext != ".yaml" && ext != ".yml" {
+			continue
+		}
+
+		candidate := name
+		if !wantsExt {
+			candidate = strings.TrimSuffix(candidate, ext)
+		}
+
+		if !strings.HasPrefix(candidate, toComplete) {
+			continue
+		}
+
+		completions = append(completions, candidate)
+	}
+
+	completions = uniqueStrings(completions)
+	sort.Strings(completions)
+	return completions, nil
 }
 
 func loadRecipe(recipeFile string, recipeURL string, recipeName string, m mwdd.MWDD) (recipe.Spec, error) {

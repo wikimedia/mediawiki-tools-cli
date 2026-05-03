@@ -59,6 +59,15 @@ We recommend that you create a development alias for this binary, and run `make`
 alias mwdev='~/go/src/gitlab.wikimedia.org/repos/releng/cli/bin/mw'
 ```
 
+To enable bash tab completion for the `mwdev` alias, add to your `~/.bashrc`:
+
+```sh
+source <(~/go/src/gitlab.wikimedia.org/repos/releng/cli/bin/mw completion bash)
+complete -F __start_mw mwdev
+```
+
+Completion calls back into the binary at runtime, so it automatically reflects changes after `make build` — no re-sourcing required.
+
 ### Makefile commands
 
 Many other Makefile commands exist that you might find useful:
