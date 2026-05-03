@@ -10,15 +10,17 @@ import (
 	"gitlab.com/gitlab-org/cli/commands"
 	"gitlab.com/gitlab-org/cli/commands/cmdutils"
 	"gitlab.com/gitlab-org/cli/pkg/glinstance"
+	"gitlab.com/gitlab-org/cli/pkg/iostreams"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
 func Cmd() *cobra.Command {
-	cmdFactory := cmdutils.NewFactory()
-
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
+
+	io := iostreams.Init()
+	cmdFactory := cmdutils.NewFactory(io, false)
 
 	// Try to keep this version in line with the addshore fork for now...
 	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
@@ -38,16 +40,28 @@ func Cmd() *cobra.Command {
 
 	// Remove all "v" shorthands for command flags recursively
 	cobrautil.VisitAllSubCommands(glabCommand, func(cmd *cobra.Command) {
-		originalFlags := cmd.Flags()
-		if originalFlags.ShorthandLookup("v") != nil {
-			cmd.ResetFlags()
-			originalFlags.VisitAll(func(flag *pflag.Flag) {
-				if flag.Shorthand == "v" {
-					flag.Shorthand = ""
-				}
-				cmd.Flags().AddFlag(flag)
-			})
+		originalLocalFlags := cmd.LocalFlags()
+		originalPersistentFlags := cmd.PersistentFlags()
+
+		if originalLocalFlags.ShorthandLookup("v") == nil && originalPersistentFlags.ShorthandLookup("v") == nil {
+			return
 		}
+
+		cmd.ResetFlags()
+
+		originalLocalFlags.VisitAll(func(flag *pflag.Flag) {
+			if flag.Shorthand == "v" {
+				flag.Shorthand = ""
+			}
+			cmd.Flags().AddFlag(flag)
+		})
+
+		originalPersistentFlags.VisitAll(func(flag *pflag.Flag) {
+			if flag.Shorthand == "v" {
+				flag.Shorthand = ""
+			}
+			cmd.PersistentFlags().AddFlag(flag)
+		})
 	})
 
 	// Hide various built in glab commands
@@ -69,7 +83,24 @@ func Cmd() *cobra.Command {
 		}
 	}
 
+	setDefaultHostname(glabCommand)
+
 	return glabCommand
+}
+
+func setDefaultHostname(glabCommand *cobra.Command) {
+	originalPersistentPreRunE := glabCommand.PersistentPreRunE
+	glabCommand.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if hostnameFlag := cmd.Flags().Lookup("hostname"); hostnameFlag != nil && !cmd.Flags().Changed("hostname") {
+			_ = cmd.Flags().Set("hostname", glinstance.OverridableDefault())
+		}
+
+		if originalPersistentPreRunE != nil {
+			return originalPersistentPreRunE(cmd, args)
+		}
+
+		return nil
+	}
 }
 
 func glabVersion() string {

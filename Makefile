@@ -70,6 +70,10 @@ git-state: $(GOX) $(GOVVV)
 linti:
 	go run ./tools/lint/main.go
 
+.PHONY: upgrade
+upgrade: $(GO_MOD_UPGRADE)
+	$(GO_MOD_UPGRADE)
+
 .PHONY: docs
 docs: build
 	rm -rf ./_docs/*

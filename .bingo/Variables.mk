@@ -29,6 +29,12 @@ $(DUPL): $(BINGO_DIR)/dupl.mod
 	@echo "(re)installing $(GOBIN)/dupl-v1.0.0"
 	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=dupl.mod -o=$(GOBIN)/dupl-v1.0.0 "github.com/mibk/dupl"
 
+GO_MOD_UPGRADE := $(GOBIN)/go-mod-upgrade-v0.12.0
+$(GO_MOD_UPGRADE): $(BINGO_DIR)/go-mod-upgrade.mod
+	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
+	@echo "(re)installing $(GOBIN)/go-mod-upgrade-v0.12.0"
+	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=go-mod-upgrade.mod -o=$(GOBIN)/go-mod-upgrade-v0.12.0 "github.com/oligot/go-mod-upgrade"
+
 GOCOVER_COBERTURA := $(GOBIN)/gocover-cobertura-v1.2.0
 $(GOCOVER_COBERTURA): $(BINGO_DIR)/gocover-cobertura.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
