@@ -13,6 +13,8 @@ There are currently 2 runners:
  - gitlab-runner-addshore-1016.mwcli.eqiad1.wikimedia.cloud
  - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud
 
+You can view the usage at https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&from=now-24h&to=now&timezone=utc&var-project=mwcli&var-instance=$__all
+
 ### Maintenance
 
 If the runner starts running out of space...
