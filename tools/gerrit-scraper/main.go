@@ -62,14 +62,14 @@ type Flag struct {
 
 // skipPaths lists endpoints to skip entirely.
 var skipPaths = map[string]bool{
-	"POST /accounts/{account-id}/sshkeys":    true,
-	"GET /Documentation/":                     true,
+	"POST /accounts/{account-id}/sshkeys":            true,
+	"GET /Documentation/":                            true,
 	"GET /config/server/indexes/changes/versions/85": true,
-	"POST /groups/{group-id}/members.add":     true,
-	"POST /groups/{group-id}/members.delete":  true,
-	"POST /groups/{group-id}/groups.add":      true,
-	"POST /groups/{group-id}/groups.delete":   true,
-	"GET /projects/{project-name}/commits:in": true,
+	"POST /groups/{group-id}/members.add":            true,
+	"POST /groups/{group-id}/members.delete":         true,
+	"POST /groups/{group-id}/groups.add":             true,
+	"POST /groups/{group-id}/groups.delete":          true,
+	"GET /projects/{project-name}/commits:in":        true,
 }
 
 // specialBody maps endpoint keys to fixed JSON bodies.
@@ -109,13 +109,13 @@ var queryParams = map[string][]Flag{
 }
 
 var (
-	reHTTP         = regexp.MustCompile(`\s+HTTP/\d\.\d.*$`)
-	reQuery        = regexp.MustCompile(`\?.*$`)
-	reAnchorRef    = regexp.MustCompile(`#[\w-]+\[\{([\w-]+)\}\]`)
-	reSig          = regexp.MustCompile(`^(GET|PUT|POST|DELETE)\s+(/\S+)$`)
-	rePathParam    = regexp.MustCompile(`\{([^}]+)\}`)
-	reNonAlphaNum  = regexp.MustCompile(`[^a-zA-Z0-9]`)
-	reSplitDotEtc  = regexp.MustCompile(`[.:~]`)
+	reHTTP        = regexp.MustCompile(`\s+HTTP/\d\.\d.*$`)
+	reQuery       = regexp.MustCompile(`\?.*$`)
+	reAnchorRef   = regexp.MustCompile(`#[\w-]+\[\{([\w-]+)\}\]`)
+	reSig         = regexp.MustCompile(`^(GET|PUT|POST|DELETE)\s+(/\S+)$`)
+	rePathParam   = regexp.MustCompile(`\{([^}]+)\}`)
+	reNonAlphaNum = regexp.MustCompile(`[^a-zA-Z0-9]`)
+	reSplitDotEtc = regexp.MustCompile(`[.:~]`)
 )
 
 func fetchPage(baseURL, slug string) (*goquery.Document, error) {
@@ -693,7 +693,7 @@ func main() {
 		"# DO NOT EDIT manually - regenerate with:\n" +
 		"#   go run tools/gerrit-scraper/main.go\n\n"
 
-	err = os.WriteFile(*output, []byte(header+string(yamlBytes)), 0644)
+	err = os.WriteFile(*output, []byte(header+string(yamlBytes)), 0o644)
 	if err != nil {
 		logrus.Fatalf("Failed to write %s: %v", *output, err)
 	}
