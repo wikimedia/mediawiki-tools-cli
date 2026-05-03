@@ -19,17 +19,11 @@ func NewGerritAccessCmd() *cobra.Command {
 	return cmd
 }
 func NewGerritAccessListCmd() *cobra.Command {
-	type flags struct {
-		project string
-	}
-	cmdFlags := flags{}
 	cmd := &cobra.Command{
 
 		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "/access/"
-			path = addParamToPath(path, "project", cmdFlags.project)
-
 			client := authenticatedClient(cmd.Context())
 			response, err := client.Call(cmd.Context(), "GET", path, nil, nil)
 			if err != nil {
@@ -47,7 +41,5 @@ func NewGerritAccessListCmd() *cobra.Command {
 		Short: "List Access Rights",
 		Use:   "list",
 	}
-	cmd.Flags().StringVar(&cmdFlags.project, "project", "", "The projects for which the access rights should be returned must be specified as project options. The project can be specified multiple times.")
-	cmd.MarkFlagRequired("project")
 	return cmd
 }

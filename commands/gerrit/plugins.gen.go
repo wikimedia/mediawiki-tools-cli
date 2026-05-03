@@ -16,10 +16,9 @@ func NewGerritPluginsCmd() *cobra.Command {
 		Use:     "plugins",
 	}
 	cmd.AddCommand(NewGerritPluginsListCmd())
-	cmd.AddCommand(NewGerritPluginsGetCmd())
-	cmd.AddCommand(NewGerritPluginsEnableCmd())
+	cmd.AddCommand(NewGerritPluginsInstallCmd())
 	cmd.AddCommand(NewGerritPluginsDisableCmd())
-	cmd.AddCommand(NewGerritPluginsReloadCmd())
+	cmd.AddCommand(NewGerritPluginsGerritCmd())
 	return cmd
 }
 func NewGerritPluginsListCmd() *cobra.Command {
@@ -56,17 +55,96 @@ func NewGerritPluginsListCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "List plugins",
+		Short: "List Plugins",
 		Use:   "list",
 	}
 	cmd.Flags().StringVar(&cmdFlags.limit, "limit", "", "Maximum number of plugins to return.")
-	cmd.Flags().StringVar(&cmdFlags.skip, "skip", "", "Skip the given number of plugins from the beginning of the list.")
+	cmd.Flags().StringVar(&cmdFlags.skip, "skip", "", "Number of plugins to skip.")
 	cmd.Flags().StringVar(&cmdFlags.prefix, "prefix", "", "Prefix to filter plugins by.")
-	cmd.Flags().StringVar(&cmdFlags.regex, "regex", "", "Regular expression to filter plugins by.")
+	cmd.Flags().StringVar(&cmdFlags.regex, "regex", "", "Regex to filter plugins by.")
 	cmd.Flags().StringVar(&cmdFlags.substring, "substring", "", "Substring to filter plugins by.")
 	return cmd
 }
-func NewGerritPluginsGetCmd() *cobra.Command {
+func NewGerritPluginsInstallCmd() *cobra.Command {
+	type flags struct {
+		plugin string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/plugins/{plugin-id}.jar/"
+			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "PUT", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Install Plugin",
+		Use:   "install",
+	}
+	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to operate on.")
+	cmd.MarkFlagRequired("plugin")
+	return cmd
+}
+func NewGerritPluginsDisableCmd() *cobra.Command {
+	type flags struct {
+		plugin string
+	}
+	cmdFlags := flags{}
+	cmd := &cobra.Command{
+
+		Example: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path := "/plugins/{plugin-id}/"
+			path = addParamToPath(path, "plugin-id", cmdFlags.plugin)
+
+			client := authenticatedClient(cmd.Context())
+			response, err := client.Call(cmd.Context(), "DELETE", path, nil, nil)
+			if err != nil {
+				return err
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				panic(err)
+			}
+			body = gogerrit.RemoveMagicPrefixLine(body)
+			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
+			return nil
+		},
+		Short: "Disable Plugin",
+		Use:   "disable",
+	}
+	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to operate on.")
+	cmd.MarkFlagRequired("plugin")
+	return cmd
+}
+func NewGerritPluginsGerritCmd() *cobra.Command {
+	cmd := &cobra.Command{
+
+		Example: "",
+		Short:   "Gerrit",
+		Use:     "gerrit",
+	}
+	cmd.AddCommand(NewGerritPluginsGerritStatusCmd())
+	cmd.AddCommand(NewGerritPluginsGerritEnableCmd())
+	cmd.AddCommand(NewGerritPluginsGerritDisableCmd())
+	cmd.AddCommand(NewGerritPluginsGerritReloadCmd())
+	return cmd
+}
+func NewGerritPluginsGerritStatusCmd() *cobra.Command {
 	type flags struct {
 		plugin string
 	}
@@ -92,14 +170,14 @@ func NewGerritPluginsGetCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Get plugin",
-		Use:   "get",
+		Short: "Get Plugin Status",
+		Use:   "status",
 	}
-	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to retrieve.")
+	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to operate on.")
 	cmd.MarkFlagRequired("plugin")
 	return cmd
 }
-func NewGerritPluginsEnableCmd() *cobra.Command {
+func NewGerritPluginsGerritEnableCmd() *cobra.Command {
 	type flags struct {
 		plugin string
 	}
@@ -125,14 +203,14 @@ func NewGerritPluginsEnableCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Enable plugin",
+		Short: "Enable Plugin",
 		Use:   "enable",
 	}
-	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to enable.")
+	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to operate on.")
 	cmd.MarkFlagRequired("plugin")
 	return cmd
 }
-func NewGerritPluginsDisableCmd() *cobra.Command {
+func NewGerritPluginsGerritDisableCmd() *cobra.Command {
 	type flags struct {
 		plugin string
 	}
@@ -158,14 +236,14 @@ func NewGerritPluginsDisableCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Disable plugin",
+		Short: "Disable Plugin",
 		Use:   "disable",
 	}
-	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to disable.")
+	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to operate on.")
 	cmd.MarkFlagRequired("plugin")
 	return cmd
 }
-func NewGerritPluginsReloadCmd() *cobra.Command {
+func NewGerritPluginsGerritReloadCmd() *cobra.Command {
 	type flags struct {
 		plugin string
 	}
@@ -191,10 +269,10 @@ func NewGerritPluginsReloadCmd() *cobra.Command {
 			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 			return nil
 		},
-		Short: "Reload plugin",
+		Short: "Reload Plugin",
 		Use:   "reload",
 	}
-	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to reload.")
+	cmd.Flags().StringVar(&cmdFlags.plugin, "plugin", "", "The plugin to operate on.")
 	cmd.MarkFlagRequired("plugin")
 	return cmd
 }

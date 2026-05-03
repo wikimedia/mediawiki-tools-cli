@@ -68,7 +68,7 @@ duplicates: $(DUPL)
 .PHONY: git-state
 git-state: $(GOX) $(GOVVV)
 	$(MAKE) TARGETS=linux/amd64 release
-	git diff --quiet || (git --no-pager diff && false)
+	git diff --quiet -- . ':(exclude).bingo/go.mod' || (git --no-pager diff -- . ':(exclude).bingo/go.mod' && false)
 
 .PHONY: linti
 linti:
