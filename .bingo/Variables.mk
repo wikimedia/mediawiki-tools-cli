@@ -29,6 +29,12 @@ $(DUPL): $(BINGO_DIR)/dupl.mod
 	@echo "(re)installing $(GOBIN)/dupl-v1.0.0"
 	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=dupl.mod -o=$(GOBIN)/dupl-v1.0.0 "github.com/mibk/dupl"
 
+GO_MOD_UPGRADE := $(GOBIN)/go-mod-upgrade-v0.12.0
+$(GO_MOD_UPGRADE): $(BINGO_DIR)/go-mod-upgrade.mod
+	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
+	@echo "(re)installing $(GOBIN)/go-mod-upgrade-v0.12.0"
+	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=go-mod-upgrade.mod -o=$(GOBIN)/go-mod-upgrade-v0.12.0 "github.com/oligot/go-mod-upgrade"
+
 GOCOVER_COBERTURA := $(GOBIN)/gocover-cobertura-v1.2.0
 $(GOCOVER_COBERTURA): $(BINGO_DIR)/gocover-cobertura.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
@@ -47,11 +53,11 @@ $(GOLINT): $(BINGO_DIR)/golint.mod
 	@echo "(re)installing $(GOBIN)/golint-v0.0.0-20210508222113-6edffad5e616"
 	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=golint.mod -o=$(GOBIN)/golint-v0.0.0-20210508222113-6edffad5e616 "golang.org/x/lint/golint"
 
-GOTESTSUM := $(GOBIN)/gotestsum-v1.8.2
+GOTESTSUM := $(GOBIN)/gotestsum-v1.13.0
 $(GOTESTSUM): $(BINGO_DIR)/gotestsum.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/gotestsum-v1.8.2"
-	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=gotestsum.mod -o=$(GOBIN)/gotestsum-v1.8.2 "gotest.tools/gotestsum"
+	@echo "(re)installing $(GOBIN)/gotestsum-v1.13.0"
+	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=gotestsum.mod -o=$(GOBIN)/gotestsum-v1.13.0 "gotest.tools/gotestsum"
 
 GOVVV := $(GOBIN)/govvv-v0.3.0
 $(GOVVV): $(BINGO_DIR)/govvv.mod

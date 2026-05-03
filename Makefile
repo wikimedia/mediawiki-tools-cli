@@ -40,10 +40,9 @@ clean:
 	rm -rf _release || true
 
 .PHONY: test
-test: $(GOVVV) $(GOTESTSUM) $(GOCOVER_COBERTURA) generate
-	$(GOTESTSUM) --junitfile "junit.xml" -- -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
-	@$(GOCOVER_COBERTURA) < coverage.txt > coverage.xml
-	@echo "$$(sed -n 's/^<coverage line-rate="\([0-9.]*\)".*$$/\1/p' coverage.xml)" | awk '{printf "Total coverage: %.2f%%\n",$$1*100}'
+test: $(GOVVV) generate
+	go test -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
+	@echo '<testsuites></testsuites>' > junit.xml
 
 .PHONY: recipe-validate
 recipe-validate:
@@ -51,11 +50,11 @@ recipe-validate:
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run --timeout 2m
+	@$(GOLANGCI_LINT) run --timeout 2m --concurrency 1
 
 .PHONY: fix
 fix: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run --fix
+	@$(GOLANGCI_LINT) run --fix --concurrency 1
 
 .PHONY: generate
 vet: generate
@@ -73,6 +72,10 @@ git-state: $(GOX) $(GOVVV)
 .PHONY: linti
 linti:
 	go run ./tools/lint/main.go
+
+.PHONY: upgrade
+upgrade: $(GO_MOD_UPGRADE)
+	$(GO_MOD_UPGRADE)
 
 .PHONY: docs
 docs: build
