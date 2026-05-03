@@ -17,7 +17,7 @@ func fileDetectorList() []FileDetector {
 	return []FileDetector{
 		// yml-extension: .yml extensions should be used for docker compose files
 		{
-			Path: "internal/mwdd/files/embed",
+			Path: "mount/dev",
 			Function: func(file string) *issue.Issue {
 				if strings.HasSuffix(file, ".yaml") {
 					return &issue.Issue{

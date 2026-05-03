@@ -30,7 +30,7 @@ release: $(GOX) $(GOVVV) generate
 .PHONY: generate
 generate:
 	go run tools/code-gen/main.go
-	@cd ./internal/mwdd/files/embed/ && find . -type f | LC_ALL=C sort > files.txt
+	@cd ./mount/dev/ && find . -type f | LC_ALL=C sort > files.txt
 	go generate $(GO_PACKAGES)
 
 .PHONY: clean
@@ -44,6 +44,10 @@ test: $(GOVVV) $(GOTESTSUM) $(GOCOVER_COBERTURA) generate
 	$(GOTESTSUM) --junitfile "junit.xml" -- -covermode=count -coverprofile "coverage.txt" -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
 	@$(GOCOVER_COBERTURA) < coverage.txt > coverage.xml
 	@echo "$$(sed -n 's/^<coverage line-rate="\([0-9.]*\)".*$$/\1/p' coverage.xml)" | awk '{printf "Total coverage: %.2f%%\n",$$1*100}'
+
+.PHONY: recipe-validate
+recipe-validate:
+	go test ./internal/mwdd/recipe -run TestParseRecipeExamples
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate

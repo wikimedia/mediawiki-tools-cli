@@ -66,10 +66,30 @@ Many other Makefile commands exist that you might find useful:
 - `make build`: Builds a new binary
 - `make release`: Builds multiple release binaries to `_release`
 - `make test`: Run unit tests
+- `make recipe-validate`: Validate all checked-in `mount/dev/recipes/*.yml` files against the recipe parser/validator in `internal/mwdd/recipe/spec.go`
 - `make lint`: Run basic go linting
 - `make linti`: Run custom mwcli command linting (lint internal)
 - `make fix`: Run basic lint fixes
 - `make vet`: Run `go vet`
+
+### Dev recipe files (`mount/dev/recipes/*.yml`)
+
+This repo includes sample/dev recipe files under `mount/dev/recipes/`.
+They are embedded into the binary and extracted into your mwdd context under `recipes/`, so you can apply/validate by name:
+
+- `mw dev recipe wikibase-repoclient`
+- `mw dev recipe validate wikibase-repoclient`
+
+You can also use explicit files/URLs when needed:
+
+- `mw dev recipe --file /path/to/recipe.yaml`
+- `mw dev recipe validate --file /path/to/recipe.yaml`
+
+For repository-level checks (including CI), use:
+
+- `make recipe-validate`
+
+The source of truth for recipe structure and validation rules is the Go spec/parser in `internal/mwdd/recipe/spec.go`.
 
 ### Packages & Directories
 
@@ -111,6 +131,7 @@ Or for the dev environment
 ./tests/test-docker-get-code.sh
 ./tests/test-docker-mw-all-dbs.sh
 ./tests/test-docker-mw-mysql-cycle.sh
+./tests/test-docker-recipe-repoclient.sh
 ```
 
 These tests should clean up after themselves.

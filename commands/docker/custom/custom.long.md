@@ -3,7 +3,9 @@
 You can define one or more custom sets of `docker compose` services or files.
 The default service and file would be found in `custom.yml`,
 with additional service sets and files being prefixed with `custom-` such as `custom-two.yml`.
+Names prefixed with `custom.` (for example `custom.local.yml`) are also accepted.
 These files should be created in the location returned by the `mw docker custom where` command.
+That directory is managed by mwcli, but `custom*.yml` and `custom*.yaml` files are preserved and will not be cleaned up by sync.
 You can then create these services by running the `mw docker custom` command,
 optionally with a `--name` flag, such as `mw docker custom --name custom-two create`.
 

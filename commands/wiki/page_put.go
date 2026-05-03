@@ -43,12 +43,6 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
 			}
-			if wikiUser == "" {
-				logrus.Fatal("wiki is not set")
-			}
-			if wikiPassword == "" {
-				logrus.Fatal("wiki is not set")
-			}
 			if wikiPageTitle == "" {
 				logrus.Fatal("title is not set")
 			}
@@ -64,13 +58,16 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 				panic(err)
 			}
 
-			defaultErrorHandling().handle(w.Login(wikiUser, wikiPassword))
+			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
 
 			// https://www.mediawiki.org/wiki/API:Edit#Parameters
 			editParams := params.Values{
 				"title":   wikiPageTitle,
 				"text":    text,
 				"summary": summary,
+			}
+			if wikiAnon {
+				editParams["token"] = anonCSRFToken
 			}
 			if minor {
 				editParams["minor"] = "1"

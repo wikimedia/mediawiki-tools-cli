@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/docker/docker/api/types/container"
@@ -66,17 +67,49 @@ func (p Project) argsForExec(commandAndArgs []string) []string {
 }
 
 func (p Project) ComposeFiles() ([]string, error) {
-	var composeFiles []string
-	files, filesErr := p.TopLevelFilePaths()
+	composeFiles := []string{}
 
-	for _, file := range files {
-		fileExt := filepath.Ext(file)
-		if fileExt == ".yml" || fileExt == ".yaml" {
-			composeFiles = append(composeFiles, filepath.Base(file))
+	composeDir := filepath.Join(p.Directory, "compose")
+	if stat, statErr := os.Stat(composeDir); statErr == nil && stat.IsDir() {
+		walkErr := filepath.Walk(composeDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			if strings.EqualFold(filepath.Base(path), "compose.yml") || strings.EqualFold(filepath.Base(path), "compose.yaml") {
+				rel, relErr := filepath.Rel(p.Directory, path)
+				if relErr != nil {
+					return relErr
+				}
+				composeFiles = append(composeFiles, filepath.ToSlash(rel))
+			}
+			return nil
+		})
+		if walkErr != nil {
+			return composeFiles, walkErr
 		}
 	}
 
-	return composeFiles, filesErr
+	// Legacy support for custom override files in the project root.
+	files, filesErr := p.TopLevelFilePaths()
+	if filesErr != nil {
+		return composeFiles, filesErr
+	}
+
+	for _, file := range files {
+		fileBase := filepath.Base(file)
+		if strings.HasPrefix(fileBase, "custom-") || strings.HasPrefix(fileBase, "custom.") {
+			fileExt := filepath.Ext(file)
+			if fileExt == ".yml" || fileExt == ".yaml" {
+				composeFiles = append(composeFiles, fileBase)
+			}
+		}
+	}
+
+	sort.Strings(composeFiles)
+	return composeFiles, nil
 }
 
 func (p Project) TopLevelFilePaths() ([]string, error) {

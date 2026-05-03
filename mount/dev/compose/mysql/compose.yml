@@ -1,0 +1,45 @@
+
+services:
+  mysql:
+    image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    security_opt:
+      - label:disable
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=toor
+      - DEFAULT_EXPOSE_PORT=3306
+    depends_on:
+      - mysql-configure-replication
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+    ports:
+      - ${MYSQL_PORT_3306-}:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./compose/mysql/mount/main:/mwdd-custom
+    entrypoint: "/mwdd-custom/entrypoint.sh"
+    command: "mysqld"
+
+  mysql-configure-replication:
+    image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    security_opt:
+      - label:disable
+    environment:
+      - "MYSQL_REPLICA_PASSWORD=toor"
+      - "MYSQL_MAIN_PASSWORD=toor"
+      - "MYSQL_ROOT_PASSWORD=toor"
+      - "MYSQL_REPLICATION_USER=repl"
+      - "MYSQL_REPLICATION_PASSWORD=repl"
+    networks:
+      - dps
+    volumes:
+      - ./compose/mysql/mount/wait-for-it.sh:/wait-for-it.sh:ro
+      - ./compose/mysql/mount/main:/mwdd-custom
+      - mysql-configure-replication-data:/mwdd-connector
+    command: /bin/bash -x /mwdd-custom/mysql_connector_main.sh
+
+volumes:
+  mysql-data:
+  mysql-configure-replication-data:

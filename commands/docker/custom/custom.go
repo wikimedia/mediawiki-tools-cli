@@ -2,6 +2,8 @@ package custom
 
 import (
 	_ "embed"
+	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -15,7 +17,7 @@ var customLong string
 var customName string = "custom"
 
 func fileFromCustomName() string {
-	return mwdd.DefaultForUser().Directory() + "/" + customName + ".yml"
+	return customName + ".yml"
 }
 
 func NewCmd() *cobra.Command {
@@ -26,11 +28,12 @@ func NewCmd() *cobra.Command {
 		Long:    cli.RenderMarkdown(customLong),
 	}
 
-	cmd.PersistentFlags().StringVarP(&customName, "name", "n", "custom", "the name of the custom service file, referring to existing docker-compose.yml file in the mwdd directory prefixed with custom-")
+	cmd.PersistentFlags().StringVarP(&customName, "name", "n", "custom", "Name of the custom compose file (without extension), e.g. custom, custom-two, or custom.local")
 
 	cmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		// Validate the customName, make sure it starts with "custom", or warn the user that that is the intention..
-		if len(customName) < 7 || customName[:6] != "custom" {
+		// Validate the customName, make sure it is either "custom" or prefixed with
+		// "custom-" / "custom.".
+		if !(customName == "custom" || strings.HasPrefix(customName, "custom-") || strings.HasPrefix(customName, "custom.")) {
 			logrus.Warn("customName should be 'custom' or start with 'custom-' or 'custom.'")
 		}
 	}
@@ -52,6 +55,6 @@ func NewCmd() *cobra.Command {
 func NewWhereCmd() *cobra.Command {
 	return mwdd.NewWhereCmd(
 		"the custom docker-compose yml file being used",
-		func() string { return mwdd.DefaultForUser().Directory() + fileFromCustomName() },
+		func() string { return filepath.Join(mwdd.DefaultForUser().Directory(), fileFromCustomName()) },
 	)
 }

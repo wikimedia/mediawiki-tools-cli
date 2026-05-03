@@ -52,6 +52,8 @@ type MwDevDockerConfig struct {
 	// The default DB type to use for the mediawiki service at installation time.
 	// One of sqlite, mysql, postgresql
 	DBType string `koanf:"db_type" json:"db_type"`
+	// Whether to use shallow git clones by default when fetching code.
+	ShallowClones bool `koanf:"shallow_clones" json:"shallow_clones"`
 }
 
 func defaultConfig() Config {

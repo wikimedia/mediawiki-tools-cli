@@ -48,19 +48,13 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
 			}
-			if wikiUser == "" {
-				logrus.Fatal("wiki user is not set")
-			}
-			if wikiPassword == "" {
-				logrus.Fatal("wiki password is not set")
-			}
 
 			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
 			if err != nil {
 				panic(err)
 			}
 
-			defaultErrorHandling().handle(w.Login(wikiUser, wikiPassword))
+			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
 
 			// List pages with pagination
 			listParams := map[string]string{

@@ -190,6 +190,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewMwddStartCmd())
 	cmd.AddCommand(NewMwddRestartCmd())
 	cmd.AddCommand(NewMwddUpdateCmd())
+	cmd.AddCommand(NewRecipeCmd())
 	cmd.AddCommand(dockercompose.NewCmd())
 	envCmd := env.Env("Interact with the environment variables", mwdd.DefaultForUser().Directory)
 	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {

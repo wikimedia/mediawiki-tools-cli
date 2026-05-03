@@ -67,6 +67,27 @@ test_command_success ./bin/mw docker hosts show --no-interaction
 # Create
 test_command_success ./bin/mw docker mediawiki create
 
+# Ensure custom compose file/service functionality works
+CUSTOM_FILE=$(./bin/mw docker custom --name custom-two where)
+cat > "${CUSTOM_FILE}" << 'EOF'
+services:
+    custom-two:
+        image: "alpine:3.20"
+        command: ["sleep", "infinity"]
+        security_opt:
+            - label:disable
+        dns:
+            - ${NETWORK_SUBNET_PREFIX}.10
+        networks:
+            - dps
+EOF
+test_file_contains "${CUSTOM_FILE}" "custom-two"
+test_command_success ./bin/mw docker custom --name custom-two create
+test_command ./bin/mw docker docker-compose ps "custom-two"
+test_command_success ./bin/mw docker custom --name custom-two stop
+test_command_success ./bin/mw docker custom --name custom-two start
+test_command_success ./bin/mw docker custom --name custom-two destroy
+
 # Get the port in use
 PORT=$(./bin/mw docker env get PORT)
 
