@@ -462,8 +462,8 @@ the Dockerfile.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
 			dockerfilePath := args[0]
-			if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) {
-				return fmt.Errorf("dockerfile not found: %s", dockerfilePath)
+			if _, err := os.Stat(dockerfilePath); err != nil {
+				return fmt.Errorf("cannot access dockerfile %s: %w", dockerfilePath, err)
 			}
 			DefaultForUser().EnsureReady()
 			DefaultForUser().Env().Set(dockerfileEnvKey(dereferencedService), dockerfilePath)

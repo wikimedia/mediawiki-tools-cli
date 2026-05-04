@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 // dockerfileEnvKey returns the .env key used to store a service's custom Dockerfile path.
@@ -19,6 +21,23 @@ func dockerfileComposeFilePath(directory, service string) string {
 	return filepath.Join(directory, "custom-dockerfile-"+service+".yml")
 }
 
+// dockerfileComposeOverride is the structure marshalled into the auto-generated
+// docker compose override YAML file.  Only the fields that are needed for a build
+// override are included.
+type dockerfileComposeOverride struct {
+	Services map[string]dockerfileServiceOverride `yaml:"services"`
+}
+
+type dockerfileServiceOverride struct {
+	Build dockerfileBuildSpec `yaml:"build"`
+	Image string              `yaml:"image"`
+}
+
+type dockerfileBuildSpec struct {
+	Context    string `yaml:"context"`
+	Dockerfile string `yaml:"dockerfile"`
+}
+
 // writeDockerfileComposeFile writes (or overwrites) a docker compose override file that
 // builds the service image from the given Dockerfile.  The build context is the directory
 // that contains the Dockerfile.  The resulting image is tagged with a predictable name so
@@ -28,11 +47,22 @@ func writeDockerfileComposeFile(directory, service, dockerfilePath string) error
 	if err != nil {
 		return fmt.Errorf("failed to resolve dockerfile path: %w", err)
 	}
-	context := filepath.Dir(absPath)
-	dockerfile := filepath.Base(absPath)
-	content := fmt.Sprintf("services:\n  %s:\n    build:\n      context: %s\n      dockerfile: %s\n    image: mwcli-%s-custom:local\n",
-		service, context, dockerfile, service)
-	return os.WriteFile(dockerfileComposeFilePath(directory, service), []byte(content), 0o600)
+	override := dockerfileComposeOverride{
+		Services: map[string]dockerfileServiceOverride{
+			service: {
+				Build: dockerfileBuildSpec{
+					Context:    filepath.Dir(absPath),
+					Dockerfile: filepath.Base(absPath),
+				},
+				Image: "mwcli-" + service + "-custom:local",
+			},
+		},
+	}
+	content, err := yaml.Marshal(override)
+	if err != nil {
+		return fmt.Errorf("failed to marshal compose override: %w", err)
+	}
+	return os.WriteFile(dockerfileComposeFilePath(directory, service), content, 0o600)
 }
 
 // removeDockerfileComposeFile removes the auto-generated docker compose override file for
