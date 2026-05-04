@@ -2,6 +2,7 @@ package mediawiki
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -58,9 +59,23 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 					}
 				}
 			}
+
+			if out.Type == "names" {
+				names := make([]string, 0, len(objects))
+				for _, object := range objects {
+					typedObject := object.(Site)
+					names = append(names, typedObject.Name)
+				}
+				sort.Strings(names)
+				for _, name := range names {
+					fmt.Fprintln(cmd.OutOrStdout(), name)
+				}
+				return
+			}
+
 			out.Print(cmd, objects)
 		},
 	}
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlags(cmd, output.TableType, "names")
 	return cmd
 }
