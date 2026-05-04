@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
 	osexec "os/exec"
 	"strconv"
 	"strings"
@@ -413,6 +414,101 @@ func NewImageCmdP(service *string) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(reset)
+
+	cmd.AddCommand(NewImageDockerfileCmdP(service))
+
+	return cmd
+}
+
+func NewImageDockerfileCmd(service string) *cobra.Command {
+	return NewImageDockerfileCmdP(&service)
+}
+
+// NewImageDockerfileCmdP returns the "image dockerfile" sub-command that lets users
+// build a service image from a custom Dockerfile instead of pulling a pre-built one.
+//
+// Three options are available for how a service image is sourced:
+//  1. Default   – no override; the image specified in the compose file is used.
+//  2. Custom image (image set) – a pre-built image is pulled from a registry.
+//  3. Custom Dockerfile (image dockerfile set) – an image is built locally from a
+//     Dockerfile supplied by the user.
+func NewImageDockerfileCmdP(service *string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dockerfile",
+		Short: "Build the service image from a custom Dockerfile",
+		Long: `Manage a custom Dockerfile used to build the service image locally.
+
+Three options exist for sourcing a service image:
+
+  1. Default          Use the image bundled with the compose file (no override).
+  2. Custom image     Pull a pre-built image: ` + "`image set <image>`" + `
+  3. Custom Dockerfile  Build an image locally from your own Dockerfile: ` + "`image dockerfile set <path>`" + `
+
+When a Dockerfile is set, a docker compose override file is generated automatically.
+Running "create" (or "docker compose up") will build the image before starting the
+service.  Use "image dockerfile reset" to go back to the default image.`,
+	}
+
+	set := &cobra.Command{
+		Use:   "set <path>",
+		Short: "Build the service image from the given Dockerfile",
+		Long: `Set a custom Dockerfile for this service.
+
+A docker compose override file is generated in the environment directory so that
+Docker Compose will build the image from the provided Dockerfile the next time the
+service is created or recreated.  The build context is the directory that contains
+the Dockerfile.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			dockerfilePath := args[0]
+			if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) {
+				return fmt.Errorf("dockerfile not found: %s", dockerfilePath)
+			}
+			DefaultForUser().EnsureReady()
+			DefaultForUser().Env().Set(dockerfileEnvKey(dereferencedService), dockerfilePath)
+			if err := writeDockerfileComposeFile(DefaultForUser().Directory(), dereferencedService, dockerfilePath); err != nil {
+				return fmt.Errorf("failed to write compose override file: %w", err)
+			}
+			fmt.Printf("Custom Dockerfile set for service %q.\nRun 'image dockerfile reset' to revert to the default image.\n", dereferencedService)
+			return nil
+		},
+	}
+	cmd.AddCommand(set)
+
+	dockerfileGet := &cobra.Command{
+		Use:   "get",
+		Short: "Show the custom Dockerfile currently configured for this service",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if path == "" {
+				fmt.Println("No custom Dockerfile set (using default image)")
+			} else {
+				fmt.Println(path)
+			}
+		},
+	}
+	cmd.AddCommand(dockerfileGet)
+
+	dockerfileReset := &cobra.Command{
+		Use:   "reset",
+		Short: "Remove the custom Dockerfile and revert to the default image",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			DefaultForUser().Env().Delete(dockerfileEnvKey(dereferencedService))
+			if err := removeDockerfileComposeFile(DefaultForUser().Directory(), dereferencedService); err != nil {
+				return fmt.Errorf("failed to remove compose override file: %w", err)
+			}
+			fmt.Printf("Custom Dockerfile removed for service %q.  The default image will be used.\n", dereferencedService)
+			return nil
+		},
+	}
+	cmd.AddCommand(dockerfileReset)
 
 	return cmd
 }
