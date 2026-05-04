@@ -28,5 +28,8 @@ func truncateCell(s string, maxWidth int) string {
 	if len(runes) <= maxWidth {
 		return s
 	}
+	if maxWidth == 1 {
+		return "…"
+	}
 	return string(runes[:maxWidth-1]) + "…"
 }

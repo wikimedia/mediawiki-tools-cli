@@ -40,5 +40,7 @@ func printTemplate(objects interface{}, format string, writer io.Writer) {
 		logrus.Errorf("template: execute error: %v", err)
 		return
 	}
-	_, _ = io.Copy(writer, &buf)
+	if _, err := io.Copy(writer, &buf); err != nil {
+		logrus.Errorf("template: write error: %v", err)
+	}
 }

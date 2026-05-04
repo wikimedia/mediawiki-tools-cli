@@ -74,7 +74,7 @@ func (p *Pretty) Print(writer io.Writer) {
 
 		for _, item := range p.sections[section] {
 			if shouldColor() {
-				// Colour the "digits:" prefix in yellow so line numbers stand out.
+				// Color the "digits:" prefix in yellow so line numbers stand out.
 				colon := strings.Index(item, ":")
 				if colon > 0 && isDigitsOnly(item[:colon]) {
 					fmt.Fprintf(writer, "  %s%s\n", lineNumFmt("%s:", item[:colon]), item[colon+1:])
