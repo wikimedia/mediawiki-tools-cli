@@ -195,6 +195,6 @@ func NewAuthListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.TableType))
 	return cmd
 }

@@ -17,12 +17,12 @@ func NewComputeGetCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Status", "ID"},
-			ProcessObjects: func(objects interface{}, table *output.Table) {
-				typedObject, ok := objects.(*servers.Server)
+			RowExtractor: func(object interface{}) []string {
+				typedObject, ok := object.(*servers.Server)
 				if !ok {
-					return
+					return nil
 				}
-				table.AddRowS(typedObject.Name, typedObject.Status, typedObject.ID)
+				return []string{typedObject.Name, typedObject.Status, typedObject.ID}
 			},
 		},
 		AckBinding: func(objects interface{}, ack *output.Ack) {
@@ -87,7 +87,7 @@ func NewComputeGetCmd() *cobra.Command {
 		},
 	}
 
-	out.AddFlags(cmd, output.TableType, output.AckType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.TableType), output.WithAdditionalTypes(output.AckType))
 	cmd.Flags().String("project", "", "Project name (optional, uses default project if not specified)")
 
 	return cmd

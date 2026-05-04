@@ -19,11 +19,12 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Host", "URL"},
-			ProcessObjects: func(objects interface{}, table *output.Table) {
-				for _, object := range objects.(map[interface{}]interface{}) {
-					typedObject := object.(Site)
-					table.AddRowS(typedObject.Name, typedObject.Host, typedObject.URL)
+			RowExtractor: func(object interface{}) []string {
+				typedObject, ok := object.(Site)
+				if !ok {
+					return nil
 				}
+				return []string{typedObject.Name, typedObject.Host, typedObject.URL}
 			},
 		},
 		AckBinding: func(objects interface{}, ack *output.Ack) {
@@ -61,6 +62,6 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 			out.Print(cmd, objects)
 		},
 	}
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.TableType))
 	return cmd
 }
