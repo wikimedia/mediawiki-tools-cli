@@ -554,7 +554,13 @@ If neither variable is set, vi is used as a fallback.`,
 			if editor == "" {
 				editor = "vi"
 			}
-			exec.RunTTYCommand(osexec.Command(editor, path)) // #nosec G204
+			editorCmd := osexec.Command(editor, path) // #nosec G204
+			editorCmd.Stdout = os.Stdout
+			editorCmd.Stdin = os.Stdin
+			editorCmd.Stderr = os.Stderr
+			if err := editorCmd.Run(); err != nil {
+				return fmt.Errorf("editor exited with error: %w", err)
+			}
 			return nil
 		},
 	}
