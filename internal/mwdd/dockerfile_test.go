@@ -43,6 +43,85 @@ func TestDockerfileComposeFilePath(t *testing.T) {
 	}
 }
 
+func TestDefaultDockerfilePath(t *testing.T) {
+	dir := "/some/mwdd/dir"
+	cases := []struct {
+		service string
+		want    string
+	}{
+		{"mediawiki", filepath.Join(dir, "Dockerfile.mediawiki")},
+		{"mysql", filepath.Join(dir, "Dockerfile.mysql")},
+		{"shellbox-media", filepath.Join(dir, "Dockerfile.shellbox-media")},
+	}
+	for _, tc := range cases {
+		got := defaultDockerfilePath(dir, tc.service)
+		if got != tc.want {
+			t.Errorf("defaultDockerfilePath(%q, %q) = %q, want %q", dir, tc.service, got, tc.want)
+		}
+	}
+}
+
+func TestDefaultImageForService(t *testing.T) {
+	// mediawiki is a known embedded service – verify we get a non-empty default image.
+	got := defaultImageForService("mediawiki")
+	if got == "" {
+		t.Errorf("defaultImageForService(%q) returned empty string, want a base image", "mediawiki")
+	}
+	if !strings.Contains(got, "docker-registry.wikimedia.org") {
+		t.Errorf("defaultImageForService(%q) = %q, expected a wikimedia registry image", "mediawiki", got)
+	}
+
+	// Unknown service should return empty string.
+	if img := defaultImageForService("nonexistent-service"); img != "" {
+		t.Errorf("defaultImageForService(%q) = %q, want empty string", "nonexistent-service", img)
+	}
+}
+
+func TestCreateStarterDockerfileIfNotExists_Creates(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "Dockerfile.mediawiki")
+
+	if err := createStarterDockerfileIfNotExists(path, "mediawiki"); err != nil {
+		t.Fatalf("createStarterDockerfileIfNotExists: %v", err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading created file: %v", err)
+	}
+	got := string(content)
+
+	if !strings.Contains(got, "mediawiki") {
+		t.Errorf("starter Dockerfile does not mention the service name; got:\n%s", got)
+	}
+	if !strings.Contains(got, "FROM ") {
+		t.Errorf("starter Dockerfile has no FROM line; got:\n%s", got)
+	}
+}
+
+func TestCreateStarterDockerfileIfNotExists_NoOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "Dockerfile.mediawiki")
+
+	original := "FROM scratch\n# user content\n"
+	if err := os.WriteFile(path, []byte(original), 0o644); err != nil {
+		t.Fatalf("pre-creating file: %v", err)
+	}
+
+	// Should not overwrite the existing file.
+	if err := createStarterDockerfileIfNotExists(path, "mediawiki"); err != nil {
+		t.Fatalf("createStarterDockerfileIfNotExists: %v", err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading file after no-op call: %v", err)
+	}
+	if string(content) != original {
+		t.Errorf("file was overwritten; got:\n%s\nwant:\n%s", string(content), original)
+	}
+}
+
 func TestWriteDockerfileComposeFile(t *testing.T) {
 	dir := t.TempDir()
 
