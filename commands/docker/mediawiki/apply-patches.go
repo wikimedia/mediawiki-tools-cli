@@ -22,7 +22,7 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "apply-patches",
 		Example: cobrautil.NormalizeExample(applyPatchesExample),
-		Short:   "Apply Gerrit patches to local MediaWiki code",
+		Short:   "ALPHA: Apply Gerrit patches to local MediaWiki code",
 		Long:    cli.RenderMarkdown(applyPatchesLong),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1")

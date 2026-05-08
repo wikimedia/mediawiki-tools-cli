@@ -15,13 +15,13 @@ import (
 
 // GerritChangeInfo holds the relevant details extracted from a Gerrit change.
 type GerritChangeInfo struct {
-	Number   int
-	ChangeID string
-	Project  string
-	Subject  string
-	Ref      string
-	FetchURL string
-	Message  string
+	Number    int
+	ChangeID  string
+	Project   string
+	Subject   string
+	Ref       string
+	FetchURL  string
+	Message   string
 	DependsOn []string
 }
 
@@ -180,13 +180,13 @@ func FetchGerritChangeInfo(ctx context.Context, changeID, preferredBranch, prefe
 	}
 
 	return &GerritChangeInfo{
-		Number:   change.Number,
-		ChangeID: change.ChangeID,
-		Project:  change.Project,
-		Subject:  change.Subject,
-		Ref:      ref,
-		FetchURL: fetchURL,
-		Message:  message,
+		Number:    change.Number,
+		ChangeID:  change.ChangeID,
+		Project:   change.Project,
+		Subject:   change.Subject,
+		Ref:       ref,
+		FetchURL:  fetchURL,
+		Message:   message,
 		DependsOn: dependsOn,
 	}, nil
 }
