@@ -22,7 +22,19 @@ func NewPhabricatorCmd() *cobra.Command {
 		Short:   "Interact with Wikimedia Phabricator",
 		Long: `Interact with Wikimedia Phabricator via the Conduit API.
 
-Configure access in phab.cfg (searched in: ~/.config/phab/, ~/.phab/, /etc/phab/).
+Create an API token first:
+	1. Log in at https://phabricator.wikimedia.org/auth/start/
+	2. Open https://phabricator.wikimedia.org/settings/user/<username>/page/apitokens/
+	3. Create a token and copy the value (for example: cli-XXXXXXXX)
+
+Configure access in either phab.cfg or mwcli config.json.
+
+Legacy phab.cfg is searched in:
+	./phab.cfg
+	$XDG_CONFIG_HOME/phab/phab.cfg (or ~/.config/phab/phab.cfg)
+	~/.phab/phab.cfg
+	/etc/phab/phab.cfg
+
 Example phab.cfg:
   [main]
   default = wikimedia
@@ -31,11 +43,29 @@ Example phab.cfg:
   url = https://phabricator.wikimedia.org
   key = cli-XXXXXXXXXXXXXXXXXXXXXXXXXXXX
   username = your-username
-  default_project = #your-project`,
+	default_project = #your-project
+
+Alternative mwcli config.json keys:
+	{
+		"phabricator": {
+			"default_site": "wikimedia",
+			"sites": {
+				"wikimedia": {
+					"url": "https://phabricator.wikimedia.org",
+					"key": "cli-XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+					"username": "your-username",
+					"default_project": "#your-project"
+				}
+			}
+		}
+	}
+
+Tip: run "mw config where" to see your mwcli config.json path.`,
 	}
 
 	cmd.PersistentFlags().StringVar(&site, "site", "", "Config site section to use (overrides [main] default)")
 
+	addAuthCmd(cmd, &site)
 	addViewCmd(cmd, &site)
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)

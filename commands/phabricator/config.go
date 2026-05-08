@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gopkg.in/ini.v1"
 )
 
@@ -24,18 +25,36 @@ type PhabConfig struct {
 func loadConfig(site string) (*PhabConfig, error) {
 	candidates := configSearchPaths()
 
-	var cfg *ini.File
-	var loadErr error
 	for _, path := range candidates {
-		cfg, loadErr = ini.Load(path)
-		if loadErr == nil {
-			break
+		if _, err := os.Stat(path); err != nil {
+			continue
 		}
-	}
-	if loadErr != nil {
-		return nil, fmt.Errorf("could not find phab.cfg; looked in: %s", strings.Join(candidates, ", "))
+
+		cfg, err := ini.Load(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %w", path, err)
+		}
+
+		config, err := configFromINI(cfg, site)
+		if err != nil {
+			return nil, err
+		}
+		return config, nil
 	}
 
+	config, err := configFromMWCLI(site)
+	if err == nil {
+		return config, nil
+	}
+
+	return nil, fmt.Errorf(
+		"could not find usable Phabricator config. looked for phab.cfg in: %s; and mwcli config at: %s",
+		strings.Join(candidates, ", "),
+		mwconfig.Path(),
+	)
+}
+
+func configFromINI(cfg *ini.File, site string) (*PhabConfig, error) {
 	siteName := site
 	if siteName == "" {
 		siteName = cfg.Section("main").Key("default").String()
@@ -45,7 +64,7 @@ func loadConfig(site string) (*PhabConfig, error) {
 	}
 
 	section := cfg.Section(siteName)
-	config := &PhabConfig{
+	phabCfg := &PhabConfig{
 		SiteName:       siteName,
 		Key:            section.Key("key").String(),
 		URL:            strings.TrimRight(section.Key("url").MustString("https://phabricator.wikimedia.org"), "/"),
@@ -54,10 +73,79 @@ func loadConfig(site string) (*PhabConfig, error) {
 		CachePath:      section.Key("cache_path").String(),
 	}
 
-	if config.Key == "" {
+	if phabCfg.Key == "" {
 		return nil, fmt.Errorf("no API key for site %q in phab.cfg", siteName)
 	}
 
+	applyDefaultCachePath(phabCfg)
+	return phabCfg, nil
+}
+
+func configFromMWCLI(site string) (*PhabConfig, error) {
+	configState := mwconfig.State()
+
+	siteName := strings.TrimSpace(site)
+	if siteName == "" {
+		siteName = strings.TrimSpace(configState.EffectiveKoanf.String("phabricator.default_site"))
+		if siteName == "" {
+			siteName = strings.TrimSpace(configState.OnDiskKoanf.String("phabricator.default_site"))
+		}
+		if siteName == "" {
+			siteName = strings.TrimSpace(configState.EffectiveKoanf.String("phabricator.site"))
+		}
+		if siteName == "" {
+			siteName = strings.TrimSpace(configState.OnDiskKoanf.String("phabricator.site"))
+		}
+	}
+
+	get := func(key string) string {
+		if siteName != "" {
+			siteKey := "phabricator.sites." + siteName + "." + key
+			if value := strings.TrimSpace(configState.EffectiveKoanf.String(siteKey)); value != "" {
+				return value
+			}
+			if value := strings.TrimSpace(configState.OnDiskKoanf.String(siteKey)); value != "" {
+				return value
+			}
+		}
+
+		flatKey := "phabricator." + key
+		if value := strings.TrimSpace(configState.EffectiveKoanf.String(flatKey)); value != "" {
+			return value
+		}
+		if value := strings.TrimSpace(configState.OnDiskKoanf.String(flatKey)); value != "" {
+			return value
+		}
+
+		return ""
+	}
+
+	phabCfg := &PhabConfig{
+		SiteName:       siteName,
+		Key:            get("key"),
+		URL:            strings.TrimRight(get("url"), "/"),
+		Username:       get("username"),
+		DefaultProject: get("default_project"),
+		CachePath:      get("cache_path"),
+	}
+
+	if phabCfg.URL == "" {
+		phabCfg.URL = "https://phabricator.wikimedia.org"
+	}
+
+	if phabCfg.Key == "" {
+		return nil, fmt.Errorf("no Phabricator API key in mwcli config")
+	}
+
+	if phabCfg.SiteName == "" {
+		phabCfg.SiteName = "default"
+	}
+
+	applyDefaultCachePath(phabCfg)
+	return phabCfg, nil
+}
+
+func applyDefaultCachePath(config *PhabConfig) {
 	if config.CachePath == "" {
 		cacheDir, _ := os.UserCacheDir()
 		config.CachePath = filepath.Join(cacheDir, "phab", config.DefaultProject)
@@ -65,8 +153,6 @@ func loadConfig(site string) (*PhabConfig, error) {
 		home, _ := os.UserHomeDir()
 		config.CachePath = filepath.Join(home, config.CachePath[2:])
 	}
-
-	return config, nil
 }
 
 func configSearchPaths() []string {
