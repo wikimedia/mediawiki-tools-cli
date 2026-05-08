@@ -88,6 +88,7 @@ func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
 
 func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 	var forceRecreate bool
+	var build bool
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create the containers",
@@ -99,6 +100,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{
 				Detached:      true,
 				ForceRecreate: forceRecreate,
+				Build:         build,
 			})
 			if err != nil {
 				return err
@@ -112,6 +114,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Control"
 	cmd.Flags().BoolVar(&forceRecreate, "force-recreate", false, "Force recreation of containers")
+	cmd.Flags().BoolVar(&build, "build", false, "Build images before starting containers")
 	return cmd
 }
 
