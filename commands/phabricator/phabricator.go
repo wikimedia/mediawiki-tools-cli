@@ -19,6 +19,7 @@ func NewPhabricatorCmd() *cobra.Command {
 		Use:     "phabricator",
 		Aliases: []string{"phab"},
 		GroupID: "service",
+		Hidden:  true, // Hidden for now in its first version
 		Short:   "Interact with Wikimedia Phabricator",
 		Long: `Interact with Wikimedia Phabricator via the Conduit API.
 
@@ -159,10 +160,10 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 
 func addReadCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
-		Use:   "read <T12345>",
+		Use:     "read <T12345>",
 		Aliases: []string{"r"},
-		Short: "View a task and all its comments",
-		Args:  cobra.ExactArgs(1),
+		Short:   "View a task and all its comments",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromSite(*site)
 			if err != nil {
