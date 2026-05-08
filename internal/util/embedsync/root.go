@@ -45,8 +45,12 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() {
 		diskFile := e.DiskPath + string(os.PathSeparator) + agnosticFile
 		embedBytes := e.agnosticEmbedBytes(agnosticFile)
 
-		if _, err := os.Stat(diskFile); os.IsNotExist(err) {
+		if stat, err := os.Stat(diskFile); os.IsNotExist(err) {
 			logrus.Trace(diskFile + " doesn't exist, so write it...")
+			writeBytesToDisk(embedBytes, diskFile)
+		} else if err == nil && stat.IsDir() {
+			logrus.Trace(diskFile + " is a directory but should be a file, removing and writing it...")
+			os.RemoveAll(diskFile)
 			writeBytesToDisk(embedBytes, diskFile)
 		} else if !bytes.Equal(files.Bytes(diskFile), embedBytes) {
 			logrus.Trace(diskFile + " has different byte count, so write it...")

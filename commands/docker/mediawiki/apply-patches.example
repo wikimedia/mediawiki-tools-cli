@@ -1,3 +1,5 @@
 apply-patches --change 1275105
 apply-patches --change 1275105 --change 1275106
+apply-patches --change 1275105 --mode checkout
+apply-patches --change 1275105 --mode cherry-pick
 apply-patches --change 1275105 --dry-run

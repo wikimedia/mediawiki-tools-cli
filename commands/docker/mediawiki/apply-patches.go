@@ -31,6 +31,7 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			changes, _ := cmd.Flags().GetStringSlice("change")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			mode, _ := cmd.Flags().GetString("mode")
 
 			if len(changes) == 0 {
 				return fmt.Errorf("at least one --change is required")
@@ -45,6 +46,7 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 			opts := mediawiki.ApplyPatchOpts{
 				ChangeIDs: changes,
 				DryRun:    dryRun,
+				Mode:      mode,
 			}
 
 			return thisMw.ApplyGerritPatches(cmd.Context(), opts)
@@ -54,6 +56,7 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 	cmd.Annotations["group"] = "Core"
 
 	cmd.Flags().StringSlice("change", []string{}, "Gerrit change number(s) to apply (repeatable)")
+	cmd.Flags().String("mode", "checkout", "How to apply the fetched patchset: checkout or cherry-pick")
 	cmd.Flags().Bool("dry-run", false, "Show what would be done without actually doing it")
 
 	return cmd
