@@ -26,9 +26,9 @@ type Type string
 
 // These are the different output types.
 const (
-	JSONType   Type = "json"
-	GoTmplType Type = "template"
-	TableType  Type = "table"
+	JSONType  Type = "json"
+	JQType    Type = "jq"
+	TableType Type = "table"
 	PrettyType Type = "pretty"
 	// AutoType selects ttyDefault or pipeDefault based on whether stdout is a TTY.
 	// It is used as the flag default when WithDefaultTTY / WithDefaultPipe are set.
@@ -42,7 +42,7 @@ const (
 // AllTypes lists the output types that every command supports.
 var AllTypes = []Type{
 	JSONType,
-	GoTmplType,
+	JQType,
 	TableType,
 	PrettyType,
 }
@@ -65,7 +65,7 @@ type TableBinding struct {
 }
 
 func (o *Output) ConfiguredOutputTypes() []string {
-	outputTypes := []string{string(JSONType), string(GoTmplType)}
+	outputTypes := []string{string(JSONType), string(JQType)}
 	if o.TableBinding != nil {
 		outputTypes = append(outputTypes, string(TableType))
 	}
@@ -192,7 +192,7 @@ func (o *Output) AddFlagsWithOpts(cmd *cobra.Command, opts ...AddFlagsOption) {
 	}
 
 	// Build the allowed-types list from what is actually configured.
-	allTypes := []Type{JSONType, GoTmplType}
+	allTypes := []Type{JSONType, JQType}
 	if o.TableBinding != nil {
 		allTypes = append(allTypes, TableType)
 	}
@@ -249,8 +249,8 @@ func (o *Output) Print(cmd *cobra.Command, objects any) {
 	switch effectiveType {
 	case string(JSONType):
 		NewJSON(filteredObjects, o.Format).Print(writer)
-	case string(GoTmplType):
-		printTemplate(filteredObjects, o.Format, writer)
+	case string(JQType):
+		printJQ(filteredObjects, o.Format, writer)
 	case string(TableType):
 		if o.TableBinding == nil {
 			logrus.Error("Output type 'table' not supported for this command.")

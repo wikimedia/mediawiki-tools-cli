@@ -1,4 +1,4 @@
 search unicorn
 search upload --type="web app"
 search unicorn --output json
-search unicorn --output template --format '{{range $k, $v := .}}{{$v.Name}}{{"\n"}}{{end}}'
+search unicorn --output jq --format '.[] | .Name'

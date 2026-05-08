@@ -28,7 +28,7 @@ func Cmd() *cobra.Command {
 		Short: "Output the version information",
 		Example: cobrautil.NormalizeExample(`version
 version --output=json
-version --output=template --format='{{.Version}}'`),
+version --output=jq --format='.Version'`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if output.Type(out.Type) == output.WebType {
 				if cli.VersionDetails.Version == "latest" {

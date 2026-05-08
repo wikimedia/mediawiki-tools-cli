@@ -25,7 +25,7 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 		sites
 		sites --output json
 		sites --output names
-		sites --output template --format '{{range $k, $v := .}}{{$v.Name}}{{"\n"}}{{end}}'
+		sites --output jq --format '.[] | .Name'
 	`),
 		Run: func(cmd *cobra.Command, args []string) {
 			mwdd.DefaultForUser().EnsureReady()

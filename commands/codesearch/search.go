@@ -30,7 +30,7 @@ search --type extensions --repos "Extension:Wikibase" addshore
 search --files ".*\.md" addshore
 search --output pretty --files ".*\.md" addshore
 search --output json addshore
-search --output template --format '{{range $k, $v := .}}{{$v.Matches}}{{"\n"}}{{end}}' addshore
+search --output jq --format '.[] | .Matches' addshore
 `),
 		Short: "Search using codesearch",
 		Args:  cobra.MinimumNArgs(1),

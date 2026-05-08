@@ -2,4 +2,4 @@ list
 list --type="web app"
 list --type=""
 list --output json
-list --output template --format '{{range $k, $v := .}}{{$v.Name}}{{"\n"}}{{end}}'
+list --output jq --format '.[] | .Name'
