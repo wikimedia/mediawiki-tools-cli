@@ -37,7 +37,7 @@ func NewComputeListCmd() *cobra.Command {
 				return []string{typedObject.Name, typedObject.Status, typedObject.ID}
 			},
 		},
-		AckBinding: func(objects interface{}, ack *output.Ack) {
+		PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
 			objMap, ok := objects.(map[interface{}]interface{})
 			if ok {
 				for _, object := range objMap {
@@ -45,7 +45,7 @@ func NewComputeListCmd() *cobra.Command {
 					if !ok {
 						continue
 					}
-					ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
+					pretty.AddItem(typedObject.Status, typedObject.Name+" @ "+typedObject.ID)
 				}
 			}
 		},
@@ -113,7 +113,7 @@ func NewComputeListCmd() *cobra.Command {
 		},
 	}
 
-	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.TableType))
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
 	cmd.Flags().String("project", "", "Project name (optional, uses default project if not specified)")
 
 	return cmd

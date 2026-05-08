@@ -15,7 +15,6 @@ type Output struct {
 	Filter        []string
 	Format        string
 	TableBinding  *TableBinding
-	AckBinding    AckBinding
 	PrettyBinding PrettyBinding
 	// ttyDefault and pipeDefault are used when Type resolves to AutoType.
 	ttyDefault  Type
@@ -30,7 +29,6 @@ const (
 	JSONType   Type = "json"
 	GoTmplType Type = "template"
 	TableType  Type = "table"
-	AckType    Type = "ack"
 	PrettyType Type = "pretty"
 	// AutoType selects ttyDefault or pipeDefault based on whether stdout is a TTY.
 	// It is used as the flag default when WithDefaultTTY / WithDefaultPipe are set.
@@ -46,7 +44,6 @@ var AllTypes = []Type{
 	JSONType,
 	GoTmplType,
 	TableType,
-	AckType,
 	PrettyType,
 }
 
@@ -67,16 +64,10 @@ type TableBinding struct {
 	TrimSpace bool
 }
 
-// AckBinding populates an Ack from objects.
-type AckBinding func(interface{}, *Ack)
-
 func (o *Output) ConfiguredOutputTypes() []string {
 	outputTypes := []string{string(JSONType), string(GoTmplType)}
 	if o.TableBinding != nil {
 		outputTypes = append(outputTypes, string(TableType))
-	}
-	if o.AckBinding != nil {
-		outputTypes = append(outputTypes, string(AckType))
 	}
 	if o.PrettyBinding != nil {
 		outputTypes = append(outputTypes, string(PrettyType))
@@ -100,7 +91,6 @@ type addFlagsConfig struct {
 	additionalTypes   []Type
 	disableFilterFlag bool
 	tableBinding      *TableBinding
-	ackBinding        AckBinding
 	prettyBinding     PrettyBinding
 }
 
@@ -149,13 +139,6 @@ func WithTableBinding(tb *TableBinding) AddFlagsOption {
 	}
 }
 
-// WithAckBinding enables ack output and sets its binding.
-func WithAckBinding(ab AckBinding) AddFlagsOption {
-	return func(cfg *addFlagsConfig) {
-		cfg.ackBinding = ab
-	}
-}
-
 // WithPrettyBinding enables pretty output and sets its binding.
 func WithPrettyBinding(pb PrettyBinding) AddFlagsOption {
 	return func(cfg *addFlagsConfig) {
@@ -198,9 +181,6 @@ func (o *Output) AddFlagsWithOpts(cmd *cobra.Command, opts ...AddFlagsOption) {
 	if cfg.tableBinding != nil {
 		o.TableBinding = cfg.tableBinding
 	}
-	if cfg.ackBinding != nil {
-		o.AckBinding = cfg.ackBinding
-	}
 	if cfg.prettyBinding != nil {
 		o.PrettyBinding = cfg.prettyBinding
 	}
@@ -215,9 +195,6 @@ func (o *Output) AddFlagsWithOpts(cmd *cobra.Command, opts ...AddFlagsOption) {
 	allTypes := []Type{JSONType, GoTmplType}
 	if o.TableBinding != nil {
 		allTypes = append(allTypes, TableType)
-	}
-	if o.AckBinding != nil {
-		allTypes = append(allTypes, AckType)
 	}
 	if o.PrettyBinding != nil {
 		allTypes = append(allTypes, PrettyType)
@@ -296,14 +273,6 @@ func (o *Output) Print(cmd *cobra.Command, objects any) {
 		tbl.Headings = []interface{}{}
 		tbl.AddHeadingsS(o.TableBinding.Headings...)
 		tbl.Print(writer)
-	case string(AckType):
-		if o.AckBinding == nil {
-			logrus.Error("Output type 'ack' not supported for this command.")
-			return
-		}
-		ack := Ack{}
-		o.AckBinding(filteredObjects, &ack)
-		ack.Print(writer)
 	case string(PrettyType):
 		if o.PrettyBinding == nil {
 			logrus.Error("Output type 'pretty' not supported for this command.")

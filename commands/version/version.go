@@ -27,7 +27,8 @@ func Cmd() *cobra.Command {
 		Use:   "version",
 		Short: "Output the version information",
 		Example: cobrautil.NormalizeExample(`version
-version --output=json --format=.version`),
+version --output=json
+version --output=template --format='{{.Version}}'`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if output.Type(out.Type) == output.WebType {
 				if cli.VersionDetails.Version == "latest" {
@@ -59,7 +60,8 @@ version --output=json --format=.version`),
 
 	out.AddFlagsWithOpts(
 		cmd,
-		output.WithDefaultOutput(output.TableType),
+		output.WithDefaultTTY(output.PrettyType),
+		output.WithDefaultPipe(output.JSONType),
 		output.WithAdditionalTypes(output.WebType),
 		output.WithFilterFlagDisabled(),
 		output.WithTableBinding(&output.TableBinding{
@@ -77,7 +79,7 @@ version --output=json --format=.version`),
 				}
 			},
 		}),
-		output.WithAckBinding(func(object interface{}, ack *output.Ack) {
+		output.WithPrettyBinding(func(object interface{}, pretty *output.Pretty) {
 			info, ok := object.(VersionInfo)
 			if ok {
 				val := reflect.ValueOf(info)
@@ -85,7 +87,7 @@ version --output=json --format=.version`),
 				for i := 0; i < val.NumField(); i++ {
 					field := typ.Field(i)
 					value := val.Field(i).Interface()
-					ack.AddItem("Version Information", fmt.Sprintf("%s: %v", field.Name, value))
+					pretty.AddItem("Version Information", fmt.Sprintf("%s: %v", field.Name, value))
 				}
 			}
 		}),

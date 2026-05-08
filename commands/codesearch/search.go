@@ -30,6 +30,7 @@ search --type extensions --repos "Extension:Wikibase" addshore
 search --files ".*\.md" addshore
 search --output pretty --files ".*\.md" addshore
 search --output json addshore
+search --output template --format '{{range $k, $v := .}}{{$v.Matches}}{{"\n"}}{{end}}' addshore
 `),
 		Short: "Search using codesearch",
 		Args:  cobra.MinimumNArgs(1),
@@ -104,22 +105,6 @@ search --output json addshore
 					pretty.InitSection(sectionName)
 					for _, lineMatch := range fileMatch.Matches {
 						pretty.AddItem(sectionName, fmt.Sprintf("%d:%s", lineMatch.LineNumber, lineMatch.Line))
-					}
-				}
-			}
-		}),
-		output.WithAckBinding(func(objects interface{}, ack *output.Ack) {
-			typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
-			err := mapstructure.Decode(objects, &typedObject)
-			if err != nil {
-				panic(err)
-			}
-			for repository, result := range typedObject {
-				for _, fileMatch := range result.Matches {
-					sectionName := repository + " " + fileMatch.Filename
-					ack.InitSection(sectionName)
-					for _, lineMatch := range fileMatch.Matches {
-						ack.AddItem(sectionName, fmt.Sprintf("%d:%s", lineMatch.LineNumber, lineMatch.Line))
 					}
 				}
 			}

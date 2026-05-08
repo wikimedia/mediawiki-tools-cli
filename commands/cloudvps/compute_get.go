@@ -25,12 +25,12 @@ func NewComputeGetCmd() *cobra.Command {
 				return []string{typedObject.Name, typedObject.Status, typedObject.ID}
 			},
 		},
-		AckBinding: func(objects interface{}, ack *output.Ack) {
+		PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
 			typedObject, ok := objects.(*servers.Server)
 			if !ok {
 				return
 			}
-			ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
+			pretty.AddItem(typedObject.Status, typedObject.Name+" @ "+typedObject.ID)
 		},
 	}
 
@@ -87,7 +87,7 @@ func NewComputeGetCmd() *cobra.Command {
 		},
 	}
 
-	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.TableType), output.WithAdditionalTypes(output.AckType))
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
 	cmd.Flags().String("project", "", "Project name (optional, uses default project if not specified)")
 
 	return cmd
