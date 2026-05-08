@@ -12,6 +12,8 @@ import (
 
 // printTemplate executes a Go text/template against objects and writes the result to writer.
 // If format is empty it falls back to plain JSON output.
+//
+//nolint:unused
 func printTemplate(objects interface{}, format string, writer io.Writer) {
 	if format == "" {
 		NewJSON(objects, "").Print(writer)
@@ -48,6 +50,8 @@ func printTemplate(objects interface{}, format string, writer io.Writer) {
 
 // normalizeForTemplate recursively converts maps with non-string keys into
 // map[string]interface{} so they can be marshaled to JSON.
+//
+//nolint:unused
 func normalizeForTemplate(in interface{}) interface{} {
 	switch typed := in.(type) {
 	case map[interface{}]interface{}:

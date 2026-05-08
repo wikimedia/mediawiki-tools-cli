@@ -6,10 +6,12 @@ import (
 	"golang.org/x/term"
 )
 
-const defaultTerminalWidth = 120
+const defaultTerminalWidth = 120 //nolint:unused
 
 // terminalWidth returns the width of the terminal attached to stdout,
 // or defaultTerminalWidth when it cannot be determined (e.g. when piped).
+//
+//nolint:unused
 func terminalWidth() int {
 	w, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil || w <= 0 {

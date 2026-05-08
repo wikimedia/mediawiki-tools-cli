@@ -83,16 +83,16 @@ func (c *conduitClient) post(method string, params map[string]interface{}) (json
 // ---- Data types ----
 
 type phabTask struct {
-	ID   int    `json:"id"`
-	PHID string `json:"phid"`
+	ID     int    `json:"id"`
+	PHID   string `json:"phid"`
 	Fields struct {
 		Name        string `json:"name"`
 		Description struct {
 			Raw string `json:"raw"`
 		} `json:"description"`
-		AuthorPHID  string      `json:"authorPHID"`
-		OwnerPHID   interface{} `json:"ownerPHID"` // may be null
-		Status      struct {
+		AuthorPHID string      `json:"authorPHID"`
+		OwnerPHID  interface{} `json:"ownerPHID"` // may be null
+		Status     struct {
 			Value string `json:"value"`
 			Name  string `json:"name"`
 		} `json:"status"`
@@ -112,8 +112,8 @@ type phabTask struct {
 }
 
 type phabColumn struct {
-	ID   int    `json:"id"`
-	PHID string `json:"phid"`
+	ID     int    `json:"id"`
+	PHID   string `json:"phid"`
 	Fields struct {
 		Name     string `json:"name"`
 		IsHidden bool   `json:"isHidden"`
@@ -641,7 +641,7 @@ var (
 )
 
 // normaliseColumnKey normalises a column name for consistent lookup.
-// Equivalent to Python: re.sub(r'\(', '-', name) then re.sub(r'[^\w-]', '', name).
+// Equivalent to Python: re.sub(r"\(", "-", name) then re.sub(r"[^\w-]", "", name).
 func normaliseColumnKey(name string) string {
 	name = removeEmoji(name)
 	name = reOpenParen.ReplaceAllString(name, "-")

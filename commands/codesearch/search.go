@@ -74,7 +74,7 @@ search --output jq --format '.[] | .Matches' addshore
 		output.WithDefaultPipe(output.JSONType),
 		output.WithAdditionalTypes(output.WebType),
 		output.WithTableBinding(&output.TableBinding{
-			Headings: []string{"Repository", "File", "Line", "Match"},
+			Headings:  []string{"Repository", "File", "Line", "Match"},
 			TrimSpace: true,
 			// Limit the Match column to 80 chars so the table stays readable
 			ColumnMaxWidths: []int{0, 0, 0, 80},

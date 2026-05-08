@@ -1494,7 +1494,7 @@ func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempt
 		message += fmt.Sprintf(" (last error: %v)", lastErr)
 	}
 
-	return fmt.Errorf(message)
+	return fmt.Errorf("%s", message)
 }
 
 func applyContent(m mwdd.MWDD, sites []recipe.Site, content recipe.Content, dryRun bool) error {

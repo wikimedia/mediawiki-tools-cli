@@ -26,9 +26,9 @@ type Type string
 
 // These are the different output types.
 const (
-	JSONType  Type = "json"
-	JQType    Type = "jq"
-	TableType Type = "table"
+	JSONType   Type = "json"
+	JQType     Type = "jq"
+	TableType  Type = "table"
 	PrettyType Type = "pretty"
 	// AutoType selects ttyDefault or pipeDefault based on whether stdout is a TTY.
 	// It is used as the flag default when WithDefaultTTY / WithDefaultPipe are set.
@@ -302,4 +302,3 @@ func iterateObjects(objects interface{}, fn func(interface{})) {
 		fn(objects)
 	}
 }
-

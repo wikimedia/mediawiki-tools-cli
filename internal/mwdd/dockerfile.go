@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v2"
 	"gitlab.wikimedia.org/repos/releng/cli/mount"
+	"gopkg.in/yaml.v2"
 )
 
 // dockerfileEnvKey returns the .env key used to store a service's custom Dockerfile path.
@@ -26,6 +26,7 @@ func dockerfileComposeFilePath(directory, service string) string {
 // extractDefaultImageRe matches "${VAR:-default}" in docker compose image fields.
 // Compiled once at package init to avoid per-call overhead.
 var extractDefaultImageRe = regexp.MustCompile(`\$\{[^}:-]+:-([^}]+)\}`)
+
 // docker compose override YAML file.  Only the fields that are needed for a build
 // override are included.
 type dockerfileComposeOverride struct {

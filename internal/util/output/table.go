@@ -22,8 +22,8 @@ import (
 )
 
 type Table struct {
-	Headings        []interface{}
-	Rows            [][]interface{}
+	Headings []interface{}
+	Rows     [][]interface{}
 	// TrimSpace trims leading and trailing whitespace from every cell before rendering.
 	TrimSpace bool
 	// ColumnMaxWidths holds the maximum character width for each column (0 = unlimited).

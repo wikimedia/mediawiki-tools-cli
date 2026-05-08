@@ -27,8 +27,8 @@ var (
 	green   = color.New(color.FgGreen, color.Bold)
 	cyan    = color.New(color.FgCyan)
 
-	yellowPlain  = color.New(color.FgYellow)
-	whitePlain   = color.New(color.FgWhite)
+	yellowPlain = color.New(color.FgYellow)
+	whitePlain  = color.New(color.FgWhite)
 )
 
 // termWidth returns the terminal width, defaulting to 80.

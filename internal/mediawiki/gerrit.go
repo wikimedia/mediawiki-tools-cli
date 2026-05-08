@@ -54,12 +54,12 @@ func buildGerritQuery(changeRef, preferredBranch string) string {
 }
 
 func describeAmbiguousChanges(changes []gerrit.ChangeInfo) string {
-	max := 5
-	if len(changes) < max {
-		max = len(changes)
+	limit := 5
+	if len(changes) < limit {
+		limit = len(changes)
 	}
-	parts := make([]string, 0, max)
-	for i := 0; i < max; i++ {
+	parts := make([]string, 0, limit)
+	for i := 0; i < limit; i++ {
 		c := changes[i]
 		parts = append(parts, fmt.Sprintf("%d (%s|%s|%s)", c.Number, c.Project, c.Branch, c.Status))
 	}
