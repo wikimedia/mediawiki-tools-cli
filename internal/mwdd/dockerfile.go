@@ -111,14 +111,23 @@ func starterDockerfileContent(service string) string {
 %s
 
 # Example: uncomment the lines below to install extra packages.
+# # 1. Switch to root user to install packages
 # USER root
+#
+# # 2. Remove the Sury PHP repository completely due to expired keys
+# RUN rm -f /etc/apt/sources.list.d/php.list \
+#     && rm -f /etc/apt/sources.list.d/*sury*.list
+#
+# # 3. Install extra packages (update the list as needed)
 # RUN apt-get update \
 #     && apt-get install -y --no-install-recommends \
-#         wikidiff2 \
+#         php-wikidiff2 \
 #         djvulibre-bin \
 #         ffmpeg \
 #         netpbm \
 #     && rm -rf /var/lib/apt/lists/*
+#
+# # 4. Switch back to the default non-root user
 # USER www-data
 `, service, service, fromLine)
 }
