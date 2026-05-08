@@ -17,6 +17,13 @@ import (
 //go:embed phab.py
 var phabScript []byte
 
+// setExitCode stores the given integer exit code in the root command annotations
+// so that cmd/root.go can call os.Exit with the correct code.
+func setExitCode(cmd *cobra.Command, code int) {
+	cmd.Root().Annotations = make(map[string]string)
+	cmd.Root().Annotations["exitCode"] = strconv.Itoa(code)
+}
+
 // NewPhabricatorCmd returns the "phabricator" cobra command.
 func NewPhabricatorCmd() *cobra.Command {
 	return &cobra.Command{
@@ -34,27 +41,28 @@ Requires python3 to be available in PATH.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if !lookpath.HasExecutable("python3") {
 				logrus.Error("python3 is required to use this command but was not found in PATH")
-				cmd.Root().Annotations = make(map[string]string)
-				cmd.Root().Annotations["exitCode"] = "1"
+				setExitCode(cmd, 1)
 				return
 			}
 
 			tmp, err := os.CreateTemp("", "phab-*.py")
 			if err != nil {
 				logrus.Errorf("failed to create temporary script file: %s", err)
-				cmd.Root().Annotations = make(map[string]string)
-				cmd.Root().Annotations["exitCode"] = "1"
+				setExitCode(cmd, 1)
 				return
 			}
 			defer os.Remove(tmp.Name())
 
 			if _, err := tmp.Write(phabScript); err != nil {
 				logrus.Errorf("failed to write temporary script file: %s", err)
-				cmd.Root().Annotations = make(map[string]string)
-				cmd.Root().Annotations["exitCode"] = "1"
+				setExitCode(cmd, 1)
 				return
 			}
-			tmp.Close()
+			if err := tmp.Close(); err != nil {
+				logrus.Errorf("failed to close temporary script file: %s", err)
+				setExitCode(cmd, 1)
+				return
+			}
 
 			c := exec.Command("python3", append([]string{tmp.Name()}, args...)...) // #nosec G204
 			c.Stdin = os.Stdin
@@ -63,12 +71,10 @@ Requires python3 to be available in PATH.`,
 
 			if err := c.Run(); err != nil {
 				if exitErr, ok := err.(*exec.ExitError); ok {
-					cmd.Root().Annotations = make(map[string]string)
-					cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitErr.ExitCode())
+					setExitCode(cmd, exitErr.ExitCode())
 				} else {
 					logrus.Errorf("failed to run phabricator command: %s", err)
-					cmd.Root().Annotations = make(map[string]string)
-					cmd.Root().Annotations["exitCode"] = "1"
+					setExitCode(cmd, 1)
 				}
 			}
 		},
