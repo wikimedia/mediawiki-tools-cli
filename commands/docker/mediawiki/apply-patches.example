@@ -2,4 +2,7 @@ apply-patches --change 1275105
 apply-patches --change 1275105 --change 1275106
 apply-patches --change 1275105 --mode checkout
 apply-patches --change 1275105 --mode cherry-pick
+apply-patches --change 1275105 --with-deps
+apply-patches --change 1275105 --start-branch wmf/1.47.0-wmf.1
+apply-patches --change 1275105 --with-deps --clone-missing
 apply-patches --change 1275105 --dry-run

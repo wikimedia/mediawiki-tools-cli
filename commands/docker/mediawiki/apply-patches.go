@@ -32,6 +32,9 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 			changes, _ := cmd.Flags().GetStringSlice("change")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 			mode, _ := cmd.Flags().GetString("mode")
+			startBranch, _ := cmd.Flags().GetString("start-branch")
+			withDeps, _ := cmd.Flags().GetBool("with-deps")
+			cloneMissing, _ := cmd.Flags().GetBool("clone-missing")
 
 			if len(changes) == 0 {
 				return fmt.Errorf("at least one --change is required")
@@ -44,9 +47,12 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 			cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_apply-patches", cli.VersionDetails.Version)
 
 			opts := mediawiki.ApplyPatchOpts{
-				ChangeIDs: changes,
-				DryRun:    dryRun,
-				Mode:      mode,
+				ChangeIDs:        changes,
+				DryRun:           dryRun,
+				Mode:             mode,
+				WithDependencies: withDeps,
+				CloneMissing:     cloneMissing,
+				StartBranch:      startBranch,
 			}
 
 			return thisMw.ApplyGerritPatches(cmd.Context(), opts)
@@ -57,6 +63,9 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 
 	cmd.Flags().StringSlice("change", []string{}, "Gerrit change number(s) to apply (repeatable)")
 	cmd.Flags().String("mode", "checkout", "How to apply the fetched patchset: checkout or cherry-pick")
+	cmd.Flags().String("start-branch", "master", "Branch context used to resolve non-unique Change-Id values in Depends-On chains")
+	cmd.Flags().Bool("with-deps", true, "Resolve and apply Depends-On changes before the requested change(s)")
+	cmd.Flags().Bool("clone-missing", false, "Clone missing repositories automatically when needed")
 	cmd.Flags().Bool("dry-run", false, "Show what would be done without actually doing it")
 
 	return cmd
