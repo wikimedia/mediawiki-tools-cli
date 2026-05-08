@@ -14,41 +14,7 @@ import (
 )
 
 func NewCodeSearchSearchCmd() *cobra.Command {
-	out := output.Output{
-		TableBinding: &output.TableBinding{
-			Headings: []string{"Repository", "File", "Line", "Match"},
-			ProcessObjects: func(objects interface{}, table *output.Table) {
-				typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
-				err := mapstructure.Decode(objects, &typedObject)
-				if err != nil {
-					panic(err)
-				}
-				for repository, result := range typedObject {
-					for _, fileMatch := range result.Matches {
-						for _, lineMatch := range fileMatch.Matches {
-							table.AddRow(repository, fileMatch.Filename, lineMatch.LineNumber, lineMatch.Line)
-						}
-					}
-				}
-			},
-		},
-		AckBinding: func(objects interface{}, ack *output.Ack) {
-			typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
-			err := mapstructure.Decode(objects, &typedObject)
-			if err != nil {
-				panic(err)
-			}
-			for repository, result := range typedObject {
-				for _, fileMatch := range result.Matches {
-					sectionName := repository + " " + fileMatch.Filename
-					ack.InitSection(sectionName)
-					for _, lineMatch := range fileMatch.Matches {
-						ack.AddItem(sectionName, fmt.Sprintf("%d:%s", lineMatch.LineNumber, lineMatch.Line))
-					}
-				}
-			}
-		},
-	}
+	out := output.Output{}
 
 	var searchType string
 	var files string
@@ -62,7 +28,9 @@ func NewCodeSearchSearchCmd() *cobra.Command {
 search addshore
 search --type extensions --repos "Extension:Wikibase" addshore
 search --files ".*\.md" addshore
-search --output ack --files ".*\.md" addshore
+search --output pretty --files ".*\.md" addshore
+search --output json addshore
+search --output jq --format '.[] | .Matches' addshore
 `),
 		Short: "Search using codesearch",
 		Args:  cobra.MinimumNArgs(1),
@@ -99,7 +67,50 @@ search --output ack --files ".*\.md" addshore
 			return nil
 		},
 	}
-	out.AddFlags(cmd, output.TableType, output.WebType)
+
+	out.AddFlagsWithOpts(
+		cmd,
+		output.WithDefaultTTY(output.PrettyType),
+		output.WithDefaultPipe(output.JSONType),
+		output.WithAdditionalTypes(output.WebType),
+		output.WithTableBinding(&output.TableBinding{
+			Headings: []string{"Repository", "File", "Line", "Match"},
+			TrimSpace: true,
+			// Limit the Match column to 80 chars so the table stays readable
+			ColumnMaxWidths: []int{0, 0, 0, 80},
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
+				err := mapstructure.Decode(objects, &typedObject)
+				if err != nil {
+					panic(err)
+				}
+				for repository, result := range typedObject {
+					for _, fileMatch := range result.Matches {
+						for _, lineMatch := range fileMatch.Matches {
+							table.AddRow(repository, fileMatch.Filename, lineMatch.LineNumber, lineMatch.Line)
+						}
+					}
+				}
+			},
+		}),
+		output.WithPrettyBinding(func(objects interface{}, pretty *output.Pretty) {
+			typedObject := make(map[string]codesearch.ResultObject, len(objects.(map[interface{}]interface{})))
+			err := mapstructure.Decode(objects, &typedObject)
+			if err != nil {
+				panic(err)
+			}
+			for repository, result := range typedObject {
+				for _, fileMatch := range result.Matches {
+					sectionName := repository + " > " + fileMatch.Filename
+					pretty.InitSection(sectionName)
+					for _, lineMatch := range fileMatch.Matches {
+						pretty.AddItem(sectionName, fmt.Sprintf("%d:%s", lineMatch.LineNumber, lineMatch.Line))
+					}
+				}
+			}
+		}),
+	)
+
 	// TODO automate generation of this list?
 	// Type can currently be updated from https://github.com/wikimedia/labs-codesearch/blob/master/manage.sh
 	// This would probably be a "tool" that is periodically run, to update a set of strings to be included here. (as there is no API spec for this)

@@ -1,2 +1,4 @@
 search unicorn
 search upload --type="web app"
+search unicorn --output json
+search unicorn --output jq --format '.[] | .Name'

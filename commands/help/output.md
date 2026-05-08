@@ -55,17 +55,18 @@ For example, `mwdev version --output=json --format=.Version`
 "latest"
 ```
 
-## Template
+## JQ
 
-Template needs a format right away in order to output.
+The `jq` output type filters and transforms output using [jq](https://jqlang.org/) syntax.
+A `--format` filter must be provided.
 
-`mw version --output=template --format={{.}}` produces the following data.
+`mw version --output=jq --format='.'` produces the following data.
 
+```json
+{"BuildDate":"2022-10-07T15:08:29Z","Version":"latest"}
 ```
-map[BuildDate:2022-10-07T15:08:29Z Version:latest]
-```
 
-This can be manipulated through gotmpl syntax, for example `mw version --output=template --format={{.Version}}`
+String values are printed without quotes (like `jq -r`), for example `mw version --output=jq --format='.Version'`
 
 ```
 latest

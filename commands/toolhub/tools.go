@@ -31,20 +31,15 @@ func toolOutput() output.Output {
 	return output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Type", "URL"},
-			ProcessObjects: func(objects interface{}, table *output.Table) {
-				objMap, ok := objects.(map[interface{}]interface{})
-				if ok {
-					for _, object := range objMap {
-						typedObject, ok := object.(toolhub.Tool)
-						if !ok {
-							continue
-						}
-						table.AddRowS(typedObject.Name, typedObject.Type, typedObject.URL)
-					}
+			RowExtractor: func(object interface{}) []string {
+				typedObject, ok := object.(toolhub.Tool)
+				if !ok {
+					return nil
 				}
+				return []string{typedObject.Name, typedObject.Type, typedObject.URL}
 			},
 		},
-		AckBinding: func(objects interface{}, ack *output.Ack) {
+		PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
 			objMap, ok := objects.(map[interface{}]interface{})
 			if ok {
 				for _, object := range objMap {
@@ -52,7 +47,7 @@ func toolOutput() output.Output {
 					if !ok {
 						continue
 					}
-					ack.AddItem(typedObject.Type, typedObject.Name+" ("+typedObject.Type+") @ "+typedObject.URL)
+					pretty.AddItem(typedObject.Type, typedObject.Name+" @ "+typedObject.URL)
 				}
 			}
 		},
@@ -91,7 +86,7 @@ func NewToolHubToolsListCmd() *cobra.Command {
 			out.Print(cmd, resultsToObjects(tools.Results, toolType))
 		},
 	}
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
 	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
 	return cmd
 }
@@ -120,7 +115,7 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 			out.Print(cmd, resultsToObjects(tools.Results, toolType))
 		},
 	}
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
 	cmd.Flags().StringVarP(&toolType, "type", "t", "*", "Type of tool: web app┃desktop app┃bot┃gadget┃user script┃command line tool┃coding framework┃other|\"\"")
 	return cmd
 }

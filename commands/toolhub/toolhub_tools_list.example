@@ -1,3 +1,5 @@
 list
 list --type="web app"
 list --type=""
+list --output json
+list --output jq --format '.[] | .Name'

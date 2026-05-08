@@ -159,7 +159,7 @@ func NewAuthListCmd() *cobra.Command {
 				}
 			},
 		},
-		AckBinding: func(objects interface{}, ack *output.Ack) {
+		PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
 			objMap, ok := objects.(map[string]interface{})
 			if ok {
 				for name, object := range objMap {
@@ -167,7 +167,7 @@ func NewAuthListCmd() *cobra.Command {
 					if !ok {
 						cred = "(no credential ID)"
 					}
-					ack.AddItem(cred, name+" ("+cred+")")
+					pretty.AddItem("Configured projects", name+": "+cred)
 				}
 			}
 		},
@@ -195,6 +195,6 @@ func NewAuthListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
 	return cmd
 }
