@@ -23,7 +23,9 @@ func dockerfileComposeFilePath(directory, service string) string {
 	return filepath.Join(directory, "custom-dockerfile-"+service+".yml")
 }
 
-// dockerfileComposeOverride is the structure marshalled into the auto-generated
+// extractDefaultImageRe matches "${VAR:-default}" in docker compose image fields.
+// Compiled once at package init to avoid per-call overhead.
+var extractDefaultImageRe = regexp.MustCompile(`\$\{[^}:-]+:-([^}]+)\}`)
 // docker compose override YAML file.  Only the fields that are needed for a build
 // override are included.
 type dockerfileComposeOverride struct {
@@ -145,8 +147,7 @@ func defaultImageForService(service string) string {
 
 	image := svc.Image
 	// Extract the default from "${VAR:-default}" syntax used in compose files.
-	re := regexp.MustCompile(`\$\{[^}:-]+:-([^}]+)\}`)
-	if matches := re.FindStringSubmatch(image); len(matches) > 1 {
+	if matches := extractDefaultImageRe.FindStringSubmatch(image); len(matches) > 1 {
 		return matches[1]
 	}
 	return image
