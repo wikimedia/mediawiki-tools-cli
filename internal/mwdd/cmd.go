@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
 	osexec "os/exec"
 	"strconv"
 	"strings"
@@ -87,6 +88,7 @@ func NewServiceCreateCmd(name string, onCreateText string) *cobra.Command {
 
 func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 	var forceRecreate bool
+	var build bool
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create the containers",
@@ -98,6 +100,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{
 				Detached:      true,
 				ForceRecreate: forceRecreate,
+				Build:         build,
 			})
 			if err != nil {
 				return err
@@ -111,6 +114,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Control"
 	cmd.Flags().BoolVar(&forceRecreate, "force-recreate", false, "Force recreation of containers")
+	cmd.Flags().BoolVar(&build, "build", false, "Build images before starting containers")
 	return cmd
 }
 
@@ -413,6 +417,179 @@ func NewImageCmdP(service *string) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(reset)
+
+	cmd.AddCommand(NewImageDockerfileCmdP(service))
+
+	return cmd
+}
+
+func NewImageDockerfileCmd(service string) *cobra.Command {
+	return NewImageDockerfileCmdP(&service)
+}
+
+// NewImageDockerfileCmdP returns the "image dockerfile" sub-command that lets users
+// build a service image from a custom Dockerfile instead of pulling a pre-built one.
+//
+// Three options are available for how a service image is sourced:
+//  1. Default   – no override; the image specified in the compose file is used.
+//  2. Custom image (image set) – a pre-built image is pulled from a registry.
+//  3. Custom Dockerfile (image dockerfile set) – an image is built locally from a
+//     Dockerfile supplied by the user.
+func NewImageDockerfileCmdP(service *string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dockerfile",
+		Short: "Build the service image from a custom Dockerfile",
+		Long: `Manage a custom Dockerfile used to build the service image locally.
+
+Three options exist for sourcing a service image:
+
+  1. Default          Use the image bundled with the compose file (no override).
+  2. Custom image     Pull a pre-built image: ` + "`image set <image>`" + `
+  3. Custom Dockerfile  Build an image locally from your own Dockerfile: ` + "`image dockerfile set <path>`" + `
+
+When a Dockerfile is set, a docker compose override file is generated automatically.
+Running "create" (or "docker compose up") will build the image before starting the
+service.  Use "image dockerfile reset" to go back to the default image.`,
+	}
+
+	set := &cobra.Command{
+		Use:   "set [path]",
+		Short: "Activate a custom Dockerfile for this service",
+		Long: `Activate a custom Dockerfile for this service.
+
+If no path is provided, a starter Dockerfile is created in the environment
+working directory (` + "`Dockerfile.<service>`" + `) and activated automatically.
+Edit that file to customise the image (e.g. add packages).
+
+If a path to an existing Dockerfile is provided, that file is used instead.
+
+Either way, a docker compose override file is written so that Docker Compose
+will build the image the next time the service is created or recreated.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+
+			var dockerfilePath string
+			if len(args) == 1 {
+				// Use the caller-supplied path – it must already exist.
+				dockerfilePath = args[0]
+				if _, err := os.Stat(dockerfilePath); err != nil {
+					return fmt.Errorf("cannot access dockerfile %s: %w", dockerfilePath, err)
+				}
+			} else {
+				// Create (or reuse) a managed Dockerfile in the working directory.
+				dockerfilePath = defaultDockerfilePath(DefaultForUser().Directory(), dereferencedService)
+				if err := createStarterDockerfileIfNotExists(dockerfilePath, dereferencedService); err != nil {
+					return fmt.Errorf("failed to create starter dockerfile: %w", err)
+				}
+			}
+
+			DefaultForUser().Env().Set(dockerfileEnvKey(dereferencedService), dockerfilePath)
+			if err := writeDockerfileComposeFile(DefaultForUser().Directory(), dereferencedService, dockerfilePath); err != nil {
+				return fmt.Errorf("failed to write compose override file: %w", err)
+			}
+			fmt.Printf("Custom Dockerfile activated for service %q.\n", dereferencedService)
+			fmt.Printf("Dockerfile: %s\n", dockerfilePath)
+			fmt.Printf("Run 'mw docker %s create --force-recreate' to rebuild with the new image.\n", dereferencedService)
+			fmt.Printf("Run 'mw docker %s image dockerfile reset' to revert to the default image.\n", dereferencedService)
+			return nil
+		},
+	}
+	cmd.AddCommand(set)
+
+	dockerfileGet := &cobra.Command{
+		Use:   "get",
+		Short: "Show the path of the Dockerfile currently configured for this service",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if path == "" {
+				fmt.Println("No custom Dockerfile set (using default image)")
+			} else {
+				fmt.Println(path)
+			}
+		},
+	}
+	cmd.AddCommand(dockerfileGet)
+
+	dockerfileCat := &cobra.Command{
+		Use:   "cat",
+		Short: "Print the contents of the configured Dockerfile",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if path == "" {
+				return fmt.Errorf("no custom Dockerfile is set for service %q", dereferencedService)
+			}
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("failed to read dockerfile %s: %w", path, err)
+			}
+			fmt.Print(string(content))
+			return nil
+		},
+	}
+	cmd.AddCommand(dockerfileCat)
+
+	dockerfileEdit := &cobra.Command{
+		Use:   "edit",
+		Short: "Open the configured Dockerfile in your editor",
+		Long: `Open the configured Dockerfile in the editor specified by $VISUAL or $EDITOR.
+
+If neither variable is set, vi is used as a fallback.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if path == "" {
+				return fmt.Errorf("no custom Dockerfile is set for service %q — run 'image dockerfile set' first", dereferencedService)
+			}
+			editor := os.Getenv("VISUAL")
+			if editor == "" {
+				editor = os.Getenv("EDITOR")
+			}
+			if editor == "" {
+				editor = "vi"
+			}
+			editorCmd := osexec.Command(editor, path) // #nosec G204
+			editorCmd.Stdout = os.Stdout
+			editorCmd.Stdin = os.Stdin
+			editorCmd.Stderr = os.Stderr
+			if err := editorCmd.Run(); err != nil {
+				return fmt.Errorf("editor exited with error: %w", err)
+			}
+			return nil
+		},
+	}
+	cmd.AddCommand(dockerfileEdit)
+
+	dockerfileReset := &cobra.Command{
+		Use:   "reset",
+		Short: "Remove the custom Dockerfile override and revert to the default image",
+		Long: `Remove the custom Dockerfile configuration and revert to the default image.
+
+The compose override file is removed and the Dockerfile setting is cleared from
+the environment.  Any Dockerfile.* file created in the working directory is left
+in place so you can reactivate it later with "image dockerfile set".`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			DefaultForUser().Env().Delete(dockerfileEnvKey(dereferencedService))
+			if err := removeDockerfileComposeFile(DefaultForUser().Directory(), dereferencedService); err != nil {
+				return fmt.Errorf("failed to remove compose override file: %w", err)
+			}
+			fmt.Printf("Custom Dockerfile override removed for service %q. The default image will be used.\n", dereferencedService)
+			return nil
+		},
+	}
+	cmd.AddCommand(dockerfileReset)
 
 	return cmd
 }

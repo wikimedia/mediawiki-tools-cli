@@ -13,6 +13,7 @@ import (
 type UpOptions struct {
 	Detached      bool
 	ForceRecreate bool
+	Build         bool
 }
 
 func (p Project) Up(services []string, opts UpOptions) error {
@@ -22,6 +23,9 @@ func (p Project) Up(services []string, opts UpOptions) error {
 	}
 	if opts.ForceRecreate {
 		args = append(args, "--force-recreate")
+	}
+	if opts.Build {
+		args = append(args, "--build")
 	}
 	args = append(args, services...)
 	return p.Command(append([]string{"up"}, args...)).RunAttached()
