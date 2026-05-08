@@ -189,7 +189,10 @@ func addReadCmd(parent *cobra.Command, site *string) {
 }
 
 func addShellCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(&cobra.Command{
+	var project string
+	var task string
+
+	c := &cobra.Command{
 		Use:     "shell",
 		Aliases: []string{"sh"},
 		Short:   "Start an interactive Phabricator shell",
@@ -199,11 +202,23 @@ func addShellCmd(parent *cobra.Command, site *string) {
 			if err != nil {
 				return err
 			}
-			err = runShell(client, cfg)
+			startTask := task
+			if task != "" {
+				validated, err := requireTaskArg([]string{task})
+				if err != nil {
+					return err
+				}
+				startTask = validated
+			}
+			err = runShell(client, cfg, project, startTask)
 			client.cache.flush()
 			return err
 		},
-	})
+	}
+
+	c.Flags().StringVarP(&project, "project", "p", "", "Project to start shell in (overrides default_project)")
+	c.Flags().StringVarP(&task, "task", "t", "", "Task to preselect (e.g. T12345)")
+	parent.AddCommand(c)
 }
 
 func addMVCmd(parent *cobra.Command, site *string) {

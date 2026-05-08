@@ -521,6 +521,47 @@ func (c *conduitClient) listTasksInColumn(projectPHID, columnPHID string, limit 
 	return results, nil
 }
 
+// listTasksGlobal lists tasks across the whole instance.
+// If limit is 0, defaults to 100 to avoid dumping too much output.
+func (c *conduitClient) listTasksGlobal(limit int) ([]taskSummary, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	result, err := c.post("maniphest.search", map[string]interface{}{
+		"limit": limit,
+		"constraints": map[string]interface{}{
+			"statuses": []string{"open", "stalled", "progress"},
+		},
+		"order": "updated",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var sr searchResult
+	if err := json.Unmarshal(result, &sr); err != nil {
+		return nil, err
+	}
+
+	var tasks []phabTask
+	if err := json.Unmarshal(sr.Data, &tasks); err != nil {
+		return nil, err
+	}
+
+	results := make([]taskSummary, 0, len(tasks))
+	for _, t := range tasks {
+		results = append(results, taskSummary{
+			ID:           fmt.Sprintf("T%d", t.ID),
+			Title:        t.Fields.Name,
+			Priority:     t.Fields.Priority.Name,
+			DateModified: t.Fields.DateModified,
+		})
+	}
+
+	return results, nil
+}
+
 // ---- Transactions ----
 
 // getTransactions fetches all transactions for a task PHID.

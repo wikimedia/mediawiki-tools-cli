@@ -21,36 +21,43 @@ type shellState struct {
 }
 
 // runShell starts the interactive REPL.
-func runShell(client *conduitClient, cfg *PhabConfig) error {
-	if cfg.DefaultProject == "" {
-		return fmt.Errorf("no default_project configured; set it in phab.cfg")
+func runShell(client *conduitClient, cfg *PhabConfig, startProject string, startTask string) error {
+	projectName := strings.TrimSpace(startProject)
+	if projectName == "" {
+		projectName = strings.TrimSpace(cfg.DefaultProject)
 	}
 
-	projectPHID, err := client.lookupProjectPHID(cfg.DefaultProject)
-	if err != nil {
-		return fmt.Errorf("looking up project %q: %w", cfg.DefaultProject, err)
-	}
+	projectPHID := ""
+	columns := map[string]string{}
+	if projectName != "" {
+		var err error
+		projectPHID, err = client.lookupProjectPHID(projectName)
+		if err != nil {
+			return fmt.Errorf("looking up project %q: %w", projectName, err)
+		}
 
-	columns, err := client.getColumns(projectPHID)
-	if err != nil {
-		return fmt.Errorf("fetching columns: %w", err)
+		columns, err = client.getColumns(projectPHID)
+		if err != nil {
+			return fmt.Errorf("fetching columns: %w", err)
+		}
 	}
 
 	state := &shellState{
 		client:      client,
 		config:      cfg,
 		projectPHID: projectPHID,
-		projectName: cfg.DefaultProject,
+		projectName: projectName,
 		columns:     columns,
+		currentTask: strings.ToUpper(strings.TrimSpace(startTask)),
 	}
 
-	// Handle SIGINT gracefully: print newline and continue.
+	// Handle SIGINT as shell exit.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT)
 	go func() {
-		for range sigCh {
-			fmt.Println()
-		}
+		<-sigCh
+		fmt.Println("\nbye")
+		os.Exit(0)
 	}()
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -83,7 +90,11 @@ var errExit = fmt.Errorf("exit")
 func printPrompt(s *shellState) {
 	cyan.Printf("%s", s.config.Username)
 	fmt.Printf("@")
-	white.Printf("%s", s.projectName)
+	if s.projectName == "" {
+		white.Printf("(no-project)")
+	} else {
+		white.Printf("%s", s.projectName)
+	}
 	if s.currentColumn != "" {
 		fmt.Printf("/")
 		white.Printf("%s", s.currentColumn)
@@ -93,6 +104,13 @@ func printPrompt(s *shellState) {
 		}
 	}
 	fmt.Printf(" \u276F ")
+}
+
+func requireProjectSelected(s *shellState, action string) error {
+	if s.projectPHID == "" {
+		return fmt.Errorf("no project selected; use --project to start shell in a project before using %s", action)
+	}
+	return nil
 }
 
 func handleShellLine(s *shellState, line string) error {
@@ -146,6 +164,18 @@ func handleShellLine(s *shellState, line string) error {
 
 // shellLS — list columns or tasks in current/named column.
 func shellLS(s *shellState, args []string) error {
+	if s.projectPHID == "" {
+		if len(args) > 0 {
+			return fmt.Errorf("no project selected; use cd <project> first")
+		}
+		tasks, err := s.client.listTasksGlobal(100)
+		if err != nil {
+			return err
+		}
+		renderTaskList(tasks)
+		return nil
+	}
+
 	if len(args) == 0 {
 		if s.currentColumn == "" {
 			// List columns
@@ -191,6 +221,10 @@ func shellCD(s *shellState, args []string) error {
 			s.currentTask = ""
 		} else if s.currentColumn != "" {
 			s.currentColumn = ""
+		} else if s.projectPHID != "" {
+			s.projectPHID = ""
+			s.projectName = ""
+			s.columns = map[string]string{}
 		}
 		return nil
 	}
@@ -201,7 +235,32 @@ func shellCD(s *shellState, args []string) error {
 		return nil
 	}
 
-	// Otherwise treat as column name
+	// If no project yet, treat target as project name.
+	if s.projectPHID == "" {
+		projectPHID, err := s.client.lookupProjectPHID(target)
+		if err != nil {
+			return fmt.Errorf("project not found: %s", target)
+		}
+		columns, err := s.client.getColumns(projectPHID)
+		if err != nil {
+			return err
+		}
+		projectName := strings.TrimPrefix(strings.TrimSpace(target), "#")
+		if projects, err := s.client.getProjects([]string{projectPHID}); err == nil {
+			if name, ok := projects[projectPHID]; ok && strings.TrimSpace(name) != "" {
+				projectName = name
+			}
+		}
+
+		s.projectPHID = projectPHID
+		s.projectName = projectName
+		s.columns = columns
+		s.currentColumn = ""
+		s.currentTask = ""
+		return nil
+	}
+
+	// Otherwise treat as column name in current project.
 	colName := normaliseColumnKey(target)
 	if _, ok := s.columns[colName]; !ok {
 		return fmt.Errorf("column not found: %s", target)
@@ -258,6 +317,10 @@ func shellComments(s *shellState, args []string) error {
 
 // shellMV — move task to another column.
 func shellMV(s *shellState, args []string) error {
+	if err := requireProjectSelected(s, "mv"); err != nil {
+		return err
+	}
+
 	if len(args) < 1 {
 		return fmt.Errorf("usage: mv <column> [task]")
 	}
