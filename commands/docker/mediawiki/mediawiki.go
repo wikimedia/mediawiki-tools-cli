@@ -129,6 +129,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd.AddCommand(mwdd.NewServiceStartCmd("mediawiki"))
 	cmd.AddCommand(NewMediaWikiInstallCmd())
 	cmd.AddCommand(NewMediaWikiGetCodeCmd())
+	cmd.AddCommand(NewMediaWikiApplyPatchesCmd())
 	cmd.AddCommand(NewMediaWikiComposerCmd())
 	cmd.AddCommand(NewMediaWikiJobRunnerCmd())
 	cmd.AddCommand(NewMediaWikiExecCmd())
