@@ -497,7 +497,7 @@ will build the image the next time the service is created or recreated.`,
 
 	dockerfileGet := &cobra.Command{
 		Use:   "get",
-		Short: "Show the custom Dockerfile currently configured for this service",
+		Short: "Show the path of the Dockerfile currently configured for this service",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedService := *service
@@ -512,21 +512,53 @@ will build the image the next time the service is created or recreated.`,
 	}
 	cmd.AddCommand(dockerfileGet)
 
-	dockerfileWhere := &cobra.Command{
-		Use:   "where",
-		Short: "Show the path of the managed Dockerfile in the working directory",
-		Long: `Show the path where the CLI will create a managed Dockerfile for this service.
-
-This is the path used when running "image dockerfile set" without an explicit
-Dockerfile path argument.  The file may not exist yet if "set" has not been run.`,
-		Args: cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+	dockerfileCat := &cobra.Command{
+		Use:   "cat",
+		Short: "Print the contents of the configured Dockerfile",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
 			DefaultForUser().EnsureReady()
-			fmt.Println(defaultDockerfilePath(DefaultForUser().Directory(), dereferencedService))
+			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if path == "" {
+				return fmt.Errorf("no custom Dockerfile is set for service %q", dereferencedService)
+			}
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("failed to read dockerfile %s: %w", path, err)
+			}
+			fmt.Print(string(content))
+			return nil
 		},
 	}
-	cmd.AddCommand(dockerfileWhere)
+	cmd.AddCommand(dockerfileCat)
+
+	dockerfileEdit := &cobra.Command{
+		Use:   "edit",
+		Short: "Open the configured Dockerfile in your editor",
+		Long: `Open the configured Dockerfile in the editor specified by $VISUAL or $EDITOR.
+
+If neither variable is set, vi is used as a fallback.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dereferencedService := *service
+			DefaultForUser().EnsureReady()
+			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if path == "" {
+				return fmt.Errorf("no custom Dockerfile is set for service %q — run 'image dockerfile set' first", dereferencedService)
+			}
+			editor := os.Getenv("VISUAL")
+			if editor == "" {
+				editor = os.Getenv("EDITOR")
+			}
+			if editor == "" {
+				editor = "vi"
+			}
+			exec.RunTTYCommand(osexec.Command(editor, path)) // #nosec G204
+			return nil
+		},
+	}
+	cmd.AddCommand(dockerfileEdit)
 
 	dockerfileReset := &cobra.Command{
 		Use:   "reset",

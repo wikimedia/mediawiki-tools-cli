@@ -119,6 +119,7 @@ func starterDockerfileContent(service string) string {
 #         ffmpeg \
 #         netpbm \
 #     && rm -rf /var/lib/apt/lists/*
+# USER www-data
 `, service, service, fromLine)
 }
 

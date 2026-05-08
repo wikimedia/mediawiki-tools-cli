@@ -97,6 +97,9 @@ func TestCreateStarterDockerfileIfNotExists_Creates(t *testing.T) {
 	if !strings.Contains(got, "FROM ") {
 		t.Errorf("starter Dockerfile has no FROM line; got:\n%s", got)
 	}
+	if !strings.Contains(got, "USER www-data") {
+		t.Errorf("starter Dockerfile does not restore user with 'USER www-data'; got:\n%s", got)
+	}
 }
 
 func TestCreateStarterDockerfileIfNotExists_NoOverwrite(t *testing.T) {
