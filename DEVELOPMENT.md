@@ -1,0 +1,151 @@
+# Development Guide
+
+This document provides detailed information for developers who want to contribute to the `mwcli` project.
+
+## Environment Setup
+
+### Requirements
+
+- [Go](https://go.dev/) 1.26+ installed (matching the version in `go.mod`).
+- [bingo](https://github.com/bwplotka/bingo) tool (used for managing Go-based build tools).
+
+### Initial Setup
+
+1.  **Clone the repository**:
+    It is recommended to clone this repository to your `$GOPATH` (usually `~/go`), although modern Go versions support development outside of `$GOPATH`.
+    ```sh
+    mkdir -p ~/go/src/gitlab.wikimedia.org/repos/releng
+    cd ~/go/src/gitlab.wikimedia.org/repos/releng
+    git clone https://gitlab.wikimedia.org/repos/releng/cli.git
+    cd cli
+    ```
+
+2.  **Install `bingo`**:
+    ```sh
+    go install github.com/bwplotka/bingo@v0.9.0
+    ```
+
+3.  **Install project tools**:
+    Use `bingo` to install all the tools required for development (linting, code generation, etc.).
+    ```sh
+    bingo get
+    ```
+
+## Building
+
+To build the `mw` binary:
+
+```sh
+make build
+```
+
+The resulting binary will be located at `./bin/mw`.
+
+### Development Alias
+
+We recommend creating a development alias to run your locally built version of `mw`:
+
+```sh
+alias mwdev='$(pwd)/bin/mw'
+```
+
+### Makefile commands
+
+Many Makefile commands exist that you might find useful:
+
+- `make build`: Builds a new binary.
+- `make release`: Builds multiple release binaries to `_release`.
+- `make test`: Run unit tests.
+- `make recipe-validate`: Validate all checked-in `mount/dev/recipes/*.yml` files.
+- `make lint`: Run basic go linting.
+- `make linti`: Run custom mwcli command linting (lint internal).
+- `make fix`: Run basic lint fixes.
+- `make vet`: Run `go vet`.
+- `make generate`: Run code generation tools.
+- `make docs`: Generate documentation.
+
+## Project Structure
+
+The project is organized into several key directories:
+
+- `cmd/`: Creation and execution of the top level Cobra command.
+- `commands/`: Implementation of various CLI commands, grouped by sub-system.
+- `internal/`: Private library code.
+    - `internal/cli/`: High level things used across the CLI.
+    - `internal/cmd/`: Packages for commands that make up part of the CLI, binding to cobra.
+    - `internal/cmdgloss/`: Glossy output for users.
+    - `internal/codesearch/`: Client for interacting with codesearch.wikimedia.org.
+    - `internal/config/`: CLI wide configuration.
+    - `internal/eventlogging`: Client to submit events to Wikimedia Event Logging.
+    - `internal/exec`: Wrapper around `exec` for easily running commands and capturing output.
+    - `internal/gitlab`: Client for interacting with gitlab.wikimedia.org.
+    - `internal/mediawiki`: Interact with a MediaWiki installation directory on disk.
+    - `internal/mwdd`: Package for the docker-compose powered development environment.
+    - `internal/toolhub`: Client for interacting with toolhub.wikimedia.org.
+    - `internal/updater`: Code for updating the CLI.
+    - `internal/util`: DEPRECATED: Independent packages (slowly being moved to `pkg/`).
+- `pkg/`: Independently useful packages that do not bind to mwcli code or concepts.
+- `mount/`: Files that are mounted or embedded into the environment (e.g., dev recipes).
+- `tests/`: Integration tests that are run as part of CI.
+- `tools/`: Various tools to make working with this repository easier (code-gen, docs-gen, etc.).
+
+## Common Development Tasks
+
+### Adding a New Command
+
+1.  Create a new directory or file under `commands/`.
+2.  Define your `cobra.Command`.
+3.  Register the command in `cmd/root.go` by adding it to the `AddCommand` list.
+
+### Running Tests
+
+- **Unit Tests**:
+  ```sh
+  make test
+  ```
+- **Integration Tests**:
+  Located in the `tests/` directory.
+  ```sh
+  ./tests/test-general.sh
+  ```
+  For the dev environment:
+  ```sh
+  ./tests/test-docker-general.sh
+  ./tests/test-docker-get-code.sh
+  # ... and others
+  ```
+
+### Dev recipe files (`mount/dev/recipes/*.yml`)
+
+This repo includes sample/dev recipe files under `mount/dev/recipes/`.
+They are embedded into the binary and extracted into your mwdd context under `recipes/`.
+
+To validate recipes:
+```sh
+make recipe-validate
+```
+
+## Releasing
+
+Releases are automatically built and published by GitLab CI after pushing a tag.
+Tags should follow [semver](https://semver.org/) and release notes should be written prior to tagging.
+
+### Process
+
+1.  Add release notes for the release into `CHANGELOG.md` under a new header (e.g., `## v0.2.1`).
+2.  Tag the commit: `git tag vx.x.x` (the `v` prefix is required).
+3.  Push the tag: `git push origin vx.x.x`.
+4.  Watch the pipeline run on GitLab.
+5.  Check that the release appears on the releases page.
+6.  Update the version in the installation docs on mediawiki.org.
+
+## Docs
+
+Docs for [mediawiki.org](https://www.mediawiki.org/wiki/Cli) are automatically generated by CI when a release is made.
+They can also be manually generated and pushed:
+
+```sh
+make docs
+# To publish (requires credentials)
+make user="someUser" password="somePassword" docs-publish
+```

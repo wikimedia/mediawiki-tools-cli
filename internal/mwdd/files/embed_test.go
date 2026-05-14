@@ -22,6 +22,10 @@ func TestSyncerIgnoreFiles_KeepCustomComposeFiles(t *testing.T) {
 		{name: "custom dashed multi", path: "custom-two-extra.yaml", expected: true},
 		{name: "custom dotted", path: "custom.local.yml", expected: true},
 		{name: "custom mixed", path: "custom.local-dev_1.yaml", expected: true},
+		{name: "custom dockerfile override", path: "custom-dockerfile-mediawiki.yml", expected: true},
+		{name: "Dockerfile.service", path: "Dockerfile.mediawiki", expected: true},
+		{name: "Dockerfile.dashed-service", path: "Dockerfile.shellbox-media", expected: true},
+		{name: "bare Dockerfile not preserved", path: "Dockerfile", expected: false},
 		{name: "non custom", path: "compose/base/compose.yml", expected: false},
 	}
 

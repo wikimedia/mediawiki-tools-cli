@@ -19,6 +19,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
+	phabricatorcmd "gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/tools"
@@ -147,6 +148,7 @@ func NewMwCliCmd() *cobra.Command {
 		docker.NewCmd(),
 		wiki.NewWikiCmd(),
 		quip.NewQuipCmd(),
+		phabricatorcmd.NewPhabricatorCmd(),
 		help.NewOutputTopicCmd(),
 	}...)
 

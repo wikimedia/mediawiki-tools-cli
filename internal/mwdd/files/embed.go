@@ -44,6 +44,8 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 			`mediawiki\/jobrunner\-sites`,
 			// Used by folks that want to define a custom set of docker compose services
 			`custom(?:[-.][A-Za-z0-9_.-]+)?\.ya?ml`,
+			// Custom Dockerfiles managed by `mw docker <service> image dockerfile set`
+			`Dockerfile\.[A-Za-z0-9_.-]+`,
 		},
 	}
 }
