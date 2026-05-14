@@ -29,20 +29,15 @@ func NewComputeListCmd() *cobra.Command {
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Name", "Status", "ID"},
-			ProcessObjects: func(objects interface{}, table *output.Table) {
-				objMap, ok := objects.(map[interface{}]interface{})
-				if ok {
-					for _, object := range objMap {
-						typedObject, ok := object.(servers.Server)
-						if !ok {
-							continue
-						}
-						table.AddRowS(typedObject.Name, typedObject.Status, typedObject.ID)
-					}
+			RowExtractor: func(object interface{}) []string {
+				typedObject, ok := object.(servers.Server)
+				if !ok {
+					return nil
 				}
+				return []string{typedObject.Name, typedObject.Status, typedObject.ID}
 			},
 		},
-		AckBinding: func(objects interface{}, ack *output.Ack) {
+		PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
 			objMap, ok := objects.(map[interface{}]interface{})
 			if ok {
 				for _, object := range objMap {
@@ -50,7 +45,7 @@ func NewComputeListCmd() *cobra.Command {
 					if !ok {
 						continue
 					}
-					ack.AddItem(typedObject.Status, typedObject.Name+" ("+typedObject.Status+") @ "+typedObject.ID)
+					pretty.AddItem(typedObject.Status, typedObject.Name+" @ "+typedObject.ID)
 				}
 			}
 		},
@@ -118,7 +113,7 @@ func NewComputeListCmd() *cobra.Command {
 		},
 	}
 
-	out.AddFlags(cmd, output.TableType)
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
 	cmd.Flags().String("project", "", "Project name (optional, uses default project if not specified)")
 
 	return cmd

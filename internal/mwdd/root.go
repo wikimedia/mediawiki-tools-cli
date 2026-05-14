@@ -36,6 +36,7 @@ func (m MWDD) Directory() string {
 func (m MWDD) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
+	m.ensureDockerfileComposeFiles()
 }
 
 func (m MWDD) DockerCompose() dockercompose.Project {

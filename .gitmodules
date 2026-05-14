@@ -1,0 +1,3 @@
+[submodule "commands/phabricator/phab"]
+	path = commands/phabricator/phab
+	url = https://gitlab.wikimedia.org/jiji/phab.git
