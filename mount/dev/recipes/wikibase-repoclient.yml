@@ -76,10 +76,12 @@ maintenance:
     command: ["php", "maintenance/run.php", "rebuildLocalisationCache.php", "--wiki", "client", "--lang", "en"]
   - name: populate-sites-table-client
     command: ["php", "maintenance/run.php", "./extensions/Wikibase/lib/maintenance/populateSitesTable.php", "--wiki", "client"]
+  - name: add-site-client-on-default
+    command: ["php", "maintenance/run.php", "addSite.php", "client", "local", "--interwiki-id", "client", "--pagepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "default"]
   - name: add-site-default-on-client
-    command: ["php", "maintenance/run.php", "addSite.php", "--", "default", "local", "--interwiki-id", "default", "--pagepath", "http://default.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://default.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "client"]
+    command: ["php", "maintenance/run.php", "addSite.php", "default", "local", "--interwiki-id", "default", "--pagepath", "http://default.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://default.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "client"]
   - name: add-site-client-on-client
-    command: ["php", "maintenance/run.php", "addSite.php", "--", "client", "local", "--interwiki-id", "client", "--pagepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "client"]
+    command: ["php", "maintenance/run.php", "addSite.php", "client", "local", "--interwiki-id", "client", "--pagepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/index.php?title=$1", "--language", "en", "--filepath", "http://client.mediawiki.local.wmftest.net:${PORT}/w/$1", "--wiki", "client"]
 
 content:
   wikibase:
