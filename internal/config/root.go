@@ -31,7 +31,7 @@ func ensureExists() {
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+		file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 		if err != nil {
 			logrus.Fatal(err)
 		}
