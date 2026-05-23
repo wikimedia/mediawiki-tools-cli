@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
 ## v0.31.0
+
+- Exposed/Added `gerrit` command
+- Added `gerrit apply-patches` command support (currently marked alpha).
+- Added and expanded custom Dockerfile image workflow for `mw docker custom image dockerfile`.
+- Added and iterated on `phabricator` (`phab`) command support.
+- Added `names` output format to `docker mediawiki sites` command.
+- Improved output formatting and template handling.
+- Development environment (`mw docker`)
+  - Default `XDEBUG_CONFIG` to `client_host=xdebug://gateway`, which should allow using Xdebug without further configuration.
+  - Recipe work: initial iteration, mount layout changes, test additions/fixes, and support for port env substitution in recipe files.
+  - Fix composer update/install flow during mw install by always prompting when needed.
+
+## v0.30.1
 - Development environment (`mw docker`)
   - Removed faulty `develop` from default `XDEBUG_MODE` (T366986, T420913)
-  - Default `XDEBUG_CONFIG` to `client_host=xdebug://gateway`, which should allow using Xdebug without further configuration
 
 ## v0.30.0
 
