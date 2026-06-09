@@ -2,7 +2,7 @@
 services:
 
   dps:
-    image: "${DPS_IMAGE:-defreitas/dns-proxy-server:3.5.2}"
+    image: "${DPS_IMAGE:-defreitas/dns-proxy-server:5.9.0}"
     security_opt:
       - label:disable
     restart: unless-stopped
@@ -11,6 +11,7 @@ services:
     networks:
       dps:
         ipv4_address: ${NETWORK_SUBNET_PREFIX}.10
+    command: "${DPS_BOOTSTRAP_OPTIONS:--XX:MaxHeapSize=50m -XX:MaxNewSize=10m}"
 
   dashboard:
     image: "${DASHBOARD_IMAGE:-golang:1.23-alpine}"
