@@ -255,6 +255,9 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	c := config.State()
 
 	// Check various timers and execute tasks if needed
+	// The update check hits the network and can take a couple of seconds, so it
+	// runs concurrently with the command, and any notice is printed at the end.
+	var updateMessageChan chan string
 	{
 		shouldCheckForUpdates := false
 
@@ -275,17 +278,22 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 		if shouldCheckForUpdates {
 			config.PutKeyValueOnDisk("timer_last_update_checked", timers.String(timers.NowUTC()))
-			canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
-			if canUpdate {
+			updateMessageChan = make(chan string, 1)
+			go func() {
+				canUpdate, nextVersionString := updater.CanUpdate(Version, GitSummary)
+				if !canUpdate {
+					updateMessageChan <- ""
+					return
+				}
 				colorReset := "\033[0m"
 				colorYellow := "\033[33m"
 				colorWhite := "\033[37m"
 				colorCyan := "\033[36m"
-				fmt.Printf(
+				updateMessageChan <- fmt.Sprintf(
 					"\n"+colorYellow+"A new update is available\n"+colorCyan+"%s(%s) "+colorWhite+"-> "+colorCyan+"%s"+colorReset+"\n\n",
 					Version, GitSummary, nextVersionString,
 				)
-			}
+			}()
 		}
 	}
 
@@ -328,6 +336,14 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 	// Execute the root command
 	err := rootCmd.Execute()
+
+	// Print any update notice once the command has finished
+	// (waits at most the HTTP client timeout of the check)
+	if updateMessageChan != nil {
+		if updateMessage := <-updateMessageChan; updateMessage != "" {
+			fmt.Print(updateMessage)
+		}
+	}
 
 	// Try and emit events after main command execution
 	// TODO perhaps moved this to a POST command run thing
