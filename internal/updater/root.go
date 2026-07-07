@@ -45,7 +45,9 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 		// Get file info for content length
 		fileInfo, err := file.Stat()
 		if err != nil {
-			file.Close()
+			if closeErr := file.Close(); closeErr != nil {
+				logrus.Warn(closeErr)
+			}
 			logrus.Fatal(err)
 		}
 
@@ -107,7 +109,8 @@ func Unzip(src, dest string) error {
 		}
 	}()
 
-	err = os.MkdirAll(dest, 0o755)
+	dest = filepath.Clean(dest)
+	err = os.MkdirAll(dest, 0o755) // #nosec G301 -- extracted release files must remain user-executable.
 	if err != nil {
 		return err
 	}
@@ -124,30 +127,36 @@ func Unzip(src, dest string) error {
 			}
 		}()
 
-		path := filepath.Join(dest, f.Name)
-
-		// Check for ZipSlip (Directory traversal)
-		if !strings.HasPrefix(path, filepath.Clean(dest)+string(os.PathSeparator)) {
-			return fmt.Errorf("illegal file path: %s", path)
+		path, err := safeZipPath(dest, f.Name)
+		if err != nil {
+			return err
 		}
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(path, f.Mode())
+			if err := os.MkdirAll(path, f.Mode()); err != nil {
+				return err
+			}
 		} else {
-			os.MkdirAll(filepath.Dir(path), f.Mode())
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			size := f.FileInfo().Size()
+			if err := os.MkdirAll(filepath.Dir(path), f.Mode()); err != nil {
+				return err
+			}
+			outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				return err
 			}
 			defer func() {
-				if err := f.Close(); err != nil {
+				if err := outFile.Close(); err != nil {
 					panic(err)
 				}
 			}()
 
-			_, err = io.Copy(f, rc)
+			written, err := io.Copy(outFile, io.LimitReader(rc, size+1))
 			if err != nil {
 				return err
+			}
+			if written > size {
+				return fmt.Errorf("zip entry exceeds declared size: %s", path)
 			}
 		}
 		return nil
@@ -161,4 +170,16 @@ func Unzip(src, dest string) error {
 	}
 
 	return nil
+}
+
+func safeZipPath(dest, name string) (string, error) {
+	path := filepath.Join(dest, name)
+	rel, err := filepath.Rel(dest, path)
+	if err != nil {
+		return "", err
+	}
+	if rel == "." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || rel == ".." || filepath.IsAbs(rel) {
+		return "", fmt.Errorf("illegal file path: %s", path)
+	}
+	return path, nil
 }

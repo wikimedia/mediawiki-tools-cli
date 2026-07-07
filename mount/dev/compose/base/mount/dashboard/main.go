@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -214,7 +215,9 @@ func apiStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "JSON encode error", http.StatusInternalServerError)
+	}
 }
 
 // API handler for just services
@@ -222,7 +225,9 @@ func apiServicesHandler(w http.ResponseWriter, r *http.Request) {
 	status := getStatus()
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(status.Services)
+	if err := json.NewEncoder(w).Encode(status.Services); err != nil {
+		http.Error(w, "JSON encode error", http.StatusInternalServerError)
+	}
 }
 
 // API handler for just sites
@@ -230,7 +235,9 @@ func apiSitesHandler(w http.ResponseWriter, r *http.Request) {
 	status := getStatus()
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(status.Sites)
+	if err := json.NewEncoder(w).Encode(status.Sites); err != nil {
+		http.Error(w, "JSON encode error", http.StatusInternalServerError)
+	}
 }
 
 // Dashboard HTML template
@@ -471,13 +478,18 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 // Health check endpoint
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		http.Error(w, "JSON encode error", http.StatusInternalServerError)
+	}
 }
 
 func main() {
 	listenPort := os.Getenv("DASHBOARD_PORT")
 	if listenPort == "" {
 		listenPort = "8080"
+	}
+	if _, err := strconv.Atoi(listenPort); err != nil {
+		log.Fatalf("Invalid dashboard port: %q", listenPort)
 	}
 
 	http.HandleFunc("/", dashboardHandler)
@@ -494,7 +506,11 @@ func main() {
 	log.Printf("  - GET /api/sites    - Installed sites only")
 	log.Printf("  - GET /health       - Health check")
 
-	if err := http.ListenAndServe(":"+listenPort, nil); err != nil {
+	server := &http.Server{
+		Addr:              ":" + listenPort,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

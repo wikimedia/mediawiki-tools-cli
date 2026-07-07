@@ -1,6 +1,6 @@
 # set appsec-related template variables
 variables:
-    WM_APPSEC_GOLANG_IMAGE: "bookworm:20231015"
+    WM_APPSEC_GOLANG_IMAGE: "bookworm:20251109"
 
 include:
 - local: ".gitlab/pipelines/commit.yml"
@@ -19,3 +19,38 @@ include:
 - project: 'repos/security/gitlab-ci-security-templates'
   ref: 0.1.3
   file: 'golang-gosec/golang-gosec-ci.yml'
+
+# Override the imported gosec job so it runs with the same Go version as this
+# repository and does not depend on apt/mirrors.wikimedia.org during CI.
+# See also: https://gitlab.wikimedia.org/repos/security/gitlab-ci-security-templates
+# Which has not been updated in some time...
+golang-gosec_static_analysis_check:
+    image: golang:1.26.1
+    variables:
+        GOLANG_GOSEC_OPTIONS: "-severity=high -confidence=high -exclude-dir=vendor -exclude-dir=.mediawiki ./..."
+        GOLANG_GOSEC_VERSION: "v2.27.1"
+    before_script:
+        - go install github.com/securego/gosec/v2/cmd/gosec@${GOLANG_GOSEC_VERSION}
+        - export PATH="$(go env GOPATH)/bin:${PATH}"
+        - |
+          if [[ -n "$WM_APPSEC_GOLANG_GOSEC_OPTIONS" ]]; then
+            GOLANG_GOSEC_OPTIONS=${WM_APPSEC_GOLANG_GOSEC_OPTIONS}
+          fi
+    script:
+      - |
+        # see if any golang files exist, early return if they do not
+        if [[ $(find . -path ./vendor -prune -o -name \*.go -print | wc -l | xargs) == 0 ]]; then
+          echo "No golang files found (*.go) - so gosec was not run"
+          exit 0
+        fi
+
+        # see if any golang files are badly formatted, early return if they are
+        gofmt_results=$(find . -path ./vendor -prune -o -name \*.go -print | xargs -r gofmt -l 2>&1)
+        if [[ -n "$gofmt_results" ]]; then
+          echo -e "Golang files found with formatting errors:\n"
+          echo "$gofmt_results"
+          echo -e "\n - so gosec was not run"
+          exit 0
+        fi
+
+        gosec ${GOLANG_GOSEC_OPTIONS}

@@ -557,7 +557,7 @@ If neither variable is set, vi is used as a fallback.`,
 			if editor == "" {
 				editor = "vi"
 			}
-			editorCmd := osexec.Command(editor, path) // #nosec G204
+			editorCmd := osexec.Command(editor, path) // #nosec G204,G702 -- editor is explicitly selected by the local user.
 			editorCmd.Stdout = os.Stdout
 			editorCmd.Stdin = os.Stdin
 			editorCmd.Stderr = os.Stderr
