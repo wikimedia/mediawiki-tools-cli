@@ -60,9 +60,14 @@ func printWithKeys(j *JSON, writer io.Writer) {
 }
 
 func parseFormatQueryOrPanic(format string) *gojq.Query {
+	if format == "" {
+		format = "."
+	}
+
 	query, err := gojq.Parse(format)
 	if err != nil {
 		logrus.Error("Error parsing jq query: ", err)
+		query, _ = gojq.Parse(".")
 	}
 	logrus.Trace(query.String())
 	return query
