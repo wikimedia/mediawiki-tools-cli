@@ -70,7 +70,7 @@ func replaceInFile(filePath string, find string, replace string) {
 	newText := strings.ReplaceAll(text, find, replace)
 
 	if text != newText {
-		err := os.WriteFile(filePath, []byte(newText), 0o755) // #nosec G306
+		err := os.WriteFile(filePath, []byte(newText), 0o755) // #nosec G306,G703 -- filePath comes from repository-maintained image update metadata.
 		if err != nil {
 			logrus.Printf("ioutil.WriteFile err   #%v ", err)
 		}

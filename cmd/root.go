@@ -44,7 +44,7 @@ func NewMwCliCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + cli.Opts.Verbosity))
+			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
 			logrus.Trace("mwcli: Top level PersistentPreRun")
 
 			// Force the completion command to never ask for user input
@@ -246,7 +246,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			verbosity = vi
 		}
 	}
-	logrus.SetLevel(logrus.Level(int(logrus.InfoLevel) + verbosity))
+	logrus.SetLevel(logLevelForVerbosity(verbosity))
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableTimestamp:       true,
 		DisableLevelTruncation: true,
@@ -344,4 +344,14 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		logrus.Errorf("%s", err)
 		os.Exit(1)
 	}
+}
+
+func logLevelForVerbosity(verbosity int) logrus.Level {
+	if verbosity >= 2 {
+		return logrus.TraceLevel
+	}
+	if verbosity == 1 {
+		return logrus.DebugLevel
+	}
+	return logrus.InfoLevel
 }

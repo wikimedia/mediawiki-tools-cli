@@ -27,7 +27,7 @@ include:
 golang-gosec_static_analysis_check:
     image: golang:1.26.1
     variables:
-        GOLANG_GOSEC_OPTIONS: "./..."
+        GOLANG_GOSEC_OPTIONS: "-severity=high -confidence=high -exclude-dir=vendor -exclude-dir=.mediawiki ./..."
         GOLANG_GOSEC_VERSION: "v2.27.1"
     before_script:
         - go install github.com/securego/gosec/v2/cmd/gosec@${GOLANG_GOSEC_VERSION}

@@ -3,9 +3,7 @@ package ziki
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 )
@@ -22,7 +20,6 @@ var (
 )
 
 func init() {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
 	Out = os.Stdout
 	In = os.Stdin
 }
