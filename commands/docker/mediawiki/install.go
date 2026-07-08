@@ -62,7 +62,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			mediawiki, _ := mediawiki.ForDirectory(mwdd.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if !mediawiki.LocalSettingsIsPresent() {
 				createDefaultFile := false
-				if !cli.Opts.NoInteraction {
+				if cli.CanAskForInput() {
 					createDefaultFile = false
 					prompt := &survey.Confirm{
 						Message: "No LocalSettings.php detected. Do you want to create the default mwdd file?",
@@ -163,7 +163,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					}
 
 					doComposerInstall := false
-					if !cli.Opts.NoInteraction {
+					if cli.CanAskForInput() {
 						prompt := &survey.Confirm{
 							Message: "Composer dependencies may not be up to date, do you want to run composer update?",
 						}
