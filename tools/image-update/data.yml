@@ -38,7 +38,7 @@ images:
   - image: alpine/socat:1.7.4.4-r0
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
   # docker dev env: Regularly released WMF production images
-  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.26.0
+  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.31.0
   # Latest images...
   - image: ubuntu:latest
     noCheck: true
