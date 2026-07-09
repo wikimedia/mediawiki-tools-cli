@@ -6,7 +6,7 @@
 
 services:
   shellbox-timeline: 
-    image: "${SHELLBOX_TIMELINE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2025-11-26-175023-timeline83}"
+    image: "${SHELLBOX_TIMELINE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-07-03-212105-timeline83}"
     restart: unless-stopped
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
