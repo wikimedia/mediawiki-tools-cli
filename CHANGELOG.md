@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.32.0
+
+- Improved startup performance:
+  - Run update checks concurrently with command execution.
+  - Query terminal background color once instead of per command.
+- Fixed composer prompt handling in CI/non-interactive flows.
+- Updated various Go packages.
+- Development environment (`mw docker`)
+  - Image updates:
+    - `redis:6.2` -> `redis:8.6.4`
+    - `shellbox` -> `shellbox:2026-07-03-212105`
+    - `releng/node20-test-browser` -> `20.20.2`
+    - `eventgate-wikimedia` -> `v1.31.0`
+- DPS:
+  - Bumped image and allowed overriding bootstrap options.
+
 ## v0.31.0
 
 - Exposed/Added `gerrit` command

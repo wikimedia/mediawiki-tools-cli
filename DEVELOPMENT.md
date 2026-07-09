@@ -130,6 +130,22 @@ make recipe-validate
 Releases are automatically built and published by GitLab CI after pushing a tag.
 Tags should follow [semver](https://semver.org/) and release notes should be written prior to tagging.
 
+### Review changes since the last tag
+
+Before creating a release tag, review the commit history from the latest tag to your current checkout:
+
+```sh
+git log --oneline "$(git describe --tags --abbrev=0)"..HEAD
+```
+
+and or the diff..
+
+```sh
+git diff "$(git describe --tags --abbrev=0)"
+```
+
+This helps confirm exactly which commits will be included in the next release.
+
 ### Process
 
 1.  Add release notes for the release into `CHANGELOG.md` under a new header (e.g., `## v0.2.1`).
