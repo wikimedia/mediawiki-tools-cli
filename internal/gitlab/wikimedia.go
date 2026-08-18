@@ -51,6 +51,11 @@ func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error)
 		return nil, err
 	}
 
+	return releasesBetweenTags(releases, from, to)
+}
+
+func releasesBetweenTags(releases []*gitlab.Release, from, to string) ([]*gitlab.Release, error) {
+
 	// Assume they are in release order.
 	// Remove everything from the start, up until the value of to
 	// Then remove everything from the end, after the value of from
@@ -71,7 +76,17 @@ func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error)
 	if end == -1 {
 		return nil, fmt.Errorf("could not find end tag: %s", to)
 	}
-	return releases[end:start], nil
+
+	// Return releases traversed when moving from -> to, excluding from and including to.
+	// Releases are ordered newest to oldest, so index direction depends on version direction.
+	if start > end {
+		return releases[end:start], nil
+	}
+	if start < end {
+		return releases[start+1 : end+1], nil
+	}
+
+	return []*gitlab.Release{}, nil
 }
 
 func RelengCliGetReleases() ([]*gitlab.Release, error) {

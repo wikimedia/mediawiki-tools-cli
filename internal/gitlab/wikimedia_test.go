@@ -81,3 +81,73 @@ func TestLatestReleaseBinary(t *testing.T) {
 		})
 	}
 }
+
+func TestReleasesBetweenTags_UpgradeDirection(t *testing.T) {
+	releases := []*gitlab.Release{
+		{TagName: "v0.32.0"},
+		{TagName: "v0.31.0"},
+		{TagName: "v0.30.0"},
+	}
+
+	got, err := releasesBetweenTags(releases, "v0.31.0", "v0.32.0")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 release, got %d", len(got))
+	}
+	if got[0].TagName != "v0.32.0" {
+		t.Fatalf("expected v0.32.0, got %s", got[0].TagName)
+	}
+}
+
+func TestReleasesBetweenTags_DowngradeDirection(t *testing.T) {
+	releases := []*gitlab.Release{
+		{TagName: "v0.32.0"},
+		{TagName: "v0.31.0"},
+		{TagName: "v0.30.0"},
+	}
+
+	got, err := releasesBetweenTags(releases, "v0.32.0", "v0.31.0")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 release, got %d", len(got))
+	}
+	if got[0].TagName != "v0.31.0" {
+		t.Fatalf("expected v0.31.0, got %s", got[0].TagName)
+	}
+}
+
+func TestReleasesBetweenTags_MissingTags(t *testing.T) {
+	releases := []*gitlab.Release{
+		{TagName: "v0.32.0"},
+		{TagName: "v0.31.0"},
+	}
+
+	_, err := releasesBetweenTags(releases, "v0.30.0", "v0.31.0")
+	if err == nil {
+		t.Fatal("expected error when from tag is missing")
+	}
+
+	_, err = releasesBetweenTags(releases, "v0.31.0", "v0.30.0")
+	if err == nil {
+		t.Fatal("expected error when to tag is missing")
+	}
+}
+
+func TestReleasesBetweenTags_SameTag(t *testing.T) {
+	releases := []*gitlab.Release{
+		{TagName: "v0.32.0"},
+		{TagName: "v0.31.0"},
+	}
+
+	got, err := releasesBetweenTags(releases, "v0.31.0", "v0.31.0")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("expected 0 releases, got %d", len(got))
+	}
+}
