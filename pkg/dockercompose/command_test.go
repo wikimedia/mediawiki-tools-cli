@@ -33,13 +33,13 @@ func TestShouldForceDockerDefaultPlatform(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			runtimeGOOS = tc.goos
 			runtimeGOARCH = tc.goarch
-				if tc.defaultPlat == "" {
-					if err := os.Unsetenv("DOCKER_DEFAULT_PLATFORM"); err != nil {
-						t.Fatalf("unset env: %v", err)
-					}
-				} else {
-					t.Setenv("DOCKER_DEFAULT_PLATFORM", tc.defaultPlat)
+			if tc.defaultPlat == "" {
+				if err := os.Unsetenv("DOCKER_DEFAULT_PLATFORM"); err != nil {
+					t.Fatalf("unset env: %v", err)
 				}
+			} else {
+				t.Setenv("DOCKER_DEFAULT_PLATFORM", tc.defaultPlat)
+			}
 
 			got := shouldForceDockerDefaultPlatform()
 			if got != tc.wantShouldSet {
