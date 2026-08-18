@@ -307,6 +307,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 						// TODO Remove any lines that start with "CHANGELOG extracted from"
 						formatted := strings.Trim(cli.RenderMarkdown(desc), "\r\n")
 						cmd.Println(formatted)
+						cmd.Println()
 					}
 				}
 			}
