@@ -245,20 +245,15 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(0)
 				}
 
-				// Move the new file to the desired location
-				// First try os.Rename() which is atomic and fast on the same filesystem
-				err = os.Rename(newMwFileLocation, executablePath)
+				// On non-Windows systems, avoid writing directly to the currently-running
+				// executable (can fail with ETXTBSY). Stage a file in the destination
+				// directory and atomically rename it into place.
+				err = replaceExecutableNonWindows(newMwFileLocation, executablePath)
 				if err != nil {
-					logrus.Trace("os.Rename failed, trying fallback copy method: " + err.Error())
-					// If Rename failed, try copying as a fallback (e.g., for cross-device)
-					// This might still fail if the binary is currently running with locked permissions
-					_, err = copyFile(newMwFileLocation, executablePath)
-					if err != nil {
-						logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
-						// Switch them back
-						copyFile(tempCopyPath, executablePath)
-						os.Exit(1)
-					}
+					logrus.Error(fmt.Errorf("could not move new binary to location: %s", err))
+					// Switch them back
+					copyFile(tempCopyPath, executablePath)
+					os.Exit(1)
 				}
 				defer os.Remove(newMwFileLocation)
 
@@ -404,6 +399,44 @@ func executableNameFromPath(executablePath string) string {
 		return executablePath
 	}
 	return executablePath[idx+1:]
+}
+
+func replaceExecutableNonWindows(newPath, destPath string) error {
+	// Fast path: same filesystem rename directly into place.
+	if err := os.Rename(newPath, destPath); err == nil {
+		return nil
+	} else {
+		logrus.Trace("Direct os.Rename failed, using same-directory staged replacement: " + err.Error())
+	}
+
+	destDir := filepath.Dir(destPath)
+	stagedFile, err := os.CreateTemp(destDir, ".mw-update-staged-*")
+	if err != nil {
+		return err
+	}
+	stagedPath := stagedFile.Name()
+	if err := stagedFile.Close(); err != nil {
+		_ = os.Remove(stagedPath)
+		return err
+	}
+
+	_, err = copyFile(newPath, stagedPath)
+	if err != nil {
+		_ = os.Remove(stagedPath)
+		return err
+	}
+
+	if err := os.Chmod(stagedPath, 0o755); err != nil {
+		_ = os.Remove(stagedPath)
+		return err
+	}
+
+	if err := os.Rename(stagedPath, destPath); err != nil {
+		_ = os.Remove(stagedPath)
+		return err
+	}
+
+	return nil
 }
 
 func describeVersionTransition(from, to cli.Version) string {
