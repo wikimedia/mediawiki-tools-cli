@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/blang/semver"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sirupsen/logrus"
@@ -282,6 +283,10 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 			cmd.Println("Update successful")
 
+			if targetVersion != "" {
+				cmd.Println(describeVersionTransition(currDetails.Version, targetVersion))
+			}
+
 			// Output changelog of the versions we are moving between
 			if targetVersion != "" {
 				// If the versions are the same, nothing changes
@@ -292,13 +297,16 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				releasesUpdatedThrough, err := updater.RelengCliGetReleasesBetweenTags(currDetails.Version.Tag(), targetVersion.Tag())
 				if err != nil {
-					logrus.Error(fmt.Errorf("could not fetch changelog between versions: %s", err))
+					logrus.Error(fmt.Errorf("could not fetch release notes for transition %s -> %s: %s", currDetails.Version, targetVersion, err))
 					cmd.Println("You can try running the following command to see the last version's changelog:")
 					cmd.Println("  " + targetVersion.ReleaseNotesCommand())
 					cmd.Println("Or view the changelog online:")
 					cmd.Println("  " + targetVersion.ReleasePage())
 				} else {
-					cmd.Print("\nChanges between versions:\n\n")
+					cmd.Printf("\nRelease notes for transition %s -> %s:\n\n", currDetails.Version, targetVersion)
+					if len(releasesUpdatedThrough) == 0 {
+						cmd.Println("No release notes to display for this version transition.")
+					}
 					for _, release := range releasesUpdatedThrough {
 						desc := strings.Trim(release.Description, "\r\n")
 						// TODO Remove any lines that start with "CHANGELOG extracted from"
@@ -396,4 +404,24 @@ func executableNameFromPath(executablePath string) string {
 		return executablePath
 	}
 	return executablePath[idx+1:]
+}
+
+func describeVersionTransition(from, to cli.Version) string {
+	if from == to {
+		return "Version unchanged: " + from.String()
+	}
+
+	fromSemver, fromErr := semver.Parse(from.String())
+	toSemver, toErr := semver.Parse(to.String())
+	if fromErr == nil && toErr == nil {
+		cmp := fromSemver.Compare(toSemver)
+		if cmp < 0 {
+			return fmt.Sprintf("Upgraded from %s to %s.", from, to)
+		}
+		if cmp > 0 {
+			return fmt.Sprintf("Downgraded from %s to %s.", from, to)
+		}
+	}
+
+	return fmt.Sprintf("Updated from %s to %s.", from, to)
 }
