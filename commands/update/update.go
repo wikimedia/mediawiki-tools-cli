@@ -3,7 +3,9 @@ package update
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -75,12 +77,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				if isURL || isLocalFile {
 					// TODO if we can auto detect a gitlab build, link to that too
 					cmd.Println("Artifact URL: " + versionInput)
-					// Convert local file paths to file:// URLs
-					if isLocalFile && !(len(versionInput) >= 7 && versionInput[:7] == "file://") {
-						targetArtifact = "file://" + versionInput
-					} else {
-						targetArtifact = versionInput
-					}
+					targetArtifact = versionInput
 				} else {
 					// Probably gitlab version of tag
 					targetVersion = cli.VersionFromUserInput(versionInput)
@@ -218,7 +215,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 
-				executableName := executablePath[strings.LastIndex(executablePath, "/")+1:]
+				executableName := executableNameFromPath(executablePath)
 				logrus.Trace("Current executable name: " + executableName)
 				logrus.Trace("Current executable path: " + executablePath)
 
@@ -227,7 +224,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				// Get a full path in the temporary dir
 				tempDir, tempDirCloser := tmpDir("mwcli-update-backup")
 				defer tempDirCloser()
-				tempCopyPath := tempDir + "/" + tempCopyName
+				tempCopyPath := filepath.Join(tempDir, tempCopyName)
 
 				// Copy the current binary to a temp location
 				_, err = copyFile(executablePath, tempCopyPath)
@@ -236,6 +233,16 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					os.Exit(1)
 				}
 				defer os.Remove(tempCopyPath)
+
+				if runtime.GOOS == "windows" {
+					err = scheduleWindowsReplacement(newMwFileLocation, executablePath)
+					if err != nil {
+						logrus.Error(fmt.Errorf("could not schedule Windows replacement: %s", err))
+						os.Exit(1)
+					}
+					cmd.Println("Update staged. Please run the command again in a moment to use the new version.")
+					os.Exit(0)
+				}
 
 				// Move the new file to the desired location
 				// First try os.Rename() which is atomic and fast on the same filesystem
@@ -308,6 +315,17 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	return cmd
 }
 
+func scheduleWindowsReplacement(srcPath, destPath string) error {
+	escape := func(s string) string {
+		return strings.ReplaceAll(s, "'", "''")
+	}
+
+	script := fmt.Sprintf("$src='%s'; $dst='%s'; for ($i=0; $i -lt 100; $i++) { try { Copy-Item -LiteralPath $src -Destination $dst -Force; Remove-Item -LiteralPath $src -Force -ErrorAction SilentlyContinue; exit 0 } catch { Start-Sleep -Milliseconds 200 } }; exit 1", escape(srcPath), escape(destPath))
+
+	command := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	return command.Start()
+}
+
 func copyFile(in, out string) (int64, error) {
 	logrus.Trace("Copying file from: " + in + " to: " + out)
 	i, e := os.Open(in)
@@ -367,4 +385,15 @@ func getExecutablePath() (string, error) {
 	// If resolution fails, use the original path
 	logrus.Trace("Using os.Executable path: " + execPath)
 	return execPath, nil
+}
+
+func executableNameFromPath(executablePath string) string {
+	idx := strings.LastIndexAny(executablePath, "/\\")
+	if idx == -1 {
+		return executablePath
+	}
+	if idx+1 >= len(executablePath) {
+		return executablePath
+	}
+	return executablePath[idx+1:]
 }
