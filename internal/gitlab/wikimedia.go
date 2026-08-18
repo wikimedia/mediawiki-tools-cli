@@ -55,7 +55,6 @@ func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error)
 }
 
 func releasesBetweenTags(releases []*gitlab.Release, from, to string) ([]*gitlab.Release, error) {
-
 	// Assume they are in release order.
 	// Remove everything from the start, up until the value of to
 	// Then remove everything from the end, after the value of from
