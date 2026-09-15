@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.33.0
+
+- `update` command:
+  - Fixed Linux self-updates when the temporary directory and executable are on different filesystems.
+  - Fixed Windows self-updates involving Windows paths and replacement of the running executable.
+  - Fixed panics when retrieving release notes for downgrade updates.
+  - Improved update output to clearly describe upgrades, downgrades and the release-note transition, including when no notes are available.
+  - Fixed formatting when adjacent release-note sections are displayed.
+- Development environment (`mw docker`):
+  - Improved dashboard service detection by adding a timeout to DNS lookups, configurable with `DASHBOARD_DNS_TIMEOUT_MS` and defaulting to 500 ms.
+  - Reserved the upper portion of the Docker network address range to prevent automatically assigned service IPs from conflicting with DPS.
+  - Fixed Linux ARM/ARM64 detection so `DOCKER_DEFAULT_PLATFORM=linux/amd64` is applied reliably when needed.
+
 ## v0.32.0
 
 - Improved startup performance:
