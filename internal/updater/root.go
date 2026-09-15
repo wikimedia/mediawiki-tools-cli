@@ -27,6 +27,26 @@ func CanUpdate(currentVersion cli.Version, gitSummary string) (bool, string) {
 }
 
 func DownloadFileResponse(urlStr string) (*http.Response, error) {
+	// Check for direct local file path first (supports Windows paths like C:\\...)
+	if fileInfo, err := os.Stat(urlStr); err == nil && !fileInfo.IsDir() {
+		file, err := os.Open(urlStr)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		resp := &http.Response{
+			Status:        "200 OK",
+			StatusCode:    200,
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			Header:        make(http.Header),
+			Body:          file,
+			ContentLength: fileInfo.Size(),
+		}
+		return resp, nil
+	}
+
 	// Check if it's a file:// URL
 	if strings.HasPrefix(urlStr, "file://") {
 		// Parse the file URL to get the path
