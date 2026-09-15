@@ -1,6 +1,6 @@
 # CI
 
-Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom mwcli runners.
+Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom wmcli runners.
 
 The shared runners are used where possible.
 The custom mwcli runners are used when docker in docker is needed (integration tests).
@@ -9,9 +9,11 @@ This means that the FULL CI will NOT work for forks of this project, only for ac
 
 ## Custom runners
 
+Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).
+
 There are currently 2 runners:
- - gitlab-runner-addshore-1016.mwcli.eqiad1.wikimedia.cloud
- - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud
+ - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0001`) *bullseye (deprecated 2023-06-08)*
+ - gitlab-runner-addshore-1018.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0002`) *NEW 2026*
 
 You can view the usage at https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&from=now-24h&to=now&timezone=utc&var-project=mwcli&var-instance=$__all
 
@@ -30,17 +32,48 @@ If this doesn't free up enough space the next step would be to nuke the registry
 
 #### Make a machine
 
-Make a VM, such as `gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud`
+Make a VM... Such as...
+
+Details:
+- Project Name: `mwcli`
+- Instance Name: `gitlab-runner-addshore-1018`
+- Count: `1`
+Source: `trixie`
+Flavour: `g4.cores4.ram8.disk20`
+
+And then `Launch Instance`...
 
 #### Attach a volume
 
 See https://wikitech.wikimedia.org/wiki/Help:Adding_Disk_Space_to_Cloud_VPS_instances
 
-- Make a volume of 40GB for the instance
-- Attach a volume in the horizon UI
+- Make a volume of 40GB for the instance (or use an existing one)
+- Attach a volume in the horizon UI https://horizon.wikimedia.org/project/volumes/
 - Run `sudo wmcs-prepare-cinder-volume` on the instance
   - Select `/var/lib/docker` as the mount point
   - Wait for the mount to be created
+
+The output will likely be something like this:
+
+```
+$ sudo wmcs-prepare-cinder-volume
+This tool will partition, format, and mount a block storage device.
+
+
+Attached storage devices:
+
+    sda:  (the primary volume containing /)
+    sdb: formatted as ext4, can be mounted
+
+The only block device device available to mount is sdb.  Selecting.
+
+Where would you like to mount it? </srv> /var/lib/docker
+Ready to prepare and mount sdb on /var/lib/docker. OK to continue? <Y|n>y
+Mounting on /var/lib/docker...
+Updating fstab with UUID=d3923482-98db-4470-a074-da294e149472 /var/lib/docker ext4 discard,nofail,x-systemd.device-timeout=2s 0 2
+...
+Done.
+```
 
 #### Install docker
 
@@ -65,32 +98,46 @@ sudo apt-get install --yes docker-ce docker-ce-cli containerd.io
 
 #### Authenticate to docker hub
 
-Grab a key from https://hub.docker.com/settings/security
+Grab a key from https://hub.docker.com/settings/security being sure to use `Public Repo Read-only` and no expiration date.
 
 Perform a `docker login` with your username and they READ ONLY PUBLIC key you created.
 
+Note: if you made a fresh token, maybe keep it around as if you start a fresh mirror, you'll need the password again!
+
 #### Install gitlab runner
 
+From https://docs.gitlab.com/runner/install/linux-repository/
+
 ```sh
-curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
-sudo dpkg -i gitlab-runner_amd64.deb
-rm gitlab-runner_amd64.deb
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" -o script.deb.sh
+sudo bash script.deb.sh
+rm script.deb.sh
+
+sudo apt install gitlab-runner
 ```
 
 #### Register the runner
 
-WARNING: Support for registration tokens and runner parameters in the 'register' command has been deprecated in GitLab Runner 15.6 and will be replaced with support for authentication tokens. For more information, see https://gitlab.com/gitlab-org/gitlab/-/issues/380872
+Head to https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings
+
+When creating the runner:
+- Tags: `mwcli`
+- Do not check `Run untagged jobs"
+- Enter the `description` that matches the instance name
+- Select `Lock to current projects`
+Click `Create runner`
+
+Then add the token that is provided to the below command, and run it on the instance...
 
 ```sh
 sudo gitlab-runner register -n \
   --url https://gitlab.wikimedia.org/ \
-  --registration-token XXXreleng-mwcli-tokenXXX \
+  --token glrt-xxxxxxxxxxxxxxxxxxxxxxxxxxx \
   --executor docker \
   --limit 2 \
-  --name "gitlab-runner-addshore-1017-docker" \
+  --name "gitlab-runner-addshore-1018-docker" \
   --docker-image "docker:26.1.1" \
   --docker-privileged \
-  --tag-list mwcli \
   --docker-volumes "/certs/client"
 ```
 
@@ -114,7 +161,7 @@ Reading:
  - https://about.gitlab.com/blog/2020/10/30/mitigating-the-impact-of-docker-hub-pull-requests-limits/
  - https://docs.docker.com/registry/recipes/mirror/#run-a-registry-as-a-pull-through-cache
 
-Create an authenticaed pull through cache / mirror (using docker)
+Create an authenticated pull through cache / mirror (using docker)
 You can use the same username and password/key you used earlier
 
 ```sh
@@ -125,6 +172,8 @@ sudo docker run -d -p 6000:5000 \
     --restart always \
     --name registry registry:2
 ```
+
+If you ever want to remove it and add it again, see `sudo docker rm -f registry`
 
 Add the mirror (You might need to do this as root, not sudo...):
 
@@ -147,11 +196,12 @@ https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#enable-registry-mir
 You can also tweak the pull_policy to fallback to "if-not-present".
 
 ```sh
-  [[runners.docker]]
+sudo tee -a /etc/gitlab-runner/config.toml > /dev/null <<EOF
     pull_policy = ["always", "if-not-present"]
     [[runners.docker.services]]
       name = "docker:26.1.1-dind"
-      command = ["--registry-mirror", "http://172.16.5.159:6000"]
+      command = ["--registry-mirror", "http://$(hostname --ip-address):6000"]
+EOF
 ```
 
 And restart the gitlab runner service:
