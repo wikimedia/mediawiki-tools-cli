@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -87,6 +88,14 @@ var (
 
 	// Port from environment
 	port string
+
+	// DNS lookup timeout for service checks.
+	dnsLookupTimeout = 500 * time.Millisecond
+
+	// dnsLookupHost is swappable for tests.
+	dnsLookupHost = func(ctx context.Context, hostname string) ([]string, error) {
+		return net.DefaultResolver.LookupHost(ctx, hostname)
+	}
 )
 
 func init() {
@@ -94,13 +103,21 @@ func init() {
 	if port == "" {
 		port = "8080"
 	}
+
+	if timeoutMs := os.Getenv("DASHBOARD_DNS_TIMEOUT_MS"); timeoutMs != "" {
+		if parsed, err := strconv.Atoi(timeoutMs); err == nil && parsed > 0 {
+			dnsLookupTimeout = time.Duration(parsed) * time.Millisecond
+		}
+	}
 }
 
 // checkHost checks if a hostname resolves to something other than itself
 // This is the same check used in MwddSettings.php
 func checkHost(hostname string) bool {
-	// Set a short timeout for DNS lookups
-	addrs, err := net.LookupHost(hostname)
+	ctx, cancel := context.WithTimeout(context.Background(), dnsLookupTimeout)
+	defer cancel()
+
+	addrs, err := dnsLookupHost(ctx, hostname)
 	if err != nil {
 		return false
 	}

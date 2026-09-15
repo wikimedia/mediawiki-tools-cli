@@ -30,7 +30,7 @@ release: $(GOX) $(GOVVV) generate
 .PHONY: generate
 generate:
 	go run tools/code-gen/main.go
-	@cd ./mount/dev/ && find . -type f | LC_ALL=C sort > files.txt
+	@cd ./mount/dev/ && find . -type f -not -name '*_test.go' | LC_ALL=C sort > files.txt
 	go generate $(GO_PACKAGES)
 
 .PHONY: clean
