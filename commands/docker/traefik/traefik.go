@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,6 +47,16 @@ func NewCmd() *cobra.Command {
 		},
 	})
 	return cmd
+}
+
+// StartGateway prepares authentication and starts the optional Traefik services.
+func StartGateway() error {
+	instance := mwdd.DefaultForUser()
+	instance.EnsureReady()
+	if err := prepareGatewayAuth(); err != nil {
+		return err
+	}
+	return instance.DockerCompose().Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})
 }
 
 func prepareGatewayAuth() error {

@@ -1,6 +1,7 @@
 ./README.md
 ./compose/adminer/compose.yml
 ./compose/base/compose.yml
+./compose/cloudflared/compose.yml
 ./compose/base/mount/dashboard/main.go
 ./compose/base/mount/nginx/client_max_body_size.conf
 ./compose/base/mount/nginx/timeouts.conf
