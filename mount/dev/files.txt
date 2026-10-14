@@ -2,9 +2,6 @@
 ./compose/adminer/compose.yml
 ./compose/base/compose.yml
 ./compose/base/mount/dashboard/main.go
-./compose/base/mount/nginx/client_max_body_size.conf
-./compose/base/mount/nginx/timeouts.conf
-./compose/base/mount/nginx/vhost.d/default
 ./compose/citoid/compose.yml
 ./compose/cloudflared/compose.yml
 ./compose/elasticsearch/compose.yml
@@ -65,6 +62,7 @@
 ./compose/shellbox-score/mount/shellbox/score/config.json
 ./compose/shellbox-syntaxhighlight/compose.yml
 ./compose/shellbox-timeline/compose.yml
+./compose/traefik/auth/README.md
 ./compose/traefik/compose.yml
 ./compose/traefik/dynamic.yml
 ./compose/wdqs-ui/compose.yml

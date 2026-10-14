@@ -1,7 +1,6 @@
 images: 
   # docker dev env: Base services
   - image: defreitas/dns-proxy-server:5.9.0
-  - image: jwilder/nginx-proxy:0.10
   # docker dev env: MediaWiki related services
   - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.20.2
   - image: docker-registry.wikimedia.org/releng/quibble-buster-php83:1.9.1

@@ -46,11 +46,17 @@ This services will be accessible on your host machine via the virtual host speci
 services:
   <service-name>:
     image: <service-image>
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.<service-name>.rule=Host(`<service-name>.local.wmftest.net`)"
+      - "traefik.http.routers.<service-name>.entrypoints=web"
+      - "traefik.http.routers.<service-name>.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.services.<service-name>.loadbalancer.server.port=<service-port>"
     environment:
       - VIRTUAL_HOST=<service-name>.local.wmftest.net
       - VIRTUAL_PORT=<service-port>
     depends_on:
-      - nginx-proxy
+      - traefik
     security_opt:
       - label:disable
     dns:
@@ -59,4 +65,4 @@ services:
       - dps
 ```
 
-Note: If you use the docker hosts file integration, you may need to manually add this host to gain access.
+The VIRTUAL_HOST and VIRTUAL_PORT variables keep the local DNS mapping; the labels make Traefik route the request and keep proxy authentication enabled. If you use the docker hosts file integration, you may need to manually add the virtual host to gain access.

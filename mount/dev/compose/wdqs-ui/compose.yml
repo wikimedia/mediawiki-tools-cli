@@ -4,6 +4,10 @@ services:
     image: "wikibase/wdqs-frontend:wmde.11"
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.wdqs-ui-host.rule=Host(`${WDQS_UI_VIRTUAL_HOST:-wdqs-ui.local.wmftest.net}`)"
+      - "traefik.http.routers.wdqs-ui-host.entrypoints=web"
+      - "traefik.http.routers.wdqs-ui-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.wdqs-ui-host.service=wdqs-ui"
       - "traefik.http.routers.wdqs-ui.rule=Path(`/proxy/${WDQS_UI_PROXY_PATH:-wdqs-ui}`) || PathPrefix(`/proxy/${WDQS_UI_PROXY_PATH:-wdqs-ui}/`)"
       - "traefik.http.routers.wdqs-ui.entrypoints=web"
       - "traefik.http.routers.wdqs-ui.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-wdqs-ui@docker,forwarded-https@file"
@@ -18,7 +22,7 @@ services:
       - WDQS_HOST=wdqs-proxy
     depends_on:
       - dps
-      - nginx-proxy
+      - traefik
       - wdqs-proxy
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10

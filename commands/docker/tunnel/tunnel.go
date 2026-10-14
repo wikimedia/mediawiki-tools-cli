@@ -18,7 +18,7 @@ func NewCmd() *cobra.Command {
 		Use:   "tunnel",
 		Short: "Expose the development environment through a temporary public tunnel",
 		Long: "Manage a Cloudflare Quick Tunnel for the development environment. The tunnel forwards " +
-			"to the optional Traefik gateway, which routes requests to the configured development services.",
+			"to the default Traefik proxy, which routes requests to the configured development services.",
 	}
 	cmd.AddCommand(&cobra.Command{
 		Use:   "start",

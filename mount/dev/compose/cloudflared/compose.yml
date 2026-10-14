@@ -1,8 +1,6 @@
 services:
   cloudflared:
     image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.0}"
-    profiles:
-      - gateway
     restart: unless-stopped
     command:
       - tunnel
