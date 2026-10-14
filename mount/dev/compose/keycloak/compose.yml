@@ -4,9 +4,8 @@ services:
     image: "${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:18.0.0}"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.keycloak-host.rule=Host(`${KEYCLOAK_VIRTUAL_HOST:-keycloak.local.wmftest.net}`)"
+      - "traefik.http.routers.keycloak-host.rule=Host(`${KEYCLOAK_VIRTUAL_HOST:-keycloak.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.keycloak-host.entrypoints=web"
-      - "traefik.http.routers.keycloak-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.routers.keycloak-host.service=keycloak"
       - "traefik.http.routers.keycloak.rule=Path(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}`) || PathPrefix(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}/`)"
       - "traefik.http.routers.keycloak.entrypoints=web"

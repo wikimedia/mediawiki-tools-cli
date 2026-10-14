@@ -3,9 +3,8 @@ services:
     image: prom/statsd-exporter:v0.28.0
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.statsd-exporter-host.rule=Host(`${STATSD_EXPORTER_VIRTUAL_HOST:-statsd-exporter.local.wmftest.net}`)"
+      - "traefik.http.routers.statsd-exporter-host.rule=Host(`${STATSD_EXPORTER_VIRTUAL_HOST:-statsd-exporter.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.statsd-exporter-host.entrypoints=web"
-      - "traefik.http.routers.statsd-exporter-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.routers.statsd-exporter-host.service=statsd-exporter"
       - "traefik.http.routers.statsd-exporter.rule=Path(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}`) || PathPrefix(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}/`)"
       - "traefik.http.routers.statsd-exporter.entrypoints=web"
@@ -31,9 +30,8 @@ services:
     image: prom/prometheus:v3.9.1
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus-host.rule=Host(`${PROMETHEUS_VIRTUAL_HOST:-prometheus.local.wmftest.net}`)"
+      - "traefik.http.routers.prometheus-host.rule=Host(`${PROMETHEUS_VIRTUAL_HOST:-prometheus.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.prometheus-host.entrypoints=web"
-      - "traefik.http.routers.prometheus-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.routers.prometheus-host.service=prometheus"
       - "traefik.http.routers.prometheus.rule=Path(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}`) || PathPrefix(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}/`)"
       - "traefik.http.routers.prometheus.entrypoints=web"
