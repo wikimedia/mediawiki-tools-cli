@@ -13,6 +13,7 @@ services:
       - --providers.docker.endpoint=tcp://docker-socket-proxy:2375
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=${TRAEFIK_DOCKER_NETWORK}
+      - --providers.docker.constraints=Label(`com.docker.compose.project`, `${TRAEFIK_DOCKER_PROJECT}`)
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
       - --api.dashboard=false
