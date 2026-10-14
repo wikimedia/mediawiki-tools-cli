@@ -1,6 +1,13 @@
 services:
   grafana:
     image: grafana/grafana:11.4.0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Path(`/proxy/${GRAFANA_PROXY_PATH:-grafana}`) || PathPrefix(`/proxy/${GRAFANA_PROXY_PATH:-grafana}/`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-grafana@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-grafana.stripprefix.prefixes=/proxy/${GRAFANA_PROXY_PATH:-grafana}"
+      - "traefik.http.services.grafana.loadbalancer.server.port=${GRAFANA_VIRTUAL_PORT:-3000}"
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./compose/grafana/mount/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
@@ -14,8 +21,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ADMIN_USER=admin
       - GF_INSTALL_PLUGINS=
-      - VIRTUAL_HOST=grafana.local.wmftest.net
-      - VIRTUAL_PORT=3000
+      - VIRTUAL_HOST=${GRAFANA_VIRTUAL_HOST:-grafana.local.wmftest.net}
+      - VIRTUAL_PORT=${GRAFANA_VIRTUAL_PORT:-3000}
       - DEFAULT_EXPOSE_PORT=3000
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10

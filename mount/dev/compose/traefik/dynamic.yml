@@ -1,0 +1,17 @@
+http:
+  middlewares:
+    gateway-auth:
+      basicAuth:
+        usersFile: /etc/traefik/auth/users
+    dashboard-prefix:
+      stripPrefix:
+        prefixes:
+          - /proxy/dashboard
+    wiki-prefix:
+      stripPrefixRegex:
+        regex:
+          - "^/proxy/[^/]+"
+    forwarded-https:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: https

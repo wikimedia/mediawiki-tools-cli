@@ -17,6 +17,8 @@ services:
       - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
     environment:
       - MW_DB_DEFAULT=${MEDIAWIKI_DEFAULT_DBNAME:-default}
+      - MW_DB_DEFAULT_HOSTS=${MEDIAWIKI_DEFAULT_HOSTS:-}
+      - MW_DB_DEFAULT_HTTPS_HOSTS=${MEDIAWIKI_DEFAULT_HTTPS_HOSTS:-}
       # MW_INSTALL_PATH is used by various maintenance scripts to find MediaWiki.
       # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
       - MW_INSTALL_PATH=/var/www/html/w
@@ -34,6 +36,13 @@ services:
 
   mediawiki-web:
     image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wiki.rule=PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.wiki.priority=1"
+      - "traefik.http.routers.wiki.entrypoints=web"
+      - "traefik.http.routers.wiki.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},wiki-prefix@file,forwarded-https@file"
+      - "traefik.http.services.wiki.loadbalancer.server.port=${MEDIAWIKI_VIRTUAL_PORT:-8080}"
     security_opt:
       - label:disable
     restart: unless-stopped
@@ -42,8 +51,8 @@ services:
       - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
       - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
     environment:
-      - VIRTUAL_HOST=*.mediawiki.local.wmftest.net
-      - VIRTUAL_PORT=8080
+      - VIRTUAL_HOST=${MEDIAWIKI_VIRTUAL_HOSTS:-*.mediawiki.local.wmftest.net}
+      - VIRTUAL_PORT=${MEDIAWIKI_VIRTUAL_PORT:-8080}
       - DEFAULT_EXPOSE_PORT=8080
     depends_on:
       - nginx-proxy

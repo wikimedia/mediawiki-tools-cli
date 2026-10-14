@@ -49,9 +49,28 @@ if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
     $wgServer = "//$dockerDb.mediawiki.local.wmftest.net:80";
 } elseif( array_key_exists( 'SERVER_NAME', $_SERVER ) ) {
-    $dockerHostParts = explode( '.', $_SERVER['SERVER_NAME'] );
-    $dockerDb = $dockerHostParts[0];
-    $wgServer = WebRequest::detectServer();
+	$dockerHost = strtolower( preg_replace( '/:\d+$/', '', $_SERVER['SERVER_NAME'] ) );
+	$defaultDbHosts = array_map( 'strtolower', array_filter( array_map( 'trim', explode( ',', getenv( 'MW_DB_DEFAULT_HOSTS' ) ?: '' ) ) ) );
+	$defaultHttpsHosts = array_map( 'strtolower', array_filter( array_map( 'trim', explode( ',', getenv( 'MW_DB_DEFAULT_HTTPS_HOSTS' ) ?: '' ) ) ) );
+	$forwardedHost = strtolower( trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_HOST'] ?? '' )[0] ) );
+	$forwardedPrefix = rtrim( trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_PREFIX'] ?? '' )[0] ), '/' );
+	$proxyDb = '';
+	if ( preg_match( '#^/proxy/([a-z0-9_-]+)$#i', $forwardedPrefix, $proxyMatch ) ) {
+		$proxyDb = strtolower( $proxyMatch[1] );
+	}
+	if ( $proxyDb !== '' ) {
+		$dockerDb = $proxyDb;
+	} elseif ( in_array( $dockerHost, $defaultDbHosts, true ) ) {
+		$dockerDb = getenv( 'MW_DB_DEFAULT' ) ?: 'default';
+	} else {
+		$dockerHostParts = explode( '.', $dockerHost );
+		$dockerDb = $dockerHostParts[0];
+	}
+	if ( $forwardedHost !== '' && $forwardedPrefix !== '' ) {
+		$wgServer = 'https://' . $forwardedHost . $forwardedPrefix;
+	} else {
+		$wgServer = in_array( $dockerHost, $defaultHttpsHosts, true ) ? 'https://' . $dockerHost : WebRequest::detectServer();
+	}
 } else {
     die( 'Unable to decide which MediaWiki DB to use (from env or request).' );
 }

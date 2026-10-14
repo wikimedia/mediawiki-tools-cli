@@ -2,11 +2,19 @@
 services:
   graphite:
     image: "${GRAPHITE_IMAGE:-graphiteapp/graphite-statsd:1.1.10-4}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.graphite.rule=Path(`/proxy/${GRAPHITE_PROXY_PATH:-graphite}`) || PathPrefix(`/proxy/${GRAPHITE_PROXY_PATH:-graphite}/`)"
+      - "traefik.http.routers.graphite.entrypoints=web"
+      - "traefik.http.routers.graphite.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-graphite@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-graphite.stripprefix.prefixes=/proxy/${GRAPHITE_PROXY_PATH:-graphite}"
+      - "traefik.http.services.graphite.loadbalancer.server.port=${GRAPHITE_VIRTUAL_PORT:-80}"
     security_opt:
       - label:disable
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=graphite.local.wmftest.net
+      - VIRTUAL_HOST=${GRAPHITE_VIRTUAL_HOST:-graphite.local.wmftest.net}
+      - VIRTUAL_PORT=${GRAPHITE_VIRTUAL_PORT:-80}
     depends_on:
       - nginx-proxy
     dns:

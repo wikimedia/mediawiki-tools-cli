@@ -2,10 +2,17 @@
 services:
   mailhog:
     image: "${MAILHOG_IMAGE:-mailhog/mailhog:v1.0.1}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Path(`/proxy/${MAILHOG_PROXY_PATH:-mailhog}`) || PathPrefix(`/proxy/${MAILHOG_PROXY_PATH:-mailhog}/`)"
+      - "traefik.http.routers.mailhog.entrypoints=web"
+      - "traefik.http.routers.mailhog.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-mailhog@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-mailhog.stripprefix.prefixes=/proxy/${MAILHOG_PROXY_PATH:-mailhog}"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=${MAILHOG_VIRTUAL_PORT:-8025}"
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=mailhog.local.wmftest.net
-      - VIRTUAL_PORT=8025
+      - VIRTUAL_HOST=${MAILHOG_VIRTUAL_HOST:-mailhog.local.wmftest.net}
+      - VIRTUAL_PORT=${MAILHOG_VIRTUAL_PORT:-8025}
       - DEFAULT_EXPOSE_PORT=8025
     depends_on:
       - nginx-proxy

@@ -41,6 +41,24 @@ make build
 
 The resulting binary will be located at `./bin/mw`.
 
+### Using the MediaWiki development environment with external hostnames
+
+The Docker development environment normally selects a wiki database from the first label in the request hostname. To serve the default wiki at an additional hostname, add that hostname to both comma-separated context variables:
+
+- `MEDIAWIKI_VIRTUAL_HOSTS` controls which hostnames the nginx proxy accepts. It defaults to `*.mediawiki.local.wmftest.net`.
+- `MEDIAWIKI_DEFAULT_HOSTS` maps exact hostnames to the configured default wiki database (`default` unless changed).
+- `MEDIAWIKI_DEFAULT_HTTPS_HOSTS` marks exact hostnames whose public TLS proxy should be used as the wiki's canonical HTTPS URL, preventing redirects to the internal development port.
+
+For example, set both variables in the context's `.env` file and recreate the MediaWiki service. This keeps the normal per-wiki hostname behavior while allowing selected external names to serve the default wiki.
+
+### Optional Traefik path gateway
+
+mwcli also includes an optional Traefik service for path-based access without replacing mwdd's nginx proxy. Start it with `mw docker traefik create`; it binds to `127.0.0.1:8081` by default. The dashboard is available at `/proxy/dashboard/`, wiki databases use mwdd's hostname convention at `/proxy/<database>/` (for example, `/proxy/default/`), and web services with Traefik Compose labels are discovered as they start. Their route is `/proxy/<service>/` by default. The Compose labels use the same context variables as `VIRTUAL_HOST` and `VIRTUAL_PORT`; set `<SERVICE>_PROXY_PATH` to customize a route prefix. Stop it with `mw docker traefik stop` or remove it with `mw docker traefik destroy`.
+
+Gateway authentication is enabled by default. The first `create` generates a random password for the `mwcli` user, displays it once, and saves it with owner-only permissions under the context's Traefik auth directory. Show it again with `mw docker traefik credentials`. To disable gateway auth for a context, set `TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file` in its `.env` before creating the gateway and recreating the web services. The Traefik Docker provider uses a private, GET-only Docker API proxy; it does not publish the API port.
+
+The gateway has a separate loopback-only port for local testing, while mwdd's existing nginx proxy remains the public entry point. A host-specific nginx route forwards `/proxy/` to Traefik internally without exposing Traefik's port directly. mwdd's normal host-based wiki URLs continue to use nginx. Some tools require app-specific base-path settings for all links and assets to work under a prefix; prefix routing alone does not guarantee that every tool's UI is fully compatible.
+
 ### Running the development build
 
 Follow the [development build instructions in README.md](README.md#using-a-development-build)

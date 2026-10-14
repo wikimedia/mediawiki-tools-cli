@@ -42,6 +42,7 @@ type Status struct {
 	Sites     []Site    `json:"sites"`
 	Timestamp string    `json:"timestamp"`
 	CacheAge  string    `json:"cache_age"`
+	BasePath  string    `json:"-"`
 }
 
 // ServiceConfig defines a service to check
@@ -408,9 +409,9 @@ const dashboardHTML = `<!DOCTYPE html>
         <p class="subtitle">MediaWiki Docker Development Environment Status</p>
 
         <div class="api-links">
-            <a href="/api/status">API: Full Status</a>
-            <a href="/api/services">API: Services</a>
-            <a href="/api/sites">API: Sites</a>
+            <a href="{{.BasePath}}/api/status">API: Full Status</a>
+            <a href="{{.BasePath}}/api/services">API: Services</a>
+            <a href="{{.BasePath}}/api/sites">API: Sites</a>
         </div>
 
         <div class="grid">
@@ -478,6 +479,27 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	status := getStatus()
 	response := *status
 	response.CacheAge = time.Since(statusCacheTime).Round(time.Millisecond).String()
+	response.BasePath = strings.TrimRight(r.Header.Get("X-Forwarded-Prefix"), "/")
+	if response.BasePath != "" {
+		originHost := r.Header.Get("X-Forwarded-Host")
+		if originHost == "" {
+			originHost = r.Host
+		}
+		originScheme := r.Header.Get("X-Forwarded-Proto")
+		if originScheme == "" {
+			originScheme = "https"
+		}
+		origin := originScheme + "://" + originHost
+		for i := range response.Services {
+			if response.Services[i].HasUI {
+				response.Services[i].UIURL = origin + "/proxy/" + response.Services[i].Name + "/"
+			}
+		}
+		for i := range response.Sites {
+			dbName := strings.SplitN(response.Sites[i].Host, ".", 2)[0]
+			response.Sites[i].URL = origin + "/proxy/" + dbName + "/"
+		}
+	}
 
 	tmpl, err := template.New("dashboard").Parse(dashboardHTML)
 	if err != nil {

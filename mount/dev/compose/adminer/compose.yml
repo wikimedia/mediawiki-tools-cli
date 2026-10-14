@@ -2,10 +2,17 @@
 services:
   adminer:
     image: "${ADMINER_IMAGE:-adminer:4}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.rule=Path(`/proxy/${ADMINER_PROXY_PATH:-adminer}`) || PathPrefix(`/proxy/${ADMINER_PROXY_PATH:-adminer}/`)"
+      - "traefik.http.routers.adminer.entrypoints=web"
+      - "traefik.http.routers.adminer.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-adminer@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-adminer.stripprefix.prefixes=/proxy/${ADMINER_PROXY_PATH:-adminer}"
+      - "traefik.http.services.adminer.loadbalancer.server.port=${ADMINER_VIRTUAL_PORT:-8080}"
     restart: unless-stopped
     environment:
-      - VIRTUAL_HOST=adminer.local.wmftest.net
-      - VIRTUAL_PORT=8080
+      - VIRTUAL_HOST=${ADMINER_VIRTUAL_HOST:-adminer.local.wmftest.net}
+      - VIRTUAL_PORT=${ADMINER_VIRTUAL_PORT:-8080}
       - DEFAULT_EXPOSE_PORT=8080
     depends_on:
       - dps

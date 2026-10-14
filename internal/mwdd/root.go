@@ -36,6 +36,7 @@ func (m MWDD) Directory() string {
 func (m MWDD) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
+	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
 	m.ensureDockerfileComposeFiles()
 }
 
