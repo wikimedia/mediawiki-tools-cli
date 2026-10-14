@@ -3,9 +3,8 @@ services:
     image: "${NOVNC_IMAGE:-ghcr.io/montehurd/mediawiki-docker-images/novnc@sha256:57358bd7ab04bf4b39405369cc8e896bb5571251edd97671d8d6227b639bd2e1}"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.novnc-host.rule=Host(`${NOVNC_VIRTUAL_HOST:-novnc.local.wmftest.net}`)"
+      - "traefik.http.routers.novnc-host.rule=Host(`${NOVNC_VIRTUAL_HOST:-novnc.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.novnc-host.entrypoints=web"
-      - "traefik.http.routers.novnc-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.routers.novnc-host.service=novnc"
       - "traefik.http.routers.novnc.rule=Path(`/proxy/${NOVNC_PROXY_PATH:-novnc}`) || PathPrefix(`/proxy/${NOVNC_PROXY_PATH:-novnc}/`)"
       - "traefik.http.routers.novnc.entrypoints=web"

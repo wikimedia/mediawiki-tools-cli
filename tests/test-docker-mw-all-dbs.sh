@@ -111,6 +111,11 @@ fi
 # Check the DB tools (phpmyadmin, adminer)
 test_wget http://phpmyadmin.local.wmftest.net:$PORT "Open new phpMyAdmin window"
 test_wget http://adminer.local.wmftest.net:$PORT "Login - Adminer"
+test_http_status http://adminer.local.wmftest.net:$PORT/ 200
+test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401
+test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401 0 adminer.local.wmftest.net
+test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 200 1
+test_http_status http://127.0.0.1:$PORT/ 401
 
 # And check the installed sites (mysql, postgres, sqlite)
 # test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"

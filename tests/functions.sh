@@ -64,6 +64,37 @@ test_wget() {
     fi
 }
 
+test_http_status() {
+    local url="$1"
+    local expected_status="$2"
+    local use_gateway_auth="${3:-0}"
+    local host_header="${4:-}"
+    local status
+
+    if [ "$use_gateway_auth" = "1" ]; then
+        test_gateway_auth_args
+        if [ -n "$host_header" ]; then
+            status=$(curl -sS -H "Host: $host_header" -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -o /dev/null -w "%{http_code}" "$url")
+        else
+            status=$(curl -sS -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -o /dev/null -w "%{http_code}" "$url")
+        fi
+    elif [ -n "$host_header" ]; then
+        status=$(curl -sS -H "Host: $host_header" -o /dev/null -w "%{http_code}" "$url")
+    else
+        status=$(curl -sS -o /dev/null -w "%{http_code}" "$url")
+    fi
+
+    if [ "$status" = "$expected_status" ]; then
+        echo -e "${GREEN}PASS:${NC} $url returned HTTP $status"
+    else
+        echo -e "${RED}FAIL:${NC} $url returned HTTP $status, expected $expected_status"
+        if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+            exit 1
+        fi
+        return 1
+    fi
+}
+
 test_wget_eventually_contains() {
     local url="$1"
     local expected_match="$2"

@@ -4,9 +4,8 @@ services:
     image: "${PHPMYADMIN_IMAGE:-phpmyadmin/phpmyadmin:5}"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.phpmyadmin-host.rule=Host(`${PHPMYADMIN_VIRTUAL_HOST:-phpmyadmin.local.wmftest.net}`)"
+      - "traefik.http.routers.phpmyadmin-host.rule=Host(`${PHPMYADMIN_VIRTUAL_HOST:-phpmyadmin.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.phpmyadmin-host.entrypoints=web"
-      - "traefik.http.routers.phpmyadmin-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.routers.phpmyadmin-host.service=phpmyadmin"
       - "traefik.http.routers.phpmyadmin.rule=Path(`/proxy/${PHPMYADMIN_PROXY_PATH:-phpmyadmin}`) || PathPrefix(`/proxy/${PHPMYADMIN_PROXY_PATH:-phpmyadmin}/`)"
       - "traefik.http.routers.phpmyadmin.entrypoints=web"
