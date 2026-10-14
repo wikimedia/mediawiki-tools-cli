@@ -42,7 +42,6 @@ services:
       - ./:/data:ro
     depends_on:
       - dps
-      - traefik
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
