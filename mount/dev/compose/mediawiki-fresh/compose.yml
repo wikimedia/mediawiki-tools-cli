@@ -20,7 +20,7 @@ services:
       # https://www.mediawiki.org/wiki/Selenium/How-to/Run_tests_targeting_MediaWiki-Docker_using_Fresh#Environment_variables
       # This container runs inside the Docker network. Use the Apache service's
       # internal port; ${PORT} is mapped on the host and is not reachable here.
-      - MW_SERVER=http://default.mediawiki.local.wmftest.net:8080
+      - MW_SERVER=http://mediawiki-web:8080
       - MW_SCRIPT_PATH=/w
       - MEDIAWIKI_USER=Admin
       - MEDIAWIKI_PASSWORD=mwddpassword
