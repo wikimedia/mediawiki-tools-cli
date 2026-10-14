@@ -35,7 +35,7 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
   tar -xf mediawiki.tar.gz -C .mediawiki
   rm mediawiki.tar.gz
 
-  mkdir .mediawiki/skins/Vector
+  mkdir -p .mediawiki/skins/Vector
   download_archive \
     https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/skins/Vector/+archive/refs/heads/master.tar.gz \
     https://codeload.github.com/wikimedia/mediawiki-skins-Vector/tar.gz/refs/heads/master \
@@ -43,7 +43,7 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
   tar -xf vector.tar.gz -C .mediawiki/skins/Vector
   rm vector.tar.gz
 
-  mkdir .mediawiki/vendor
+  mkdir -p .mediawiki/vendor
   download_archive \
     https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/vendor/+archive/refs/heads/master.tar.gz \
     https://codeload.github.com/wikimedia/mediawiki-vendor/tar.gz/refs/heads/master \
