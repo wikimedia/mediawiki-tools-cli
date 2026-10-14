@@ -1,14 +1,14 @@
 services:
   traefik:
     image: "${TRAEFIK_IMAGE:-traefik:v3.6.16}"
-    profiles:
-      - gateway
     restart: unless-stopped
     environment:
       - DOCKER_API_VERSION=${TRAEFIK_DOCKER_API_VERSION:-1.44}
     command:
       - --entrypoints.web.address=:80
       - --entrypoints.web.forwardedheaders.insecure=true
+      - --entrypoints.web.transport.respondingTimeouts.readTimeout=120s
+      - --entrypoints.web.transport.respondingTimeouts.writeTimeout=120s
       - --providers.docker=true
       - --providers.docker.endpoint=tcp://docker-socket-proxy:2375
       - --providers.docker.exposedbydefault=false
@@ -17,11 +17,12 @@ services:
       - --providers.file.watch=true
       - --api.dashboard=false
     ports:
-      - "${TRAEFIK_BIND_ADDR:-127.0.0.1}:${TRAEFIK_PORT:-8081}:80"
+      - "${TRAEFIK_BIND_ADDR:-0.0.0.0}:${PORT}:80"
     volumes:
       - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./compose/traefik/auth/users:/etc/traefik/auth/users:ro
+      - ./compose/traefik/auth:/etc/traefik/auth:ro
     depends_on:
+      - dps
       - docker-socket-proxy
     networks:
       - dps
@@ -29,8 +30,6 @@ services:
 
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3.0
-    profiles:
-      - gateway
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

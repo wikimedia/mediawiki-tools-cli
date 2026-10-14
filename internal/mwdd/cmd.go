@@ -95,6 +95,12 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
+			if err := EnsureTraefikAuth(); err != nil {
+				return err
+			}
+			if err := RemoveLegacyNginxProxy(); err != nil {
+				return err
+			}
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{
@@ -190,6 +196,9 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			DefaultForUser().EnsureReady()
+			if err := RemoveLegacyNginxProxy(); err != nil {
+				return err
+			}
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})

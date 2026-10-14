@@ -27,12 +27,26 @@ test_file_contains() {
     fi
 }
 
+test_gateway_auth_args() {
+	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ]; then
+		local credentials
+		credentials=$("$SCRIPT_DIR/../bin/mw" docker traefik credentials)
+		MWCLI_TEST_GATEWAY_PASSWORD=$(echo "$credentials" | sed -n 's/^Password: //p' | tail -n 1)
+	fi
+	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ]; then
+		echo "Failed to read the generated Traefik test credentials"
+		return 1
+	fi
+	MWCLI_TEST_GATEWAY_USER=mwcli
+}
+
 test_wget() {
     local url="$1"
     local expected_match="$2"
+    test_gateway_auth_args
     set +e
     local WGET
-    WGET=$(wget -qO- "$url")
+    WGET=$(wget -qO- --user="$MWCLI_TEST_GATEWAY_USER" --password="$MWCLI_TEST_GATEWAY_PASSWORD" "$url")
     echo "$WGET" | grep -q "$expected_match"
     local RESULT=$?
     set -e
@@ -60,11 +74,12 @@ test_wget_eventually_contains() {
     local saw_http_200=0
     local last_status=""
     local last_body=""
+	 test_gateway_auth_args
 
     while [ "$attempt" -le "$max_attempts" ]; do
         set +e
         local response
-        response=$(curl -sS -L -w "\n%{http_code}" "$url")
+        response=$(curl -sS -L -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -w "\n%{http_code}" "$url")
         local curl_result=$?
         set -e
 
@@ -120,11 +135,12 @@ test_wget_eventually_200() {
 
     local attempt=1
     local last_status=""
+	test_gateway_auth_args
 
     while [ "$attempt" -le "$max_attempts" ]; do
         set +e
         local status
-        status=$(curl -sS -L -o /dev/null -w "%{http_code}" "$url")
+        status=$(curl -sS -L -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -o /dev/null -w "%{http_code}" "$url")
         local curl_result=$?
         set -e
 

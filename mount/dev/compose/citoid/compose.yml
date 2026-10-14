@@ -4,6 +4,10 @@ services:
     image: "${CITOID_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-services-citoid:fcc15c59d18eccc9a0d04f88be64975804233608}"
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.citoid-host.rule=Host(`${CITOID_VIRTUAL_HOST:-citoid.local.wmftest.net}`)"
+      - "traefik.http.routers.citoid-host.entrypoints=web"
+      - "traefik.http.routers.citoid-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.citoid-host.service=citoid"
       - "traefik.http.routers.citoid.rule=Path(`/proxy/${CITOID_PROXY_PATH:-citoid}`) || PathPrefix(`/proxy/${CITOID_PROXY_PATH:-citoid}/`)"
       - "traefik.http.routers.citoid.entrypoints=web"
       - "traefik.http.routers.citoid.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-citoid@docker,forwarded-https@file"
