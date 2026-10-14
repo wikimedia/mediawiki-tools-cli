@@ -24,6 +24,7 @@ services:
       - ./compose/traefik/auth:/etc/traefik/auth:ro
     depends_on:
       - dps
+      - dashboard
       - docker-socket-proxy
     networks:
       - dps
