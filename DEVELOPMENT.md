@@ -41,13 +41,12 @@ make build
 
 The resulting binary will be located at `./bin/mw`.
 
-### Development Alias
+### Running the development build
 
-We recommend creating a development alias to run your locally built version of `mw`:
-
-```sh
-alias mwdev='$(pwd)/bin/mw'
-```
+Follow the [development build instructions in README.md](README.md#using-a-development-build)
+to put `bin/mw` first on your PATH. This lets you copy documentation examples
+using `mw` without changing the command name. You can also run `./bin/mw` directly
+from the repository root.
 
 ### Makefile commands
 
