@@ -50,13 +50,17 @@ so no shared cache service is required.
 See [actual worker runs](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-worker.yml)
 in GitHub Actions.
 
-The worker workflow is [`.github/workflows/gitlab-workers.yml`](.github/workflows/gitlab-workers.yml).
+The GitLab webhook dispatches [the queue workflow](.github/workflows/gitlab-workers.yml).
+It rechecks pending jobs and accepts jobs requiring exactly the `dind` tag.
+Other status events are skipped. When no matching job remains, the queue workflow
+cancels itself. Otherwise it dispatches [the worker workflow](.github/workflows/gitlab-worker.yml)
+using its built-in GitHub token; no additional secret or webhook change is needed.
 
-A GitLab job-event webhook dispatches it when a job becomes pending. A separate
-queue-check job rechecks the job's status and accepts jobs requiring exactly the
-`dind` tag. Other status events are skipped. Separate jobs can start workers in
-parallel, subject to GitHub's concurrency limits; duplicate events for the same
-job share a concurrency group. There is no scheduled GitHub polling.
+Select **GitLab CI worker** in GitHub Actions to see only worker runs. Queue checks
+appear separately under **GitLab CI queue**. Worker runs are named with their
+GitLab job ID. Separate jobs can start workers in parallel, subject to GitHub's
+concurrency limits; duplicate events for the same job share a concurrency group.
+There is no scheduled GitHub polling.
 
 Keep one or both Cloud VPS runners online with the `dind` tag. They poll GitLab
 normally and can handle jobs even if the webhook or GitHub is unavailable. GitLab
