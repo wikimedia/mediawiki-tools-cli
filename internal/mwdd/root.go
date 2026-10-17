@@ -1,10 +1,10 @@
 package mwdd
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/files"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"

@@ -98,7 +98,7 @@ func (m MWDD) refreshDashboardServices() error {
 	if err := temp.Close(); err != nil {
 		return err
 	}
-	if err := os.Chmod(path, 0644); err != nil {
+	if err := os.Chmod(path, 0o644); err != nil {
 		return err
 	}
 	return os.Rename(path, filepath.Join(m.Directory(), "dashboard-services.json"))

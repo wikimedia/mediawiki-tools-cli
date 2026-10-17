@@ -29,7 +29,7 @@ func TestCustomDashboardMetadata(t *testing.T) {
 `
 	t.Setenv("UNSET_DASHBOARD_HOST", "")
 	file := filepath.Join(m.Directory(), "custom-example.yml")
-	if err := os.WriteFile(file, []byte(config), 0600); err != nil {
+	if err := os.WriteFile(file, []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := m.refreshDashboardServices(); err != nil {
@@ -69,7 +69,7 @@ func TestDashboardMetadataSurvivesEmbeddedSync(t *testing.T) {
 	m := MWDD{BaseDir: t.TempDir()}
 	m.EnsureReady()
 	file := filepath.Join(m.Directory(), "custom-example.yml")
-	if err := os.WriteFile(file, []byte("services:\n  custom-worker:\n    image: busybox\n"), 0600); err != nil {
+	if err := os.WriteFile(file, []byte("services:\n  custom-worker:\n    image: busybox\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	m.EnsureReady()

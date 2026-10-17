@@ -11,7 +11,7 @@ func TestCustomServicesWithAndWithoutUI(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "services.json")
 	t.Setenv("DASHBOARD_SERVICES_FILE", path)
 	data := `[{"name":"custom-worker","has_ui":false},{"name":"custom-web","has_ui":true,"ui_host":"web.local"},{"name":"mysql","has_ui":false}]`
-	if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	original := dnsLookupHost
@@ -42,7 +42,7 @@ func TestCustomServicesWithAndWithoutUI(t *testing.T) {
 func TestMalformedCustomServicesRetainsBundled(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "services.json")
 	t.Setenv("DASHBOARD_SERVICES_FILE", path)
-	if err := os.WriteFile(path, []byte("not json"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if len(serviceConfigs()) != len(servicesToCheck) {
