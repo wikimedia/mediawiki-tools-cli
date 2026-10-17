@@ -107,29 +107,12 @@ func NewAuthCheckCmd() *cobra.Command {
 		Use:   "check",
 		Short: "Check if the application credential is valid",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			project, _ := cmd.Flags().GetString("project")
-
-			if project == "" {
-				return fmt.Errorf("project is required")
-			}
-
-			c := config.State()
-			// make sure the project exists
-			credentials, exists := c.Effective.CloudVPS.Projects[project]
-			if !exists {
-				return fmt.Errorf("project not found: %s", project)
-			}
-
-			auth := gophercloud.AuthOptions{
-				IdentityEndpoint:            authUrl,
-				ApplicationCredentialID:     credentials.Credential.ID,
-				ApplicationCredentialSecret: credentials.Credential.Secret,
-				DomainID:                    "default",
-			}
-
-			_, err := openstack.AuthenticatedClient(context.Background(), auth)
+			project, err := projectName(cmd)
 			if err != nil {
-				return fmt.Errorf("failed to authenticate: %v", err)
+				return err
+			}
+			if _, err := authenticatedProvider(cmd); err != nil {
+				return err
 			}
 
 			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Credentials for project %s are valid", project)))

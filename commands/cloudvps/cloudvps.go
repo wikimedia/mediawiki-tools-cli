@@ -16,6 +16,10 @@ func NewCloudVPSCmd() *cobra.Command {
 
 	cmd.AddCommand(NewComputeCmd())
 	cmd.AddCommand(NewAuthCmd())
+	cmd.AddCommand(NewVolumeCmd())
+	for _, resource := range []string{"image", "flavor", "network"} {
+		cmd.AddCommand(newResourceListCmd(resource, authenticatedProvider))
+	}
 
 	return cmd
 }

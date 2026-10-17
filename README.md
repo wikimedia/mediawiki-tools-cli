@@ -26,6 +26,23 @@ We welcome contributions! Please see the following documents for more informatio
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: Guidelines for contributing to the project and the workflow we follow.
 - **[DEVELOPMENT.md](DEVELOPMENT.md)**: Detailed instructions on how to set up your local development environment, build the project, and run tests.
 
+### Using a development build
+
+From the repository root, build the CLI and put its `bin` directory first on
+your current terminal's PATH:
+
+```sh
+make build
+export PATH="$PWD/bin:$PATH"
+hash -r
+command -v mw
+```
+
+The last command should show this repository's `bin/mw`. Documentation examples
+using `mw` will then run your development build unchanged. Rebuild with
+`make build` after changing the source; the PATH change lasts for this shell
+session. You can also run `./bin/mw` directly from the repository root.
+
 ## Support
 
 - **Phabricator**: [#mwcli](https://phabricator.wikimedia.org/project/view/5331/)

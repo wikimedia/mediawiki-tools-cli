@@ -1,4 +1,4 @@
-name: GitLab CI workers
+name: GitLab CI queue
 
 on:
   workflow_dispatch:
@@ -28,9 +28,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-    outputs:
-      pending: ${{ steps.check.outputs.pending }}
-      job_id: ${{ steps.check.outputs.job_id }}
+      actions: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -43,80 +41,20 @@ jobs:
           JOB_ID: ${{ inputs.job_id }}
         run: python3 .github/scripts/gitlab-queue.py
 
-  worker:
-    needs: queue
-    if: needs.queue.outputs.pending == 'true'
-    # Different GitLab jobs can run concurrently; duplicate events share a group.
-    concurrency:
-      group: gitlab-worker-${{ needs.queue.outputs.job_id }}
-      cancel-in-progress: false
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    env:
-      RUNNER_VERSION: '19.2.6'
-      RUNNER_SHA256: d2900a967455f291bf33e713b81155ba695cbd29ad47513d221c94f9783fed1b
-
-    steps:
-      - name: Check Docker and available disk space
-        run: |
-          docker version
-          df -h "$RUNNER_TEMP"
-
-      - name: Install verified GitLab Runner
-        shell: bash
-        run: |
-          set -euo pipefail
-          install -d -m 700 "$RUNNER_TEMP/gitlab-worker"
-          cd "$RUNNER_TEMP/gitlab-worker"
-          curl --fail --location --retry 3 \
-            "https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/v${RUNNER_VERSION}/binaries/gitlab-runner-linux-amd64" \
-            --output gitlab-runner
-          printf '%s  gitlab-runner\n' "$RUNNER_SHA256" | sha256sum --check
-          chmod 700 gitlab-runner
-          ./gitlab-runner --version
-
-      - name: Connect to GitLab and process one job
-        shell: bash
+      - name: Cancel when no worker is needed
+        if: steps.check.outputs.pending == 'false'
         env:
-          CI_SERVER_TOKEN: ${{ secrets.GITLAB_RUNNER_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          umask 077
-          if [ -z "$CI_SERVER_TOKEN" ]; then
-            echo 'Add the GITLAB_RUNNER_TOKEN Actions secret before enabling workers.' >&2
-            exit 1
-          fi
-          cd "$RUNNER_TEMP/gitlab-worker"
-          # Hosted VM images can share /etc/machine-id. Give each manager its own
-          # ID so one worker's unregister cannot remove another worker's manager.
-          printf 'r_%s\n' "$(openssl rand -hex 6)" > .runner_system_id
-          ./gitlab-runner register --non-interactive \
-            --config config.toml \
-            --url https://gitlab.wikimedia.org \
-            --name github-worker \
-            --executor docker \
-            --docker-image docker:26.1.1 \
-            --docker-privileged=true \
-            --docker-volumes /certs/client \
-            --docker-volumes /cache \
-            --feature-flags 'FF_NETWORK_PER_BUILD:true'
-          unset CI_SERVER_TOKEN
-          ./gitlab-runner run-single \
-            --config config.toml \
-            --runner github-worker \
-            --max-builds 1 \
-            --wait-timeout 120
+          gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY"
+          # Keep this job running while GitHub processes the cancellation.
+          sleep 30
 
-      - name: Disconnect the temporary runner manager
-        if: always()
-        shell: bash
+      - name: Start a worker for the pending job
+        if: steps.check.outputs.pending == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_ID: ${{ steps.check.outputs.job_id }}
         run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP"
-          if [ -f gitlab-worker/config.toml ]; then
-            cd gitlab-worker
-            ./gitlab-runner unregister --config config.toml --name github-worker \
-              || echo 'Manager cleanup failed; check the GitHub runner in GitLab.'
-            rm -f config.toml
-          fi
-          df -h "$RUNNER_TEMP"
+          gh workflow run gitlab-worker.yml --ref main \
+            --repo "$GITHUB_REPOSITORY" --field job_id="$JOB_ID"
