@@ -31,7 +31,7 @@ func TestDockerfileRebuildIntegration(t *testing.T) {
 	}
 	compose := []string{"compose", "--project-name", service, "--file", dockerfileComposeFilePath(dir, service), "--file", filepath.Join(dir, "runtime.yml")}
 	runtime := fmt.Sprintf("services:\n  %s:\n    network_mode: none\n    command: [sh, -c, 'while :; do sleep 60; done']\n", service)
-	if err := os.WriteFile(filepath.Join(dir, "runtime.yml"), []byte(runtime), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "runtime.yml"), []byte(runtime), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	run := func(args ...string) string {
@@ -51,7 +51,7 @@ func TestDockerfileRebuildIntegration(t *testing.T) {
 	})
 	for _, version := range []string{"first", "second"} {
 		content := fmt.Sprintf("FROM %s\nRUN printf '%s' > /tmp/mwcli-override-proof\n", base, version)
-		if err := os.WriteFile(dockerfile, []byte(content), 0600); err != nil {
+		if err := os.WriteFile(dockerfile, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		run("up", "-d", "--build", "--force-recreate", service)
