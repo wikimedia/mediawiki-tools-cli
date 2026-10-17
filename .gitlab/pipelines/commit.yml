@@ -7,6 +7,36 @@ stages:
   - integration
   - release
 
+# Manual trial for the GitHub-hosted worker; independent of normal CI jobs.
+github-runner-smoke:
+  stage: test
+  image: docker:26.1.1
+  tags:
+    - github
+  services:
+    - docker:26.1.1-dind
+  variables:
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: /certs/client
+  needs: []
+  cache: []
+  timeout: 10m
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+      allow_failure: true
+  script:
+    - docker version
+    - docker info
+    - docker run --rm alpine:3.22 echo "GitLab job running on a GitHub VM"
+    - echo "GitHub runner trial passed" > github-runner-trial.txt
+  artifacts:
+    paths:
+      - github-runner-trial.txt
+    expire_in: 1 day
+
 # The plan would be for this cache to be reused by all jobs.
 # Caches currently end up cached per runner, per job concurrency level and per md5 of path?
 # So there are lots of duplicate caches that end up needing to be populated right now?
