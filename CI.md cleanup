@@ -15,28 +15,17 @@ weekly image-update schedule. Feature-branch pushes do not create branch pipelin
 open a draft MR to get CI while working on a change.
 
 New commits automatically cancel interruptible jobs from older pipelines for the
-same MR or `main` branch, including running tests and builds. The project's
-**Settings > CI/CD > General pipelines > Auto-cancel redundant pipelines** setting
-must be enabled (it currently is). Tag and weekly pipelines opt out, and release
-uploads, publishing and documentation publication are non-interruptible.
+same MR or `main` branch, including running tests and builds.
 
 Before the build and tests start, `prepare-merge` fetches the current target branch
 and merges it into a temporary checkout of the MR commit. Conflicts fail this early
 job. Otherwise, a Git bundle passes that exact merged commit to the remaining jobs,
 including security scans. Your source branch is not changed or pushed.
 
-The job log records both input commits and the resulting merge commit. Builds and
-tests use the merged checkout; GitLab's pipeline metadata still identifies the MR
-source commit. Pipeline job definitions come from the MR's CI configuration.
-
 If the target branch advances afterwards, rerun the pipeline to test the newer
 combination. Retrying only a test job uses the existing merge artifact; start a new
 pipeline to refresh it. This does not provide GitLab's native merged-results or
 merge-train guarantees at merge time.
-
-Under **Settings > Merge requests > Merge checks**, enable **Pipelines must succeed**
-and leave **Skipped pipelines are considered successful** disabled. These project
-settings are separate from the versioned configuration.
 
 ## Pipeline caches and scheduling
 
@@ -49,7 +38,7 @@ linter caches live under `.cache/`, with separate cache keys per job and Go vers
 
 `prepare-mediawiki` caches a compressed, clean MediaWiki snapshot and passes it as
 a pipeline artifact to the four tests that need it. Its Wikimedia image includes
-PHP 8.3, Node 20 and Composer, which run directly without a Docker daemon. Tests
+PHP, Node and Composer, which run directly without a Docker daemon. Tests
 never refresh or upload their modified MediaWiki trees. The get-code test fetches
 its own code. Snapshots refresh weekly and when the preparation scripts change;
 use **Clear runner caches** in
@@ -74,75 +63,7 @@ started worker exits after its idle timeout.
 
 All temporary workers reuse one project runner authentication token. Each VM generates a
 unique runner manager ID and removes only its own manager afterwards. A worker
-exits after one job or after 120 seconds without work. It pulls Docker images
-directly, without the WMCS registry mirror. No runner-management API token is
-required on a worker.
-
-### Initial rollout
-
-Keep the existing webhook pointed at `addshore/testing` while reviewing this MR.
-Before running this MR, add `dind` to the GitLab runner registration used by the
-testing workers, and to one or both Cloud VPS runner registrations. Keep their
-existing tags while migrating. Update the testing workflow and queue checker to
-accept `dind` and remove its schedule too. Tags are configured in GitLab, not in
-Actions secrets or the local runner configuration. No workflow from the MR branch
-needs to run on GitHub. Merge only after the real Docker integration tests pass.
-
-After merging, wait for the commit and workflow to appear on `main` in
-[`wikimedia/mediawiki-tools-cli`](https://github.com/wikimedia/mediawiki-tools-cli).
-The worker workflow runs only in that repository and remains disabled until its
-`GITLAB_WORKERS_ENABLED` Actions variable is set to `true`.
-
-To switch over:
-
-1. Enable Actions in the official mirror and add these Actions secrets:
-
-   | Secret | Value |
-   | --- | --- |
-   | `GITLAB_RUNNER_TOKEN` | The temporary workers' existing project runner authentication token, or a replacement token for a project runner with the `dind` tag and **Run untagged jobs** disabled. Allow MR refs. |
-   | `GITLAB_API_READ_TOKEN` | A GitLab project access token scoped to mwcli, with Reporter access and only `read_api`. Renew before expiry. |
-
-2. Disable the **GitLab worker trial** workflow in `addshore/testing`, including
-   its schedule, after any active workers have finished. Disable Job events on
-   the existing GitLab webhook while updating it.
-3. Change the webhook URL to:
-
-   ```text
-   https://api.github.com/repos/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-workers.yml/dispatches
-   ```
-
-   Replace its `Authorization` custom header with `Bearer YOUR_GITHUB_TOKEN`.
-   Use a fine-grained GitHub token with access only to
-   `wikimedia/mediawiki-tools-cli` and **Actions: Read and write**. Metadata read
-   access is automatic. Complete any Wikimedia organization approval required.
-   Keep SSL verification enabled and use this custom payload:
-
-   ```json
-   {
-     "ref": "main",
-     "inputs": {
-       "project_id": "{{project_id}}",
-       "job_id": "{{build_id}}",
-       "job_status": "{{build_status}}"
-     }
-   }
-   ```
-
-4. Set the official mirror's Actions variable `GITLAB_WORKERS_ENABLED` to `true`,
-   enable **Job events** on the webhook and retry an integration job. Confirm it
-   starts a worker in the official mirror and returns its result to GitLab.
-
-Store tokens directly in Actions secrets or the webhook header; never commit them.
-GitHub secrets cannot be read back for copying: retrieve the runner token from its
-original secure storage or replace the registration, and create a separate
-read-only queue token for the official mirror. The bootstrap queue token in
-`addshore/testing` expires on 16 November 2026.
-
-To roll back during the migration, disable the official workflow and point the
-webhook back to the testing repository with its matching Authorization header;
-then re-enable its workflow. To use only Cloud VPS runners, disable GitHub workers
-and the webhook. Leave the `dind` job tag unchanged; the persistent runners below
-continue accepting those jobs.
+exits after one job or after 120 seconds without work.
 
 Queue-check regression tests can run locally:
 
@@ -150,13 +71,21 @@ Queue-check regression tests can run locally:
 python3 -m unittest discover -s .github/scripts -p 'test_*.py'
 ```
 
+### Tokens
+
+The tokens for this setup will need rotating.
+
+- GITLAB_RUNNER_TOKEN doesn't expire (Currently for https://gitlab.wikimedia.org/repos/releng/cli/-/runners/1549)
+- GITLAB_API_READ_TOKEN expires 21 November 2027 (Currently https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens `GitHub official worker queue`)
+- GH token in GL webhook expires 18 October 2027 (Currently https://github.com/settings/personal-access-tokens/21319900)
+
 ## Custom runners
 
 Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).
 
 There are currently 2 runners:
- - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0001`) *bullseye (deprecated 2023-06-08)*
  - gitlab-runner-addshore-1018.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0002`) *NEW 2026*
+ - gitlab-runner-addshore-1019.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0002`) *NEW 2026*
 
 You can view the usage at https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&from=now-24h&to=now&timezone=utc&var-project=mwcli&var-instance=$__all
 
