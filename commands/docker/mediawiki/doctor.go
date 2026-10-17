@@ -2,6 +2,7 @@ package mediawiki
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -16,15 +17,29 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Helps you identify possible issues with your MediaWiki setup",
-		Run: func(cmd *cobra.Command, args []string) {
+		Long:  "Inspect code, dependencies, configured sites and Git branches. Known release/development branch mismatches are warnings only: feature branches and detached checkouts require manual compatibility review. This command does not fetch, switch branches, or update source code.",
+		RunE: func(cmd *cobra.Command, args []string) error {
 			m := mwdd.DefaultForUser()
 			m.EnsureReady()
 
 			mw, err := mediawiki.ForDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if err != nil {
-				logrus.Fatal(err)
-				os.Exit(1)
+				return fmt.Errorf("MediaWiki code is unavailable: %w; set MEDIAWIKI_VOLUMES_CODE with mw docker env set or run get-code", err)
 			}
+
+			if branches, err := mw.CheckoutBranches(); err != nil {
+				logrus.Warnf("Could not inspect checkout branches: %v", err)
+			} else {
+				for _, checkout := range branches {
+					cmd.Printf("Git branch: %s: %s\n", checkout.Name, checkout.Branch)
+					if checkout.Warning != "" {
+						logrus.Warn(checkout.Warning)
+					}
+				}
+				cmd.Println("Branch checks are advisory; matching names do not guarantee compatibility.")
+			}
+			settings, _ := os.ReadFile(mw.LocalSettingsPath())
+			settingsContents := string(settings)
 
 			if !mw.MediaWikiIsPresent() {
 				logrus.Fatal("⚠️ MediaWiki is not present in the code volume")
@@ -40,7 +55,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				logrus.Info("✅ The vendor directory is present in the code volume")
 			}
 
-			if len(mw.SkinsCheckedOut()) == 0 || !strings.Contains(mw.LocalSettingsContents(), "wfLoadSkin") {
+			if len(mw.SkinsCheckedOut()) == 0 || !strings.Contains(settingsContents, "wfLoadSkin") {
 				logrus.Warn("⚠️ You have no skins checked out or loaded in LocalSettings.php")
 				logrus.Warn("✨ You can checkout the Vector skin with `mw docker mediawiki get-code --skin Vector`")
 			} else {
@@ -51,7 +66,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			// We have extensions or skins
 			len(mw.ExtensionsCheckedOut()) != 0 || len(mw.SkinsCheckedOut()) != 0) &&
 				// And they are loaded in LocalSettings
-				(strings.Contains(mw.LocalSettingsContents(), "wfLoadExtension") || strings.Contains(mw.LocalSettingsContents(), "wfLoadSkin")) &&
+				(strings.Contains(settingsContents, "wfLoadExtension") || strings.Contains(settingsContents, "wfLoadSkin")) &&
 				!mw.ComposerLocalJsonExists() || !mw.ComposerJsonExists() {
 				logrus.Warn("⚠️ You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
 				logrus.Warn("If the extensions or skins require additional dependencies, they may not function correctly.")
@@ -117,6 +132,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 
 			logrus.Print("Got more suggestions for things to check? File a ticket!")
 			logrus.Print("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
+			return nil
 		},
 	}
 	return cmd
