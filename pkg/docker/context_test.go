@@ -39,7 +39,7 @@ func TestDockerClientContextSelection(t *testing.T) {
 		{"explicit default context", "desktop-linux", "default", "unix:///tmp/other.sock", "unix:///tmp/other.sock"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"currentContext":"`+tc.current+`"}`), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"currentContext":"`+tc.current+`"}`), 0o600); err != nil {
 				t.Fatal(err)
 			}
 			t.Setenv("DOCKER_CONTEXT", tc.context)
