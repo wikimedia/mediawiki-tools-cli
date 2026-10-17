@@ -53,7 +53,8 @@ Other status events are skipped. When no matching job remains, the queue workflo
 cancels itself. Otherwise it dispatches [the worker workflow](.github/workflows/gitlab-worker.yml)
 using its built-in GitHub token; no additional secret or webhook change is needed.
 
-Select **GitLab CI worker** in GitHub Actions to see only worker runs. Queue checks
+See [actual worker runs](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-worker.yml)
+in GitHub Actions, listed under **GitLab CI worker**. Queue checks
 appear separately under **GitLab CI queue**. Worker runs are named with their
 GitLab job ID. Separate jobs can start workers in parallel, subject to GitHub's
 concurrency limits; duplicate events for the same job share a concurrency group.
