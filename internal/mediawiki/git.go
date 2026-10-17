@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
@@ -161,16 +162,27 @@ func cloneAndSetRemote(directory string, startRemote string, endRemote string, u
 		}
 		return
 	}
-	exec.RunTTYCommand(exec.Command(
-		"git",
-		gitCloneArguments(directory, startRemote, useShallow)...,
-	))
+	exec.RunTTYCommand(gitCloneCommand(directory, startRemote, useShallow))
 	if startRemote != endRemote {
 		exec.RunTTYCommand(exec.Command(
 			"git",
 			gitRemoteSetURLArguments(directory, endRemote)...,
 		))
 	}
+}
+
+func gitCloneCommand(directory, remote string, useShallow bool) *osexec.Cmd {
+	cmd := exec.Command("git", gitCloneArguments(directory, remote, useShallow)...)
+	// Identify mwcli to HTTP servers, including in recursive submodule clones.
+	// Keep the override local to this subprocess and respect user configuration.
+	if _, overridden := os.LookupEnv("GIT_HTTP_USER_AGENT"); !overridden {
+		version := cli.VersionDetails.Version.String()
+		if version == "" {
+			version = "dev"
+		}
+		cmd.Env = append(cmd.Environ(), "GIT_HTTP_USER_AGENT=mwcli/"+version+" (https://www.mediawiki.org/wiki/Cli)")
+	}
+	return cmd
 }
 
 func gitCloneArguments(directory string, remote string, useShallow bool) []string {

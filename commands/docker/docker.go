@@ -79,21 +79,23 @@ func NewCmd() *cobra.Command {
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
-			if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
-				// We can also allow docker-compose, if docker compose is not available
-				if _, err := lookpath.NeedCommands([]string{"docker-compose"}); err != nil {
-					fmt.Println("docker compose is not available. Please install it and try again.")
+			// These file-only command groups mark themselves before calling parent hooks.
+			if os.Getenv("MWCLI_MEDIAWIKI_ENV_COMMAND") == "" && os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" {
+				if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
+					// We can also allow docker-compose, if docker compose is not available
+					if _, err := lookpath.NeedCommands([]string{"docker-compose"}); err != nil {
+						fmt.Println("docker compose is not available. Please install it and try again.")
+						os.Exit(1)
+					}
+					fmt.Println(err)
 					os.Exit(1)
 				}
-				fmt.Println(err)
-				os.Exit(1)
-			}
 
-			// Bail if docker is not running
-			// TODO allow some commands to run without docker running, such as "where" and "env"
-			if !docker.DockerDaemonIsRunning() {
-				fmt.Println("Docker is not running. Please start it and try again.")
-				os.Exit(1)
+				// Bail if docker is not running
+				if !docker.DockerDaemonIsRunning() {
+					fmt.Println("Docker is not running. Please start it and try again.")
+					os.Exit(1)
+				}
 			}
 
 			thisDev := mwdd.DefaultForUser()
