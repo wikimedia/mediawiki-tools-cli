@@ -1,8 +1,9 @@
 # CI
 
 Continuous integration runs in Wikimedia GitLab. Shared Wikimedia runners handle
-Go checks, builds, basic CLI tests and MediaWiki preparation. Docker integration
-jobs use temporary GitHub-hosted workers with the `github` tag. Each worker connects
+Go checks, builds, basic CLI tests, get-code tests and MediaWiki preparation.
+Docker integration jobs use temporary GitHub-hosted workers with the `github` tag.
+Each worker connects
 back to GitLab, runs one job and uploads its logs and artifacts there.
 
 Full CI requires the project's configured runners and is not available in forks.
@@ -39,8 +40,8 @@ settings are separate from the versioned configuration.
 
 ## Pipeline caches and scheduling
 
-Basic CLI integration tests and MediaWiki preparation use shared runners. Only
-Docker tests use the `github` workers. Preview release builds run alongside
+Basic CLI integration tests, get-code tests and MediaWiki preparation use shared
+runners. Docker tests use the `github` workers. Preview release builds run alongside
 integration; tagged releases still wait for all integration tests.
 
 Go jobs let Make install only the pinned tools they need. Module, compiler and

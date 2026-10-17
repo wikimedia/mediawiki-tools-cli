@@ -189,8 +189,13 @@ prepare-mediawiki:
     script:
       - bash tests/prepare-mediawiki.sh
 
+# Cloning code uses Git and local environment files, not a Docker daemon.
 integration-get-code:
-    extends: .docker-job
+    extends: .commit-job
+    image: golang:1.26.1
+    tags:
+      - wmcs
+    cache: []
     stage: integration
     needs: [*merged-source-need,checks,test,build]
     script:
