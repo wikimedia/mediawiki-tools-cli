@@ -1,0 +1,126 @@
+name: GitLab CI workers
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: GitLab project ID
+        default: '16'
+        type: string
+      job_id:
+        description: GitLab job ID (empty checks the pending queue)
+        type: string
+      job_status:
+        description: GitLab job status
+        default: pending
+        type: string
+  # Recover if a webhook is missed or a queued dispatch is superseded.
+  schedule:
+    - cron: '7,17,27,37,47,57 * * * *'
+
+permissions: {}
+
+jobs:
+  queue:
+    if: >-
+      github.repository == 'wikimedia/mediawiki-tools-cli' &&
+      github.ref == 'refs/heads/main' &&
+      vars.GITLAB_WORKERS_ENABLED == 'true' &&
+      (github.event_name == 'schedule' ||
+       (inputs.project_id == '16' && inputs.job_status == 'pending'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      pending: ${{ steps.check.outputs.pending }}
+      job_id: ${{ steps.check.outputs.job_id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Check for pending github jobs
+        id: check
+        env:
+          GITLAB_API_READ_TOKEN: ${{ secrets.GITLAB_API_READ_TOKEN }}
+          JOB_ID: ${{ inputs.job_id }}
+        run: python3 .github/scripts/gitlab-queue.py
+
+  worker:
+    needs: queue
+    if: needs.queue.outputs.pending == 'true'
+    # Different GitLab jobs can run concurrently; duplicate events share a group.
+    concurrency:
+      group: gitlab-worker-${{ needs.queue.outputs.job_id }}
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RUNNER_VERSION: '19.2.6'
+      RUNNER_SHA256: d2900a967455f291bf33e713b81155ba695cbd29ad47513d221c94f9783fed1b
+
+    steps:
+      - name: Check Docker and available disk space
+        run: |
+          docker version
+          df -h "$RUNNER_TEMP"
+
+      - name: Install verified GitLab Runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$RUNNER_TEMP/gitlab-worker"
+          cd "$RUNNER_TEMP/gitlab-worker"
+          curl --fail --location --retry 3 \
+            "https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/v${RUNNER_VERSION}/binaries/gitlab-runner-linux-amd64" \
+            --output gitlab-runner
+          printf '%s  gitlab-runner\n' "$RUNNER_SHA256" | sha256sum --check
+          chmod 700 gitlab-runner
+          ./gitlab-runner --version
+
+      - name: Connect to GitLab and process one job
+        shell: bash
+        env:
+          CI_SERVER_TOKEN: ${{ secrets.GITLAB_RUNNER_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "$CI_SERVER_TOKEN" ]; then
+            echo 'Add the GITLAB_RUNNER_TOKEN Actions secret before enabling workers.' >&2
+            exit 1
+          fi
+          cd "$RUNNER_TEMP/gitlab-worker"
+          # Hosted VM images can share /etc/machine-id. Give each manager its own
+          # ID so one worker's unregister cannot remove another worker's manager.
+          printf 'r_%s\n' "$(openssl rand -hex 6)" > .runner_system_id
+          ./gitlab-runner register --non-interactive \
+            --config config.toml \
+            --url https://gitlab.wikimedia.org \
+            --name github-worker \
+            --executor docker \
+            --docker-image docker:26.1.1 \
+            --docker-privileged=true \
+            --docker-volumes /certs/client \
+            --docker-volumes /cache \
+            --feature-flags 'FF_NETWORK_PER_BUILD:true'
+          unset CI_SERVER_TOKEN
+          ./gitlab-runner run-single \
+            --config config.toml \
+            --runner github-worker \
+            --max-builds 1 \
+            --wait-timeout 120
+
+      - name: Disconnect the temporary runner manager
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          if [ -f gitlab-worker/config.toml ]; then
+            cd gitlab-worker
+            ./gitlab-runner unregister --config config.toml --name github-worker \
+              || echo 'Manager cleanup failed; check the GitHub runner in GitLab.'
+            rm -f config.toml
+          fi
+          df -h "$RUNNER_TEMP"

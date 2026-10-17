@@ -80,7 +80,7 @@ secret_detection:
     extends: .commit-job
     image: docker:26.1.1
     tags:
-      - mwcli
+      - github
     services:
       - name: docker:26.1.1-dind
     cache: []
@@ -160,7 +160,7 @@ integration-cli:
       - ./tests/$TEST_SCRIPT
 
 # Prepare once per pipeline. Cache one archive locally between pipelines and use
-# an artifact to distribute the same clean snapshot across both Docker runners.
+# an artifact to distribute the same clean snapshot across the Docker workers.
 prepare-mediawiki:
     extends: .commit-job
     image:
