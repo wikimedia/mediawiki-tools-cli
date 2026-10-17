@@ -50,6 +50,9 @@ func (e *Events) AddFeatureUsageEvent(feature string, version Version) {
 }
 
 func (e *Events) AddEventToStore(event map[string]interface{}) {
+	if !Opts.Telemetry || os.Getenv("MWCLI_CONTEXT_TEST") != "" {
+		return
+	}
 	j, _ := encodingjson.Marshal(event)
 	files.AddLine(string(j), e.EventFile)
 }
@@ -59,6 +62,9 @@ func (e *Events) RawEvents() []string {
 }
 
 func (e *Events) EmitEvents() bool {
+	if !Opts.Telemetry || os.Getenv("MWCLI_CONTEXT_TEST") != "" {
+		return false
+	}
 	eventJSON := e.RawEvents()
 	eventCount := len(eventJSON)
 	if eventCount == 0 {
