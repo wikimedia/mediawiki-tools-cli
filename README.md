@@ -30,6 +30,23 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 `mw api` accepts REST endpoints relative to `https://wikimedia.org/api/rest_v1/`, an alternative `--base-url`, or an absolute URL. Use `--method` (`-X`), repeatable `--header` (`-H`) and `--field` (`-f`) flags, or `--input FILE` (`-` for stdin). Fields become a JSON POST body by default, or query parameters with `--method GET`. `--include` prints response headers; `--raw` preserves the response body.
 
+### Service targets
+
+Service commands can also be selected with an `@target` prefix. For example,
+`mw @gerr<TAB>` completes to `@gerrit.wikimedia.org`; after accepting the
+target, the next completion offers Gerrit commands. Short targets such as
+`@phab` work too. Known MediaWiki hosts can be used directly, for example
+`mw @en.wikipedia.org page list`.
+
+Targets select a service command group; they do not claim that every command
+connects to the URL typed. Cloud VPS commands use the OpenStack API endpoint
+(`openstack.eqiad1.wikimediacloud.org`) while Horizon is its web interface
+(`horizon.wikimedia.org`). Toolforge commands use SSH at
+`login.toolforge.org`; a target such as `@mytool.toolforge.org` selects that
+tool for supported `exec` and `cp` commands. The older
+`tools.wmflabs.org/<tool>` web URL is a legacy web-service address, not the
+Toolforge SSH endpoint.
+
 ### Installation
 
 Follow the [installation guide](https://www.mediawiki.org/wiki/Cli/guide/Installation) on MediaWiki.org.

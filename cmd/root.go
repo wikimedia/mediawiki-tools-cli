@@ -48,11 +48,12 @@ func NewMwCliCmd() *cobra.Command {
 // NewRootCmd builds a command tree using the executable's invocation name.
 func NewRootCmd(name string) *cobra.Command {
 	mwcliCmd := &cobra.Command{
-		Use:           cli.InvocationName(name),
-		Long:          cli.DisplayName + "\n\n" + cli.Description,
-		Short:         cli.Description,
-		SilenceErrors: true,
-		SilenceUsage:  true,
+		Use:               cli.InvocationName(name),
+		Long:              cli.DisplayName + "\n\n" + cli.Description,
+		Short:             cli.Description,
+		SilenceErrors:     true,
+		SilenceUsage:      true,
+		ValidArgsFunction: completeServiceTargets,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
 			logrus.Trace("CLI: Top level PersistentPreRun")
@@ -371,6 +372,11 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 		return groups
 	})
+
+	// Resolve a service target prefix (for example, @gerrit.wikimedia.org) to
+	// its existing command group before Cobra parses the command tree. This
+	// keeps the normal command tree and its nested completions reusable.
+	rootCmd.SetArgs(resolveServiceTargetArgs(os.Args[1:]))
 
 	// Execute the root command
 	err := rootCmd.Execute()
