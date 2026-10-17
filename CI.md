@@ -7,6 +7,54 @@ The custom mwcli runners are used when docker in docker is needed (integration t
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
+## When CI runs
+
+CI runs for merge requests, including drafts, pushes to `main`, tag pushes and the
+weekly image-update schedule. Feature-branch pushes do not create branch pipelines;
+open a draft MR to get CI while working on a change.
+
+New commits automatically cancel interruptible jobs from older pipelines for the
+same MR or `main` branch, including running tests and builds. The project's
+**Settings > CI/CD > General pipelines > Auto-cancel redundant pipelines** setting
+must be enabled (it currently is). Tag and weekly pipelines opt out, and release
+uploads, publishing and documentation publication are non-interruptible.
+
+Before the build and tests start, `prepare-merge` fetches the current target branch
+and merges it into a temporary checkout of the MR commit. Conflicts fail this early
+job. Otherwise, a Git bundle passes that exact merged commit to the remaining jobs,
+including security scans. Your source branch is not changed or pushed.
+
+The job log records both input commits and the resulting merge commit. Builds and
+tests use the merged checkout; GitLab's pipeline metadata still identifies the MR
+source commit. Pipeline job definitions come from the MR's CI configuration.
+
+If the target branch advances afterwards, rerun the pipeline to test the newer
+combination. Retrying only a test job uses the existing merge artifact; start a new
+pipeline to refresh it. This does not provide GitLab's native merged-results or
+merge-train guarantees at merge time.
+
+Under **Settings > Merge requests > Merge checks**, enable **Pipelines must succeed**
+and leave **Skipped pipelines are considered successful** disabled. These project
+settings are separate from the versioned configuration.
+
+## Pipeline caches and scheduling
+
+Basic CLI integration tests and MediaWiki preparation use shared runners. Only
+Docker tests use the limited `mwcli` runners. Preview release builds run alongside
+integration; tagged releases still wait for all integration tests.
+
+Go jobs let Make install only the pinned tools they need. Module, compiler and
+linter caches live under `.cache/`, with separate cache keys per job and Go version.
+
+`prepare-mediawiki` caches a compressed, clean MediaWiki snapshot and passes it as
+a pipeline artifact to the four tests that need it. Its Wikimedia image includes
+PHP 8.3, Node 20 and Composer, which run directly without a Docker daemon. Tests
+never refresh or upload their modified MediaWiki trees. The get-code test fetches
+its own code. Snapshots refresh weekly and when the preparation scripts change;
+use **Clear runner caches** in
+GitLab to force an earlier refresh. Each runner can rebuild its own cache on a miss,
+so no shared cache service is required.
+
 ## Custom runners
 
 Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).
