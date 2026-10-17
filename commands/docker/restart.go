@@ -12,11 +12,9 @@ func NewMwddRestartCmd() *cobra.Command {
 		Use:     "restart",
 		GroupID: "core",
 		Short:   "Restart the running containers",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			err := mwdd.DefaultForUser().DockerCompose().Restart([]string{})
-			if err != nil {
-				panic(err)
-			}
+			return lifecycleError("restart", err)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
