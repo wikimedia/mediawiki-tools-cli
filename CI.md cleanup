@@ -1,10 +1,88 @@
 # CI
 
-Shared Wikimedia GitLab runners handle most jobs. Integration tests use
-privileged Docker-in-Docker on custom runners in the `mwcli` Cloud VPS project.
-Full CI requires a branch in this project; it does not work on forks.
+Continuous integration runs in Wikimedia GitLab. Shared Wikimedia runners handle
+Go checks, builds, basic CLI tests, get-code tests and MediaWiki preparation.
+Docker integration jobs use the `dind` tag, shared by persistent Cloud VPS runners
+and temporary GitHub-hosted workers. Each GitHub worker connects back to GitLab,
+runs one job and uploads its logs and artifacts there.
 
-## Current runners
+Full CI requires the project's configured runners and is not available in forks.
+
+## When CI runs
+
+CI runs for merge requests, including drafts, pushes to `main`, tag pushes and the
+weekly image-update schedule. Feature-branch pushes do not create branch pipelines;
+open a draft MR to get CI while working on a change.
+
+New commits automatically cancel interruptible jobs from older pipelines for the
+same MR or `main` branch, including running tests and builds.
+
+Before the build and tests start, `prepare-merge` fetches the current target branch
+and merges it into a temporary checkout of the MR commit. Conflicts fail this early
+job. Otherwise, a Git bundle passes that exact merged commit to the remaining jobs,
+including security scans. Your source branch is not changed or pushed.
+
+If the target branch advances afterwards, rerun the pipeline to test the newer
+combination. Retrying only a test job uses the existing merge artifact; start a new
+pipeline to refresh it. This does not provide GitLab's native merged-results or
+merge-train guarantees at merge time.
+
+## Pipeline caches and scheduling
+
+Basic CLI integration tests, get-code tests and MediaWiki preparation use shared
+runners. Docker tests use the `dind` runners. Preview release builds run alongside
+integration; tagged releases still wait for all integration tests.
+
+Go jobs let Make install only the pinned tools they need. Module, compiler and
+linter caches live under `.cache/`, with separate cache keys per job and Go version.
+
+`prepare-mediawiki` caches a compressed, clean MediaWiki snapshot and passes it as
+a pipeline artifact to the four tests that need it. Its Wikimedia image includes
+PHP, Node and Composer, which run directly without a Docker daemon. Tests
+never refresh or upload their modified MediaWiki trees. The get-code test fetches
+its own code. Snapshots refresh weekly and when the preparation scripts change;
+use **Clear runner caches** in
+GitLab to force an earlier refresh. Each runner can rebuild its own cache on a miss,
+so no shared cache service is required.
+
+## GitHub workers
+
+The worker workflow is [`.github/workflows/gitlab-workers.yml`](.github/workflows/gitlab-workers.yml).
+A GitLab job-event webhook dispatches it when a job becomes pending. A separate
+queue-check job rechecks the job's status and accepts jobs requiring exactly the
+`dind` tag. Other status events are skipped. Separate jobs can start workers in
+parallel, subject to GitHub's concurrency limits; duplicate events for the same
+job share a concurrency group. There is no scheduled GitHub polling.
+
+Keep one or both Cloud VPS runners online with the `dind` tag. They poll GitLab
+normally and can handle jobs even if the webhook or GitHub is unavailable. GitLab
+assigns each job to an available matching runner; the shared tag does not give
+Cloud VPS priority. The webhook can still start a GitHub worker for any pending
+`dind` job. If Cloud VPS takes it first, the queue check skips it, or an already
+started worker exits after its idle timeout.
+
+All temporary workers reuse one project runner authentication token. Each VM generates a
+unique runner manager ID and removes only its own manager afterwards. A worker
+exits after one job or after 120 seconds without work.
+
+Queue-check regression tests can run locally:
+
+```sh
+python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+```
+
+### Tokens
+
+The tokens for this setup will need rotating.
+
+- GITLAB_RUNNER_TOKEN doesn't expire (Currently for https://gitlab.wikimedia.org/repos/releng/cli/-/runners/1549)
+- GITLAB_API_READ_TOKEN expires 21 November 2027 (Currently https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens `GitHub official worker queue`)
+- GH token in GL webhook expires 18 October 2027 (Currently https://github.com/settings/personal-access-tokens/21319900)
+
+## Custom runners
+
+Custom runners run in the `mwcli` Cloud VPS project.
+
 
 Reported on 2026-10-17:
 
@@ -130,7 +208,7 @@ is proposed. See [Cloud VPS disk preparation](https://wikitech.wikimedia.org/wik
 ### 4. Create the GitLab runner through the CLI
 
 Skip this step if the GitLab runner already exists. Resolve the project's ID,
-then create a project runner with the matching description, `mwcli` tag,
+then create a project runner with the matching description, `mwcli` and `dind` tags,
 untagged jobs disabled, and locking enabled:
 
 ```sh
@@ -141,7 +219,7 @@ mw gitlab api --method POST user/runners \
   --raw-field runner_type=project_type \
   --field project_id="$PROJECT_ID" \
   --raw-field description="${INSTANCE_NAME}-docker" \
-  --raw-field tag_list=mwcli \
+  --raw-field tag_list=mwcli,dind \
   --field run_untagged=false \
   --field locked=true
 ```
@@ -192,8 +270,8 @@ mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --script tools/ci/runner.sh --sudo -- status
 ```
 
-Check GitLab shows the runner online, then run or retry an integration job on
-a project branch. Confirm its log names `${INSTANCE_NAME}-docker`. Registration
+Check GitLab shows the runner online, then run or retry an integration job in
+a merge request pipeline. Confirm its log names `${INSTANCE_NAME}-docker`. Registration
 and a running service alone do not verify Docker-in-Docker or image pulls.
 
 ## Existing runners and maintenance

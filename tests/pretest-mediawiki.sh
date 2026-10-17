@@ -16,7 +16,11 @@ echo "*****************************************"
 echo
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source $SCRIPT_DIR/cache-mediawiki.sh
+# CI extracts the preparation job's snapshot before running this script. Keep it
+# unchanged even if the week rolls over while the pipeline is running.
+if [[ -z "${GITLAB_CI:-}" ]]; then
+  source "$SCRIPT_DIR/cache-mediawiki.sh"
+fi
 
 # Create a fresh LocalSettings.php file
 rm -f .mediawiki/LocalSettings.php
