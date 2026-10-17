@@ -28,6 +28,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      actions: write
     outputs:
       pending: ${{ steps.check.outputs.pending }}
       job_id: ${{ steps.check.outputs.job_id }}
@@ -42,6 +43,15 @@ jobs:
           GITLAB_API_READ_TOKEN: ${{ secrets.GITLAB_API_READ_TOKEN }}
           JOB_ID: ${{ inputs.job_id }}
         run: python3 .github/scripts/gitlab-queue.py
+
+      - name: Cancel when no worker is needed
+        if: steps.check.outputs.pending == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY"
+          # Keep this job running while GitHub processes the cancellation.
+          sleep 30
 
   worker:
     needs: queue
