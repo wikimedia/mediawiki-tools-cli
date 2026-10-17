@@ -14,9 +14,8 @@ func NewMwddStopCmd() *cobra.Command {
 		Aliases: []string{"suspend"},
 		Short:   "Stop all currently running containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Stop all containers that were running
-			err := mwdd.DefaultForUser().DockerCompose().Stop([]string{})
-			return lifecycleError("stop", err)
+			m := mwdd.DefaultForUser()
+			return suspendDevelopmentServices(m, m.DockerCompose())
 		},
 	}
 	cmd.Annotations = make(map[string]string)
