@@ -47,7 +47,8 @@ so no shared cache service is required.
 
 ## GitHub workers
 
-See https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-workers.yml?query=-is%3Askipped
+See [actual worker runs](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-worker.yml)
+in GitHub Actions.
 
 The worker workflow is [`.github/workflows/gitlab-workers.yml`](.github/workflows/gitlab-workers.yml).
 
