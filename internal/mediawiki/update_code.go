@@ -10,8 +10,10 @@ import (
 	"strings"
 )
 
-type SourceRepository struct{ Name, Directory string }
-type SourceUpdate struct{ Name, Branch, Upstream, Status, Detail string }
+type (
+	SourceRepository struct{ Name, Directory string }
+	SourceUpdate     struct{ Name, Branch, Upstream, Status, Detail string }
+)
 
 // SourceRepositories lists independent checkouts and Git submodules/worktrees;
 // plain extension directories are not treated as the enclosing core repository.

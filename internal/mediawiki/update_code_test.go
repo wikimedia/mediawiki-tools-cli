@@ -29,14 +29,14 @@ func updateTestFixture(t *testing.T) (remote, seed, checkout string) {
 	checkout = filepath.Join(dir, "checkout")
 	updateTestGit(t, dir, "-c", "init.defaultBranch=main", "init", "--bare", remote)
 	updateTestGit(t, dir, "clone", remote, seed)
-	if err := os.WriteFile(filepath.Join(seed, "file"), []byte("first"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(seed, "file"), []byte("first"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	updateTestGit(t, seed, "add", "file")
 	updateTestGit(t, seed, "commit", "-m", "Initial fixture")
 	updateTestGit(t, seed, "push", "-u", "origin", "main")
 	updateTestGit(t, dir, "clone", remote, checkout)
-	if err := os.WriteFile(filepath.Join(seed, "file"), []byte("second"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(seed, "file"), []byte("second"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	updateTestGit(t, seed, "commit", "-am", "Remote fixture update")
@@ -71,11 +71,11 @@ func TestUpdateCodeSkipsAndDivergence(t *testing.T) {
 			want := "skipped-" + mode
 			switch mode {
 			case "dirty":
-				if err := os.WriteFile(filepath.Join(checkout, "file"), []byte("local"), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(checkout, "file"), []byte("local"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			case "untracked":
-				if err := os.WriteFile(filepath.Join(checkout, "untracked"), []byte("local"), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(checkout, "untracked"), []byte("local"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 				want = "skipped-dirty"
@@ -84,7 +84,7 @@ func TestUpdateCodeSkipsAndDivergence(t *testing.T) {
 			case "no-upstream":
 				updateTestGit(t, checkout, "branch", "--unset-upstream")
 			case "diverged":
-				if err := os.WriteFile(filepath.Join(checkout, "local"), []byte("local"), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(checkout, "local"), []byte("local"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 				updateTestGit(t, checkout, "add", "local")
@@ -108,7 +108,7 @@ func TestSourceRepositoryDiscoveryAndCancellation(t *testing.T) {
 	for _, sub := range []string{"skins/Example", "extensions/Example"} {
 		updateTestGit(t, checkout, "init", filepath.Join(checkout, sub))
 	}
-	if err := os.MkdirAll(filepath.Join(checkout, "extensions/PlainDirectory"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(checkout, "extensions/PlainDirectory"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	repos, err := MediaWiki(checkout).SourceRepositories()

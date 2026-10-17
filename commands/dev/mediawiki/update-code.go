@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 )
 
