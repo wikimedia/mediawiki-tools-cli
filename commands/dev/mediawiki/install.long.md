@@ -24,3 +24,7 @@ You can also run `install.php` and `update.php` manually, if you wish.
  - [update.php](https://www.mediawiki.org/wiki/Manual:Update.php)
  - [LocalSettings.php](https://www.mediawiki.org/wiki/Manual:LocalSettings.php)
  - [Composer](https://www.mediawiki.org/wiki/Composer)
+
+## SQLite maintenance access
+
+SQLite files in the development environment's dedicated data directory are made writable by both the web-server user and maintenance commands running as your host UID. MediaWiki's SQLite installer sets restrictive file permissions independently of the wrapper's umask, so the CLI adjusts regular `.sqlite` files after installation. Unrelated files and symlinks are not changed. Use `mw dev mediawiki mwscript MW_DB=NAME Version` to check access.
