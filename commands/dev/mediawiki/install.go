@@ -3,6 +3,7 @@ package mediawiki
 import (
 	_ "embed"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -58,6 +59,8 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 
 			// TODO check that the required DB services is running? OR start it up?
+
+			cmd.Println("\n==> Preparing MediaWiki configuration and writable directories")
 
 			mediawiki, _ := mediawiki.ForDirectory(devenv.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if !mediawiki.LocalSettingsIsPresent() {
@@ -200,7 +203,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return nil
 			}
 
-			err = checkComposer()
+			err = runInstallStage(cmd.OutOrStdout(), "Checking Composer dependencies", checkComposer)
 			if err != nil {
 				return err
 			}
@@ -326,7 +329,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return nil
 			}
 
-			err = runInstall()
+			err = runInstallStage(cmd.OutOrStdout(), "Installing the MediaWiki database", runInstall)
 			if err != nil {
 				return err
 			}
@@ -345,9 +348,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return err
 			}
 
-			err = runUpdate()
+			err = runInstallStage(cmd.OutOrStdout(), "Updating the MediaWiki database", runUpdate)
 			if err != nil {
-				logrus.Error(fmt.Errorf("update.php was unable to run, please fix the issue and run update.php: %s", err))
+				return fmt.Errorf("update.php was unable to run; fix the issue and rerun update.php: %w", err)
 			}
 
 			outputDetails := make(map[string]string)
@@ -386,5 +389,16 @@ func installComposerDependencies(run func([]string) int) error {
 			return fmt.Errorf("composer %s failed (exit code %d)", action, code)
 		}
 	}
+	return nil
+}
+
+// runInstallStage uses plain headings in both terminals and CI logs.
+func runInstallStage(out io.Writer, name string, run func() error) error {
+	fmt.Fprintf(out, "\n==> %s\n", name)
+	start := time.Now()
+	if err := run(); err != nil {
+		return fmt.Errorf("%s: %w", name, err)
+	}
+	fmt.Fprintf(out, "Completed: %s (%s)\n", name, time.Since(start).Round(time.Millisecond))
 	return nil
 }
