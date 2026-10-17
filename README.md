@@ -32,6 +32,23 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 `mw grafana` reads public Wikimedia Grafana dashboards, runs PromQL queries, and sends read requests to the Grafana API. See the [Grafana guide](docs/guides/grafana.md).
 
+### Service targets
+
+Service commands can also be selected with an `@target` prefix. For example,
+`mw @gerr<TAB>` completes to `@gerrit.wikimedia.org`; after accepting the
+target, the next completion offers Gerrit commands. Short targets such as
+`@phab` work too. Known MediaWiki hosts can be used directly, for example
+`mw @en.wikipedia.org page list`.
+
+Targets select a service command group; they do not claim that every command
+connects to the URL typed. Cloud VPS commands use the OpenStack API endpoint
+(`openstack.eqiad1.wikimediacloud.org`) while Horizon is its web interface
+(`horizon.wikimedia.org`). Toolforge commands use SSH at
+`login.toolforge.org`; a target such as `@mytool.toolforge.org` selects that
+tool for supported `exec` and `cp` commands. The older
+`tools.wmflabs.org/<tool>` web URL is a legacy web-service address, not the
+Toolforge SSH endpoint.
+
 ### Installation
 
 Follow the [installation guide](https://a-wikimedia-cli.toolforge.org/guides/installation/).
