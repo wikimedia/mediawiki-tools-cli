@@ -13,6 +13,12 @@ CI runs for merge requests, including drafts, pushes to `main`, tag pushes and t
 weekly image-update schedule. Feature-branch pushes do not create branch pipelines;
 open a draft MR to get CI while working on a change.
 
+New commits automatically cancel interruptible jobs from older pipelines for the
+same MR or `main` branch, including running tests and builds. The project's
+**Settings > CI/CD > General pipelines > Auto-cancel redundant pipelines** setting
+must be enabled (it currently is). Tag and weekly pipelines opt out, and release
+uploads, publishing and documentation publication are non-interruptible.
+
 Before the build and tests start, `check-target-branch` verifies that the MR source
 commit includes the latest target branch. A stale branch fails this check. Use
 GitLab's **Rebase** action, or update your source branch locally and push it:

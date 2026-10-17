@@ -3,13 +3,23 @@ variables:
     WM_APPSEC_GOLANG_IMAGE: "bookworm:20251109"
     AST_ENABLE_MR_PIPELINES: "true"
 
+default:
+  interruptible: true
+
 # Feature branches need an MR (drafts included). Never create a second push
 # pipeline for the same feature commit.
 workflow:
+  auto_cancel:
+    on_new_commit: interruptible
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG'
+      auto_cancel:
+        on_new_commit: none
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "weekly"'
+      auto_cancel:
+        on_new_commit: none
     - when: never
 
 include:

@@ -219,6 +219,7 @@ release-build:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
 release-upload:
+  interruptible: false
   rules:
     - if: '$CI_COMMIT_TAG'
   stage: release
@@ -241,6 +242,7 @@ release-upload:
       done
 
 release-publish:
+  interruptible: false
   rules:
     - if: '$CI_COMMIT_TAG'
   stage: release
@@ -261,6 +263,7 @@ release-publish:
     - release-cli create --name "Release $CI_COMMIT_TAG" --description ".gitlab.description.md" --released-at "${CI_COMMIT_TIMESTAMP}" ${assets_links}
 
 release-docs:
+    interruptible: false
     rules:
       - if: '$CI_COMMIT_TAG'
     stage: release
