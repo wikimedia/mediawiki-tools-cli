@@ -41,7 +41,7 @@ func TestComposerCommandHomeAndArguments(t *testing.T) {
 		t.Skip("POSIX container shell test")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "composer"), []byte("#!/bin/sh\nprintf '%s\\n' \"$HOME\" \"$@\"\n"), 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "composer"), []byte("#!/bin/sh\nprintf '%s\\n' \"$HOME\" \"$@\"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	for _, home := range []string{"", "/custom home"} {
