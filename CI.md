@@ -1,211 +1,229 @@
 # CI
 
-Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom wmcli runners.
+Shared Wikimedia GitLab runners handle most jobs. Integration tests use
+privileged Docker-in-Docker on custom runners in the `mwcli` Cloud VPS project.
+Full CI requires a branch in this project; it does not work on forks.
 
-The shared runners are used where possible.
-The custom mwcli runners are used when docker in docker is needed (integration tests).
+## Current runners
 
-This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
+Reported on 2026-10-17:
 
-## Custom runners
+| Instance | OpenStack ID | Docker volume |
+| --- | --- | --- |
+| `gitlab-runner-addshore-1018` | `b4fe2ce4-1a42-4668-9d07-c9fb6be16fc9` | `mwcli-ci-0002` |
+| `gitlab-runner-addshore-1019` | `ea86a663-eee4-4ed7-9962-d7f339800b5c` | `mwcli-ci-0001` |
 
-Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).
+All runners use Trixie, 4 CPUs, 8 GiB RAM, a 20 GB root disk, and a 40 GiB Docker
+volume mounted at `/var/lib/docker`, with a local registry mirror and GitLab Runner
+configured for two concurrent jobs.
 
-There are currently 2 runners:
- - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0001`) *bullseye (deprecated 2023-06-08)*
- - gitlab-runner-addshore-1018.mwcli.eqiad1.wikimedia.cloud (attached to volume `mwcli-ci-0002`) *NEW 2026*
+[GitLab runner settings](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings)
+· [Cloud VPS usage dashboard](https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&var-project=mwcli)
 
-You can view the usage at https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&from=now-24h&to=now&timezone=utc&var-project=mwcli&var-instance=$__all
+## Add another runner
 
-### Maintenance
+Run these commands from the repository root on your workstation, in the same
+Bash session. Only volume preparation is interactive on the VM; the rest of
+its configuration is handled by [tools/ci/runner.sh](tools/ci/runner.sh).
+Do not repeat creation for an existing VM, volume, or GitLab runner.
 
-If the runner starts running out of space...
+### 1. Authenticate
 
-```sh
-sudo docker system prune -af
-sudo docker volume prune
-```
+Use a build with the experimental `cloudvps` commands (`mw cloudvps --help`).
+See [README.md](README.md#using-a-development-build) for running a development build.
 
-If this doesn't free up enough space the next step would be to nuke the registry container and volume and recreate it!
-
-### Initial Setup
-
-#### Make a machine
-
-Make a VM... Such as...
-
-Details:
-- Project Name: `mwcli`
-- Instance Name: `gitlab-runner-addshore-1018`
-- Count: `1`
-Source: `trixie`
-Flavour: `g4.cores4.ram8.disk20`
-
-And then `Launch Instance`...
-
-#### Attach a volume
-
-See https://wikitech.wikimedia.org/wiki/Help:Adding_Disk_Space_to_Cloud_VPS_instances
-
-- Make a volume of 40GB for the instance (or use an existing one)
-- Attach a volume in the horizon UI https://horizon.wikimedia.org/project/volumes/
-- Run `sudo wmcs-prepare-cinder-volume` on the instance
-  - Select `/var/lib/docker` as the mount point
-  - Wait for the mount to be created
-
-The output will likely be something like this:
-
-```
-$ sudo wmcs-prepare-cinder-volume
-This tool will partition, format, and mount a block storage device.
-
-
-Attached storage devices:
-
-    sda:  (the primary volume containing /)
-    sdb: formatted as ext4, can be mounted
-
-The only block device device available to mount is sdb.  Selecting.
-
-Where would you like to mount it? </srv> /var/lib/docker
-Ready to prepare and mount sdb on /var/lib/docker. OK to continue? <Y|n>y
-Mounting on /var/lib/docker...
-Updating fstab with UUID=d3923482-98db-4470-a074-da294e149472 /var/lib/docker ext4 discard,nofail,x-systemd.device-timeout=2s 0 2
-...
-Done.
-```
-
-#### Install docker
+For Cloud VPS, select `mwcli` in [Horizon](https://horizon.wikimedia.org/), then
+**Identity → Application Credentials → Create Application Credential**. Choose
+an appropriate expiry and permissions, and save the ID and secret when displayed.
 
 ```sh
-sudo apt-get update
-sudo apt-get remove docker docker-engine docker.io containerd runc
-sudo apt-get --yes install \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
-curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo \
-  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-sudo apt-get install --yes docker-ce docker-ce-cli containerd.io
+mw cloudvps auth add --project mwcli --id <application-credential-id> --secret <application-credential-secret>
+mw cloudvps auth check --project mwcli
+mw gitlab auth status --hostname gitlab.wikimedia.org
 ```
 
-#### Authenticate to docker hub
+Skip `auth add` when credentials are already configured. If GitLab is not
+configured, use `mw gitlab auth login --hostname gitlab.wikimedia.org`.
+The GitLab account and access token must permit creating project runners
+(`create_runner` scope); changing runner details requires `manage_runner`.
+See [Cloud VPS credentials](https://wikitech.wikimedia.org/wiki/Help:Using_OpenStack_APIs#Application_Credentials)
+and [GitLab runner creation](https://docs.gitlab.com/api/users/#create-a-runner-linked-to-a-user).
 
-Grab a key from https://hub.docker.com/settings/security being sure to use `Public Repo Read-only` and no expiration date.
+Cloud VPS secrets are currently stored as plaintext in mwcli's config file,
+created with owner-only permissions. `--secret` can expose them in shell history
+and process arguments; config output and trace logs can also reveal them.
+OS credential store support and hidden input for `auth add` are not implemented.
 
-Perform a `docker login` with your username and they READ ONLY PUBLIC key you created.
+### 2. Create the VM and attach storage
 
-Note: if you made a fresh token, maybe keep it around as if you start a fresh mirror, you'll need the password again!
-
-#### Install gitlab runner
-
-From https://docs.gitlab.com/runner/install/linux-repository/
+Check existing resources, then choose unused names. Instance numbering is a
+convention, not an automatic sequence; the names below are examples.
 
 ```sh
-curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" -o script.deb.sh
-sudo bash script.deb.sh
-rm script.deb.sh
+mw cloudvps compute list --project mwcli
+mw cloudvps volume list --project mwcli
 
-sudo apt install gitlab-runner
+INSTANCE_NAME=gitlab-runner-addshore-1020
+VOLUME_NAME=mwcli-ci-0003
+SSH_USER=addshore
 ```
 
-#### Register the runner
+Change `SSH_USER` to your Wikimedia shell username. Discover current resources
+with `mw cloudvps image list`, `flavor list`, and `network list`, each with
+`--project mwcli`. The following IDs were available on 2026-10-17:
 
-Head to https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings
+| Resource | Name | ID |
+| --- | --- | --- |
+| Image | `debian-13.0-trixie` | `09ac7914-8b26-41c2-b5ab-9c2319ca9e9b` |
+| Flavor | `g4.cores4.ram8.disk20` | `acdad2e5-6221-4f3c-ac17-ec6fa13bf523` |
+| Network | `VXLAN/IPv6-dualstack` | `d8a16ddf-c01f-4f22-8b67-8ed18b4b1b45` |
 
-When creating the runner:
-- Tags: `mwcli`
-- Do not check `Run untagged jobs"
-- Enter the `description` that matches the instance name
-- Select `Lock to current projects`
-Click `Create runner`
-
-Then add the token that is provided to the below command, and run it on the instance...
+Create the VM, capturing its ID directly:
 
 ```sh
-sudo gitlab-runner register -n \
-  --url https://gitlab.wikimedia.org/ \
-  --token glrt-xxxxxxxxxxxxxxxxxxxxxxxxxxx \
-  --executor docker \
-  --limit 2 \
-  --name "gitlab-runner-addshore-1018-docker" \
-  --docker-image "docker:26.1.1" \
-  --docker-privileged \
-  --docker-volumes "/certs/client"
+INSTANCE_ID=$(mw cloudvps compute create "$INSTANCE_NAME" --project mwcli \
+  --image 09ac7914-8b26-41c2-b5ab-9c2319ca9e9b \
+  --flavor acdad2e5-6221-4f3c-ac17-ec6fa13bf523 \
+  --network d8a16ddf-c01f-4f22-8b67-8ed18b4b1b45 \
+  --security-group default --wait --output jq --format .id)
 ```
 
-Check it is registered @ https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings
-
-#### Extra configuration
-
-##### Configure "global" runner jobs
-
-Allow 2 jobs at once globally on this runner and restart gitlab runner.
-(Any more than this and things get slow, timeout, use too much storage, fail etc)
+For fresh storage:
 
 ```sh
-sudo sed -i 's/^concurrent =.*/concurrent = 2/' "/etc/gitlab-runner/config.toml"
-sudo systemctl restart gitlab-runner
+VOLUME_ID=$(mw cloudvps volume create "$VOLUME_NAME" --project mwcli \
+  --size 40 --wait --output jq --format .id)
 ```
 
-##### Register local pull through cache / mirror
-
-Reading:
- - https://about.gitlab.com/blog/2020/10/30/mitigating-the-impact-of-docker-hub-pull-requests-limits/
- - https://docs.docker.com/registry/recipes/mirror/#run-a-registry-as-a-pull-through-cache
-
-Create an authenticated pull through cache / mirror (using docker)
-You can use the same username and password/key you used earlier
+Alternatively, skip volume creation and set `VOLUME_ID` to an existing
+**available** volume's ID. This preserves its Docker data, including containers
+and registry credentials. `mwcli-ci-0001` and `mwcli-ci-0002` are already in use.
 
 ```sh
-sudo docker run -d -p 6000:5000 \
-    -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
-    -e REGISTRY_PROXY_USERNAME=<TODO-USERNAME> \
-    -e REGISTRY_PROXY_PASSWORD=<TODO-PASSWORD/KEY> \
-    --restart always \
-    --name registry registry:2
+mw cloudvps volume attach "$VOLUME_ID" --project mwcli --server "$INSTANCE_ID" --wait
 ```
 
-If you ever want to remove it and add it again, see `sudo docker rm -f registry`
+Stop if any operation fails. `--wait` defaults to ten minutes (override with
+`--timeout 20m`) and does not wait for SSH or cloud-init. Creation prints an ID
+before waiting; inspect the resource with `compute list`, `compute get`, or
+`volume get` before retrying, rather than creating duplicates.
 
-Add the mirror (You might need to do this as root, not sudo...):
+### 3. Prepare the volume
+
+From your workstation, run the volume preparation tool on the VM, then check
+its mount. Omit `--user` and `--jump` if your SSH configuration supplies them:
 
 ```sh
-sudo mkdir /etc/docker
-# NOTE: If sudo doesn't work for the file change you may need to sudo su, and then run the echo as root...
-sudo echo "{\"registry-mirrors\": [\"http://"$(hostname --ip-address)":6000\"]}" > /etc/docker/daemon.json
-sudo service docker restart
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  --tty -- sudo wmcs-prepare-cinder-volume
+
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  -- findmnt /var/lib/docker
 ```
 
-Check with that a mirror appears in the info...
+Choose the attached 40 GiB data volume and mount it at `/var/lib/docker`.
+For reused storage, preserve the existing filesystem and stop if formatting
+is proposed. See [Cloud VPS disk preparation](https://wikitech.wikimedia.org/wiki/Help:Adding_Disk_Space_to_Cloud_VPS_instances).
+
+### 4. Create the GitLab runner through the CLI
+
+Skip this step if the GitLab runner already exists. Resolve the project's ID,
+then create a project runner with the matching description, `mwcli` tag,
+untagged jobs disabled, and locking enabled:
 
 ```sh
-sudo docker system info
+PROJECT_ID=$(mw gitlab api projects/repos%2Freleng%2Fcli \
+  | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])')
+
+mw gitlab api --method POST user/runners \
+  --raw-field runner_type=project_type \
+  --field project_id="$PROJECT_ID" \
+  --raw-field description="${INSTANCE_NAME}-docker" \
+  --raw-field tag_list=mwcli \
+  --field run_untagged=false \
+  --field locked=true
 ```
 
-Also add the mirror for dind in `/etc/gitlab-runner/config.toml` to each runner it is needed for
-https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#enable-registry-mirror-for-dockerdind-service
+The response contains the new GitLab runner ID and a `glrt-...` authentication
+token that is only returned at creation. Keep the token ready for the setup
+prompt; do not share this response or paste the token into command arguments.
+The runner's GitLab **description** is separate from the local `--name` used
+when registering it. Setting the description above keeps both names consistent.
 
-You can also tweak the pull_policy to fallback to "if-not-present".
+### 5. Run the setup script
 
 ```sh
-sudo tee -a /etc/gitlab-runner/config.toml > /dev/null <<EOF
-    pull_policy = ["always", "if-not-present"]
-    [[runners.docker.services]]
-      name = "docker:26.1.1-dind"
-      command = ["--registry-mirror", "http://$(hostname --ip-address):6000"]
-EOF
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  --script tools/ci/runner.sh --sudo --tty -- setup
 ```
 
-And restart the gitlab runner service:
+The CLI uploads the local Bash script to a private temporary file, runs it,
+and removes the remote copy. `--sudo` requires passwordless sudo; `--tty`
+allows credential prompts. The script:
+
+- Requires Debian 13 and a mounted `/var/lib/docker`; never formats or prunes it.
+- Installs Docker and GitLab Runner, retaining the classic Docker image store.
+- Reuses an existing registry, or creates one after prompting for Docker Hub credentials.
+- Prompts for the GitLab runner token without echoing it, unless already registered locally.
+- Sets both concurrency limits to two and configures the host and Docker-in-Docker mirror.
+- Verifies runner registration and prints storage, container, and service status.
+
+Docker Hub tokens need public repository read access. A separate `docker login`
+is unnecessary. Secrets are passed without command arguments; Docker retains
+mirror credentials in container metadata, and GitLab Runner retains its token
+in root-only configuration. A changed runner config is backed up once to
+`/etc/gitlab-runner/config.toml.before-mwcli`.
+
+For staged setup, use `install` followed by `configure` instead of `setup`.
+The script can be rerun without duplicating the local runner entry or mirror;
+it preserves unrelated configuration. Docker image, privileged mode, and
+certificate volume defaults are set at registration; reruns preserve any later
+customisations to those settings. Setup restarts Docker and GitLab Runner,
+so run it while the host is not serving CI jobs.
+
+### 6. Verify an integration job
 
 ```sh
-sudo systemctl restart gitlab-runner
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  --script tools/ci/runner.sh --sudo -- status
 ```
+
+Check GitLab shows the runner online, then run or retry an integration job on
+a project branch. Confirm its log names `${INSTANCE_NAME}-docker`. Registration
+and a running service alone do not verify Docker-in-Docker or image pulls.
+
+## Existing runners and maintenance
+
+For `1019`, set the variables below, then run the full SSH command from step 6
+with `status` or `configure` as needed. Do not recreate its resources.
+
+```sh
+INSTANCE_NAME=gitlab-runner-addshore-1019
+INSTANCE_ID=ea86a663-eee4-4ed7-9962-d7f339800b5c
+SSH_USER=addshore
+```
+
+To change an existing runner's GitLab display description:
+
+```sh
+mw gitlab api --method PUT runners/1547 \
+  --raw-field description="${INSTANCE_NAME}-docker" --silent
+```
+
+To reclaim unused Docker data on an idle runner:
+
+```sh
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  -- sudo docker system prune -af
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  --tty -- sudo docker volume prune
+```
+
+If space is still exhausted, inspect the registry cache. Removing and recreating
+its container and cache volume discards cached images; pulls will repopulate it.
