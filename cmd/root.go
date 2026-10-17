@@ -19,6 +19,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
+	metricscmd "gitlab.wikimedia.org/repos/releng/cli/commands/metrics"
 	phabricatorcmd "gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/toolhub"
@@ -143,6 +144,7 @@ func NewMwCliCmd() *cobra.Command {
 
 		// Older commands, not yet moved to the /commands directory
 		codesearch.NewCodeSearchCmd(),
+		metricscmd.NewCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),
