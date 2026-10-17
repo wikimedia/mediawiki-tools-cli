@@ -27,13 +27,18 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
   tar -xf vendor.tar.gz -C .mediawiki/vendor
   rm vendor.tar.gz
 
-  # composer install (for update and dev deps)
-  # TODO use on disk cache
-  docker run -u "$(id -u):$(id -g)" --rm -v "$PWD/.mediawiki:/app" -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s3 install --ignore-platform-reqs --no-interaction --no-progress
-
-  # npm install
-  # TODO use on disk cache
-  docker run -u "$(id -u):$(id -g)" --rm -v "$PWD/.mediawiki:/app" -w /app --entrypoint=npm docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s3 ci
+  if [[ "${MWCLI_CI_NATIVE_DEPS:-0}" = 1 ]]; then
+    # Shared CI runners provide these tools in the preparation image.
+    (
+      cd .mediawiki
+      composer install --ignore-platform-reqs --no-interaction --no-progress
+      npm ci
+    )
+  else
+    # Preserve Docker-based preparation for local integration test runs.
+    docker run -u "$(id -u):$(id -g)" --rm -v "$PWD/.mediawiki:/app" -w /app --entrypoint=composer docker-registry.wikimedia.org/dev/buster-php74-fpm:1.0.0-s3 install --ignore-platform-reqs --no-interaction --no-progress
+    docker run -u "$(id -u):$(id -g)" --rm -v "$PWD/.mediawiki:/app" -w /app --entrypoint=npm docker-registry.wikimedia.org/releng/node14-test-browser:0.0.2-s3 ci
+  fi
 
   touch .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE
   MEDIAWIKI_CACHE_REFRESHED=1

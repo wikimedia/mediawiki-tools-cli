@@ -136,8 +136,18 @@ integration-cli:
 # Prepare once per pipeline. Cache one archive locally between pipelines and use
 # an artifact to distribute the same clean snapshot across both Docker runners.
 prepare-mediawiki:
-    extends: .docker-job
+    extends: .commit-job
+    image:
+      name: docker-registry.wikimedia.org/releng/node20-test-browser-php83-composer:20.20.2-s2
+      entrypoint: [""]
+      docker:
+        user: "0"
+    tags:
+      - wmcs
     stage: build
+    variables:
+      MWCLI_CI_NATIVE_DEPS: "1"
+      COMPOSER_ALLOW_SUPERUSER: "1"
     cache:
       key:
         prefix: mediawiki-snapshot-v1

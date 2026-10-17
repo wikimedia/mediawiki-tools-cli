@@ -45,17 +45,19 @@ the versioned configuration; editing this file does not apply them.
 
 ## Pipeline caches and scheduling
 
-Basic CLI integration tests use shared runners. Only Docker tests and their
-MediaWiki preparation job use the limited `mwcli` runners. Preview release builds
-run alongside integration; tagged releases still wait for all integration tests.
+Basic CLI integration tests and MediaWiki preparation use shared runners. Only
+Docker tests use the limited `mwcli` runners. Preview release builds run alongside
+integration; tagged releases still wait for all integration tests.
 
 Go jobs let Make install only the pinned tools they need. Module, compiler and
 linter caches live under `.cache/`, with separate cache keys per job and Go version.
 
 `prepare-mediawiki` caches a compressed, clean MediaWiki snapshot and passes it as
-a pipeline artifact to the four tests that need it. Those tests never upload their
-modified MediaWiki trees. The get-code test fetches its own code. Snapshots refresh
-weekly and when the preparation scripts change; use **Clear runner caches** in
+a pipeline artifact to the four tests that need it. Its Wikimedia image includes
+PHP 8.3, Node 20 and Composer, which run directly without a Docker daemon. Tests
+never refresh or upload their modified MediaWiki trees. The get-code test fetches
+its own code. Snapshots refresh weekly and when the preparation scripts change;
+use **Clear runner caches** in
 GitLab to force an earlier refresh. Each runner can rebuild its own cache on a miss,
 so no shared cache service is required.
 
