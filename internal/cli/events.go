@@ -9,6 +9,8 @@ import (
 	time "time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 )
 
@@ -25,8 +27,29 @@ func (e *Events) currentDtString() string {
 	return currentTime.Format("2006-01-02T15:04:05.000Z")
 }
 
-func (e *Events) AddCommandRunEvent(command string, version Version) {
-	e.AddEventToStore(map[string]interface{}{
+// AddCommandRunEvent derives the canonical command name, never its arguments.
+func (e *Events) AddCommandRunEvent(cmd *cobra.Command, version Version) {
+	e.addCommandEvent(cmd, version, false)
+}
+
+func (e *Events) AddCommandHelpEvent(cmd *cobra.Command, version Version) {
+	e.addCommandEvent(cmd, version, true)
+}
+
+func (e *Events) addCommandEvent(cmd *cobra.Command, version Version, help bool) {
+	cmd = cobrautil.ExecutingCommand(cmd)
+	command := cobrautil.FullCommandStringWithoutPrefix(cmd, cmd.Root().Name())
+	if help {
+		command = strings.TrimSpace(command + " --help")
+	} else if command == "" {
+		// A root command execution must have a name too.
+		command = cmd.Root().Name()
+	}
+	if strings.TrimSpace(command) == "" {
+		logrus.Debug("Not recording an unnamed command")
+		return
+	}
+	e.addEventToStore(map[string]interface{}{
 		"$schema": "/analytics/mwcli/command_execute/1.0.0",
 		"meta": map[string]interface{}{
 			"stream": "mwcli.command_execute",
@@ -38,7 +61,7 @@ func (e *Events) AddCommandRunEvent(command string, version Version) {
 }
 
 func (e *Events) AddFeatureUsageEvent(feature string, version Version) {
-	e.AddEventToStore(map[string]interface{}{
+	e.addEventToStore(map[string]interface{}{
 		"$schema": "/analytics/mwcli/feature_usage/1.0.0",
 		"meta": map[string]interface{}{
 			"stream": "mwcli.feature_usage",
@@ -49,7 +72,7 @@ func (e *Events) AddFeatureUsageEvent(feature string, version Version) {
 	})
 }
 
-func (e *Events) AddEventToStore(event map[string]interface{}) {
+func (e *Events) addEventToStore(event map[string]interface{}) {
 	if !Opts.Telemetry || os.Getenv("MWCLI_CONTEXT_TEST") != "" {
 		return
 	}

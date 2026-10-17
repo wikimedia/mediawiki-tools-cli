@@ -36,7 +36,7 @@ func Cmd() *cobra.Command {
 	defaultHelpFunc := glabCommand.HelpFunc()
 	glabCommand.SetHelpFunc(func(c *cobra.Command, a []string) {
 		cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
-		cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddCommandHelpEvent(c, cli.VersionDetails.Version)
 		defaultHelpFunc(c, a)
 	})
 

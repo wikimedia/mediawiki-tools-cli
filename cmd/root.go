@@ -70,7 +70,7 @@ func NewMwCliCmd() *cobra.Command {
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
 			if cli.Opts.Telemetry {
-				events.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cobrautil.ExecutingCommand(cmd), "mw"), cli.VersionDetails.Version)
+				events.AddCommandRunEvent(cmd, cli.VersionDetails.Version)
 			}
 		},
 	}
@@ -119,7 +119,7 @@ func NewMwCliCmd() *cobra.Command {
 
 		// Help bypasses PersistentPreRun, so load the telemetry preference here too.
 		cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
-		events.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		events.AddCommandHelpEvent(c, cli.VersionDetails.Version)
 		defaultHelpFunc(c, a)
 	})
 
