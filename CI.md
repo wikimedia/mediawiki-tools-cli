@@ -2,9 +2,9 @@
 
 Continuous integration runs in Wikimedia GitLab. Shared Wikimedia runners handle
 Go checks, builds, basic CLI tests, get-code tests and MediaWiki preparation.
-Docker integration jobs use temporary GitHub-hosted workers with the `github` tag.
-Each worker connects
-back to GitLab, runs one job and uploads its logs and artifacts there.
+Docker integration jobs use the `dind` tag, shared by persistent Cloud VPS runners
+and temporary GitHub-hosted workers. Each GitHub worker connects back to GitLab,
+runs one job and uploads its logs and artifacts there.
 
 Full CI requires the project's configured runners and is not available in forks.
 
@@ -41,7 +41,7 @@ settings are separate from the versioned configuration.
 ## Pipeline caches and scheduling
 
 Basic CLI integration tests, get-code tests and MediaWiki preparation use shared
-runners. Docker tests use the `github` workers. Preview release builds run alongside
+runners. Docker tests use the `dind` runners. Preview release builds run alongside
 integration; tagged releases still wait for all integration tests.
 
 Go jobs let Make install only the pinned tools they need. Module, compiler and
@@ -61,11 +61,18 @@ so no shared cache service is required.
 The worker workflow is [`.github/workflows/gitlab-workers.yml`](.github/workflows/gitlab-workers.yml).
 A GitLab job-event webhook dispatches it when a job becomes pending. A separate
 queue-check job rechecks the job's status and accepts jobs requiring exactly the
-`github` tag. Other status events are skipped. Separate jobs can start workers in
+`dind` tag. Other status events are skipped. Separate jobs can start workers in
 parallel, subject to GitHub's concurrency limits; duplicate events for the same
-job share a concurrency group. A ten-minute schedule recovers missed events.
+job share a concurrency group. There is no scheduled GitHub polling.
 
-All workers reuse one project runner authentication token. Each VM generates a
+Keep one or both Cloud VPS runners online with the `dind` tag. They poll GitLab
+normally and can handle jobs even if the webhook or GitHub is unavailable. GitLab
+assigns each job to an available matching runner; the shared tag does not give
+Cloud VPS priority. The webhook can still start a GitHub worker for any pending
+`dind` job. If Cloud VPS takes it first, the queue check skips it, or an already
+started worker exits after its idle timeout.
+
+All temporary workers reuse one project runner authentication token. Each VM generates a
 unique runner manager ID and removes only its own manager afterwards. A worker
 exits after one job or after 120 seconds without work. It pulls Docker images
 directly, without the WMCS registry mirror. No runner-management API token is
@@ -74,9 +81,12 @@ required on a worker.
 ### Initial rollout
 
 Keep the existing webhook pointed at `addshore/testing` while reviewing this MR.
-Its working workers already accept the `github` jobs in this pipeline, including
-the real Docker integration tests. No workflow from the MR branch needs to run on
-GitHub. Merge only after those integration tests pass.
+Before running this MR, add `dind` to the GitLab runner registration used by the
+testing workers, and to one or both Cloud VPS runner registrations. Keep their
+existing tags while migrating. Update the testing workflow and queue checker to
+accept `dind` and remove its schedule too. Tags are configured in GitLab, not in
+Actions secrets or the local runner configuration. No workflow from the MR branch
+needs to run on GitHub. Merge only after the real Docker integration tests pass.
 
 After merging, wait for the commit and workflow to appear on `main` in
 [`wikimedia/mediawiki-tools-cli`](https://github.com/wikimedia/mediawiki-tools-cli).
@@ -89,7 +99,7 @@ To switch over:
 
    | Secret | Value |
    | --- | --- |
-   | `GITLAB_RUNNER_TOKEN` | The existing `github` project runner's authentication token, or a replacement token for a project runner with that tag and **Run untagged jobs** disabled. Allow MR refs. |
+   | `GITLAB_RUNNER_TOKEN` | The temporary workers' existing project runner authentication token, or a replacement token for a project runner with the `dind` tag and **Run untagged jobs** disabled. Allow MR refs. |
    | `GITLAB_API_READ_TOKEN` | A GitLab project access token scoped to mwcli, with Reporter access and only `read_api`. Renew before expiry. |
 
 2. Disable the **GitLab worker trial** workflow in `addshore/testing`, including
@@ -130,8 +140,9 @@ read-only queue token for the official mirror. The bootstrap queue token in
 
 To roll back during the migration, disable the official workflow and point the
 webhook back to the testing repository with its matching Authorization header;
-then re-enable its workflow. To return to WMCS workers, change `.docker-job`'s tag
-back to `mwcli`. The custom runners below provide that fallback.
+then re-enable its workflow. To use only Cloud VPS runners, disable GitHub workers
+and the webhook. Leave the `dind` job tag unchanged; the persistent runners below
+continue accepting those jobs.
 
 Queue-check regression tests can run locally:
 
@@ -253,7 +264,7 @@ sudo apt install gitlab-runner
 Head to https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings
 
 When creating the runner:
-- Tags: `mwcli`
+- Tags: `dind`
 - Do not check `Run untagged jobs"
 - Enter the `description` that matches the instance name
 - Select `Lock to current projects`

@@ -80,7 +80,7 @@ secret_detection:
     extends: .commit-job
     image: docker:26.1.1
     tags:
-      - github
+      - dind
     services:
       - name: docker:26.1.1-dind
     cache: []

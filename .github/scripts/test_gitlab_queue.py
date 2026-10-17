@@ -13,15 +13,15 @@ spec.loader.exec_module(queue)
 
 class QueueTest(unittest.TestCase):
     def test_pending_job(self):
-        self.assertEqual(queue.find_pending(lambda _: {"id": 1, "status": "pending", "tag_list": ["github"]}, "1"), "1")
+        self.assertEqual(queue.find_pending(lambda _: {"id": 1, "status": "pending", "tag_list": ["dind"]}, "1"), "1")
 
     def test_finished_running_or_cancelled_job(self):
         for state in ["running", "success", "failed", "canceled", "manual"]:
             with self.subTest(state=state):
-                self.assertEqual(queue.find_pending(lambda _: {"id": 1, "status": state, "tag_list": ["github"]}, "1"), "")
+                self.assertEqual(queue.find_pending(lambda _: {"id": 1, "status": state, "tag_list": ["dind"]}, "1"), "")
 
     def test_incompatible_tags(self):
-        for tags in [[], ["wmcs"], ["mwcli"], ["github", "other"]]:
+        for tags in [[], ["wmcs"], ["mwcli"], ["dind", "other"]]:
             with self.subTest(tags=tags):
                 self.assertFalse(queue.eligible({"status": "pending", "tag_list": tags}))
 
@@ -37,7 +37,7 @@ class QueueTest(unittest.TestCase):
             urls.append(url)
             if len(urls) == 1:
                 return [{"id": i, "status": "pending", "tag_list": ["mwcli"]} for i in range(100)]
-            return [{"id": 101, "status": "pending", "tag_list": ["github"]}]
+            return [{"id": 101, "status": "pending", "tag_list": ["dind"]}]
         self.assertEqual(queue.find_pending(get), "101")
         self.assertTrue(urls[-1].endswith("page=2"))
 
@@ -45,7 +45,7 @@ class QueueTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "output"
             env = {"GITLAB_API_READ_TOKEN": "fixture", "JOB_ID": "12", "GITHUB_OUTPUT": str(output)}
-            response = io.StringIO('{"id":12,"status":"pending","tag_list":["github"]}')
+            response = io.StringIO('{"id":12,"status":"pending","tag_list":["dind"]}')
             with mock.patch.dict(os.environ, env), mock.patch.object(queue.urllib.request, "urlopen", return_value=response):
                 queue.main()
             self.assertEqual(output.read_text(), "pending=true\njob_id=12\n")

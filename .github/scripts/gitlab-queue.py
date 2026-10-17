@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find pending jobs that the github-tagged mwcli runner can accept."""
+"""Find pending jobs that the dind-tagged mwcli runner can accept."""
 
 import json
 import os
@@ -12,7 +12,7 @@ API = "https://gitlab.wikimedia.org/api/v4/projects/16/jobs"
 
 
 def eligible(job):
-    return job.get("status") == "pending" and set(job.get("tag_list", [])) == {"github"}
+    return job.get("status") == "pending" and set(job.get("tag_list", [])) == {"dind"}
 
 
 def find_pending(get_json, job_id=""):
@@ -47,7 +47,7 @@ def main():
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write(f"pending={'true' if job_id else 'false'}\n")
         output.write(f"job_id={job_id}\n")
-    print(f"Pending github job: {job_id}" if job_id else "No matching pending job; no worker needed.")
+    print(f"Pending dind job: {job_id}" if job_id else "No matching pending job; no worker needed.")
 
 
 if __name__ == "__main__":

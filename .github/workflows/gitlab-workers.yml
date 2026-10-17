@@ -14,9 +14,6 @@ on:
         description: GitLab job status
         default: pending
         type: string
-  # Recover if a webhook is missed or a queued dispatch is superseded.
-  schedule:
-    - cron: '7,17,27,37,47,57 * * * *'
 
 permissions: {}
 
@@ -26,8 +23,7 @@ jobs:
       github.repository == 'wikimedia/mediawiki-tools-cli' &&
       github.ref == 'refs/heads/main' &&
       vars.GITLAB_WORKERS_ENABLED == 'true' &&
-      (github.event_name == 'schedule' ||
-       (inputs.project_id == '16' && inputs.job_status == 'pending'))
+      inputs.project_id == '16' && inputs.job_status == 'pending'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -40,7 +36,7 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - name: Check for pending github jobs
+      - name: Check for pending dind jobs
         id: check
         env:
           GITLAB_API_READ_TOKEN: ${{ secrets.GITLAB_API_READ_TOKEN }}
