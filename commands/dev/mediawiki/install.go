@@ -402,5 +402,4 @@ func installComposerDependencies(run func([]string) int) error {
 
 func sqlitePermissionsCommand() []string {
 	return []string{"find", "/var/www/html/w/cache/docker", "-maxdepth", "1", "-type", "f", "-name", "*.sqlite", "-exec", "chmod", "0666", "{}", "+"}
-
 }

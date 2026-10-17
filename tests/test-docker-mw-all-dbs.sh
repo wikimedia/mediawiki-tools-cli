@@ -128,6 +128,8 @@ test_command_success ./bin/mw dev mediawiki exec -- curl --noproxy '*' --connect
 
 # And check the installed sites (mysql, postgres, sqlite)
 test_wget http://sqlitewiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+# Concurrent cold/cache writes must not leave a transaction in ERROR (T330940).
+test_wget_parallel "http://sqlitewiki.mediawiki.local.wmftest.net:$PORT/w/index.php?title=Special:RecentChanges&hidebots=1&limit=50&days=7&enhanced=1&urlversion=2" "Recent changes" 8
 test_wget http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 # Follow the gateway redirect; local HTTP must not redirect to an HTTPS listener.
