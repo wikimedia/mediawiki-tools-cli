@@ -29,6 +29,7 @@ import (
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
+	wikidatacmd "gitlab.wikimedia.org/repos/releng/cli/commands/wikidata"
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
@@ -162,6 +163,7 @@ func NewRootCmd(name string) *cobra.Command {
 		analyticscmd.NewCmd(),
 		apicmd.NewCmd(),
 		eventscmd.NewCmd(),
+		wikidatacmd.NewCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),
