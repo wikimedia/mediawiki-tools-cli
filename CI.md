@@ -7,6 +7,36 @@ The custom mwcli runners are used when docker in docker is needed (integration t
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
+## When CI runs
+
+CI runs for merge requests, including drafts, pushes to `main`, tag pushes and the
+weekly image-update schedule. Feature-branch pushes do not create branch pipelines;
+open a draft MR to get CI while working on a change.
+
+Before the build and tests start, `check-target-branch` verifies that the MR source
+commit includes the latest target branch. A stale branch fails this check. Use
+GitLab's **Rebase** action, or update your source branch locally and push it:
+
+```sh
+git fetch https://gitlab.wikimedia.org/repos/releng/cli.git main
+git rebase FETCH_HEAD
+git push --force-with-lease
+```
+
+After merging this CI configuration, set these options under **Settings > Merge
+requests** to enforce the requirement at merge time too:
+
+- **Merge method:** Merge commit with semi-linear history.
+- **Merge checks:** Enable **Pipelines must succeed** and leave **Skipped pipelines
+  are considered successful** disabled.
+- Leave **Enable automatic rebase prior to merge** disabled, if available: it can
+  rebase without testing the new result.
+
+If the target branch advances after CI passes, semi-linear merging requires another
+update and pipeline before merging. Use the normal rebase action, which runs CI,
+rather than **Rebase without pipeline**. These project settings are separate from
+the versioned configuration; editing this file does not apply them.
+
 ## Pipeline caches and scheduling
 
 Basic CLI integration tests use shared runners. Only Docker tests and their

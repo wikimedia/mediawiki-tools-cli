@@ -7,9 +7,35 @@ stages:
   - integration
   - release
 
+.commit-job:
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
+    needs:
+      - job: check-target-branch
+        optional: true
+        artifacts: false
+
+# Test the source commit only after it includes the current target branch.
+# Semi-linear merging plus "Pipelines must succeed" also enforce this at merge time.
+check-target-branch:
+    image: golang:1.26.1
+    tags:
+      - wmcs
+    stage: test
+    needs: []
+    cache: []
+    variables:
+      GIT_DEPTH: "0"
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    script:
+      - bash tests/check-target-branch.sh
+
 # Keep Go modules and compilation results inside the checkout so Runner can cache
 # them. Separate job keys avoid parallel jobs overwriting each other's caches.
 .go-job:
+    extends: .commit-job
     image: golang:1.26.1
     tags:
       - wmcs
@@ -27,6 +53,7 @@ stages:
         - .cache/golangci-lint/
 
 .docker-job:
+    extends: .commit-job
     image: docker:26.1.1
     tags:
       - mwcli
@@ -40,7 +67,6 @@ stages:
 test:
     extends: .go-job
     stage: test
-    needs: []
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -60,7 +86,6 @@ test:
 checks:
     extends: .go-job
     stage: test
-    needs: []
     parallel:
       matrix:
         - CHECK: lint
@@ -73,7 +98,6 @@ checks:
 tools:
     extends: .go-job
     stage: test
-    needs: []
     parallel:
       matrix:
         - TOOL: ./tools/image-update/check/check.go
@@ -86,7 +110,6 @@ tools:
 build:
     extends: .go-job
     stage: build
-    needs: []
     artifacts:
       paths:
         - bin/
@@ -95,6 +118,7 @@ build:
 
 # Basic command tests need the binary, but neither Docker nor MediaWiki.
 integration-cli:
+    extends: .commit-job
     stage: integration
     image: golang:1.26.1
     tags:
@@ -114,7 +138,6 @@ integration-cli:
 prepare-mediawiki:
     extends: .docker-job
     stage: build
-    needs: []
     cache:
       key:
         prefix: mediawiki-snapshot-v1
@@ -159,8 +182,8 @@ integration:
 
 build-release:
     extends: .go-job
-    except:
-      - tags
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     stage: release
     needs: [checks,test,build]
     # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
@@ -169,12 +192,12 @@ build-release:
       paths:
         - _release/
     script:
-      - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
+      - make release VERSION=${CI_COMMIT_TAG:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}}
 
 build-docs:
     extends: .go-job
-    except:
-      - tags
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     stage: release
     needs: [build,integration-cli,integration-get-code,integration]
     before_script:
@@ -185,8 +208,8 @@ build-docs:
 
 release-build:
     extends: .go-job
-    only:
-      - tags
+    rules:
+      - if: '$CI_COMMIT_TAG'
     stage: release
     needs: [build,integration-cli,integration-get-code,integration]
     artifacts:
@@ -196,8 +219,8 @@ release-build:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
 release-upload:
-  only:
-    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG'
   stage: release
   needs: [release-build]
   dependencies:
@@ -218,8 +241,8 @@ release-upload:
       done
 
 release-publish:
-  only:
-    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG'
   stage: release
   needs: [release-upload,release-build]
   dependencies:
@@ -238,8 +261,8 @@ release-publish:
     - release-cli create --name "Release $CI_COMMIT_TAG" --description ".gitlab.description.md" --released-at "${CI_COMMIT_TIMESTAMP}" ${assets_links}
 
 release-docs:
-    only:
-      - tags
+    rules:
+      - if: '$CI_COMMIT_TAG'
     stage: release
     needs: [release-publish]
     cache: {}
