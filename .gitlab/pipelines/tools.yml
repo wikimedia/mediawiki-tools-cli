@@ -1,0 +1,16 @@
+tools:
+    stage: test
+    needs: []
+    cache: {}
+    image: golang:1.26.1
+    tags:
+    - wmcs
+    parallel:
+      matrix:
+        - TOOL: ./tools/image-update/check/check.go
+        - TOOL: ./tools/image-update/update/update.go foo bar
+        # docs-gen tool is tested as docs are generated
+        # lint tool is checked as linting is run
+    script:
+      - go run $TOOL
+

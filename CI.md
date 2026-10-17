@@ -7,6 +7,46 @@ The custom mwcli runners are used when docker in docker is needed (integration t
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
+## Selecting CI jobs
+
+By default, every job runs. To shorten a branch pipeline, add `CI-Skip` or
+`CI-Only` trailers to the latest commit message, after a blank line:
+
+```text
+Update command documentation
+
+CI-Only: docs
+CI-Only: tools
+```
+
+`CI-Only` runs the selected optional groups alongside the mandatory jobs.
+Alternatively, `CI-Skip: integration` runs everything except integration tests.
+Repeat the same trailer to select several groups; do not combine `CI-Only` and
+`CI-Skip`, or use comma-separated values. Unknown groups fail the unit-test job.
+
+| Group | Jobs |
+| --- | --- |
+| `integration` | All seven integration test variants, including Docker tests |
+| `preview-release` | Cross-platform binaries for testing (`build-release`) |
+| `docs` | Generated documentation (`build-docs`) |
+| `tools` | Image-update tool smoke checks |
+
+Unit tests, lint, vet, generated-file checks, the normal build and security scans
+remain enabled. Selected jobs still wait for their prerequisites. These trailers
+select jobs within the existing pipeline types; they do not enable additional
+merge request pipelines.
+
+Trailers are case-sensitive and match standalone lines in `CI_COMMIT_MESSAGE`;
+put them in the footer, not in quoted examples in the commit body. Only the latest
+commit controls selection, so keep or remove the trailers when adding or amending
+commits. Default-branch, tag, protected-ref, merged-result and merge-train pipelines
+ignore selection and retain the full set of jobs. Truncated commit messages also
+run the full pipeline. Scheduled pipelines are unchanged.
+
+Use selection when the omitted tests are unrelated to the change, and explain why
+in the merge request. Avoid `[skip ci]`, which skips the whole pipeline. A reduced
+branch pipeline does not establish that the omitted tests pass.
+
 ## Custom runners
 
 Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).

@@ -1,0 +1,25 @@
+build-release:
+    except:
+      - tags
+    stage: release
+    needs:
+      - checks
+      - test
+      - build
+      - job: integration
+        optional: true
+    cache: {}
+    image: golang:1.26.1
+    tags:
+    - wmcs
+    # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
+    artifacts:
+      expire_in: 2 weeks
+      paths:
+        - _release/
+    before_script:
+      - go install github.com/bwplotka/bingo@v0.9.0
+      - bingo get
+    script:
+      - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
+

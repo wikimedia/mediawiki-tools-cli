@@ -1,3 +1,44 @@
+# Keep job eligibility unchanged: selection happens at include time.
+# These guards must match check-ci-selection.sh.
+include:
+  - local: ".gitlab/pipelines/integration.yml"
+    rules:
+      - &full-ci
+        if: '$CI_COMMIT_TAG || $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH || $CI_COMMIT_REF_PROTECTED == "true" || $CI_MERGE_REQUEST_SOURCE_BRANCH_PROTECTED == "true" || $CI_MERGE_REQUEST_EVENT_TYPE == "merged_result" || $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train" || $CI_COMMIT_MESSAGE_IS_TRUNCATED == "true"'
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Skip:[ \t]*integration[ \t]*\r?$/'
+        when: never
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:[ \t]*integration[ \t]*\r?$/'
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:/'
+        when: never
+      - when: always
+  - local: ".gitlab/pipelines/preview-release.yml"
+    rules:
+      - *full-ci
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Skip:[ \t]*preview-release[ \t]*\r?$/'
+        when: never
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:[ \t]*preview-release[ \t]*\r?$/'
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:/'
+        when: never
+      - when: always
+  - local: ".gitlab/pipelines/docs.yml"
+    rules:
+      - *full-ci
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Skip:[ \t]*docs[ \t]*\r?$/'
+        when: never
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:[ \t]*docs[ \t]*\r?$/'
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:/'
+        when: never
+      - when: always
+  - local: ".gitlab/pipelines/tools.yml"
+    rules:
+      - *full-ci
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Skip:[ \t]*tools[ \t]*\r?$/'
+        when: never
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:[ \t]*tools[ \t]*\r?$/'
+      - if: '$CI_COMMIT_MESSAGE =~ /(?m)^CI-Only:/'
+        when: never
+      - when: always
+
 variables:
   DOCKER_TLS_CERTDIR: "/certs"
 
@@ -41,6 +82,7 @@ test:
       - go install github.com/bwplotka/bingo@v0.9.0
       - bingo get
     script:
+      - sh .gitlab/check-ci-selection.sh
       - make test
 
 checks:
@@ -64,22 +106,6 @@ checks:
       - export XDG_CACHE_HOME=/tmp/mwcli-cache
       - make $CHECK
 
-tools:
-    stage: test
-    needs: []
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
-    parallel:
-      matrix:
-        - TOOL: ./tools/image-update/check/check.go
-        - TOOL: ./tools/image-update/update/update.go foo bar
-        # docs-gen tool is tested as docs are generated
-        # lint tool is checked as linting is run
-    script:
-      - go run $TOOL
-
 build:
     stage: build
     needs: []
@@ -96,76 +122,18 @@ build:
     script:
       - make build
 
-integration:
-    stage: integration
-    services:
-    - name: docker:26.1.1-dind
-    needs: [checks,test,build]
-    tags:
-    - mwcli
-    dependencies:
-      - build
-    parallel:
-      matrix:
-        - TEST_SCRIPT: test-general.sh
-        - TEST_SCRIPT: test-general-online.sh
-        # docker-compose is needed for ALL `docker` commands
-        - TEST_SCRIPT: test-docker-general.sh
-          EXTRA_PACKAGES: docker-compose curl tar git
-        - TEST_SCRIPT: test-docker-get-code.sh
-          EXTRA_PACKAGES: docker-compose git
-        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-recipe-repoclient.sh
-          EXTRA_PACKAGES: docker-compose curl tar git
-    before_script:
-      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
-      - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
-    script:
-      - ./tests/$TEST_SCRIPT
-
-build-release:
-    except:
-      - tags
-    stage: release
-    needs: [build,integration]
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
-    # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
-    artifacts:
-      expire_in: 2 weeks
-      paths:
-        - _release/
-    before_script:
-      - go install github.com/bwplotka/bingo@v0.9.0
-      - bingo get
-    script:
-      - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
-
-build-docs:
-    except:
-      - tags
-    stage: release
-    needs: [build,integration]
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
-    before_script:
-      - apt update
-      - apt -y install pandoc
-    script:
-      - make docs
-
 release-build:
     only:
       - tags
     stage: release
-    needs: [build,integration]
+    # Integration is always included on tags; optional also permits validation
+    # of branch configurations where that group is omitted.
+    needs:
+      - checks
+      - test
+      - build
+      - job: integration
+        optional: true
     cache: {}
     image: golang:1.26.1
     tags:

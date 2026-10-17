@@ -1,0 +1,20 @@
+build-docs:
+    except:
+      - tags
+    stage: release
+    needs:
+      - checks
+      - test
+      - build
+      - job: integration
+        optional: true
+    cache: {}
+    image: golang:1.26.1
+    tags:
+    - wmcs
+    before_script:
+      - apt update
+      - apt -y install pandoc
+    script:
+      - make docs
+
