@@ -458,8 +458,33 @@ Three options exist for sourcing a service image:
   3. Custom Dockerfile  Build an image locally from your own Dockerfile: ` + "`image dockerfile set <path>`" + `
 
 When a Dockerfile is set, a docker compose override file is generated automatically.
-Running "create" (or "docker compose up") will build the image before starting the
-service.  Use "image dockerfile reset" to go back to the default image.`,
+The first create builds a missing image. After editing a Dockerfile, force a build
+and recreate the service with "create --build --force-recreate".
+Use "image dockerfile reset" to go back to the default image.
+
+Example for MediaWiki:
+
+  mw dev mediawiki image dockerfile set
+  mw dev mediawiki image dockerfile edit
+  mw dev mediawiki create --build --force-recreate
+  mw dev mediawiki image dockerfile cat
+
+You can also activate an existing file:
+
+  mw dev mediawiki image dockerfile set /absolute/path/to/Dockerfile
+  mw dev mediawiki create --build --force-recreate
+
+The build context is the Dockerfile's containing directory. COPY paths must be
+inside that directory; keep credentials and unrelated files out of the context
+with a suitable .dockerignore. Relative paths are resolved when setting the file.
+
+To restore the bundled image:
+
+  mw dev mediawiki image dockerfile reset
+  mw dev mediawiki create --force-recreate
+
+Reset removes the build override but preserves the Dockerfile on disk. Image
+registry overrides (image set) are a separate setting; reset those too if set.`,
 	}
 
 	set := &cobra.Command{
@@ -501,7 +526,7 @@ will build the image the next time the service is created or recreated.`,
 			}
 			fmt.Printf("Custom Dockerfile activated for service %q.\n", dereferencedService)
 			fmt.Printf("Dockerfile: %s\n", dockerfilePath)
-			fmt.Printf("Run 'mw dev %s create --force-recreate' to rebuild with the new image.\n", dereferencedService)
+			fmt.Printf("Run 'mw dev %s create --build --force-recreate' to rebuild with the new image.\n", dereferencedService)
 			fmt.Printf("Run 'mw dev %s image dockerfile reset' to revert to the default image.\n", dereferencedService)
 			return nil
 		},
