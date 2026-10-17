@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cli/commands"
-	"gitlab.com/gitlab-org/cli/commands/cmdutils"
+	"gitlab.com/gitlab-org/cli/mwcli"
 	"gitlab.com/gitlab-org/cli/pkg/glinstance"
 	"gitlab.com/gitlab-org/cli/pkg/iostreams"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -20,7 +20,7 @@ func Cmd() *cobra.Command {
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
 
 	io := iostreams.Init()
-	cmdFactory := cmdutils.NewFactory(io, false)
+	cmdFactory := mwcli.NewFactory(io)
 
 	// Try to keep this version in line with the addshore fork for now...
 	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
@@ -91,8 +91,12 @@ func Cmd() *cobra.Command {
 func setDefaultHostname(glabCommand *cobra.Command) {
 	originalPersistentPreRunE := glabCommand.PersistentPreRunE
 	glabCommand.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if hostnameFlag := cmd.Flags().Lookup("hostname"); hostnameFlag != nil && !cmd.Flags().Changed("hostname") {
-			_ = cmd.Flags().Set("hostname", glinstance.OverridableDefault())
+		if hostnameFlag := cmd.Flags().Lookup("hostname"); hostnameFlag != nil {
+			hostname := hostnameFlag.Value.String()
+			if !cmd.Flags().Changed("hostname") {
+				hostname = glinstance.OverridableDefault()
+			}
+			_ = cmd.Flags().Set("hostname", mwcli.Hostname(hostname))
 		}
 
 		if originalPersistentPreRunE != nil {

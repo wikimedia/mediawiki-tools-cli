@@ -33,6 +33,7 @@ require (
 	github.com/txn2/txeh v1.5.4
 	gitlab.com/gitlab-org/api/client-go v0.130.1
 	gitlab.com/gitlab-org/cli v1.61.0
+	gitlab.com/gitlab-org/cli/mwcli v0.0.0
 	golang.org/x/term v0.44.0
 	gopkg.in/ini.v1 v1.67.3
 	gopkg.in/yaml.v2 v2.4.0
@@ -193,3 +194,5 @@ require (
 )
 
 go 1.26.1
+
+replace gitlab.com/gitlab-org/cli/mwcli => ./internal/glab
