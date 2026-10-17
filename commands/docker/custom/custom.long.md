@@ -60,3 +60,17 @@ services:
 ```
 
 Note: If you use the docker hosts file integration, you may need to manually add this host to gain access.
+
+
+## Dashboard discovery
+
+Custom Compose services are listed automatically after a mwcli command prepares
+the environment (including `custom create`). Both web and non-web services are
+included; status uses the same internal DNS check as bundled services. A
+`VIRTUAL_HOST` value supplies the web UI link, using the first hostname when it
+lists aliases. Map and list environment syntax and standard variable/default
+substitution are supported. The dashboard reads generated name/host metadata
+from its existing read-only data mount; it does not receive the Docker socket or
+other service environment values. Reload after its five-second status cache
+expires. If you edit custom YAML while the dashboard is running, run a mwcli
+command such as `mw docker where` to refresh the metadata.

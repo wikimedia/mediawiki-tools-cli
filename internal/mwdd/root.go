@@ -1,6 +1,7 @@
 package mwdd
 
 import (
+	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 
@@ -38,6 +39,9 @@ func (m MWDD) EnsureReady() {
 	m.Env().EnsureExists()
 	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
 	m.ensureDockerfileComposeFiles()
+	if err := m.refreshDashboardServices(); err != nil {
+		logrus.Warnf("Could not refresh custom dashboard services: %v", err)
+	}
 }
 
 func (m MWDD) DockerCompose() dockercompose.Project {

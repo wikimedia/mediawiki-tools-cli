@@ -38,6 +38,8 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 		IgnoreFiles: []string{
 			// Generated gateway credentials are private to each local mwdd context.
 			`compose\/traefik\/auth\/.*`,
+			// Generated display metadata; contains names and hosts only.
+			`^dashboard-services\.json$`,
 			// Used by docker compose to store current environment variables in
 			`\.env`,
 			// Used by the dev environment to store hosts that need adding to the hosts file
