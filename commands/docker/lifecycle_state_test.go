@@ -28,16 +28,19 @@ func (p *fakeLifecycleProject) ServicesWithStatus(status string) ([]string, erro
 	}
 	panic(status)
 }
+
 func (p *fakeLifecycleProject) Start(s []string) error {
 	p.calls++
 	p.started = append([]string{}, s...)
 	return p.failure
 }
+
 func (p *fakeLifecycleProject) Stop(s []string) error {
 	p.calls++
 	p.stopped = append([]string{}, s...)
 	return p.failure
 }
+
 func (p *fakeLifecycleProject) Restart(s []string) error {
 	p.calls++
 	p.restarted = append([]string{}, s...)

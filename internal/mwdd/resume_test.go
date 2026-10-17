@@ -54,11 +54,11 @@ func TestMalformedResumeState(t *testing.T) {
 	Context = "test"
 	t.Cleanup(func() { Context = original })
 	m := MWDD{BaseDir: t.TempDir()}
-	if err := os.MkdirAll(m.Directory(), 0700); err != nil {
+	if err := os.MkdirAll(m.Directory(), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	for _, data := range []string{"invalid", `{"version":99}`, `{"version":1,"services":["--help"]}`} {
-		if err := os.WriteFile(filepath.Join(m.Directory(), "state-suspended-services.json"), []byte(data), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(m.Directory(), "state-suspended-services.json"), []byte(data), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if _, _, err := m.ResumeServices(); err == nil {

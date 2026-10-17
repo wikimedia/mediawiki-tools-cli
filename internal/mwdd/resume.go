@@ -61,7 +61,7 @@ func (m MWDD) SaveResumeServices(services []string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(m.Directory(), 0700); err != nil {
+	if err := os.MkdirAll(m.Directory(), 0o700); err != nil {
 		return err
 	}
 	file, err := os.CreateTemp(m.Directory(), ".resume-services-*")

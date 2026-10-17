@@ -20,7 +20,7 @@ func TestSuspendResumeIntegration(t *testing.T) {
 	t.Cleanup(func() { mwdd.Context = original })
 	m := mwdd.MWDD{BaseDir: t.TempDir()}
 	folder := filepath.Join(m.Directory(), "compose", "fixture")
-	if err := os.MkdirAll(folder, 0700); err != nil {
+	if err := os.MkdirAll(folder, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	config := `services:
@@ -39,7 +39,7 @@ func TestSuspendResumeIntegration(t *testing.T) {
     network_mode: none
     command: ['true']
 `
-	if err := os.WriteFile(filepath.Join(folder, "compose.yml"), []byte(config), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(folder, "compose.yml"), []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	p := m.DockerCompose()
