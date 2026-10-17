@@ -7,22 +7,31 @@ stages:
   - integration
   - release
 
+# Every MR job checks out the same temporary merge, including security scans.
+.merged-source:
+    before_script: &checkout-merged-source
+      - |
+        if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+          git fetch --no-tags .ci-merge.bundle HEAD
+          rm .ci-merge.bundle
+          git checkout --detach FETCH_HEAD
+        fi
+    needs:
+      - &merged-source-need
+        job: prepare-merge
+        optional: true
+
 .commit-job:
+    extends: .merged-source
     rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
-    needs:
-      - job: check-target-branch
-        optional: true
-        artifacts: false
 
-# Test the source commit only after it includes the current target branch.
-# Semi-linear merging plus "Pipelines must succeed" also enforce this at merge time.
-check-target-branch:
+prepare-merge:
     image: golang:1.26.1
     tags:
       - wmcs
-    stage: test
+    stage: .pre
     needs: []
     cache: []
     variables:
@@ -30,7 +39,22 @@ check-target-branch:
     rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     script:
-      - bash tests/check-target-branch.sh
+      - bash tests/prepare-merge.sh
+    artifacts:
+      expire_in: 1 day
+      paths:
+        - .ci-merge.bundle
+
+# Extend the imported analyzers without replacing their scripts or rules.
+.sast-analyzer:
+    before_script: *checkout-merged-source
+    needs:
+      - *merged-source-need
+
+secret_detection:
+    before_script: *checkout-merged-source
+    needs:
+      - *merged-source-need
 
 # Keep Go modules and compilation results inside the checkout so Runner can cache
 # them. Separate job keys avoid parallel jobs overwriting each other's caches.
@@ -63,6 +87,7 @@ check-target-branch:
     before_script:
       # gcompat runs the glibc-linked mw binary in Alpine.
       - apk add --no-cache libc6-compat bash curl tar git docker-compose
+      - *checkout-merged-source
 
 test:
     extends: .go-job
@@ -125,6 +150,7 @@ integration-cli:
       - wmcs
     cache: []
     needs:
+      - *merged-source-need
       - job: build
     parallel:
       matrix:
@@ -166,7 +192,7 @@ prepare-mediawiki:
 integration-get-code:
     extends: .docker-job
     stage: integration
-    needs: [checks,test,build]
+    needs: [*merged-source-need,checks,test,build]
     script:
       - ./tests/test-docker-get-code.sh
 
@@ -174,6 +200,7 @@ integration:
     extends: .docker-job
     stage: integration
     needs:
+      - *merged-source-need
       - job: checks
         artifacts: false
       - job: test
@@ -195,7 +222,7 @@ build-release:
     rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     stage: release
-    needs: [checks,test,build]
+    needs: [*merged-source-need,checks,test,build]
     # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
     artifacts:
       expire_in: 2 weeks
@@ -209,8 +236,9 @@ build-docs:
     rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     stage: release
-    needs: [build,integration-cli,integration-get-code,integration]
+    needs: [*merged-source-need,build,integration-cli,integration-get-code,integration]
     before_script:
+      - *checkout-merged-source
       - apt update
       - apt -y install pandoc
     script:
@@ -221,7 +249,7 @@ release-build:
     rules:
       - if: '$CI_COMMIT_TAG'
     stage: release
-    needs: [build,integration-cli,integration-get-code,integration]
+    needs: [*merged-source-need,build,integration-cli,integration-get-code,integration]
     artifacts:
       paths:
         - _release/

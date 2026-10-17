@@ -19,29 +19,23 @@ same MR or `main` branch, including running tests and builds. The project's
 must be enabled (it currently is). Tag and weekly pipelines opt out, and release
 uploads, publishing and documentation publication are non-interruptible.
 
-Before the build and tests start, `check-target-branch` verifies that the MR source
-commit includes the latest target branch. A stale branch fails this check. Use
-GitLab's **Rebase** action, or update your source branch locally and push it:
+Before the build and tests start, `prepare-merge` fetches the current target branch
+and merges it into a temporary checkout of the MR commit. Conflicts fail this early
+job. Otherwise, a Git bundle passes that exact merged commit to the remaining jobs,
+including security scans. Your source branch is not changed or pushed.
 
-```sh
-git fetch https://gitlab.wikimedia.org/repos/releng/cli.git main
-git rebase FETCH_HEAD
-git push --force-with-lease
-```
+The job log records both input commits and the resulting merge commit. Builds and
+tests use the merged checkout; GitLab's pipeline metadata still identifies the MR
+source commit. Pipeline job definitions come from the MR's CI configuration.
 
-After merging this CI configuration, set these options under **Settings > Merge
-requests** to enforce the requirement at merge time too:
+If the target branch advances afterwards, rerun the pipeline to test the newer
+combination. Retrying only a test job uses the existing merge artifact; start a new
+pipeline to refresh it. This does not provide GitLab's native merged-results or
+merge-train guarantees at merge time.
 
-- **Merge method:** Merge commit with semi-linear history.
-- **Merge checks:** Enable **Pipelines must succeed** and leave **Skipped pipelines
-  are considered successful** disabled.
-- Leave **Enable automatic rebase prior to merge** disabled, if available: it can
-  rebase without testing the new result.
-
-If the target branch advances after CI passes, semi-linear merging requires another
-update and pipeline before merging. Use the normal rebase action, which runs CI,
-rather than **Rebase without pipeline**. These project settings are separate from
-the versioned configuration; editing this file does not apply them.
+Under **Settings > Merge requests > Merge checks**, enable **Pipelines must succeed**
+and leave **Skipped pipelines are considered successful** disabled. These project
+settings are separate from the versioned configuration.
 
 ## Pipeline caches and scheduling
 
