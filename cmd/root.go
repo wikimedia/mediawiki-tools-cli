@@ -33,6 +33,7 @@ import (
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
+	wikidatacmd "gitlab.wikimedia.org/repos/releng/cli/commands/wikidata"
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -185,6 +186,7 @@ func NewRootCmd(name string) *cobra.Command {
 		cobrautil.WithServiceInfo(dumpscmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Dumps", URL: "https://dumps.wikimedia.org/"}),
 		cobrautil.WithServiceInfo(apicmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia APIs", URL: "https://www.mediawiki.org/wiki/API:Main_page", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		cobrautil.WithServiceInfo(eventscmd.NewCmd(), cobrautil.ServiceInfo{Name: "EventStreams", URL: "https://stream.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(wikidatacmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikidata Query Service", URL: "https://query.wikidata.org"}),
 		toolhub.NewToolHubCmd(),
 		cobrautil.WithServiceInfo(tools.NewToolsCmd(), cobrautil.ServiceInfo{Name: "Wikimedia tools", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		cobrautil.WithServiceInfo(tools.NewToolforgeCmd(), cobrautil.ServiceInfo{Name: "Toolforge", URL: "https://toolforge.org", Logo: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Toolforge_logo.svg"}),
