@@ -7,6 +7,22 @@ The custom mwcli runners are used when docker in docker is needed (integration t
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
+## Pipeline caches and scheduling
+
+Basic CLI integration tests use shared runners. Only Docker tests and their
+MediaWiki preparation job use the limited `mwcli` runners. Preview release builds
+run alongside integration; tagged releases still wait for all integration tests.
+
+Go jobs let Make install only the pinned tools they need. Module, compiler and
+linter caches live under `.cache/`, with separate cache keys per job and Go version.
+
+`prepare-mediawiki` caches a compressed, clean MediaWiki snapshot and passes it as
+a pipeline artifact to the four tests that need it. Those tests never upload their
+modified MediaWiki trees. The get-code test fetches its own code. Snapshots refresh
+weekly and when the preparation scripts change; use **Clear runner caches** in
+GitLab to force an earlier refresh. Each runner can rebuild its own cache on a miss,
+so no shared cache service is required.
+
 ## Custom runners
 
 Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).

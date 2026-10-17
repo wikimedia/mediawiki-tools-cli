@@ -7,23 +7,40 @@ stages:
   - integration
   - release
 
-# The plan would be for this cache to be reused by all jobs.
-# Caches currently end up cached per runner, per job concurrency level and per md5 of path?
-# So there are lots of duplicate caches that end up needing to be populated right now?
-# https://forum.gitlab.com/t/confusion-around-ci-docker-cache-volumes-and-sharing-across-jobs-concurrency/56793
-# Docker cache volumes look like this runner-<short-token>-project-<id>-concurrent-<concurrency-id>-cache-<md5-of-path>
-cache:
-  - key: mediawiki
-    paths:
-      - .mediawiki
-
-test:
-    stage: test
-    needs: []
-    cache: {}
+# Keep Go modules and compilation results inside the checkout so Runner can cache
+# them. Separate job keys avoid parallel jobs overwriting each other's caches.
+.go-job:
     image: golang:1.26.1
     tags:
-    - wmcs
+      - wmcs
+    variables:
+      GOCACHE: "$CI_PROJECT_DIR/.cache/go-build"
+      GOMODCACHE: "$CI_PROJECT_DIR/.cache/go-mod"
+      GOLANGCI_LINT_CACHE: "$CI_PROJECT_DIR/.cache/golangci-lint"
+      CACHE_COMPRESSION_FORMAT: tarzstd
+      CACHE_COMPRESSION_LEVEL: fastest
+    cache:
+      key: "go1.26.1-$CI_JOB_NAME_SLUG"
+      paths:
+        - .cache/go-build/
+        - .cache/go-mod/
+        - .cache/golangci-lint/
+
+.docker-job:
+    image: docker:26.1.1
+    tags:
+      - mwcli
+    services:
+      - name: docker:26.1.1-dind
+    cache: []
+    before_script:
+      # gcompat runs the glibc-linked mw binary in Alpine.
+      - apk add --no-cache libc6-compat bash curl tar git docker-compose
+
+test:
+    extends: .go-job
+    stage: test
+    needs: []
     coverage: '/Total coverage: \d+.\d+%/'
     artifacts:
       when: always
@@ -37,40 +54,26 @@ test:
         coverage_report: 
           coverage_format: cobertura
           path: coverage.xml
-    before_script:
-      - go install github.com/bwplotka/bingo@v0.9.0
-      - bingo get
     script:
       - make test
 
 checks:
+    extends: .go-job
     stage: test
     needs: []
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
     parallel:
       matrix:
         - CHECK: lint
         - CHECK: linti
         - CHECK: vet
         - CHECK: git-state
-    before_script:
-      - go install github.com/bwplotka/bingo@v0.9.0
-      - bingo get
     script:
-      # XDG_CACHE_HOME was needed by staticcheck
-      - export XDG_CACHE_HOME=/tmp/mwcli-cache
       - make $CHECK
 
 tools:
+    extends: .go-job
     stage: test
     needs: []
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
     parallel:
       matrix:
         - TOOL: ./tools/image-update/check/check.go
@@ -81,80 +84,99 @@ tools:
       - go run $TOOL
 
 build:
+    extends: .go-job
     stage: build
     needs: []
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
     artifacts:
       paths:
         - bin/
-    before_script:
-      - go install github.com/bwplotka/bingo@v0.9.0
-      - bingo get
     script:
       - make build
 
-integration:
+# Basic command tests need the binary, but neither Docker nor MediaWiki.
+integration-cli:
     stage: integration
-    services:
-    - name: docker:26.1.1-dind
-    needs: [checks,test,build]
+    image: golang:1.26.1
     tags:
-    - mwcli
-    dependencies:
-      - build
+      - wmcs
+    cache: []
+    needs:
+      - job: build
     parallel:
       matrix:
         - TEST_SCRIPT: test-general.sh
         - TEST_SCRIPT: test-general-online.sh
-        # docker-compose is needed for ALL `docker` commands
-        - TEST_SCRIPT: test-docker-general.sh
-          EXTRA_PACKAGES: docker-compose curl tar git
-        - TEST_SCRIPT: test-docker-get-code.sh
-          EXTRA_PACKAGES: docker-compose git
-        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
-          EXTRA_PACKAGES: docker-compose curl tar
-        - TEST_SCRIPT: test-docker-recipe-repoclient.sh
-          EXTRA_PACKAGES: docker-compose curl tar git
-    before_script:
-      # libc6-compat needed because https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host
-      - apk add --no-cache libc6-compat bash $EXTRA_PACKAGES
     script:
       - ./tests/$TEST_SCRIPT
 
+# Prepare once per pipeline. Cache one archive locally between pipelines and use
+# an artifact to distribute the same clean snapshot across both Docker runners.
+prepare-mediawiki:
+    extends: .docker-job
+    stage: build
+    needs: []
+    cache:
+      key:
+        prefix: mediawiki-snapshot-v1
+        files:
+          - tests/cache-mediawiki.sh
+          - tests/prepare-mediawiki.sh
+      paths:
+        - .cache/mediawiki.tar.gz
+    artifacts:
+      expire_in: 1 day
+      paths:
+        - .cache/mediawiki.tar.gz
+    script:
+      - bash tests/prepare-mediawiki.sh
+
+integration-get-code:
+    extends: .docker-job
+    stage: integration
+    needs: [checks,test,build]
+    script:
+      - ./tests/test-docker-get-code.sh
+
+integration:
+    extends: .docker-job
+    stage: integration
+    needs:
+      - job: checks
+        artifacts: false
+      - job: test
+        artifacts: false
+      - job: build
+      - job: prepare-mediawiki
+    parallel:
+      matrix:
+        - TEST_SCRIPT: test-docker-general.sh
+        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
+        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
+        - TEST_SCRIPT: test-docker-recipe-repoclient.sh
+    script:
+      - tar -xzf .cache/mediawiki.tar.gz
+      - ./tests/$TEST_SCRIPT
+
 build-release:
+    extends: .go-job
     except:
       - tags
     stage: release
-    needs: [build,integration]
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
+    needs: [checks,test,build]
     # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
     artifacts:
       expire_in: 2 weeks
       paths:
         - _release/
-    before_script:
-      - go install github.com/bwplotka/bingo@v0.9.0
-      - bingo get
     script:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
 build-docs:
+    extends: .go-job
     except:
       - tags
     stage: release
-    needs: [build,integration]
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
+    needs: [build,integration-cli,integration-get-code,integration]
     before_script:
       - apt update
       - apt -y install pandoc
@@ -162,20 +184,14 @@ build-docs:
       - make docs
 
 release-build:
+    extends: .go-job
     only:
       - tags
     stage: release
-    needs: [build,integration]
-    cache: {}
-    image: golang:1.26.1
-    tags:
-    - wmcs
+    needs: [build,integration-cli,integration-get-code,integration]
     artifacts:
       paths:
         - _release/
-    before_script:
-      - go install github.com/bwplotka/bingo@v0.9.0
-      - bingo get
     script:
       - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
 
