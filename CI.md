@@ -47,7 +47,10 @@ so no shared cache service is required.
 
 ## GitHub workers
 
+See https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-workers.yml?query=-is%3Askipped
+
 The worker workflow is [`.github/workflows/gitlab-workers.yml`](.github/workflows/gitlab-workers.yml).
+
 A GitLab job-event webhook dispatches it when a job becomes pending. A separate
 queue-check job rechecks the job's status and accepts jobs requiring exactly the
 `dind` tag. Other status events are skipped. Separate jobs can start workers in
@@ -82,7 +85,6 @@ The tokens for this setup will need rotating.
 ## Custom runners
 
 Custom runners run in the `mwcli` Cloud VPS project.
-
 
 Reported on 2026-10-17:
 
