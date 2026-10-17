@@ -10,7 +10,6 @@ import (
 	dockerconfig "github.com/docker/cli/cli/config"
 	contextdocker "github.com/docker/cli/cli/context/docker"
 	"github.com/docker/cli/cli/context/store"
-
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
 )
