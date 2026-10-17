@@ -5,24 +5,85 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
+
+	dockerconfig "github.com/docker/cli/cli/config"
+	contextdocker "github.com/docker/cli/cli/context/docker"
+	"github.com/docker/cli/cli/context/store"
 
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
 )
 
-func NewClientFromEnvOrPanic() *client.Client {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+// NewClientFromEnv uses Docker's own endpoint resolution, including the saved
+// currentContext, DOCKER_CONTEXT, DOCKER_HOST, TLS material and SSH helpers.
+func NewClientFromEnv() (*client.Client, error) {
+	cfg, err := dockerconfig.Load(dockerconfig.Dir())
 	if err != nil {
-		logrus.Error("Unable to create docker client")
-		logrus.Panic(err)
+		return nil, fmt.Errorf("load Docker configuration: %w", err)
+	}
+	name := os.Getenv("DOCKER_CONTEXT")
+	if name == "" {
+		// An explicit host takes precedence over the saved current context.
+		if os.Getenv("DOCKER_HOST") != "" {
+			name = "default"
+		} else {
+			name = cfg.CurrentContext
+		}
+	}
+	if name == "" || name == "default" {
+		return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	}
+	contexts := store.New(dockerconfig.ContextStoreDir(), dockerContextStoreConfig())
+	metadata, err := contexts.GetMetadata(name)
+	if err != nil {
+		return nil, fmt.Errorf("load Docker context %q: %w", name, err)
+	}
+	endpointMeta, err := contextdocker.EndpointFromContext(metadata)
+	if err != nil {
+		return nil, fmt.Errorf("Docker context %q: %w", name, err)
+	}
+	endpoint, err := contextdocker.WithTLSData(contexts, name, endpointMeta)
+	if err != nil {
+		return nil, fmt.Errorf("Docker context %q TLS: %w", name, err)
+	}
+	opts, err := endpoint.ClientOpts()
+	if err != nil {
+		return nil, fmt.Errorf("Docker context %q client: %w", name, err)
+	}
+	return client.NewClientWithOpts(opts...)
+}
+
+func dockerContextStoreConfig() store.Config {
+	return store.NewConfig(func() any { return new(map[string]any) },
+		store.EndpointTypeGetter(contextdocker.DockerEndpoint, func() any { return new(contextdocker.EndpointMeta) }))
+}
+
+func NewClientFromEnvOrPanic() *client.Client {
+	cli, err := NewClientFromEnv()
+	if err != nil {
+		logrus.Panicf("Unable to create Docker client: %v", err)
 	}
 	return cli
 }
 
+// CheckDockerDaemon retains the real endpoint/permission error for diagnostics.
+func CheckDockerDaemon() error {
+	cli, err := NewClientFromEnv()
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := cli.Ping(ctx); err != nil {
+		return fmt.Errorf("cannot connect to Docker at %s: %w", cli.DaemonHost(), err)
+	}
+	return nil
+}
+
 func DockerDaemonIsRunning() bool {
-	cli := NewClientFromEnvOrPanic()
-	_, err := cli.Ping(context.Background())
-	return err == nil
+	return CheckDockerDaemon() == nil
 }
 
 /*CurrentUserAndGroupForDockerExecution gets a user and group id combination for the current user that can be used for execution.*/
