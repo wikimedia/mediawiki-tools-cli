@@ -126,6 +126,41 @@ integration:
     script:
       - ./tests/$TEST_SCRIPT
 
+.dind-runner-probe:
+    stage: integration
+    needs: []
+    image: docker:26.1.1-cli
+    services:
+      - name: docker:26.1.1-dind
+        alias: docker
+    variables:
+      DOCKER_HOST: tcp://docker:2375
+      DOCKER_TLS_CERTDIR: ""
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+        when: manual
+        allow_failure: true
+      - when: never
+    script:
+      - docker info
+      - docker run --rm hello-world
+
+probe-dind-wmcs:
+    extends: .dind-runner-probe
+    tags:
+      - wmcs
+
+probe-dind-cloud:
+    extends: .dind-runner-probe
+    tags:
+      - cloud
+      - kubernetes
+
+probe-dind-memory-optimized:
+    extends: .dind-runner-probe
+    tags:
+      - memory-optimized
+
 build-release:
     except:
       - tags

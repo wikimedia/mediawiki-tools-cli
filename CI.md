@@ -7,6 +7,8 @@ The custom mwcli runners are used when docker in docker is needed (integration t
 
 This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
 
+The merge-request pipeline also includes optional manual DinD probes for the `wmcs`, `cloud` and `memory-optimized` runner pools. Trigger `probe-dind-wmcs`, `probe-dind-cloud` or `probe-dind-memory-optimized` from an MR to check whether that pool can start a Docker-in-Docker service and run a container. These probes do not block the regular pipeline.
+
 ## Custom runners
 
 Custom runners run on the `mwcli` wikimedia.cloud project (the legacy name of this project).
