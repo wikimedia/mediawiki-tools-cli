@@ -9,6 +9,7 @@ stages:
 
 # Manual trial for the GitHub-hosted worker; independent of normal CI jobs.
 github-runner-smoke:
+  parallel: 3
   stage: test
   image: docker:26.1.1
   tags:
@@ -30,7 +31,8 @@ github-runner-smoke:
   script:
     - docker version
     - docker info
-    - docker run --rm alpine:3.22 echo "GitLab job running on a GitHub VM"
+    - echo "Parallel job $CI_NODE_INDEX/$CI_NODE_TOTAL (GitLab job $CI_JOB_ID)"
+    - docker run --rm alpine:3.22 sh -c 'echo "GitLab job running on a GitHub VM"; sleep 30'
     - echo "GitHub runner trial passed" > github-runner-trial.txt
   artifacts:
     paths:
