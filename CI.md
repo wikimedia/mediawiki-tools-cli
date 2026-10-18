@@ -18,7 +18,27 @@ Preview release builds run alongside integration. Documentation builds and tagge
 
 After checks, builds and MediaWiki preparation pass, `integration-github-request` starts [the GitHub workflow](.github/workflows/gitlab-integration.yml) with the pipeline's prepared inputs. No webhook is needed.
 
-Results appear in GitLab's `external` stage with links to GitHub logs. `integration-github` blocks downstream jobs until all tests pass.
+Each test publishes a GitLab external status with a link to its GitHub log.
+The final report discovers results from the actual `Integration (...) / Test`
+jobs, including matrix jobs and successful jobs from earlier rerun attempts.
+It publishes `github/integration` only after every dependency of the final
+report succeeds. `integration-github` authenticates that overall result and
+blocks downstream jobs until it passes. The waiting service has no test list
+or expected test count.
+
+The matrix in `.github/workflows/gitlab-integration.yml` defines the tests.
+To add a native test, add a `{platform: windows-amd64, test: example}` row and
+provide `tests/test-example.sh` in the tested source. The same reusable workflow
+builds native binaries on Windows AMD64, macOS ARM64 and Linux ARM64. These
+jobs use a source-only artifact and publish `github/<platform>/<test>` statuses;
+the existing Linux AMD64 Docker jobs keep their current status names.
+No new dispatcher or waiting-runner deployment is needed for another test.
+
+Roll out this controller update on GitHub `main` first. Then copy the updated
+`github_status.py` and `wait-status.py` to both waiting hosts and restart
+`mwcli-wait-status` using the worker update procedure. This is a one-time
+migration from the old fixed test list. The dispatcher still launches only
+`gitlab-integration.yml` through `integration-github-request`.
 
 ### Native platform workflows
 

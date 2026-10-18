@@ -4,6 +4,9 @@ name: Integration test
 on:
   workflow_call:
     inputs:
+      platform:
+        default: linux-amd64
+        type: string
       test:
         required: true
         type: string
@@ -28,7 +31,7 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON('{"linux-amd64":"ubuntu-24.04","windows-amd64":"windows-2025","macos-arm64":"macos-15","linux-arm64":"ubuntu-24.04-arm"}')[inputs.platform] }}
     timeout-minutes: 35
     permissions:
       contents: read
@@ -39,18 +42,56 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v8
         with:
-          name: ${{ inputs.artifact }}
+          name: ${{ inputs.platform == 'linux-amd64' && inputs.artifact || format('{0}-source', inputs.artifact) }}
           path: inputs
       - name: Provide the Docker Compose command used by the tests
+        if: inputs.platform == 'linux-amd64'
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
           printf '#!/bin/sh\nexec docker compose "$@"\n' > "$RUNNER_TEMP/bin/docker-compose"
           chmod +x "$RUNNER_TEMP/bin/docker-compose"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: Test with the GitHub host Docker daemon
+        if: inputs.platform == 'linux-amd64'
         env:
           TEST: ${{ inputs.test }}
         run: python3 tools/ci/run-github-integration.py "$TEST"
+
+      - name: Check out the exact GitLab source bundle
+        if: inputs.platform != 'linux-amd64'
+        shell: bash
+        env:
+          TESTED_SHA: ${{ inputs.tested_sha }}
+        run: |
+          mkdir source
+          git -C source init -q
+          git -C source fetch -q "$GITHUB_WORKSPACE/inputs/source.bundle" HEAD
+          git -C source checkout -q --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$TESTED_SHA"
+      - uses: actions/setup-go@v6
+        if: inputs.platform != 'linux-amd64'
+        with:
+          go-version-file: source/go.mod
+          cache-dependency-path: source/go.sum
+      - name: Build the native CLI
+        if: inputs.platform != 'linux-amd64'
+        shell: bash
+        working-directory: source
+        run: |
+          binary=bin/mw
+          if [[ "$RUNNER_OS" == Windows ]]; then binary=bin/mw.exe; fi
+          mkdir -p bin
+          go build -o "$binary" .
+      - name: Run the selected native test
+        if: inputs.platform != 'linux-amd64'
+        shell: bash
+        working-directory: source
+        env:
+          TEST_NAME: ${{ inputs.test }}
+          MWCLI_CONTEXT_TEST: '1'
+        run: |
+          [[ "$TEST_NAME" =~ ^[a-z][a-z0-9-]{0,63}$ ]]
+          bash "tests/test-$TEST_NAME.sh"
 
   report:
     name: Report result
@@ -72,5 +113,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REQUEST_JOB_ID: ${{ inputs.request_job_id }}
           TESTED_SHA: ${{ inputs.tested_sha }}
-          TEST_NAME: ${{ inputs.test }}
+          TEST_NAME: ${{ inputs.platform == 'linux-amd64' && inputs.test || format('{0}/{1}', inputs.platform, inputs.test) }}
         run: python3 .github/scripts/gitlab-native.py report-test

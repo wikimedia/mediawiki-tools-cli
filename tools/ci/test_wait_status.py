@@ -10,7 +10,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from github_status import CONTEXTS, description
+from github_status import SUMMARY_CONTEXT, description
 
 spec = importlib.util.spec_from_file_location("reader", Path(__file__).with_name("wait-status.py"))
 reader = importlib.util.module_from_spec(spec)
@@ -25,7 +25,7 @@ def records():
     return [{"id": i, "name": name, "status": "success", "author": {"id": 7},
              "description": description(19, 123, 1, SHA),
              "target_url": f"https://github.com/{CONFIG['repository']}/actions/runs/123/job/{i}"}
-            for i, name in enumerate(CONTEXTS, 1)]
+            for i, name in enumerate((SUMMARY_CONTEXT,), 1)]
 
 
 class ReaderTests(unittest.TestCase):
@@ -44,7 +44,6 @@ class ReaderTests(unittest.TestCase):
 
     def test_forged_old_partial_and_pending_results_cannot_pass(self):
         for change in ({"author": {"id": 99}}, {"description": description(18, 123, 1, SHA)},
-                       {"description": description(19, 123, 2, SHA)},
                        {"description": description(19, 123, 1, "b" * 40)},
                        {"status": "pending"}, {"allow_failure": True},
                        {"target_url": "https://github.com/other/repo/actions/runs/123"}):
@@ -53,6 +52,14 @@ class ReaderTests(unittest.TestCase):
                 values[0].update(change)
                 self.assertEqual(self.result(values=values)["state"], "pending")
         self.assertEqual(self.result(values=records()[:-1])["state"], "pending")
+
+    def test_individual_results_do_not_define_or_override_the_workflow_outcome(self):
+        values = records()
+        values.extend({**values[0], "id": index + 10, "name": f"github/new-test-{index}", "status": "failed"}
+                      for index in range(12))
+        self.assertEqual(self.result(values=values)["state"], "success")
+        values.append({**values[0], "id": 100, "status": "pending"})
+        self.assertEqual(self.result(values=values)["state"], "pending")
 
     def test_authenticated_failure_is_terminal(self):
         values = records()

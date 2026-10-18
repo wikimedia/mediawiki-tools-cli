@@ -10,7 +10,8 @@ import subprocess
 import sys
 import time
 
-from github_status import GitLab, PROJECT, REQUEST_JOB, TESTS, pipeline_jobs
+from github_status import GitLab, PROJECT, REQUEST_JOB, pipeline_jobs
+from integration_tests import TESTS
 
 
 def main():

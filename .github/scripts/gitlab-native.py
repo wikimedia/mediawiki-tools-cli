@@ -13,9 +13,11 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/ci"))
 from github_status import (  # noqa: E402
-    GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, TESTS, CONTEXTS,
+    GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, SUMMARY_CONTEXT,
     commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses,
 )
+
+from integration_tests import TESTS  # noqa: E402
 
 
 def output(name, value):
@@ -67,11 +69,11 @@ def prepare(api, job_id, directory):
     # duplicate dispatches. Explicit GitHub reruns remain possible.
     previous = {record["name"]: record for record in sorted(
         statuses(api, plan["source_sha"], plan["pipeline_id"]), key=lambda record: record["id"]
-    ) if record["name"] in CONTEXTS}
+    ) if record["name"] == SUMMARY_CONTEXT}
     if os.environ["GITHUB_RUN_ATTEMPT"] == "1" and all(
         name in previous and previous[name]["status"] in {"success", "failed"}
         and parse_description(previous[name].get("description"))[0] == str(plan["request_id"])
-        for name in CONTEXTS
+        for name in (SUMMARY_CONTEXT,)
     ):
         output("active", "false")
         return
@@ -91,8 +93,8 @@ def prepare(api, job_id, directory):
     output("artifact", f"gitlab-{plan['request_id']}-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}")
     output("tested_sha", plan["tested_sha"])
     output("active", "true")
-    report(api, plan, {name: {"state": "pending"} for name in TESTS},
-           os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
+    post_status(api, plan, SUMMARY_CONTEXT, {"state": "pending"},
+                os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
 
 
 def prepare_source(api, plan, jobs, directory):
@@ -122,8 +124,6 @@ def prepare_source(api, plan, jobs, directory):
 def github_results(run_id, attempt, job_names=None):
     """Latest conclusion per matrix job, including successful jobs from a prior attempt."""
     results = {}
-    if job_names is None:
-        job_names = {name: f"Integration ({name}) / Test" for name in TESTS}
     for number in range(positive_id(attempt), 0, -1):
         page = 1
         while True:
@@ -136,8 +136,13 @@ def github_results(run_id, attempt, job_names=None):
             with urllib.request.urlopen(request, timeout=60) as response:
                 jobs = json.load(response)["jobs"]
             for job in jobs:
-                for name, job_name in job_names.items():
-                    if job["name"] == job_name and name not in results:
+                if job_names is None:
+                    match = re.fullmatch(r"Integration \(([a-z][a-z0-9/-]*)\) / Test", job["name"])
+                    names = [match[1]] if match else []
+                else:
+                    names = [name for name, job_name in job_names.items() if job["name"] == job_name]
+                for name in names:
+                    if name not in results:
                         results[name] = {
                             "state": "success" if job["conclusion"] == "success" else "failed",
                             "url": job["html_url"],
@@ -150,7 +155,7 @@ def github_results(run_id, attempt, job_names=None):
 
 def report(api, plan, results, run_id, attempt):
     for name, result in results.items():
-        if name not in TESTS:
+        if not re.fullmatch(r"[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)?", name) or name == "integration":
             raise ValueError("unexpected integration test")
         post_status(api, plan, f"github/{name}", result, run_id, attempt)
 
@@ -209,7 +214,7 @@ def finish_platform(api, job_id, tested_sha, run_id, attempt, prepared=True):
     post_status(api, plan, context, results.get(context, {"state": "failed"}), run_id, attempt)
 
 
-def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
+def finish(api, job_id, tested_sha, run_id, attempt, prepared=True, jobs_succeeded=False):
     loaded = load_request(api, job_id)
     if loaded is None:
         print("Request is canceled or superseded; no callback needed.")
@@ -221,10 +226,11 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
     # for an MR's merged checkout. No missing callback should appear successful.
     plan["tested_sha"] = commit_sha(tested_sha or plan["source_sha"])
     results = github_results(run_id, attempt) if prepared and tested_sha else {}
-    for name in TESTS:
-        results.setdefault(name, {"state": "failed"})
     report(api, plan, results, run_id, attempt)
-    if any(result["state"] != "success" for result in results.values()):
+    passed = prepared and jobs_succeeded and bool(results) and all(
+        result["state"] == "success" for result in results.values())
+    post_status(api, plan, SUMMARY_CONTEXT, {"state": "success" if passed else "failed"}, run_id, attempt)
+    if not passed:
         return  # The normal waiting job observes the failures itself.
     loaded = load_request(api, job_id)
     if loaded is not None:
@@ -233,6 +239,13 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
             # A successful GitHub rerun can recover a failed waiting job.
             # No manual play or result variables are involved.
             api.post(f"/projects/{PROJECT}/jobs/{gate['id']}/retry", {})
+
+
+def workflow_jobs_succeeded(value):
+    """The trusted workflow supplies every dependency of its final report job."""
+    needs = json.loads(value)
+    return (isinstance(needs, dict) and "prepare" in needs and len(needs) >= 2
+            and all(isinstance(job, dict) and job.get("result") == "success" for job in needs.values()))
 
 
 def main():
@@ -257,15 +270,14 @@ def main():
             plan = loaded[0]
             plan["tested_sha"] = commit_sha(os.environ["TESTED_SHA"])
             name = os.environ["TEST_NAME"]
-            if name not in TESTS:
-                raise ValueError("unexpected integration test")
             results = github_results(os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
             report(api, plan, {name: results.get(name, {"state": "failed"})},
                    os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
     else:
         finish(api, job_id, os.environ.get("TESTED_SHA", ""),
                os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"],
-               prepared=os.environ.get("PREPARATION_RESULT") == "success")
+               prepared=os.environ.get("PREPARATION_RESULT") == "success",
+               jobs_succeeded=workflow_jobs_succeeded(os.environ.get("WORKFLOW_NEEDS", "{}")))
 
 
 if __name__ == "__main__":

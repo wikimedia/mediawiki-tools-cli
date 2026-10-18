@@ -73,8 +73,17 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      - uses: actions/upload-artifact@v7
+        if: steps.prepare.outputs.active == 'true'
+        with:
+          name: ${{ steps.prepare.outputs.artifact }}-source
+          path: inputs/source.bundle
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
   integration:
-    name: Integration (${{ matrix.test }})
+    name: Integration (${{ matrix.platform == 'linux-amd64' && matrix.test || format('{0}/{1}', matrix.platform, matrix.test) }})
     needs: prepare
     if: needs.prepare.outputs.active == 'true'
     permissions:
@@ -83,9 +92,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test: [docker-general, all-databases, mysql-cycle, repoclient]
+        include:
+          - {platform: linux-amd64, test: docker-general}
+          - {platform: linux-amd64, test: all-databases}
+          - {platform: linux-amd64, test: mysql-cycle}
+          - {platform: linux-amd64, test: repoclient}
     uses: ./.github/workflows/gitlab-integration-test.yml
     with:
+      platform: ${{ matrix.platform }}
       test: ${{ matrix.test }}
       artifact: ${{ needs.prepare.outputs.artifact }}
       tested_sha: ${{ needs.prepare.outputs.tested_sha }}
@@ -122,4 +136,5 @@ jobs:
           REQUEST_JOB_ID: ${{ inputs.job_id }}
           TESTED_SHA: ${{ needs.prepare.outputs.tested_sha }}
           PREPARATION_RESULT: ${{ needs.prepare.result }}
+          WORKFLOW_NEEDS: ${{ toJSON(needs) }}
         run: python3 .github/scripts/gitlab-native.py finish
