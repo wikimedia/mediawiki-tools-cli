@@ -45,6 +45,7 @@ services:
       - GRAFANA_PROXY_PATH=${GRAFANA_PROXY_PATH:-grafana}
     volumes:
       - ./compose/base/mount/dashboard:/app:ro
+      - ./compose/base/mount/ui:/ui:ro
       - ./:/data:ro
     depends_on:
       - dps

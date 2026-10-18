@@ -186,6 +186,10 @@ func safeReturn(value string) string {
 }
 
 func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/_mwcli/assets/") {
+		uiAssetHandler(w, r)
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "same-origin")
 	origin, ok := requestOrigin(r)
@@ -205,6 +209,28 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+// Login styles must be available before the user has a gateway session.
+func uiAssetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	name := strings.TrimPrefix(r.URL.Path, "/_mwcli/assets/")
+	switch name {
+	case "tokens.css", "tokens-dark.css", "codex.style.css", "codex-links.css", "app.css":
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	directory := os.Getenv("MWCLI_UI_ASSETS")
+	if directory == "" {
+		directory = "/ui"
+	}
+	w.Header().Set("Cache-Control", "no-cache")
+	http.ServeFile(w, r, filepath.Join(directory, name))
 }
 
 func (g *gateway) check(w http.ResponseWriter, r *http.Request, origin string) {
@@ -343,7 +369,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 	writeCookie(w, origin, "csrf", csrf, 15*time.Minute)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	scriptHash := sha256.Sum256([]byte(loginScript))
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'sha256-"+base64.StdEncoding.EncodeToString(scriptHash[:])+"'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'sha256-"+base64.StdEncoding.EncodeToString(scriptHash[:])+"'; style-src 'self'; img-src data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
 	w.WriteHeader(status)
 	_ = loginPage.Execute(w, struct {
 		Logout              bool
@@ -361,17 +387,61 @@ if (token) {
     form.submit();
 }`
 
-var loginPage = template.Must(template.New("login").Parse(`<!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MWCLI gateway</title>
-<style>body{font:16px system-ui;background:#f5f6f8;color:#202122;margin:0;padding:12vh 20px}main{max-width:360px;margin:auto;background:white;padding:28px;border:1px solid #c8ccd1;border-radius:8px}h1{font-size:24px;margin-top:0}label{display:block;margin-top:16px}input,button{box-sizing:border-box;width:100%;padding:10px;font:inherit}input{margin-top:5px;border:1px solid #72777d;border-radius:3px}button{margin-top:22px;background:#36c;color:white;border:0;border-radius:3px;cursor:pointer}.error{color:#b32424}code{overflow-wrap:anywhere}</style>
-<main><h1>{{if .Logout}}Sign out of the gateway{{else}}MWCLI gateway{{end}}</h1>
-{{if not .Logout}}<p>Use the credentials shown by <code>mw docker traefik credentials</code>.</p>{{end}}
-{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-<form method="post" action="{{if .Logout}}/_mwcli/logout{{else}}/_mwcli/login{{end}}">
-<input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="return" value="{{.Return}}">
-{{if not .Logout}}<input type="hidden" name="login_token"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label>{{end}}
-<button type="submit">{{if .Logout}}Sign out{{else}}Sign in{{end}}</button></form></main>{{if not .Logout}}<script>` + loginScript + `</script>{{end}}</html>`))
+var loginPage = template.Must(template.New("login").Parse(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{if .Logout}}Sign out{{else}}Sign in{{end}} · MWCLI gateway</title>
+    <link rel="stylesheet" href="/_mwcli/assets/tokens.css">
+    <link rel="stylesheet" href="/_mwcli/assets/tokens-dark.css" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="/_mwcli/assets/codex.style.css">
+    <link rel="stylesheet" href="/_mwcli/assets/codex-links.css">
+    <link rel="stylesheet" href="/_mwcli/assets/app.css">
+</head>
+<body>
+    <a class="cdx-link mwcli-skip-link" href="#main">Skip to content</a>
+    <header class="mwcli-header"><span class="mwcli-brand">mwcli</span><span>Docker development</span></header>
+    <main id="main" class="mwcli-auth">
+        <section class="cdx-card" aria-labelledby="gateway-heading">
+            <div class="cdx-card__text mwcli-stack">
+                <div>
+                    <h1 id="gateway-heading">{{if .Logout}}Sign out of the gateway{{else}}Sign in to the gateway{{end}}</h1>
+                    {{if .Logout}}<p class="mwcli-description">End your gateway session on this device.</p>
+                    {{else}}<p class="mwcli-description">Use the credentials shown by <code>mw docker traefik credentials</code>.</p>{{end}}
+                </div>
+                {{if .Error}}
+                <div id="login-error" class="cdx-message cdx-message--block cdx-message--error" role="alert">
+                    <span class="cdx-message__icon" aria-hidden="true"></span>
+                    <div class="cdx-message__content">{{.Error}}</div>
+                </div>
+                {{end}}
+                <form class="mwcli-stack" method="post" action="{{if .Logout}}/_mwcli/logout{{else}}/_mwcli/login{{end}}">
+                    <input type="hidden" name="csrf" value="{{.CSRF}}">
+                    <input type="hidden" name="return" value="{{.Return}}">
+                    {{if not .Logout}}
+                    <input type="hidden" name="login_token">
+                    <div class="cdx-field">
+                        <div class="cdx-label"><label class="cdx-label__label" for="username"><span class="cdx-label__label__text">Username</span></label></div>
+                        <div class="cdx-field__control"><div class="cdx-text-input{{if .Error}} cdx-text-input--status-error{{end}}"><input class="cdx-text-input__input" id="username" name="username" autocomplete="username" required autofocus{{if .Error}} aria-invalid="true" aria-describedby="login-error"{{end}}></div></div>
+                    </div>
+                    <div class="cdx-field">
+                        <div class="cdx-label"><label class="cdx-label__label" for="password"><span class="cdx-label__label__text">Password</span></label></div>
+                        <div class="cdx-field__control"><div class="cdx-text-input{{if .Error}} cdx-text-input--status-error{{end}}"><input class="cdx-text-input__input" id="password" name="password" type="password" autocomplete="current-password" required{{if .Error}} aria-invalid="true" aria-describedby="login-error"{{end}}></div></div>
+                    </div>
+                    {{end}}
+                    <div class="mwcli-auth-actions">
+                        <button class="cdx-button cdx-button--action-progressive cdx-button--weight-primary" type="submit">{{if .Logout}}Sign out{{else}}Sign in{{end}}</button>
+                        {{if .Logout}}<a class="cdx-link" href="{{.Return}}">Cancel</a>{{end}}
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+    {{if not .Logout}}<script>` + loginScript + `</script>{{end}}
+</body>
+</html>
+`))
 
 func main() {
 	g, err := newGateway("/auth")

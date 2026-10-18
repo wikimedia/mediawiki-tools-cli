@@ -2,6 +2,14 @@
 ./compose/adminer/compose.yml
 ./compose/base/compose.yml
 ./compose/base/mount/dashboard/main.go
+./compose/base/mount/ui/LICENSE.codex
+./compose/base/mount/ui/LICENSE.codex-design-tokens
+./compose/base/mount/ui/README.md
+./compose/base/mount/ui/app.css
+./compose/base/mount/ui/codex-links.css
+./compose/base/mount/ui/codex.style.css
+./compose/base/mount/ui/tokens-dark.css
+./compose/base/mount/ui/tokens.css
 ./compose/citoid/compose.yml
 ./compose/cloudflared/compose.yml
 ./compose/elasticsearch/compose.yml

@@ -51,6 +51,7 @@ services:
       retries: 6
     volumes:
       - ./compose/traefik/mount/auth:/app:ro
+      - ./compose/base/mount/ui:/ui:ro
       - ./compose/traefik/auth:/auth:ro
     networks:
       - gateway-control
