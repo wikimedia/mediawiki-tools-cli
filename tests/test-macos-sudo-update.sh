@@ -22,7 +22,7 @@ failures=0
 for scenario in fresh-config existing-config; do
     echo "Checking sudo update with $scenario"
     case_root="$TEST_ROOT/$scenario"
-    mkdir -p "$case_root/installed cli" "$case_root/home"
+    mkdir -p "$case_root/installed cli" "$case_root/home/Library/Application Support"
     installed="$case_root/installed cli/mw"
     cp ./bin/mw "$installed"
     chmod 755 "$installed"

@@ -203,7 +203,8 @@ integration-github-request:
          {"platform":"linux-amd64","test":"mysql-cycle"},
          {"platform":"linux-amd64","test":"repoclient"},
          {"platform":"windows-amd64","test":"windows-update"},
-         {"platform":"linux-amd64","test":"docker-tunnel-holesail"}]
+         {"platform":"linux-amd64","test":"docker-tunnel-holesail"},
+         {"platform":"macos-arm64","test":"macos-sudo-update"}]
     cache: []
     rules:
       - if: '$CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
