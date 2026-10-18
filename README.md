@@ -15,6 +15,19 @@
 
 For user-facing documentation and a guide on how to use `mw`, visit the [MediaWiki.org page](https://www.mediawiki.org/wiki/Cli).
 
+### Analytics and REST APIs
+
+`mw analytics` queries the [Wikimedia Analytics API](https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/) for pageviews, edits, editors, new pages, unique devices, and media requests. Omit the article from `pageviews` or `edits` for project totals. Rankings support `--date YYYYMMDD`, `--month YYYYMM`, and `--limit`. Tables are the default in a terminal; pipes receive JSON. Use `--output json|table|jq|csv` to choose explicitly.
+
+```sh
+mw analytics pageviews 'Albert Einstein' --agent user
+mw analytics top-pages --project en.wikipedia.org --date 20250101 --limit 10
+mw analytics mediarequests top --month 202501
+mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output jq --format '.items[0].articles[:5]'
+```
+
+`mw api` accepts REST endpoints relative to `https://wikimedia.org/api/rest_v1/`, an alternative `--base-url`, or an absolute URL. Use `--method` (`-X`), repeatable `--header` (`-H`) and `--field` (`-f`) flags, or `--input FILE` (`-` for stdin). Fields become a JSON POST body by default, or query parameters with `--method GET`. `--include` prints response headers; `--raw` preserves the response body.
+
 ### Installation
 
 Follow the [installation guide](https://www.mediawiki.org/wiki/Cli/guide/Installation) on MediaWiki.org.

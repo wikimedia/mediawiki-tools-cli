@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	analyticscmd "gitlab.wikimedia.org/repos/releng/cli/commands/analytics"
+	apicmd "gitlab.wikimedia.org/repos/releng/cli/commands/api"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
@@ -145,6 +146,7 @@ func NewMwCliCmd() *cobra.Command {
 		// Older commands, not yet moved to the /commands directory
 		codesearch.NewCodeSearchCmd(),
 		analyticscmd.NewCmd(),
+		apicmd.NewCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),

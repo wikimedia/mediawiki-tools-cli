@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/restapi"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -20,7 +21,7 @@ type pageviewsResponse struct {
 }
 type pageviewItem struct {
 	Project   string `json:"project"`
-	Article   string `json:"article"`
+	Article   string `json:"article,omitempty"`
 	Timestamp string `json:"timestamp"`
 	Views     int64  `json:"views"`
 }
@@ -43,18 +44,14 @@ func NewPageviewsCmd() *cobra.Command {
 		},
 	}
 	cmd := &cobra.Command{
-		Use:     "pageviews <article>",
-		Short:   "Get pageview counts for a Wikimedia page",
-		Example: "pageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --output csv\npageviews 'Albert Einstein' --output jq --format '.[].views'",
-		Args:    cobra.ExactArgs(1),
+		Use:     "pageviews [article]",
+		Short:   "Get pageview counts for a page or project",
+		Long:    "Get pageview counts for an article, or omit the article for project totals. Dates are inclusive. All agents, including bots, are included by default; use --agent user for human traffic.",
+		Example: "pageviews --project en.wikipedia.org\npageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --output csv\npageviews 'Albert Einstein' --output jq --format '.[].views'",
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			switch out.Type {
-			case string(output.AutoType), string(output.TableType), string(output.JSONType), string(output.JQType), "csv":
-			default:
-				return fmt.Errorf("--output must be table, json, jq, or csv")
-			}
-			if out.Type == string(output.JQType) && out.Format == "" {
-				return fmt.Errorf("--output jq requires a --format expression")
+			if err := validateMetricOutput(out); err != nil {
+				return err
 			}
 			from, to, err := pageviewRange(start, end)
 			if err != nil {
@@ -62,7 +59,11 @@ func NewPageviewsCmd() *cobra.Command {
 			}
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
-			items, err := getPageviews(ctx, project, access, agent, args[0], granularity, from, to)
+			article := ""
+			if len(args) > 0 {
+				article = args[0]
+			}
+			items, err := getPageviews(ctx, project, access, agent, article, granularity, from, to)
 			if err != nil {
 				return err
 			}
@@ -77,7 +78,7 @@ func NewPageviewsCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&project, "project", "en.wikipedia.org", "Wikimedia project host, for example en.wikipedia.org or commons.wikimedia.org")
-	cmd.Flags().StringVar(&access, "access", "all-access", "Access method: all-access, desktop, or mobile-app")
+	cmd.Flags().StringVar(&access, "access", "all-access", "Access method: all-access, desktop, mobile-web, or mobile-app")
 	cmd.Flags().StringVar(&agent, "agent", "all-agents", "Traffic agent: all-agents, user, spider, or automated")
 	cmd.Flags().StringVar(&granularity, "granularity", "daily", "Data granularity: daily or monthly")
 	cmd.Flags().StringVar(&start, "start", "", "Start date in YYYYMMDD format (default: 30 days ago)")
@@ -130,7 +131,7 @@ func getPageviews(ctx context.Context, project, access, agent, article, granular
 	if project == "" || strings.Contains(project, "/") {
 		return nil, fmt.Errorf("--project must be a host such as en.wikipedia.org")
 	}
-	if access != "all-access" && access != "desktop" && access != "mobile-app" {
+	if access != "all-access" && access != "desktop" && access != "mobile-web" && access != "mobile-app" {
 		return nil, fmt.Errorf("invalid --access %q", access)
 	}
 	if agent != "all-agents" && agent != "user" && agent != "spider" && agent != "automated" {
@@ -139,32 +140,20 @@ func getPageviews(ctx context.Context, project, access, agent, article, granular
 	if granularity != "daily" && granularity != "monthly" {
 		return nil, fmt.Errorf("invalid --granularity %q", granularity)
 	}
-	path := []string{"metrics", "pageviews", "per-article", project, access, agent, article, granularity, start, end}
+	path := []string{"metrics", "pageviews", "aggregate", project, access, agent, granularity, start, end}
+	if article != "" {
+		path = []string{"metrics", "pageviews", "per-article", project, access, agent, article, granularity, start, end}
+	}
 	for i := range path {
 		path[i] = url.PathEscape(path[i])
 	}
-	u := "https://wikimedia.org/api/rest_v1/" + strings.Join(path, "/")
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "mwcli WikimediaAnalytics/1.0 (https://www.mediawiki.org/wiki/CLI)")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := restapi.Request(ctx, http.MethodGet, restapi.BaseURL, strings.Join(path, "/"), nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		message := fmt.Sprintf("pageviews API returned %s", resp.Status)
-		if retry := resp.Header.Get("Retry-After"); retry != "" {
-			message += " (Retry-After: " + retry + ")"
-		}
-		if detail := strings.TrimSpace(string(body)); detail != "" {
-			message += ": " + detail
-		}
-		return nil, fmt.Errorf("%s", message)
+	if err := restapi.CheckStatus(resp); err != nil {
+		return nil, err
 	}
 	var result pageviewsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
