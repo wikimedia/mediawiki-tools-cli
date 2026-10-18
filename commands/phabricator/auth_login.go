@@ -14,12 +14,18 @@ import (
 func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 	var username, token, endpoint string
 	var tokenStdin, insecureStorage bool
+	var provider string
 	cmd := &cobra.Command{
 		Use:     "login",
 		Short:   "Login to Phabricator using an API token",
 		Long:    "Save a validated Phabricator token with the selected credential provider. The default destination is Wikimedia Phabricator; --url explicitly selects another HTTPS endpoint. A project-local phab.cfg never chooses where a newly entered token is sent.",
 		Example: "login\nlogin --username myname --token-stdin",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if provider != "" {
+				if err := mwconfig.ValidateCredentialProvider(provider); err != nil {
+					return err
+				}
+			}
 			siteName := resolveAuthSite(*site)
 			normalized, err := secrets.Endpoint(endpoint)
 			if err != nil {
@@ -60,9 +66,9 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 			}
 			prefix := "phabricator.sites." + siteName + "."
 			credential := mwconfig.Credential{Key: prefix + "key", Service: "phabricator", Endpoint: normalized, Account: username}
-			if err := credential.SaveWithMetadata(token, insecureStorage, map[string]string{
+			if err := credential.SaveWithProvider(token, insecureStorage, map[string]string{
 				"phabricator.default_site": siteName, prefix + "url": normalized, prefix + "username": username, prefix + "logged_out": "false",
-			}); err != nil {
+			}, provider); err != nil {
 				return err
 			}
 			cmd.Printf("Authenticated as %s; credentials saved for %s\n", whoami, normalized)
@@ -75,5 +81,10 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 	cmd.Flags().BoolVar(&tokenStdin, "token-stdin", false, "Read the API token from stdin")
 	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Store the token in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("token", "token-stdin")
+	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring or keepassxc)")
+	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
+	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{"keyring", "keepassxc"}, cobra.ShellCompDirectiveNoFileComp
+	})
 	return cmd
 }

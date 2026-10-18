@@ -43,6 +43,12 @@ func NewAuthAddCmd() *cobra.Command {
 			secret, _ := cmd.Flags().GetString("secret")
 			secretStdin, _ := cmd.Flags().GetBool("secret-stdin")
 			insecureStorage, _ := cmd.Flags().GetBool("insecure-storage")
+			provider, _ := cmd.Flags().GetString("provider")
+			if provider != "" {
+				if err := config.ValidateCredentialProvider(provider); err != nil {
+					return err
+				}
+			}
 			if secretStdin {
 				var err error
 				secret, err = secrets.ReadInput(cmd.InOrStdin())
@@ -81,7 +87,7 @@ func NewAuthAddCmd() *cobra.Command {
 
 			key := "cloud_vps.projects." + project + ".credential."
 			credential := config.Credential{Key: key + "secret", Service: "cloudvps", Endpoint: authUrl, Account: project + ":" + id}
-			if err := credential.SaveWithMetadata(secret, insecureStorage, map[string]string{key + "id": id}); err != nil {
+			if err := credential.SaveWithProvider(secret, insecureStorage, map[string]string{key + "id": id}, provider); err != nil {
 				return err
 			}
 
@@ -97,6 +103,11 @@ func NewAuthAddCmd() *cobra.Command {
 	cmd.Flags().Bool("secret-stdin", false, "Read the application secret from stdin")
 	cmd.Flags().Bool("insecure-storage", false, "Store the secret in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("secret", "secret-stdin")
+	cmd.Flags().String("provider", "", "Override the credential provider (keyring or keepassxc)")
+	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
+	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{"keyring", "keepassxc"}, cobra.ShellCompDirectiveNoFileComp
+	})
 	return cmd
 }
 

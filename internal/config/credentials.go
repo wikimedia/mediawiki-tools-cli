@@ -103,7 +103,7 @@ func (c Credential) Save(value string, insecure bool) error {
 
 // SaveWithMetadata commits identity and secret metadata in one config write.
 func (c Credential) SaveWithMetadata(value string, insecure bool, metadata map[string]string) error {
-	return c.saveKeyring(value, insecure, metadata)
+	return c.SaveWithProvider(value, insecure, metadata, "")
 }
 
 func (c Credential) saveKeyring(value string, insecure bool, metadata map[string]string) error {
@@ -285,25 +285,4 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 		return err
 	}
 	return PutDiskConfig(disk)
-}
-
-// MigrateTo never overwrites a provider's value with a stale plaintext copy.
-func (c Credential) MigrateTo() error {
-	value := State().OnDiskKoanf.String(c.Key)
-	if value == "" {
-		return fmt.Errorf("no plaintext credential to migrate")
-	}
-	if State().OnDiskKoanf.Exists(credentialReferenceKey(c.Key)) {
-		saved, err := c.Read()
-		if err != nil {
-			return err
-		}
-		if saved != value {
-			return fmt.Errorf("saved provider credential does not match plaintext; neither copy was changed")
-		}
-		disk := State().OnDiskKoanf.Copy()
-		disk.Delete(c.Key)
-		return PutDiskConfig(disk)
-	}
-	return c.Save(value, false)
 }
