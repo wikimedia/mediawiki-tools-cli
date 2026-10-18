@@ -15,7 +15,7 @@ import urllib.request
 from unittest.mock import patch
 
 from github_status import (
-    API, CONTEXTS, GitLab, REPORTS, SafeRedirect, description, integration_repository, latest_jobs, verify_results,
+    API, CONTEXTS, GitLab, SafeRedirect, description, integration_repository, latest_jobs, verify_results,
 )
 
 SHA = "a" * 40
@@ -35,10 +35,6 @@ class StatusTests(unittest.TestCase):
 
     def test_accepts_four_successes_from_same_run(self):
         self.assertEqual(self.verify(records()), ("19", "123", "1", SHA))
-
-    def test_bootstrap_platform_result_is_reported_but_not_required_yet(self):
-        self.assertIn("platform-smoke", REPORTS)
-        self.assertNotIn("github/platform-smoke", CONTEXTS)
 
     def test_missing_failed_pending_canceled_or_optional_result_blocks_gate(self):
         with self.assertRaises(ValueError):

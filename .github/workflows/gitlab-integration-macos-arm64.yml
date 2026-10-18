@@ -1,0 +1,140 @@
+# Dispatched by a matching GitLab request job. Test code runs without callback credentials.
+name: GitLab integration (macOS ARM64)
+run-name: GitLab macos-arm64 / ${{ inputs.test }} ${{ inputs.run_label || inputs.job_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: GitLab project ID
+        default: '16'
+        type: string
+      job_id:
+        description: Successful GitLab platform request job ID
+        required: true
+        type: string
+      job_name:
+        description: GitLab platform request job name
+        default: integration-github-macos-arm64-platform-filesystem-request
+        type: string
+      job_status:
+        description: GitLab job status
+        default: success
+        type: string
+      test:
+        description: 'Test name: selects a script under tests/ in the tested GitLab commit'
+        default: platform-filesystem
+        type: string
+      run_label:
+        description: GitLab MR or ref (display only)
+        type: string
+
+permissions: {}
+
+env:
+  GITHUB_INTEGRATION_REPOSITORY: wikimedia/mediawiki-tools-cli
+  INTEGRATION_PLATFORM: macos-arm64
+  TEST_NAME: ${{ inputs.test }}
+  REQUEST_JOB_NAME: ${{ inputs.job_name }}
+
+concurrency:
+  group: gitlab-macos-arm64-${{ inputs.test }}-${{ inputs.project_id }}-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.repository == 'wikimedia/mediawiki-tools-cli' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.project_id == '16' && inputs.job_status == 'success' &&
+      inputs.job_name == format('integration-github-macos-arm64-{0}-request', inputs.test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      active: ${{ steps.prepare.outputs.active }}
+      artifact: ${{ steps.prepare.outputs.artifact }}
+      tested_sha: ${{ steps.prepare.outputs.tested_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Fetch exact GitLab source without executing MR code
+        id: prepare
+        env:
+          GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
+          REQUEST_JOB_ID: ${{ inputs.job_id }}
+        run: python3 .github/scripts/gitlab-platform.py prepare
+      - uses: actions/upload-artifact@v7
+        if: steps.prepare.outputs.active == 'true'
+        with:
+          name: ${{ steps.prepare.outputs.artifact }}
+          path: |
+            inputs/plan.json
+            inputs/source.bundle
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  test:
+    name: Test
+    needs: prepare
+    if: needs.prepare.outputs.active == 'true'
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.prepare.outputs.artifact }}
+          path: inputs
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Check out the exact GitLab source bundle
+        run: python tools/ci/run-platform-integration.py checkout
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: source/go.mod
+          cache-dependency-path: source/go.sum
+      - name: Build the native CLI
+        run: python tools/ci/run-platform-integration.py build
+      - name: Run the test selected by GitLab
+        run: python tools/ci/run-platform-integration.py test
+
+  report:
+    name: Report to GitLab
+    needs: [prepare, test]
+    if: >-
+      always() && !cancelled() &&
+      github.repository == 'wikimedia/mediawiki-tools-cli' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.project_id == '16' && inputs.job_status == 'success' &&
+      inputs.job_name == format('integration-github-macos-arm64-{0}-request', inputs.test) &&
+      (needs.prepare.outputs.active == 'true' || needs.prepare.result == 'failure')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # Fresh runner: callback credentials never reach native builds or tests.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish this platform test result and log link
+        env:
+          GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_JOB_ID: ${{ inputs.job_id }}
+          TESTED_SHA: ${{ needs.prepare.outputs.tested_sha }}
+          PREPARATION_RESULT: ${{ needs.prepare.result }}
+        run: python3 .github/scripts/gitlab-platform.py finish

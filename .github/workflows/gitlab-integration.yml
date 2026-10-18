@@ -48,7 +48,6 @@ jobs:
     outputs:
       active: ${{ steps.prepare.outputs.active }}
       artifact: ${{ steps.prepare.outputs.artifact }}
-      platform_artifact: ${{ steps.prepare.outputs.platform_artifact }}
       tested_sha: ${{ steps.prepare.outputs.tested_sha }}
     steps:
       - uses: actions/checkout@v7
@@ -73,16 +72,6 @@ jobs:
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
-      - uses: actions/upload-artifact@v7
-        if: steps.prepare.outputs.active == 'true'
-        with:
-          name: ${{ steps.prepare.outputs.platform_artifact }}
-          path: |
-            inputs/plan.json
-            inputs/source.bundle
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
 
   integration:
     name: Integration (${{ matrix.test }})
@@ -104,20 +93,9 @@ jobs:
     secrets:
       GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
 
-  platform-smoke:
-    name: Integration (platform-smoke)
-    needs: prepare
-    if: needs.prepare.outputs.active == 'true'
-    permissions:
-      contents: read
-      actions: read
-    uses: ./.github/workflows/gitlab-integration-platform-smoke.yml
-    with:
-      artifact: ${{ needs.prepare.outputs.platform_artifact }}
-
   report:
     name: Report to GitLab
-    needs: [prepare, integration, platform-smoke]
+    needs: [prepare, integration]
     if: >-
       always() && !cancelled() &&
       github.repository == 'wikimedia/mediawiki-tools-cli' &&
