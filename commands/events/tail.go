@@ -29,7 +29,7 @@ func NewTailCmd() *cobra.Command {
 		Use:     "tail",
 		Short:   "Follow a Wikimedia EventStreams feed",
 		Long:    "Print events from Wikimedia EventStreams as JSON Lines. By default this follows recent changes and reconnects after interruptions.",
-		Example: "mw events tail --wiki enwiki\nmw events tail --wiki enwiki --namespace 0\nmw events tail --stream revision-create --limit 20",
+		Example: "tail --wiki enwiki\ntail --wiki enwiki --namespace 0\ntail --stream revision-create --limit 20",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if limit < 0 {
