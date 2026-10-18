@@ -852,7 +852,7 @@ func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.S
 	}
 
 	if !thisMW.LocalSettingsContains("/mwdd/DevSettings.php") && !thisMW.LocalSettingsContains("/wm-dev/DevSettings.php") && !thisMW.LocalSettingsContains("/mwdd/MwddSettings.php") {
-		return fmt.Errorf("LocalSettings.php is missing /mwdd/DevSettings.php include")
+		return fmt.Errorf("LocalSettings.php is missing the development settings include")
 	}
 
 	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
@@ -965,7 +965,8 @@ func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.S
 
 func ensureLocalSettingsBase(thisMW mediawiki.MediaWiki) error {
 	if !thisMW.LocalSettingsIsPresent() {
-		base := "<?php\nrequire_once '/mwdd/DevSettings.php';\n"
+		// Keep the entry point restored by older releases during a downgrade.
+		base := "<?php\nrequire_once '/mwdd/MwddSettings.php';\n"
 		if thisMW.VectorIsPresent() {
 			base += "\nwfLoadSkin('Vector');\n"
 		}
@@ -978,7 +979,7 @@ func ensureLocalSettingsBase(thisMW mediawiki.MediaWiki) error {
 	}
 	content := string(contentBytes)
 	if !strings.Contains(content, "/mwdd/DevSettings.php") && !strings.Contains(content, "/wm-dev/DevSettings.php") && !strings.Contains(content, "/mwdd/MwddSettings.php") {
-		content += "\nrequire_once '/mwdd/DevSettings.php';\n"
+		content += "\nrequire_once '/mwdd/MwddSettings.php';\n"
 		if err := os.WriteFile(thisMW.LocalSettingsPath(), []byte(content), 0o644); err != nil { // #nosec G306,G703 -- LocalSettings.php is a public MediaWiki config path under the selected project.
 			return err
 		}

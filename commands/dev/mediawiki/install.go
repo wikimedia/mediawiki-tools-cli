@@ -82,7 +82,8 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					if err != nil {
 						return err
 					}
-					settingsStringToWrite := "<?php\nrequire_once '/mwdd/DevSettings.php';\n"
+					// Older releases restore this entry point and remove the renamed settings file.
+					settingsStringToWrite := "<?php\nrequire_once '/mwdd/MwddSettings.php';\n"
 					if mediawiki.VectorIsPresent() {
 						settingsStringToWrite += "\nwfLoadSkin('Vector');\n"
 					}

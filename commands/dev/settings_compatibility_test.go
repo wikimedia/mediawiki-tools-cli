@@ -28,8 +28,8 @@ func TestSettingsIncludeSurvivesDevelopmentRename(t *testing.T) {
 			if include != "" && string(content) != initial {
 				t.Fatal("an existing settings include was changed or duplicated")
 			}
-			if include == "" && !strings.Contains(string(content), "require_once '/mwdd/DevSettings.php'") {
-				t.Fatal("new settings require a mount missing from existing containers")
+			if include == "" && !strings.Contains(string(content), "require_once '/mwdd/MwddSettings.php'") {
+				t.Fatal("new settings must use the entry point restored by older releases")
 			}
 		})
 	}
