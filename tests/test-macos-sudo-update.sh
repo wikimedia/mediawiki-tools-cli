@@ -27,13 +27,17 @@ for scenario in fresh-config existing-config; do
     cp ./bin/mw "$installed"
     chmod 755 "$installed"
     sudo -n chown -R root:wheel "$case_root/installed cli"
-    export HOME="$case_root/home"
-    export XDG_CONFIG_HOME="$HOME/Library/Application Support"
-    config_dir="$XDG_CONFIG_HOME/mwcli"
+    case_home="$case_root/home"
+    config_home="$case_home/Library/Application Support"
+    user_mw() {
+        env HOME="$case_home" XDG_CONFIG_HOME="$config_home" \
+            MWCLI_CONTEXT_TEST=1 "$installed" "$@"
+    }
+    config_dir="$config_home/mwcli"
     config_file="$config_dir/config.json"
     before_hash=""
     if [[ "$scenario" == existing-config ]]; then
-        "$installed" --no-interaction config set gerrit.username before-update
+        user_mw --no-interaction config set gerrit.username before-update
         before_hash="$(shasum -a 256 "$config_file" | cut -d ' ' -f 1)"
     else
         [[ ! -e "$config_dir" ]]
@@ -42,7 +46,7 @@ for scenario in fresh-config existing-config; do
     # Preserve the user's config location explicitly across sudo. This matches
     # the reported /Users/.../Library/Application Support/mwcli/config.json path
     # regardless of the runner's sudo HOME-reset policy.
-    sudo -n env HOME="$HOME" XDG_CONFIG_HOME="$XDG_CONFIG_HOME" \
+    sudo -n env HOME="$case_home" XDG_CONFIG_HOME="$config_home" \
         MWCLI_CONTEXT_TEST=1 "$installed" --no-interaction update --version "$REPLACEMENT"
     [[ "$(shasum -a 256 "$installed" | cut -d ' ' -f 1)" == "$EXPECTED_HASH" ]]
     echo "PASS: sudo replaced the root-owned executable ($scenario)"
@@ -57,16 +61,16 @@ for scenario in fresh-config existing-config; do
             failures=$((failures + 1))
         fi
     fi
-    if ! "$installed" --no-interaction config show; then
+    if ! user_mw --no-interaction config show; then
         echo "FAIL: normal user cannot read config after sudo update ($scenario)"
         failures=$((failures + 1))
         continue
     fi
     if [[ "$scenario" == existing-config ]]; then
-        [[ "$("$installed" --no-interaction config get gerrit.username)" == before-update ]]
+        [[ "$(user_mw --no-interaction config get gerrit.username)" == before-update ]]
     fi
-    "$installed" --no-interaction config set gerrit.username after-update
-    [[ "$("$installed" --no-interaction config get gerrit.username)" == after-update ]]
+    user_mw --no-interaction config set gerrit.username after-update
+    [[ "$(user_mw --no-interaction config get gerrit.username)" == after-update ]]
     [[ "$(stat -f '%u' "$config_dir")" == "$(id -u)" ]]
     [[ "$(stat -f '%u' "$config_file")" == "$(id -u)" ]]
     echo "PASS: user-owned config remains readable and writable ($scenario)"
