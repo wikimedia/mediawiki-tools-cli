@@ -3,12 +3,14 @@ package mediawiki
 import (
 	_ "embed"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	composerutil "gitlab.wikimedia.org/repos/releng/cli/internal/composer"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -87,7 +89,12 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			codeStatus := docker.Exec(containerID, docker.ExecOptions{Command: composerCommand("update", "--no-interaction"), WorkingDir: "/var/www/html/w", User: User})
+			codeStatus := composerutil.RunWithRetry(func(output, _ io.Writer) int {
+				return docker.Exec(containerID, docker.ExecOptions{
+					Output: output, Command: composerCommand("update", "--no-interaction"),
+					WorkingDir: "/var/www/html/w", User: User,
+				})
+			}, cmd.OutOrStdout(), cmd.ErrOrStderr())
 			if codeStatus != 0 {
 				return fmt.Errorf("composer update failed (exit code %d)", codeStatus)
 			}

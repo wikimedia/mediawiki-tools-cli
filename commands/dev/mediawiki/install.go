@@ -3,6 +3,7 @@ package mediawiki
 import (
 	_ "embed"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
+	composerutil "gitlab.wikimedia.org/repos/releng/cli/internal/composer"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
@@ -194,11 +196,14 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							return fmt.Errorf("failed to get container ID: %w", containerIDErr)
 						}
 						if err := installComposerDependencies(func(command []string) int {
-							return docker.Exec(containerID, docker.ExecOptions{
-								Command:    command,
-								User:       User,
-								WorkingDir: "/var/www/html/w",
-							})
+							return composerutil.RunWithRetry(func(output, _ io.Writer) int {
+								return docker.Exec(containerID, docker.ExecOptions{
+									Output:     output,
+									Command:    command,
+									User:       User,
+									WorkingDir: "/var/www/html/w",
+								})
+							}, cmd.OutOrStdout(), cmd.ErrOrStderr())
 						}); err != nil {
 							return err
 						}
