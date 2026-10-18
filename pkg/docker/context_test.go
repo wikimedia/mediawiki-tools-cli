@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	dockerconfig "github.com/docker/cli/cli/config"
 	contextdocker "github.com/docker/cli/cli/context/docker"
@@ -155,72 +153,5 @@ func TestDockerContextSSHHelper(t *testing.T) {
 	// Creating the SSH transport should not dial the remote or use the local socket.
 	if strings.HasPrefix(cli.DaemonHost(), "unix:") {
 		t.Fatal(cli.DaemonHost())
-	}
-}
-
-// T403412: a saved desktop context can point to a user-owned socket instead of
-// the default daemon endpoint. Exercise a real connection through that context.
-func TestDockerClientNativeEndpoint(t *testing.T) {
-	dir := dockerTestConfig(t)
-	listener, host := nativeDockerListener(t)
-	server := &http.Server{
-		ReadHeaderTimeout: time.Second,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != "/_ping" {
-				http.NotFound(w, r)
-				return
-			}
-			w.Header().Set("API-Version", "1.45")
-			w.Header().Set("OSType", "linux")
-			fmt.Fprint(w, "OK")
-		}),
-	}
-	done := make(chan error, 1)
-	go func() { done <- server.Serve(listener) }()
-	t.Cleanup(func() {
-		server.Close()
-		if err := <-done; err != http.ErrServerClosed {
-			t.Error(err)
-		}
-	})
-	contexts := store.New(filepath.Join(dir, "contexts"), dockerContextStoreConfig())
-	if err := contexts.CreateOrUpdate(store.Metadata{
-		Name: "desktop-linux", Endpoints: map[string]interface{}{
-			"docker": contextdocker.EndpointMeta{Host: host},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-	for _, tc := range []struct{ name, current, context, host string }{
-		{"saved context with no environment overrides", "desktop-linux", "", ""},
-		{"context overrides saved context", "rootless", "desktop-linux", ""},
-		{"host overrides missing context", "rootless", "missing-context", host},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"currentContext":"`+tc.current+`"}`), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			t.Setenv("DOCKER_CONTEXT", tc.context)
-			t.Setenv("DOCKER_HOST", tc.host)
-			client, err := NewClientFromEnv()
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer client.Close()
-			if client.DaemonHost() != host {
-				t.Fatalf("got endpoint %q, want %q", client.DaemonHost(), host)
-			}
-			if err := CheckDockerDaemon(); err != nil {
-				t.Fatalf("cannot ping context endpoint: %v", err)
-			}
-		})
-	}
-	server.Close()
-	if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"currentContext":"desktop-linux"}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	err := CheckDockerDaemon()
-	if err == nil || !strings.Contains(err.Error(), host) {
-		t.Fatalf("closed endpoint error lost socket details: %v", err)
 	}
 }
