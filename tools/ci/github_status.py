@@ -16,6 +16,25 @@ GATE_JOB = "integration-github"
 SUMMARY_CONTEXT = "github/integration"
 
 
+SUPPORTED_PLATFORMS = {"linux-amd64", "linux-arm64", "macos-arm64", "windows-amd64"}
+
+
+def gate_test(name):
+    """Read the platform/test declared by a GitLab parallel matrix gate job."""
+    if not name.startswith(GATE_JOB + ":"):
+        return None
+    match = re.fullmatch(r"integration-github: \[([a-z][a-z0-9-]*), ([a-z][a-z0-9-]{0,63})\]", name)
+    if not match or match[1] not in SUPPORTED_PLATFORMS:
+        raise ValueError("invalid GitLab integration matrix job")
+    platform, test = match.groups()
+    context = test if platform == "linux-amd64" else f"{platform}/{test}"
+    return {"platform": platform, "test": test, "name": context}
+
+
+def gate_jobs(jobs):
+    return {name: job for name, job in jobs.items() if name == GATE_JOB or gate_test(name) is not None}
+
+
 def integration_repository():
     """Explicitly allow the official deployment and the isolated rollout trial."""
     repository = os.environ.get("GITHUB_INTEGRATION_REPOSITORY", REPOSITORY)
@@ -131,17 +150,21 @@ def parse_description(value):
     return match.groups()
 
 
-def verify_summary(record, *, bot_id, request_id, tested_sha, repository=REPOSITORY):
-    """Authenticate the trusted controller's overall workflow result."""
-    if record.get("name") != SUMMARY_CONTEXT or record.get("allow_failure", False):
-        raise ValueError("missing required integration summary")
+def verify_status(record, context, *, bot_id, request_id, tested_sha, repository=REPOSITORY):
+    """Authenticate a trusted controller result for an expected context."""
+    if record.get("name") != context or record.get("allow_failure", False):
+        raise ValueError("missing required integration result")
     if record.get("author", {}).get("id") != positive_id(bot_id):
-        raise ValueError("summary was not posted by the configured GitHub CI bot")
+        raise ValueError("result was not posted by the configured GitHub CI bot")
     batch = parse_description(record.get("description"))
     if batch[0] != str(positive_id(request_id)) or batch[3] != commit_sha(tested_sha):
-        raise ValueError("summary belongs to another request or source snapshot")
+        raise ValueError("result belongs to another request or source snapshot")
     prefix = f"https://github.com/{repository}/actions/runs/{batch[1]}"
     url = record.get("target_url", "")
     if url != prefix and not url.startswith(prefix + "/"):
-        raise ValueError("summary has an unexpected GitHub run URL")
+        raise ValueError("result has an unexpected GitHub run URL")
     return batch
+
+
+def verify_summary(record, **identity):
+    return verify_status(record, SUMMARY_CONTEXT, **identity)

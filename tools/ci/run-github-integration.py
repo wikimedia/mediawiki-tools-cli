@@ -16,7 +16,7 @@ from integration_tests import TESTS
 
 def main():
     name = sys.argv[1]
-    script = TESTS[name]
+    script = TESTS.get(name, f"test-{name}.sh")
     inputs = Path("inputs").resolve()
     plan = json.loads((inputs / "plan.json").read_text())
     source = Path("source").resolve()

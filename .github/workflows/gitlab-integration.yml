@@ -49,6 +49,7 @@ jobs:
       active: ${{ steps.prepare.outputs.active }}
       artifact: ${{ steps.prepare.outputs.artifact }}
       tested_sha: ${{ steps.prepare.outputs.tested_sha }}
+      test_matrix: ${{ steps.prepare.outputs.test_matrix }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -83,7 +84,7 @@ jobs:
           if-no-files-found: error
 
   integration:
-    name: Integration (${{ matrix.platform == 'linux-amd64' && matrix.test || format('{0}/{1}', matrix.platform, matrix.test) }})
+    name: Integration (${{ matrix.name }})
     needs: prepare
     if: needs.prepare.outputs.active == 'true'
     permissions:
@@ -91,12 +92,7 @@ jobs:
       actions: read
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - {platform: linux-amd64, test: docker-general}
-          - {platform: linux-amd64, test: all-databases}
-          - {platform: linux-amd64, test: mysql-cycle}
-          - {platform: linux-amd64, test: repoclient}
+      matrix: ${{ fromJSON(needs.prepare.outputs.test_matrix) }}
     uses: ./.github/workflows/gitlab-integration-test.yml
     with:
       platform: ${{ matrix.platform }}

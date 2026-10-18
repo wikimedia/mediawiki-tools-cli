@@ -19,20 +19,44 @@ Preview release builds run alongside integration. Documentation builds and tagge
 After checks, builds and MediaWiki preparation pass, `integration-github-request` starts [the GitHub workflow](.github/workflows/gitlab-integration.yml) with the pipeline's prepared inputs. No webhook is needed.
 
 Each test publishes a GitLab external status with a link to its GitHub log.
-The final report discovers results from the actual `Integration (...) / Test`
-jobs, including matrix jobs and successful jobs from earlier rerun attempts.
-It publishes `github/integration` only after every dependency of the final
-report succeeds. `integration-github` authenticates that overall result and
+The final report checks the actual `Integration (...) / Test` jobs against the
+expected GitLab test plan, including successful jobs from earlier rerun
+attempts. Missing or failed planned tests fail the result. It publishes
+`github/integration` only after every dependency of the final report succeeds. `integration-github` authenticates that overall result and
 blocks downstream jobs until it passes. The waiting service has no test list
 or expected test count.
 
-The matrix in `.github/workflows/gitlab-integration.yml` defines the tests.
-To add a native test, add a `{platform: windows-amd64, test: example}` row and
-provide `tests/test-example.sh` in the tested source. The same reusable workflow
-builds native binaries on Windows AMD64, macOS ARM64 and Linux ARM64. These
-jobs use a source-only artifact and publish `github/<platform>/<test>` statuses;
-the existing Linux AMD64 Docker jobs keep their current status names.
-No new dispatcher or waiting-runner deployment is needed for another test.
+The tested GitLab pipeline defines the test plan through the `integration-github`
+parallel matrix. The trusted GitHub controller reads those job names from the
+GitLab API and exports a dynamic matrix to the generic executor. For example:
+
+```yaml
+integration-github:
+    parallel:
+      matrix:
+        - PLATFORM: linux-amd64
+          TEST: [docker-general, all-databases, mysql-cycle, repoclient]
+        - PLATFORM: windows-amd64
+          TEST: windows-update
+```
+
+Keep the existing gate's runner, script, rules and dependencies; only add its
+parallel matrix. The variable order is `PLATFORM`, then `TEST`, so GitLab names
+jobs `integration-github: [windows-amd64, windows-update]`. Each matrix job waits
+for the authenticated workflow summary and its corresponding test result.
+`integration-github-request` still dispatches once for the whole pipeline.
+
+The executor supports `linux-amd64`, `linux-arm64`, `macos-arm64` and
+`windows-amd64`. Test names select `tests/test-<name>.sh` from the exact prepared
+GitLab revision. Historical Docker test aliases remain supported. Native jobs
+build the CLI and use a source-only artifact. Adding a new test or platform row
+in a GitLab MR runs that MR's script without changing or merging another GitHub
+workflow. Only adding a new runner type requires an executor infrastructure
+update. Invalid platforms, unsafe names and missing planned results fail closed.
+
+Pipelines created before migration, with a single `integration-github` gate,
+retain the original four Docker tests until their GitLab matrix is introduced.
+The waiting service itself has no list of test names.
 
 Roll out this controller update on GitHub `main` first. Then copy the updated
 `github_status.py` and `wait-status.py` to both waiting hosts and restart

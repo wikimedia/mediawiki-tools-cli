@@ -61,6 +61,19 @@ class ReaderTests(unittest.TestCase):
         values.append({**values[0], "id": 100, "status": "pending"})
         self.assertEqual(self.result(values=values)["state"], "pending")
 
+    def test_matrix_gate_authenticates_its_declared_test_without_a_registry(self):
+        name = "integration-github: [windows-amd64, arbitrary-new-test]"
+        job = {**JOB, "name": name}
+        jobs = {name: {"id": 20}, "integration-github-request": {"id": 19, "status": "success"}}
+        values = records()
+        result = {**values[0], "id": 2, "name": "github/windows-amd64/arbitrary-new-test"}
+        values.append(result)
+        self.assertEqual(self.result(values=values, job=job, jobs=jobs)["state"], "success")
+        for change in ({"author": {"id": 99}}, {"description": description(19, 123, 2, SHA)},
+                       {"status": "pending"}, {"allow_failure": True}):
+            with self.subTest(change=change):
+                self.assertEqual(self.result(values=[values[0], {**result, **change}], job=job, jobs=jobs)["state"], "pending")
+
     def test_authenticated_failure_is_terminal(self):
         values = records()
         values[0]["status"] = "failed"
@@ -170,6 +183,19 @@ class DispatchTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 self.launch()
             opener.assert_not_called()
+
+    def test_dispatch_accepts_pipeline_matrix_jobs_and_rejects_unknown_runners(self):
+        del self.jobs[reader.GATE_JOB]
+        self.jobs["integration-github: [windows-amd64, arbitrary-new-test]"] = {"id": 20}
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.status = 204
+        with patch.object(reader.urllib.request, "build_opener") as opener:
+            opener.return_value.open.return_value = response
+            self.assertEqual(self.launch()["state"], "success")
+            opener.return_value.open.assert_called_once()
+        self.jobs["integration-github: [self-hosted, arbitrary-new-test]"] = {"id": 21}
+        with self.assertRaises(ValueError):
+            self.launch()
 
     def test_github_redirects_do_not_forward_credentials(self):
         self.assertIsNone(reader.NoRedirect().redirect_request(None, None, 302, "", {},

@@ -14,7 +14,7 @@ import urllib.request
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/ci"))
 from github_status import (  # noqa: E402
     GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, SUMMARY_CONTEXT,
-    commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses,
+    commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses, gate_test, gate_jobs,
 )
 
 from integration_tests import TESTS  # noqa: E402
@@ -47,7 +47,7 @@ def load_request(api, job_id, *, wait=False, request_name=REQUEST_JOB, require_g
     jobs = pipeline_jobs(api, pipeline_id)
     if jobs.get(request_name, {}).get("id") != job_id:
         return None  # A newer request superseded this run.
-    if require_gate and GATE_JOB not in jobs:
+    if require_gate and not gate_jobs(jobs):
         raise ValueError("pipeline has no native integration gate")
     return {"request_id": job_id, "pipeline_id": pipeline_id, "source_sha": sha}, jobs
 
@@ -56,13 +56,26 @@ def git(*args, cwd):
     return subprocess.check_output(["git", *args], cwd=cwd, text=True).strip()
 
 
+def test_plan(jobs):
+    """Test selection belongs to the tested GitLab pipeline, not GitHub main."""
+    plan = [selected for name in sorted(jobs) if (selected := gate_test(name)) is not None]
+    if plan:
+        if len(plan) > 64:
+            raise ValueError("too many integration matrix jobs")
+        return plan
+    if GATE_JOB in jobs:
+        # Keep already-created pipelines working during the one-time migration.
+        return [{"platform": "linux-amd64", "test": test, "name": test} for test in TESTS]
+    raise ValueError("pipeline has no integration test plan")
+
+
 def prepare(api, job_id, directory):
     loaded = load_request(api, job_id, wait=True)
     if loaded is None:
         output("active", "false")
         return
     plan, jobs = loaded
-    if jobs[GATE_JOB]["status"] == "success":
+    if all(job.get("status") == "success" for job in gate_jobs(jobs).values()):
         output("active", "false")
         return
     # Serialize dispatches by request ID in workflow concurrency, then ignore
@@ -88,11 +101,15 @@ def prepare(api, job_id, directory):
         api.request(f"/projects/{PROJECT}/jobs/{jobs[job_name]['id']}/artifacts/{artifact}",
                     destination=directory / filename)
     prepare_source(api, plan, jobs, directory)
+    plan["tests"] = test_plan(jobs)
+    output("test_matrix", json.dumps({"include": plan["tests"]}, separators=(",", ":")))
     # Upload only four explicit files, never the controller's .git directory.
     (directory / "plan.json").write_text(json.dumps(plan))
     output("artifact", f"gitlab-{plan['request_id']}-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}")
     output("tested_sha", plan["tested_sha"])
     output("active", "true")
+    report(api, plan, {test["name"]: {"state": "pending"} for test in plan["tests"]},
+           os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
     post_status(api, plan, SUMMARY_CONTEXT, {"state": "pending"},
                 os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
 
@@ -220,12 +237,13 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True, jobs_succeed
         print("Request is canceled or superseded; no callback needed.")
         return
     plan, jobs = loaded
-    if jobs[GATE_JOB]["status"] == "success":
+    if all(job.get("status") == "success" for job in gate_jobs(jobs).values()):
         return
     # If preparation failed, publish failures; this SHA can never pass the gate
     # for an MR's merged checkout. No missing callback should appear successful.
     plan["tested_sha"] = commit_sha(tested_sha or plan["source_sha"])
-    results = github_results(run_id, attempt) if prepared and tested_sha else {}
+    fetched = github_results(run_id, attempt) if prepared and tested_sha else {}
+    results = {test["name"]: fetched.get(test["name"], {"state": "failed"}) for test in test_plan(jobs)}
     report(api, plan, results, run_id, attempt)
     passed = prepared and jobs_succeeded and bool(results) and all(
         result["state"] == "success" for result in results.values())
@@ -234,11 +252,10 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True, jobs_succeed
         return  # The normal waiting job observes the failures itself.
     loaded = load_request(api, job_id)
     if loaded is not None:
-        gate = loaded[1][GATE_JOB]
-        if gate["status"] == "failed":
-            # A successful GitHub rerun can recover a failed waiting job.
-            # No manual play or result variables are involved.
-            api.post(f"/projects/{PROJECT}/jobs/{gate['id']}/retry", {})
+        for gate in gate_jobs(loaded[1]).values():
+            if gate["status"] == "failed":
+                # Recover failed gates after a successful GitHub rerun.
+                api.post(f"/projects/{PROJECT}/jobs/{gate['id']}/retry", {})
 
 
 def workflow_jobs_succeeded(value):
@@ -267,9 +284,11 @@ def main():
     elif args.command == "report-test":
         loaded = load_request(api, job_id)
         if loaded is not None:
-            plan = loaded[0]
+            plan, jobs = loaded
             plan["tested_sha"] = commit_sha(os.environ["TESTED_SHA"])
             name = os.environ["TEST_NAME"]
+            if name not in {test["name"] for test in test_plan(jobs)}:
+                raise ValueError("test is not declared by this GitLab pipeline")
             results = github_results(os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
             report(api, plan, {name: results.get(name, {"state": "failed"})},
                    os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
