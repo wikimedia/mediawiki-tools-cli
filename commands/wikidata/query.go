@@ -22,7 +22,7 @@ func NewQueryCmd() *cobra.Command {
 		Use:     "query [SPARQL]",
 		Short:   "Run a SPARQL query against Wikidata Query Service",
 		Long:    "Submit a SPARQL query to the public Wikidata Query Service and write its response to stdout. The public endpoint has a short execution deadline; keep queries selective and avoid repeated polling.",
-		Example: "mw wikidata query 'SELECT ?item WHERE { ?item wdt:P31 wd:Q5 } LIMIT 10'\nmw wikidata query --file people.rq --format csv\ncat query.rq | mw wikidata query --format tsv",
+		Example: "query 'SELECT ?item WHERE { ?item wdt:P31 wd:Q5 } LIMIT 10'\nquery --file people.rq --format csv\nquery --format tsv < query.rq",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var query string
