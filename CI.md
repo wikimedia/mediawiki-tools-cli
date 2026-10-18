@@ -28,9 +28,9 @@ GitLab source. The automated pipeline uses the Ubuntu AMD64 workflow.
 
 Native dispatches require a successful project 16 job named
 `integration-github-<platform>-<test>-request`, supplied as `job_id` and
-`job_name`. The `test` input defaults to `platform-filesystem`; results appear
-as `github/<platform>/<test>`. Preparation and reporting hold the callback
-credentials on separate runners from builds and tests.
+`job_name`. The required `test` input selects a shell test from the GitLab
+source; results appear as `github/<platform>/<test>`. Preparation and reporting
+hold the callback credentials on separate runners from builds and tests.
 
 ### Credentials
 

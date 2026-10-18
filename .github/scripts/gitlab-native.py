@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -118,9 +119,11 @@ def prepare_source(api, plan, jobs, directory):
         git("bundle", "create", str((directory / "source.bundle").resolve()), "HEAD", cwd=source)
 
 
-def github_results(run_id, attempt):
+def github_results(run_id, attempt, job_names=None):
     """Latest conclusion per matrix job, including successful jobs from a prior attempt."""
     results = {}
+    if job_names is None:
+        job_names = {name: f"Integration ({name}) / Test" for name in TESTS}
     for number in range(positive_id(attempt), 0, -1):
         page = 1
         while True:
@@ -133,8 +136,8 @@ def github_results(run_id, attempt):
             with urllib.request.urlopen(request, timeout=60) as response:
                 jobs = json.load(response)["jobs"]
             for job in jobs:
-                for name in TESTS:
-                    if job["name"] == f"Integration ({name}) / Test" and name not in results:
+                for name, job_name in job_names.items():
+                    if job["name"] == job_name and name not in results:
                         results[name] = {
                             "state": "success" if job["conclusion"] == "success" else "failed",
                             "url": job["html_url"],
@@ -146,15 +149,64 @@ def github_results(run_id, attempt):
 
 
 def report(api, plan, results, run_id, attempt):
-    identity = description(plan["request_id"], run_id, attempt, plan["tested_sha"])
-    run_url = f"https://github.com/{integration_repository()}/actions/runs/{positive_id(run_id)}"
     for name, result in results.items():
         if name not in TESTS:
             raise ValueError("unexpected integration test")
-        api.post(f"/projects/{PROJECT}/statuses/{plan['source_sha']}", {
-            "pipeline_id": plan["pipeline_id"], "name": f"github/{name}",
-            "state": result["state"], "target_url": result.get("url", run_url), "description": identity,
-        })
+        post_status(api, plan, f"github/{name}", result, run_id, attempt)
+
+
+def post_status(api, plan, context, result, run_id, attempt):
+    run_url = f"https://github.com/{integration_repository()}/actions/runs/{positive_id(run_id)}"
+    api.post(f"/projects/{PROJECT}/statuses/{plan['source_sha']}", {
+        "pipeline_id": plan["pipeline_id"], "name": context,
+        "state": result["state"], "target_url": result.get("url", run_url),
+        "description": description(plan["request_id"], run_id, attempt, plan["tested_sha"]),
+    })
+
+
+def platform_identity():
+    platform, test = os.environ["INTEGRATION_PLATFORM"], os.environ["TEST_NAME"]
+    if platform not in {"linux-arm64", "macos-arm64", "windows-amd64"}:
+        raise ValueError("unsupported integration platform")
+    if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", test):
+        raise ValueError("expected a test name, without a path or arguments")
+    request = f"integration-github-{platform}-{test}-request"
+    if os.environ["REQUEST_JOB_NAME"] != request:
+        raise ValueError("request job name does not match the platform and test")
+    return request, f"github/{platform}/{test}", TESTS.get(test, f"test-{test}.sh")
+
+
+def prepare_platform(api, job_id, directory):
+    request, context, script = platform_identity()
+    loaded = load_request(api, job_id, wait=True, request_name=request, require_gate=False)
+    if loaded is None:
+        output("active", "false")
+        return
+    plan, jobs = loaded
+    checks = [job for name, job in jobs.items() if name == "checks" or name.startswith("checks: [")]
+    if (not checks or any(job.get("status") != "success" for job in checks)
+            or any(jobs.get(name, {}).get("status") != "success" for name in ("test", "build"))):
+        raise ValueError("request prerequisites have not passed")
+    directory.mkdir(parents=True, exist_ok=True)
+    prepare_source(api, plan, jobs, directory)
+    git("cat-file", "-e", f"{plan['tested_sha']}:tests/{script}", cwd=directory / "repository.git")
+    output("artifact", f"gitlab-{job_id}-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}")
+    output("tested_sha", plan["tested_sha"])
+    output("test_script", script)
+    output("active", "true")
+    post_status(api, plan, context, {"state": "pending"}, os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
+
+
+def finish_platform(api, job_id, tested_sha, run_id, attempt, prepared=True):
+    request, context, _ = platform_identity()
+    loaded = load_request(api, job_id, request_name=request, require_gate=False)
+    if loaded is None:
+        return
+    plan, _ = loaded
+    plan["tested_sha"] = commit_sha(tested_sha or plan["source_sha"])
+    results = github_results(run_id, attempt, {context: "Test"}) if prepared and tested_sha else {}
+    # Each platform reports independently, even after the default Ubuntu gate passes.
+    post_status(api, plan, context, results.get(context, {"state": "failed"}), run_id, attempt)
 
 
 def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
@@ -185,13 +237,19 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["prepare", "report-test", "finish"])
+    parser.add_argument("command", choices=["prepare", "report-test", "finish", "prepare-platform", "finish-platform"])
     args = parser.parse_args()
     if os.environ["GITHUB_REPOSITORY"] != integration_repository():
         raise ValueError("controller must run in the configured GitHub integration repository")
     api = GitLab(os.environ["GITLAB_STATUS_TOKEN"])
     job_id = positive_id(os.environ["REQUEST_JOB_ID"])
-    if args.command == "prepare":
+    if args.command == "prepare-platform":
+        prepare_platform(api, job_id, Path("inputs"))
+    elif args.command == "finish-platform":
+        finish_platform(api, job_id, os.environ.get("TESTED_SHA", ""),
+                        os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"],
+                        prepared=os.environ.get("PREPARATION_RESULT") == "success")
+    elif args.command == "prepare":
         prepare(api, job_id, Path("inputs"))
     elif args.command == "report-test":
         loaded = load_request(api, job_id)

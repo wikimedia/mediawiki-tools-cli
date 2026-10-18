@@ -15,15 +15,15 @@ on:
         type: string
       job_name:
         description: GitLab platform request job name
-        default: integration-github-linux-arm64-platform-filesystem-request
+        required: true
         type: string
       job_status:
         description: GitLab job status
         default: success
         type: string
       test:
-        description: 'Test name: selects a script under tests/ in the tested GitLab commit'
-        default: platform-filesystem
+        description: 'Test name: selects a shell script under tests/ in the tested GitLab commit'
+        required: true
         type: string
       run_label:
         description: GitLab MR or ref (display only)
@@ -56,6 +56,7 @@ jobs:
       active: ${{ steps.prepare.outputs.active }}
       artifact: ${{ steps.prepare.outputs.artifact }}
       tested_sha: ${{ steps.prepare.outputs.tested_sha }}
+      test_script: ${{ steps.prepare.outputs.test_script }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -66,13 +67,12 @@ jobs:
         env:
           GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
           REQUEST_JOB_ID: ${{ inputs.job_id }}
-        run: python3 .github/scripts/gitlab-platform.py prepare
+        run: python3 .github/scripts/gitlab-native.py prepare-platform
       - uses: actions/upload-artifact@v7
         if: steps.prepare.outputs.active == 'true'
         with:
           name: ${{ steps.prepare.outputs.artifact }}
           path: |
-            inputs/plan.json
             inputs/source.bundle
           compression-level: 0
           retention-days: 1
@@ -95,19 +95,34 @@ jobs:
         with:
           name: ${{ needs.prepare.outputs.artifact }}
           path: inputs
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
       - name: Check out the exact GitLab source bundle
-        run: python tools/ci/run-platform-integration.py checkout
+        shell: bash
+        env:
+          TESTED_SHA: ${{ needs.prepare.outputs.tested_sha }}
+        run: |
+          mkdir source
+          git -C source init -q
+          git -C source fetch -q "$GITHUB_WORKSPACE/inputs/source.bundle" HEAD
+          git -C source checkout -q --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$TESTED_SHA"
       - uses: actions/setup-go@v6
         with:
           go-version-file: source/go.mod
           cache-dependency-path: source/go.sum
       - name: Build the native CLI
-        run: python tools/ci/run-platform-integration.py build
+        shell: bash
+        working-directory: source
+        run: |
+          binary=bin/mw
+          if [[ "$RUNNER_OS" == Windows ]]; then binary=bin/mw.exe; fi
+          mkdir -p bin
+          go build -o "$binary" .
       - name: Run the test selected by GitLab
-        run: python tools/ci/run-platform-integration.py test
+        shell: bash
+        working-directory: source
+        env:
+          TEST_SCRIPT: ${{ needs.prepare.outputs.test_script }}
+        run: bash "tests/$TEST_SCRIPT"
 
   report:
     name: Report to GitLab
@@ -137,4 +152,4 @@ jobs:
           REQUEST_JOB_ID: ${{ inputs.job_id }}
           TESTED_SHA: ${{ needs.prepare.outputs.tested_sha }}
           PREPARATION_RESULT: ${{ needs.prepare.result }}
-        run: python3 .github/scripts/gitlab-platform.py finish
+        run: python3 .github/scripts/gitlab-native.py finish-platform
