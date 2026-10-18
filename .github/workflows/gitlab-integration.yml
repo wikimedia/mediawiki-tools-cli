@@ -23,6 +23,9 @@ on:
 
 permissions: {}
 
+env:
+  GITHUB_INTEGRATION_REPOSITORY: wikimedia/mediawiki-tools-cli
+
 # Duplicate webhook deliveries wait, then the controller skips finished requests.
 concurrency:
   group: gitlab-native-${{ inputs.project_id }}-${{ inputs.job_id }}

@@ -154,6 +154,38 @@ This mode is restricted to upstream project 16. Fork pipelines retain the legacy
 `dind` jobs and need their own runners; the callback credential is never shared
 with forks.
 
+### Trial before merging into main
+
+Use `addshore/testing` to test an unmerged GitLab draft MR. Its copies of the
+native workflows select that repository explicitly; the production workflows
+continue to accept only `wikimedia/mediawiki-tools-cli`.
+
+On a separate GitLab trial branch, set these YAML variables:
+
+```yaml
+GITHUB_NATIVE_INTEGRATION: "1"
+GITHUB_INTEGRATION_REPOSITORY: "addshore/testing"
+```
+
+Publish the native workflow and helper files to `addshore/testing`'s default
+branch. Set its **GITLAB_NATIVE_ENABLED** variable and **GITLAB_STATUS_TOKEN**
+secret, and configure **GITHUB_STATUS_BOT_ID** in GitLab for that token's bot.
+Use a separate temporary token for the trial. It needs the same Maintainer role
+and `api` scope as production; the old read-only queue token is insufficient.
+
+Push the GitLab trial branch and open a draft MR. Leave the production webhook
+alone. First dispatch **GitLab native integration** manually in `addshore/testing`
+with the successful `integration-github-request` job ID. That exercises artifact
+transfer, all four native tests, individual GitLab statuses and the automatic
+gate. A separate Job events webhook pointing at `addshore/testing` can then test
+automatic dispatch. The existing webhook body and permissions apply.
+
+Do not change the project-wide **GITHUB_NATIVE_INTEGRATION** variable for this
+trial: only the trial branch should select the new mode. Before merging the
+production branch, remove any temporary project-wide trial bot ID, or replace it
+with the production token's bot ID when enabling production. Disable the trial
+webhook and revoke the temporary token when the test is finished.
+
 ### Retry, retire and roll back
 
 For a failing native test, use **Re-run failed jobs** in the matching GitHub run.

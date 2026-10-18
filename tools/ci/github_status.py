@@ -1,6 +1,7 @@
 """GitLab identities and status checks shared by the native GitHub CI bridge."""
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -19,6 +20,14 @@ TESTS = {
     "repoclient": "test-docker-recipe-repoclient.sh",
 }
 CONTEXTS = [f"github/{name}" for name in TESTS]
+
+
+def integration_repository():
+    """Explicitly allow the official deployment and the isolated rollout trial."""
+    repository = os.environ.get("GITHUB_INTEGRATION_REPOSITORY", REPOSITORY)
+    if repository not in {REPOSITORY, "addshore/testing"}:
+        raise ValueError("unsupported GitHub integration repository")
+    return repository
 
 
 def positive_id(value):
@@ -128,7 +137,7 @@ def parse_description(value):
     return match.groups()
 
 
-def verify_results(records, *, bot_id, request_id, tested_sha):
+def verify_results(records, *, bot_id, request_id, tested_sha, repository=REPOSITORY):
     """Require every test to pass for the same bot/run/snapshot."""
     bot_id = positive_id(bot_id)
     expected_request = str(positive_id(request_id))
@@ -151,7 +160,7 @@ def verify_results(records, *, bot_id, request_id, tested_sha):
         if identity is not None and identity != batch:
             raise ValueError("integration results belong to different GitHub runs or attempts")
         identity = batch
-        prefix = f"https://github.com/{REPOSITORY}/actions/runs/{batch[1]}"
+        prefix = f"https://github.com/{repository}/actions/runs/{batch[1]}"
         url = record.get("target_url", "")
         if url != prefix and not url.startswith(prefix + "/"):
             raise ValueError(f"{name} has an unexpected GitHub run URL")

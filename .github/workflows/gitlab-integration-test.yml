@@ -22,6 +22,9 @@ on:
 
 permissions: {}
 
+env:
+  GITHUB_INTEGRATION_REPOSITORY: wikimedia/mediawiki-tools-cli
+
 jobs:
   test:
     name: Test

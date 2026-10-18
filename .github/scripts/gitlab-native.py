@@ -12,7 +12,7 @@ import urllib.request
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/ci"))
 from github_status import (  # noqa: E402
     GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, TESTS, CONTEXTS,
-    commit_sha, description, latest_jobs, parse_description, pipeline_jobs, positive_id, statuses,
+    commit_sha, description, integration_repository, latest_jobs, parse_description, pipeline_jobs, positive_id, statuses,
 )
 
 
@@ -111,7 +111,7 @@ def github_results(run_id, attempt):
     for number in range(positive_id(attempt), 0, -1):
         page = 1
         while True:
-            url = (f"https://api.github.com/repos/{REPOSITORY}/actions/runs/{positive_id(run_id)}"
+            url = (f"https://api.github.com/repos/{integration_repository()}/actions/runs/{positive_id(run_id)}"
                    f"/attempts/{number}/jobs?per_page=100&page={page}")
             request = urllib.request.Request(url, headers={
                 "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
@@ -134,7 +134,7 @@ def github_results(run_id, attempt):
 
 def report(api, plan, results, run_id, attempt):
     identity = description(plan["request_id"], run_id, attempt, plan["tested_sha"])
-    run_url = f"https://github.com/{REPOSITORY}/actions/runs/{positive_id(run_id)}"
+    run_url = f"https://github.com/{integration_repository()}/actions/runs/{positive_id(run_id)}"
     for name, result in results.items():
         if name not in TESTS:
             raise ValueError("unexpected integration test")
@@ -191,8 +191,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["prepare", "report-test", "finish"])
     args = parser.parse_args()
-    if os.environ["GITHUB_REPOSITORY"] != REPOSITORY:
-        raise ValueError("controller must run in the official GitHub repository")
+    if os.environ["GITHUB_REPOSITORY"] != integration_repository():
+        raise ValueError("controller must run in the configured GitHub integration repository")
     api = GitLab(os.environ["GITLAB_STATUS_TOKEN"])
     job_id = positive_id(os.environ["REQUEST_JOB_ID"])
     if args.command == "prepare":

@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 from github_status import (
-    GitLab, PROJECT, REQUEST_JOB, GATE_JOB, commit_sha, pipeline_jobs, positive_id, verify_results,
+    GitLab, PROJECT, REQUEST_JOB, GATE_JOB, commit_sha, integration_repository, pipeline_jobs, positive_id, verify_results,
 )
 
 
@@ -45,7 +45,7 @@ def main():
     batch = verify_results(
         receipt["records"],
         bot_id=bot_id,
-        request_id=request["id"], tested_sha=tested_sha,
+        request_id=request["id"], tested_sha=tested_sha, repository=integration_repository(),
     )
     print(f"All four native GitHub integration tests passed: run {batch[1]}, attempt {batch[2]}")
 

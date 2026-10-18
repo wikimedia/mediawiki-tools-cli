@@ -15,7 +15,7 @@ import urllib.request
 from unittest.mock import patch
 
 from github_status import (
-    API, CONTEXTS, GitLab, SafeRedirect, description, latest_jobs, verify_results,
+    API, CONTEXTS, GitLab, SafeRedirect, description, integration_repository, latest_jobs, verify_results,
 )
 
 SHA = "a" * 40
@@ -64,6 +64,20 @@ class StatusTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.verify(values)
 
+    def test_testing_repository_requires_explicit_selection(self):
+        values = records()
+        for record in values:
+            record["target_url"] = record["target_url"].replace("wikimedia/mediawiki-tools-cli", "addshore/testing")
+        with self.assertRaises(ValueError):
+            self.verify(values)
+        with patch.dict(os.environ, {"GITHUB_INTEGRATION_REPOSITORY": "addshore/testing"}):
+            repository = integration_repository()
+            self.assertEqual(repository, "addshore/testing")
+            verify_results(values, bot_id=7, request_id=19, tested_sha=SHA, repository=repository)
+        with patch.dict(os.environ, {"GITHUB_INTEGRATION_REPOSITORY": "other/repository"}):
+            with self.assertRaises(ValueError):
+                integration_repository()
+
     def test_latest_failure_cannot_be_hidden_by_old_success(self):
         values = records()
         failure = copy.deepcopy(values[0])
@@ -95,18 +109,21 @@ class StatusTests(unittest.TestCase):
 
 
 class GateTests(unittest.TestCase):
-    def run_gate(self, *, issuer=7, pipeline=23, state="success", older_receipt=False):
+    def run_gate(self, *, issuer=7, pipeline=23, state="success", older_receipt=False, repository="wikimedia/mediawiki-tools-cli"):
         spec = importlib.util.spec_from_file_location(
             "gate", Path(__file__).with_name("check-github-integration.py")
         )
         gate = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(gate)
         values = records()
+        for record in values:
+            record["target_url"] = record["target_url"].replace("wikimedia/mediawiki-tools-cli", repository)
         values[0]["status"] = state
         receipt = {"pipeline_id": pipeline, "source_sha": SHA, "records": values}
         env = {
             "CI_PROJECT_ID": "16", "CI_PIPELINE_ID": "23", "CI_JOB_ID": "20",
             "CI_COMMIT_SHA": SHA, "GITHUB_STATUS_BOT_ID": "7",
+            "GITHUB_INTEGRATION_REPOSITORY": repository,
             "GITHUB_INTEGRATION_RESULTS_4": json.dumps(receipt),
         }
         if older_receipt:
@@ -132,6 +149,9 @@ class GateTests(unittest.TestCase):
 
     def test_authenticated_receipt_passes_without_a_long_lived_token(self):
         self.run_gate()
+
+    def test_testing_gate_accepts_only_the_selected_testing_repository(self):
+        self.run_gate(repository="addshore/testing")
 
     def test_retry_uses_new_receipt_instead_of_old_failed_results(self):
         self.run_gate(older_receipt=True)
