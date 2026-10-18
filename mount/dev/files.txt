@@ -11,6 +11,10 @@
 ./compose/grafana/mount/grafana/dashboards/mediawiki-rest-api.json
 ./compose/grafana/mount/grafana/datasources.yml
 ./compose/graphite/compose.yml
+./compose/holesail/Dockerfile
+./compose/holesail/compose.yml
+./compose/holesail/package-lock.json
+./compose/holesail/package.json
 ./compose/jaeger/compose.yml
 ./compose/keycloak/compose.yml
 ./compose/keycloak/mount/keycloak/create_client.sh
