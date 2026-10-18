@@ -108,7 +108,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 			if len(onCreateText) > 0 {
 				fmt.Print(cli.RenderMarkdown(onCreateText))
 			}
-			return nil
+			return DefaultForUser().MergeRunningResumeServices()
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -147,7 +147,7 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 					return err
 				}
 			}
-			return nil
+			return DefaultForUser().UpdateResumeServices(services, false)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -170,7 +170,10 @@ func NewServiceStopCmdP(name *string) *cobra.Command {
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Stop(services)
-			return err
+			if err != nil {
+				return err
+			}
+			return DefaultForUser().UpdateResumeServices(services, false)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -193,7 +196,10 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
 			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
-			return err
+			if err != nil {
+				return err
+			}
+			return DefaultForUser().MergeRunningResumeServices()
 		},
 	}
 	cmd.Annotations = make(map[string]string)

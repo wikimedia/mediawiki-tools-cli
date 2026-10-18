@@ -79,6 +79,23 @@ func (p Project) Start(services []string) error {
 	return p.Command(append([]string{"start"}, services...)).RunAttached()
 }
 
+// StartContainers starts existing containers for the selected services without
+// allowing Compose to start their dependencies.
+func (p Project) StartContainers(services []string) error {
+	if len(services) == 0 {
+		return nil
+	}
+	stdout, stderr, err := p.Command(append([]string{"ps", "--all", "--quiet"}, services...)).RunAndCollect()
+	if err != nil {
+		return fmt.Errorf("list containers to start: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	ids := strings.Fields(stdout.String())
+	if len(ids) == 0 {
+		return nil
+	}
+	return (Command{Cmd: exec.Command("docker", append([]string{"container", "start"}, ids...)...)}).RunAttached() // #nosec G204
+}
+
 func (p Project) Stop(services []string) error {
 	return p.Command(append([]string{"stop"}, services...)).RunAttached()
 }
