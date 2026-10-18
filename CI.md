@@ -151,7 +151,7 @@ Verify an `integration-github` job receives results. The [registration template]
 
 Use GitHub's **Re-run failed jobs** to repeat failed tests and automatically retry the GitLab waiting job. Retrying only the waiting job rechecks existing results. Start a new pipeline if inputs have expired (one day).
 
-For a missed dispatch, run **GitLab native integration** in GitHub with project `16`, the successful request job ID and status `success`. Rerun failed reporting jobs to retry callbacks.
+For a missed dispatch, run **GitLab integration** in GitHub with project `16`, the successful request job ID and status `success`. Rerun failed reporting jobs to retry callbacks.
 
 ## Cloud VPS workers
 
