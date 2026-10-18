@@ -124,13 +124,16 @@ config_home = root / "config home"
     "timer_last_update_checked": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 }))
 (root / "bin").mkdir()
-# Native executables that exit successfully with no arguments satisfy the
-# Compose presence check even on runners without Docker Desktop.
+# Satisfy the Compose presence check even on runners without Docker Desktop.
+# The Unix stub accepts only the availability probe; it cannot run containers.
 if os.name == "nt":
     shutil.copy2(Path(os.environ["SystemRoot"]) / "System32/cmd.exe", root / "bin/docker-compose.exe")
 else:
-    stub = root / "bin/docker-compose"
-    stub.write_text("#!/bin/sh\nexit 0\n")
+    stub = root / "bin/docker"
+    stub.write_text(
+        '#!/bin/sh\nif [ "$#" = 1 ] && [ "$1" = compose ]; then exit 0; fi\n'
+        'echo "Unexpected Docker command in context fixture: $*" >&2\nexit 1\n'
+    )
     stub.chmod(0o755)
 for filename, value in {
     "host": host, "docker-config": str(docker_dir), "config-home": str(config_home),
