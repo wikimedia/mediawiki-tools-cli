@@ -15,7 +15,7 @@ func NewDevStopCmd() *cobra.Command {
 		Short:   "Stop all currently running containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			return suspendDevelopmentServices(m, m.DockerCompose())
+			return m.WithServiceLifecycle(cmd.Context(), func() error { return suspendDevelopmentServices(m, m.DockerCompose()) })
 		},
 	}
 	cmd.Annotations = make(map[string]string)

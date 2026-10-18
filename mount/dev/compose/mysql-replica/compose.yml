@@ -22,6 +22,8 @@ services:
     command: "mariadbd"
 
   mysql-replica-configure-replication:
+    labels:
+      org.wikimedia.cli.lifecycle: oneshot
     image: "${MYSQL_IMAGE:-mariadb:11.4}"
     security_opt:
       - label:disable

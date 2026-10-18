@@ -12,10 +12,10 @@ func NewDevStartCmd() *cobra.Command {
 		Use:     "start",
 		GroupID: "core",
 		Aliases: []string{"resume"},
-		Short:   "Start containers that were running before",
+		Short:   "Start existing containers intended to run",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			return resumeDevelopmentServices(m, m.DockerCompose())
+			return m.WithServiceLifecycle(cmd.Context(), func() error { return resumeDevelopmentServices(m, m.DockerCompose()) })
 		},
 	}
 	cmd.Annotations = make(map[string]string)

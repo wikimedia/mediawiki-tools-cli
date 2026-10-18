@@ -49,11 +49,45 @@ Reset the override with `mw dev mediawiki image reset`, then recreate the servic
 
 ## Stop and resume an environment
 
-`mw dev stop` (alias `suspend`) records the running services before stopping them. `mw dev start` (alias `resume`) resumes that saved set. Services stopped beforehand and completed one-shot setup containers stay stopped. Repeating stop preserves the record; repeating start with nothing left to resume is a no-op.
+The CLI records which existing Compose services you intend to keep running and
+which you explicitly stopped. This state is separate for each [context](contexts.md).
 
-Service create/start/stop/destroy commands update an existing record. `mw dev restart` targets running services; global destroy removes the record. Direct Docker or Compose commands bypass this tracking. State is separate for each [context](contexts.md).
+- Service `create`, `rebuild` and `start` record running intent after success.
+- Service `stop` records stopped intent; `destroy` removes the service record.
+- `mw dev stop` (alias `suspend`) stops running containers while preserving intent.
+- `mw dev start` (alias `resume`) starts existing exited/created containers marked
+  running. It does not recreate missing containers or start stopped services.
+- `mw dev restart` targets currently running long-lived services only.
+- `mw dev update` pulls images for existing long-lived services, then updates only
+  running containers, without starting their dependencies or stopped services.
+- Global `destroy` removes service intent. Recipe service actions use the same state.
 
-An older context with no saved stop record initially starts its exited or created services. Its first global stop establishes the selective resume set.
+Long-running dependencies started by a service create/start are recorded too.
+Completed setup jobs such as MySQL replication configuration are excluded from
+resume/restart by their `org.wikimedia.cli.lifecycle: oneshot` Compose label;
+no decision is based on a container's exit code. Explicit create/start/rebuild may run
+those jobs again as part of provisioning.
+
+The versioned `state-suspended-services.json` file stores desired running and
+stopped sets, with one-shot roles. It does not contain `.env` values, credentials,
+wiki installation details or live Docker status. OS-backed locks serialize CLI
+lifecycle operations and state writes within a context. Direct Docker/Compose
+commands bypass this tracking and do not change saved intent.
+
+### Existing environments
+
+An existing suspend snapshot is migrated with its resume set preserved. When no
+snapshot exists, the CLI adopts currently running containers as intended running
+and existing stopped containers as intended stopped. Exited containers cannot
+reliably reveal historical user intent, so they are not all started automatically.
+A warning explains this the first time a stopped legacy environment is adopted.
+Use `mw dev SERVICE start` for each service you want to run thereafter.
+
+A failed service operation leaves its previous intent intact, even if Docker
+partially changed containers; inspect Docker's reported error before retrying.
+Global stop records its pending operation before stopping containers, so retrying
+an interrupted or failed stop retains the desired resume set. Repeated start/stop
+operations do not erase intent when all containers are already stopped.
 
 For a quick environment check, inspect the Compose services and recent web logs after starting:
 
@@ -62,5 +96,3 @@ mw dev start
 mw dev compose ps
 mw dev compose logs -- --tail=20 mediawiki-web
 ```
-
-Use `mw dev restart` to restart the currently running services. `mw dev stop` preserves the service set so `mw dev start` can resume it later.

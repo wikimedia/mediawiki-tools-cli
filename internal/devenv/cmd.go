@@ -121,22 +121,25 @@ func newServiceUpCmdP(name *string, onCreateText string, opts *dockercompose.UpO
 		Long:  fmt.Sprintf("Start the %s service in the local development environment. Use --build to build its image first or --force-recreate to replace its containers.", *name),
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dereferencedName := *name
-			if err := DefaultForUser().PrepareGateway(); err != nil {
-				return err
-			}
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().StartServiceNames(dereferencedName)
+			m := DefaultForUser()
+			m.EnsureReady()
+			m.DockerCompose().File(*name).ExistsOrExit()
+			services := m.DockerCompose().File(*name).Contents().StartServiceNames(*name)
 			if len(services) == 0 {
-				return fmt.Errorf("no default services to start for %s", dereferencedName)
+				return fmt.Errorf("no default services to start for %s", *name)
 			}
-			if err := DefaultForUser().DockerCompose().Up(services, *opts); err != nil {
-				return err
-			}
-			if len(onCreateText) > 0 {
-				fmt.Print(cli.RenderMarkdown(onCreateText))
-			}
-			return DefaultForUser().MergeRunningResumeServices()
+			return m.ChangeServices(cmd.Context(), services, ServiceStarted, func() error {
+				if err := DefaultForUser().PrepareGateway(); err != nil {
+					return err
+				}
+				if err := DefaultForUser().DockerCompose().Up(services, *opts); err != nil {
+					return err
+				}
+				if len(onCreateText) > 0 {
+					fmt.Print(cli.RenderMarkdown(onCreateText))
+				}
+				return nil
+			})
 		},
 	}
 	cmd.Annotations = map[string]string{"group": "Control"}
@@ -152,28 +155,30 @@ func NewServiceDestroyCmdP(name *string, additionalServices ...string) *cobra.Co
 		Use:   "destroy",
 		Short: "Destroy the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dereferencedName := *name
-			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			m := DefaultForUser()
+			m.EnsureReady()
+			m.DockerCompose().File(*name).ExistsOrExit()
+			services := m.DockerCompose().File(*name).Contents().ServiceNames()
 			services = append(services, additionalServices...)
-			volumes := DefaultForUser().DockerCompose().File(dereferencedName).Contents().VolumeNames()
+			return m.ChangeServices(cmd.Context(), services, ServiceDestroyed, func() error {
+				volumes := DefaultForUser().DockerCompose().File(*name).Contents().VolumeNames()
 
-			err := DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
-				Stop:                   true,
-				Force:                  true,
-				RemoveAnonymousVolumes: true,
-			})
-			if err != nil {
-				return err
-			}
-			if len(volumes) > 0 {
-				err := DefaultForUser().DockerCompose().VolumesRm(volumes)
+				err := DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
+					Stop:                   true,
+					Force:                  true,
+					RemoveAnonymousVolumes: true,
+				})
 				if err != nil {
 					return err
 				}
-			}
-			return DefaultForUser().UpdateResumeServices(services, false)
+				if len(volumes) > 0 {
+					err := DefaultForUser().DockerCompose().VolumesRm(volumes)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -191,16 +196,18 @@ func NewServiceStopCmdP(name *string, additionalServices ...string) *cobra.Comma
 		Aliases: []string{"suspend"},
 		Short:   "Stop the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dereferencedName := *name
-			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			m := DefaultForUser()
+			m.EnsureReady()
+			m.DockerCompose().File(*name).ExistsOrExit()
+			services := m.DockerCompose().File(*name).Contents().ServiceNames()
 			services = append(services, additionalServices...)
-			err := DefaultForUser().DockerCompose().Stop(services)
-			if err != nil {
-				return err
-			}
-			return DefaultForUser().UpdateResumeServices(services, false)
+			return m.ChangeServices(cmd.Context(), services, ServiceStopped, func() error {
+				err := DefaultForUser().DockerCompose().Stop(services)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -218,20 +225,23 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 		Aliases: []string{"resume"},
 		Short:   "Start the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dereferencedName := *name
-			if err := DefaultForUser().PrepareGateway(); err != nil {
-				return err
-			}
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().StartServiceNames(dereferencedName)
+			m := DefaultForUser()
+			m.EnsureReady()
+			m.DockerCompose().File(*name).ExistsOrExit()
+			services := m.DockerCompose().File(*name).Contents().StartServiceNames(*name)
 			if len(services) == 0 {
-				return fmt.Errorf("no default services to start for %s", dereferencedName)
+				return fmt.Errorf("no default services to start for %s", *name)
 			}
-			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
-			if err != nil {
-				return err
-			}
-			return DefaultForUser().MergeRunningResumeServices()
+			return m.ChangeServices(cmd.Context(), services, ServiceStarted, func() error {
+				if err := DefaultForUser().PrepareGateway(); err != nil {
+					return err
+				}
+				err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 		},
 	}
 	cmd.Annotations = make(map[string]string)
