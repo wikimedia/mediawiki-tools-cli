@@ -326,7 +326,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				"--publish", publish,
 				"--link", containerID,
 				"--network", network,
-				"alpine/socat:1.7.4.4-r0",
+				"alpine/socat:1.8.1.3",
 				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+dereferencedName+":"+internalPort,
 			)) // #nosec G204
 			return nil

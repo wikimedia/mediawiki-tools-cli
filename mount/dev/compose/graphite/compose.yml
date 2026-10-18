@@ -1,7 +1,7 @@
 
 services:
   graphite:
-    image: "${GRAPHITE_IMAGE:-graphiteapp/graphite-statsd:1.1.10-4}"
+    image: "${GRAPHITE_IMAGE:-graphiteapp/graphite-statsd:1.1.10-5}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.graphite-host.rule=Host(`${GRAPHITE_VIRTUAL_HOST:-graphite.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
