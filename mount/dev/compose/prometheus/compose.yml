@@ -1,6 +1,13 @@
 services:
   statsd-exporter:
     image: prom/statsd-exporter:v0.28.0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.statsd-exporter.rule=Path(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}`) || PathPrefix(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}/`)"
+      - "traefik.http.routers.statsd-exporter.entrypoints=web"
+      - "traefik.http.routers.statsd-exporter.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-statsd-exporter@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-statsd-exporter.stripprefix.prefixes=/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}"
+      - "traefik.http.services.statsd-exporter.loadbalancer.server.port=${STATSD_EXPORTER_VIRTUAL_PORT:-9102}"
     ports:
       - "8125:8125/udp"
       - "9102:9102"
@@ -8,8 +15,8 @@ services:
       - "--statsd.listen-udp=:8125"
       - "--web.listen-address=:9102"
     environment:
-      - VIRTUAL_HOST=statsd-exporter.local.wmftest.net
-      - VIRTUAL_PORT=9102
+      - VIRTUAL_HOST=${STATSD_EXPORTER_VIRTUAL_HOST:-statsd-exporter.local.wmftest.net}
+      - VIRTUAL_PORT=${STATSD_EXPORTER_VIRTUAL_PORT:-9102}
       - DEFAULT_EXPOSE_PORT=9102
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
@@ -18,6 +25,13 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.9.1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Path(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}`) || PathPrefix(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}/`)"
+      - "traefik.http.routers.prometheus.entrypoints=web"
+      - "traefik.http.routers.prometheus.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-prometheus@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-prometheus.stripprefix.prefixes=/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=${PROMETHEUS_VIRTUAL_PORT:-9090}"
     volumes:
       - ./compose/prometheus/mount/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
@@ -25,8 +39,8 @@ services:
     depends_on:
       - statsd-exporter
     environment:
-      - VIRTUAL_HOST=prometheus.local.wmftest.net
-      - VIRTUAL_PORT=9090
+      - VIRTUAL_HOST=${PROMETHEUS_VIRTUAL_HOST:-prometheus.local.wmftest.net}
+      - VIRTUAL_PORT=${PROMETHEUS_VIRTUAL_PORT:-9090}
       - DEFAULT_EXPOSE_PORT=9090
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10

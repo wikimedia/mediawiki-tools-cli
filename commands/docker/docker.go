@@ -23,6 +23,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/mysqlreplica"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/redis"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/shellbox"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/traefik"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/wdqs"
 	wdqsUi "gitlab.wikimedia.org/repos/releng/cli/commands/docker/wdqs-ui"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -204,6 +205,7 @@ func NewCmd() *cobra.Command {
 
 	// Service commands
 	cmd.AddCommand(mediawiki.NewMediaWikiCmd())
+	cmd.AddCommand(traefik.NewCmd())
 	cmd.AddCommand(mwdd.NewServiceCmd("adminer", mwdd.ServiceTexts{Long: adminerLong, OnCreate: envSubst(adminerOnCreate)}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("novnc", mwdd.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("elasticsearch", mwdd.ServiceTexts{Long: elasticsearchLong}, []string{}))

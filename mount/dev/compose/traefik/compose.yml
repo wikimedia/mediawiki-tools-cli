@@ -1,0 +1,50 @@
+services:
+  traefik:
+    image: "${TRAEFIK_IMAGE:-traefik:v3.6.16}"
+    profiles:
+      - gateway
+    restart: unless-stopped
+    environment:
+      - DOCKER_API_VERSION=${TRAEFIK_DOCKER_API_VERSION:-1.44}
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.forwardedheaders.insecure=true
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://docker-socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=${TRAEFIK_DOCKER_NETWORK}
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+      - --api.dashboard=false
+    ports:
+      - "${TRAEFIK_BIND_ADDR:-127.0.0.1}:${TRAEFIK_PORT:-8081}:80"
+    volumes:
+      - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./compose/traefik/auth/users:/etc/traefik/auth/users:ro
+    depends_on:
+      - docker-socket-proxy
+    networks:
+      - dps
+      - gateway-control
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    profiles:
+      - gateway
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CONTAINERS=1
+      - EVENTS=1
+      - NETWORKS=1
+      - INFO=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - gateway-control
+
+networks:
+  gateway-control:
+    internal: true
