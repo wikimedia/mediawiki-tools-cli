@@ -6,6 +6,7 @@
 ./compose/base/mount/nginx/timeouts.conf
 ./compose/base/mount/nginx/vhost.d/default
 ./compose/citoid/compose.yml
+./compose/cloudflared/compose.yml
 ./compose/elasticsearch/compose.yml
 ./compose/eventlogging/compose.yml
 ./compose/grafana/compose.yml
