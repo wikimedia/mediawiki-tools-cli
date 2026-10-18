@@ -22,6 +22,10 @@
       "title": "Cli/guide/Pageviews"
     },
     {
+      "source": "guides/authentication.md",
+      "title": "Cli/guide/Authentication"
+    },
+    {
       "source": "guides/dev/setup.md",
       "title": "Cli/guide/Docker-Development-Environment/First-Setup"
     },

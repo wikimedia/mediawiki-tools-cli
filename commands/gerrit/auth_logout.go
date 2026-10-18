@@ -1,25 +1,27 @@
 package gerrit
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 func NewGerritAuthLogoutCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "logout",
-		Short: "Logout of Wikimedia Gerrit from HTTP credentials",
-		Run: func(cmd *cobra.Command, args []string) {
-			c := config.State()
-			if c.Effective.Gerrit.Username != "" {
-				config.PutKeyValueOnDisk("gerrit.username", "")
+		Short: "Remove saved Gerrit HTTP credentials",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credential, err := config.CredentialForKey("gerrit.password")
+			if err != nil {
+				return err
 			}
-			if c.Effective.Gerrit.Password != "" {
-				config.PutKeyValueOnDisk("gerrit.password", "")
+			if err := credential.Delete(); err != nil {
+				return err
 			}
-			logrus.Info("Logged out")
+			if err := config.DeleteKeyValueFromDisk("gerrit.username"); err != nil {
+				return err
+			}
+			cmd.Println("Removed saved Gerrit credentials (environment overrides are unchanged)")
+			return nil
 		},
 	}
-	return cmd
 }

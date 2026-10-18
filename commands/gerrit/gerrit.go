@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
@@ -31,29 +32,56 @@ func NewGerritCmd() *cobra.Command {
 		Short:   "Work with Wikimedia Gerrit",
 		Long:    cli.RenderMarkdown(gerritLong),
 		RunE:    nil,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
+			// Local .gitreview commands do not need HTTP credentials.
+			if cmd.Parent() != nil && cmd.Parent().Name() == "dotgitreview" {
+				return nil
+			}
+			// Credential management must work even if an old keyring is locked.
+			if cmd.Parent() != nil && cmd.Parent().Name() == "auth" && cmd.Name() != "status" {
+				return nil
+			}
 			username, _ := cmd.Flags().GetString("username")
 			password, _ := cmd.Flags().GetString("password")
-
-			if username == "" || password == "" {
-				c := config.State()
-				if username == "" {
-					username = c.Effective.Gerrit.Username
+			if cmd.Name() == "api" {
+				if user, _ := cmd.Flags().GetString("auth-user"); user != "" {
+					username = user
 				}
-				if password == "" {
-					password = c.Effective.Gerrit.Password
+				if value, _ := cmd.Flags().GetString("auth-password"); value != "" {
+					password = value
 				}
 			}
-
-			gerritUsername = username
-			gerritPassword = password
+			if username == "" {
+				username = config.State().Effective.Gerrit.Username
+			}
+			stdin, _ := cmd.Flags().GetBool("password-stdin")
+			if stdin {
+				if password != "" {
+					return fmt.Errorf("--password-stdin cannot be combined with a password argument")
+				}
+				var err error
+				password, err = secrets.ReadInput(cmd.InOrStdin())
+				if err != nil {
+					return err
+				}
+			}
+			if password == "" {
+				var err error
+				password, err = (config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: username}).Read()
+				if err != nil {
+					return err
+				}
+			}
+			gerritUsername, gerritPassword = username, password
+			return nil
 		},
 	}
 
 	// Add persistent flags for username and password
 	cmd.PersistentFlags().String("username", "", "Gerrit username (overriding config)")
-	cmd.PersistentFlags().String("password", "", "Gerrit password (overriding config)")
+	cmd.PersistentFlags().String("password", "", "Gerrit password (prefer --password-stdin)")
+	cmd.PersistentFlags().Bool("password-stdin", false, "Read a password from stdin for this command without saving it")
 
 	cmd.AddCommand(NewGerritAPICmd())
 	cmd.AddCommand(NewGerritSSHCmd())
@@ -86,8 +114,12 @@ func sshGerritCommand(args []string) *exec.Cmd {
 	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
 }
 
+func newGerritClient(ctx context.Context) (*gerrit.Client, error) {
+	return gerrit.NewClient(ctx, secrets.GerritEndpoint+"/", nil)
+}
+
 func client(ctx context.Context) *gerrit.Client {
-	client, err := gerrit.NewClient(ctx, "https://gerrit.wikimedia.org/r/", nil)
+	client, err := newGerritClient(ctx)
 	if err != nil {
 		panic(err)
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 type providerFactory func(*cobra.Command) (*gophercloud.ProviderClient, error)
@@ -24,8 +25,18 @@ func projectName(cmd *cobra.Command) (string, error) {
 
 func projectCredentials(project string, projects map[string]config.CloudVPSProject) (config.CloudVPSProjectCredential, error) {
 	entry, exists := projects[project]
-	if !exists || entry.Credential.ID == "" || entry.Credential.Secret == "" {
-		return config.CloudVPSProjectCredential{}, fmt.Errorf("no application credentials configured for project %q; configure them with cloudvps auth add --project %s --id <application-credential-id> --secret <application-credential-secret>", project, project)
+	if !exists || entry.Credential.ID == "" {
+		return config.CloudVPSProjectCredential{}, fmt.Errorf("no application credentials configured for project %q; configure them with cloudvps auth add --project %s --id <application-credential-id> --secret-stdin", project, project)
+	}
+	if entry.Credential.Secret == "" {
+		var err error
+		entry.Credential.Secret, err = (config.Credential{Key: "cloud_vps.projects." + project + ".credential.secret", Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: project + ":" + entry.Credential.ID}).Read()
+		if err != nil {
+			return entry.Credential, err
+		}
+	}
+	if entry.Credential.Secret == "" {
+		return entry.Credential, fmt.Errorf("no application secret configured for project %q; use cloudvps auth add", project)
 	}
 	return entry.Credential, nil
 }

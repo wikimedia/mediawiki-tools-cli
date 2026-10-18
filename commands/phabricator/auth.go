@@ -43,10 +43,6 @@ func resolveAuthSite(site string) string {
 	return defaultPhabricatorSite
 }
 
-func phabSiteConfigKey(site, key string) string {
-	return fmt.Sprintf("phabricator.sites.%s.%s", site, key)
-}
-
 func validatePhabricatorCredentials(cmd *cobra.Command, cfg *PhabConfig) (string, error) {
 	client := newConduitClient(cfg)
 	result, err := client.post("user.whoami", map[string]interface{}{})
@@ -72,8 +68,5 @@ func tokenMask(token string) string {
 	if token == "" {
 		return ""
 	}
-	if len(token) <= 8 {
-		return "********"
-	}
-	return token[:8] + "********"
+	return "********"
 }

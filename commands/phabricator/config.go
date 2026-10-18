@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gopkg.in/ini.v1"
 )
 
@@ -23,6 +24,20 @@ type PhabConfig struct {
 // loadConfig reads phab.cfg from standard locations and returns config for the given site.
 // If site is empty, uses the [main] default value.
 func loadConfig(site string) (*PhabConfig, error) {
+	state := mwconfig.State()
+	selected := strings.TrimSpace(site)
+	if selected == "" {
+		selected = state.EffectiveKoanf.String("phabricator.default_site")
+	}
+	if selected == "" {
+		selected = state.EffectiveKoanf.String("phabricator.site")
+	}
+	if selected != "" && state.EffectiveKoanf.Bool("phabricator.sites."+selected+".logged_out") {
+		return nil, fmt.Errorf("site %q is logged out; use phabricator auth login", selected)
+	}
+	if (selected != "" && mwconfig.HasCredential("phabricator.sites."+selected+".key")) || mwconfig.HasCredential("phabricator.key") {
+		return configFromMWCLI(selected)
+	}
 	candidates := configSearchPaths()
 
 	for _, path := range candidates {
@@ -35,14 +50,17 @@ func loadConfig(site string) (*PhabConfig, error) {
 			return nil, fmt.Errorf("failed to parse %s: %w", path, err)
 		}
 
-		config, err := configFromINI(cfg, site)
+		config, err := configFromINI(cfg, selected)
 		if err != nil {
 			return nil, err
+		}
+		if state.EffectiveKoanf.Bool("phabricator.sites." + config.SiteName + ".logged_out") {
+			return nil, fmt.Errorf("site %q is logged out; use phabricator auth login", config.SiteName)
 		}
 		return config, nil
 	}
 
-	config, err := configFromMWCLI(site)
+	config, err := configFromMWCLI(selected)
 	if err == nil {
 		return config, nil
 	}
@@ -77,6 +95,11 @@ func configFromINI(cfg *ini.File, site string) (*PhabConfig, error) {
 		return nil, fmt.Errorf("no API key for site %q in phab.cfg", siteName)
 	}
 
+	endpoint, err := secrets.Endpoint(phabCfg.URL)
+	if err != nil {
+		return nil, err
+	}
+	phabCfg.URL = endpoint
 	applyDefaultCachePath(phabCfg)
 	return phabCfg, nil
 }
@@ -122,7 +145,6 @@ func configFromMWCLI(site string) (*PhabConfig, error) {
 
 	phabCfg := &PhabConfig{
 		SiteName:       siteName,
-		Key:            get("key"),
 		URL:            strings.TrimRight(get("url"), "/"),
 		Username:       get("username"),
 		DefaultProject: get("default_project"),
@@ -133,6 +155,15 @@ func configFromMWCLI(site string) (*PhabConfig, error) {
 		phabCfg.URL = "https://phabricator.wikimedia.org"
 	}
 
+	key := "phabricator.key"
+	if siteName != "" && mwconfig.HasCredential("phabricator.sites."+siteName+".key") {
+		key = "phabricator.sites." + siteName + ".key"
+	}
+	var err error
+	phabCfg.Key, err = (mwconfig.Credential{Key: key, Service: "phabricator", Endpoint: phabCfg.URL, Account: phabCfg.Username}).Read()
+	if err != nil {
+		return nil, err
+	}
 	if phabCfg.Key == "" {
 		return nil, fmt.Errorf("no Phabricator API key in CLI config")
 	}

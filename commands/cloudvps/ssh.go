@@ -336,15 +336,15 @@ func projectInstances(ctx context.Context, client *http.Client, baseURL, project
 }
 
 func instanceNameByID(ctx context.Context, project, id string, cfg config.CloudVPSConfig) (string, error) {
-	entry, ok := cfg.Projects[project]
-	if !ok || entry.Credential.ID == "" || entry.Credential.Secret == "" {
-		return "", fmt.Errorf("--id needs OpenStack credentials for project %s; use a VM name to connect without API credentials", project)
+	credential, err := projectCredentials(project, cfg.Projects)
+	if err != nil {
+		return "", fmt.Errorf("--id needs OpenStack credentials for project %s; use a VM name to connect without API credentials: %w", project, err)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	provider, err := openstack.AuthenticatedClient(ctx, gophercloud.AuthOptions{
-		IdentityEndpoint: authUrl, ApplicationCredentialID: entry.Credential.ID,
-		ApplicationCredentialSecret: entry.Credential.Secret, DomainID: "default",
+		IdentityEndpoint: authUrl, ApplicationCredentialID: credential.ID,
+		ApplicationCredentialSecret: credential.Secret, DomainID: "default",
 	})
 	if err != nil {
 		return "", err
