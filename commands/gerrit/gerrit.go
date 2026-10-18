@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os/exec"
 	"strings"
@@ -114,8 +115,23 @@ func sshGerritCommand(args []string) *exec.Cmd {
 	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
 }
 
+// Clone the default client to preserve its settings without changing other services.
 func newGerritClient(ctx context.Context) (*gerrit.Client, error) {
-	return gerrit.NewClient(ctx, secrets.GerritEndpoint+"/", nil)
+	httpClient := *http.DefaultClient
+	transport := httpClient.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	httpClient.Transport = gerritUserAgentTransport{base: transport}
+	return gerrit.NewClient(ctx, secrets.GerritEndpoint+"/", &httpClient)
+}
+
+type gerritUserAgentTransport struct{ base http.RoundTripper }
+
+func (t gerritUserAgentTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	request = request.Clone(request.Context())
+	request.Header.Set("User-Agent", cli.HTTPUserAgent)
+	return t.base.RoundTrip(request)
 }
 
 func client(ctx context.Context) *gerrit.Client {
