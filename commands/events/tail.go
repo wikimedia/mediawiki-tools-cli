@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
 type recentChange struct {
@@ -28,7 +30,7 @@ func NewTailCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "tail",
 		Short:   "Follow a Wikimedia EventStreams feed",
-		Long:    "Print events from Wikimedia EventStreams as JSON Lines. By default this follows recent changes and reconnects after interruptions.",
+		Long:    "Follow Wikimedia EventStreams, reconnecting after interruptions. Events are indented and coloured in a terminal, or compact JSON Lines when piped. Set NO_COLOR to disable colour.",
 		Example: "tail --wiki enwiki\ntail --wiki enwiki --namespace 0\ntail --stream revision-create --limit 20",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -109,7 +111,7 @@ func tail(ctx context.Context, stream, wiki, title, user string, namespace, limi
 			if namespace >= 0 && namespace != rc.Namespace {
 				return nil
 			}
-			if _, err := fmt.Fprintln(out, string(data)); err != nil {
+			if err := output.PrintJSONEvent(out, data); err != nil {
 				return err
 			}
 			printed++
