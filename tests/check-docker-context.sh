@@ -2,6 +2,8 @@
 # T403412: exercise the installed CLI through Docker's saved context and overrides.
 set -euo pipefail
 
+echo 'Checking controlled Docker API fixture (no Docker engine)'
+
 root="$(mktemp -d)"
 fixture_pid=""
 cleanup() {

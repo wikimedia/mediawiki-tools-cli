@@ -74,6 +74,22 @@ Native dispatches require a successful project 16 job named
 source; results appear as `github/<platform>/<test>`. Preparation and reporting
 hold the callback credentials on separate runners from builds and tests.
 
+### Platform Docker and update checks
+
+The existing Linux `docker-general`, Windows `windows-update`, and macOS
+`macos-sudo-update` jobs run the shared platform checks. They require a real
+Docker engine, run a smoke container, and invoke the native `mw` binary using
+saved Docker contexts and environment overrides. Windows uses its Windows
+container engine and a Nano Server image; this does not run the Linux MediaWiki
+stack. macOS starts a Linux Docker engine with Colima and QEMU software
+emulation when an engine is not already available.
+
+Separate fixture checks exercise context selection through Unix sockets or
+Windows named pipes and deliberately remove the endpoint to verify failure
+handling. They do not substitute for the real-engine check. The shared update
+check verifies executable replacement and configuration reads and writes;
+macOS additionally checks sudo updates with fresh and existing configuration.
+
 ### Credentials
 
 Install the workflows and helpers on the official GitHub repository's `main` branch before using the bridge.
