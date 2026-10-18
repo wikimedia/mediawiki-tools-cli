@@ -8,3 +8,17 @@ You can persist some configurable settings in the config.
 mw config get gerrit.username
 mw config set gerrit.username foo
 ```
+
+New clones receive Wikimedia Gerrit's official `commit-msg` hook, including when
+cloning from a GitHub mirror before switching the remote to Gerrit. This adds
+Change-Id trailers when you commit. Existing hooks and any configured
+`core.hooksPath` are preserved. Use `--no-commit-hook` to skip the download;
+`--dry-run` never downloads or installs a hook. A hook download failure is reported
+as a warning after the clone, with a link to Gerrit's manual setup instructions.
+
+
+Use `--jobs 4` (or `-j 4`) to clone up to four independent skins/extensions at a
+time. Core is always cloned first. The default is one job, preserving serial
+interactive Git authentication; use an SSH agent or cached HTTPS credentials
+for parallel clones. Duplicate requested repositories are cloned once. Errors
+are returned to the caller and reported in request order.
