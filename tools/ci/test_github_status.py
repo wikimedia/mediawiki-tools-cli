@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import tarfile
 import tempfile
+from types import SimpleNamespace
 import unittest
 import urllib.error
 import urllib.request
@@ -91,6 +92,33 @@ class StatusTests(unittest.TestCase):
 
 
 class NativeExecutionTests(unittest.TestCase):
+    def test_windows_selects_git_bash_instead_of_the_wsl_launcher(self):
+        spec = importlib.util.spec_from_file_location(
+            "worker", Path(__file__).with_name("run-github-integration.py"))
+        worker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(worker)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "Program Files/Git"
+            bash = root / "bin/bash.exe"
+            bash.parent.mkdir(parents=True)
+            bash.touch()
+            for location in ("cmd/git.exe", "bin/git.exe", "mingw64/bin/git.exe"):
+                with self.subTest(git=location), patch.object(
+                    worker, "os", SimpleNamespace(name="nt")
+                ), patch.object(worker.shutil, "which", return_value=str(root / location)) as which:
+                    self.assertEqual(worker.test_shell(), str(bash))
+                    which.assert_called_once_with("git")
+
+    def test_windows_does_not_fall_back_to_wsl_when_git_bash_is_missing(self):
+        spec = importlib.util.spec_from_file_location(
+            "worker", Path(__file__).with_name("run-github-integration.py"))
+        worker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(worker)
+        with patch.object(worker, "os", SimpleNamespace(name="nt")), patch.object(
+            worker.shutil, "which", return_value=None
+        ), self.assertRaisesRegex(RuntimeError, "Git for Windows Bash is required"):
+            worker.test_shell()
+
     def test_prepares_snapshot_binary_and_preserves_test_exit_status(self):
         runner = Path(__file__).with_name("run-github-integration.py").resolve()
         with tempfile.TemporaryDirectory() as temporary:
