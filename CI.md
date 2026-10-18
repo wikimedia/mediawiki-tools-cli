@@ -18,13 +18,51 @@ Preview release builds run alongside integration. Documentation builds and tagge
 
 After checks, builds and MediaWiki preparation pass, `integration-github-request` starts [the GitHub workflow](.github/workflows/gitlab-integration.yml) with the pipeline's prepared inputs. No webhook is needed.
 
-Results appear in GitLab's `external` stage with links to GitHub logs. `integration-github` blocks downstream jobs until all tests pass.
+Each test publishes a GitLab external status with a link to its GitHub log.
+The final report checks the actual `Integration (...) / Test` jobs against the
+expected GitLab test plan, including successful jobs from earlier rerun
+attempts. Missing or failed planned tests fail the result. It publishes
+`github/integration` only after every dependency of the final report succeeds. `integration-github` authenticates that overall result and
+blocks downstream jobs until it passes. The waiting service has no test list
+or expected test count.
+
+The tested GitLab pipeline defines the test plan through the `integration-github`
+parallel matrix. The trusted GitHub controller reads those job names from the
+GitLab API and exports a dynamic matrix to the generic executor. For example:
+
+```yaml
+integration-github:
+    parallel:
+      matrix:
+        - PLATFORM: linux-amd64
+          TEST: [docker-general, all-databases, mysql-cycle, repoclient]
+        - PLATFORM: windows-amd64
+          TEST: windows-update
+```
+
+Keep the existing gate's runner, script, rules and dependencies; only add its
+parallel matrix. The variable order is `PLATFORM`, then `TEST`, so GitLab names
+jobs `integration-github: [windows-amd64, windows-update]`. Each matrix job waits
+for the authenticated workflow summary and its corresponding test result.
+`integration-github-request` still dispatches once for the whole pipeline.
+
+The executor supports `linux-amd64`, `linux-arm64`, `macos-arm64` and
+`windows-amd64`. Test names select `tests/test-<name>.sh` from the exact prepared
+GitLab revision. Historical Docker test aliases remain supported. Every runner
+downloads the same prepared artifact, checks out the exact source bundle, sets
+up Go, and invokes `tools/ci/run-github-integration.py` from that GitLab revision.
+That source helper owns platform preparation: Linux AMD64 restores the built
+binary and MediaWiki snapshot; other hosts build a native binary. Changes to
+preparation can therefore be made in the GitLab MR alongside the test.
+Adding a new test or platform row in a GitLab MR runs that MR's script without
+changing or merging another GitHub workflow. Only adding a new runner type requires an executor infrastructure
+update. Invalid platforms, unsafe names and missing planned results fail closed.
 
 ### Native platform workflows
 
 Separate `gitlab-integration-<platform>.yml` workflows support `linux-arm64`,
 `macos-arm64`, and `windows-amd64`. They build and run tests from the exact
-GitLab source. The automated pipeline uses the Ubuntu AMD64 workflow.
+GitLab source. The automated pipeline uses the generic matrix executor described above.
 
 Native dispatches require a successful project 16 job named
 `integration-github-<platform>-<test>-request`, supplied as `job_id` and

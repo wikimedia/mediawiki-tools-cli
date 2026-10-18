@@ -27,6 +27,7 @@ class FakeGitLab:
         self.gate_user = 7
         self.merge_bundle = None
         self.sha = SHA
+        self.matrix = []
 
     def get(self, path):
         if path == "/projects/16/jobs/19":
@@ -48,6 +49,8 @@ class FakeGitLab:
             ]
             if self.merge_bundle is not None:
                 jobs.append({"id": 15, "name": "prepare-merge", "status": "success"})
+            if self.matrix:
+                jobs = [job for job in jobs if job["name"] != native.GATE_JOB] + self.matrix
             return jobs
         raise AssertionError(path)
 
@@ -97,11 +100,11 @@ class CallbackTests(unittest.TestCase):
                        "url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i}"}
                 for i, name in enumerate(native.TESTS, 1)}
 
-    def test_posts_four_results_without_playing_or_restarting_a_running_gate(self):
+    def test_posts_test_results_and_summary_without_restarting_a_running_gate(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results()):
-            native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 4)
+            native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
+        self.assertEqual(len(api.posted), 5)
         for path, body in api.posted[:4]:
             self.assertEqual(path, "/projects/16/statuses/" + SHA)
             self.assertEqual(body["pipeline_id"], 23)
@@ -111,29 +114,29 @@ class CallbackTests(unittest.TestCase):
     def test_native_failure_leaves_the_waiting_job_to_observe_failure(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results("repoclient")):
-            native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 4)
+            native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
+        self.assertEqual(len(api.posted), 5)
         self.assertEqual(api.posted[3][1]["state"], "failed")
         self.assertTrue(all("/statuses/" in path for path, _ in api.posted))
 
     def test_missing_native_job_is_reported_as_failed(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value={}):
-            native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual([body["state"] for _, body in api.posted[:4]], ["failed"] * 4)
+            native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
+        self.assertEqual([body["state"] for _, body in api.posted], ["failed"] * (len(native.TESTS) + 1))
 
     def test_failed_preparation_cannot_reuse_old_successes(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results()) as fetch:
-            native.finish(api, 19, SHA, 123, 2, prepared=False)
+            native.finish(api, 19, SHA, 123, 2, prepared=False, jobs_succeeded=True)
         fetch.assert_not_called()
-        self.assertEqual([body["state"] for _, body in api.posted[:4]], ["failed"] * 4)
+        self.assertEqual([body["state"] for _, body in api.posted], ["failed"] * (len(native.TESTS) + 1))
 
     def test_explicit_rerun_retries_failed_gate(self):
         api = FakeGitLab()
         api.gate_status = "failed"
         with patch.object(native, "github_results", return_value=self.results()):
-            native.finish(api, 19, SHA, 123, 2)
+            native.finish(api, 19, SHA, 123, 2, jobs_succeeded=True)
         self.assertEqual(api.posted[-1], ("/projects/16/jobs/20/retry", {}))
         self.assertIn("attempt=2", api.posted[0][1]["description"])
 
@@ -142,7 +145,7 @@ class CallbackTests(unittest.TestCase):
             with self.subTest(field=field):
                 api = FakeGitLab()
                 setattr(api, field, value)
-                native.finish(api, 19, SHA, 123, 1)
+                native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
                 self.assertEqual(api.posted, [])
 
     def test_cancel_during_reporting_does_not_restart_gate(self):
@@ -153,8 +156,8 @@ class CallbackTests(unittest.TestCase):
             return original(path, data)
         api.post = cancel_after_post
         with patch.object(native, "github_results", return_value=self.results()):
-            native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 4)
+            native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
+        self.assertEqual(len(api.posted), 5)
 
     def test_failed_job_rerun_keeps_previous_successful_job_conclusions(self):
         def response(request, timeout):
@@ -197,8 +200,77 @@ class CallbackTests(unittest.TestCase):
             plan = json.loads((root / "inputs/plan.json").read_text())
             self.assertEqual(plan["source_sha"], api.sha)
             self.assertEqual(plan["tested_sha"], tested_sha)
-            self.assertEqual(len(api.posted), 4)
-            self.assertEqual([body["state"] for _, body in api.posted], ["pending"] * 4)
+            self.assertEqual(len(api.posted), len(native.TESTS) + 1)
+            self.assertEqual(api.posted[-1][1]["name"], native.SUMMARY_CONTEXT)
+            self.assertTrue(all(body["state"] == "pending" for _, body in api.posted))
+
+    def test_new_workflow_jobs_are_discovered_without_a_test_registry_entry(self):
+        jobs = {"jobs": [
+            {"name": "Integration (windows-amd64/new-update) / Test", "conclusion": "success",
+             "html_url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/99"},
+            {"name": "Report to GitLab", "conclusion": None, "html_url": "unused"},
+        ]}
+        with patch.dict(os.environ, {"GH_TOKEN": "fixture"}), patch.object(
+            native.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(jobs).encode())
+        ):
+            results = native.github_results(123, 1)
+        self.assertEqual(list(results), ["windows-amd64/new-update"])
+        api = FakeGitLab()
+        api.matrix = [{"id": 21, "name": "integration-github: [windows-amd64, new-update]", "status": "running"}]
+        with patch.object(native, "github_results", return_value=results):
+            native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
+        self.assertEqual(api.posted[-1][1]["name"], native.SUMMARY_CONTEXT)
+        self.assertEqual(api.posted[-1][1]["state"], "success")
+
+    def test_preparation_exports_the_gitlab_matrix_without_github_main_test_entries(self):
+        api = FakeGitLab()
+        api.matrix = [{"id": 21, "name": "integration-github: [windows-amd64, future-test]", "status": "created"}]
+        def source(api, plan, jobs, directory):
+            plan["tested_sha"] = SHA
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            native, "prepare_source", side_effect=source
+        ), patch.object(native, "output") as output, patch.dict(os.environ, {
+            "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1",
+        }):
+            directory = Path(temporary) / "inputs"
+            native.prepare(api, 19, directory)
+            plan = json.loads((directory / "plan.json").read_text())
+            self.assertEqual(plan["tests"], [{"platform": "windows-amd64", "test": "future-test",
+                                              "name": "windows-amd64/future-test"}])
+            values = dict(call.args for call in output.call_args_list)
+            self.assertEqual(json.loads(values["test_matrix"]), {"include": plan["tests"]})
+        self.assertEqual({body["name"] for _, body in api.posted},
+                         {"github/windows-amd64/future-test", native.SUMMARY_CONTEXT})
+
+    def test_pipeline_jobs_select_new_platforms_and_missing_tests_fail_closed(self):
+        api = FakeGitLab()
+        api.matrix = [
+            {"id": 21, "name": "integration-github: [windows-amd64, new-update]", "status": "running"},
+            {"id": 22, "name": "integration-github: [linux-arm64, holesail]", "status": "running"},
+        ]
+        jobs = {job["name"]: job for job in api.all("/projects/16/pipelines/23/jobs")}
+        plan = native.test_plan(jobs)
+        self.assertEqual({test["name"] for test in plan}, {"windows-amd64/new-update", "linux-arm64/holesail"})
+        with patch.object(native, "github_results", return_value={"windows-amd64/new-update": {"state": "success"}}):
+            native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
+        self.assertEqual(api.posted[-1][1]["state"], "failed")
+        self.assertIn(("github/linux-arm64/holesail", "failed"),
+                      [(body["name"], body["state"]) for _, body in api.posted])
+
+    def test_failed_or_skipped_workflow_dependencies_cannot_pass_summary(self):
+        for result in ("failure", "skipped", "cancelled", None):
+            needs = {"prepare": {"result": "success"}, "integration": {"result": "success"},
+                     "native": {"result": result}}
+            self.assertFalse(native.workflow_jobs_succeeded(json.dumps(needs)))
+        self.assertFalse(native.workflow_jobs_succeeded("{}"))
+        self.assertTrue(native.workflow_jobs_succeeded(json.dumps({
+            "prepare": {"result": "success"}, "integration": {"result": "success"},
+            "native": {"result": "success"}})))
+        api = FakeGitLab()
+        with patch.object(native, "github_results", return_value=self.results()):
+            native.finish(api, 19, SHA, 123, 1)
+        self.assertEqual(api.posted[-1][1]["state"], "failed")
+
 
 
 class PlatformCallbackTests(unittest.TestCase):

@@ -16,6 +16,41 @@ import (
 
 const testOrigin = "https://gateway.example"
 
+func TestGatewayCodexStylesAreAvailableBeforeLogin(t *testing.T) {
+	t.Setenv("MWCLI_UI_ASSETS", filepath.Join("..", "..", "..", "base", "mount", "ui"))
+	g, _ := testGateway(t)
+	for _, path := range []string{loginPath, logoutPath} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodGet, path, nil))
+		csp := w.Header().Get("Content-Security-Policy")
+		if w.Code != http.StatusOK || !strings.Contains(csp, "style-src 'self'") || !strings.Contains(csp, "img-src data:") || strings.Contains(csp, "unsafe-inline") {
+			t.Fatalf("login styles must load without relaxing inline script restrictions: %s", csp)
+		}
+		for _, asset := range []string{"tokens.css", "tokens-dark.css", "codex.style.css", "codex-links.css", "app.css"} {
+			if !strings.Contains(w.Body.String(), `href="/_wm/assets/`+asset+`"`) {
+				t.Fatalf("missing stylesheet %s on %s", asset, path)
+			}
+			css := httptest.NewRecorder()
+			g.ServeHTTP(css, request(http.MethodGet, "/_wm/assets/"+asset, nil))
+			if css.Code != http.StatusOK || !strings.HasPrefix(css.Header().Get("Content-Type"), "text/css") || css.Body.Len() == 0 {
+				t.Fatalf("stylesheet %s requires a session or is unavailable: %d", asset, css.Code)
+			}
+		}
+	}
+	for _, path := range []string{"/_wm/assets/", "/_wm/assets/credentials", "/_wm/assets/../../auth/session-key"} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodGet, path, nil))
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("unexpected asset access %s: %d", path, w.Code)
+		}
+	}
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, request(http.MethodPost, "/_wm/assets/app.css", nil))
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Fatal("stylesheet endpoint accepted a write method")
+	}
+}
+
 func testGateway(t *testing.T) (*gateway, string) {
 	t.Helper()
 	directory := t.TempDir()
@@ -205,6 +240,9 @@ func TestWrongPasswordAndCookieSecurityOnLocalHTTP(t *testing.T) {
 	if w.Code != http.StatusUnauthorized || !strings.Contains(w.Body.String(), "incorrect") {
 		t.Fatal("wrong password did not fail")
 	}
+	if !strings.Contains(w.Body.String(), `id="login-error"`) || !strings.Contains(w.Body.String(), `aria-describedby="login-error"`) || !strings.Contains(w.Body.String(), "cdx-message--error") {
+		t.Fatal("failed login must show an accessible Codex error linked to the inputs")
+	}
 	if g.credentialsMatch("alice\x00secret", "") {
 		t.Fatal("ambiguous credentials accepted")
 	}
@@ -324,6 +362,16 @@ func TestLoginLinkEstablishesSessionAndRequiresCSRF(t *testing.T) {
 	g.ServeHTTP(replay, request(http.MethodPost, loginPath, form, csrf))
 	if replay.Code != http.StatusUnauthorized {
 		t.Fatal("login link was reusable")
+	}
+	// Opening the same link again in this authenticated browser should continue
+	// to the requested page without treating the consumed link as a login failure.
+	for _, name := range []string{cookieName(testOrigin, "session"), legacyCookieName(testOrigin, "session")} {
+		session.Name = name
+		authenticatedReplay := httptest.NewRecorder()
+		g.ServeHTTP(authenticatedReplay, request(http.MethodPost, loginPath, form, csrf, session))
+		if authenticatedReplay.Code != http.StatusSeeOther || authenticatedReplay.Header().Get("Location") != "/proxy/dashboard/" || strings.Contains(authenticatedReplay.Body.String(), "expired or already used") {
+			t.Fatalf("authenticated replay was not ignored: %d %s", authenticatedReplay.Code, authenticatedReplay.Body.String())
+		}
 	}
 }
 
@@ -479,5 +527,17 @@ func TestOldCLIReceivesLegacyLoginLink(t *testing.T) {
 	values, err := url.ParseQuery(link.Fragment)
 	if err != nil || !g.consumeLoginLink(values.Get("login"), testOrigin) {
 		t.Fatal("legacy login link cannot be used")
+	}
+}
+
+func TestLegacyGatewayAssetsRemainAvailable(t *testing.T) {
+	t.Setenv("MWCLI_UI_ASSETS", filepath.Join("..", "..", "..", "base", "mount", "ui"))
+	g, _ := testGateway(t)
+	for _, path := range []string{"/_wm/assets/app.css", "/_mwcli/assets/app.css"} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodGet, path, nil))
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), ".wm-header") {
+			t.Fatalf("gateway stylesheet unavailable or stale at %s: %d", path, w.Code)
+		}
 	}
 }

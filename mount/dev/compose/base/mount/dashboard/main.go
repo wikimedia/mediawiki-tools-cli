@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -389,244 +390,109 @@ const dashboardHTML = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>a Wikimedia CLI · Development dashboard</title>
-    <style>
-        :root {
-            --bg-color: #1a1a2e;
-            --card-bg: #16213e;
-            --text-color: #eee;
-            --accent-color: #0f3460;
-            --success-color: #00d26a;
-            --error-color: #e94560;
-            --link-color: #4da6ff;
-        }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2em;
-        }
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        .card h2 {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--accent-color);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .service-list, .site-list {
-            list-style: none;
-        }
-        .service-item, .site-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            margin: 5px 0;
-            background-color: var(--accent-color);
-            border-radius: 5px;
-        }
-        .service-name, .site-name {
-            font-weight: 500;
-        }
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .status-running {
-            background-color: var(--success-color);
-            color: #000;
-        }
-        .status-stopped {
-            background-color: var(--error-color);
-            color: #fff;
-        }
-        a {
-            color: var(--link-color);
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .access-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 6px;
-            font-size: 0.85em;
-        }
-        .tunnel-status, .access-note {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .access-note {
-            color: #aaa;
-            font-size: 0.85em;
-        }
-        .service-item, .site-item { gap: 12px; }
-        .site-item { flex-wrap: wrap; }
-        .site-link {
-            color: var(--link-color);
-        }
-        .meta-info {
-            text-align: center;
-            color: #666;
-            font-size: 0.85em;
-            margin-top: 20px;
-        }
-        .refresh-btn {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 30px;
-            background-color: var(--accent-color);
-            color: var(--text-color);
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-        }
-        .refresh-btn:hover {
-            background-color: #1a4980;
-        }
-        .api-links {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .api-links a {
-            margin: 0 10px;
-        }
-        .empty-message {
-            color: #888;
-            font-style: italic;
-            padding: 10px;
-        }
-        @media (max-width: 600px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{.BasePath}}/assets/tokens.css">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/tokens-dark.css" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/codex.style.css">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/codex-links.css">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/app.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🐳 Development dashboard</h1>
-        <p class="subtitle">a Wikimedia CLI · MediaWiki and service status</p>
-        {{if .BasePath}}<p class="access-note"><a href="/_wm/logout">Sign out of the gateway</a></p>{{end}}
-
-        <div class="tunnel-status">
-            {{if .TunnelURL}}
-            <strong>Tunnel connected</strong> · <a href="{{.TunnelURL}}/proxy/dashboard/" target="_blank" rel="noopener noreferrer">Open tunnel dashboard</a>
-            {{else}}
-            <strong>Tunnel not connected</strong> · Tunnel links appear when a connection is ready.
-            {{end}}
+    <a class="cdx-link wm-skip-link" href="#main">Skip to content</a>
+    <header class="wm-header">
+        <span class="wm-brand">a Wikimedia CLI</span>
+        <span>Docker development</span>
+        {{if .BasePath}}<nav aria-label="Gateway"><a class="cdx-link" href="/_wm/logout">Sign out of the gateway</a></nav>{{end}}
+    </header>
+    <main id="main" class="wm-page wm-stack">
+        <div class="wm-page-heading">
+            <div>
+                <h1>Development dashboard</h1>
+                <p class="wm-description">MediaWiki and service status</p>
+            </div>
+            <form method="get" action="{{.BasePath}}/">
+                <button class="cdx-button cdx-button--action-progressive cdx-button--weight-normal" type="submit">Refresh</button>
+            </form>
         </div>
-        <p class="access-note">Local opens the service hostname. Proxy uses this gateway. Tunnel uses the public HTTPS address. Some services need additional setup for Proxy and Tunnel access.</p>
-
-        <div class="api-links">
-            <a href="{{.BasePath}}/api/status">API: Full Status</a>
-            <a href="{{.BasePath}}/api/services">API: Services</a>
-            <a href="{{.BasePath}}/api/sites">API: Sites</a>
+        <div class="cdx-message cdx-message--block {{if .TunnelURL}}cdx-message--success{{else}}cdx-message--notice{{end}}" aria-live="polite">
+            <span class="cdx-message__icon" aria-hidden="true"></span>
+            <div class="cdx-message__content">
+                {{if .TunnelURL}}
+                <strong>Tunnel connected</strong> · <a class="cdx-link" href="{{.TunnelURL}}/proxy/dashboard/" target="_blank" rel="noopener noreferrer">Open tunnel dashboard</a>
+                {{else}}
+                <strong>Tunnel not connected</strong> · Tunnel links appear when a connection is ready.
+                {{end}}
+            </div>
         </div>
-
-        <div class="grid">
-            <div class="card">
-                <h2>📦 Services</h2>
-                <ul class="service-list" id="services">
+        <p class="wm-description">Local opens the service hostname. Proxy uses this gateway. Tunnel uses the public HTTPS address. Some services need additional setup for Proxy and Tunnel access.</p>
+        <div class="wm-columns">
+            <section class="wm-section" aria-labelledby="services-heading">
+                <h2 id="services-heading">Services</h2>
+                <ul class="wm-card-list wm-card-list--services" id="services">
                     {{range .Services}}
-                    <li class="service-item">
-                        <span class="service-name">
-                            {{.Name}}
+                    <li class="cdx-card">
+                        <div class="cdx-card__text">
+                            <div class="cdx-card__text__title wm-item-heading">
+                                <span>{{.Name}}</span>
+                                <span class="cdx-info-chip {{if .Running}}cdx-info-chip--success{{else}}cdx-info-chip--notice{{end}}">
+                                    <span class="cdx-info-chip__icon" aria-hidden="true"></span>
+                                    <span class="cdx-info-chip__text">{{if .Running}}Running{{else}}Stopped{{end}}</span>
+                                </span>
+                            </div>
                             {{if and .Running .HasUI}}
-                            <span class="access-links">
-                                <a href="{{.UIURL}}" class="ui-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
-                                <a href="{{.ProxyURL}}" class="ui-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
-                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="ui-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
-                            </span>
+                            <div class="cdx-card__text__supporting-text wm-links" aria-label="Access {{.Name}}">
+                                <a href="{{.UIURL}}" class="cdx-link ui-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
+                                <a href="{{.ProxyURL}}" class="cdx-link ui-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
+                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="cdx-link ui-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
+                            </div>
                             {{end}}
-                        </span>
-                        <span class="status-badge {{if .Running}}status-running{{else}}status-stopped{{end}}">
-                            {{if .Running}}Running{{else}}Stopped{{end}}
-                        </span>
+                        </div>
                     </li>
                     {{else}}
-                    <li class="empty-message">No services configured</li>
+                    <li class="cdx-card"><span class="cdx-card__text">No services configured</span></li>
                     {{end}}
                 </ul>
-            </div>
-
-            <div class="card">
-                <h2>🌐 Installed Sites</h2>
-                <ul class="site-list" id="sites">
+            </section>
+            <section class="wm-section" aria-labelledby="sites-heading">
+                <h2 id="sites-heading">Installed Sites</h2>
+                <ul class="wm-card-list" id="sites">
                     {{range .Sites}}
-                    <li class="site-item">
-                        <span class="site-name">
-                            {{.Name}}
-                            <span class="access-links">
-                                <a href="{{.URL}}" class="site-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
-                                <a href="{{.ProxyURL}}" class="site-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
-                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="site-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
-                            </span>
-                        </span>
-                        <span style="color: #888; font-size: 0.85em;">{{.Host}}</span>
+                    <li class="cdx-card">
+                        <div class="cdx-card__text">
+                            <span class="cdx-card__text__title">{{.Name}}</span>
+                            <span class="cdx-card__text__description wm-host">{{.Host}}</span>
+                            <div class="cdx-card__text__supporting-text wm-links" aria-label="Access {{.Name}}">
+                                <a href="{{.URL}}" class="cdx-link site-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
+                                <a href="{{.ProxyURL}}" class="cdx-link site-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
+                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="cdx-link site-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
+                            </div>
+                        </div>
                     </li>
                     {{else}}
-                    <li class="empty-message">No sites installed. Run: mw docker mediawiki install</li>
+                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw docker mediawiki install</code> to add your first site.</span></div></li>
                     {{end}}
                 </ul>
-            </div>
+            </section>
         </div>
-
-        <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
-
-        <p class="meta-info">
-            Last updated: {{.Timestamp}}<br>
-            Cache age: {{.CacheAge}} (cached for 5s)
-        </p>
-    </div>
-
-    <script>
-        // Auto-refresh every 30 seconds
-        setTimeout(() => location.reload(), 30000);
-    </script>
+        <footer class="wm-meta wm-stack wm-stack--compact">
+            <nav class="wm-links" aria-label="Dashboard APIs">
+                <a class="cdx-link" href="{{.BasePath}}/api/status">API: Full Status</a>
+                <a class="cdx-link" href="{{.BasePath}}/api/services">API: Services</a>
+                <a class="cdx-link" href="{{.BasePath}}/api/sites">API: Sites</a>
+            </nav>
+            <p>Last updated: {{.Timestamp}} · Cache age: {{.CacheAge}} (cached for 5s). Refreshes automatically every 30 seconds.</p>
+        </footer>
+    </main>
+    <script>setTimeout(() => location.reload(), 30000);</script>
 </body>
 </html>
 `
 
 // Dashboard handler
 func dashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/assets/") {
+		uiAssetHandler(w, r)
+		return
+	}
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -649,6 +515,28 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	if err := tmpl.Execute(w, response); err != nil {
 		log.Printf("Template execution error: %v", err)
 	}
+}
+
+// Serve only the shared UI styles, including when the dashboard is proxied.
+func uiAssetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	name := strings.TrimPrefix(r.URL.Path, "/assets/")
+	switch name {
+	case "tokens.css", "tokens-dark.css", "codex.style.css", "codex-links.css", "app.css":
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	directory := os.Getenv("MWCLI_UI_ASSETS")
+	if directory == "" {
+		directory = "/ui"
+	}
+	w.Header().Set("Cache-Control", "no-cache")
+	http.ServeFile(w, r, filepath.Join(directory, name))
 }
 
 // Health check endpoint

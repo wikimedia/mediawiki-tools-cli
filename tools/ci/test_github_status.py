@@ -1,6 +1,5 @@
 """Regression checks for accepting external results and protecting API credentials."""
 
-import copy
 import io
 import importlib.util
 import json
@@ -15,76 +14,59 @@ import urllib.request
 from unittest.mock import patch
 
 from github_status import (
-    API, CONTEXTS, GitLab, SafeRedirect, description, integration_repository, latest_jobs, verify_results,
+    API, SUMMARY_CONTEXT, GitLab, SafeRedirect, description, integration_repository, latest_jobs, verify_summary,
 )
 
 SHA = "a" * 40
 
 
-def records():
-    return [{
-        "id": number, "name": name, "status": "success", "author": {"id": 7},
+def summary():
+    return {
+        "id": 1, "name": SUMMARY_CONTEXT, "status": "success", "author": {"id": 7},
         "description": description(19, 123, 1, SHA),
-        "target_url": f"https://github.com/wikimedia/mediawiki-tools-cli/actions/runs/123/job/{number}",
-    } for number, name in enumerate(CONTEXTS, 1)]
+        "target_url": "https://github.com/wikimedia/mediawiki-tools-cli/actions/runs/123",
+    }
 
 
 class StatusTests(unittest.TestCase):
-    def verify(self, values):
-        return verify_results(values, bot_id=7, request_id=19, tested_sha=SHA)
+    def verify(self, value):
+        return verify_summary(value, bot_id=7, request_id=19, tested_sha=SHA)
 
-    def test_accepts_four_successes_from_same_run(self):
-        self.assertEqual(self.verify(records()), ("19", "123", "1", SHA))
+    def test_authenticates_summary_identity_independently_of_test_count(self):
+        self.assertEqual(self.verify(summary()), ("19", "123", "1", SHA))
+        for status in ("failed", "pending", "canceled"):
+            self.assertEqual(self.verify({**summary(), "status": status}), ("19", "123", "1", SHA))
 
-    def test_missing_failed_pending_canceled_or_optional_result_blocks_gate(self):
-        with self.assertRaises(ValueError):
-            self.verify(records()[:-1])
-        for change in ({"status": "failed"}, {"status": "pending"}, {"status": "canceled"},
-                       {"allow_failure": True}):
-            with self.subTest(change=change):
-                values = records()
-                values[0].update(change)
-                with self.assertRaises(ValueError):
-                    self.verify(values)
-
-    def test_wrong_bot_request_snapshot_run_attempt_or_url_blocks_gate(self):
+    def test_wrong_bot_request_snapshot_or_run_url_is_rejected(self):
         changes = [
-            {"author": {"id": 99}},
+            {"name": "github/individual-test"}, {"allow_failure": True},
+            {"author": {"id": 99}}, {"description": "missing identity"},
             {"description": description(20, 123, 1, SHA)},
             {"description": description(19, 123, 1, "b" * 40)},
             {"description": description(19, 456, 1, SHA)},
-            {"description": description(19, 123, 2, SHA)},
             {"target_url": "https://github.com/other/repo/actions/runs/123"},
             {"target_url": "https://github.com/wikimedia/mediawiki-tools-cli/actions/runs/1234"},
         ]
         for change in changes:
-            with self.subTest(change=change):
-                values = records()
-                values[0].update(change)
-                with self.assertRaises(ValueError):
-                    self.verify(values)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.verify({**summary(), **change})
 
     def test_testing_repository_requires_explicit_selection(self):
-        values = records()
-        for record in values:
-            record["target_url"] = record["target_url"].replace("wikimedia/mediawiki-tools-cli", "addshore/testing")
+        value = summary()
+        value["target_url"] = value["target_url"].replace("wikimedia/mediawiki-tools-cli", "addshore/testing")
         with self.assertRaises(ValueError):
-            self.verify(values)
+            self.verify(value)
         with patch.dict(os.environ, {"GITHUB_INTEGRATION_REPOSITORY": "addshore/testing"}):
             repository = integration_repository()
             self.assertEqual(repository, "addshore/testing")
-            verify_results(values, bot_id=7, request_id=19, tested_sha=SHA, repository=repository)
+            verify_summary(value, bot_id=7, request_id=19, tested_sha=SHA, repository=repository)
         with patch.dict(os.environ, {"GITHUB_INTEGRATION_REPOSITORY": "other/repository"}):
             with self.assertRaises(ValueError):
                 integration_repository()
 
-    def test_latest_failure_cannot_be_hidden_by_old_success(self):
-        values = records()
-        failure = copy.deepcopy(values[0])
-        failure.update(id=99, status="failed")
-        with self.assertRaises(ValueError):
-            self.verify([failure, *values])
-        self.assertEqual(latest_jobs([failure, *values])[failure["name"]], failure)
+    def test_latest_failure_is_selected_over_old_success(self):
+        failure = {**summary(), "id": 99, "status": "failed"}
+        self.assertEqual(latest_jobs([failure, summary()])[SUMMARY_CONTEXT], failure)
 
     def test_retries_transient_status_api_conflicts(self):
         conflict = urllib.error.HTTPError(API, 409, "Conflict", {}, io.BytesIO())
@@ -109,7 +91,7 @@ class StatusTests(unittest.TestCase):
 
 
 class NativeExecutionTests(unittest.TestCase):
-    def test_materializes_bundle_snapshot_binary_and_preserves_test_exit_status(self):
+    def test_prepares_snapshot_binary_and_preserves_test_exit_status(self):
         runner = Path(__file__).with_name("run-github-integration.py").resolve()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -145,9 +127,12 @@ class NativeExecutionTests(unittest.TestCase):
                     (inputs / "mw").write_text(f"#!/bin/sh\nexit {code}\n")
                     with tarfile.open(inputs / "mediawiki.tar.gz", "w:gz") as archive:
                         archive.add(media, arcname=".mediawiki")
+                    source = work / "source"
+                    subprocess.run(["git", "clone", str(inputs / "source.bundle"), str(source)],
+                                   check=True, capture_output=True)
                     env = {key: value for key, value in os.environ.items() if key != "GITLAB_STATUS_TOKEN"}
                     result = subprocess.run(["python3", str(runner), "docker-general"],
-                                            cwd=work, env=env, capture_output=True, text=True, timeout=15)
+                                            cwd=source, env=env, capture_output=True, text=True, timeout=15)
                     self.assertEqual(result.returncode, code, result.stdout + result.stderr)
 
 

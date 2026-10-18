@@ -4,6 +4,12 @@ name: Integration test
 on:
   workflow_call:
     inputs:
+      platform:
+        default: linux-amd64
+        type: string
+      name:
+        required: true
+        type: string
       test:
         required: true
         type: string
@@ -28,26 +34,32 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON('{"linux-amd64":"ubuntu-24.04","windows-amd64":"windows-2025","macos-arm64":"macos-15","linux-arm64":"ubuntu-24.04-arm"}')[inputs.platform] }}
     timeout-minutes: 35
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact }}
           path: inputs
-      - name: Provide the Docker Compose command used by the tests
+      - name: Check out the exact GitLab source bundle
+        shell: bash
+        env:
+          TESTED_SHA: ${{ inputs.tested_sha }}
         run: |
-          mkdir -p "$RUNNER_TEMP/bin"
-          printf '#!/bin/sh\nexec docker compose "$@"\n' > "$RUNNER_TEMP/bin/docker-compose"
-          chmod +x "$RUNNER_TEMP/bin/docker-compose"
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      - name: Test with the GitHub host Docker daemon
+          mkdir source
+          git -C source init -q
+          git -C source fetch -q "$GITHUB_WORKSPACE/inputs/source.bundle" HEAD
+          git -C source checkout -q --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$TESTED_SHA"
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: source/go.mod
+          cache-dependency-path: source/go.sum
+      - name: Run the selected integration test
+        shell: bash
+        working-directory: source
         env:
           TEST: ${{ inputs.test }}
         run: python3 tools/ci/run-github-integration.py "$TEST"
@@ -72,5 +84,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REQUEST_JOB_ID: ${{ inputs.request_job_id }}
           TESTED_SHA: ${{ inputs.tested_sha }}
-          TEST_NAME: ${{ inputs.test }}
+          TEST_NAME: ${{ inputs.name }}
         run: python3 .github/scripts/gitlab-native.py report-test

@@ -79,6 +79,8 @@ For a manual end-to-end Holesail check on a machine with an installed default wi
 
 Traefik binds the existing `PORT` on all interfaces, so local virtual hosts and remote `/proxy/...` routes use the same listener. The root path on an unmatched host serves the default wiki behind the same authentication. Some tools require app-specific base-path settings for all links and assets to work under a prefix; prefix routing alone does not guarantee that every tool's UI is fully compatible.
 
+The dashboard and gateway sign-in/sign-out pages use Wikimedia Codex 2.7.0 CSS-only components. Component styles, design tokens (including automatic dark mode), and licenses are bundled under `mount/dev/compose/base/mount/ui/` and served locally. No frontend build or external CDN is needed at runtime. `app.css` handles application layout using Codex tokens. To refresh the pinned vendor files, run `npm ci --prefix tools/ui` (Node.js 18+), then `python3 tools/ui/update-codex.py` followed by `make generate`; upgrade instructions are in the assets directory's README. When running a Go server directly, set `MWCLI_UI_ASSETS` to that directory. After updating an existing context, recreate the dashboard and gateway-auth containers to pick up the shared read-only `/ui` mount.
+
 ### Cloud VPS sessions
 
 Open a Cloud VPS shell without manually building a hostname or bastion command:

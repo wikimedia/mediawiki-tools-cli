@@ -4,7 +4,6 @@
 The project read and GitHub dispatch tokens stay on the host. This service accepts no API paths,
 project IDs, commit SHAs or result receipts from its clients.
 """
-import copy
 import http.server
 import json
 import os
@@ -15,8 +14,8 @@ import threading
 import urllib.error
 import urllib.request
 
-from github_status import (API, CONTEXTS, GATE_JOB, PROJECT, REQUEST_JOB, GitLab,
-                           SafeRedirect, REPOSITORY, positive_id, commit_sha, pipeline_jobs, statuses, verify_results)
+from github_status import (API, SUMMARY_CONTEXT, GATE_JOB, PROJECT, REQUEST_JOB, GitLab,
+                           SafeRedirect, REPOSITORY, positive_id, commit_sha, pipeline_jobs, statuses, verify_summary, verify_status, gate_test, gate_jobs)
 
 
 def bundle_head(stream):
@@ -37,14 +36,16 @@ def bundle_head(stream):
 
 
 def check(api, job, config):
-    if (job.get("name") != GATE_JOB or job.get("status") != "running"
+    name = job.get("name", "")
+    selected = gate_test(name)
+    if ((name != GATE_JOB and selected is None) or job.get("status") != "running"
             or job.get("pipeline", {}).get("project_id") != PROJECT):
         raise PermissionError("expected an active upstream integration waiting job")
     pipeline_id = job["pipeline"]["id"]
     pipeline = api.get(f"/projects/{PROJECT}/pipelines/{pipeline_id}")
     jobs = pipeline_jobs(api, pipeline_id)
     if (pipeline["status"] in {"canceled", "canceling"}
-            or jobs.get(GATE_JOB, {}).get("id") != job["id"]):
+            or jobs.get(name, {}).get("id") != job["id"]):
         raise PermissionError("waiting job is canceled or superseded")
     request = jobs.get(REQUEST_JOB, {})
     if request.get("status") != "success":
@@ -59,29 +60,34 @@ def check(api, job, config):
         req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": api.token})
         with urllib.request.build_opener(SafeRedirect()).open(req, timeout=30) as stream:
             tested_sha = bundle_head(stream)
-    records = statuses(api, sha, pipeline_id)
-    # Validate the identity even for failed results before treating them as terminal.
-    latest = {}
-    for record in records:
-        if record["name"] in CONTEXTS and record["id"] > latest.get(record["name"], {}).get("id", 0):
-            latest[record["name"]] = record
-    if len(latest) != len(CONTEXTS):
-        return {"state": "pending", "message": "Waiting for GitHub results"}
-    normalized = copy.deepcopy(list(latest.values()))
-    terminal = {"success", "failed", "canceled"}
-    if any(record["status"] not in terminal for record in normalized):
-        return {"state": "pending", "message": "GitHub integration tests are running"}
-    for record in normalized:
-        record["status"] = "success"
+    all_records = statuses(api, sha, pipeline_id)
+    records = [record for record in all_records if record.get("name") == SUMMARY_CONTEXT]
+    if not records:
+        return {"state": "pending", "message": "Waiting for the GitHub workflow result"}
+    summary = max(records, key=lambda record: record["id"])
     try:
-        batch = verify_results(normalized, bot_id=config["bot_id"], request_id=request["id"],
+        batch = verify_summary(summary, bot_id=config["bot_id"], request_id=request["id"],
                                tested_sha=tested_sha, repository=config["repository"])
     except ValueError:
-        # Partial callbacks/reruns can temporarily belong to different attempts.
-        return {"state": "pending", "message": "Waiting for a complete authenticated result batch"}
-    failed = [name for name, record in latest.items() if record["status"] != "success"]
-    return {"state": "failed" if failed else "success",
-            "message": ("Failed: " + ", ".join(failed)) if failed else "All GitHub integration tests passed",
+        return {"state": "pending", "message": "Waiting for an authenticated workflow result"}
+    state = summary.get("status")
+    if state not in {"success", "failed", "canceled"}:
+        return {"state": "pending", "message": "GitHub integration tests are running"}
+    if state == "success" and selected is not None:
+        context = "github/" + selected["name"]
+        tests = [record for record in all_records if record.get("name") == context]
+        if not tests:
+            return {"state": "pending", "message": "Waiting for this test's authenticated result"}
+        result = max(tests, key=lambda record: record["id"])
+        try:
+            identity = verify_status(result, context, bot_id=config["bot_id"], request_id=request["id"],
+                                     tested_sha=tested_sha, repository=config["repository"])
+        except ValueError:
+            return {"state": "pending", "message": "Waiting for this test's authenticated result"}
+        if identity != batch or result.get("status") != "success":
+            return {"state": "pending", "message": "Waiting for this test's matching workflow result"}
+    return {"state": "success" if state == "success" else "failed",
+            "message": "All GitHub integration tests passed" if state == "success" else "GitHub integration failed",
             "url": f"https://github.com/{config['repository']}/actions/runs/{batch[1]}"}
 
 
@@ -101,7 +107,7 @@ def dispatch(server, job):
     jobs = pipeline_jobs(server.api, pipeline_id)
     if (pipeline["status"] in {"canceled", "canceling"}
             or jobs.get(REQUEST_JOB, {}).get("id") != request_id
-            or GATE_JOB not in jobs):
+            or not gate_jobs(jobs)):
         raise PermissionError("request is canceled or superseded")
     checks = [value for name, value in jobs.items()
               if name == "checks" or name.startswith("checks: [")]

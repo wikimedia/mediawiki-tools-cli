@@ -1,0 +1,58 @@
+/* Application layout; component styles and design values come from Codex. */
+html {
+    color-scheme: light dark;
+    background: var(--background-color-base);
+    color: var(--color-base);
+    font-family: var(--font-family-system-sans);
+    font-size: var(--font-size-medium);
+    line-height: var(--line-height-medium);
+}
+
+body { margin: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+h1, h2, p { margin: 0; }
+h1 { font-size: var(--font-size-xx-large); line-height: var(--line-height-xx-large); }
+h2 { font-size: var(--font-size-x-large); line-height: var(--line-height-x-large); }
+code { font-family: var(--font-family-monospace); overflow-wrap: anywhere; }
+
+.wm-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-100);
+    padding: var(--spacing-100) var(--spacing-150);
+    border-bottom: var(--border-subtle);
+    background: var(--background-color-neutral-subtle);
+}
+
+.wm-brand { font-weight: var(--font-weight-bold); font-size: var(--font-size-large); }
+.wm-header nav { margin-inline-start: auto; }
+.wm-page { max-width: 90rem; margin-inline: auto; padding: var(--spacing-200) var(--spacing-150); }
+.wm-page-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-100); }
+.wm-description { color: var(--color-subtle); margin-block-start: var(--spacing-50); }
+.wm-stack { display: flex; flex-direction: column; gap: var(--spacing-150); }
+.wm-stack--compact { gap: var(--spacing-100); }
+.wm-columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--spacing-200); align-items: start; }
+.wm-section { min-width: 0; }
+.wm-section h2 { margin-block-end: var(--spacing-100); }
+.wm-card-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--spacing-75); }
+.wm-card-list--services { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+.wm-card-list .cdx-card__text { min-width: 0; width: 100%; }
+.wm-item-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-50); }
+.wm-item-heading > span:first-child { overflow-wrap: anywhere; }
+.wm-links { display: flex; flex-wrap: wrap; gap: var(--spacing-100); }
+.wm-host { overflow-wrap: anywhere; }
+.wm-meta { color: var(--color-subtle); font-size: var(--font-size-small); border-top: var(--border-subtle); padding-block-start: var(--spacing-100); }
+.wm-auth { max-width: 30rem; margin: var(--spacing-400) auto; padding-inline: var(--spacing-100); }
+.wm-auth .cdx-card { padding: var(--spacing-200); }
+.wm-auth .cdx-card__text { min-width: 0; width: 100%; }
+.wm-auth .cdx-text-input { min-width: 0; }
+.wm-auth .cdx-field { margin: 0; }
+.wm-auth-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-150); }
+.wm-skip-link { position: absolute; inset-inline-start: var(--spacing-100); top: var(--spacing-50); transform: translateY(-200%); z-index: var(--z-index-overlay); }
+.wm-skip-link:focus { transform: none; background: var(--background-color-base); padding: var(--spacing-50); }
+
+@media (max-width: 50rem) {
+    .wm-columns { grid-template-columns: minmax(0, 1fr); }
+    .wm-page { padding: var(--spacing-150) var(--spacing-100); }
+}
