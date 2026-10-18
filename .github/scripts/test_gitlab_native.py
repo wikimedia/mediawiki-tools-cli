@@ -22,6 +22,7 @@ class FakeGitLab:
         self.status_records = []
         self.canceled = False
         self.request_id = 19
+        self.request_name = native.REQUEST_JOB
         self.gate_status = "running"
         self.gate_user = 7
         self.merge_bundle = None
@@ -29,7 +30,7 @@ class FakeGitLab:
 
     def get(self, path):
         if path == "/projects/16/jobs/19":
-            return {"id": 19, "name": native.REQUEST_JOB, "status": "success",
+            return {"id": 19, "name": self.request_name, "status": "success",
                     "pipeline": {"id": 23}, "commit": {"id": self.sha}}
         if path == "/projects/16/pipelines/23":
             return {"id": 23, "sha": self.sha, "status": "canceled" if self.canceled else "manual"}
@@ -40,7 +41,7 @@ class FakeGitLab:
             return self.status_records
         if path == "/projects/16/pipelines/23/jobs":
             jobs = [
-                {"id": self.request_id, "name": native.REQUEST_JOB, "status": "success"},
+                {"id": self.request_id, "name": self.request_name, "status": "success"},
                 {"id": 20, "name": native.GATE_JOB, "status": self.gate_status, "user": {"id": self.gate_user}},
                 {"id": 17, "name": "build", "status": "success"},
                 {"id": 18, "name": "prepare-mediawiki", "status": "success"},
@@ -198,6 +199,89 @@ class CallbackTests(unittest.TestCase):
             self.assertEqual(plan["tested_sha"], tested_sha)
             self.assertEqual(len(api.posted), 4)
             self.assertEqual([body["state"] for _, body in api.posted], ["pending"] * 4)
+
+
+class PlatformCallbackTests(unittest.TestCase):
+    def setUp(self):
+        environment = patch.dict(os.environ, {
+            "INTEGRATION_PLATFORM": "linux-arm64", "TEST_NAME": "general",
+            "REQUEST_JOB_NAME": "integration-github-linux-arm64-general-request",
+        })
+        environment.start()
+        self.addCleanup(environment.stop)
+        self.api = FakeGitLab()
+        self.api.request_name = os.environ["REQUEST_JOB_NAME"]
+
+    def test_platform_failure_reports_after_the_default_gate_has_passed(self):
+        self.api.gate_status = "success"
+        context = "github/linux-arm64/general"
+        with patch.object(native, "github_results", return_value={context: {"state": "failed"}}):
+            native.finish_platform(self.api, 19, SHA, 123, 1)
+        self.assertEqual(len(self.api.posted), 1)
+        self.assertEqual(self.api.posted[0][1]["name"], context)
+        self.assertEqual(self.api.posted[0][1]["state"], "failed")
+
+    def test_shell_selection_reuses_existing_docker_test_names(self):
+        with patch.dict(os.environ, {
+            "TEST_NAME": "all-databases",
+            "REQUEST_JOB_NAME": "integration-github-linux-arm64-all-databases-request",
+        }):
+            self.assertEqual(native.platform_identity()[2], "test-docker-mw-all-dbs.sh")
+        self.assertEqual(native.platform_identity()[2], "test-general.sh")
+
+    def test_preparation_exports_the_selected_shell_script(self):
+        original = self.api.all
+        def jobs(path):
+            return original(path) + [{"name": name, "status": "success"} for name in ("checks", "test")]
+        def source(api, plan, jobs, directory):
+            plan["tested_sha"] = SHA
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            self.api, "all", side_effect=jobs
+        ), patch.object(native, "prepare_source", side_effect=source), patch.object(
+            native, "git"
+        ) as git, patch.object(native, "output") as output, patch.dict(
+            os.environ, {"GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1"}
+        ):
+            directory = Path(temporary) / "inputs"
+            native.prepare_platform(self.api, 19, directory)
+            git.assert_called_once_with("cat-file", "-e", f"{SHA}:tests/test-general.sh",
+                                        cwd=directory / "repository.git")
+            self.assertIn(unittest.mock.call("test_script", "test-general.sh"), output.call_args_list)
+        self.assertEqual(self.api.posted[0][1]["name"], "github/linux-arm64/general")
+        self.assertEqual(self.api.posted[0][1]["state"], "pending")
+
+    def test_paths_arguments_and_unrelated_request_names_are_rejected(self):
+        for change in ({"TEST_NAME": "../secret"}, {"TEST_NAME": "general --flag"},
+                       {"REQUEST_JOB_NAME": "build"}, {"INTEGRATION_PLATFORM": "other"}):
+            with self.subTest(change=change), patch.dict(os.environ, change), self.assertRaises(ValueError):
+                native.platform_identity()
+
+    def test_canceled_or_superseded_platform_requests_cannot_report(self):
+        for field, value in (("canceled", True), ("request_id", 21), ("request_name", "build")):
+            api = FakeGitLab()
+            api.request_name = os.environ["REQUEST_JOB_NAME"]
+            setattr(api, field, value)
+            with self.subTest(field=field), patch.object(native, "github_results") as fetch:
+                native.finish_platform(api, 19, SHA, 123, 1)
+                fetch.assert_not_called()
+                self.assertEqual(api.posted, [])
+
+    def test_failed_preparation_does_not_reuse_old_platform_successes(self):
+        with patch.object(native, "github_results") as fetch:
+            native.finish_platform(self.api, 19, "", 123, 1, prepared=False)
+        fetch.assert_not_called()
+        self.assertEqual(self.api.posted[0][1]["state"], "failed")
+
+    def test_platform_result_is_read_individually_across_reporting_reruns(self):
+        def response(request, timeout):
+            jobs = [] if "/attempts/2/" in request.full_url else [
+                {"name": "Test", "conclusion": "success", "html_url": "https://example.test/log"}]
+            return io.BytesIO(json.dumps({"jobs": jobs}).encode())
+        context = "github/linux-arm64/general"
+        with patch.dict(os.environ, {"GH_TOKEN": "test-token"}), patch.object(
+            native.urllib.request, "urlopen", side_effect=response
+        ):
+            self.assertEqual(native.github_results(123, 2, {context: "Test"})[context]["state"], "success")
 
 
 if __name__ == "__main__":
