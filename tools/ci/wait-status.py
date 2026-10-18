@@ -128,7 +128,7 @@ def dispatch(server, job):
                 data=json.dumps(payload).encode(), method="POST", headers={
                     "Authorization": "Bearer " + server.dispatch_token,
                     "Accept": "application/vnd.github+json",
-                    "Content-Type": "application/json", "User-Agent": "mwcli-native-ci"})
+                    "Content-Type": "application/json", "User-Agent": "a-wikimedia-cli-ci"})
             with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
                 if response.status not in {200, 204}:
                     raise ValueError("unexpected GitHub dispatch response")

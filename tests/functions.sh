@@ -28,16 +28,16 @@ test_file_contains() {
 }
 
 test_gateway_auth_args() {
-	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ]; then
+	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ] || [ -z "${MWCLI_TEST_GATEWAY_USER:-}" ]; then
 		local credentials
 		credentials=$("$SCRIPT_DIR/../bin/mw" docker traefik credentials)
 		MWCLI_TEST_GATEWAY_PASSWORD=$(echo "$credentials" | sed -n 's/^Password: //p' | tail -n 1)
+		MWCLI_TEST_GATEWAY_USER=$(echo "$credentials" | sed -n 's/^Username: //p' | tail -n 1)
 	fi
-	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ]; then
+	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ] || [ -z "${MWCLI_TEST_GATEWAY_USER:-}" ]; then
 		echo "Failed to read the generated Traefik test credentials"
 		return 1
 	fi
-	MWCLI_TEST_GATEWAY_USER=mwcli
 }
 
 test_wget() {
@@ -105,7 +105,7 @@ test_gateway_https_session() (
     trap 'rm -rf "$work"' EXIT
     test_gateway_auth_args
     local headers=(-H 'Host: gateway-test.example.test' -H 'X-Forwarded-Proto: https')
-    curl --connect-timeout 2 --max-time 10 -fsS "${headers[@]}" -D "$work/headers" -o "$work/form" "$url/_mwcli/login"
+    curl --connect-timeout 2 --max-time 10 -fsS "${headers[@]}" -D "$work/headers" -o "$work/form" "$url/_wm/login"
     local csrf cookie status
     csrf=$(sed -n 's/.*name="csrf" value="\([^"]*\)".*/\1/p' "$work/form")
     cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*\);.*/\1/p' "$work/headers")
@@ -114,7 +114,7 @@ test_gateway_https_session() (
         --data-urlencode "username=$MWCLI_TEST_GATEWAY_USER" \
         --data-urlencode "password=$MWCLI_TEST_GATEWAY_PASSWORD" \
         --data-urlencode "csrf=$csrf" --data-urlencode 'return=/proxy/adminer/' \
-        -D "$work/headers" -o /dev/null -w '%{http_code}' "$url/_mwcli/login")
+        -D "$work/headers" -o /dev/null -w '%{http_code}' "$url/_wm/login")
     if [ "$status" != 303 ]; then
         echo -e "${RED}FAIL:${NC} HTTPS gateway login returned $status, expected 303"
         exit 1

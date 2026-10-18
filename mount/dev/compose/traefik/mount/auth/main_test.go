@@ -382,3 +382,102 @@ func TestUnusedLoginLinksAreBoundedAndExpiredLinksAreCleaned(t *testing.T) {
 		t.Fatal("expired login links were not removed")
 	}
 }
+
+func TestLegacyGatewayRoutesAndCookiesRemainCompatible(t *testing.T) {
+	g, _ := testGateway(t)
+	for _, path := range []string{loginPath, legacyLoginPath} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodGet, path, nil))
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "a Wikimedia CLI gateway") || !strings.Contains(w.Body.String(), `action="/_wm/login"`) {
+			t.Fatalf("login page %s: %d %s", path, w.Code, w.Body.String())
+		}
+		csrf := cookieFrom(t, w, "csrf")
+		if csrf.Path != "/_wm/" || !strings.HasPrefix(csrf.Name, "wm_gateway_") {
+			t.Fatal("new CSRF cookie uses legacy namespace")
+		}
+	}
+	token, err := g.sign("session", testOrigin, sessionLifetime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacySession := &http.Cookie{Name: legacyCookieName(testOrigin, "session"), Value: token}
+	r := request(http.MethodGet, "/check", nil, legacySession)
+	r.Header.Set("Authorization", "Bearer application-token")
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, r)
+	if w.Code != http.StatusNoContent || w.Header().Get("Authorization") != "Bearer application-token" {
+		t.Fatal("legacy session no longer authorizes application")
+	}
+	csrfValue, err := g.sign("csrf", testOrigin, 15*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyCSRF := &http.Cookie{Name: legacyCookieName(testOrigin, "csrf"), Value: csrfValue}
+	form := url.Values{"csrf": {csrfValue}, "username": {"alice"}, "password": {"secret"}}
+	w = httptest.NewRecorder()
+	g.ServeHTTP(w, request(http.MethodPost, legacyLoginPath, form, legacyCSRF))
+	if w.Code != http.StatusSeeOther || !strings.HasPrefix(cookieFrom(t, w, "session").Name, "wm_gateway_") {
+		t.Fatal("existing login form does not migrate to new session cookie")
+	}
+	w = httptest.NewRecorder()
+	g.ServeHTTP(w, request(http.MethodPost, legacyLogoutPath, url.Values{"csrf": {csrfValue}}, legacySession, legacyCSRF))
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != loginPath {
+		t.Fatal("legacy logout did not redirect to new login")
+	}
+	cleared := map[string]bool{}
+	for _, cookie := range w.Result().Cookies() {
+		if cookie.MaxAge < 0 {
+			cleared[cookie.Name] = true
+		}
+	}
+	for _, purpose := range []string{"session", "csrf"} {
+		if !cleared[cookieName(testOrigin, purpose)] || !cleared[legacyCookieName(testOrigin, purpose)] {
+			t.Fatalf("logout did not clear both %s cookie names", purpose)
+		}
+	}
+	g.now = func() time.Time { return time.Unix(1800000000, 0).Add(sessionLifetime) }
+	w = httptest.NewRecorder()
+	g.ServeHTTP(w, request(http.MethodGet, "/check", nil, legacySession))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatal("legacy session bypassed expiry")
+	}
+}
+
+func TestBothGatewayNamespacesRequireSubmittedCSRFAndRejectAuthReturnURLs(t *testing.T) {
+	g, _ := testGateway(t)
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, request(http.MethodGet, loginPath, nil))
+	csrf := cookieFrom(t, w, "csrf")
+	for _, path := range []string{loginPath, legacyLoginPath, logoutPath, legacyLogoutPath} {
+		w = httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodPost, path, url.Values{"username": {"alice"}, "password": {"secret"}}, csrf))
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("CSRF cookie without submitted token accepted for %s", path)
+		}
+		if safeReturn(path) != "/proxy/dashboard/" {
+			t.Fatalf("auth return loop accepted: %s", path)
+		}
+	}
+}
+
+func TestOldCLIReceivesLegacyLoginLink(t *testing.T) {
+	g, _ := testGateway(t)
+	r := request(http.MethodPost, legacyLoginLinkPath, nil)
+	r.SetBasicAuth("alice", "secret")
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, r)
+	var result struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	link, err := url.Parse(result.URL)
+	if w.Code != http.StatusOK || err != nil || link.Path != legacyLoginPath || link.RawQuery != "" {
+		t.Fatalf("old CLI contract broken: %s", result.URL)
+	}
+	values, err := url.ParseQuery(link.Fragment)
+	if err != nil || !g.consumeLoginLink(values.Get("login"), testOrigin) {
+		t.Fatal("legacy login link cannot be used")
+	}
+}

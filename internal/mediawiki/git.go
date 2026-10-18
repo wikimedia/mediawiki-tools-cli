@@ -230,7 +230,7 @@ func runCloneCommand(cmd *osexec.Cmd, interactive bool) error {
 
 func gitCloneCommand(directory, remote string, useShallow bool) *osexec.Cmd {
 	cmd := exec.Command("git", gitCloneArguments(directory, remote, useShallow)...)
-	// Identify mwcli to HTTP servers, including in recursive submodule clones.
+	// Identify the CLI to HTTP servers, including in recursive submodule clones.
 	// Keep the override local to this subprocess and respect user configuration.
 	if _, overridden := os.LookupEnv("GIT_HTTP_USER_AGENT"); !overridden {
 		cmd.Env = append(cmd.Environ(), "GIT_HTTP_USER_AGENT="+mwcliUserAgent())
@@ -243,7 +243,7 @@ func mwcliUserAgent() string {
 	if version == "" {
 		version = "dev"
 	}
-	return "mwcli/" + version + " (https://www.mediawiki.org/wiki/Cli)"
+	return cli.AgentName + "/" + version + " (" + cli.ProjectURL + ")"
 }
 
 func gitCloneArguments(directory string, remote string, useShallow bool) []string {

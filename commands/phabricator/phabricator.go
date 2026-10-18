@@ -28,7 +28,7 @@ Create an API token first:
 	2. Open https://phabricator.wikimedia.org/settings/user/<username>/page/apitokens/
 	3. Create a token and copy the value (for example: cli-XXXXXXXX)
 
-Configure access in either phab.cfg or mwcli config.json.
+Configure access in either phab.cfg or the CLI config.json.
 
 Legacy phab.cfg is searched in:
 	./phab.cfg
@@ -46,7 +46,7 @@ Example phab.cfg:
   username = your-username
 	default_project = #your-project
 
-Alternative mwcli config.json keys:
+Alternative CLI config.json keys:
 	{
 		"phabricator": {
 			"default_site": "wikimedia",
@@ -61,7 +61,7 @@ Alternative mwcli config.json keys:
 		}
 	}
 
-Tip: run "mw config where" to see your mwcli config.json path.`,
+Tip: run "mw config where" to see your CLI config.json path.`,
 	}
 
 	cmd.PersistentFlags().StringVar(&site, "site", "", "Config site section to use (overrides [main] default)")

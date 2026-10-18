@@ -131,7 +131,7 @@ def github_results(run_id, attempt, job_names=None):
                    f"/attempts/{number}/jobs?per_page=100&page={page}")
             request = urllib.request.Request(url, headers={
                 "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
-                "Accept": "application/vnd.github+json", "User-Agent": "mwcli-native-ci",
+                "Accept": "application/vnd.github+json", "User-Agent": "a-wikimedia-cli-ci",
             })
             with urllib.request.urlopen(request, timeout=60) as response:
                 jobs = json.load(response)["jobs"]

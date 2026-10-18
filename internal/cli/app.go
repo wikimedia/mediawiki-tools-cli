@@ -8,6 +8,12 @@ import (
 
 const DisplayName = "a Wikimedia CLI"
 
+const (
+	AgentName     = "a-wikimedia-cli"
+	ProjectURL    = "https://www.mediawiki.org/wiki/Cli"
+	HTTPUserAgent = AgentName + " (" + ProjectURL + ")"
+)
+
 const Description = "Explore Wikimedia data, work with services, and develop MediaWiki."
 
 // DefaultCommandName is used for generated documentation and unnamed invocations.

@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 const (
 	BaseURL   = "https://wikimedia.org/api/rest_v1/"
-	UserAgent = "mwcli (https://www.mediawiki.org/wiki/CLI)"
+	UserAgent = cli.HTTPUserAgent
 )
 
 // Request accepts an absolute URL or an endpoint relative to baseURL.

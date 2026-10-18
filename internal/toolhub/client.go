@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 const (
@@ -33,7 +34,7 @@ func NewClient() *Client {
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
-	req.Header.Set("User-Agent", "mwcli toolhub")
+	req.Header.Set("User-Agent", cli.HTTPUserAgent)
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return err

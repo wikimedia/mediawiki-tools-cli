@@ -103,7 +103,7 @@ func (e *Events) EmitEvents() bool {
 		return false
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "mwcli")
+	req.Header.Set("User-Agent", HTTPUserAgent)
 
 	client := &nethttp.Client{}
 	resp, err := client.Do(req)

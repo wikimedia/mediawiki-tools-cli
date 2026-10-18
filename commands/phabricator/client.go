@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 // conduitClient wraps the Phabricator Conduit API.
@@ -59,7 +61,7 @@ func (c *conduitClient) post(method string, params map[string]interface{}) (json
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent", "mwcli-phab/1.0 https://gitlab.wikimedia.org/repos/releng/cli")
+	req.Header.Set("User-Agent", cli.HTTPUserAgent)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

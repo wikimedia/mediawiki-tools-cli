@@ -137,10 +137,10 @@ func (m MWDD) ensureTraefikAuth() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(usersPath, []byte("mwcli:"+string(hash)+"\n"), 0o600); err != nil {
+	if err := os.WriteFile(usersPath, []byte("wm:"+string(hash)+"\n"), 0o600); err != nil {
 		return err
 	}
-	credentials := fmt.Sprintf("Username: mwcli\nPassword: %s\n", password)
+	credentials := fmt.Sprintf("Username: wm\nPassword: %s\n", password)
 	if err := os.WriteFile(credentialsPath, []byte(credentials), 0o600); err != nil {
 		_ = os.Remove(usersPath)
 		return err

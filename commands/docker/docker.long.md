@@ -30,4 +30,4 @@ removes the record. Direct Docker/Compose commands bypass this intent tracking.
 
 For compatibility, a context with no saved stop record initially starts all its
 exited/created services. Its first global stop establishes the selective resume
-set. State is kept separately for each mwcli context.
+set. State is kept separately for each development context.

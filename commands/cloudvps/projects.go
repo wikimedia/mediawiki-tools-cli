@@ -15,6 +15,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
@@ -88,7 +89,7 @@ func fetchProjectNames(ctx context.Context, client *http.Client, baseURL string)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "mwcli cloudvps project completion")
+	req.Header.Set("User-Agent", cli.HTTPUserAgent)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

@@ -239,7 +239,7 @@ if(!isset($dockerDbType)){
 // Otherwise something must be wrong
 if(!isset($dockerDbType)){
 	$message = "<html><head></head><body>" . PHP_EOL;
-	$message .= "<h1>mwcli: Unable to find database</h1>" . PHP_EOL;
+	$message .= "<h1>a Wikimedia CLI: Unable to find database</h1>" . PHP_EOL;
 	$message .= '<p>Could not find a running database for the database name: <pre>' . $dockerDb . '</pre></p>' . PHP_EOL;
 	$message .= '<p>Please ensure that the site is installed and the database service chosen is running.</p>' . PHP_EOL;
 	$message .= '<p>You can check running services with: <pre>mw docker docker-compose ps</pre></p>' . PHP_EOL;

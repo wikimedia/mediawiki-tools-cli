@@ -115,30 +115,39 @@ func gatewayRequest(method, origin, path, credentials string) (*http.Request, er
 
 // The gateway issues a short-lived code; the CLI never puts the password in a URL.
 func requestLoginLink(origin, credentials string) (string, error) {
-	req, err := gatewayRequest(http.MethodPost, origin, "/_mwcli/login-link", credentials)
+	link, status, err := requestLoginLinkAt(origin, credentials, "/_wm")
+	if status == http.StatusNotFound {
+		// Existing contexts may still run an older gateway until restarted.
+		link, _, err = requestLoginLinkAt(origin, credentials, "/_mwcli")
+	}
+	return link, err
+}
+
+func requestLoginLinkAt(origin, credentials, prefix string) (string, int, error) {
+	req, err := gatewayRequest(http.MethodPost, origin, prefix+"/login-link", credentials)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("gateway unavailable; start it with 'mw docker traefik start'")
+		return "", 0, fmt.Errorf("gateway unavailable; start it with the CLI's docker traefik start command")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("gateway returned HTTP %d", response.StatusCode)
+		return "", response.StatusCode, fmt.Errorf("gateway returned HTTP %d", response.StatusCode)
 	}
 	var result struct {
 		URL string `json:"url"`
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 4096)).Decode(&result); err != nil {
-		return "", fmt.Errorf("invalid login-link response: %w", err)
+		return "", response.StatusCode, fmt.Errorf("invalid login-link response: %w", err)
 	}
 	link, err := url.Parse(result.URL)
-	if err != nil || link.Scheme != req.URL.Scheme || link.Host != req.URL.Host || link.User != nil || link.Path != "/_mwcli/login" || link.RawQuery != "" || !strings.HasPrefix(link.Fragment, "login=") || strings.TrimPrefix(link.Fragment, "login=") == "" {
-		return "", fmt.Errorf("gateway returned an invalid login link")
+	if err != nil || link.Scheme != req.URL.Scheme || link.Host != req.URL.Host || link.User != nil || link.Path != prefix+"/login" || link.RawQuery != "" || !strings.HasPrefix(link.Fragment, "login=") || strings.TrimPrefix(link.Fragment, "login=") == "" {
+		return "", response.StatusCode, fmt.Errorf("gateway returned an invalid login link")
 	}
-	return result.URL, nil
+	return result.URL, response.StatusCode, nil
 }
 
 // Reuse the dashboard's readiness check instead of advertising old tunnel logs.

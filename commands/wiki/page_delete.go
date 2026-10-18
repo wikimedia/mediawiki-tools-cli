@@ -12,6 +12,7 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
@@ -55,7 +56,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 				return
 			}
 
-			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
 				panic(err)
 			}
@@ -84,7 +85,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&wikiPageDeleteReason, "reason", "mwcli deletion", "Reason for the deletion")
+	cmd.Flags().StringVar(&wikiPageDeleteReason, "reason", cli.DisplayName+" deletion", "Reason for the deletion")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
 	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to delete. You can also pipe the titles to delete to stdin.")
 

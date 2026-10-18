@@ -11,17 +11,17 @@ func TestRequestLoginLinkUsesAuthenticatedPOST(t *testing.T) {
 	var origin string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
-		if r.Method != http.MethodPost || r.URL.Path != "/_mwcli/login-link" || r.URL.RawQuery != "" || !ok || username != "alice" || password != "secret" {
+		if r.Method != http.MethodPost || r.URL.Path != "/_wm/login-link" || r.URL.RawQuery != "" || !ok || username != "alice" || password != "secret" {
 			t.Errorf("unexpected login-link request: %s %s", r.Method, r.URL)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]string{"url": origin + "/_mwcli/login#login=temporary-code"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"url": origin + "/_wm/login#login=temporary-code"})
 	}))
 	defer server.Close()
 	origin = server.URL
 	link, err := requestLoginLink(origin+"/", "Username: alice\nPassword: secret\n")
-	if err != nil || link != origin+"/_mwcli/login#login=temporary-code" {
+	if err != nil || link != origin+"/_wm/login#login=temporary-code" {
 		t.Fatalf("incorrect login link: %q, %v", link, err)
 	}
 }
@@ -33,7 +33,7 @@ func TestRequestLoginLinkRejectsRedirectsAndForeignLinks(t *testing.T) {
 				http.Redirect(w, r, "https://elsewhere.example", http.StatusTemporaryRedirect)
 				return
 			}
-			_ = json.NewEncoder(w).Encode(map[string]string{"url": "https://elsewhere.example/_mwcli/login#login=code"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"url": "https://elsewhere.example/_wm/login#login=code"})
 		}))
 		_, err := requestLoginLink(server.URL, "Username: alice\nPassword: secret\n")
 		server.Close()
@@ -80,5 +80,35 @@ func TestRunningTunnelURLOnlyReturnsAnActiveQuickTunnel(t *testing.T) {
 				t.Fatalf("got %q; want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestLoginLinkFallsBackOnlyWhenGatewayHasNoNewEndpoint(t *testing.T) {
+	for _, status := range []int{http.StatusNotFound, http.StatusUnauthorized, http.StatusServiceUnavailable} {
+		requests := 0
+		var origin string
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests++
+			if r.URL.Path == "/_wm/login-link" {
+				w.WriteHeader(status)
+				return
+			}
+			if r.URL.Path != "/_mwcli/login-link" {
+				t.Errorf("unexpected route: %s", r.URL.Path)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]string{"url": origin + "/_mwcli/login#login=legacy-code"})
+		}))
+		origin = server.URL
+		link, err := requestLoginLink(origin, "Username: alice\nPassword: secret\n")
+		server.Close()
+		if status == http.StatusNotFound {
+			if err != nil || requests != 2 || link != origin+"/_mwcli/login#login=legacy-code" {
+				t.Fatalf("old gateway fallback failed: %q %v (%d requests)", link, err, requests)
+			}
+		} else if err == nil || requests != 1 {
+			t.Fatal("authentication/server failure caused a legacy retry")
+		}
 	}
 }

@@ -1098,7 +1098,7 @@ func applyLocalSettingsFiles(thisMW mediawiki.MediaWiki, recipeName string, file
 
 func removeManagedRecipeLocalSettings(thisMW mediawiki.MediaWiki, dryRun bool) error {
 	if dryRun {
-		fmt.Println("[dry-run] remove managed mwcli recipe settings")
+		fmt.Println("[dry-run] remove managed recipe settings")
 		return nil
 	}
 

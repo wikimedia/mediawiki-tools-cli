@@ -1,5 +1,5 @@
 [Unit]
-Description=MWCLI GitHub integration dispatch and result service
+Description=a Wikimedia CLI integration dispatch and results
 After=network-online.target
 Wants=network-online.target
 

@@ -89,6 +89,9 @@ func TestTraefikAuthInitializesContexts(t *testing.T) {
 			if existing && !bytes.Equal(credentials, oldCredentials) {
 				t.Fatal("upgrade replaced existing credentials")
 			}
+			if !existing && !bytes.HasPrefix(credentials, []byte("Username: wm\n")) {
+				t.Fatal("fresh gateway uses the legacy username")
+			}
 			key, err := os.ReadFile(filepath.Join(authDir, "session-key"))
 			if err != nil || len(key) != 32 {
 				t.Fatalf("session key not initialized: %v", err)

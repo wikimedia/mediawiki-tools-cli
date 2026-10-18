@@ -20,11 +20,14 @@ import (
 )
 
 const (
-	loginPath         = "/_mwcli/login"
-	logoutPath        = "/_mwcli/logout"
-	sessionLifetime   = 12 * time.Hour
-	loginLinkLifetime = 5 * time.Minute
-	loginLinkPath     = "/_mwcli/login-link"
+	loginPath           = "/_wm/login"
+	logoutPath          = "/_wm/logout"
+	sessionLifetime     = 12 * time.Hour
+	loginLinkLifetime   = 5 * time.Minute
+	loginLinkPath       = "/_wm/login-link"
+	legacyLoginPath     = "/_mwcli/login"
+	legacyLogoutPath    = "/_mwcli/logout"
+	legacyLoginLinkPath = "/_mwcli/login-link"
 )
 
 type gateway struct {
@@ -162,13 +165,43 @@ func requestOrigin(r *http.Request) (string, bool) {
 
 func cookieName(origin, purpose string) string {
 	digest := sha256.Sum256([]byte(origin))
+	return fmt.Sprintf("wm_gateway_%x_%s", digest[:6], purpose)
+}
+
+// Accept existing signed cookies during the rename, without changing their
+// origin binding or expiry. New cookies always use the wm name and route.
+func legacyCookieName(origin, purpose string) string {
+	digest := sha256.Sum256([]byte(origin))
 	return fmt.Sprintf("mwcli_gateway_%x_%s", digest[:6], purpose)
+}
+
+func (g *gateway) hasValidCookie(r *http.Request, origin, purpose, submitted string) bool {
+	for _, name := range []string{cookieName(origin, purpose), legacyCookieName(origin, purpose)} {
+		cookie, err := r.Cookie(name)
+		if err == nil && (purpose == "session" || hmac.Equal([]byte(cookie.Value), []byte(submitted))) && g.valid(cookie.Value, purpose, origin) {
+			return true
+		}
+	}
+	return false
+}
+
+func clearCookie(w http.ResponseWriter, origin, purpose string) {
+	writeCookie(w, origin, purpose, "", -time.Second)
+	path := "/"
+	if purpose == "csrf" {
+		path = "/_mwcli/"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: legacyCookieName(origin, purpose), Path: path,
+		Secure: strings.HasPrefix(origin, "https://"), HttpOnly: true,
+		SameSite: http.SameSiteLaxMode, MaxAge: -1,
+	})
 }
 
 func writeCookie(w http.ResponseWriter, origin, purpose, value string, lifetime time.Duration) {
 	path := "/"
 	if purpose == "csrf" {
-		path = "/_mwcli/"
+		path = "/_wm/"
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name: cookieName(origin, purpose), Value: value, Path: path,
@@ -179,7 +212,7 @@ func writeCookie(w http.ResponseWriter, origin, purpose, value string, lifetime 
 
 func safeReturn(value string) string {
 	u, err := url.ParseRequestURI(value)
-	if err != nil || u.IsAbs() || u.Host != "" || !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(u.Path, "//") || strings.Contains(u.Path, "\\") || strings.HasPrefix(u.Path, "/_mwcli/") {
+	if err != nil || u.IsAbs() || u.Host != "" || !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(u.Path, "//") || strings.Contains(u.Path, "\\") || (strings.HasPrefix(u.Path, "/_wm/") || strings.HasPrefix(u.Path, "/_mwcli/")) {
 		return "/proxy/dashboard/"
 	}
 	return value
@@ -198,9 +231,9 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	case "/check":
 		g.check(w, r, origin)
-	case loginLinkPath:
+	case loginLinkPath, legacyLoginLinkPath:
 		g.createLoginLink(w, r, origin)
-	case loginPath, logoutPath:
+	case loginPath, logoutPath, legacyLoginPath, legacyLogoutPath:
 		g.form(w, r, origin)
 	default:
 		http.NotFound(w, r)
@@ -210,8 +243,7 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (g *gateway) check(w http.ResponseWriter, r *http.Request, origin string) {
 	username, password, basic := r.BasicAuth()
 	gatewayBasic := basic && g.credentialsMatch(username, password)
-	cookie, err := r.Cookie(cookieName(origin, "session"))
-	sessionValid := err == nil && g.valid(cookie.Value, "session", origin)
+	sessionValid := g.hasValidCookie(r, origin, "session", "")
 	navigation := r.Header.Get("X-Forwarded-Method") == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")
 	// Browsers need a cookie even if they cached Basic credentials before upgrade:
 	// their applications can replace Authorization with a Bearer token later.
@@ -272,7 +304,14 @@ func (g *gateway) createLoginLink(w http.ResponseWriter, r *http.Request, origin
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(struct {
 		URL string `json:"url"`
-	}{origin + loginPath + "#login=" + value})
+	}{origin + loginURLPath(r.URL.Path) + "#login=" + value})
+}
+
+func loginURLPath(requestPath string) string {
+	if requestPath == legacyLoginLinkPath {
+		return legacyLoginPath
+	}
+	return loginPath
 }
 
 func (g *gateway) consumeLoginLink(value, origin string) bool {
@@ -301,16 +340,15 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 			http.Error(w, "Invalid login form", http.StatusBadRequest)
 			return
 		}
-		csrf, err := r.Cookie(cookieName(origin, "csrf"))
 		submitted := r.PostForm.Get("csrf")
-		if err != nil || !hmac.Equal([]byte(csrf.Value), []byte(submitted)) || !g.valid(submitted, "csrf", origin) || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != origin) {
+		if !g.hasValidCookie(r, origin, "csrf", submitted) || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != origin) {
 			http.Error(w, "Login form expired; reload the page", http.StatusForbidden)
 			return
 		}
 		target = safeReturn(r.PostForm.Get("return"))
-		if r.URL.Path == logoutPath {
-			writeCookie(w, origin, "session", "", -time.Second)
-			writeCookie(w, origin, "csrf", "", -time.Second)
+		if r.URL.Path == logoutPath || r.URL.Path == legacyLogoutPath {
+			clearCookie(w, origin, "session")
+			clearCookie(w, origin, "csrf")
 			http.Redirect(w, r, loginPath, http.StatusSeeOther)
 			return
 		}
@@ -329,7 +367,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 				return
 			}
 			writeCookie(w, origin, "session", session, sessionLifetime)
-			writeCookie(w, origin, "csrf", "", -time.Second)
+			clearCookie(w, origin, "csrf")
 			http.Redirect(w, r, target, http.StatusSeeOther)
 			return
 		}
@@ -348,7 +386,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 	_ = loginPage.Execute(w, struct {
 		Logout              bool
 		CSRF, Return, Error string
-	}{r.URL.Path == logoutPath, csrf, target, message})
+	}{(r.URL.Path == logoutPath || r.URL.Path == legacyLogoutPath), csrf, target, message})
 }
 
 // A URL fragment never reaches the server. Remove it from browser history before
@@ -363,12 +401,12 @@ if (token) {
 
 var loginPage = template.Must(template.New("login").Parse(`<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MWCLI gateway</title>
+<title>a Wikimedia CLI gateway</title>
 <style>body{font:16px system-ui;background:#f5f6f8;color:#202122;margin:0;padding:12vh 20px}main{max-width:360px;margin:auto;background:white;padding:28px;border:1px solid #c8ccd1;border-radius:8px}h1{font-size:24px;margin-top:0}label{display:block;margin-top:16px}input,button{box-sizing:border-box;width:100%;padding:10px;font:inherit}input{margin-top:5px;border:1px solid #72777d;border-radius:3px}button{margin-top:22px;background:#36c;color:white;border:0;border-radius:3px;cursor:pointer}.error{color:#b32424}code{overflow-wrap:anywhere}</style>
-<main><h1>{{if .Logout}}Sign out of the gateway{{else}}MWCLI gateway{{end}}</h1>
+<main><h1>{{if .Logout}}Sign out of the gateway{{else}}a Wikimedia CLI gateway{{end}}</h1>
 {{if not .Logout}}<p>Use the credentials shown by <code>mw docker traefik credentials</code>.</p>{{end}}
 {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-<form method="post" action="{{if .Logout}}/_mwcli/logout{{else}}/_mwcli/login{{end}}">
+<form method="post" action="{{if .Logout}}/_wm/logout{{else}}/_wm/login{{end}}">
 <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="return" value="{{.Return}}">
 {{if not .Logout}}<input type="hidden" name="login_token"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label>{{end}}
 <button type="submit">{{if .Logout}}Sign out{{else}}Sign in{{end}}</button></form></main>{{if not .Logout}}<script>` + loginScript + `</script>{{end}}</html>`))

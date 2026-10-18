@@ -7,7 +7,7 @@ http:
         - web
       service: dashboard@docker
     gateway-login:
-      rule: Path(`/_mwcli/login`) || Path(`/_mwcli/logout`) || Path(`/_mwcli/login-link`)
+      rule: Path(`/_wm/login`) || Path(`/_wm/logout`) || Path(`/_wm/login-link`) || Path(`/_mwcli/login`) || Path(`/_mwcli/logout`) || Path(`/_mwcli/login-link`)
       priority: 1000
       entryPoints:
         - web

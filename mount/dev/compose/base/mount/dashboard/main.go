@@ -1,4 +1,4 @@
-// MWDD Dashboard - A simple status dashboard for MediaWiki Docker Development environment
+// Development dashboard for a Wikimedia CLI
 // Run with: go run main.go
 // //nolint:depguard
 package main
@@ -344,7 +344,7 @@ const dashboardHTML = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Docker Dashboard</title>
+    <title>a Wikimedia CLI · Development dashboard</title>
     <style>
         :root {
             --bg-color: #1a1a2e;
@@ -498,9 +498,9 @@ const dashboardHTML = `<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <h1>🐳 MWDD Dashboard</h1>
-        <p class="subtitle">MediaWiki Docker Development Environment Status</p>
-        {{if .BasePath}}<p class="access-note"><a href="/_mwcli/logout">Sign out of the gateway</a></p>{{end}}
+        <h1>🐳 Development dashboard</h1>
+        <p class="subtitle">a Wikimedia CLI · MediaWiki and service status</p>
+        {{if .BasePath}}<p class="access-note"><a href="/_wm/logout">Sign out of the gateway</a></p>{{end}}
 
         <div class="tunnel-status">
             {{if .TunnelURL}}
@@ -630,7 +630,7 @@ func main() {
 	http.HandleFunc("/api/sites", apiSitesHandler)
 	http.HandleFunc("/health", healthHandler)
 
-	log.Printf("MWDD Dashboard starting on port %s", listenPort)
+	log.Printf("Development dashboard starting on port %s", listenPort)
 	log.Printf("Dashboard: http://localhost:%s", listenPort)
 	log.Printf("API endpoints:")
 	log.Printf("  - GET /api/status   - Full status (services + sites)")

@@ -10,6 +10,7 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
@@ -53,7 +54,7 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 			}
 			text := string(bytes)
 
-			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
 				panic(err)
 			}
@@ -98,7 +99,7 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 		},
 	}
 
-	cmd.Flags().StringVar(&summary, "summary", "mwcli edit", "Summary of the edit")
+	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+" edit", "Summary of the edit")
 	cmd.Flags().BoolVar(&minor, "minor", false, "Minor edit")
 	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")
 	cmd.Flags().BoolVar(&recreate, "recreate", false, "Override any errors about the page having been deleted in the meantime.")
