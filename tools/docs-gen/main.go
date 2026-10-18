@@ -7,10 +7,13 @@ import (
 	"os"
 )
 
+var reviewNoBrowser bool
+
 func main() {
-	mode := flag.String("mode", "generate", "generate, check, audit, pull, publish, import, or accept")
+	mode := flag.String("mode", "generate", "generate, review, check, audit, pull, publish, import, or accept")
 	page := flag.String("page", "", "Wiki title for import or accept")
 	source := flag.String("source", "", "Markdown path within docs/ for import")
+	flag.BoolVar(&reviewNoBrowser, "no-browser", false, "Print the review URL without opening a browser")
 	flag.Parse()
 	if err := run(*mode, *page, *source); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -24,6 +27,8 @@ func run(mode, title, source string) error {
 		return err
 	}
 	switch mode {
+	case "review":
+		return serveDocumentationReview(config)
 	case "generate":
 		return generate(config)
 	case "audit":

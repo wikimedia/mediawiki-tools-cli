@@ -212,7 +212,7 @@ func synchronize(config configuration, mode string) error {
 		}
 		if mode == "pull" && differs && !current.Missing && document.Title != config.ReferenceRoot && !strings.HasPrefix(document.Title, config.ReferenceRoot+"/") {
 			body, _ := unmark(current.Text)
-			markdown, err := convertWiki([]byte(body), strings.TrimPrefix(document.Source, "docs/"), config)
+			markdown, err := convertWiki([]byte(withoutVersionNotice(body)), strings.TrimPrefix(document.Source, "docs/"), config)
 			if err != nil {
 				return err
 			}
@@ -235,7 +235,7 @@ func synchronize(config configuration, mode string) error {
 	}
 	fmt.Printf("Checked %d pages: %d have later wiki revisions, %d have content changes, %d need review.\n", len(documents), laterRevisions, wikiChanges, conflicts)
 	fmt.Printf("Wiki edits: %s/report.md; %d proposed publication changes: %s/publish-report.md\n", directory, changed, directory)
-	if mode == "pull" {
+	if mode == "pull" || mode == "review" {
 		return nil
 	}
 	if conflicts > 0 {
@@ -253,9 +253,13 @@ func synchronize(config configuration, mode string) error {
 	}
 	client.Assert = mwclient.AssertUser
 	summary := publicationSummary
-	if version := os.Getenv("DOCS_VERSION"); version != "" {
-		summary += " (" + version + ")"
+	version := currentDocumentationVersion()
+	if _, err := os.Stat(filepath.Join(outputDir, "version.json")); err == nil {
+		if err := readJSON(filepath.Join(outputDir, "version.json"), &version); err != nil {
+			return err
+		}
 	}
+	summary += " (" + version.Label + ")"
 	for _, document := range documents {
 		desired, err := os.ReadFile(document.Wikitext)
 		if err != nil {
@@ -352,7 +356,7 @@ func importGuide(config configuration, title, source string) error {
 		return fmt.Errorf("wiki page %s does not exist", title)
 	}
 	body, _ := unmark(page.Text)
-	markdown, err := convertWiki([]byte(body), source, config)
+	markdown, err := convertWiki([]byte(withoutVersionNotice(body)), source, config)
 	if err != nil {
 		return err
 	}

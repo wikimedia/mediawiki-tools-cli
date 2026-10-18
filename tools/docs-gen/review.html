@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Documentation review · a Wikimedia CLI</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #202b3a;
+        --muted: #617086;
+        --line: #dce3eb;
+        --paper: #fff;
+        --wash: #f4f7fa;
+        --accent: #315bca;
+        --green: #176545;
+        --red: #a52c37;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          14px/1.5 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background: var(--wash);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: white;
+        color: var(--ink);
+        padding: 8px 12px;
+      }
+      button:hover {
+        background: #edf2ff;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+      }
+      button.primary:hover {
+        background: #264aa9;
+      }
+      a {
+        color: var(--accent);
+      }
+      header {
+        padding: 22px 28px 18px;
+        background: white;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+      }
+      h1 {
+        font-size: 23px;
+        letter-spacing: -0.6px;
+        margin: 2px 0 6px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 650;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .version {
+        display: inline-block;
+        background: #eef1f8;
+        border-radius: 5px;
+        padding: 3px 8px;
+        font-size: 12px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        flex-wrap: wrap;
+      }
+      #notice {
+        margin: 14px 24px 0;
+        padding: 11px 15px;
+        border-radius: 7px;
+        background: #fff5df;
+        border: 1px solid #e8cc91;
+        white-space: pre-wrap;
+      }
+      #notice[hidden] {
+        display: none;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 350px minmax(0, 1fr);
+        margin: 18px 24px 24px;
+        min-height: 72vh;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: white;
+        overflow: hidden;
+      }
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: #fbfcfe;
+        min-width: 0;
+      }
+      .filters {
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      input[type="search"],
+      select {
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid #ccd5e1;
+        border-radius: 6px;
+        background: white;
+      }
+      .filter-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 9px;
+      }
+      .filter-row select {
+        min-width: 0;
+      }
+      .bulk {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 12px;
+        font-size: 12px;
+      }
+      .bulk button {
+        padding: 3px 6px;
+        font-size: 12px;
+      }
+      .counts {
+        margin-top: 9px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #pages {
+        max-height: calc(100vh - 290px);
+        min-height: 440px;
+        overflow: auto;
+      }
+      details {
+        border-bottom: 1px solid var(--line);
+      }
+      summary {
+        cursor: pointer;
+        padding: 10px 13px;
+        font-weight: 600;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: #f0f4f9;
+        list-style: none;
+      }
+      summary::before {
+        content: "▸";
+        color: var(--muted);
+      }
+      details[open] > summary::before {
+        content: "▾";
+      }
+      summary span {
+        flex: 1;
+      }
+      summary small {
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .page {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 10px 13px;
+        border-bottom: 1px solid #eef1f5;
+        cursor: pointer;
+      }
+      .page:last-child {
+        border-bottom: 0;
+      }
+      .page:hover {
+        background: #edf2ff;
+      }
+      .page.active {
+        background: #e8efff;
+        box-shadow: inset 3px 0 var(--accent);
+      }
+      input[type="checkbox"] {
+        accent-color: var(--accent);
+        margin-top: 4px;
+        flex: none;
+      }
+      .page-title {
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 650;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: #e9edf2;
+        color: #536174;
+        margin-top: 4px;
+      }
+      .badge.new {
+        background: #e2f4e9;
+        color: var(--green);
+      }
+      .badge.updated {
+        background: #e4edff;
+        color: #315bca;
+      }
+      .badge.review {
+        background: #fff0cf;
+        color: #825400;
+      }
+      .main {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .page-header {
+        padding: 20px 22px 15px;
+      }
+      .page-meta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        margin-top: 7px;
+        color: var(--muted);
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--line);
+        padding: 0 17px;
+        overflow: auto;
+      }
+      .tabs button {
+        border: 0;
+        border-radius: 0;
+        background: none;
+        color: var(--muted);
+        padding: 12px 10px;
+        white-space: nowrap;
+      }
+      .tabs button[aria-selected="true"] {
+        color: var(--accent);
+        box-shadow: inset 0 -3px var(--accent);
+        font-weight: 600;
+      }
+      .content {
+        padding: 18px 22px;
+        flex: 1;
+        min-height: 440px;
+        overflow: auto;
+      }
+      .explain {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .diff {
+        font:
+          12px/1.65 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+        background: #fafbfd;
+      }
+      .diff span {
+        display: block;
+        min-height: 1.65em;
+        padding: 0 12px;
+      }
+      .diff .add {
+        background: #e6f5eb;
+        color: #195b34;
+      }
+      .diff .del {
+        background: #ffe9e9;
+        color: #8a2931;
+      }
+      .diff .hunk {
+        background: #e8effc;
+        color: #34528b;
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
+      .source {
+        font:
+          12px/1.65 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #f7f9fc;
+        border: 1px solid var(--line);
+        padding: 16px;
+        border-radius: 6px;
+      }
+      iframe {
+        width: 100%;
+        min-height: 660px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: white;
+      }
+      .preview-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .preview-tools select {
+        width: auto;
+      }
+      .empty {
+        padding: 60px 24px;
+        text-align: center;
+        color: var(--muted);
+      }
+      dialog {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+        width: min(700px, 92vw);
+        max-height: 85vh;
+        box-shadow: 0 24px 90px #18263c40;
+      }
+      dialog::backdrop {
+        background: #15243c65;
+      }
+      dialog h2 {
+        margin-bottom: 10px;
+      }
+      dialog ul {
+        max-height: 220px;
+        overflow: auto;
+        padding-left: 24px;
+        overflow-wrap: anywhere;
+      }
+      dialog .actions {
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+      .warning {
+        border: 1px solid #e8cc91;
+        background: #fff5df;
+        padding: 12px;
+        border-radius: 6px;
+        margin: 12px 0;
+        white-space: pre-wrap;
+      }
+      .success {
+        color: var(--green);
+      }
+      footer {
+        font-size: 12px;
+        color: var(--muted);
+        padding: 0 26px 20px;
+      }
+      code {
+        font-family: ui-monospace, Consolas, monospace;
+        background: #edf1f6;
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      @media (max-width: 850px) {
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+          margin: 12px;
+        }
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        #pages {
+          max-height: 270px;
+          min-height: 0;
+        }
+        .content {
+          padding: 14px;
+        }
+        .page-header {
+          padding: 16px;
+        }
+        #notice {
+          margin: 12px;
+        }
+        .tabs {
+          padding: 0 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <div class="eyebrow">a Wikimedia CLI / documentation</div>
+        <h1>Review before publishing</h1>
+        <span id="version" class="version">Loading…</span>
+      </div>
+      <div class="actions">
+        <button id="refresh">Refresh sources &amp; wiki</button
+        ><button id="review" class="primary" disabled>Review selection (0)</button>
+      </div>
+    </header>
+    <div id="notice" role="status" hidden></div>
+    <div class="layout">
+      <aside class="sidebar" aria-label="Pages to review">
+        <div class="filters">
+          <input
+            id="search"
+            type="search"
+            placeholder="Find a page, command or source…"
+            aria-label="Search pages"
+          />
+          <div class="filter-row">
+            <select id="status" aria-label="Filter by status">
+              <option value="changes">Content changes</option>
+              <option value="changed">All changes, including version</option>
+              <option value="all">All pages</option>
+              <option value="review">Needs review</option>
+              <option value="new">New pages</option>
+              <option value="wiki">Wiki corrections</option>
+            </select>
+          </div>
+          <div class="bulk">
+            <button id="select">Select visible publishable pages</button
+            ><button id="clear">Clear selection</button>
+          </div>
+          <div id="counts" class="counts"></div>
+        </div>
+        <div id="pages"><div class="empty">Reading documentation…</div></div>
+      </aside>
+      <main class="main">
+        <div class="page-header">
+          <h2 id="title">Select a page</h2>
+          <div id="meta" class="page-meta"></div>
+        </div>
+        <nav class="tabs" aria-label="Review views">
+          <button data-tab="diff" aria-selected="true">Publication diff</button
+          ><button data-tab="preview" aria-selected="false">Rendered preview</button
+          ><button data-tab="wiki" aria-selected="false">Wiki corrections</button
+          ><button data-tab="source" aria-selected="false">Source</button>
+        </nav>
+        <section id="content" class="content" aria-live="polite">
+          <div class="empty">Choose a page to compare the wiki with your proposed documentation.</div>
+        </section>
+      </main>
+    </div>
+    <footer>
+      Reviewing is read-only. Publication requires a selected set of pages and a final confirmation. Wiki
+      edits are protected by revision checks.
+    </footer>
+    <dialog id="confirm">
+      <h2>Publish selected documentation</h2>
+      <p id="confirm-version"></p>
+      <p>The following pages on MediaWiki.org will be created or updated:</p>
+      <ul id="confirm-pages"></ul>
+      <div id="confirm-warnings"></div>
+      <div id="confirm-result" role="status"></div>
+      <div class="actions">
+        <button id="cancel">Back to review</button
+        ><button id="publish" class="primary">Publish selected pages</button>
+      </div>
+    </dialog>
+    <dialog id="accept-dialog">
+      <h2>Record this wiki revision as reviewed?</h2>
+      <p>
+        First incorporate the wiki corrections into the source, or deliberately resolve the differences shown
+        in the publication diff.
+      </p>
+      <p>
+        This records the exact wiki revision in <code>docs/wiki.json</code> for your next commit. It does not
+        edit the wiki.
+      </p>
+      <p id="accept-page"></p>
+      <div class="actions">
+        <button id="accept-cancel">Cancel</button
+        ><button id="accept-confirm" class="primary">Mark revision reviewed</button>
+      </div>
+    </dialog>
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const token = location.hash.slice(1) || sessionStorage.getItem("docs-review-token");
+      if (token) {
+        sessionStorage.setItem("docs-review-token", token);
+        history.replaceState(null, "", location.pathname);
+      }
+      let session = null,
+        selected = new Set(),
+        active = null,
+        tab = "diff",
+        busy = false,
+        plan = null,
+        acceptID = null;
+      const detailsCache = new Map(),
+        previewCache = new Map();
+      const el = (tag, text, cls) => {
+        const n = document.createElement(tag);
+        if (text !== undefined) n.textContent = text;
+        if (cls) n.className = cls;
+        return n;
+      };
+      function notice(message) {
+        $("notice").hidden = !message;
+        $("notice").textContent = message || "";
+      }
+      async function api(path, body) {
+        const response = await fetch("/api/" + path, {
+          method: body === undefined ? "GET" : "POST",
+          headers: { "X-Docs-Review-Token": token || "", "Content-Type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const text = await response.text();
+        let result;
+        try {
+          result = JSON.parse(text);
+        } catch {
+          throw Error(text || "The review server did not respond.");
+        }
+        if (!response.ok) throw Error(result.error || text);
+        return result;
+      }
+      function matches(p) {
+        const q = $("search").value.trim().toLowerCase();
+        if (q && !`${p.title} ${p.area} ${p.source}`.toLowerCase().includes(q)) return false;
+        switch ($("status").value) {
+          case "changes":
+            return p.changed && p.status !== "Version only";
+          case "changed":
+            return p.changed;
+          case "review":
+            return !p.safe;
+          case "new":
+            return p.status === "New";
+          case "wiki":
+            return p.wikiEdits;
+          default:
+            return true;
+        }
+      }
+      const publishable = (p) => p.safe && p.changed && !session.stale;
+      function updateActions() {
+        const n = selected.size;
+        $("review").textContent = `Review selection (${n})`;
+        $("review").disabled = !n || busy || session?.stale;
+        $("refresh").disabled = busy;
+        $("select").disabled = busy || session?.stale;
+        $("clear").disabled = busy;
+      }
+      function renderList() {
+        if (!session) return;
+        const list = $("pages");
+        const open = new Map([...list.querySelectorAll("details")].map((d) => [d.dataset.area, d.open]));
+        list.replaceChildren();
+        const visible = session.pages.filter(matches),
+          groups = new Map();
+        for (const p of visible) {
+          if (!groups.has(p.area)) groups.set(p.area, []);
+          groups.get(p.area).push(p);
+        }
+        for (const [area, pages] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+          const group = el("details");
+          group.dataset.area = area;
+          group.open = open.get(area) ?? true;
+          const summary = el("summary"),
+            check = el("input");
+          check.type = "checkbox";
+          check.setAttribute("aria-label", "Select " + area);
+          const eligible = pages.filter(publishable);
+          check.checked = eligible.length > 0 && eligible.every((p) => selected.has(p.id));
+          check.indeterminate = eligible.some((p) => selected.has(p.id)) && !check.checked;
+          check.disabled = !eligible.length || busy;
+          check.addEventListener("click", (e) => e.stopPropagation());
+          check.addEventListener("change", () => {
+            for (const p of eligible) {
+              if (check.checked) selected.add(p.id);
+              else selected.delete(p.id);
+            }
+            renderList();
+          });
+          summary.append(check, el("span", area), el("small", `${pages.length}`));
+          group.append(summary);
+          for (const p of pages) {
+            const row = el("div", undefined, "page" + (p.id === active ? " active" : "")),
+              box = el("input");
+            box.type = "checkbox";
+            box.checked = selected.has(p.id);
+            box.disabled = !publishable(p) || busy;
+            box.setAttribute("aria-label", "Select " + p.title);
+            box.addEventListener("click", (e) => e.stopPropagation());
+            box.addEventListener("change", () => {
+              if (box.checked) selected.add(p.id);
+              else selected.delete(p.id);
+              renderList();
+            });
+            const info = el("div");
+            info.append(el("div", p.title, "page-title"));
+            const cls =
+              p.status === "New" ? "new" : !p.safe ? "review" : p.status === "Updated" ? "updated" : "";
+            info.append(el("span", p.status, "badge " + cls));
+            if (p.wikiEdits)
+              info.append(document.createTextNode(" "), el("span", "Wiki corrections", "badge review"));
+            row.append(box, info);
+            row.tabIndex = 0;
+            row.addEventListener("click", () => openPage(p.id));
+            row.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                openPage(p.id);
+              }
+            });
+            group.append(row);
+          }
+          list.append(group);
+        }
+        if (!visible.length) list.append(el("div", "No pages match these filters.", "empty"));
+        $("counts").textContent =
+          `${visible.length} shown · ${session.pages.length} total · ${selected.size} selected`;
+        updateActions();
+      }
+      function loadSession(next) {
+        const selectedTitles = new Set([...selected].map((id) => session?.pages[id]?.title));
+        const activeTitle = session?.pages[active]?.title;
+        session = next;
+        detailsCache.clear();
+        previewCache.clear();
+        selected = new Set(
+          session.pages.filter((p) => selectedTitles.has(p.title) && publishable(p)).map((p) => p.id),
+        );
+        active = session.pages.find((p) => p.title === activeTitle)?.id ?? null;
+        $("version").textContent = session.version.label;
+        renderList();
+        if (active === null || !session.pages[active])
+          active = session.pages.find((p) => p.changed)?.id ?? session.pages[0]?.id;
+        if (active !== undefined) openPage(active);
+        if (session.stale)
+          notice("Publication was attempted. Refresh to see the current wiki state before publishing again.");
+      }
+      async function openPage(id) {
+        active = id;
+        renderList();
+        const p = session.pages[id];
+        $("title").textContent = p.title;
+        const link = el("a", "Open wiki page ↗");
+        link.href = p.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        $("meta").replaceChildren(
+          el("span", p.area),
+          el("span", p.revision ? `Wiki revision ${p.revision}` : "New page"),
+          link,
+        );
+        await renderContent();
+      }
+      function renderDiff(text) {
+        const pre = el("pre", undefined, "diff");
+        for (const line of text.split("\n")) {
+          const cls = line.startsWith("@@")
+            ? "hunk"
+            : line.startsWith("+") && !line.startsWith("+++")
+              ? "add"
+              : line.startsWith("-") && !line.startsWith("---")
+                ? "del"
+                : "";
+          pre.append(el("span", line || " ", cls));
+        }
+        return pre;
+      }
+      async function renderContent() {
+        if (active === null || !session) return;
+        const id = active,
+          view = tab,
+          currentSession = session.id,
+          content = $("content");
+        content.replaceChildren(el("p", "Loading…", "muted"));
+        document
+          .querySelectorAll("[data-tab]")
+          .forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+        try {
+          let detail = detailsCache.get(id);
+          if (!detail) {
+            detail = await api("page?id=" + id);
+            if (session.id !== currentSession) return;
+            detailsCache.set(id, detail);
+          }
+          if (active !== id || tab !== view || session.id !== currentSession) return;
+          content.replaceChildren();
+          if (view === "diff") {
+            content.append(
+              el("p", "Changes that would be published: current wiki → proposed documentation.", "explain"),
+              renderDiff(detail.diff),
+            );
+          } else if (view === "wiki") {
+            content.append(
+              el(
+                "p",
+                "Corrections made on the wiki since its recorded publication or imported revision. Keep useful corrections in the source before publishing.",
+                "explain",
+              ),
+              renderDiff(detail.wikiDiff),
+            );
+            if (!detail.page.safe) {
+              const button = el("button", "Mark wiki revision reviewed");
+              button.addEventListener("click", () => {
+                acceptID = id;
+                $("accept-page").textContent = `${detail.page.title} · revision ${detail.page.revision}`;
+                $("accept-dialog").showModal();
+              });
+              content.append(
+                el(
+                  "p",
+                  "This page is blocked from publication until its wiki revision has been reviewed.",
+                  "warning",
+                ),
+                button,
+              );
+            }
+          } else if (view === "source") {
+            content.append(
+              el(
+                "p",
+                "Generated from " +
+                  detail.page.source +
+                  ". Edit the repository source and refresh to rebuild.",
+                "explain",
+              ),
+              el("pre", detail.source, "source"),
+            );
+          } else {
+            const controls = el("div", undefined, "preview-tools"),
+              choice = el("select");
+            choice.setAttribute("aria-label", "Preview version");
+            for (const [value, label] of [
+              ["proposed", "Proposed page"],
+              ["current", "Current wiki page"],
+            ]) {
+              const option = el("option", label);
+              option.value = value;
+              choice.append(option);
+            }
+            controls.append(
+              choice,
+              el("span", "Rendered by MediaWiki.org; site navigation is omitted.", "muted"),
+            );
+            const frame = el("iframe");
+            frame.title = "Rendered documentation preview";
+            frame.setAttribute("sandbox", "");
+            content.append(controls, frame);
+            const load = async () => {
+              const choiceValue = choice.value;
+              const key = `${id}:${choiceValue}`;
+              frame.srcdoc = '<p style="font:16px system-ui;padding:24px">Rendering preview…</p>';
+              try {
+                let html = previewCache.get(key);
+                if (!html) {
+                  const result = await api("preview", {
+                    id,
+                    session: currentSession,
+                    current: choice.value === "current",
+                  });
+                  html = result.html;
+                  if (session.id !== currentSession) return;
+                  previewCache.set(key, html);
+                }
+                if (
+                  active === id &&
+                  tab === "preview" &&
+                  session.id === currentSession &&
+                  choice.value === choiceValue
+                )
+                  frame.srcdoc = html;
+              } catch (error) {
+                notice("Preview unavailable: " + error.message);
+              }
+            };
+            choice.addEventListener("change", load);
+            await load();
+          }
+        } catch (error) {
+          if (active === id && tab === view) content.replaceChildren(el("p", error.message, "warning"));
+        }
+      }
+      $("search").addEventListener("input", renderList);
+      $("status").addEventListener("change", renderList);
+      $("select").addEventListener("click", () => {
+        for (const p of session.pages.filter(matches).filter(publishable)) selected.add(p.id);
+        renderList();
+      });
+      $("clear").addEventListener("click", () => {
+        selected.clear();
+        renderList();
+      });
+      document.querySelectorAll("[data-tab]").forEach((b) =>
+        b.addEventListener("click", () => {
+          tab = b.dataset.tab;
+          renderContent();
+        }),
+      );
+      $("refresh").addEventListener("click", async () => {
+        busy = true;
+        updateActions();
+        notice("Rebuilding documentation and reading wiki revisions…");
+        try {
+          loadSession(await api("refresh", {}));
+          notice("Refreshed from local sources and current wiki revisions.");
+        } catch (error) {
+          notice(error.message);
+        } finally {
+          busy = false;
+          renderList();
+        }
+      });
+      $("review").addEventListener("click", async () => {
+        busy = true;
+        updateActions();
+        try {
+          plan = await api("plan", { session: session.id, ids: [...selected].sort((a, b) => a - b) });
+          $("confirm-version").textContent = "Documentation version: " + plan.version;
+          $("confirm-pages").replaceChildren(...plan.titles.map((t) => el("li", t)));
+          $("confirm-warnings").replaceChildren();
+          for (const warning of plan.warnings) $("confirm-warnings").append(el("p", warning, "warning"));
+          if (!session.canPublish)
+            $("confirm-warnings").append(
+              el(
+                "p",
+                "Preview mode: start make docs-review with DOCS_UPDATE_USER and DOCS_UPDATE_PASS set to enable publishing.",
+                "warning",
+              ),
+            );
+          $("confirm-result").replaceChildren();
+          $("publish").disabled = !session.canPublish;
+          $("publish").textContent = `Publish ${plan.titles.length} pages`;
+          $("confirm").showModal();
+        } catch (error) {
+          notice(error.message);
+        } finally {
+          busy = false;
+          updateActions();
+        }
+      });
+      $("confirm").addEventListener("cancel", (e) => {
+        if (busy) e.preventDefault();
+      });
+      $("cancel").addEventListener("click", () => $("confirm").close());
+      $("publish").addEventListener("click", async () => {
+        if (!plan) return;
+        busy = true;
+        $("publish").disabled = true;
+        $("cancel").disabled = true;
+        $("confirm-result").textContent = "Checking wiki revisions and publishing the reviewed selection…";
+        updateActions();
+        try {
+          const result = await api("publish", { session: plan.session, ids: plan.ids });
+          session.stale = result.stale;
+          const done = (result.published || []).length;
+          $("confirm-result").replaceChildren(
+            el("p", `${done} page${done === 1 ? "" : "s"} published.`, done ? "success" : ""),
+          );
+          if (result.error) $("confirm-result").append(el("p", result.error, "warning"));
+          if (session.stale)
+            notice("Publication finished or partly completed. Refresh to review the current wiki state.");
+          else if (result.error) $("publish").disabled = false;
+        } catch (error) {
+          $("confirm-result").replaceChildren(el("p", error.message, "warning"));
+          $("publish").disabled = false;
+        } finally {
+          busy = false;
+          $("cancel").disabled = false;
+          renderList();
+        }
+      });
+      $("accept-cancel").addEventListener("click", () => $("accept-dialog").close());
+      $("accept-confirm").addEventListener("click", async () => {
+        const button = $("accept-confirm");
+        button.disabled = true;
+        try {
+          loadSession(await api("accept", { session: session.id, ids: [acceptID] }));
+          $("accept-dialog").close();
+          notice("Recorded the reviewed wiki revision in docs/wiki.json. Include that file in your commit.");
+        } catch (error) {
+          notice(error.message);
+          $("accept-dialog").close();
+        } finally {
+          button.disabled = false;
+        }
+      });
+      api("session")
+        .then(loadSession)
+        .catch((error) => notice(error.message));
+    </script>
+  </body>
+</html>
