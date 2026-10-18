@@ -46,7 +46,7 @@ test_wget() {
     test_gateway_auth_args
     set +e
     local WGET
-    WGET=$(wget -qO- --user="$MWCLI_TEST_GATEWAY_USER" --password="$MWCLI_TEST_GATEWAY_PASSWORD" "$url")
+    WGET=$(curl -fsSL --user "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" "$url")
     echo "$WGET" | grep -q "$expected_match"
     local RESULT=$?
     set -e
