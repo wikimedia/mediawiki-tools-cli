@@ -1,0 +1,79 @@
+name: ARM64 MediaWiki dev stack
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  arm64:
+    name: Linux ARM64 Docker stack
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Go tests and build mw
+        run: |
+          go test ./...
+          go build -o "$RUNNER_TEMP/mw" .
+
+      - name: Verify native ARM64 Docker runtime
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = aarch64
+          test "$(docker info --format '{{.OSType}}/{{.Architecture}}')" = linux/aarch64
+          docker compose version
+
+      - name: Create the MediaWiki dev stack
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/mwcli-config
+          MW_DOCKER_MEDIAWIKI_GET_CODE: "1"
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/mw"
+          context=ci-arm64
+          cleanup() {
+            "$mw" --no-interaction docker --context "$context" destroy >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          "$mw" --no-interaction config show
+          "$mw" --no-interaction docker --context "$context" env set MEDIAWIKI_VOLUMES_CODE "$RUNNER_TEMP/mediawiki"
+          "$mw" --no-interaction docker --context "$context" mediawiki create
+
+          mwdd_dir=$("$mw" --no-interaction docker --context "$context" where 2>&1)
+          test -f "$mwdd_dir/compose/base/compose.yml"
+          test -f "$mwdd_dir/mediawiki/jobrunner-sites"
+
+          mapfile -t containers < <(docker ps -aq --filter "label=com.docker.compose.project=mwcli-mwdd-$context")
+          if [[ ${#containers[@]} -eq 0 ]]; then
+            echo "mwcli did not leave any containers running" >&2
+            docker ps -a
+            exit 1
+          fi
+
+          for container in "${containers[@]}"; do
+            state=$(docker inspect --format '{{.State.Status}}' "$container")
+            image_id=$(docker inspect --format '{{.Image}}' "$container")
+            arch=$(docker image inspect --format '{{.Architecture}}' "$image_id")
+            name=$(docker inspect --format '{{.Name}}' "$container")
+            printf '%s state=%s image_arch=%s\n' "$name" "$state" "$arch"
+            if [[ "$state" != running || "$arch" != arm64 ]]; then
+              docker logs "$container" || true
+              echo "Container failed native ARM64 validation: $name" >&2
+              exit 1
+            fi
+          done
