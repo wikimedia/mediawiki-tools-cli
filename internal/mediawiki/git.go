@@ -233,13 +233,17 @@ func gitCloneCommand(directory, remote string, useShallow bool) *osexec.Cmd {
 	// Identify mwcli to HTTP servers, including in recursive submodule clones.
 	// Keep the override local to this subprocess and respect user configuration.
 	if _, overridden := os.LookupEnv("GIT_HTTP_USER_AGENT"); !overridden {
-		version := cli.VersionDetails.Version.String()
-		if version == "" {
-			version = "dev"
-		}
-		cmd.Env = append(cmd.Environ(), "GIT_HTTP_USER_AGENT=mwcli/"+version+" (https://www.mediawiki.org/wiki/Cli)")
+		cmd.Env = append(cmd.Environ(), "GIT_HTTP_USER_AGENT="+mwcliUserAgent())
 	}
 	return cmd
+}
+
+func mwcliUserAgent() string {
+	version := cli.VersionDetails.Version.String()
+	if version == "" {
+		version = "dev"
+	}
+	return "mwcli/" + version + " (https://www.mediawiki.org/wiki/Cli)"
 }
 
 func gitCloneArguments(directory string, remote string, useShallow bool) []string {

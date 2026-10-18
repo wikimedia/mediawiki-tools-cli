@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func hookTestRepo(t *testing.T) string {
@@ -23,6 +25,10 @@ func hookTestRepo(t *testing.T) string {
 }
 
 func TestInstallGerritCommitHook(t *testing.T) {
+	previousVersion := cli.VersionDetails.Version
+	cli.VersionDetails.Version = cli.Version("1.2.3")
+	t.Cleanup(func() { cli.VersionDetails.Version = previousVersion })
+	const wantUserAgent = "mwcli/1.2.3 (https://www.mediawiki.org/wiki/Cli)"
 	for _, tc := range []struct {
 		name, body string
 		code       int
@@ -34,7 +40,13 @@ func TestInstallGerritCommitHook(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := hookTestRepo(t)
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(tc.code); _, _ = w.Write([]byte(tc.body)) }))
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if got := r.UserAgent(); got != wantUserAgent {
+					t.Errorf("User-Agent = %q, want %q", got, wantUserAgent)
+				}
+				w.WriteHeader(tc.code)
+				_, _ = w.Write([]byte(tc.body))
+			}))
 			defer server.Close()
 			err := installGerritCommitHook(dir, server.URL)
 			if (err != nil) != tc.wantErr {

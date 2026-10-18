@@ -39,7 +39,12 @@ func installGerritCommitHook(directory, source string) error {
 		return err
 	}
 	client := &http.Client{Timeout: 15 * time.Second}
-	response, err := client.Get(source)
+	request, err := http.NewRequest(http.MethodGet, source, nil)
+	if err != nil {
+		return fmt.Errorf("create hook download request: %w", err)
+	}
+	request.Header.Set("User-Agent", mwcliUserAgent())
+	response, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("download commit-msg hook: %w", err)
 	}
