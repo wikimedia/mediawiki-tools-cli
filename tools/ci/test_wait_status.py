@@ -85,7 +85,8 @@ class DispatchTests(unittest.TestCase):
         self.jobs = {name: {"status": "success"} for name in
                      ("checks: [lint]", "checks: [vet]", "test", "build", "prepare-mediawiki")}
         self.jobs.update({reader.REQUEST_JOB: {"id": 19}, reader.GATE_JOB: {"id": 20}})
-        self.api = SimpleNamespace(get=lambda _: {"status": "running"})
+        self.pipeline = {"status": "running", "ref": "main"}
+        self.api = SimpleNamespace(get=lambda _: self.pipeline)
         self.server = SimpleNamespace(api=self.api, config=CONFIG,
                                       state=Path(self.directory.name),
                                       dispatch_lock=threading.Lock(), dispatch_token="test-secret")
@@ -109,8 +110,25 @@ class DispatchTests(unittest.TestCase):
                              "actions/workflows/gitlab-integration.yml/dispatches")
             self.assertEqual(json.loads(request.data), {"ref": "main", "inputs": {
                 "project_id": "16", "job_id": "19", "job_name": reader.REQUEST_JOB,
-                "job_status": "success"}})
+                "job_status": "success", "run_label": "main"}})
             self.assertEqual(request.get_header("Authorization"), "Bearer test-secret")
+
+    def test_dispatch_labels_use_the_pipeline_mr_or_ref(self):
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.status = 204
+        cases = (("refs/merge-requests/687/head", "MR !687"),
+                 ("refs/merge-requests/687/merge", "MR !687"),
+                 ("main", "main"), ("v0.34.0", "v0.34.0"), ("", "pipeline 23"))
+        with patch.object(reader.urllib.request, "build_opener") as opener:
+            opener.return_value.open.return_value = response
+            for index, (ref, label) in enumerate(cases):
+                with self.subTest(ref=ref):
+                    self.pipeline["ref"] = ref
+                    job = {**self.job, "id": 30 + index, "ref": "untrusted-client-ref"}
+                    self.jobs[reader.REQUEST_JOB]["id"] = job["id"]
+                    self.assertEqual(self.launch(job)["state"], "success")
+                    request = opener.return_value.open.call_args.args[0]
+                    self.assertEqual(json.loads(request.data)["inputs"]["run_label"], label)
 
     def test_dispatch_accepts_response_with_workflow_run_details(self):
         response = unittest.mock.MagicMock()

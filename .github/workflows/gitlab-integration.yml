@@ -1,5 +1,5 @@
-name: GitLab native integration
-run-name: GitLab integration request ${{ inputs.job_id }}
+name: GitLab integration
+run-name: GitLab integration${{ inputs.run_label && format(' {0}', inputs.run_label) || '' }}
 
 on:
   workflow_dispatch:
@@ -11,6 +11,9 @@ on:
       job_id:
         description: Successful integration-github-request job ID
         required: true
+        type: string
+      run_label:
+        description: GitLab MR or ref (display only)
         type: string
       job_name:
         description: GitLab job name
@@ -71,7 +74,7 @@ jobs:
           if-no-files-found: error
 
   integration:
-    name: Native integration (${{ matrix.test }})
+    name: Integration (${{ matrix.test }})
     needs: prepare
     if: needs.prepare.outputs.active == 'true'
     permissions:

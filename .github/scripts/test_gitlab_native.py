@@ -160,7 +160,7 @@ class CallbackTests(unittest.TestCase):
             attempt = 2 if "/attempts/2/" in request.full_url else 1
             tests = ["repoclient"] if attempt == 2 else list(native.TESTS)
             return io.BytesIO(json.dumps({"jobs": [
-                {"name": f"Native integration ({name}) / Test", "conclusion": "success",
+                {"name": f"Integration ({name}) / Test", "conclusion": "success",
                  "html_url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i}"}
                 for i, name in enumerate(tests, 1)
             ]}).encode())
