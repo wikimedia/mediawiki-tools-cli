@@ -390,7 +390,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 		authenticated := false
 		if value := r.PostForm.Get("login_token"); value != "" {
 			authenticated = g.consumeLoginLink(value, origin)
-			message = "Login link expired or already used. Run mw docker traefik credentials for a new one."
+			message = "Login link expired or already used. Run mw dev traefik credentials for a new one."
 		} else {
 			authenticated = g.credentialsMatch(r.PostForm.Get("username"), r.PostForm.Get("password"))
 			message = "Username or password is incorrect."
@@ -448,14 +448,14 @@ var loginPage = template.Must(template.New("login").Parse(`<!DOCTYPE html>
 </head>
 <body>
     <a class="cdx-link wm-skip-link" href="#main">Skip to content</a>
-    <header class="wm-header"><span class="wm-brand">a Wikimedia CLI</span><span>Docker development</span></header>
+    <header class="wm-header"><span class="wm-brand">a Wikimedia CLI</span><span>Development environment</span></header>
     <main id="main" class="wm-auth">
         <section class="cdx-card" aria-labelledby="gateway-heading">
             <div class="cdx-card__text wm-stack">
                 <div>
                     <h1 id="gateway-heading">{{if .Logout}}Sign out of the gateway{{else}}Sign in to the gateway{{end}}</h1>
                     {{if .Logout}}<p class="wm-description">End your gateway session on this device.</p>
-                    {{else}}<p class="wm-description">Use the credentials shown by <code>mw docker traefik credentials</code>.</p>{{end}}
+                    {{else}}<p class="wm-description">Use the credentials shown by <code>mw dev traefik credentials</code>.</p>{{end}}
                 </div>
                 {{if .Error}}
                 <div id="login-error" class="cdx-message cdx-message--block cdx-message--error" role="alert">

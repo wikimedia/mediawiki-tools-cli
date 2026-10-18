@@ -49,9 +49,9 @@ make build
 
 The resulting binary will be located at `./bin/mw`.
 
-### Using the MediaWiki development environment with external hostnames
+### Using the development environment with external hostnames
 
-The Docker development environment normally selects a wiki database from the first label in the request hostname. To serve the default wiki at an additional hostname, configure these comma-separated context variables:
+The development environment normally selects a wiki database from the first label in the request hostname. To serve the default wiki at an additional hostname, configure these comma-separated context variables:
 
 - `MEDIAWIKI_VIRTUAL_HOSTS` controls the wildcard hostnames registered in the local DNS proxy. It defaults to `*.mediawiki.local.wmftest.net`; Traefik routes unmatched hostnames to the default wiki.
 - `MEDIAWIKI_DEFAULT_HOSTS` maps exact hostnames to the configured default wiki database (`default` unless changed).
@@ -61,18 +61,18 @@ Add the hostname to `MEDIAWIKI_VIRTUAL_HOSTS` and `MEDIAWIKI_DEFAULT_HOSTS` in t
 
 ### Traefik proxy and path gateway
 
-The local development environment uses Traefik as its web proxy. It listens on the configured `PORT` (8080 by default), routing the existing local virtual hosts as well as `/proxy/<service>/` paths. MediaWiki keeps its hostname based wiki selection for `*.mediawiki.local.wmftest.net`; the path gateway maps `/proxy/<database>/...` to the matching wiki, and an unmatched hostname uses the default wiki. The dashboard is available at `/proxy/dashboard/`, and web services with Traefik Compose labels are discovered as they start. Set `<SERVICE>_PROXY_PATH` to customize a path route prefix. Authentication is enabled by default; the first Docker service create generates a password. Show it with `mw docker traefik credentials`. Stop the proxy with `mw docker traefik stop` or remove it with `mw docker traefik destroy`.
+The development environment uses Traefik as its web proxy. It listens on the configured `PORT` (8080 by default), routing the existing local virtual hosts as well as `/proxy/<service>/` paths. MediaWiki keeps its hostname based wiki selection for `*.mediawiki.local.wmftest.net`; the path gateway maps `/proxy/<database>/...` to the matching wiki, and an unmatched hostname uses the default wiki. The dashboard is available at `/proxy/dashboard/`, and web services with Traefik Compose labels are discovered as they start. Set `<SERVICE>_PROXY_PATH` to customize a path route prefix. Authentication is enabled by default; the first Docker service create generates a password. Show it with `mw dev traefik credentials`. Stop the proxy with `mw dev traefik stop` or remove it with `mw dev traefik destroy`.
 
-Proxy routes use a gateway login page and a signed session cookie that expires after 12 hours. The first Docker service `create` generates a random password for the `wm` user and saves it with owner-only permissions; show it with `mw docker traefik credentials`. The credentials command also prints single-use login links for localhost and any active Cloudflare Quick Tunnel, valid for five minutes; use `--url` to select a different gateway URL. Existing credentials are preserved on upgrade. Sign out through the dashboard or `/_wm/logout`. Application logins and Bearer tokens work independently of the gateway session. Scripts can still use HTTP Basic credentials, for example `curl -u wm:PASSWORD http://localhost:8080/proxy/dashboard/api/status`. To disable proxy authentication for a context, set `TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file` in its `.env` and recreate the web services. The login service and GET-only Docker API proxy are internal and publish no ports. Gateway URLs use `/_wm/`; old `/_mwcli/` links and signed session cookies remain supported during upgrades. Run `mw docker compose up -- -d --force-recreate gateway-auth traefik` after updating the CLI to load the new gateway code.
+Proxy routes use a gateway login page and a signed session cookie that expires after 12 hours. The first Docker service `create` generates a random password for the `wm` user and saves it with owner-only permissions; show it with `mw dev traefik credentials`. The credentials command also prints single-use login links for localhost and any active Cloudflare Quick Tunnel, valid for five minutes; use `--url` to select a different gateway URL. Existing credentials are preserved on upgrade. Sign out through the dashboard or `/_wm/logout`. Application logins and Bearer tokens work independently of the gateway session. Scripts can still use HTTP Basic credentials, for example `curl -u wm:PASSWORD http://localhost:8080/proxy/dashboard/api/status`. To disable proxy authentication for a context, set `TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file` in its `.env` and recreate the web services. The login service and GET-only Docker API proxy are internal and publish no ports. Gateway URLs use `/_wm/`; old `/_mwcli/` links and signed session cookies remain supported during upgrades. Run `mw dev compose up -- -d --force-recreate gateway-auth traefik` after updating the CLI to load the new gateway code.
 
 To expose the gateway from a development machine that is not directly reachable, start an optional tunnel. Cloudflare remains the default:
 
 ```sh
-mw docker tunnel start
-mw docker tunnel start --provider holesail
+mw dev tunnel start
+mw dev tunnel start --provider holesail
 ```
 
-Select `cloudflare` or `holesail` with `--provider`, or set the context default with `mw docker env set TUNNEL_PROVIDER holesail`. A successful `start` remembers the provider and stops any running tunnel using the other provider. If startup fails, the previous tunnel remains running. `mw docker tunnel status`, `url`, and `logs --follow` use the saved provider; `--provider` overrides it for a command. `mw docker tunnel stop` stops both providers while leaving the gateway and wiki running. `stop --provider holesail` stops only Holesail. Gateway authentication remains enabled by default with either provider.
+Select `cloudflare` or `holesail` with `--provider`, or set the context default with `mw dev env set TUNNEL_PROVIDER holesail`. A successful `start` remembers the provider and stops any running tunnel using the other provider. If startup fails, the previous tunnel remains running. `mw dev tunnel status`, `url`, and `logs --follow` use the saved provider; `--provider` overrides it for a command. `mw dev tunnel stop` stops both providers while leaving the gateway and wiki running. `stop --provider holesail` stops only Holesail. Gateway authentication remains enabled by default with either provider.
 
 Cloudflare prints a temporary public `trycloudflare.com` HTTPS URL that works in an ordinary browser. Quick Tunnels do not guarantee uptime, have a 200 in-flight request limit, and do not support Server-Sent Events (SSE).
 
@@ -83,7 +83,7 @@ npm install --global holesail@2.4.4
 holesail 'hs://s000...' --host 127.0.0.1 --port 8082
 ```
 
-Then open `http://127.0.0.1:8082/proxy/dashboard/` or `http://127.0.0.1:8082/proxy/default/wiki/Main_Page`, using the gateway login from `mw docker traefik credentials`. The local port can be changed. Holesail does not provide a public browser URL: every connecting computer needs a client. Connections require working peer discovery and peer connectivity on the network. Server restarts generate a new connection string; use `mw docker tunnel url` to retrieve it. HTTP links use the local client origin; Cloudflare and other HTTPS proxies retain their forwarded HTTPS origin.
+Then open `http://127.0.0.1:8082/proxy/dashboard/` or `http://127.0.0.1:8082/proxy/default/wiki/Main_Page`, using the gateway login from `mw dev traefik credentials`. The local port can be changed. Holesail does not provide a public browser URL: every connecting computer needs a client. Connections require working peer discovery and peer connectivity on the network. Server restarts generate a new connection string; use `mw dev tunnel url` to retrieve it. HTTP links use the local client origin; Cloudflare and other HTTPS proxies retain their forwarded HTTPS origin.
 
 For a manual end-to-end Holesail check on a machine with an installed default wiki, default gateway authentication enabled and no active tunnel, run `./tests/test-docker-tunnel-holesail.sh`. It uses a separate client container with Linux host networking on the same VM and checks gateway authentication, the dashboard, wiki pages and the canonical URL. Set `MW_BIN`, `TUNNEL_CONTEXT`, or `CLIENT_PORT` to override its defaults. It stops its test tunnel and client, and restores the previous provider setting. Real public DHT connectivity is tested explicitly here; the normal CI suite uses offline lifecycle tests.
 
@@ -177,7 +177,7 @@ The project is organized into several key directories:
     - `internal/exec`: Wrapper around `exec` for easily running commands and capturing output.
     - `internal/gitlab`: Client for interacting with gitlab.wikimedia.org.
     - `internal/mediawiki`: Interact with a MediaWiki installation directory on disk.
-    - `internal/mwdd`: Package for the docker-compose powered development environment.
+    - `internal/devenv`: Package for the docker-compose powered development environment.
     - `internal/toolhub`: Client for interacting with toolhub.wikimedia.org.
     - `internal/updater`: Code for updating the CLI.
     - `internal/util`: DEPRECATED: Independent packages (slowly being moved to `pkg/`).
@@ -215,7 +215,7 @@ The project is organized into several key directories:
 ### Dev recipe files (`mount/dev/recipes/*.yml`)
 
 This repo includes sample/dev recipe files under `mount/dev/recipes/`.
-They are embedded into the binary and extracted into your mwdd context under `recipes/`.
+They are embedded into the binary and extracted into your development context under `recipes/`.
 
 To validate recipes:
 ```sh
@@ -269,3 +269,5 @@ Wiki edits block automatic publication until reviewed. Documentation artifacts i
 The display brand is `a Wikimedia CLI`; `mw` remains the default command name. `make BINARY_NAME=wm build` builds `bin/wm`, and `make BINARY_NAME=wm release` selects the release filename prefix. Help and shell completion use the invoked executable name; generated documentation uses `cli.DefaultCommandName`. Configuration paths, `MWCLI_` environment variables, telemetry streams, recipe schemas and managed-file markers, Docker resource names, package-registry identity, and the Go module path retain their existing identities during the transition. Cloud VPS project names, CI runner tags, and Phabricator tags refer to existing external resources.
 
 Each platform has one uploaded executable and checksum. When publishing `wm_…` assets, release metadata adds legacy `mw_…` links through the canonical release download URL, preserving old updaters without uploading duplicate binaries. New updaters accept either prefix and either `bin/mw` or `bin/wm` in CI archives (`.exe` on Windows); updates preserve the installed executable's path and name.
+
+Use `mw dev` for the development environment (`docker` remains a command alias). Its Go packages are `commands/dev` and `internal/devenv`. Existing context directories, Compose project names and installed wiki credentials keep their legacy identities; `/mwdd/MwddSettings.php` remains a compatibility shim for existing `LocalSettings.php` files. New installations use `/wm-dev/DevSettings.php`.

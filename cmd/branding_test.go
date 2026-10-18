@@ -55,3 +55,31 @@ func TestExampleRenderingDoesNotRewriteArgumentValues(t *testing.T) {
 		t.Fatal("canonical examples mutated")
 	}
 }
+
+func TestDevelopmentCommandAliases(t *testing.T) {
+	t.Setenv("MWCLI_CONTEXT_TEST", "1")
+	for _, name := range []string{"mw", "wm", "wiki-tool"} {
+		root := NewRootCmd(name)
+		canonical, _, err := root.Find([]string{"dev", "mediawiki", "install"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		legacy, _, err := root.Find([]string{"docker", "mediawiki", "install"})
+		if err != nil || canonical != legacy {
+			t.Fatalf("docker alias did not resolve to dev: %v", err)
+		}
+		if canonical.CommandPath() != name+" dev mediawiki install" {
+			t.Fatalf("unexpected canonical path: %s", canonical.CommandPath())
+		}
+		var out bytes.Buffer
+		root.SetOut(&out)
+		root.SetErr(io.Discard)
+		root.SetArgs([]string{"docker", "--help"})
+		if err := root.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out.String(), "development environment") || !strings.Contains(out.String(), name+" dev mediawiki create") {
+			t.Fatalf("help does not use the new environment name: %s", out.String())
+		}
+	}
+}

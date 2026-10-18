@@ -150,17 +150,17 @@ func TestFetchNormalizesReferenceTitlesAndRejectsHiddenContent(t *testing.T) {
 	for _, hidden := range []bool{false, true} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			content := map[string]interface{}{"content": "reference", "texthidden": hidden}
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"curtimestamp": "2026-10-18T00:00:00Z", "query": map[string]interface{}{"pages": []interface{}{map[string]interface{}{"title": "Cli/ref/mw docker", "revisions": []interface{}{map[string]interface{}{"revid": 42, "slots": map[string]interface{}{"main": content}}}}}}})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"curtimestamp": "2026-10-18T00:00:00Z", "query": map[string]interface{}{"pages": []interface{}{map[string]interface{}{"title": "Cli/ref/mw dev", "revisions": []interface{}{map[string]interface{}{"revid": 42, "slots": map[string]interface{}{"main": content}}}}}}})
 		}))
 		client, err := mwclient.New(server.URL, "test")
 		if err != nil {
 			t.Fatal(err)
 		}
-		state, err := fetchPages(client, []string{"Cli/ref/mw_docker"})
+		state, err := fetchPages(client, []string{"Cli/ref/mw_dev"})
 		if hidden && err == nil {
 			t.Fatal("unreadable content treated as writable")
 		}
-		if !hidden && (err != nil || state.Pages["Cli/ref/mw_docker"].Revision != 42) {
+		if !hidden && (err != nil || state.Pages["Cli/ref/mw_dev"].Revision != 42) {
 			t.Fatalf("title normalization failed: %v", err)
 		}
 		server.Close()

@@ -8,7 +8,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki from your term
 - **Wikis:** Read and edit pages on MediaWiki wikis.
 - **Cloud VPS:** Find instances, connect over SSH, and manage compute and storage.
 - **Code and collaboration:** Work with GitLab and Gerrit, and search Wikimedia code.
-- **Local development:** Run MediaWiki and supporting services with Docker.
+- **Development environments:** Run MediaWiki and supporting services with `mw dev` and Docker Compose, on your machine or a remote host.
 - **Updates:** Update the CLI from releases or CI builds.
 
 ## Getting Started

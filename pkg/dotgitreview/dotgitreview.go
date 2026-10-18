@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gopkg.in/ini.v1"
 )
 
@@ -26,7 +26,7 @@ func ForCWD() (*GitReview, error) {
 
 // ForDirectory returns the GitReview file for the given directory.
 func ForDirectory(dir string) (*GitReview, error) {
-	mwdd.DefaultForUser()
+	devenv.DefaultForUser()
 	for {
 		if _, err := os.Stat(dir + "/.gitreview"); os.IsNotExist(err) {
 			dir = filepath.Dir(dir)

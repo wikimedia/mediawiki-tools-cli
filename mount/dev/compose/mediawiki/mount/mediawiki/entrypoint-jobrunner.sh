@@ -8,14 +8,14 @@ set -u
 set -o pipefail
 
 # Print the last modified time of this file
-RUN_LAST_MODIFIED=$(stat -c %y /mwdd/entrypoint-jobrunner.sh)
-JOBRUNNER_SITES_FILE=/mwdd-runtime/jobrunner-sites
+RUN_LAST_MODIFIED=$(stat -c %y /wm-dev/entrypoint-jobrunner.sh)
+JOBRUNNER_SITES_FILE=/wm-dev-runtime/jobrunner-sites
 echo "Last modified: $RUN_LAST_MODIFIED"
 echo "Running..."
 
 # Keep running, as long as the file hasn't changed
 # This means file changes will exit, and cause a restart
-while [ "$RUN_LAST_MODIFIED" = "$(stat -c %y /mwdd/entrypoint-jobrunner.sh)" ]; do
+while [ "$RUN_LAST_MODIFIED" = "$(stat -c %y /wm-dev/entrypoint-jobrunner.sh)" ]; do
     # If the file doesnt exist, or is empty, sleep and skip
     if [ ! -f "$JOBRUNNER_SITES_FILE" ] || [ ! -s "$JOBRUNNER_SITES_FILE" ]; then
         echo "No sites to run jobs for, sleeping..."

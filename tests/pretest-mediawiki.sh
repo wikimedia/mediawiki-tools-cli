@@ -25,7 +25,7 @@ fi
 # Create a fresh LocalSettings.php file
 rm -f .mediawiki/LocalSettings.php
 echo "<?php" >> .mediawiki/LocalSettings.php
-echo "require_once '/mwdd/MwddSettings.php';" >> .mediawiki/LocalSettings.php
+echo "require_once '/wm-dev/DevSettings.php';" >> .mediawiki/LocalSettings.php
 echo "wfLoadSkin( 'Vector' );" >> .mediawiki/LocalSettings.php
 echo "error_reporting(error_reporting() & ~(E_WARNING | E_DEPRECATED));" >> .mediawiki/LocalSettings.php
 

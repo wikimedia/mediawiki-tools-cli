@@ -322,6 +322,23 @@ func generate(config configuration) error {
 			return err
 		}
 	}
+	// Preserve links to the published docker command reference after making dev canonical.
+	prefix := config.ReferenceRoot + "/" + root.Name() + "_dev"
+	for _, item := range documents {
+		if item.Title != prefix && !strings.HasPrefix(item.Title, prefix+"_") {
+			continue
+		}
+		title := config.ReferenceRoot + "/" + root.Name() + "_docker" + strings.TrimPrefix(item.Title, prefix)
+		file := filepath.Join(refDir, strings.TrimPrefix(title, config.ReferenceRoot+"/")+".md")
+		redirect := document{title, "commands/", file, strings.TrimSuffix(file, ".md") + ".wiki"}
+		if err := os.WriteFile(redirect.Markdown, []byte("[Command reference]("+wikiURL(config, item.Title)+")\n"), 0o644); err != nil {
+			return err
+		}
+		if err := os.WriteFile(redirect.Wikitext, []byte(marked("#REDIRECT [["+item.Title+"]]\n")), 0o644); err != nil {
+			return err
+		}
+		documents = append(documents, redirect)
+	}
 	if err := writeJSON(filepath.Join(outputDir, "pages.json"), documents); err != nil {
 		return err
 	}

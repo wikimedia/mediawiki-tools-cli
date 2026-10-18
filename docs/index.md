@@ -6,7 +6,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki. Examples use 
 
 - [Install the CLI](guides/installation.md)
 - [Keep it up to date](guides/updating.md)
-- [Create a local MediaWiki environment](guides/mediawiki.md)
+- [Create a development environment](guides/mediawiki.md)
 - [Use the gateway, dashboard and tunnels](guides/gateway.md)
 - [Browse the command reference](https://www.mediawiki.org/wiki/Cli/ref)
 

@@ -61,7 +61,7 @@ type ServiceConfig struct {
 }
 
 var (
-	// Services to check - these match the services in MwddSettings.php
+	// Services to check - these match the services in DevSettings.php
 	servicesToCheck = []ServiceConfig{
 		{Name: "mysql", HasUI: false},
 		{Name: "mysql-replica", HasUI: false},
@@ -121,7 +121,7 @@ func init() {
 }
 
 // checkHost checks if a hostname resolves to something other than itself
-// This is the same check used in MwddSettings.php
+// This is the same check used in DevSettings.php
 func checkHost(hostname string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), dnsLookupTimeout)
 	defer cancel()
@@ -400,7 +400,7 @@ const dashboardHTML = `<!DOCTYPE html>
     <a class="cdx-link wm-skip-link" href="#main">Skip to content</a>
     <header class="wm-header">
         <span class="wm-brand">a Wikimedia CLI</span>
-        <span>Docker development</span>
+        <span>Development environment</span>
         {{if .BasePath}}<nav aria-label="Gateway"><a class="cdx-link" href="/_wm/logout">Sign out of the gateway</a></nav>{{end}}
     </header>
     <main id="main" class="wm-page wm-stack">
@@ -468,7 +468,7 @@ const dashboardHTML = `<!DOCTYPE html>
                         </div>
                     </li>
                     {{else}}
-                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw docker mediawiki install</code> to add your first site.</span></div></li>
+                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw dev mediawiki install</code> to add your first site.</span></div></li>
                     {{end}}
                 </ul>
             </section>

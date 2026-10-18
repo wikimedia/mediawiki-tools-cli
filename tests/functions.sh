@@ -30,7 +30,7 @@ test_file_contains() {
 test_gateway_auth_args() {
 	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ] || [ -z "${MWCLI_TEST_GATEWAY_USER:-}" ]; then
 		local credentials
-		credentials=$("$SCRIPT_DIR/../bin/mw" docker traefik credentials)
+		credentials=$("$SCRIPT_DIR/../bin/mw" dev traefik credentials)
 		MWCLI_TEST_GATEWAY_PASSWORD=$(echo "$credentials" | sed -n 's/^Password: //p' | tail -n 1)
 		MWCLI_TEST_GATEWAY_USER=$(echo "$credentials" | sed -n 's/^Username: //p' | tail -n 1)
 	fi

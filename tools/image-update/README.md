@@ -1,6 +1,6 @@
 # image-update
 
-Check and update container image references used by the local development environment.
+Check and update container image references used by the development environment.
 
 Data about currently used container images is stored in `data.yml`.
 

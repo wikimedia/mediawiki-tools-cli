@@ -3,8 +3,8 @@
 # This file grabs the position that we will want to start replication at and stores it in a file.
 # This data is then used by the replica to start replicating
 
-position_file=/mwdd-connector/mysql_position
-file_file=/mwdd-connector/mysql_file
+position_file=/wm-dev-connector/mysql_position
+file_file=/wm-dev-connector/mysql_file
 
 # Reuse saved coordinates only when their contents are valid. The old script
 # could leave newline-only files when MySQL was still initializing.

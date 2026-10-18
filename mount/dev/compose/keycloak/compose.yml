@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
     entrypoint: /opt/keycloak/bin/kc.sh start-dev
     volumes:
-    - ./compose/keycloak/mount/keycloak:/mwdd:ro
+    - ./compose/keycloak/mount/keycloak:/wm-dev:ro
     environment:
       - KC_HTTP_RELATIVE_PATH=/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}
       - KC_PROXY=edge

@@ -61,7 +61,7 @@ test: $(GOVVV) generate
 
 .PHONY: recipe-validate
 recipe-validate:
-	go test ./internal/mwdd/recipe -run TestParseRecipeExamples
+	go test ./internal/devenv/recipe -run TestParseRecipeExamples
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate

@@ -19,17 +19,17 @@ function finish {
     docker ps
 
     # Destroy it all
-    test_command_success ./bin/mw docker destroy --no-interaction
+    test_command_success ./bin/mw dev destroy --no-interaction
 
     # Clean up & make sure no services are running
     test_docker_ps_service_count 0
-    if ./bin/mw docker hosts writable --no-interaction; then
-        test_command_success ./bin/mw docker hosts remove --no-interaction
+    if ./bin/mw dev hosts writable --no-interaction; then
+        test_command_success ./bin/mw dev hosts remove --no-interaction
     else
         echo "sudo needed for hosts file modification!"
-        test_command_success sudo -E ./bin/mw docker hosts remove --no-interaction
+        test_command_success sudo -E ./bin/mw dev hosts remove --no-interaction
     fi
-    test_command_success ./bin/mw docker env clear --no-interaction
+    test_command_success ./bin/mw dev env clear --no-interaction
 }
 
 # Handle FINISH=1 environment variable
@@ -38,16 +38,16 @@ _handle_finish_if_needed
 trap _finish_wrapper EXIT
 
 # Set values needed for non-interactive runs
-test_command_success ./bin/mw docker env clear
+test_command_success ./bin/mw dev env clear
 MWDIR=$(pwd)/.mediawiki
-test_command_success ./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR} --no-interaction
+test_command_success ./bin/mw dev env set MEDIAWIKI_VOLUMES_CODE ${MWDIR} --no-interaction
 
 # Setup hosts
-if ./bin/mw docker hosts writable --no-interaction; then
-    test_command_success ./bin/mw docker hosts add --no-interaction --host client.mediawiki.local.wmftest.net
+if ./bin/mw dev hosts writable --no-interaction; then
+    test_command_success ./bin/mw dev hosts add --no-interaction --host client.mediawiki.local.wmftest.net
 else
     echo "sudo needed for hosts file modification!"
-    test_command_success sudo -E ./bin/mw docker hosts add --no-interaction --host client.mediawiki.local.wmftest.net
+    test_command_success sudo -E ./bin/mw dev hosts add --no-interaction --host client.mediawiki.local.wmftest.net
 fi
 
 # Validate and apply the recipe
@@ -55,15 +55,15 @@ test_command_success ./bin/mw dev recipe validate --name wikibase-repoclient
 test_command_success ./bin/mw dev recipe --name wikibase-repoclient
 
 # Make sure expected services are there
-test_command ./bin/mw docker docker-compose ps "mediawiki-jobrunner"
-test_command ./bin/mw docker docker-compose ps "mysql"
+test_command ./bin/mw dev docker-compose ps "mediawiki-jobrunner"
+test_command ./bin/mw dev docker-compose ps "mysql"
 
 # Check expected hosts are present
 test_file_contains "/etc/hosts" "default.mediawiki.local.wmftest.net"
 test_file_contains "/etc/hosts" "client.mediawiki.local.wmftest.net"
 
 # Check both sites respond
-PORT=$(./bin/mw docker env get PORT)
+PORT=$(./bin/mw dev env get PORT)
 test_wget http://default.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page "MediaWiki"
 # TODO: Re-enable checking rendered "hello" content after investigating
 # intermittent client-site readiness/content seeding race in CI.

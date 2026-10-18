@@ -17,7 +17,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
-	"gitlab.wikimedia.org/repos/releng/cli/commands/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev"
 	eventscmd "gitlab.wikimedia.org/repos/releng/cli/commands/events"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
@@ -166,7 +166,7 @@ func NewRootCmd(name string) *cobra.Command {
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
-		docker.NewCmd(),
+		dev.NewCmd(),
 		wiki.NewWikiCmd(),
 		quip.NewQuipCmd(),
 		phabricatorcmd.NewPhabricatorCmd(),
@@ -322,9 +322,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			}()
 		}
 	}
-
-	// mwdd mode (always...)
-	cli.MwddIsDevAlias = true
 
 	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
 	// Override the UsageTemplate so that:
