@@ -78,3 +78,32 @@ include:
 #         fi
 
 #         gosec ${GOLANG_GOSEC_OPTIONS}
+
+# Trial only: exercise the separate waiting service without downloading source.
+wait-pool-smoke:
+  stage: test
+  image: python:3.13-alpine
+  tags: [mwcli-wait]
+  needs: []
+  dependencies: []
+  services: []
+  cache: []
+  parallel: 3
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - |
+      python3 - <<'PY'
+      import os, time
+      from pathlib import Path
+      memory = int(Path('/sys/fs/cgroup/memory.max').read_text())
+      quota, period = map(int, Path('/sys/fs/cgroup/cpu.max').read_text().split())
+      cpus = sorted(os.sched_getaffinity(0))
+      assert memory == 64 * 1024 * 1024, memory
+      assert quota / period <= 0.10, (quota, period)
+      assert len(cpus) == 1, cpus
+      assert not Path('/var/run/docker.sock').exists()
+      print('Memory limit:', memory, 'CPU quota:', quota / period, 'CPU set:', cpus, flush=True)
+      time.sleep(15)
+      print('Lightweight waiting job completed.')
+      PY
