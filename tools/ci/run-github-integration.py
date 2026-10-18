@@ -15,10 +15,25 @@ from github_status import GitLab, PROJECT, REQUEST_JOB, pipeline_jobs
 from integration_tests import TESTS
 
 
+def test_shell():
+    if os.name != "nt":
+        return "bash"
+    # Windows also ships a bash.exe that launches WSL. Use Git for Windows'
+    # Bash explicitly, as GitHub does for its shell: bash workflow steps.
+    git = shutil.which("git")
+    if git:
+        for directory in Path(git).resolve().parents:
+            bash = directory / "bin/bash.exe"
+            if bash.is_file():
+                return str(bash)
+    raise RuntimeError("Git for Windows Bash is required to run integration tests")
+
+
 def main():
     name = sys.argv[1]
     if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", name):
         raise ValueError("invalid integration test name")
+    shell = test_shell()
     script = TESTS.get(name, f"test-{name}.sh")
     source = Path.cwd()
     inputs = source.parent / "inputs"
@@ -41,7 +56,7 @@ def main():
     else:
         binary = "bin/mw.exe" if os.name == "nt" else "bin/mw"
         subprocess.run(["go", "build", "-o", binary, "."], cwd=source, env=env, check=True)
-    process = subprocess.Popen(["bash", f"tests/{script}"], cwd=source, env=env,
+    process = subprocess.Popen([shell, f"tests/{script}"], cwd=source, env=env,
                                start_new_session=os.name != "nt")
     api = GitLab()  # This job has no GitLab token or GitHub write token.
     try:

@@ -201,7 +201,8 @@ integration-github-request:
         [{"platform":"linux-amd64","test":"docker-general"},
          {"platform":"linux-amd64","test":"all-databases"},
          {"platform":"linux-amd64","test":"mysql-cycle"},
-         {"platform":"linux-amd64","test":"repoclient"}]
+         {"platform":"linux-amd64","test":"repoclient"},
+         {"platform":"windows-amd64","test":"windows-update"}]
     cache: []
     rules:
       - if: '$CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
