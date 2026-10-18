@@ -18,7 +18,9 @@ func NewCmd() *cobra.Command {
 	cmd.Long = "Traefik is mwdd's default web proxy and replaces nginx. It listens on the configured PORT " +
 		"(8080 by default) and routes local virtual hosts and /proxy paths. It discovers services through " +
 		"Traefik Compose labels and a read-only Docker API proxy. Authentication is enabled " +
-		"by default; 'mw docker traefik create' generates a password. Set TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file " +
+		"by default with a cookie-based gateway login; 'mw docker traefik create' generates a password. " +
+		"Sessions expire after 12 hours. HTTP Basic credentials remain supported for scripts. " +
+		"Set TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file " +
 		"in the context environment to disable authentication. Configure TRAEFIK_BIND_ADDR to change the bind address."
 
 	cmd.AddCommand(&cobra.Command{

@@ -41,6 +41,9 @@ func EnsureTraefikAuth() error {
 	if err := os.MkdirAll(authDir, 0o700); err != nil {
 		return err
 	}
+	if err := ensureTraefikSessionKey(authDir); err != nil {
+		return err
+	}
 	usersPath := filepath.Join(authDir, "users")
 	credentialsPath := filepath.Join(authDir, "credentials")
 	if _, err := os.Stat(usersPath); err == nil {
@@ -68,4 +71,31 @@ func EnsureTraefikAuth() error {
 	}
 	fmt.Printf("Traefik proxy credentials generated and saved to %s\n%s", credentialsPath, strings.TrimSpace(credentials)+"\n")
 	return nil
+}
+
+// Keep the signing key private and stable across gateway restarts.
+func ensureTraefikSessionKey(authDir string) error {
+	path := filepath.Join(authDir, "session-key")
+	if key, err := os.ReadFile(path); err == nil {
+		if len(key) != 32 {
+			return fmt.Errorf("invalid gateway session key: %s", path)
+		}
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(key); err != nil {
+		file.Close()
+		os.Remove(path)
+		return err
+	}
+	return file.Close()
 }

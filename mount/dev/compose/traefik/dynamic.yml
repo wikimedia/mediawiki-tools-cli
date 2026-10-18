@@ -1,9 +1,29 @@
 http:
+  routers:
+    gateway-login:
+      rule: Path(`/_mwcli/login`) || Path(`/_mwcli/logout`)
+      priority: 1000
+      entryPoints:
+        - web
+      service: gateway-login
+  services:
+    gateway-login:
+      loadBalancer:
+        servers:
+          - url: http://gateway-auth:8080
   middlewares:
     gateway-auth:
-      basicAuth:
-        usersFile: /etc/traefik/auth/users
-        removeHeader: true
+      forwardAuth:
+        address: http://gateway-auth:8080/check
+        trustForwardHeader: true
+        preserveLocationHeader: true
+        maxResponseBodySize: 8192
+        authRequestHeaders:
+          - Authorization
+          - Cookie
+          - Accept
+        authResponseHeaders:
+          - Authorization
     dashboard-prefix:
       stripPrefix:
         prefixes:

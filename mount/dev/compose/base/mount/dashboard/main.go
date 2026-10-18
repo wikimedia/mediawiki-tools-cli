@@ -496,6 +496,7 @@ const dashboardHTML = `<!DOCTYPE html>
     <div class="container">
         <h1>🐳 MWDD Dashboard</h1>
         <p class="subtitle">MediaWiki Docker Development Environment Status</p>
+        {{if .BasePath}}<p class="access-note"><a href="/_mwcli/logout">Sign out of the gateway</a></p>{{end}}
 
         <div class="tunnel-status">
             {{if .TunnelURL}}
