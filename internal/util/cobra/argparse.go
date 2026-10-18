@@ -10,7 +10,7 @@ For example, an argument of "FOO=bar echo foo" will return ["echo", "foo"] and [
 func CommandAndEnvFromArgs(in []string) (args []string, envs []string) {
 	args = []string{}
 	envs = []string{}
-	regex, _ := regexp.Compile(`^\w+=\w+$`)
+	regex, _ := regexp.Compile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	for _, arg := range in {
 		matched := regex.MatchString(arg)
 		if matched {

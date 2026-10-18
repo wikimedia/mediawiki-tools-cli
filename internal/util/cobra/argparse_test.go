@@ -36,6 +36,18 @@ func TestCommandAndEnvFromArgs(t *testing.T) {
 			wantArgs: []string{"echo", "foo"},
 			wantEnvs: []string{"FOO=bar", "BAR=baz"},
 		},
+		{
+			name:     "Guide environment values",
+			input:    []string{"LOG_DIR=/tmp/recordings", "PHP_IDE_CONFIG=serverName=my wiki", "MW_SERVER=http://mediawiki-web:8080", "EMPTY=", "php", "-r", "echo 1;"},
+			wantArgs: []string{"php", "-r", "echo 1;"},
+			wantEnvs: []string{"LOG_DIR=/tmp/recordings", "PHP_IDE_CONFIG=serverName=my wiki", "MW_SERVER=http://mediawiki-web:8080", "EMPTY="},
+		},
+		{
+			name:     "Runner flags remain arguments",
+			input:    []string{"npm", "run", "selenium-test", "--", "--recordVideo", "--useBrowserHeadless=false", "--maxInstances=1"},
+			wantArgs: []string{"npm", "run", "selenium-test", "--", "--recordVideo", "--useBrowserHeadless=false", "--maxInstances=1"},
+			wantEnvs: []string{},
+		},
 	}
 
 	for _, tt := range tests {
