@@ -58,16 +58,6 @@ Adding a new test or platform row in a GitLab MR runs that MR's script without
 changing or merging another GitHub workflow. Only adding a new runner type requires an executor infrastructure
 update. Invalid platforms, unsafe names and missing planned results fail closed.
 
-Pipelines created before migration, with a single `integration-github` gate,
-retain the original four Docker tests until their GitLab matrix is introduced.
-The waiting service itself has no list of test names.
-
-Roll out this controller update on GitHub `main` first. Then copy the updated
-`github_status.py` and `wait-status.py` to both waiting hosts and restart
-`mwcli-wait-status` using the worker update procedure. This is a one-time
-migration from the old fixed test list. The dispatcher still launches only
-`gitlab-integration.yml` through `integration-github-request`.
-
 ### Native platform workflows
 
 Separate `gitlab-integration-<platform>.yml` workflows support `linux-arm64`,
