@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -32,7 +33,7 @@ func NewCmd() *cobra.Command {
 	var gatewayURL string
 	credentialsCmd := &cobra.Command{
 		Use:   "credentials",
-		Short: "Show or generate the gateway login",
+		Short: "Show gateway credentials and single-use login links",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := filepath.Join(mwdd.DefaultForUser().Directory(), "compose", "traefik", "auth", "credentials")
 			if err := mwdd.EnsureTraefikAuth(); err != nil {
@@ -56,11 +57,22 @@ func NewCmd() *cobra.Command {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Could not create a login link: %v\n", err)
 				return nil
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "\nLogin: %s\nValid for 5 minutes; works once.\n", link)
+			fmt.Fprintf(cmd.OutOrStdout(), "\nLogin: %s\n", link)
+			if gatewayURL == "" {
+				if tunnel := runningTunnelURL(origin, string(credentials)); tunnel != "" {
+					tunnelLink, err := requestLoginLink(tunnel, string(credentials))
+					if err != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "Could not create a tunnel login link: %v\n", err)
+					} else {
+						fmt.Fprintf(cmd.OutOrStdout(), "Tunnel login: %s\n", tunnelLink)
+					}
+				}
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), "Each link is valid for 5 minutes and works once.")
 			return nil
 		},
 	}
-	credentialsCmd.Flags().StringVar(&gatewayURL, "url", "", "Gateway URL for the login link (defaults to localhost; accepts an HTTPS tunnel URL)")
+	credentialsCmd.Flags().StringVar(&gatewayURL, "url", "", "Use only this gateway URL instead of localhost and the active tunnel")
 	cmd.AddCommand(credentialsCmd)
 	return cmd
 }
@@ -74,11 +86,10 @@ func StartGateway() error {
 	return instance.DockerCompose().Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})
 }
 
-// The gateway issues a short-lived code; the CLI never puts the password in a URL.
-func requestLoginLink(origin, credentials string) (string, error) {
+func gatewayRequest(method, origin, path, credentials string) (*http.Request, error) {
 	parsed, err := url.Parse(origin)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return "", fmt.Errorf("expected a gateway origin such as http://localhost:8080")
+		return nil, fmt.Errorf("expected a gateway origin such as http://localhost:8080")
 	}
 	parsed.Path = ""
 	origin = parsed.String()
@@ -92,13 +103,22 @@ func requestLoginLink(origin, credentials string) (string, error) {
 		}
 	}
 	if username == "" || password == "" {
-		return "", fmt.Errorf("gateway credentials are incomplete")
+		return nil, fmt.Errorf("gateway credentials are incomplete")
 	}
-	req, err := http.NewRequest(http.MethodPost, origin+"/_mwcli/login-link", nil)
+	req, err := http.NewRequest(method, origin+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(username, password)
+	return req, nil
+}
+
+// The gateway issues a short-lived code; the CLI never puts the password in a URL.
+func requestLoginLink(origin, credentials string) (string, error) {
+	req, err := gatewayRequest(http.MethodPost, origin, "/_mwcli/login-link", credentials)
 	if err != nil {
 		return "", err
 	}
-	req.SetBasicAuth(username, password)
 	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(req)
 	if err != nil {
@@ -115,8 +135,34 @@ func requestLoginLink(origin, credentials string) (string, error) {
 		return "", fmt.Errorf("invalid login-link response: %w", err)
 	}
 	link, err := url.Parse(result.URL)
-	if err != nil || link.Scheme != parsed.Scheme || link.Host != parsed.Host || link.User != nil || link.Path != "/_mwcli/login" || link.RawQuery != "" || !strings.HasPrefix(link.Fragment, "login=") || strings.TrimPrefix(link.Fragment, "login=") == "" {
+	if err != nil || link.Scheme != req.URL.Scheme || link.Host != req.URL.Host || link.User != nil || link.Path != "/_mwcli/login" || link.RawQuery != "" || !strings.HasPrefix(link.Fragment, "login=") || strings.TrimPrefix(link.Fragment, "login=") == "" {
 		return "", fmt.Errorf("gateway returned an invalid login link")
 	}
 	return result.URL, nil
 }
+
+// Reuse the dashboard's readiness check instead of advertising old tunnel logs.
+func runningTunnelURL(origin, credentials string) string {
+	req, err := gatewayRequest(http.MethodGet, origin, "/proxy/dashboard/api/status", credentials)
+	if err != nil {
+		return ""
+	}
+	client := &http.Client{Timeout: 2 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	response, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return ""
+	}
+	var status struct {
+		TunnelURL string `json:"tunnel_url"`
+	}
+	if json.NewDecoder(io.LimitReader(response.Body, 65536)).Decode(&status) != nil || !activeQuickTunnelURL.MatchString(status.TunnelURL) {
+		return ""
+	}
+	return status.TunnelURL
+}
+
+var activeQuickTunnelURL = regexp.MustCompile(`^https://[a-zA-Z0-9-]+\.trycloudflare\.com$`)

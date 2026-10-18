@@ -47,3 +47,38 @@ func TestRequestLoginLinkRejectsRedirectsAndForeignLinks(t *testing.T) {
 		}
 	}
 }
+
+func TestRunningTunnelURLOnlyReturnsAnActiveQuickTunnel(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, want string
+		status           int
+	}{
+		{"running", `{"tunnel_url":"https://active.trycloudflare.com"}`, "https://active.trycloudflare.com", http.StatusOK},
+		{"stopped or not ready", `{"services":[]}`, "", http.StatusOK},
+		{"unavailable dashboard", "unavailable", "", http.StatusServiceUnavailable},
+		{"wrong response", "not JSON", "", http.StatusOK},
+		{"foreign host", `{"tunnel_url":"https://elsewhere.example"}`, "", http.StatusOK},
+		{"insecure URL", `{"tunnel_url":"http://active.trycloudflare.com"}`, "", http.StatusOK},
+		{"userinfo", `{"tunnel_url":"https://active.trycloudflare.com@elsewhere.example"}`, "", http.StatusOK},
+		{"unexpected path", `{"tunnel_url":"https://active.trycloudflare.com/path"}`, "", http.StatusOK},
+		{"redirect", "", "", http.StatusTemporaryRedirect},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				username, password, ok := r.BasicAuth()
+				if r.Method != http.MethodGet || r.URL.Path != "/proxy/dashboard/api/status" || !ok || username != "alice" || password != "secret" {
+					t.Error("unexpected dashboard request")
+				}
+				if tc.status == http.StatusTemporaryRedirect {
+					w.Header().Set("Location", "/should-not-be-followed")
+				}
+				w.WriteHeader(tc.status)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer server.Close()
+			if got := runningTunnelURL(server.URL, "Username: alice\nPassword: secret\n"); got != tc.want {
+				t.Fatalf("got %q; want %q", got, tc.want)
+			}
+		})
+	}
+}
