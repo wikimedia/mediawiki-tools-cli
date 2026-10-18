@@ -46,7 +46,7 @@ Commit the source fixes and updated `wiki.json`. Acceptance is tied to that snap
 
 ## Add or import a guide
 
-For a new guide, add Markdown under `guides/`, a `source`/`title` entry in `wiki.json`, and a link in `index.md`. Relative Markdown links between mapped guides are converted to wiki URLs. Broken guide links fail the build.
+For a new guide, add Markdown under `guides/`, a `source`/`title` entry in `wiki.json`, and a link in `index.md`. Relative Markdown links between mapped guides are converted to wiki URLs. Broken guide links fail the build. Mapped guides are also bundled for offline reading under `mw help guides`, following their folder paths; `index.md` provides the parent topic. Use `--web` to open the mapped wiki page. Keep command help short and point to a guide for longer workflows.
 
 To adopt an existing wiki page:
 

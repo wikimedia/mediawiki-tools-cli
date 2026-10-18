@@ -4,6 +4,8 @@
 
 Explore Wikimedia data, work with services, and develop MediaWiki. Examples use the default command name, `mw`; the same commands work as `wm` when that is your executable's name.
 
+Read these guides offline with `mw help guides`; for example, `mw help guides dev setup`. Add `--web` to open a guide on MediaWiki.org. Bundled guides match your installed release.
+
 ## Get started
 
 - [Install the CLI](guides/installation.md)

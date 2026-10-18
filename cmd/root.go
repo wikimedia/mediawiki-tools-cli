@@ -173,6 +173,8 @@ func NewRootCmd(name string) *cobra.Command {
 		help.NewOutputTopicCmd(),
 	}...)
 
+	help.AddGuides(mwcliCmd)
+
 	if mwcliCmd.Name() != "mw" {
 		cobrautil.VisitAllSubCommands(mwcliCmd, func(c *cobra.Command) {
 			c.Long = strings.ReplaceAll(c.Long, "mw ", mwcliCmd.Name()+" ")

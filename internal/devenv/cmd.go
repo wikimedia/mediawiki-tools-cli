@@ -466,7 +466,7 @@ func NewImageDockerfileCmdP(service *string) *cobra.Command {
 		Short: "Build the service image from a custom Dockerfile",
 		Long: `Build a service image from a custom Dockerfile. Use set to activate a file, edit to change it, and rebuild to apply changes.
 
-Guide: https://www.mediawiki.org/wiki/Cli/guide/Custom_Dockerfiles`,
+Guide: mw help guides dev dockerfiles`,
 		Example: cobrautil.NormalizeExample(`
 dockerfile set
 dockerfile set ./Dockerfile
