@@ -4,15 +4,25 @@ services:
     image: "${OTEL_IMAGE:-jaegertracing/all-in-one:1.57}"
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.jaeger-host.rule=Host(`${JAEGER_VIRTUAL_HOST:-jaeger.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.jaeger-host.entrypoints=web"
+      - "traefik.http.routers.jaeger-host.service=jaeger"
+      - "traefik.http.routers.jaeger-host.middlewares=local-jaeger-path@docker"
+      - "traefik.http.middlewares.local-jaeger-path.redirectregex.regex=^(https?://[^/]+)(/.*)?$$"
+      - "traefik.http.middlewares.local-jaeger-path.redirectregex.replacement=$${1}/proxy/${JAEGER_PROXY_PATH:-jaeger}$${2}"
+      - "traefik.http.routers.jaeger-local-path.rule=Host(`${JAEGER_VIRTUAL_HOST:-jaeger.local.wmftest.net}`) && (Path(`/proxy/${JAEGER_PROXY_PATH:-jaeger}`) || PathPrefix(`/proxy/${JAEGER_PROXY_PATH:-jaeger}/`))"
+      - "traefik.http.routers.jaeger-local-path.entrypoints=web"
+      - "traefik.http.routers.jaeger-local-path.priority=100"
+      - "traefik.http.routers.jaeger-local-path.service=jaeger"
       - "traefik.http.routers.jaeger.rule=Path(`/proxy/${JAEGER_PROXY_PATH:-jaeger}`) || PathPrefix(`/proxy/${JAEGER_PROXY_PATH:-jaeger}/`)"
       - "traefik.http.routers.jaeger.entrypoints=web"
-      - "traefik.http.routers.jaeger.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-jaeger@docker,forwarded-https@file"
-      - "traefik.http.middlewares.strip-jaeger.stripprefix.prefixes=/proxy/${JAEGER_PROXY_PATH:-jaeger}"
+      - "traefik.http.routers.jaeger.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.services.jaeger.loadbalancer.server.port=${JAEGER_VIRTUAL_PORT:-16686}"
     restart: unless-stopped
     depends_on:
-      - nginx-proxy
+      - traefik
     environment:
+      - QUERY_BASE_PATH=/proxy/${JAEGER_PROXY_PATH:-jaeger}
       - VIRTUAL_HOST=${JAEGER_VIRTUAL_HOST:-jaeger.local.wmftest.net}
       - VIRTUAL_PORT=${JAEGER_VIRTUAL_PORT:-16686}
       - DEFAULT_EXPOSE_PORT=16686

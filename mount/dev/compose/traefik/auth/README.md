@@ -1,0 +1,1 @@
+The gateway stores its generated credentials and session signing key here with owner-only permissions. The internal authentication service mounts this directory read-only. These generated files must not be committed.

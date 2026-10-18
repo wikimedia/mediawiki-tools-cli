@@ -46,11 +46,18 @@ This services will be accessible on your host machine via the virtual host speci
 services:
   <service-name>:
     image: <service-image>
-    environment:
-      - VIRTUAL_HOST=<service-name>.local.wmftest.net
-      - VIRTUAL_PORT=<service-port>
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.<service-name>-host.rule=Host(`<service-name>.local.wmftest.net`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.<service-name>-host.entrypoints=web"
+      - "traefik.http.routers.<service-name>-host.service=<service-name>"
+      - "traefik.http.routers.<service-name>.rule=Path(`/proxy/<service-name>`) || PathPrefix(`/proxy/<service-name>/`)"
+      - "traefik.http.routers.<service-name>.entrypoints=web"
+      - "traefik.http.routers.<service-name>.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-<service-name>@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-<service-name>.stripprefix.prefixes=/proxy/<service-name>"
+      - "traefik.http.services.<service-name>.loadbalancer.server.port=<service-port>"
     depends_on:
-      - nginx-proxy
+      - traefik
     security_opt:
       - label:disable
     dns:
@@ -59,4 +66,4 @@ services:
       - dps
 ```
 
-Note: If you use the docker hosts file integration, you may need to manually add this host to gain access.
+The host-based route keeps local development access open, like the previous nginx proxy. The `/proxy/<service-name>/...` route is for the public gateway and requires the generated Traefik login by default. `TRAEFIK_AUTH_MIDDLEWARE` can override the middleware used by gateway routes. Add the local hostname with `mw docker hosts add --host <service-name>.local.wmftest.net` when needed; `VIRTUAL_HOST` and `VIRTUAL_PORT` are not required for Traefik or local DNS.
