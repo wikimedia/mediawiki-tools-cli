@@ -43,7 +43,7 @@ mw dev mediawiki image set REGISTRY/IMAGE:TAG
 mw dev mediawiki create
 ```
 
-Reset the override with `mw dev mediawiki image reset`, then recreate the service. `image dockerfile` commands let you build from your own Dockerfile instead.
+Reset the override with `mw dev mediawiki image reset`, then recreate the service. See [custom Dockerfiles](dockerfiles.md) to build your own image and apply changes with `rebuild`.
 
 ## Stop and resume an environment
 

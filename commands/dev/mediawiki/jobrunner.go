@@ -18,6 +18,7 @@ func NewMediaWikiJobRunnerCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(devenv.NewServiceCreateCmd("mediawiki-jobrunner", ""))
+	cmd.AddCommand(devenv.NewServiceRebuildCmd("mediawiki-jobrunner", ""))
 	cmd.AddCommand(devenv.NewServiceDestroyCmd("mediawiki-jobrunner"))
 	cmd.AddCommand(devenv.NewServiceStopCmd("mediawiki-jobrunner"))
 	cmd.AddCommand(devenv.NewServiceStartCmd("mediawiki-jobrunner"))
