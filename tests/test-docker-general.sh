@@ -202,10 +202,18 @@ test_command_success ./../bin/mw docker mediawiki jobrunner create
 test_command_success ./../bin/mw docker mediawiki jobrunner add-site default
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage1 <<< 'Test content'"
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
-# Job execution is asynchronous. Wait up to 60 seconds for the queue to drain;
-# the assertions below still fail and print the logs if it never finishes.
+# Job execution is asynchronous. An old empty-queue message is not enough:
+# wait for both test pages' jobs to complete and then the queue to drain.
+# The assertions below still print the logs if the wait times out.
+jobrunner_ready=0
 for attempt in {1..60}; do
-    if ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner 2>&1 | grep " Job queue is empty" >/dev/null; then
+    if ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner 2>&1 | awk '
+        /title=Testpage1([[:space:]]|$)/ && / good[[:space:]]*$/ { first_done = 1 }
+        /title=Testpage2([[:space:]]|$)/ && / good[[:space:]]*$/ { second_done = 1 }
+        first_done && second_done && / Job queue is empty/ { drained = 1 }
+        END { exit !drained }
+    '; then
+        jobrunner_ready=1
         break
     fi
     sleep 1
@@ -216,6 +224,11 @@ test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobr
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " STARTING"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " title=Testpage1"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " good"
+if [ "$jobrunner_ready" -ne 1 ]; then
+    echo "FAIL: test page jobs did not complete and drain the queue within 60 attempts"
+    ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner
+    exit 1
+fi
 
 # image get/set/reset alters env
 test_command ./../bin/mw docker env has MEDIAWIKI_IMAGE "var does not exist"

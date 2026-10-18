@@ -18,15 +18,17 @@ sleep 1
 echo "Waiting for MySQL master position files"
 position_wait_attempt=0
 while [ "$position_wait_attempt" -lt 60 ]; do
-    if [ -s "$position_file" ] && [ -s "$file_file" ]; then
+    MYSQL01_Position=$(cat "$position_file" 2>/dev/null || true)
+    MYSQL01_File=$(cat "$file_file" 2>/dev/null || true)
+    if [[ "$MYSQL01_File" =~ ^[^[:space:]]+$ && "$MYSQL01_Position" =~ ^[0-9]+$ ]]; then
         break
     fi
     position_wait_attempt=$((position_wait_attempt + 1))
     sleep 1
 done
 
-if [ ! -s "$position_file" ] || [ ! -s "$file_file" ]; then
-    echo "Position files were not created within 60 seconds; can't start replication"
+if ! [[ "$MYSQL01_File" =~ ^[^[:space:]]+$ && "$MYSQL01_Position" =~ ^[0-9]+$ ]]; then
+    echo "Valid binlog coordinates were not created within 60 attempts; can't start replication"
     exit 1
 fi
 
@@ -42,9 +44,7 @@ mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'flush privileges;'
 
 echo "* Set MySQL01 as master on MySQL02"
 
-# Grab the position that should have been set from the first step of mysql-configure when the master was created
-MYSQL01_Position=$(<$position_file)
-MYSQL01_File=$(<$file_file)
+# Use the coordinates validated above; do not reread files during reconfiguration.
 
 MAIN_IP=$(eval "getent hosts mysql|awk '{print \$1}'")
 echo $MAIN_IP
