@@ -18,6 +18,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
+	composerutil "gitlab.wikimedia.org/repos/releng/cli/internal/composer"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv/recipe"
@@ -1223,11 +1224,22 @@ func syncComposerLocalAndUpdate(m devenv.Environment, thisMW mediawiki.MediaWiki
 			"composer update --with-all-dependencies",
 	}, " && ")
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
-		User:           docker.CurrentUserAndGroupForDockerExecution(),
-		CommandAndArgs: []string{"sh", "-lc", composerCmd},
-	}); err != nil {
-		return fmt.Errorf("composer update (with composer.local.json includes) failed: %w", err)
+	var composerErr error
+	exitCode := composerutil.RunWithRetry(func(stdout, stderr io.Writer) int {
+		composerErr = m.DockerCompose().ExecCommand("mediawiki", dockercompose.ExecOptions{
+			User:           docker.CurrentUserAndGroupForDockerExecution(),
+			CommandAndArgs: []string{"sh", "-lc", composerCmd},
+		}).RunAttachedWithOutput(stdout, stderr)
+		if exitErr, ok := composerErr.(*osexec.ExitError); ok {
+			return exitErr.ExitCode()
+		}
+		if composerErr != nil {
+			return 1
+		}
+		return 0
+	}, os.Stdout, os.Stderr)
+	if exitCode != 0 {
+		return fmt.Errorf("composer update (with composer.local.json includes) failed: %w", composerErr)
 	}
 
 	return nil

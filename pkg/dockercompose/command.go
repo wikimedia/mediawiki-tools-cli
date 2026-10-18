@@ -2,6 +2,7 @@ package dockercompose
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
@@ -23,9 +24,14 @@ func (c Command) logRun() {
 }
 
 func (c Command) RunAttached() error {
-	c.Cmd.Stdout = os.Stdout
+	return c.RunAttachedWithOutput(os.Stdout, os.Stderr)
+}
+
+// RunAttachedWithOutput streams output to the supplied writers and attaches stdin.
+func (c Command) RunAttachedWithOutput(stdout, stderr io.Writer) error {
+	c.Cmd.Stdout = stdout
 	c.Cmd.Stdin = os.Stdin
-	c.Cmd.Stderr = os.Stderr
+	c.Cmd.Stderr = stderr
 	err := c.run()
 	return err
 }

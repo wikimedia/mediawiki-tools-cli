@@ -15,6 +15,8 @@ import (
 )
 
 type ExecOptions struct {
+	// Output receives the combined TTY stream; nil uses os.Stdout.
+	Output     io.Writer
 	Command    []string
 	Env        []string
 	WorkingDir string
@@ -70,9 +72,13 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 
 	// When TTY is ON, just copy stdout https://phabricator.wikimedia.org/T282340
 	// See: https://github.com/docker/cli/blob/70a00157f161b109be77cd4f30ce0662bfe8cc32/cli/command/container/hijack.go#L121-L130
+	output := command.Output
+	if output == nil {
+		output = os.Stdout
+	}
 	outputDone := make(chan error, 1)
 	go func() {
-		_, err := io.Copy(os.Stdout, waiter.Reader)
+		_, err := io.Copy(output, waiter.Reader)
 		outputDone <- err
 	}()
 	go io.Copy(waiter.Conn, os.Stdin)
