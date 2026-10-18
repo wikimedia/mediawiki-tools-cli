@@ -71,3 +71,17 @@ The guides are available under [CC BY-SA 4.0](https://creativecommons.org/licens
 ## Check workflow examples
 
 Run `make docs` to validate guide links and publication mappings, and `make linti` to check help size and command metadata. Runtime examples are covered by `tests/guide-examples.sh`, called from the existing Docker integration jobs: MySQL dump/restore in the MySQL cycle, and Xdebug, port changes and playable Fresh recordings in the general Docker job. Keep those checks aligned when editing their corresponding guides. Use a separate development context for manual checks; the full CI scripts create and destroy their test environment.
+
+## Record a guide
+
+Keep a [VHS](https://github.com/charmbracelet/vhs) `.tape` beside its guide, with the same basename (for example `guides/tools/kubernetes-pod-helloworld.md` and `guides/tools/kubernetes-pod-helloworld.tape`). Keep any recording setup in a matching `.record.sh` script beside them. Commit these sources; generated media stays in the ignored `_recordings/` directory.
+
+```sh
+TOOL=your-tool ./docs/guides/tools/kubernetes-pod-helloworld.record.sh
+```
+
+Install mise and FFmpeg first; mise provides pinned VHS and ttyd versions. Toolforge SSH must work without interactive prompts. If VHS stalls before typing, try a different Chromium executable or launcher named `chrome` at the front of `PATH`.
+
+This recording extracts its manifest from the guide, creates and deletes only `cli-guide-hello`, and forwards localhost port 18080. It refuses to start if that pod exists. After an interrupted recording, stop its port forward and remove only the demo pod before retrying.
+
+For Commons, upload the generated WebM using `A Wikimedia CLI - Guide - <guide-path-with-hyphens> - <language>.webm`, for example `A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm`. Include the source guide/tape, Git revision, recording date and free license in its description. Mark recordings intended for updates with `{{Current}}`; minor corrections can replace the file, while substantially different demonstrations should use a new dated filename, following [Commons’ overwrite guidance](https://commons.wikimedia.org/wiki/Commons:Overwriting_existing_files).
