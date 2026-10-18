@@ -20,7 +20,21 @@ mw dev mediawiki fresh MEDIAWIKI_USER=OtherAdmin npm run selenium-test -- -- --s
 
 ## Record a Selenium video
 
-With a checkout that supports `wdio-mediawiki` video recording, run:
+With a checkout that supports `wdio-mediawiki` video recording, use the shortcut after installing dependencies with `mw dev mediawiki fresh npm ci`:
+
+```sh
+mw dev mediawiki fresh record tests/selenium/specs/recentchanges.js
+```
+
+Omit the spec to record the full Selenium suite, running one spec at a time:
+
+```sh
+mw dev mediawiki fresh record
+```
+
+Under the hood, `record` runs `npm run selenium-test` with `--recordVideo`, `--useBrowserHeadless=false` and `--maxInstances=1`, adding `--spec` when a path is provided. It uses the same Fresh container, wiki settings and working directory as other Fresh commands.
+
+The explicit equivalent for a single spec is:
 
 ```sh
 mw dev mediawiki fresh npm run selenium-test -- -- --recordVideo --useBrowserHeadless=false --maxInstances=1 --spec tests/selenium/specs/recentchanges.js
