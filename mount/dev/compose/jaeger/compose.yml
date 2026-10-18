@@ -2,12 +2,19 @@
 services:
   jaeger:
     image: "${OTEL_IMAGE:-jaegertracing/all-in-one:1.57}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.rule=Path(`/proxy/${JAEGER_PROXY_PATH:-jaeger}`) || PathPrefix(`/proxy/${JAEGER_PROXY_PATH:-jaeger}/`)"
+      - "traefik.http.routers.jaeger.entrypoints=web"
+      - "traefik.http.routers.jaeger.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-jaeger@docker,forwarded-https@file"
+      - "traefik.http.middlewares.strip-jaeger.stripprefix.prefixes=/proxy/${JAEGER_PROXY_PATH:-jaeger}"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=${JAEGER_VIRTUAL_PORT:-16686}"
     restart: unless-stopped
     depends_on:
       - nginx-proxy
     environment:
-      - VIRTUAL_HOST=jaeger.local.wmftest.net
-      - VIRTUAL_PORT=16686
+      - VIRTUAL_HOST=${JAEGER_VIRTUAL_HOST:-jaeger.local.wmftest.net}
+      - VIRTUAL_PORT=${JAEGER_VIRTUAL_PORT:-16686}
       - DEFAULT_EXPOSE_PORT=16686
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10

@@ -15,14 +15,21 @@ services:
 
   dashboard:
     image: "${DASHBOARD_IMAGE:-golang:1.23-alpine}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Path(`/proxy/dashboard`) || PathPrefix(`/proxy/dashboard/`)"
+      - "traefik.http.routers.dashboard.priority=100"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.routers.dashboard.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},dashboard-prefix@file,forwarded-https@file"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=${DASHBOARD_VIRTUAL_PORT:-8080}"
     security_opt:
       - label:disable
     restart: unless-stopped
     working_dir: /app
     command: ["go", "run", "main.go"]
     environment:
-      - VIRTUAL_HOST=dashboard.local.wmftest.net,dash.local.wmftest.net
-      - VIRTUAL_PORT=8080
+      - VIRTUAL_HOST=${DASHBOARD_VIRTUAL_HOST:-dashboard.local.wmftest.net,dash.local.wmftest.net}
+      - VIRTUAL_PORT=${DASHBOARD_VIRTUAL_PORT:-8080}
       - DEFAULT_EXPOSE_PORT=8080
       - PORT=${PORT}
       - DASHBOARD_PORT=8080
@@ -60,6 +67,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./compose/base/mount/nginx/client_max_body_size.conf:/etc/nginx/conf.d/client_max_body_size.conf:ro
       - ./compose/base/mount/nginx/timeouts.conf:/etc/nginx/conf.d/timeouts.conf:ro
+      - ./compose/base/mount/nginx/vhost.d:/etc/nginx/vhost.d:ro
 
 networks:
   dps:
