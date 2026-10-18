@@ -352,6 +352,17 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return fmt.Errorf("update.php was unable to run; fix the issue and rerun update.php: %w", err)
 			}
 
+			if dbType == "sqlite" {
+				// MediaWiki's SqliteDatabaseCreator deliberately uses umask 0177,
+				// overriding DevInstall.php. The web user and host-UID maintenance
+				// commands share this dedicated development data directory.
+				if err := devenv.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+					User: "root", CommandAndArgs: sqlitePermissionsCommand(),
+				}); err != nil {
+					return fmt.Errorf("make development SQLite databases writable: %w", err)
+				}
+			}
+
 			outputDetails := make(map[string]string)
 			outputDetails["User"] = adminUser
 			outputDetails["Pass"] = adminPass
@@ -389,4 +400,8 @@ func installComposerDependencies(run func([]string) int) error {
 		}
 	}
 	return nil
+}
+
+func sqlitePermissionsCommand() []string {
+	return []string{"find", "/var/www/html/w/cache/docker", "-maxdepth", "1", "-type", "f", "-name", "*.sqlite", "-exec", "chmod", "0666", "{}", "+"}
 }
