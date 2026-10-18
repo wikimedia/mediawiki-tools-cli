@@ -202,6 +202,14 @@ test_command_success ./../bin/mw docker mediawiki jobrunner create
 test_command_success ./../bin/mw docker mediawiki jobrunner add-site default
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage1 <<< 'Test content'"
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
+# Job execution is asynchronous. Wait up to 60 seconds for the queue to drain;
+# the assertions below still fail and print the logs if it never finishes.
+for attempt in {1..60}; do
+    if ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner 2>&1 | grep " Job queue is empty" >/dev/null; then
+        break
+    fi
+    sleep 1
+done
 # We expect to see all of this output in the logs for the job runner...
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Running jobs for default"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Job queue is empty"
