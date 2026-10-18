@@ -93,7 +93,7 @@ func TestDefaultProviderCommandsAndDryRun(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"secrets", "provider"}, "keyring"},
+		{[]string{"secrets", "provider"}, "Not selected"},
 		{[]string{"secrets", "provider", "keepassxc"}, "keepassxc"},
 		{[]string{"secrets", "migrate", "--dry-run"}, "to KeePassXC"},
 		{[]string{"secrets", "migrate", "--dry-run", "--provider", "keyring"}, "to the OS keyring"},

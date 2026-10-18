@@ -8,8 +8,8 @@ import (
 )
 
 func ValidateCredentialProvider(provider string) error {
-	if provider != "keyring" && provider != "keepassxc" {
-		return fmt.Errorf("credential provider must be keyring or keepassxc")
+	if provider != "keyring" && provider != "keepassxc" && provider != "plaintext" {
+		return fmt.Errorf("credential provider must be keyring, keepassxc or plaintext")
 	}
 	return nil
 }
@@ -17,7 +17,7 @@ func ValidateCredentialProvider(provider string) error {
 func DefaultCredentialProvider() (string, error) {
 	provider := State().EffectiveKoanf.String("secrets.provider")
 	if provider == "" {
-		provider = "keyring"
+		return "", nil
 	}
 	return provider, ValidateCredentialProvider(provider)
 }
@@ -40,6 +40,8 @@ func (c Credential) CredentialProvider(override string) (string, error) {
 		switch provider {
 		case "", "keyring":
 			provider = "keyring"
+		case "plaintext":
+			provider = "plaintext"
 		case "keepassxc", "keepassxc-browser":
 			provider = "keepassxc"
 		default:
@@ -63,11 +65,35 @@ func (c Credential) SaveWithProvider(value string, insecure bool, metadata map[s
 		if provider != "" {
 			return fmt.Errorf("a provider cannot be combined with insecure storage")
 		}
+		WarnPlaintextStorage()
 		return c.saveKeyring(value, true, metadata)
 	}
 	target, err := c.CredentialProvider(provider)
 	if err != nil {
 		return err
+	}
+	if target == "" {
+		if credentialStorageInteractive() {
+			target, err = chooseCredentialProvider()
+			if err != nil {
+				return err
+			}
+			if err := ValidateCredentialProvider(target); err != nil {
+				return err
+			}
+			selectedMetadata := make(map[string]string, len(metadata)+1)
+			for key, value := range metadata {
+				selectedMetadata[key] = value
+			}
+			selectedMetadata["secrets.provider"] = target
+			metadata = selectedMetadata
+		} else {
+			target = "keyring"
+		}
+	}
+	if target == "plaintext" {
+		WarnPlaintextStorage()
+		return c.saveKeyring(value, true, metadata)
 	}
 	if target == "keyring" {
 		return c.saveKeyring(value, false, metadata)
@@ -118,9 +144,32 @@ func (c Credential) SaveWithProvider(value string, insecure bool, metadata map[s
 	return PutDiskConfig(disk)
 }
 
+// MigrationProvider allows an explicitly requested migration to upgrade a
+// plaintext binding while ordinary saves continue to respect that binding.
+func (c Credential) MigrationProvider(override string) (string, error) {
+	current, err := c.CredentialProvider("")
+	if err != nil {
+		return "", err
+	}
+	if current == "plaintext" {
+		if override != "" {
+			return override, ValidateCredentialProvider(override)
+		}
+		target, err := DefaultCredentialProvider()
+		if err != nil {
+			return "", err
+		}
+		if target == "" {
+			target = "plaintext"
+		}
+		return target, nil
+	}
+	return c.CredentialProvider(override)
+}
+
 // MigrateTo never overwrites a provider's value with a stale plaintext copy.
 func (c Credential) MigrateTo(provider string) error {
-	target, err := c.CredentialProvider(provider)
+	target, err := c.MigrationProvider(provider)
 	if err != nil {
 		return err
 	}
@@ -128,7 +177,17 @@ func (c Credential) MigrateTo(provider string) error {
 	if value == "" {
 		return fmt.Errorf("no plaintext credential to migrate")
 	}
+	if target == "plaintext" {
+		return c.SaveWithProvider(value, false, nil, target)
+	}
 	if State().OnDiskKoanf.Exists(credentialReferenceKey(c.Key)) {
+		current, err := c.CredentialProvider("")
+		if err != nil {
+			return err
+		}
+		if current == "plaintext" && target != "plaintext" {
+			return c.TransferTo(target)
+		}
 		saved, err := c.Read()
 		if err != nil {
 			return err
