@@ -107,7 +107,7 @@ func runCloudVPSSSH(cmd *cobra.Command, args []string, opts sshOptions) error {
 		if !interactive {
 			return fmt.Errorf("specify --project, set cloud_vps.default_project, or provide a full instance hostname")
 		}
-		if err := survey.AskOne(&survey.Input{Message: "Cloud VPS project:"}, &opts.project, survey.WithValidator(survey.Required)); err != nil {
+		if err := survey.AskOne(projectPrompt(cmd.Context()), &opts.project, survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 	}

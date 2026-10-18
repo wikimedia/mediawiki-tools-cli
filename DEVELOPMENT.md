@@ -107,7 +107,7 @@ This builds on [T292906](https://phabricator.wikimedia.org/T292906), its
 
 The existing `mw cloudvps compute ssh <instance-id>` command remains available
 for OpenStack-based connections and `--script` / `--sudo` runner provisioning.
-Its `--jump` flag and script-upload behavior are unchanged. Configure OpenStack credentials with `mw cloudvps auth add`; it links to Horizon and prompts for missing values, hiding the secret.
+Its `--jump` flag and script-upload behavior are unchanged. Configure OpenStack credentials with `mw cloudvps auth add`; it links to Horizon and prompts for missing values, hiding the secret. Project prompts and `--project` flags support Tab completion using cached public inventory, with a short lookup timeout and configured projects as fallbacks.
 
 ### Running the development build
 

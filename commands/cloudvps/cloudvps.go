@@ -21,5 +21,6 @@ func NewCloudVPSCmd() *cobra.Command {
 		cmd.AddCommand(newResourceListCmd(resource, authenticatedProvider))
 	}
 
+	registerProjectCompletions(cmd)
 	return cmd
 }

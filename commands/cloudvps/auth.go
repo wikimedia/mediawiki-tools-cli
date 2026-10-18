@@ -93,7 +93,7 @@ func promptApplicationCredential(cmd *cobra.Command, project, id, secret *string
 	fmt.Fprintln(cmd.ErrOrStderr(), "Select your project in Horizon, then create an application credential:")
 	fmt.Fprintln(cmd.ErrOrStderr(), "https://horizon.wikimedia.org/identity/application_credentials/")
 	if *project == "" {
-		if err := ask(&survey.Input{Message: "Cloud VPS project:"}, project, survey.WithValidator(survey.Required)); err != nil {
+		if err := ask(projectPrompt(cmd.Context()), project, survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 	}
