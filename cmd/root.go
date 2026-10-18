@@ -49,8 +49,8 @@ func NewMwCliCmd() *cobra.Command {
 func NewRootCmd(name string) *cobra.Command {
 	mwcliCmd := &cobra.Command{
 		Use:           cli.InvocationName(name),
-		Long:          cli.DisplayName + "\n\nDeveloper utilities for working with MediaWiki and Wikimedia services.",
-		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
+		Long:          cli.DisplayName + "\n\n" + cli.Description,
+		Short:         cli.Description,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {

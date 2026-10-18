@@ -1,6 +1,6 @@
 # lint
 
-mwcli custom command linting
+Check CLI command help and metadata.
 
 Trying to make the commands have a consistent look and feel, one step at a time.
 

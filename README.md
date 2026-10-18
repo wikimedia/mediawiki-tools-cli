@@ -1,13 +1,15 @@
 # a Wikimedia CLI
 
-A command-line interface for MediaWiki and Wikimedia developers, currently installed as `mw`. It provides a set of tools to simplify common tasks, such as managing a local development environment, interacting with GitLab and Gerrit, and more.
+Explore Wikimedia data, work with services, and develop MediaWiki from your terminal. The default command is `mw`.
 
 ## Key Features
 
-- **MediaWiki Development Environment**: A Docker-powered local environment for MediaWiki development.
-- **GitLab & Gerrit Integration**: Tools for managing merge requests, patches, and repository interaction.
-- **ToolHub & CodeSearch**: Quick access to Wikimedia developer tools and codebase search.
-- **Update System**: Easy updates to the latest version of the CLI.
+- **Wikimedia data:** Query analytics APIs, graph results, and follow event streams.
+- **Wikis:** Read and edit pages on MediaWiki wikis.
+- **Cloud VPS:** Find instances, connect over SSH, and manage compute and storage.
+- **Code and collaboration:** Work with GitLab and Gerrit, and search Wikimedia code.
+- **Local development:** Run MediaWiki and supporting services with Docker.
+- **Updates:** Update the CLI from releases or CI builds.
 
 ## Getting Started
 
@@ -34,10 +36,10 @@ Follow the [installation guide](https://www.mediawiki.org/wiki/Cli/guide/Install
 
 ## Contributing & Development
 
-We welcome contributions! Please see the following documents for more information:
+To contribute, see:
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)**: Guidelines for contributing to the project and the workflow we follow.
-- **[DEVELOPMENT.md](DEVELOPMENT.md)**: Detailed instructions on how to set up your local development environment, build the project, and run tests.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: Contribution workflow and review.
+- **[DEVELOPMENT.md](DEVELOPMENT.md)**: Setup, builds, tests, and releases.
 
 ### Executable names
 
@@ -76,7 +78,7 @@ Existing Bash completion follows the selected binary. To load it explicitly, run
 
 ## CI & Integration tests
 
-This repository has continuous integration setup on GitLab. You can read more in [CI.md](CI.md).
+See [CI.md](CI.md) for GitLab checks, GitHub integration tests, and runner setup.
 
 ## License
 

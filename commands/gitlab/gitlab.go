@@ -27,7 +27,7 @@ func Cmd() *cobra.Command {
 
 	// Try to keep this version in line with the addshore fork for now...
 	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
-	glabCommand.Short = "Wikimedia Gitlab instance"
+	glabCommand.Short = "Work with Wikimedia GitLab"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.GroupID = "service"
 	glabCommand.Aliases = []string{"glab", "gl"}

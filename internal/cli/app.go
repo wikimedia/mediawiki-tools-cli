@@ -8,6 +8,8 @@ import (
 
 const DisplayName = "a Wikimedia CLI"
 
+const Description = "Explore Wikimedia data, work with services, and develop MediaWiki."
+
 // DefaultCommandName is used for generated documentation and unnamed invocations.
 const DefaultCommandName = "mw"
 

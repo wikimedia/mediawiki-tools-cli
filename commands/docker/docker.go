@@ -76,7 +76,7 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "docker",
 		GroupID: "dev",
-		Short:   "An advanced docker compose based development environment",
+		Short:   "Run a local MediaWiki development environment",
 		Long:    cli.RenderMarkdown(dockerLong),
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {

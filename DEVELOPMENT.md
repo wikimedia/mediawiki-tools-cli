@@ -1,6 +1,6 @@
 # Development Guide
 
-This document provides detailed information for developers contributing to a Wikimedia CLI.
+Build, test, and contribute to a Wikimedia CLI.
 
 ## Environment Setup
 
@@ -12,10 +12,8 @@ This document provides detailed information for developers contributing to a Wik
 ### Initial Setup
 
 1.  **Clone the repository**:
-    It is recommended to clone this repository to your `$GOPATH` (usually `~/go`), although modern Go versions support development outside of `$GOPATH`.
+    Clone it wherever you keep your projects; the checkout does not need to be inside `$GOPATH`.
     ```sh
-    mkdir -p ~/go/src/gitlab.wikimedia.org/repos/releng
-    cd ~/go/src/gitlab.wikimedia.org/repos/releng
     git clone https://gitlab.wikimedia.org/repos/releng/cli.git
     cd cli
     ```
@@ -43,17 +41,17 @@ The resulting binary will be located at `./bin/mw`.
 
 ### Using the MediaWiki development environment with external hostnames
 
-The Docker development environment normally selects a wiki database from the first label in the request hostname. To serve the default wiki at an additional hostname, add that hostname to both comma-separated context variables:
+The Docker development environment normally selects a wiki database from the first label in the request hostname. To serve the default wiki at an additional hostname, configure these comma-separated context variables:
 
 - `MEDIAWIKI_VIRTUAL_HOSTS` controls the wildcard hostnames registered in the local DNS proxy. It defaults to `*.mediawiki.local.wmftest.net`; Traefik routes unmatched hostnames to the default wiki.
 - `MEDIAWIKI_DEFAULT_HOSTS` maps exact hostnames to the configured default wiki database (`default` unless changed).
 - `MEDIAWIKI_DEFAULT_HTTPS_HOSTS` marks exact hostnames whose public TLS proxy should be used as the wiki's canonical HTTPS URL, preventing redirects to the internal development port.
 
-For example, set both variables in the context's `.env` file and recreate the MediaWiki service. This keeps per-wiki hostname selection while allowing selected external names to serve the default wiki.
+Add the hostname to `MEDIAWIKI_VIRTUAL_HOSTS` and `MEDIAWIKI_DEFAULT_HOSTS` in the context's `.env` file, then recreate the MediaWiki service. For a hostname served through a TLS proxy, also set `MEDIAWIKI_DEFAULT_HTTPS_HOSTS`.
 
 ### Traefik proxy and path gateway
 
-mwcli uses Traefik as its default web proxy. It replaces nginx and listens on the configured `PORT` (8080 by default), routing the existing local virtual hosts as well as `/proxy/<service>/` paths. MediaWiki keeps its hostname based wiki selection for `*.mediawiki.local.wmftest.net`; the path gateway maps `/proxy/<database>/...` to the matching wiki, and an unmatched hostname uses the default wiki. The dashboard is available at `/proxy/dashboard/`, and web services with Traefik Compose labels are discovered as they start. Set `<SERVICE>_PROXY_PATH` to customize a path route prefix. Authentication is enabled by default; the first Docker service create generates a password. Show it with `mw docker traefik credentials`. Stop the proxy with `mw docker traefik stop` or remove it with `mw docker traefik destroy`.
+The local development environment uses Traefik as its web proxy. It listens on the configured `PORT` (8080 by default), routing the existing local virtual hosts as well as `/proxy/<service>/` paths. MediaWiki keeps its hostname based wiki selection for `*.mediawiki.local.wmftest.net`; the path gateway maps `/proxy/<database>/...` to the matching wiki, and an unmatched hostname uses the default wiki. The dashboard is available at `/proxy/dashboard/`, and web services with Traefik Compose labels are discovered as they start. Set `<SERVICE>_PROXY_PATH` to customize a path route prefix. Authentication is enabled by default; the first Docker service create generates a password. Show it with `mw docker traefik credentials`. Stop the proxy with `mw docker traefik stop` or remove it with `mw docker traefik destroy`.
 
 Proxy routes use a gateway login page and a signed session cookie that expires after 12 hours. The first Docker service `create` generates a random password for the `mwcli` user and saves it with owner-only permissions; show it with `mw docker traefik credentials`. The credentials command also prints single-use login links for localhost and any active tunnel, valid for five minutes; use `--url` to select a different gateway URL. Existing credentials are preserved on upgrade. Sign out through the dashboard or `/_mwcli/logout`. Application logins and Bearer tokens work independently of the gateway session. Scripts can still use HTTP Basic credentials, for example `curl -u mwcli:PASSWORD http://localhost:8080/proxy/dashboard/api/status`. To disable proxy authentication for a context, set `TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file` in its `.env` and recreate the web services. The login service and GET-only Docker API proxy are internal and publish no ports.
 
@@ -125,7 +123,7 @@ Many Makefile commands exist that you might find useful:
 - `make test`: Run unit tests.
 - `make recipe-validate`: Validate all checked-in `mount/dev/recipes/*.yml` files.
 - `make lint`: Run basic go linting.
-- `make linti`: Run custom mwcli command linting (lint internal).
+- `make linti`: Check command help and metadata.
 - `make fix`: Run basic lint fixes.
 - `make vet`: Run `go vet`.
 - `make generate`: Run code generation tools.
@@ -151,7 +149,7 @@ The project is organized into several key directories:
     - `internal/toolhub`: Client for interacting with toolhub.wikimedia.org.
     - `internal/updater`: Code for updating the CLI.
     - `internal/util`: DEPRECATED: Independent packages (slowly being moved to `pkg/`).
-- `pkg/`: Independently useful packages that do not bind to mwcli code or concepts.
+- `pkg/`: Reusable packages independent of the CLI.
 - `mount/`: Files that are mounted or embedded into the environment (e.g., dev recipes).
 - `tests/`: Integration tests that are run as part of CI.
 - `tools/`: Various tools to make working with this repository easier (code-gen, docs-gen, etc.).
@@ -205,7 +203,7 @@ Before creating a release tag, review the commit history from the latest tag to 
 git log --oneline "$(git describe --tags --abbrev=0)"..HEAD
 ```
 
-and or the diff..
+To review the diff:
 
 ```sh
 git diff "$(git describe --tags --abbrev=0)"
