@@ -1,6 +1,6 @@
 # Credentials and password managers
 
-Gerrit, Cloud VPS and Phabricator logins save secrets with the selected credential provider; the initial default is the OS keyring. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
+On the first interactive Gerrit, Cloud VPS or Phabricator credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
 
 ```sh
 mw gerrit auth login
@@ -21,22 +21,22 @@ mw config secrets migrate
 
 Migration verifies each saved value before removing its plaintext copy from configuration. It does not import `phab.cfg` or migrate GitLab credentials. Existing backups may still contain the old values.
 
-`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential to another account, endpoint or storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator logout also disables legacy `phab.cfg` authentication for that site until the next login.
+`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential’s account or endpoint. Use `config secrets transfer` to change its storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator logout also disables legacy `phab.cfg` authentication for that site until the next login.
 
-If the selected provider is unavailable, login fails rather than silently saving plaintext. Add `--insecure-storage` to explicitly use the config file instead. On Unix, the CLI restricts its config directory to the current user and writes the file atomically with mode `0600`. Windows file permissions depend on its ACLs; prefer Credential Manager there.
+Choosing plaintext displays a warning that credentials are stored unencrypted. You can also select it with `--provider plaintext` or use `--insecure-storage` for a single save. A selected provider failing never silently switches storage. On Unix, the CLI restricts its config directory to the current user and writes the file atomically with mode `0600`. Windows file permissions depend on its ACLs; prefer Credential Manager there.
 
 GitLab commands use the embedded GitLab CLI's separate authentication store. Use `mw gl auth login --use-keyring --stdin` for a new keyring login. This does not migrate or remove an existing token from GitLab's configuration file.
 
 ## Choosing storage
 
-Select the default for new credentials and plaintext migrations:
+Select or change the default for new credentials and plaintext migrations:
 
 ```sh
 mw config secrets provider keepassxc
 mw config secrets provider
 ```
 
-Use `provider keyring` to switch back. Existing credentials keep their saved provider. Override the default for an individual login, configuration write or migration:
+Available defaults are `keyring`, `keepassxc` and `plaintext`. Existing credentials keep their saved provider. Override the default for an individual login, configuration write or migration:
 
 ```sh
 mw gerrit auth login --provider keyring
@@ -44,7 +44,15 @@ mw config set gerrit.password --stdin --provider keyring
 mw config secrets migrate gerrit.password --provider keyring
 ```
 
-Changing providers for an already linked credential requires logging out first. Pairing KeePassXC alone does not select it as the default.
+To change an already linked credential’s provider without logging out, transfer it explicitly:
+
+```sh
+mw config secrets transfer gerrit.password --provider keyring
+```
+
+Transfer verifies the destination before switching the reference. External source entries are retained; a plaintext config copy is removed after verified secure storage. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
+
+For scripts and `--no-interaction`, set a default first or pass `--provider`. With no selection, noninteractive saves try the OS keyring and fail with guidance if it is unavailable; they never automatically choose plaintext.
 
 The OS keyring is the simplest choice for credentials used on one computer: it integrates with that OS and needs no separate KeePassXC pairing. Availability and unlock policy depend on the desktop; WSL uses its Linux Secret Service, not Windows Credential Manager.
 

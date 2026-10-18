@@ -77,6 +77,9 @@ func (c Credential) Read() (string, error) {
 	if stored.Service != expected.Service || stored.Endpoint != expected.Endpoint || stored.Account != expected.Account || stored.Identity != expected.Identity {
 		return "", fmt.Errorf("stored credential does not match this account or endpoint; log in again")
 	}
+	if stored.Provider == "plaintext" {
+		return state.EffectiveKoanf.String(c.Key), nil
+	}
 	if stored.Provider == "keepassxc-browser" {
 		if stored.Browser == nil || stored.Browser.Login != c.Account {
 			return "", fmt.Errorf("invalid KeePassXC GUI account reference")
@@ -124,6 +127,7 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 		}
 	}
 	key := credentialReferenceKey(c.Key)
+	plaintextLinked := false
 	if disk.Exists(key) {
 		var previous credentialReference
 		if err := disk.Unmarshal(key, &previous); err != nil {
@@ -132,7 +136,11 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 		if previous.Provider == "keepassxc" || previous.Provider == "keepassxc-browser" {
 			return fmt.Errorf("credential is managed by KeePassXC; update its entry there, or log out before changing providers")
 		}
-		if previous.Provider == "keyring" {
+		plaintextLinked = previous.Provider == "plaintext"
+		if plaintextLinked && !insecure {
+			return fmt.Errorf("credential uses plaintext; use config secrets transfer to change providers")
+		}
+		if previous.Provider == "keyring" || plaintextLinked {
 			previous.Provider = ""
 		}
 		if previous != ref {
@@ -141,16 +149,19 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 	}
 	if insecure {
 		// Do not leave an unreachable copy behind when switching backends.
-		if disk.Exists(key) {
+		if disk.Exists(key) && !plaintextLinked {
 			return fmt.Errorf("log out before switching an existing keyring credential to plaintext storage")
 		}
 		if err := disk.Set(c.Key, value); err != nil {
 			return err
 		}
+		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "plaintext"}); err != nil {
+			return err
+		}
 		return PutDiskConfig(disk)
 	}
 	if err := credentialStore.Set(ref.Service, ref.Account, value); err != nil {
-		return fmt.Errorf("keyring storage failed; no plaintext fallback was used (use --insecure-storage explicitly on a headless system): %w", err)
+		return fmt.Errorf("keyring storage failed; no plaintext fallback was used (choose --provider plaintext or --insecure-storage explicitly to use the config file): %w", err)
 	}
 	saved, err := credentialStore.Get(ref.Service, ref.Account)
 	if err != nil || saved != value {
@@ -180,7 +191,7 @@ func (c Credential) Delete() error {
 			return fmt.Errorf("stored credential does not match this account or endpoint; refusing to delete another credential")
 		}
 		switch ref.Provider {
-		case "keepassxc", "keepassxc-browser": // Forget the reference; the external entry belongs to the user.
+		case "plaintext", "keepassxc", "keepassxc-browser": // Forget the reference; external entries belong to the user.
 		case "", "keyring":
 			if err := credentialStore.Delete(ref.Service, ref.Account); err != nil && !errors.Is(err, secrets.ErrNotFound) {
 				return fmt.Errorf("delete keyring credential: %w", err)
@@ -242,6 +253,7 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 			return fmt.Errorf("stored credential does not match this account or endpoint")
 		}
 		switch old.Provider {
+		case "plaintext": // Explicit linking verifies the plaintext below.
 		case "keepassxc":
 			if entry == "" && old.KeePassXC != nil {
 				entry = old.KeePassXC.Entry

@@ -102,10 +102,10 @@ func NewAuthAddCmd() *cobra.Command {
 	cmd.Flags().Bool("secret-stdin", false, "Read the application secret from stdin")
 	cmd.Flags().Bool("insecure-storage", false, "Store the secret in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("secret", "secret-stdin")
-	cmd.Flags().String("provider", "", "Override the credential provider (keyring or keepassxc)")
+	cmd.Flags().String("provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
 	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
 	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
 }

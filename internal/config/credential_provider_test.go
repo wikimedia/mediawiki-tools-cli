@@ -12,7 +12,7 @@ import (
 
 func TestCredentialProviderSelection(t *testing.T) {
 	for _, tc := range []struct{ name, defaultProvider, override, want string }{
-		{"initial", "", "", "keyring"},
+		{"initial", "", "", ""},
 		{"default", "keepassxc", "", "keepassxc"},
 		{"override", "keepassxc", "keyring", "keyring"},
 		{"inverse", "keyring", "keepassxc", "keepassxc"},

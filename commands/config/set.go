@@ -52,6 +52,7 @@ func NewConfigSetCmd() *cobra.Command {
 					if !insecureStorage {
 						return fmt.Errorf("unknown credential key; use a service login or explicitly select --insecure-storage")
 					}
+					config.WarnPlaintextStorage()
 					if err := config.PutKeyValueOnDisk(key, value); err != nil {
 						return err
 					}
@@ -65,10 +66,10 @@ func NewConfigSetCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read the value from stdin instead of command arguments")
 	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Explicitly store a secret in the private plaintext config")
-	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring or keepassxc)")
+	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
 	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
 	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
 }

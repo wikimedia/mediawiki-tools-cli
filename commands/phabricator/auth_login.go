@@ -86,10 +86,10 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 	cmd.Flags().BoolVar(&tokenStdin, "token-stdin", false, "Read the API token from stdin")
 	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Store the token in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("token", "token-stdin")
-	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring or keepassxc)")
+	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
 	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
 	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
 }

@@ -24,7 +24,11 @@ func (s *memorySecrets) Get(service, account string) (string, error) {
 	if s.failGet {
 		return "", errors.New("locked")
 	}
-	return s.values[service+account], nil
+	value, ok := s.values[service+account]
+	if !ok {
+		return "", secrets.ErrNotFound
+	}
+	return value, nil
 }
 
 func (s *memorySecrets) Set(service, account, value string) error {
