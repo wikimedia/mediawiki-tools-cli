@@ -10,6 +10,7 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 
 - [Install the CLI](guides/installation.md)
 - [Keep it up to date](guides/updating.md)
+- [Store credentials and use password managers](guides/authentication.md)
 
 ## Wikimedia data
 

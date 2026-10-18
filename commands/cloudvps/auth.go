@@ -9,10 +9,11 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-const authUrl = "https://openstack.eqiad1.wikimediacloud.org:25000/v3"
+const authUrl = secrets.CloudEndpoint
 
 func NewAuthCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -33,12 +34,21 @@ func NewAuthAddCmd() *cobra.Command {
 		Use:     "add",
 		Short:   "Add a new application credential",
 		Long:    "Validate and save OpenStack application credentials. Missing values are prompted for in a terminal, with the secret hidden. Create credentials for the selected project at https://horizon.wikimedia.org/identity/application_credentials/.",
-		Example: "add\nadd --project mwcli\nadd --project mwcli --id APPLICATION_CREDENTIAL_ID --secret APPLICATION_CREDENTIAL_SECRET",
+		Example: "add\nadd --project mwcli\nadd --project mwcli --id APPLICATION_CREDENTIAL_ID --secret-stdin",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 			id, _ := cmd.Flags().GetString("id")
 			secret, _ := cmd.Flags().GetString("secret")
+			secretStdin, _ := cmd.Flags().GetBool("secret-stdin")
+			insecureStorage, _ := cmd.Flags().GetBool("insecure-storage")
+			if secretStdin {
+				var err error
+				secret, err = secrets.ReadInput(cmd.InOrStdin())
+				if err != nil {
+					return err
+				}
+			}
 
 			if project == "" && !cmd.Flags().Changed("project") {
 				project = config.State().Effective.CloudVPS.DefaultProject
@@ -68,12 +78,10 @@ func NewAuthAddCmd() *cobra.Command {
 
 			// TODO check the creds are for the right project before saving?
 
-			disk := config.State().OnDiskKoanf.Copy()
-			if err := disk.Set("cloud_vps.projects."+project+".credential", map[string]interface{}{"id": id, "secret": secret}); err != nil {
+			key := "cloud_vps.projects." + project + ".credential."
+			credential := config.Credential{Key: key + "secret", Service: "cloudvps", Endpoint: authUrl, Account: project + ":" + id}
+			if err := credential.SaveWithMetadata(secret, insecureStorage, map[string]string{key + "id": id}); err != nil {
 				return err
-			}
-			if err := config.PutDiskConfig(disk); err != nil {
-				return fmt.Errorf("save application credential: %w", err)
 			}
 
 			fmt.Fprint(cmd.OutOrStdout(), cmdgloss.SuccessHeading(fmt.Sprintf("Added new application credential for project: %s", project)))
@@ -85,6 +93,9 @@ func NewAuthAddCmd() *cobra.Command {
 	cmd.Flags().String("id", "", "Application credential ID (prompts if omitted)")
 	cmd.Flags().String("secret", "", "Application credential secret (prompts with hidden input if omitted)")
 
+	cmd.Flags().Bool("secret-stdin", false, "Read the application secret from stdin")
+	cmd.Flags().Bool("insecure-storage", false, "Store the secret in the private plaintext config using insecure storage")
+	cmd.MarkFlagsMutuallyExclusive("secret", "secret-stdin")
 	return cmd
 }
 
@@ -127,8 +138,16 @@ func NewAuthRemoveCmd() *cobra.Command {
 				return fmt.Errorf("project not found: %s", project)
 			}
 
-			config.DeleteKeyValueFromDisk("cloud_vps.projects." + project + ".credential.id")
-			config.DeleteKeyValueFromDisk("cloud_vps.projects." + project + ".credential.secret")
+			credential, err := config.CredentialForKey("cloud_vps.projects." + project + ".credential.secret")
+			if err != nil {
+				return err
+			}
+			if err := credential.Delete(); err != nil {
+				return err
+			}
+			if err := config.DeleteKeyValueFromDisk("cloud_vps.projects." + project + ".credential.id"); err != nil {
+				return err
+			}
 
 			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Removed application credential for project: %s", project)))
 			return nil

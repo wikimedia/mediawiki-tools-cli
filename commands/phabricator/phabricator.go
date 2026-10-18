@@ -23,45 +23,11 @@ func NewPhabricatorCmd() *cobra.Command {
 		Short:   "Interact with Wikimedia Phabricator",
 		Long: `Interact with Wikimedia Phabricator via the Conduit API.
 
-Create an API token first:
-	1. Log in at https://phabricator.wikimedia.org/auth/start/
-	2. Open https://phabricator.wikimedia.org/settings/user/<username>/page/apitokens/
-	3. Create a token and copy the value (for example: cli-XXXXXXXX)
+Run "mw phabricator auth login" to validate and save an API token in the OS keyring.
+Use --site to select another saved site and login --url to explicitly choose its endpoint.
+Legacy phab.cfg files remain supported. A saved CLI login takes precedence.
 
-Configure access in either phab.cfg or the CLI config.json.
-
-Legacy phab.cfg is searched in:
-	./phab.cfg
-	$XDG_CONFIG_HOME/phab/phab.cfg (or ~/.config/phab/phab.cfg)
-	~/.phab/phab.cfg
-	/etc/phab/phab.cfg
-
-Example phab.cfg:
-  [main]
-  default = wikimedia
-
-  [wikimedia]
-  url = https://phabricator.wikimedia.org
-  key = cli-XXXXXXXXXXXXXXXXXXXXXXXXXXXX
-  username = your-username
-	default_project = #your-project
-
-Alternative CLI config.json keys:
-	{
-		"phabricator": {
-			"default_site": "wikimedia",
-			"sites": {
-				"wikimedia": {
-					"url": "https://phabricator.wikimedia.org",
-					"key": "cli-XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-					"username": "your-username",
-					"default_project": "#your-project"
-				}
-			}
-		}
-	}
-
-Tip: run "mw config where" to see your CLI config.json path.`,
+For storage options and password managers, see "mw help guides authentication".`,
 	}
 
 	cmd.PersistentFlags().StringVar(&site, "site", "", "Config site section to use (overrides [main] default)")

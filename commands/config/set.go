@@ -2,30 +2,59 @@ package config
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 func NewConfigSetCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "set",
-		Short: "Sets a setting on the config",
-		Args:  cobra.ExactArgs(2),
-		Run: func(cmd *cobra.Command, args []string) {
-			keyName := args[0]
-			value := args[1]
-
-			k := config.State().OnDiskKoanf
-			k.Set(keyName, value)
-			err := config.PutDiskConfig(k)
-			if err != nil {
-				logrus.Error(err)
-				os.Exit(1)
+	var stdin, insecureStorage bool
+	cmd := &cobra.Command{
+		Use:     "set KEY [VALUE]",
+		Short:   "Set a configuration value",
+		Example: "set telemetry no\nset gerrit.password --stdin",
+		Args:    cobra.RangeArgs(1, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var value string
+			if stdin {
+				if len(args) != 1 {
+					return fmt.Errorf("do not supply VALUE with --stdin")
+				}
+				var err error
+				value, err = secrets.ReadInput(cmd.InOrStdin())
+				if err != nil {
+					return err
+				}
+			} else {
+				if len(args) != 2 {
+					return fmt.Errorf("provide VALUE or --stdin")
+				}
+				value = args[1]
 			}
-			fmt.Println("Set " + keyName)
+			key := args[0]
+			if config.SensitiveKey(key) {
+				credential, err := config.CredentialForKey(key)
+				if err == nil {
+					if err := credential.Save(value, insecureStorage); err != nil {
+						return err
+					}
+				} else {
+					if !insecureStorage {
+						return fmt.Errorf("unknown credential key; use a service login or explicitly select --insecure-storage")
+					}
+					if err := config.PutKeyValueOnDisk(key, value); err != nil {
+						return err
+					}
+				}
+			} else if err := config.PutKeyValueOnDisk(key, value); err != nil {
+				return err
+			}
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), "Set "+key)
+			return err
 		},
 	}
+	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read the value from stdin instead of command arguments")
+	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Explicitly store a secret in the private plaintext config")
+	return cmd
 }

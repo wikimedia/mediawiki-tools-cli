@@ -3,10 +3,8 @@ package gerrit
 import (
 	"fmt"
 
-	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 )
 
@@ -24,11 +22,16 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 				return fmt.Errorf("no credentials found")
 			}
 
-			instance := "https://gerrit.wikimedia.org/r/"
-			client, _ := gerrit.NewClient(cmd.Context(), instance, cli.NewHTTPClient())
+			client, _ := newGerritClient(cmd.Context())
 			client.Authentication.SetBasicAuth(gerritUsername, gerritPassword)
 			response, err := client.Call(cmd.Context(), "GET", "accounts/self/name", nil, nil)
+			if response != nil && response.Response != nil && response.Body != nil {
+				response.Body.Close()
+			}
 			if err != nil {
+				if response == nil {
+					return fmt.Errorf("could not check Gerrit authentication: %w", err)
+				}
 				logrus.Debugf("Status Code: %v", response.StatusCode)
 				logrus.Debugf("Error: %v", err)
 				if response.StatusCode == 401 {
