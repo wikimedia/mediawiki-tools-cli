@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
 type pageviewsResponse struct {
@@ -25,16 +26,35 @@ type pageviewItem struct {
 }
 
 func NewPageviewsCmd() *cobra.Command {
-	var project, access, agent, granularity, start, end, format string
+	var project, access, agent, granularity, start, end string
 	var timeout time.Duration
+	out := output.Output{
+		TableBinding: &output.TableBinding{
+			Headings: []string{"Date", "Views"},
+			ProcessObjects: func(objects interface{}, table *output.Table) {
+				for _, item := range objects.([]pageviewItem) {
+					date := item.Timestamp
+					if len(date) >= 8 {
+						date = date[:4] + "-" + date[4:6] + "-" + date[6:8]
+					}
+					table.AddRow(date, item.Views)
+				}
+			},
+		},
+	}
 	cmd := &cobra.Command{
 		Use:     "pageviews <article>",
 		Short:   "Get pageview counts for a Wikimedia page",
-		Example: "mw analytics pageviews 'Main Page' --project en.wikipedia.org\nmw analytics pageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\nmw analytics pageviews 'Albert Einstein' --format csv",
+		Example: "pageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --output csv\npageviews 'Albert Einstein' --output jq --format '.[].views'",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if format != "table" && format != "json" && format != "csv" {
-				return fmt.Errorf("--format must be table, json, or csv")
+			switch out.Type {
+			case string(output.AutoType), string(output.TableType), string(output.JSONType), string(output.JQType), "csv":
+			default:
+				return fmt.Errorf("--output must be table, json, jq, or csv")
+			}
+			if out.Type == string(output.JQType) && out.Format == "" {
+				return fmt.Errorf("--output jq requires a --format expression")
 			}
 			from, to, err := pageviewRange(start, end)
 			if err != nil {
@@ -46,7 +66,14 @@ func NewPageviewsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printPageviews(cmd.OutOrStdout(), items, format)
+			if items == nil {
+				items = []pageviewItem{}
+			}
+			if out.Type == "csv" {
+				return printPageviewsCSV(cmd.OutOrStdout(), items)
+			}
+			out.Print(cmd, items)
+			return nil
 		},
 	}
 	cmd.Flags().StringVar(&project, "project", "en.wikipedia.org", "Wikimedia project host, for example en.wikipedia.org or commons.wikimedia.org")
@@ -55,7 +82,12 @@ func NewPageviewsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&granularity, "granularity", "daily", "Data granularity: daily or monthly")
 	cmd.Flags().StringVar(&start, "start", "", "Start date in YYYYMMDD format (default: 30 days ago)")
 	cmd.Flags().StringVar(&end, "end", "", "End date in YYYYMMDD format (default: yesterday)")
-	cmd.Flags().StringVar(&format, "format", "table", "Output format: table, json, or csv")
+	out.AddFlagsWithOpts(cmd,
+		output.WithDefaultTTY(output.TableType),
+		output.WithDefaultPipe(output.JSONType),
+		output.WithAdditionalTypes(output.Type("csv")),
+		output.WithFilterFlagDisabled(),
+	)
 	cmd.Flags().DurationVar(&timeout, "timeout", 20*time.Second, "HTTP request timeout")
 	return cmd
 }
@@ -141,35 +173,16 @@ func getPageviews(ctx context.Context, project, access, agent, article, granular
 	return result.Items, nil
 }
 
-func printPageviews(out io.Writer, items []pageviewItem, format string) error {
-	switch format {
-	case "json":
-		return json.NewEncoder(out).Encode(items)
-	case "csv":
-		w := csv.NewWriter(out)
-		if err := w.Write([]string{"timestamp", "project", "article", "views"}); err != nil {
-			return err
-		}
-		for _, item := range items {
-			if err := w.Write([]string{item.Timestamp, item.Project, item.Article, fmt.Sprint(item.Views)}); err != nil {
-				return err
-			}
-		}
-		w.Flush()
-		return w.Error()
-	default:
-		if _, err := fmt.Fprintf(out, "%-12s %12s\n", "DATE", "VIEWS"); err != nil {
-			return err
-		}
-		for _, item := range items {
-			date := item.Timestamp
-			if len(date) >= 8 {
-				date = date[:4] + "-" + date[4:6] + "-" + date[6:8]
-			}
-			if _, err := fmt.Fprintf(out, "%-12s %12d\n", date, item.Views); err != nil {
-				return err
-			}
-		}
-		return nil
+func printPageviewsCSV(out io.Writer, items []pageviewItem) error {
+	w := csv.NewWriter(out)
+	if err := w.Write([]string{"timestamp", "project", "article", "views"}); err != nil {
+		return err
 	}
+	for _, item := range items {
+		if err := w.Write([]string{item.Timestamp, item.Project, item.Article, fmt.Sprint(item.Views)}); err != nil {
+			return err
+		}
+	}
+	w.Flush()
+	return w.Error()
 }
