@@ -97,10 +97,20 @@ grep -q 'Main Page' "$work/wiki"
 echo "PASS: wiki Main Page and redirects work through the real tunnel."
 curl --fail --silent --show-error --max-time 20 --netrc-file "$work/netrc" \
     "$origin/proxy/default/w/api.php?action=query&meta=siteinfo&siprop=general&format=json" > "$work/siteinfo"
-python3 - "$work/siteinfo" "$origin/proxy/default" <<'PY'
+python3 - "$work/siteinfo" "$origin" "/proxy/default" <<'PY'
 import json, sys
-actual = json.load(open(sys.argv[1]))['query']['general']['server']
-assert actual == sys.argv[2], (actual, sys.argv[2])
+with open(sys.argv[1]) as siteinfo:
+    general = json.load(siteinfo)['query']['general']
+origin, prefix = sys.argv[2:]
+# MediaWiki keeps the server origin separate from its script and article paths.
+for field, expected in {
+    'server': origin,
+    'scriptpath': prefix + '/w',
+    'articlepath': prefix + '/wiki/$1',
+}.items():
+    assert general[field] == expected, (field, general[field], expected)
+expected_base = origin + prefix + '/wiki/'
+assert general['base'].startswith(expected_base), ('base', general['base'], expected_base)
 print('PASS: MediaWiki canonical URL uses the client HTTP origin and proxy prefix.')
 PY
 echo "PASS: real Holesail server and separate client container verified on this VM."
