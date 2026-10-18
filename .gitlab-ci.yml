@@ -5,6 +5,7 @@ variables:
     # Trial only: the production branch keeps native integration disabled.
     GITHUB_NATIVE_INTEGRATION: "1"
     GITHUB_INTEGRATION_REPOSITORY: "addshore/testing"
+    GITHUB_STATUS_BOT_ID: "3072"
 
 default:
   interruptible: true
