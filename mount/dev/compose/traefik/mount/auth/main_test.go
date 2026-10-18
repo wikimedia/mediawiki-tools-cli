@@ -16,6 +16,41 @@ import (
 
 const testOrigin = "https://gateway.example"
 
+func TestGatewayCodexStylesAreAvailableBeforeLogin(t *testing.T) {
+	t.Setenv("MWCLI_UI_ASSETS", filepath.Join("..", "..", "..", "base", "mount", "ui"))
+	g, _ := testGateway(t)
+	for _, path := range []string{loginPath, logoutPath} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodGet, path, nil))
+		csp := w.Header().Get("Content-Security-Policy")
+		if w.Code != http.StatusOK || !strings.Contains(csp, "style-src 'self'") || !strings.Contains(csp, "img-src data:") || strings.Contains(csp, "unsafe-inline") {
+			t.Fatalf("login styles must load without relaxing inline script restrictions: %s", csp)
+		}
+		for _, asset := range []string{"tokens.css", "tokens-dark.css", "codex.style.css", "codex-links.css", "app.css"} {
+			if !strings.Contains(w.Body.String(), `href="/_mwcli/assets/`+asset+`"`) {
+				t.Fatalf("missing stylesheet %s on %s", asset, path)
+			}
+			css := httptest.NewRecorder()
+			g.ServeHTTP(css, request(http.MethodGet, "/_mwcli/assets/"+asset, nil))
+			if css.Code != http.StatusOK || !strings.HasPrefix(css.Header().Get("Content-Type"), "text/css") || css.Body.Len() == 0 {
+				t.Fatalf("stylesheet %s requires a session or is unavailable: %d", asset, css.Code)
+			}
+		}
+	}
+	for _, path := range []string{"/_mwcli/assets/", "/_mwcli/assets/credentials", "/_mwcli/assets/../../auth/session-key"} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodGet, path, nil))
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("unexpected asset access %s: %d", path, w.Code)
+		}
+	}
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, request(http.MethodPost, "/_mwcli/assets/app.css", nil))
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Fatal("stylesheet endpoint accepted a write method")
+	}
+}
+
 func testGateway(t *testing.T) (*gateway, string) {
 	t.Helper()
 	directory := t.TempDir()
@@ -204,6 +239,9 @@ func TestWrongPasswordAndCookieSecurityOnLocalHTTP(t *testing.T) {
 	g.ServeHTTP(w, request(http.MethodPost, loginPath, url.Values{"csrf": {csrf.Value}, "username": {"alice"}, "password": {"wrong"}}, csrf))
 	if w.Code != http.StatusUnauthorized || !strings.Contains(w.Body.String(), "incorrect") {
 		t.Fatal("wrong password did not fail")
+	}
+	if !strings.Contains(w.Body.String(), `id="login-error"`) || !strings.Contains(w.Body.String(), `aria-describedby="login-error"`) || !strings.Contains(w.Body.String(), "cdx-message--error") {
+		t.Fatal("failed login must show an accessible Codex error linked to the inputs")
 	}
 	if g.credentialsMatch("alice\x00secret", "") {
 		t.Fatal("ambiguous credentials accepted")

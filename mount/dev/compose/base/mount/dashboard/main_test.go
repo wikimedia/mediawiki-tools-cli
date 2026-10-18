@@ -6,10 +6,52 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestDashboardServesCodexStylesDirectlyAndThroughGateway(t *testing.T) {
+	t.Setenv("MWCLI_UI_ASSETS", filepath.Join("..", "ui"))
+	previous, previousTime := statusCache, statusCacheTime
+	t.Cleanup(func() { statusCache, statusCacheTime = previous, previousTime })
+	statusCache = &Status{Services: []Service{{Name: `<script>alert(1)</script>`, Running: true}}}
+	statusCacheTime = time.Now()
+	for _, prefix := range []string{"", "/proxy/dashboard"} {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("X-Forwarded-Prefix", prefix)
+		w := httptest.NewRecorder()
+		dashboardHandler(w, req)
+		body := w.Body.String()
+		if w.Code != http.StatusOK || strings.Contains(body, "<script>alert(1)") || !strings.Contains(body, "&lt;script&gt;") {
+			t.Fatalf("dashboard render failed or did not escape service name: %d", w.Code)
+		}
+		for _, asset := range []string{"tokens.css", "tokens-dark.css", "codex.style.css", "codex-links.css", "app.css"} {
+			if !strings.Contains(body, `href="`+prefix+`/assets/`+asset+`"`) {
+				t.Fatalf("missing asset %s through prefix %q", asset, prefix)
+			}
+			// Traefik strips the dashboard prefix before forwarding the request.
+			css := httptest.NewRecorder()
+			dashboardHandler(css, httptest.NewRequest(http.MethodGet, "/assets/"+asset, nil))
+			if css.Code != http.StatusOK || !strings.HasPrefix(css.Header().Get("Content-Type"), "text/css") || css.Body.Len() == 0 {
+				t.Fatalf("stylesheet %s unavailable: %d", asset, css.Code)
+			}
+		}
+	}
+	for _, path := range []string{"/assets/", "/assets/README.md", "/assets/../main.go"} {
+		w := httptest.NewRecorder()
+		dashboardHandler(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("unexpected asset access %s: %d", path, w.Code)
+		}
+	}
+	w := httptest.NewRecorder()
+	dashboardHandler(w, httptest.NewRequest(http.MethodPost, "/assets/app.css", nil))
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Fatal("stylesheet endpoint accepted a write method")
+	}
+}
 
 func TestCheckHostRunningTrue(t *testing.T) {
 	origLookup := dnsLookupHost

@@ -1,0 +1,8 @@
+{
+  "name": "mwcli-codex-assets",
+  "private": true,
+  "description": "Maintainer tooling for the bundled Codex CSS-only Link mixin",
+  "devDependencies": {
+    "less": "4.2.2"
+  }
+}
