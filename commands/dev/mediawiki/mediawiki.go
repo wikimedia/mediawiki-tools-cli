@@ -124,6 +124,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewMediaWikiQuibbleCmd())
 	cmd.AddCommand(devenv.NewImageCmd("mediawiki"))
 	cmd.AddCommand(devenv.NewServiceCreateCmd("mediawiki", ""))
+	cmd.AddCommand(devenv.NewServiceRebuildCmd("mediawiki", ""))
 	cmd.AddCommand(devenv.NewServiceDestroyCmd("mediawiki"))
 	cmd.AddCommand(devenv.NewServiceStopCmd("mediawiki"))
 	cmd.AddCommand(devenv.NewServiceStartCmd("mediawiki"))

@@ -30,6 +30,10 @@
       "title": "Cli/guide/Docker-Development-Environment/Service_Interaction"
     },
     {
+      "source": "guides/dev/dockerfiles.md",
+      "title": "Cli/guide/Custom Dockerfiles"
+    },
+    {
       "source": "guides/dev/configuration.md",
       "title": "Cli/guide/Docker-Development-Environment/LocalSettings.php"
     },
