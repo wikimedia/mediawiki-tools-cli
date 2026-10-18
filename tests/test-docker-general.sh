@@ -4,6 +4,7 @@
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+bash "$SCRIPT_DIR/check-platform.sh"
 source $SCRIPT_DIR/functions.sh
 source "$SCRIPT_DIR/guide-examples.sh"
 source $SCRIPT_DIR/pretest-mediawiki.sh
