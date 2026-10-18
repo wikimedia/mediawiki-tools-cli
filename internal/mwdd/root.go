@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/files"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
@@ -40,6 +41,9 @@ func (m MWDD) EnsureReady() {
 	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
 	m.Env().Set("TRAEFIK_DOCKER_PROJECT", strings.ToLower(m.DockerCompose().Name))
 	m.ensureDockerfileComposeFiles()
+	if err := m.refreshDashboardServices(); err != nil {
+		logrus.Warnf("Could not refresh custom dashboard services: %v", err)
+	}
 }
 
 func (m MWDD) DockerCompose() dockercompose.Project {

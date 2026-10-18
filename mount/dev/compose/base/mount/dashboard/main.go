@@ -54,9 +54,9 @@ type Status struct {
 
 // ServiceConfig defines a service to check
 type ServiceConfig struct {
-	Name   string
-	HasUI  bool
-	UIHost string
+	Name   string `json:"name"`
+	HasUI  bool   `json:"has_ui"`
+	UIHost string `json:"ui_host,omitempty"`
 }
 
 var (
@@ -137,13 +137,57 @@ func checkHost(hostname string) bool {
 	return false
 }
 
+// serviceConfigs merges generated custom-service metadata with bundled entries.
+// No Docker socket or YAML parser is needed inside the dashboard.
+func serviceConfigs() []ServiceConfig {
+	result := append([]ServiceConfig{}, servicesToCheck...)
+	path := os.Getenv("DASHBOARD_SERVICES_FILE")
+	if path == "" {
+		path = "/data/dashboard-services.json"
+	}
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return result
+	}
+	if err != nil {
+		log.Printf("Could not read custom services: %v", err)
+		return result
+	}
+	var custom []ServiceConfig
+	if err := json.Unmarshal(data, &custom); err != nil {
+		log.Printf("Could not parse custom services: %v", err)
+		return result
+	}
+	positions := map[string]int{}
+	for i, service := range result {
+		positions[service.Name] = i
+	}
+	for _, service := range custom {
+		if service.Name == "" {
+			continue
+		}
+		if i, exists := positions[service.Name]; exists {
+			// A build-only override must not erase bundled UI metadata.
+			if service.HasUI {
+				result[i] = service
+			}
+			continue
+		}
+		positions[service.Name] = len(result)
+		result = append(result, service)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	return result
+}
+
 // checkAllServices checks all services in parallel
 func checkAllServices() []Service {
 	var wg sync.WaitGroup
-	services := make([]Service, len(servicesToCheck))
+	configs := serviceConfigs()
+	services := make([]Service, len(configs))
 	checkedAt := time.Now().Format(time.RFC3339)
 
-	for i, svc := range servicesToCheck {
+	for i, svc := range configs {
 		wg.Add(1)
 		go func(idx int, config ServiceConfig) {
 			defer wg.Done()
