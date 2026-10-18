@@ -108,67 +108,6 @@ class StatusTests(unittest.TestCase):
             SafeRedirect().redirect_request(request, None, 302, "Found", {}, "http://storage.example/file")
 
 
-class GateTests(unittest.TestCase):
-    def run_gate(self, *, issuer=7, pipeline=23, state="success", older_receipt=False, repository="wikimedia/mediawiki-tools-cli"):
-        spec = importlib.util.spec_from_file_location(
-            "gate", Path(__file__).with_name("check-github-integration.py")
-        )
-        gate = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(gate)
-        values = records()
-        for record in values:
-            record["target_url"] = record["target_url"].replace("wikimedia/mediawiki-tools-cli", repository)
-        values[0]["status"] = state
-        receipt = {"pipeline_id": pipeline, "source_sha": SHA, "records": values}
-        env = {
-            "CI_PROJECT_ID": "16", "CI_PIPELINE_ID": "23", "CI_JOB_ID": "20",
-            "CI_COMMIT_SHA": SHA, "GITHUB_STATUS_BOT_ID": "7",
-            "GITHUB_INTEGRATION_REPOSITORY": repository,
-            "GITHUB_INTEGRATION_RESULTS_4": json.dumps(receipt),
-        }
-        if older_receipt:
-            old = copy.deepcopy(receipt)
-            old["records"][0]["status"] = "failed"
-            for record in receipt["records"]:
-                record["id"] += 4
-            env["GITHUB_INTEGRATION_RESULTS_4"] = json.dumps(old)
-            env["GITHUB_INTEGRATION_RESULTS_8"] = json.dumps(receipt)
-        with patch.dict(os.environ, env), patch.object(gate, "GitLab") as client, patch.object(
-            gate.subprocess, "check_output", return_value=SHA
-        ):
-            client.return_value.get.return_value = {"sha": SHA, "status": "running"}
-            client.return_value.all.return_value = [
-                {"name": "integration-github-request", "id": 19, "status": "success"},
-                {"name": "integration-github", "id": 20, "user": {"id": issuer}},
-            ]
-            gate.main()
-            # Commit status listing needs auth; the gate must use only these
-            # two public endpoints and its bot-authenticated result receipt.
-            client.return_value.get.assert_called_once_with("/projects/16/pipelines/23")
-            client.return_value.all.assert_called_once_with("/projects/16/pipelines/23/jobs")
-
-    def test_authenticated_receipt_passes_without_a_long_lived_token(self):
-        self.run_gate()
-
-    def test_testing_gate_accepts_only_the_selected_testing_repository(self):
-        self.run_gate(repository="addshore/testing")
-
-    def test_retry_uses_new_receipt_instead_of_old_failed_results(self):
-        self.run_gate(older_receipt=True)
-
-    def test_manual_play_by_another_user_cannot_forge_a_successful_receipt(self):
-        with self.assertRaisesRegex(ValueError, "must be started"):
-            self.run_gate(issuer=99)
-
-    def test_receipt_cannot_be_replayed_into_another_pipeline(self):
-        with self.assertRaisesRegex(ValueError, "another pipeline"):
-            self.run_gate(pipeline=24)
-
-    def test_failed_result_makes_gate_fail(self):
-        with self.assertRaisesRegex(ValueError, "has not passed"):
-            self.run_gate(state="failed")
-
-
 class NativeExecutionTests(unittest.TestCase):
     def test_materializes_bundle_snapshot_binary_and_preserves_test_exit_status(self):
         runner = Path(__file__).with_name("run-github-integration.py").resolve()

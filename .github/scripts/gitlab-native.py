@@ -12,7 +12,7 @@ import urllib.request
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/ci"))
 from github_status import (  # noqa: E402
     GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, TESTS, CONTEXTS,
-    commit_sha, description, integration_repository, latest_jobs, parse_description, pipeline_jobs, positive_id, statuses,
+    commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses,
 )
 
 
@@ -160,37 +160,14 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
         results.setdefault(name, {"state": "failed"})
     report(api, plan, results, run_id, attempt)
     if any(result["state"] != "success" for result in results.values()):
-        # Failed external statuses already fail the pipeline. Keep the manual
-        # gate untouched until success: GitLab 19.2 reuses old manual variables
-        # when replaying a failed gate, ignoring its refreshed result receipt.
-        print("Native tests have not all passed; the gate remains blocked.")
-        return
-    # Re-check cancellation after posting; never revive a canceled pipeline.
+        return  # The normal waiting job observes the failures itself.
     loaded = load_request(api, job_id)
-    if loaded is None:
-        return
-    gate = loaded[1][GATE_JOB]
-    if gate["status"] in {"manual", "failed"}:
-        # Listing commit statuses requires authentication on GitLab 19.2.
-        # Pass a nonsecret receipt when starting the gate as our bot. The gate
-        # authenticates that issuer using public pipeline job metadata.
-        latest = latest_jobs(statuses(api, plan["source_sha"], plan["pipeline_id"]))
-        receipt = {
-            "pipeline_id": plan["pipeline_id"], "source_sha": plan["source_sha"],
-            "records": [latest[name] for name in CONTEXTS],
-        }
-        if gate["status"] == "failed" and gate.get("user", {}).get("id") != receipt["records"][0]["author"]["id"]:
-            raise ValueError("gate was manually started by another user; start a new GitLab pipeline")
-        # Manual variables persist on retry. Give each receipt a new key to avoid
-        # GitLab's unique-key constraint, and let the gate select the newest one.
-        key = f"GITHUB_INTEGRATION_RESULTS_{max(record['id'] for record in receipt['records'])}"
-        # GitLab 19.2 allows playing retryable manual jobs too. Unlike /retry,
-        # /play accepts the refreshed variables for this GitHub attempt.
-        api.post(f"/projects/{PROJECT}/jobs/{gate['id']}/play", {
-            "job_variables_attributes": [{
-                "key": key, "value": json.dumps(receipt),
-            }],
-        })
+    if loaded is not None:
+        gate = loaded[1][GATE_JOB]
+        if gate["status"] == "failed":
+            # A successful GitHub rerun can recover a failed waiting job.
+            # No manual play or result variables are involved.
+            api.post(f"/projects/{PROJECT}/jobs/{gate['id']}/retry", {})
 
 
 def main():

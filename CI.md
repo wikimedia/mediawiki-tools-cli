@@ -49,8 +49,8 @@ so no shared cache service is required.
 
 [Native test runs](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-integration.yml)
 run the four Docker tests as ordinary GitHub Actions jobs, using each Ubuntu VM's
-Docker daemon. No GitLab Runner or Cloud VPS worker is needed in this mode.
-Shared Wikimedia runners still handle the other GitLab jobs.
+Docker daemon. Cloud VPS pools run only the small waiting jobs; they do not run
+the native integration tests. Shared Wikimedia runners handle the other GitLab jobs.
 
 `integration-github-request` finishes after checks, unit tests, the binary build
 and MediaWiki preparation. Its successful Job event dispatches
@@ -70,22 +70,22 @@ A fresh reporting VM posts each result when that test finishes. The test VMs hav
 no callback token; reporting uses trusted GitHub workflow code and GitHub's job
 conclusions, rather than files supplied by the tested branch.
 
-`integration-github` is a blocking manual GitLab job while GitHub runs. It occupies
-no runner during that wait. GitHub automatically starts it after all four results pass. Failed external
-results fail the pipeline while the gate stays blocked. GitHub supplies a
-nonsecret receipt of those GitLab
-statuses as job variables. The job briefly uses a shared Wikimedia runner to
-check GitLab identifies its issuer as the configured bot, then checks all four
-results belong to that bot, request, GitHub attempt and merged commit. Manually
-playing it as another user fails verification and requires a new GitLab pipeline.
-The controller will not retry a gate that another user started. Documentation builds and tagged releases wait for that check;
-preview release builds can still run alongside integration.
+`integration-github` is a normal job on the `mwcli-wait` pool. It starts
+automatically and polls every 15 seconds, using no checkout or artifacts. There
+is no manual action. The VM's local result reader authenticates the job with its
+short-lived `CI_JOB_TOKEN`, then reads GitLab using a separate read-only project
+token. That long-lived token stays outside job containers. The reader checks the
+current pipeline/request, configured reporting bot, four results, common GitHub
+run/attempt and exact merged commit before allowing success. It exposes only a
+local Unix socket, not a public HTTP endpoint.
 
-If a dispatch or callback is lost, the gate remains blocked. It cannot silently
-pass with missing tests. Native tests check for GitLab cancellation every 30
-seconds while their test script runs. Duplicate dispatches share a concurrency
-group, and completed requests are skipped. There is no scheduled polling workflow
-and no coordinator VM.
+Each waiting job exits successfully when all four tests pass, or fails once a
+complete authenticated batch contains a failure. Missing, mixed or invalid
+results cannot pass; the wait times out after 40 minutes. Documentation builds
+and tagged releases wait for this job; preview release builds still run alongside
+integration. GitHub tests check for GitLab cancellation every 30 seconds.
+Duplicate dispatches share a concurrency group and completed requests are
+skipped. No scheduled polling workflow is used.
 
 ### Enable the bridge
 
@@ -94,33 +94,62 @@ Keep the current runners and webhook until these steps are complete:
 1. Merge this change into GitLab `main`, then confirm the mirror has copied
    `gitlab-integration.yml` and `gitlab-integration-test.yml` to GitHub `main`.
    Dispatchable workflows must exist on the GitHub default branch.
-2. Create a project access token in
-   [GitLab access tokens](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens),
-   named `Native GitHub integration`, with **Maintainer** role and **api** scope.
-   Maintainer is needed to play the manual gate on protected `main` and release
-   tags. Set an expiry and arrange rotation; `read_api` is insufficient.
-3. Save its value as the GitHub Actions repository secret **GITLAB_STATUS_TOKEN**
-   in [the official repository](https://github.com/wikimedia/mediawiki-tools-cli/settings/secrets/actions).
-   Never add it to GitLab CI variables or the test jobs.
-4. Obtain the token bot's numeric user ID. From a Bash terminal, this command
-   prompts without echoing the token and prints only the bot ID:
+2. Create a project access token in [GitLab access tokens](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens):
+   name **mwcli native GitHub results**, role **Maintainer**, scope **api**.
+   Maintainer preserves automatic retry on protected `main`/release refs; this
+   is a broad project write credential, not a status-only permission. Save it
+   directly to the official GitHub repo with the secure prompt:
 
    ```sh
-   python3 - <<'PY'
-   import getpass, json, urllib.request
-   request = urllib.request.Request(
-       "https://gitlab.wikimedia.org/api/v4/user",
-       headers={"PRIVATE-TOKEN": getpass.getpass("GitLab status token: ")},
-   )
-   with urllib.request.urlopen(request, timeout=30) as response:
-       print(json.load(response)["id"])
-   PY
+   gh secret set GITLAB_STATUS_TOKEN --repo wikimedia/mediawiki-tools-cli
    ```
 
-   Set **GITHUB_STATUS_BOT_ID** to that ID in the
-   [GitLab CI/CD variables](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd).
-   It is a nonsecret variable and must be available to MR pipelines, so leave
-   **Protected** unchecked.
+   Alternatively, use `mw gl api` to create the token and pipe its value directly
+   into `gh`. This prints only metadata, including the writer bot's `user_id`, to
+   stderr; the secret goes directly to GitHub. Run once per intended rotation:
+
+   ```sh
+   set -o pipefail
+   mw gl api projects/16/access_tokens --hostname gitlab.wikimedia.org --method POST --input - <<'JSON' | jq -er '({id,user_id,name,expires_at}|tojson|stderr|empty), (.token // error("Missing token"))' | gh secret set GITLAB_STATUS_TOKEN --repo wikimedia/mediawiki-tools-cli
+   {"name":"mwcli native GitHub results","access_level":40,"scopes":["api"],"expires_at":"2027-11-22"}
+   JSON
+   ```
+
+   `mw gl` must be authenticated as a project Maintainer; `gh` needs permission
+   to manage the official repo's secrets. Keep shell tracing (`set -x`) disabled.
+3. Create a separate token named **mwcli native CI result reader**, with
+   **Reporter** role and **read_api** scope in the same GitLab UI. Keep its value
+   ready for the secure VM setup prompts; do not save it as a GitLab CI variable.
+   Obtain the writer bot ID from the CLI response above, or list its metadata:
+
+   ```sh
+   mw gl api projects/16/access_tokens --hostname gitlab.wikimedia.org | jq '.[] | select(.name == "mwcli native GitHub results") | {id,user_id,expires_at,scopes}'
+   ```
+
+   Using that `user_id`, install the reader on both VMs. Each command prompts for
+   the same read-only token without echoing it:
+
+   ```sh
+   python3 tools/ci/configure-wait-pool.py addshore@gitlab-runner-addshore-1018.mwcli.eqiad1.wikimedia.cloud --bot-id WRITER_USER_ID --read-token
+   python3 tools/ci/configure-wait-pool.py addshore@gitlab-runner-addshore-1019.mwcli.eqiad1.wikimedia.cloud --bot-id WRITER_USER_ID --read-token
+   ```
+
+   The Cloud SSH key must be loaded. To create the reader using `mw` instead of
+   the UI, run the following once. Its response includes the secret: keep it
+   private and use it only in the setup prompts.
+
+   ```sh
+   mw gl api projects/16/access_tokens --hostname gitlab.wikimedia.org --method POST --input - <<'JSON'
+   {"name":"mwcli native CI result reader","access_level":20,"scopes":["read_api"],"expires_at":"2027-11-22"}
+   JSON
+   ```
+4. The longest lifetime previously accepted by this instance is **400 days**:
+   **22 November 2027** when created on **18 October 2026**. Adjust the dates in
+   these examples when creating tokens later. Administrators can shorten the
+   limit; [GitLab documents the default 365-day and optional 400-day limits](https://docs.gitlab.com/user/project/settings/project_access_tokens/).
+   Arrange rotation before the accepted expiry. Keep the separate trial token
+   until rollout is verified, then revoke it. Tokens are displayed only at creation;
+   GitHub cannot return the value of a saved Actions secret.
 5. Set the GitHub Actions repository variable **GITLAB_NATIVE_ENABLED** to `true`.
 6. Add a Job events webhook in
    [GitLab webhooks](https://gitlab.wikimedia.org/repos/releng/cli/-/hooks), using:
@@ -170,7 +199,8 @@ GITHUB_INTEGRATION_REPOSITORY: "addshore/testing"
 
 Publish the native workflow and helper files to `addshore/testing`'s default
 branch. Set its **GITLAB_NATIVE_ENABLED** variable and **GITLAB_STATUS_TOKEN**
-secret, and configure **GITHUB_STATUS_BOT_ID** in GitLab for that token's bot.
+secret, and configure the VM readers with that token's bot ID and
+`--repository addshore/testing`.
 Use a separate temporary token for the trial. It needs the same Maintainer role
 and `api` scope as production; the old read-only queue token is insufficient.
 
@@ -183,36 +213,80 @@ automatic dispatch. The existing webhook body and permissions apply.
 
 Do not change the project-wide **GITHUB_NATIVE_INTEGRATION** variable for this
 trial: only the trial branch should select the new mode. Before merging the
-production branch, remove any temporary project-wide trial bot ID, or replace it
-with the production token's bot ID when enabling production. Disable the trial
+production branch, configure both VM readers with the production writer bot ID
+and `--repository wikimedia/mediawiki-tools-cli`. Disable the trial
 webhook and revoke the temporary token when the test is finished.
 
-### Lightweight waiting pool
+### Lightweight waiting pools
 
-Runner `gitlab-runner-addshore-1019-wait` ([#1550](https://gitlab.wikimedia.org/repos/releng/cli/-/runners/1550))
-provides up to 50 small jobs tagged `mwcli-wait`, locked to this project with
-untagged jobs disabled. It uses a separate `gitlab-runner-wait` systemd service and
-`/etc/gitlab-runner-wait/config.toml`; the existing Docker service retains its
-two-job limit. [The setup script](tools/ci/wait-runner.py) reads the JSON runner
-creation response from stdin, keeps its token in root-only configuration and
-leaves the original runner configuration unchanged.
+Both Cloud VMs have a separate 50-slot pool, giving up to 100 small waits:
+
+| VM | Waiting runner |
+| --- | --- |
+| `gitlab-runner-addshore-1018` | [#1551](https://gitlab.wikimedia.org/repos/releng/cli/-/runners/1551) |
+| `gitlab-runner-addshore-1019` | [#1550](https://gitlab.wikimedia.org/repos/releng/cli/-/runners/1550) |
+
+These runners are tagged `mwcli-wait`, locked to this project, with untagged jobs
+disabled. Each uses its own `gitlab-runner-wait` systemd service and root-only
+`/etc/gitlab-runner-wait/config.toml`. The existing Docker runner retains its two
+slots and its original configuration. The result reader is a separate
+`mwcli-wait-status` service, running as a restricted dynamic user with a systemd
+credential loaded from root-only `/etc/gitlab-runner-wait/status-token`.
+
+To create a pool on an existing runner, update its scripts, or select the reporting
+bot/repository, run these full commands from this checkout:
+
+```sh
+python3 tools/ci/configure-wait-pool.py addshore@gitlab-runner-addshore-1018.mwcli.eqiad1.wikimedia.cloud --bot-id WRITER_USER_ID
+python3 tools/ci/configure-wait-pool.py addshore@gitlab-runner-addshore-1019.mwcli.eqiad1.wikimedia.cloud --bot-id WRITER_USER_ID
+```
+
+Add `--read-token` to securely prompt for an **existing** `read_api` token instead
+of creating another one. GitHub does not allow retrieving a saved Actions secret;
+you need its original value. Add `--repository addshore/testing` for the trial.
+The commands upload the tracked scripts, create a project runner only if needed,
+and reuse its existing authentication token on subsequent runs. A new registration
+requires your `mw gl` account to be allowed to create project runners. Use `--mw`
+if the CLI executable is at another path.
 
 Only `python:3.13-alpine` is accepted. Jobs have no privileged mode, Docker socket,
-cache mounts or sidecar services. Each job has a 64 MiB memory limit, a 0.1 CPU
-limit and a 64-process limit. All waiting containers share one CPU core; 50 is a
-concurrency ceiling, not a reservation of 50 CPUs. Use `GIT_STRATEGY: none`, empty
-cache/dependencies and no artifacts so these jobs stay small. The pool shares
-Docker's bridge instead of allocating a network per wait, avoiding exhaustion of
-the host's default network address pools at high concurrency.
+cache or sidecar services. The two read-only mounts contain the trusted waiting
+client and the local result socket; neither contains a long-lived token. Each job
+has a 64 MiB memory limit, a 0.1 CPU limit and a 64-process limit. All waits on each
+host share one CPU core; 50 is a concurrency ceiling, not a CPU reservation. Jobs
+use `GIT_STRATEGY: none` and download no artifacts. Docker's shared bridge avoids
+allocating a separate network for every wait.
 
-This pool prepares for replacing the manual gate with a normal waiting job.
-The native bridge currently still uses the manual gate described above.
+### Credentials and risks
+
+| Credential | Permission | Stored in |
+| --- | --- | --- |
+| `GITLAB_STATUS_TOKEN` | Project 16, Maintainer, `api` | Official GitHub Actions secret; trusted preparation/report jobs only |
+| VM result reader | Project 16, Reporter, `read_api` | Both Cloud VMs, root-only file loaded as a service credential |
+| GitHub dispatch token | Official GitHub repo, Actions read/write | GitLab webhook Authorization header |
+| Waiting runner authentication | Pick up/submit assigned jobs | Each VM's root-only runner configuration |
+| `CI_JOB_TOKEN` | Short-lived job identity | GitLab injects it into its running job |
+
+The writer can alter more than statuses: compromise permits project changes at
+Maintainer level. Native test VMs receive neither long-lived GitLab token; fresh
+reporting VMs execute workflow code from the trusted GitHub revision and read actual
+Actions conclusions. Protect changes to that workflow and keep its write token out
+of tested code, artifacts and logs. The dispatch token can start Actions workflows;
+it does not grant GitLab access.
+
+The reader cannot post successful statuses or change the repository, but can read
+project metadata, logs and artifacts. Root on either Cloud VM can obtain it. These
+VMs also host privileged Docker integration jobs, so those jobs remain a route to
+host compromise; file permissions do not isolate a credential from host root.
+The small waiting containers themselves have no Docker access or privileged mode.
+Longer expiry increases the time a stolen token remains useful; rotate the writer
+and reader before their printed expirations and revoke superseded trial tokens.
 
 ### Retry, retire and roll back
 
 For a failing native test, use **Re-run failed jobs** in the matching GitHub run.
 The reporter keeps successful results from earlier attempts of that same run,
-refreshes the four GitLab statuses and starts the waiting gate automatically.
+refreshes the four GitLab statuses and retries a failed waiting job automatically.
 Do not retry only the GitLab gate to rerun tests: it only verifies existing results.
 For a failed or blocked run, use **Re-run all jobs** to repeat preparation and all
 tests. An already passed gate is left unchanged; start a new GitLab pipeline to
@@ -225,11 +299,14 @@ with project `16`, the successful `integration-github-request` job ID, and statu
 GitLab pipeline is not revived. Cancel its matching GitHub run directly if needed.
 
 After successful MR and `main` trials, disable the old queue webhook and set
-**GITLAB_WORKERS_ENABLED** to `false`. Pause the Cloud VPS runners and the old
-GitHub project runner in GitLab. Keep their tokens and VM data until the rollback
+**GITLAB_WORKERS_ENABLED** to `false`. Pause the two old Docker runner registrations
+and the old GitHub project runner in GitLab. Keep the `-wait` registrations and
+both VM result-reader services running. Keep their tokens and VM data until the rollback
 window has passed, then unregister the old runners and remove the old GitHub
 secrets **GITLAB_RUNNER_TOKEN** and **GITLAB_API_READ_TOKEN**. Native integration
-uses neither secret. Keep **GITLAB_STATUS_TOKEN** and the new webhook token.
+uses neither GitHub secret. Keep **GITLAB_STATUS_TOKEN**, the VM reader credential
+and the new webhook token. If you reused an old read token for the VM reader, do
+not revoke that token while the reader uses it.
 
 To roll back, set **GITHUB_NATIVE_INTEGRATION** to `0`, restore the old webhook and
 **GITLAB_WORKERS_ENABLED**, and unpause the `dind` runners. Start a new pipeline;

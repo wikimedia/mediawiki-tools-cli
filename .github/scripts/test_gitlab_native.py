@@ -22,7 +22,7 @@ class FakeGitLab:
         self.status_records = []
         self.canceled = False
         self.request_id = 19
-        self.gate_status = "manual"
+        self.gate_status = "running"
         self.gate_user = 7
         self.merge_bundle = None
         self.sha = SHA
@@ -70,22 +70,18 @@ class CallbackTests(unittest.TestCase):
                        "url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i}"}
                 for i, name in enumerate(native.TESTS, 1)}
 
-    def test_posts_four_independent_results_to_exact_pipeline_then_plays_gate(self):
+    def test_posts_four_results_without_playing_or_restarting_a_running_gate(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results()):
             native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 5)
+        self.assertEqual(len(api.posted), 4)
         for path, body in api.posted[:4]:
             self.assertEqual(path, "/projects/16/statuses/" + SHA)
             self.assertEqual(body["pipeline_id"], 23)
             self.assertEqual(body["description"], native.description(19, 123, 1, SHA))
         self.assertEqual(api.posted[3][1]["state"], "success")
-        self.assertEqual(api.posted[-1][0], "/projects/16/jobs/20/play")
-        receipt = json.loads(api.posted[-1][1]["job_variables_attributes"][0]["value"])
-        self.assertEqual(receipt["pipeline_id"], 23)
-        self.assertEqual(len(receipt["records"]), 4)
 
-    def test_native_failure_does_not_poison_the_manual_gate_with_a_failed_receipt(self):
+    def test_native_failure_leaves_the_waiting_job_to_observe_failure(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results("repoclient")):
             native.finish(api, 19, SHA, 123, 1)
@@ -111,19 +107,8 @@ class CallbackTests(unittest.TestCase):
         api.gate_status = "failed"
         with patch.object(native, "github_results", return_value=self.results()):
             native.finish(api, 19, SHA, 123, 2)
-        self.assertEqual(api.posted[-1][0], "/projects/16/jobs/20/play")
-        receipt = json.loads(api.posted[-1][1]["job_variables_attributes"][0]["value"])
-        self.assertTrue(all("attempt=2" in record["description"] for record in receipt["records"]))
+        self.assertEqual(api.posted[-1], ("/projects/16/jobs/20/retry", {}))
         self.assertIn("attempt=2", api.posted[0][1]["description"])
-
-    def test_manual_gate_attempt_by_another_user_requires_a_new_pipeline(self):
-        api = FakeGitLab()
-        api.gate_status = "failed"
-        api.gate_user = 99
-        with patch.object(native, "github_results", return_value=self.results()):
-            with self.assertRaisesRegex(ValueError, "manually started"):
-                native.finish(api, 19, SHA, 123, 2)
-        self.assertEqual(len(api.posted), 4)
 
     def test_canceled_superseded_and_passed_requests_do_not_post_or_play(self):
         for field, value in (("canceled", True), ("request_id", 21), ("gate_status", "success")):
