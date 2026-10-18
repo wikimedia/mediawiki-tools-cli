@@ -20,7 +20,7 @@ type metricOptions struct {
 	graphWidth                                                                 int
 	project, editorType, pageType, activity, access, referer, mediaType, agent string
 	granularity, start, end, date, month                                       string
-	limit                                                                      int
+	limit, offset                                                              int
 	timeout                                                                    time.Duration
 }
 
@@ -65,6 +65,9 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		if opts.limit < 0 {
 			return fmt.Errorf("--limit must be zero or greater")
 		}
+		if opts.offset < 0 {
+			return fmt.Errorf("--offset must be zero or greater")
+		}
 		article := ""
 		if len(args) > 0 {
 			article = strings.ReplaceAll(args[0], " ", "_")
@@ -99,8 +102,11 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if def.ranking && opts.limit > 0 && len(rows) > opts.limit {
-			rows = rows[:opts.limit]
+		if def.ranking {
+			rows = rows[min(opts.offset, len(rows)):]
+			if opts.limit > 0 && len(rows) > opts.limit {
+				rows = rows[:opts.limit]
+			}
 		}
 		if out.Type == "graph" {
 			return printMetricGraph(cmd, rows, def, opts)
@@ -158,7 +164,8 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		flags.StringVar(&opts.date, "date", "", "Day in YYYYMMDD format (default: latest available in the past 7 days)")
 		flags.StringVar(&opts.month, "month", "", "Whole month in YYYYMM format, instead of --date")
 		cmd.MarkFlagsMutuallyExclusive("date", "month")
-		flags.IntVar(&opts.limit, "limit", 20, "Maximum results (0 means all available results)")
+		flags.IntVar(&opts.limit, "limit", 20, "Maximum results after offset (0 means all remaining results)")
+		flags.IntVar(&opts.offset, "offset", 0, "Skip this many results before applying --limit")
 	} else {
 		flags.StringVar(&opts.granularity, "granularity", "daily", "Data granularity: daily or monthly")
 		flags.StringVar(&opts.start, "start", "", "Start date in YYYYMMDD format (default: 30 days ago)")

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -77,11 +78,22 @@ func TestRankingsUnwrapNestedResponsesAndApplyLimits(t *testing.T) {
 				}
 				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tc.body))}, nil
 			})}
-			for _, limit := range []string{"1", "0"} {
+			for _, selection := range []struct {
+				limit, offset string
+				count         int
+				first         string
+			}{
+				{"1", "0", 1, "First"},
+				{"0", "0", 2, "First"},
+				{"1", "1", 1, "Second"},
+				{"0", "1", 1, "Second"},
+				{"1", "2", 0, ""},
+				{"1", "999", 0, ""},
+			} {
 				cmd := NewCmd()
 				var buf bytes.Buffer
 				cmd.SetOut(&buf)
-				cmd.SetArgs(append(append([]string{}, tc.args...), "--limit", limit, "--output", "json"))
+				cmd.SetArgs(append(append([]string{}, tc.args...), "--limit", selection.limit, "--offset", selection.offset, "--output", "json"))
 				if err := cmd.Execute(); err != nil {
 					t.Fatal(err)
 				}
@@ -89,12 +101,12 @@ func TestRankingsUnwrapNestedResponsesAndApplyLimits(t *testing.T) {
 				if err := json.Unmarshal(buf.Bytes(), &rows); err != nil {
 					t.Fatal(err)
 				}
-				expected := 1
-				if limit == "0" {
-					expected = 2
+				if len(rows) != selection.count {
+					t.Fatalf("wrong count for offset %s, limit %s: %s", selection.offset, selection.limit, buf.String())
 				}
-				if len(rows) != expected || rows[0][tc.field] != "First" {
-					t.Fatalf("ranking or limit lost: %s", buf.String())
+				offset, _ := strconv.Atoi(selection.offset)
+				if len(rows) > 0 && (rows[0][tc.field] != selection.first || rows[0]["rank"] != float64(1+offset)) {
+					t.Fatalf("ranking or offset lost: %s", buf.String())
 				}
 			}
 		})
@@ -113,6 +125,7 @@ func TestMetricValidationPreventsRequests(t *testing.T) {
 		{"top-edited", "--month", "202513"},
 		{"top-pages", "--date", "20250101", "--month", "202501"},
 		{"top-pages", "--limit", "-1"},
+		{"top-pages", "--offset", "-1"},
 		{"devices", "--access-site", "mobile-app"},
 		{"editors", "--activity-level", "invalid"},
 		{"edits", "Article", "--page-type", "content"},

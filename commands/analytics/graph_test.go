@@ -83,3 +83,25 @@ func TestGraphRejectsMalformedObservations(t *testing.T) {
 		}
 	}
 }
+
+func TestRankingGraphOffsetRescalesRemainingResults(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		body := `{"items":[{"articles":[{"rank":1,"article":"Main_Page","views":10000000},{"rank":2,"article":"Second","views":100},{"rank":3,"article":"Third","views":50}]}]}`
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
+	})}
+	cmd := NewCmd()
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	cmd.SetArgs([]string{"top-pages", "--date", "20250101", "--offset", "1", "--limit", "1", "--output", "graph", "--graph-width", "50"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(buf.String(), "Main_Page") || strings.Contains(buf.String(), "Third") || !strings.Contains(buf.String(), "Second") {
+		t.Fatalf("incorrect selection: %s", buf.String())
+	}
+	if strings.Count(buf.String(), "█") < 30 {
+		t.Fatalf("graph still scaled against skipped page: %s", buf.String())
+	}
+}
