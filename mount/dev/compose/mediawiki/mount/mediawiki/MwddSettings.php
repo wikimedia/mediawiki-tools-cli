@@ -67,7 +67,8 @@ if ( defined( "MW_DB" ) ) {
 		$dockerDb = $dockerHostParts[0];
 	}
 	if ( $forwardedHost !== '' && $forwardedPrefix !== '' ) {
-		$wgServer = 'https://' . $forwardedHost . $forwardedPrefix;
+		$forwardedProto = strtolower( trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? 'https' )[0] ) );
+		$wgServer = ( $forwardedProto === 'http' ? 'http' : 'https' ) . '://' . $forwardedHost . $forwardedPrefix;
 	} else {
 		$wgServer = in_array( $dockerHost, $defaultHttpsHosts, true ) ? 'https://' . $dockerHost : WebRequest::detectServer();
 	}
