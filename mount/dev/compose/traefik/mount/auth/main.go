@@ -314,6 +314,15 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 			http.Redirect(w, r, loginPath, http.StatusSeeOther)
 			return
 		}
+		// A browser may open the same one-time link again after a successful login.
+		// Keep replay protection for unauthenticated clients, but don't show an error
+		// when this browser already has a valid gateway session.
+		if r.PostForm.Get("login_token") != "" {
+			if cookie, err := r.Cookie(cookieName(origin, "session")); err == nil && g.valid(cookie.Value, "session", origin) {
+				http.Redirect(w, r, target, http.StatusSeeOther)
+				return
+			}
+		}
 		authenticated := false
 		if value := r.PostForm.Get("login_token"); value != "" {
 			authenticated = g.consumeLoginLink(value, origin)

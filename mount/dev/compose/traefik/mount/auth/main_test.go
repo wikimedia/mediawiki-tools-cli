@@ -325,6 +325,13 @@ func TestLoginLinkEstablishesSessionAndRequiresCSRF(t *testing.T) {
 	if replay.Code != http.StatusUnauthorized {
 		t.Fatal("login link was reusable")
 	}
+	// Opening the same link again in this authenticated browser should continue
+	// to the requested page without treating the consumed link as a login failure.
+	authenticatedReplay := httptest.NewRecorder()
+	g.ServeHTTP(authenticatedReplay, request(http.MethodPost, loginPath, form, csrf, session))
+	if authenticatedReplay.Code != http.StatusSeeOther || authenticatedReplay.Header().Get("Location") != "/proxy/dashboard/" || strings.Contains(authenticatedReplay.Body.String(), "expired or already used") {
+		t.Fatalf("authenticated replay was not ignored: %d %s", authenticatedReplay.Code, authenticatedReplay.Body.String())
+	}
 }
 
 func TestLoginLinksExpireAndStayOnTheirOrigin(t *testing.T) {
