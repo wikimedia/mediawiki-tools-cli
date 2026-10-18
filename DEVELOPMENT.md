@@ -258,7 +258,7 @@ Markdown guides in `docs/` and generated command help are published to MediaWiki
 
 ```sh
 make docs        # Build Markdown and wikitext locally
-make docs-check  # Review proposed updates and detect wiki edits before releasing
+make docs-check  # Show wiki edits since the last automatic publication
 make docs-pull   # Download wiki content and Markdown proposals for review
 ```
 

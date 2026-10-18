@@ -15,18 +15,20 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
+type wikiRevision struct {
+	ID      int64  `json:"revid"`
+	User    string `json:"user"`
+	Comment string `json:"comment"`
+	Slots   map[string]struct {
+		Content *string `json:"content"`
+		Hidden  bool    `json:"texthidden"`
+	} `json:"slots"`
+}
+
 type wikiPage struct {
-	Title     string `json:"title"`
-	Missing   bool   `json:"missing"`
-	Revisions []struct {
-		ID      int64  `json:"revid"`
-		User    string `json:"user"`
-		Comment string `json:"comment"`
-		Slots   map[string]struct {
-			Content *string `json:"content"`
-			Hidden  bool    `json:"texthidden"`
-		} `json:"slots"`
-	} `json:"revisions"`
+	Title     string         `json:"title"`
+	Missing   bool           `json:"missing"`
+	Revisions []wikiRevision `json:"revisions"`
 }
 
 type snapshot struct {
@@ -41,6 +43,7 @@ type review struct {
 	API       string              `json:"api"`
 	Timestamp string              `json:"timestamp"`
 	Pages     map[string]snapshot `json:"pages"`
+	Baselines map[string]snapshot `json:"baselines,omitempty"`
 }
 
 func newWiki(config configuration) (*mwclient.Client, error) {
@@ -104,52 +107,14 @@ func fetchPages(client *mwclient.Client, titles []string) (review, error) {
 	return result, nil
 }
 
-func safeToPublish(config configuration, title string, current snapshot, desired string) bool {
-	desiredBody, _ := unmark(desired)
-	if current.Missing || normalize(current.Text) == normalize(desired) || normalize(current.Text) == normalize(desiredBody) {
+func safeToPublish(config configuration, title string, current snapshot, desired string, published *snapshot) bool {
+	if current.Missing || documentationBody(current.Text) == documentationBody(desired) {
 		return true
 	}
-	if _, valid := unmark(current.Text); valid {
+	if reviewed, ok := config.Reviewed[title]; ok && reviewed.SHA256 == digest(normalize(current.Text)) {
 		return true
 	}
-	if baseline, ok := config.Reviewed[title]; ok && baseline.SHA256 == digest(normalize(current.Text)) {
-		return true
-	}
-	// Bootstrap existing generated pages only if their current revision is the
-	// known publishing bot's generated edit. Community revisions need review.
-	return !strings.Contains(current.Text, markerPrefix) &&
-		strings.HasPrefix(title, config.ReferenceRoot+"/") && config.LegacyPublisher != "" && config.LegacySummary != "" &&
-		current.User == config.LegacyPublisher && current.Comment == config.LegacySummary
-}
-
-// A human revert can restore exactly the last bot publication. Compare the
-// content, rather than trusting a revert summary or treating every revert as drift.
-func unchangedLegacyReference(client *mwclient.Client, config configuration, title string, current snapshot) (bool, error) {
-	if config.LegacyPublisher == "" || config.LegacySummary == "" || !strings.HasPrefix(title, config.ReferenceRoot+"/") || strings.Contains(current.Text, markerPrefix) {
-		return false, nil
-	}
-	response, err := client.Get(params.Values{"action": "query", "formatversion": "2", "prop": "revisions", "rvprop": "content|user|comment", "rvslots": "main", "rvuser": config.LegacyPublisher, "rvlimit": "1", "titles": title})
-	if err != nil {
-		return false, err
-	}
-	data, err := response.Marshal()
-	if err != nil {
-		return false, err
-	}
-	var reply struct {
-		Query struct {
-			Pages []wikiPage `json:"pages"`
-		} `json:"query"`
-	}
-	if err := json.Unmarshal(data, &reply); err != nil {
-		return false, err
-	}
-	if len(reply.Query.Pages) != 1 || len(reply.Query.Pages[0].Revisions) != 1 {
-		return false, nil
-	}
-	revision := reply.Query.Pages[0].Revisions[0]
-	slot, readable := revision.Slots["main"]
-	return readable && slot.Content != nil && !slot.Hidden && revision.User == config.LegacyPublisher && revision.Comment == config.LegacySummary && normalize(*slot.Content) == normalize(current.Text), nil
+	return published != nil && documentationBody(published.Text) == documentationBody(current.Text)
 }
 
 func editParameters(title, text, summary, timestamp string, current snapshot) params.Values {
@@ -182,44 +147,67 @@ func synchronize(config configuration, mode string) error {
 	}
 	state.API = config.API
 	directory := filepath.Join(outputDir, "wiki")
+	if err := os.RemoveAll(directory); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		return err
 	}
-	if err := writeJSON(filepath.Join(directory, "review.json"), state); err != nil {
-		return err
-	}
-	conflicts := 0
-	changed := 0
-	var report strings.Builder
-	report.WriteString("# Wiki documentation review\n\n| Status | Page | Diff |\n| --- | --- | --- |\n")
+	state.Baselines = map[string]snapshot{}
+	conflicts, changed, wikiChanges, laterRevisions := 0, 0, 0, 0
+	var report, preview strings.Builder
+	report.WriteString("# Edits since the last automatic publication\n\n| Status | Page | Revisions | Wiki edits |\n| --- | --- | --- | --- |\n")
+	preview.WriteString("# Proposed publication changes\n\n| Status | Page | Diff |\n| --- | --- | --- |\n")
 	for i, document := range documents {
 		desired, err := os.ReadFile(document.Wikitext)
 		if err != nil {
 			return err
 		}
 		current := state.Pages[document.Title]
-		if normalize(current.Text) == normalize(string(desired)) && !current.Missing {
-			continue
+		published, err := lastPublication(client, config, document.Title, current)
+		if err != nil {
+			return fmt.Errorf("%s: %w", document.Title, err)
 		}
-		changed++
-		status := "UPDATE"
-		if current.Missing {
-			status = "CREATE"
-		} else if !safeToPublish(config, document.Title, current, string(desired)) {
-			unchanged, err := unchangedLegacyReference(client, config, document.Title, current)
-			if err != nil {
-				return err
+		if published != nil {
+			state.Baselines[document.Title] = *published
+			if current.Revision > published.Revision {
+				laterRevisions++
 			}
-			if !unchanged {
-				status = "WIKI-EDIT"
-				conflicts++
-			}
+		}
+		safe := safeToPublish(config, document.Title, current, string(desired), published)
+		if !safe {
+			conflicts++
 		}
 		stem := filepath.Join(directory, fmt.Sprintf("%03d", i))
-		if err := saveReview(stem, current.Text, document.Wikitext); err != nil {
-			return err
+		differs := current.Missing || normalize(current.Text) != normalize(string(desired))
+		if differs {
+			changed++
+			status := "UPDATE"
+			if current.Missing {
+				status = "CREATE"
+			}
+			if err := saveReview(stem, current.Text, document.Wikitext); err != nil {
+				return err
+			}
+			fmt.Fprintf(&preview, "| %s | [%s](%s) | [%s.publish.diff](%s.publish.diff) |\n", status, document.Title, wikiURL(config, document.Title), filepath.Base(stem), filepath.Base(stem))
 		}
-		if mode == "pull" && !current.Missing && document.Title != config.ReferenceRoot && !strings.HasPrefix(document.Title, config.ReferenceRoot+"/") {
+		if published != nil && documentationBody(published.Text) != documentationBody(current.Text) {
+			wikiChanges++
+			if err := saveWikiEdits(stem, *published, current); err != nil {
+				return err
+			}
+			status := "WIKI-EDIT"
+			if safe {
+				status = "REVIEWED"
+			}
+			fmt.Printf("%s %s (%s.wiki.diff; revisions %d → %d)\n", status, document.Title, stem, published.Revision, current.Revision)
+			comparisonURL := fmt.Sprintf("%s?oldid=%d&diff=%d", wikiURL(config, document.Title), published.Revision, current.Revision)
+			fmt.Fprintf(&report, "| %s | [%s](%s) | [%d → %d](%s) | [%s.wiki.diff](%s.wiki.diff) |\n", status, document.Title, wikiURL(config, document.Title), published.Revision, current.Revision, comparisonURL, filepath.Base(stem), filepath.Base(stem))
+		} else if !safe {
+			fmt.Printf("NO-BASELINE %s (review %s.wiki)\n", document.Title, stem)
+			fmt.Fprintf(&report, "| NO-BASELINE | [%s](%s) | %d | [%s.wiki](%s.wiki) |\n", document.Title, wikiURL(config, document.Title), current.Revision, filepath.Base(stem), filepath.Base(stem))
+		}
+		if mode == "pull" && differs && !current.Missing && document.Title != config.ReferenceRoot && !strings.HasPrefix(document.Title, config.ReferenceRoot+"/") {
 			body, _ := unmark(current.Text)
 			markdown, err := convertWiki([]byte(body), strings.TrimPrefix(document.Source, "docs/"), config)
 			if err != nil {
@@ -229,13 +217,21 @@ func synchronize(config configuration, mode string) error {
 				return err
 			}
 		}
-		fmt.Printf("%s %s (%s.diff)\n", status, document.Title, stem)
-		fmt.Fprintf(&report, "| %s | [%s](%s) | [%s.diff](%s.diff) |\n", status, document.Title, wikiURL(config, document.Title), filepath.Base(stem), filepath.Base(stem))
 	}
-	if err := os.WriteFile(filepath.Join(directory, "report.md"), []byte(report.String()), 0o644); err != nil {
+	if err := writeJSON(filepath.Join(directory, "review.json"), state); err != nil {
 		return err
 	}
-	fmt.Printf("%d pages differ; %d have unreviewed wiki edits. Review files: %s\n", changed, conflicts, directory)
+	if wikiChanges == 0 && conflicts == 0 {
+		report.WriteString("\nNo remaining content changes since automatic publication or the initial reviewed import.\n")
+	}
+	report.WriteString("\n[Full publication preview](publish-report.md) includes changes from the new release.\n")
+	for name, body := range map[string]string{"report.md": report.String(), "publish-report.md": preview.String()} {
+		if err := os.WriteFile(filepath.Join(directory, name), []byte(body), 0o644); err != nil {
+			return err
+		}
+	}
+	fmt.Printf("Checked %d pages: %d have later wiki revisions, %d have content changes, %d need review.\n", len(documents), laterRevisions, wikiChanges, conflicts)
+	fmt.Printf("Wiki edits: %s/report.md; %d proposed publication changes: %s/publish-report.md\n", directory, changed, directory)
 	if mode == "pull" {
 		return nil
 	}
@@ -253,7 +249,7 @@ func synchronize(config configuration, mode string) error {
 		return err
 	}
 	client.Assert = mwclient.AssertUser
-	summary := "Publish a Wikimedia CLI documentation"
+	summary := publicationSummary
 	if version := os.Getenv("DOCS_VERSION"); version != "" {
 		summary += " (" + version + ")"
 	}
@@ -286,7 +282,26 @@ func saveReview(stem, current, proposed string) error {
 			return fmt.Errorf("generate wiki diff: %w: %s", err, diff)
 		}
 	}
-	return os.WriteFile(stem+".diff", diff, 0o644)
+	return os.WriteFile(stem+".publish.diff", diff, 0o644)
+}
+
+func saveWikiEdits(stem string, published, current snapshot) error {
+	before, after := stem+".published.wiki", stem+".edited.wiki"
+	if err := os.WriteFile(before, []byte(documentationBody(published.Text)), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(after, []byte(documentationBody(current.Text)), 0o644); err != nil {
+		return err
+	}
+	command := osexec.Command("git", "--no-pager", "diff", "--no-index", "--", before, after)
+	diff, err := command.CombinedOutput()
+	if err != nil {
+		var exit *osexec.ExitError
+		if !errors.As(err, &exit) || exit.ExitCode() != 1 {
+			return fmt.Errorf("generate community edit diff: %w: %s", err, diff)
+		}
+	}
+	return os.WriteFile(stem+".wiki.diff", diff, 0o644)
 }
 
 func acceptReview(config configuration, title string) error {

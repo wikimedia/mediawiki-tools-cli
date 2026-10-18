@@ -14,29 +14,29 @@ import (
 )
 
 func TestWikiEditDetection(t *testing.T) {
-	config := configuration{ReferenceRoot: "Cli/ref", LegacyPublisher: "Publisher", LegacySummary: "Generated", Reviewed: map[string]baseline{"Cli/guide/Install": {42, digest(normalize("reviewed"))}}}
+	config := configuration{Reviewed: map[string]baseline{"Guide": {42, digest(normalize("reviewed"))}}}
 	for _, tc := range []struct {
-		name, title string
-		page        snapshot
-		safe        bool
+		name, title, current string
+		published            *snapshot
+		safe                 bool
 	}{
-		{"new page", "Cli/guide/New", snapshot{Missing: true}, true},
-		{"unchanged generated page", "Cli/guide/New", snapshot{Text: marked("previous release")}, true},
-		{"edited generated page", "Cli/guide/New", snapshot{Text: strings.Replace(marked("previous release"), "previous release", "wiki correction", 1)}, false},
-		{"reviewed guide", "Cli/guide/Install", snapshot{Text: "reviewed\n"}, true},
-		{"edited reviewed guide", "Cli/guide/Install", snapshot{Text: "new correction"}, false},
-		{"legacy bot reference", "Cli/ref/mw", snapshot{Text: "previous", User: "Publisher", Comment: "Generated"}, true},
-		{"legacy human correction", "Cli/ref/mw", snapshot{Text: "corrected", User: "Editor", Comment: "Fixed help"}, false},
-		{"bot guide is not implicitly adopted", "Cli/guide/Install", snapshot{Text: "other", User: "Publisher", Comment: "Generated"}, false},
-		{"broken marker cannot use legacy bypass", "Cli/ref/mw", snapshot{Text: markerPrefix + "bad -->\nchanged", User: "Publisher", Comment: "Generated"}, false},
+		{"unchanged automatic output", "Ref", marked("previous release"), &snapshot{Text: marked("previous release")}, true},
+		{"wiki typo correction", "Ref", "Documentation", &snapshot{Text: "Documantation"}, false},
+		{"older generated page restored", "Ref", marked("older release"), &snapshot{Text: marked("previous release")}, false},
+		{"reviewed guide correction", "Guide", "reviewed", &snapshot{Text: "older"}, true},
+		{"new correction after review", "Guide", "later correction", &snapshot{Text: "older"}, false},
+		{"no automatic baseline", "Ref", "unknown", nil, false},
+		{"correction already merged into release", "Ref", "new release", &snapshot{Text: "older"}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := safeToPublish(config, tc.title, tc.page, marked("new release")); got != tc.safe {
+			if got := safeToPublish(config, tc.title, snapshot{Text: tc.current}, marked("new release"), tc.published); got != tc.safe {
 				t.Fatalf("safe=%v; want %v", got, tc.safe)
 			}
 		})
 	}
-	// MediaWiki can strip trailing newlines; this must not produce false conflicts.
+	if !safeToPublish(config, "New", snapshot{Missing: true}, "new", nil) {
+		t.Fatal("new page blocked")
+	}
 	if _, valid := unmark(strings.TrimRight(marked("body"), "\n")); !valid {
 		t.Fatal("newline normalization invalidated generated page")
 	}
@@ -74,7 +74,7 @@ func TestPublisherUsesRevisionAndCreationGuards(t *testing.T) {
 	}
 }
 
-func TestCheckExportsWikiCorrectionsAndPublishDoesNotLogin(t *testing.T) {
+func TestCheckExportsOnlyWikiCorrectionsAndPublishDoesNotLogin(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := os.MkdirAll("docs", 0o755); err != nil {
 		t.Fatal(err)
@@ -83,20 +83,27 @@ func TestCheckExportsWikiCorrectionsAndPublishDoesNotLogin(t *testing.T) {
 		t.Fatal(err)
 	}
 	item := document{Title: "Cli/guide/Test", Wikitext: filepath.Join(outputDir, "test.wiki")}
-	if err := os.WriteFile(item.Wikitext, []byte(marked("repo text")), 0o644); err != nil {
+	if err := os.WriteFile(item.Wikitext, []byte(marked("Entirely new release guide")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := writeJSON(filepath.Join(outputDir, "pages.json"), []document{item}); err != nil {
 		t.Fatal(err)
 	}
+	published := snapshot{Revision: 41, Text: marked("Documantation"), User: "Publisher", Comment: publicationSummary + " (v1.0.0)"}
+	current := snapshot{Revision: 42, Text: strings.Replace(published.Text, "Documantation", "Documentation", 1), User: "Editor", Comment: "Fix spelling"}
 	posts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			posts++
 			t.Error("unsafe publish reached a write/login request")
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"curtimestamp":"2026-10-18T00:00:00Z","query":{"pages":[{"title":"Cli/guide/Test","revisions":[{"revid":42,"user":"Editor","comment":"Fix","slots":{"main":{"content":"Community correction"}}}]}]}}`))
+		revisions := []snapshot{current}
+		if r.URL.Query().Get("revids") == "41" {
+			revisions = []snapshot{published}
+		} else if r.URL.Query().Get("rvlimit") != "" {
+			revisions = append(revisions, published)
+		}
+		replyRevisions(w, item.Title, revisions, "")
 	}))
 	defer server.Close()
 	config := configuration{API: server.URL, ReferenceRoot: "Cli/ref"}
@@ -106,20 +113,37 @@ func TestCheckExportsWikiCorrectionsAndPublishDoesNotLogin(t *testing.T) {
 	if posts != 0 {
 		t.Fatal("publish wrote before completing preflight")
 	}
-	diff, err := os.ReadFile(filepath.Join(outputDir, "wiki", "000.diff"))
-	if err != nil || !strings.Contains(string(diff), "Community correction") || !strings.Contains(string(diff), "repo text") {
-		t.Fatalf("missing review diff: %v", err)
+	diff, err := os.ReadFile(filepath.Join(outputDir, "wiki", "000.wiki.diff"))
+	if err != nil || !strings.Contains(string(diff), "-Documantation") || !strings.Contains(string(diff), "+Documentation") || strings.Contains(string(diff), "Entirely new release guide") || strings.Contains(string(diff), markerPrefix) {
+		t.Fatalf("community diff includes release churn or lost correction: %v\n%s", err, diff)
 	}
-	if err := acceptReview(config, "Cli/guide/Test"); err != nil {
+	preview, err := os.ReadFile(filepath.Join(outputDir, "wiki", "000.publish.diff"))
+	if err != nil || !strings.Contains(string(preview), "Entirely new release guide") {
+		t.Fatalf("full publication preview lost: %v", err)
+	}
+	if err := acceptReview(config, item.Title); err != nil {
 		t.Fatal(err)
 	}
 	var updated configuration
 	if err := readJSON(configPath, &updated); err != nil {
 		t.Fatal(err)
 	}
-	if !safeToPublish(updated, item.Title, snapshot{Text: "Community correction"}, "new") || safeToPublish(updated, item.Title, snapshot{Text: "Later correction"}, "new") {
+	if !safeToPublish(updated, item.Title, current, "new", &published) || safeToPublish(updated, item.Title, snapshot{Text: "Later correction"}, "new", &published) {
 		t.Fatal("acceptance did not pin the reviewed content")
 	}
+}
+
+func replyRevisions(w http.ResponseWriter, title string, revisions []snapshot, continuation string) {
+	records := []interface{}{}
+	for _, revision := range revisions {
+		records = append(records, map[string]interface{}{"revid": revision.Revision, "user": revision.User, "comment": revision.Comment, "slots": map[string]interface{}{"main": map[string]interface{}{"content": revision.Text}}})
+	}
+	response := map[string]interface{}{"curtimestamp": "2026-10-18T00:00:00Z", "query": map[string]interface{}{"pages": []interface{}{map[string]interface{}{"title": title, "revisions": records}}}}
+	if continuation != "" {
+		response["continue"] = map[string]string{"continue": "||", "rvcontinue": continuation}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func TestFetchNormalizesReferenceTitlesAndRejectsHiddenContent(t *testing.T) {
@@ -161,31 +185,39 @@ func TestGuideLinksAreConvertedWithoutChangingCode(t *testing.T) {
 	}
 }
 
-func TestLegacyRevertRequiresIdenticalPublishedContent(t *testing.T) {
-	for _, tc := range []struct {
-		text, comment string
-		want          bool
-	}{
-		{"original reference", "Generated", true},
-		{"human correction", "Generated", false},
-		{"original reference", "Manual bot edit", false},
-	} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Query().Get("rvuser") != "Publisher" {
-				t.Error("history query did not select the trusted publisher")
-			}
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"query": map[string]interface{}{"pages": []interface{}{map[string]interface{}{"title": "Cli/ref/mw", "revisions": []interface{}{map[string]interface{}{"user": "Publisher", "comment": tc.comment, "slots": map[string]interface{}{"main": map[string]interface{}{"content": "original reference"}}}}}}}})
-		}))
-		client, err := mwclient.New(server.URL, "test")
-		if err != nil {
-			t.Fatal(err)
+func TestLastPublicationPaginatesPastManualBotEdits(t *testing.T) {
+	config := configuration{ReferenceRoot: "Cli/ref", LegacyPublisher: "Publisher", LegacySummary: "Generated"}
+	original := snapshot{Revision: 10, Text: "original reference", User: "Publisher", Comment: "Generated"}
+	current := snapshot{Revision: 12, Text: "correction", User: "Editor", Comment: "Fix spelling"}
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.URL.Query().Get("revids") == "10" {
+			replyRevisions(w, "Cli/ref/mw", []snapshot{original}, "")
+			return
 		}
-		config := configuration{ReferenceRoot: "Cli/ref", LegacyPublisher: "Publisher", LegacySummary: "Generated"}
-		got, err := unchangedLegacyReference(client, config, "Cli/ref/mw", snapshot{Text: tc.text, User: "Editor", Comment: "Reverted vandalism"})
-		if err != nil || got != tc.want {
-			t.Fatalf("legacy verification=%v, %v; want %v", got, err, tc.want)
+		if r.URL.Query().Get("rvstartid") != "12" {
+			t.Error("history is not bounded to the checked revision")
 		}
-		server.Close()
+		if r.URL.Query().Get("rvcontinue") == "older" {
+			replyRevisions(w, "Cli/ref/mw", []snapshot{original}, "")
+		} else {
+			manual := snapshot{Revision: 11, Text: "manual bot edit", User: "Publisher", Comment: "Manual correction"}
+			replyRevisions(w, "Cli/ref/mw", []snapshot{current, manual}, "older")
+		}
+	}))
+	defer server.Close()
+	client, err := mwclient.New(server.URL, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found, err := lastPublication(client, config, "Cli/ref/mw", current)
+	if err != nil || found == nil || found.Revision != 10 || calls != 3 {
+		t.Fatalf("last publication=%v, %v (%d calls)", found, err, calls)
+	}
+	// Reverts to that exact content need no review, while spelling edits do.
+	if safeToPublish(config, "Cli/ref/mw", current, "new release", found) || !safeToPublish(config, "Cli/ref/mw", snapshot{Text: original.Text}, "new release", found) {
+		t.Fatal("revert/correction classification incorrect")
 	}
 }
 
@@ -274,5 +306,33 @@ func TestWikiImportsResolveInternalLinks(t *testing.T) {
 	}
 	if !strings.Contains(string(result), "guides/install.md") || !strings.Contains(string(result), "https://www.mediawiki.org/wiki/Help:Editing") || strings.Contains(string(result), `"wikilink"`) {
 		t.Fatalf("import left broken wiki-relative links: %s", result)
+	}
+}
+
+func TestUnpublishedGuideUsesItsReviewedImportRevision(t *testing.T) {
+	original := snapshot{Revision: 40, Text: "Documantation", User: "Editor"}
+	current := snapshot{Revision: 42, Text: "Documentation", User: "Editor", Comment: "Fix spelling"}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("revids") == "40" {
+			replyRevisions(w, "Guide", []snapshot{original}, "")
+		} else {
+			replyRevisions(w, "Guide", []snapshot{current}, "")
+		}
+	}))
+	defer server.Close()
+	client, err := mwclient.New(server.URL, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := configuration{Reviewed: map[string]baseline{"Guide": {40, digest(normalize(original.Text))}}}
+	baseline, err := lastPublication(client, config, "Guide", current)
+	if err != nil || baseline == nil || baseline.Revision != 40 || baseline.Text != original.Text {
+		t.Fatalf("import baseline=%v, %v", baseline, err)
+	}
+	if safeToPublish(config, "Guide", current, marked("different new release"), baseline) {
+		t.Fatal("imported guide's wiki correction can be overwritten")
+	}
+	if !safeToPublish(config, "Guide", current, marked(current.Text), baseline) {
+		t.Fatal("wiki correction already merged into source still blocked")
 	}
 }
