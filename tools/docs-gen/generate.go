@@ -302,6 +302,10 @@ func generate(config configuration) error {
 			return err
 		}
 	}
+	version := currentDocumentationVersion()
+	if err := writeJSON(filepath.Join(outputDir, "version.json"), version); err != nil {
+		return err
+	}
 	for _, document := range documents {
 		data, err := os.ReadFile(document.Markdown)
 		if err != nil {
@@ -319,7 +323,7 @@ func generate(config configuration) error {
 		if strings.HasPrefix(document.Title, config.ReferenceRoot+"/") {
 			body += "\n__NOTOC__\n"
 		}
-		if err := os.WriteFile(document.Wikitext, []byte(marked(body)), 0o644); err != nil {
+		if err := os.WriteFile(document.Wikitext, []byte(marked(versionedDocumentation(body, version))), 0o644); err != nil {
 			return err
 		}
 	}
