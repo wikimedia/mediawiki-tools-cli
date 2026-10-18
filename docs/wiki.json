@@ -72,6 +72,10 @@
     {
       "source": "guides/dev/troubleshooting.md",
       "title": "Cli/FAQ"
+    },
+    {
+      "source": "guides/wiki/files.md",
+      "title": "Cli/guide/Upload files"
     }
   ],
   "reviewed": {
