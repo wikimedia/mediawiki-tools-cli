@@ -468,9 +468,10 @@ func NewImageDockerfileCmdP(service *string) *cobra.Command {
 
 Guide: https://www.mediawiki.org/wiki/Cli/guide/Custom_Dockerfiles`,
 		Example: cobrautil.NormalizeExample(`
-  mw dev mediawiki image dockerfile set
-  mw dev mediawiki image dockerfile edit
-  mw dev mediawiki rebuild`),
+dockerfile set
+dockerfile set ./Dockerfile
+dockerfile edit
+# Run this service's rebuild command to build and apply the image.`),
 	}
 
 	set := &cobra.Command{
