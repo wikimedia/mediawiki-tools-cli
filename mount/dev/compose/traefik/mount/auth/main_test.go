@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -248,5 +249,136 @@ func TestWebSocketUsesTheHTTPLoginSession(t *testing.T) {
 				t.Fatalf("WebSocket rejected: %d %s", w.Code, w.Body.String())
 			}
 		})
+	}
+}
+
+func issueLoginLink(t *testing.T, g *gateway) string {
+	t.Helper()
+	r := request(http.MethodPost, loginLinkPath, nil)
+	r.SetBasicAuth("alice", "secret")
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, r)
+	var result struct {
+		URL string `json:"url"`
+	}
+	if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &result) != nil {
+		t.Fatalf("issue login link: %d %s", w.Code, w.Body.String())
+	}
+	link, err := url.Parse(result.URL)
+	if err != nil || link.Scheme+"://"+link.Host != testOrigin || link.Path != loginPath || link.RawQuery != "" {
+		t.Fatalf("invalid login URL: %q", result.URL)
+	}
+	values, err := url.ParseQuery(link.Fragment)
+	if err != nil || values.Get("login") == "" {
+		t.Fatal("login code missing from fragment")
+	}
+	return values.Get("login")
+}
+
+func TestLoginLinkRequiresCredentialsAndPOST(t *testing.T) {
+	g, _ := testGateway(t)
+	for _, tc := range []struct {
+		method, password, origin string
+		want                     int
+	}{
+		{http.MethodGet, "secret", "", http.StatusMethodNotAllowed},
+		{http.MethodPost, "wrong", "", http.StatusUnauthorized},
+		{http.MethodPost, "secret", "https://elsewhere.example", http.StatusForbidden},
+	} {
+		r := request(tc.method, loginLinkPath, nil)
+		r.SetBasicAuth("alice", tc.password)
+		r.Header.Set("Origin", tc.origin)
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, r)
+		if w.Code != tc.want {
+			t.Fatalf("issue status: %d, wanted %d", w.Code, tc.want)
+		}
+	}
+}
+
+func TestLoginLinkEstablishesSessionAndRequiresCSRF(t *testing.T) {
+	g, _ := testGateway(t)
+	code := issueLoginLink(t, g)
+	get := httptest.NewRecorder()
+	g.ServeHTTP(get, request(http.MethodGet, loginPath, nil))
+	csrf := cookieFrom(t, get, "csrf")
+	if !strings.Contains(get.Body.String(), "history.replaceState") || !strings.Contains(get.Header().Get("Content-Security-Policy"), "script-src 'sha256-") {
+		t.Fatal("fragment login script or CSP missing")
+	}
+	form := url.Values{"login_token": {code}, "csrf": {csrf.Value}, "return": {"/proxy/dashboard/"}}
+	invalid := httptest.NewRecorder()
+	g.ServeHTTP(invalid, request(http.MethodPost, loginPath, form))
+	if invalid.Code != http.StatusForbidden {
+		t.Fatal("login link bypassed CSRF")
+	}
+	post := httptest.NewRecorder()
+	g.ServeHTTP(post, request(http.MethodPost, loginPath, form, csrf))
+	if post.Code != http.StatusSeeOther || post.Header().Get("Location") != "/proxy/dashboard/" {
+		t.Fatalf("link login failed: %d %s", post.Code, post.Body.String())
+	}
+	session := cookieFrom(t, post, "session")
+	if !g.valid(session.Value, "session", testOrigin) {
+		t.Fatal("link did not create a normal session")
+	}
+	replay := httptest.NewRecorder()
+	g.ServeHTTP(replay, request(http.MethodPost, loginPath, form, csrf))
+	if replay.Code != http.StatusUnauthorized {
+		t.Fatal("login link was reusable")
+	}
+}
+
+func TestLoginLinksExpireAndStayOnTheirOrigin(t *testing.T) {
+	g, directory := testGateway(t)
+	code := issueLoginLink(t, g)
+	if g.consumeLoginLink(code, "http://elsewhere.example") || g.consumeLoginLink(code+"invalid", testOrigin) {
+		t.Fatal("invalid code or origin accepted")
+	}
+	restarted, err := newGateway(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.consumeLoginLink(code, testOrigin) {
+		t.Fatal("link survived a gateway restart")
+	}
+	g.now = func() time.Time { return time.Unix(1800000000, 0).Add(loginLinkLifetime) }
+	if g.consumeLoginLink(code, testOrigin) {
+		t.Fatal("expired link accepted")
+	}
+}
+
+func TestLoginLinkCanOnlyBeConsumedOnceConcurrently(t *testing.T) {
+	g, _ := testGateway(t)
+	code := issueLoginLink(t, g)
+	results := make(chan bool, 16)
+	for range 16 {
+		go func() { results <- g.consumeLoginLink(code, testOrigin) }()
+	}
+	accepted := 0
+	for range 16 {
+		if <-results {
+			accepted++
+		}
+	}
+	if accepted != 1 {
+		t.Fatalf("code accepted %d times", accepted)
+	}
+}
+
+func TestUnusedLoginLinksAreBoundedAndExpiredLinksAreCleaned(t *testing.T) {
+	g, _ := testGateway(t)
+	for range 128 {
+		issueLoginLink(t, g)
+	}
+	r := request(http.MethodPost, loginLinkPath, nil)
+	r.SetBasicAuth("alice", "secret")
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, r)
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatal("unbounded unused login links")
+	}
+	g.now = func() time.Time { return time.Unix(1800000000, 0).Add(loginLinkLifetime) }
+	issueLoginLink(t, g)
+	if len(g.links) != 1 {
+		t.Fatal("expired login links were not removed")
 	}
 }

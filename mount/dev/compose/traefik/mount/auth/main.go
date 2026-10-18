@@ -15,19 +15,29 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
 const (
-	loginPath       = "/_mwcli/login"
-	logoutPath      = "/_mwcli/logout"
-	sessionLifetime = 12 * time.Hour
+	loginPath         = "/_mwcli/login"
+	logoutPath        = "/_mwcli/logout"
+	sessionLifetime   = 12 * time.Hour
+	loginLinkLifetime = 5 * time.Minute
+	loginLinkPath     = "/_mwcli/login-link"
 )
 
 type gateway struct {
 	credentials [32]byte
 	key         []byte
 	now         func() time.Time
+	linksMu     sync.Mutex
+	links       map[string]loginLink
+}
+
+type loginLink struct {
+	origin  string
+	expires time.Time
 }
 
 type ticket struct {
@@ -65,7 +75,7 @@ func newGateway(directory string) (*gateway, error) {
 	// Changing either the credentials or the random key invalidates existing sessions.
 	mac := hmac.New(sha256.New, key)
 	mac.Write(digest[:])
-	return &gateway{credentials: digest, key: mac.Sum(nil), now: time.Now}, nil
+	return &gateway{credentials: digest, key: mac.Sum(nil), now: time.Now, links: make(map[string]loginLink)}, nil
 }
 
 func (g *gateway) credentialsMatch(username, password string) bool {
@@ -188,6 +198,8 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	case "/check":
 		g.check(w, r, origin)
+	case loginLinkPath:
+		g.createLoginLink(w, r, origin)
 	case loginPath, logoutPath:
 		g.form(w, r, origin)
 	default:
@@ -220,6 +232,60 @@ func (g *gateway) check(w http.ResponseWriter, r *http.Request, origin string) {
 	http.Error(w, "Gateway login required: "+loginPath, http.StatusUnauthorized)
 }
 
+// Only a CLI authenticated with the gateway credentials can issue links. Codes are held in memory,
+// bound to an origin, and consumed once; a gateway restart invalidates them.
+func (g *gateway) createLoginLink(w http.ResponseWriter, r *http.Request, origin string) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", "POST")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	username, password, ok := r.BasicAuth()
+	if !ok || !g.credentialsMatch(username, password) {
+		http.Error(w, "Gateway credentials required", http.StatusUnauthorized)
+		return
+	}
+	if source := r.Header.Get("Origin"); source != "" && source != origin {
+		http.Error(w, "Invalid request origin", http.StatusForbidden)
+		return
+	}
+	code := make([]byte, 32)
+	if _, err := rand.Read(code); err != nil {
+		http.Error(w, "Cannot create login link", http.StatusInternalServerError)
+		return
+	}
+	value := base64.RawURLEncoding.EncodeToString(code)
+	now := g.now()
+	g.linksMu.Lock()
+	for token, link := range g.links {
+		if !link.expires.After(now) {
+			delete(g.links, token)
+		}
+	}
+	if len(g.links) >= 128 {
+		g.linksMu.Unlock()
+		http.Error(w, "Too many unused login links; try again in five minutes", http.StatusTooManyRequests)
+		return
+	}
+	g.links[value] = loginLink{origin, now.Add(loginLinkLifetime)}
+	g.linksMu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		URL string `json:"url"`
+	}{origin + loginPath + "#login=" + value})
+}
+
+func (g *gateway) consumeLoginLink(value, origin string) bool {
+	g.linksMu.Lock()
+	defer g.linksMu.Unlock()
+	link, ok := g.links[value]
+	if !ok || link.origin != origin || !link.expires.After(g.now()) {
+		return false
+	}
+	delete(g.links, value)
+	return true
+}
+
 func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		w.Header().Set("Allow", "GET, POST")
@@ -248,7 +314,15 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 			http.Redirect(w, r, loginPath, http.StatusSeeOther)
 			return
 		}
-		if g.credentialsMatch(r.PostForm.Get("username"), r.PostForm.Get("password")) {
+		authenticated := false
+		if value := r.PostForm.Get("login_token"); value != "" {
+			authenticated = g.consumeLoginLink(value, origin)
+			message = "Login link expired or already used. Run mw docker traefik credentials for a new one."
+		} else {
+			authenticated = g.credentialsMatch(r.PostForm.Get("username"), r.PostForm.Get("password"))
+			message = "Username or password is incorrect."
+		}
+		if authenticated {
 			session, err := g.sign("session", origin, sessionLifetime)
 			if err != nil {
 				http.Error(w, "Cannot create gateway session", http.StatusInternalServerError)
@@ -259,7 +333,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 			http.Redirect(w, r, target, http.StatusSeeOther)
 			return
 		}
-		status, message = http.StatusUnauthorized, "Username or password is incorrect."
+		status = http.StatusUnauthorized
 	}
 	csrf, err := g.sign("csrf", origin, 15*time.Minute)
 	if err != nil {
@@ -268,13 +342,24 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 	}
 	writeCookie(w, origin, "csrf", csrf, 15*time.Minute)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+	scriptHash := sha256.Sum256([]byte(loginScript))
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'sha256-"+base64.StdEncoding.EncodeToString(scriptHash[:])+"'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
 	w.WriteHeader(status)
 	_ = loginPage.Execute(w, struct {
 		Logout              bool
 		CSRF, Return, Error string
 	}{r.URL.Path == logoutPath, csrf, target, message})
 }
+
+// A URL fragment never reaches the server. Remove it from browser history before
+// submitting the code with the existing form's CSRF token and setting a session.
+const loginScript = `const token = new URLSearchParams(location.hash.slice(1)).get('login');
+if (token) {
+    history.replaceState(null, '', location.pathname + location.search);
+    const form = document.querySelector('form');
+    form.querySelector('[name="login_token"]').value = token;
+    form.submit();
+}`
 
 var loginPage = template.Must(template.New("login").Parse(`<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -285,8 +370,8 @@ var loginPage = template.Must(template.New("login").Parse(`<!doctype html>
 {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 <form method="post" action="{{if .Logout}}/_mwcli/logout{{else}}/_mwcli/login{{end}}">
 <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="return" value="{{.Return}}">
-{{if not .Logout}}<label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label>{{end}}
-<button type="submit">{{if .Logout}}Sign out{{else}}Sign in{{end}}</button></form></main></html>`))
+{{if not .Logout}}<input type="hidden" name="login_token"><label>Username<input name="username" autocomplete="username" required autofocus></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label>{{end}}
+<button type="submit">{{if .Logout}}Sign out{{else}}Sign in{{end}}</button></form></main>{{if not .Logout}}<script>` + loginScript + `</script>{{end}}</html>`))
 
 func main() {
 	g, err := newGateway("/auth")

@@ -1,7 +1,7 @@
 http:
   routers:
     gateway-login:
-      rule: Path(`/_mwcli/login`) || Path(`/_mwcli/logout`)
+      rule: Path(`/_mwcli/login`) || Path(`/_mwcli/logout`) || Path(`/_mwcli/login-link`)
       priority: 1000
       entryPoints:
         - web
