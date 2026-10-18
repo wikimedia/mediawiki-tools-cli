@@ -15,8 +15,11 @@ func TestIsSudoInvocation(t *testing.T) {
 		sudo string
 		want bool
 	}{
-		{0, "1000", true}, {0, "", false}, {0, "0", false},
-		{1000, "1000", false}, {-1, "1000", false},
+		{0, "1000", true},
+		{0, "", false},
+		{0, "0", false},
+		{1000, "1000", false},
+		{-1, "1000", false},
 	} {
 		if got := isSudoInvocation(tc.uid, tc.sudo); got != tc.want {
 			t.Fatalf("%+v: %v", tc, got)
@@ -57,7 +60,9 @@ func TestOtherSudoCommandsKeepNormalStartup(t *testing.T) {
 	for _, args := range [][]string{
 		{"docker", "hosts", "add"},
 		{"docker", "--context", "work", "hosts", "remove"},
-		{"config", "show"}, {"--help"}, {},
+		{"config", "show"},
+		{"--help"},
+		{},
 	} {
 		if root := sudoUpdateCommand(args); root != nil {
 			t.Fatalf("unexpectedly replaced startup for %q", args)
