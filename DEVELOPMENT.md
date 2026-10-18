@@ -272,3 +272,19 @@ The display brand is `a Wikimedia CLI`; `mw` remains the default command name. `
 Each platform has one uploaded executable and checksum. When publishing `wm_…` assets, release metadata adds legacy `mw_…` links through the canonical release download URL, preserving old updaters without uploading duplicate binaries. New updaters accept either prefix and either `bin/mw` or `bin/wm` in CI archives (`.exe` on Windows); updates preserve the installed executable's path and name.
 
 Use `mw dev` for the development environment (`docker` remains a command alias). Its Go packages are `commands/dev` and `internal/devenv`. Existing context directories, Compose project names and installed wiki credentials keep their legacy identities; Generated `LocalSettings.php` files retain `/mwdd/MwddSettings.php` as a stable entry point: current releases forward it to `DevSettings.php`, while older releases restore it during file sync. Container startup and helper paths retain their existing mounts so previously created containers can still restart.
+
+## Toolforge commands
+
+`mw tools` (also `mw toolforge`) embeds the upstream Toolforge CLI command tree.
+Select an account with `--tool`; jobs, builds, environment variables, components,
+and Kubernetes commands use upstream's authentication and SSH tunneling.
+
+`mw tools shell --tool mytool` opens an interactive tool login shell. Its `exec`
+alias preserves the existing command spelling. Put `--` before remote commands
+with flags; use `sh -c` explicitly for remote shell pipelines or redirection.
+Arguments are otherwise passed literally, and SSH failures retain their exit code.
+
+`mw tools cp --tool mytool source... destination` uploads one or more files using
+rsync. Both commands support toolsbeta and lima-kilo through `--beta` and `--lima`.
+File transfer requires local `rsync` and `ssh`; other commands do not require a
+separately installed Toolforge executable.

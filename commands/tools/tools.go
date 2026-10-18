@@ -2,17 +2,14 @@ package tools
 
 import (
 	_ "embed"
-	"fmt"
-	"os"
+	"errors"
 	"os/exec"
+	"strconv"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	toolforge "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	cmdutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cmd"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
-	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
-	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
 //go:embed exec.example
@@ -25,80 +22,69 @@ var cpExample string
 var execLong string
 
 func NewToolsCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "tools",
-		GroupID: "service",
-		Aliases: []string{"toolforge"},
-		Short:   "Interact with any Wikimedia \"Tool\"",
-		RunE:    nil,
+	command := toolforge.NewCommand()
+	command.Use = "tools"
+	command.GroupID = "service"
+	command.Aliases = []string{"toolforge"}
+	command.Short = "Manage Toolforge tools, jobs, builds and deployments"
+	for _, child := range command.Commands() {
+		if child.Name() == "shell" {
+			child.Example = cobrautil.NormalizeExample(execExample)
+			child.Long = cli.RenderMarkdown(execLong)
+			run := child.RunE
+			child.RunE = func(cmd *cobra.Command, args []string) error {
+				return preserveExitCode(cmd, run(cmd, args))
+			}
+		}
 	}
+	command.AddCommand(newCopyCmd())
+	inheritMwSetup(command, command)
+	return command
+}
 
-	toolName := ""
-	// TODO split exec cmd into own function & own file
-	execCmd := &cobra.Command{
-		Use:     "exec [flags] [command & arguments] -- [command flags]",
-		Short:   "Execute commands as a tool",
-		Args:    cobra.MinimumNArgs(1),
-		Example: cobrautil.NormalizeExample(execExample),
-		Long:    cli.RenderMarkdown(execLong),
-		Run: func(cmd *cobra.Command, args []string) {
-			if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+// Preserve mw's telemetry/verbosity setup while retaining upstream's API and
+// kubectl hooks. Cobra otherwise runs only the nearest persistent setup hook.
+func inheritMwSetup(tree, command *cobra.Command) {
+	preRunE, preRun := command.PersistentPreRunE, command.PersistentPreRun
+	if command == tree || preRunE != nil || preRun != nil {
+		command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+			root := cmd.Root()
+			if root != tree {
+				if root.PersistentPreRunE != nil {
+					if err := root.PersistentPreRunE(cmd, args); err != nil {
+						return err
+					}
+				} else if root.PersistentPreRun != nil {
+					root.PersistentPreRun(cmd, args)
+				}
 			}
-
-			remoteCommandAndArgs := args
-			if toolName != "" {
-				remoteCommandAndArgs = append([]string{"become", toolName}, remoteCommandAndArgs...)
+			if preRunE != nil {
+				return preRunE(cmd, args)
 			}
-
-			sshCmd := sshutil.CommandOnSSHHost("login.toolforge.org", "22", remoteCommandAndArgs)
-			logrus.Trace(sshCmd.String())
-
-			sshCmd = cmdutil.AttachAllIO(sshCmd)
-			err := sshCmd.Run()
-			if err != nil {
-				logrus.Debugf("ssh command returned an error: %v", err)
-				return
+			if preRun != nil {
+				preRun(cmd, args)
 			}
-		},
+			return nil
+		}
 	}
-	execCmd.Flags().StringVarP(&toolName, "tool", "t", "", "Tool to execute command on")
-	cmd.AddCommand(execCmd)
-
-	cpCmd := &cobra.Command{
-		Use:     "cp [flags] [source] [destination]",
-		Short:   "Copy files to a tool using rsync",
-		Args:    cobra.MinimumNArgs(2),
-		Example: cobrautil.NormalizeExample(cpExample),
-		Run: func(cmd *cobra.Command, args []string) {
-			if _, err := lookpath.NeedExecutables([]string{"rsync"}); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-
-			rsyncPath := "rsync"
-			// If a tool is specified, then rsync as the tool
-			if toolName != "" {
-				rsyncPath = fmt.Sprintf("become %s rsync", toolName)
-			}
-
-			source := args[0]
-			destination := args[1]
-
-			rsync := exec.Command("rsync", "-rtlv", "--rsync-path", rsyncPath, "--port", "22", source, "login.toolforge.org:"+destination) // #nosec G204
-			logrus.Trace(rsync.String())
-
-			rsync = cmdutil.AttachAllIO(rsync)
-			err := rsync.Run()
-			if err != nil {
-				logrus.Debugf("rsync command returned an error: %v", err)
-				return
-			}
-		},
+	for _, child := range command.Commands() {
+		inheritMwSetup(tree, child)
 	}
-	cpCmd.Flags().StringVarP(&toolName, "tool", "t", "", "Tool to execute command on")
-	cmd.AddCommand(cpCmd)
+}
 
-	return cmd
+func preserveExitCode(cmd *cobra.Command, err error) error {
+	var exit *exec.ExitError
+	if errors.As(err, &exit) && exit.ExitCode() > 0 {
+		root := cmd.Root()
+		if root.Annotations == nil {
+			root.Annotations = make(map[string]string)
+		}
+		root.Annotations["exitCode"] = strconv.Itoa(exit.ExitCode())
+	}
+	return err
+}
+
+// Cleanup closes upstream SSH tunnels even when command execution fails.
+func Cleanup() {
+	toolforge.Cleanup()
 }
