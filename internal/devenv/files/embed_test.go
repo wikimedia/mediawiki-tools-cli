@@ -1,11 +1,14 @@
 package files
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
+	"gitlab.wikimedia.org/repos/releng/cli/mount"
 )
 
 func TestSyncerIgnoreFiles_KeepCustomComposeFiles(t *testing.T) {
@@ -68,5 +71,88 @@ func TestEnsureReadyPreservesLegacyProxyMounts(t *testing.T) {
 	got, err := os.ReadFile(path)
 	if err != nil || string(got) != contents {
 		t.Fatalf("legacy bind mount must remain available for rollback: %q %v", got, err)
+	}
+}
+
+func TestEnsureReadyPreservesRecipeRuntimeState(t *testing.T) {
+	for _, initialized := range []bool{false, true} {
+		name := "new context"
+		if initialized {
+			name = "existing context"
+		}
+		t.Run(name, func(t *testing.T) {
+			projectDir := t.TempDir()
+			if initialized {
+				EnsureReady(projectDir)
+			}
+			path := filepath.Join(projectDir, ".mwcli-recipe-state.json")
+			state := []byte("{\n  \"envKeys\": [\"RECIPE_SETTING\"],\n  \"composeFiles\": [\"custom-recipe.yml\"],\n  \"jobRunnerSites\": [\"recipe-wiki\"]\n}\n")
+			if err := os.WriteFile(path, state, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			modified := time.Unix(1234567890, 0)
+			if err := os.Chtimes(path, modified, modified); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for cycle := 0; cycle < 3; cycle++ {
+				EnsureReady(projectDir)
+				contents, err := os.ReadFile(path)
+				if err != nil || !bytes.Equal(contents, state) {
+					t.Fatalf("sync %d changed recipe state: contents=%q err=%v", cycle, contents, err)
+				}
+				after, err := os.Stat(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if after.Mode() != before.Mode() || !after.ModTime().Equal(before.ModTime()) {
+					t.Fatalf("sync %d changed recipe state permissions or modification time", cycle)
+				}
+			}
+		})
+	}
+}
+
+func TestEnsureReadyStillRemovesStaleAssets(t *testing.T) {
+	projectDir := t.TempDir()
+	EnsureReady(projectDir)
+	relativePaths := []string{
+		"obsolete-asset.txt",
+		"compose/retired/obsolete.conf",
+		".mwcli-recipe-state.json.bak",
+		"prefix.mwcli-recipe-state.json",
+		"compose/retired/.mwcli-recipe-state.json",
+	}
+	asset := filepath.Join(projectDir, "compose", "base", "compose.yml")
+	expected, err := mount.DevContent.ReadFile("dev/compose/base/compose.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for cycle := 0; cycle < 3; cycle++ {
+		for _, name := range relativePaths {
+			path := filepath.Join(projectDir, filepath.FromSlash(name))
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte("obsolete"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := os.WriteFile(asset, []byte("outdated embedded asset"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		EnsureReady(projectDir)
+		for _, name := range relativePaths {
+			if _, err := os.Stat(filepath.Join(projectDir, filepath.FromSlash(name))); !os.IsNotExist(err) {
+				t.Errorf("sync %d retained stale asset %q: %v", cycle, name, err)
+			}
+		}
+		actual, err := os.ReadFile(asset)
+		if err != nil || !bytes.Equal(actual, expected) {
+			t.Fatalf("sync %d did not restore the embedded asset: %v", cycle, err)
+		}
 	}
 }

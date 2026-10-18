@@ -44,6 +44,8 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 			`^dashboard-services\.json$`,
 			// Suspended services are runtime state, not embedded assets.
 			`^state-suspended-services\.json$`,
+			// Applied recipe records must survive until the next recipe cleanup.
+			`^\.mwcli-recipe-state\.json$`,
 			// Used by docker compose to store current environment variables in
 			`\.env`,
 			// Used by the dev environment to store hosts that need adding to the hosts file
