@@ -34,6 +34,7 @@ func NewToolsCmd() *cobra.Command {
 			if child.Annotations == nil {
 				child.Annotations = make(map[string]string)
 			}
+			child.Annotations["mwcli-docs-skip-children"] = "kubectl reference is maintained upstream"
 			child.Annotations["mwcli-lint-skip"] = "upstream kubectl command tree"
 			child.Annotations["mwcli-lint-skip-children"] = "upstream kubectl command tree"
 		}

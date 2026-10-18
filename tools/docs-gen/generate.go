@@ -262,6 +262,7 @@ func generate(config configuration) error {
 		return err
 	}
 	root := cmd.NewMwCliCmd()
+	pruneReferenceChildren(root)
 	cobrautil.VisitAllSubCommands(root, func(c *cobra.Command) { c.Example = cobrautil.CommandExamples(c) })
 	root.DisableAutoGenTag = true
 	if err := doc.GenMarkdownTreeCustom(root, refDir, func(string) string { return "" }, func(name string) string {
@@ -344,4 +345,16 @@ func generate(config configuration) error {
 	}
 	fmt.Printf("Built %d documentation pages in %s\n", len(documents), outputDir)
 	return nil
+}
+
+// pruneReferenceChildren applies publishing exclusions to a disposable command
+// tree. Runtime help and completion keep the complete upstream command tree.
+func pruneReferenceChildren(command *cobra.Command) {
+	if command.Annotations["mwcli-docs-skip-children"] != "" {
+		command.RemoveCommand(command.Commands()...)
+		return
+	}
+	for _, child := range command.Commands() {
+		pruneReferenceChildren(child)
+	}
 }

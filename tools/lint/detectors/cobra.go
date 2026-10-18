@@ -72,6 +72,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 				"group",
 				"mwcli-lint-skip",
 				"mwcli-lint-skip-children",
+				"mwcli-docs-skip-children",
 			}
 			// TODO check all annotaitons and issue for each
 			for key := range theCmd.Annotations {
