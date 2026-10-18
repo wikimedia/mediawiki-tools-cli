@@ -1,97 +1,168 @@
 package traefik
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func NewCmd() *cobra.Command {
 	cmd := mwdd.NewServiceCmd("traefik", mwdd.ServiceTexts{
-		Long: "An optional Traefik gateway for testing path-based access to development services. " +
-			"It listens on localhost port 8081 by default and does not replace mwdd's nginx proxy.",
+		Long: "Traefik is mwdd's default web proxy. It listens on the configured PORT and routes the local virtual hosts and /proxy paths.",
 	}, []string{})
-	cmd.Long = "An optional Traefik gateway for testing path-based access to development services. " +
-		"Start it with 'mw docker traefik create'. It listens on localhost port 8081 by default, " +
-		"leaving mwdd's nginx proxy and port 8080 unchanged. It discovers services through their " +
-		"Traefik Compose labels and a read-only Docker API proxy. Gateway authentication is enabled " +
-		"by default; the first create generates a password. Set TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file " +
-		"in the context environment to disable authentication. Configure TRAEFIK_BIND_ADDR and " +
-		"TRAEFIK_PORT to change the listener."
+	cmd.Long = "Traefik is mwdd's default web proxy and replaces nginx. It listens on the configured PORT " +
+		"(8080 by default) and routes local virtual hosts and /proxy paths. It discovers services through " +
+		"Traefik Compose labels and a read-only Docker API proxy. Authentication is enabled " +
+		"by default with a cookie-based gateway login; 'mw docker traefik create' generates a password. " +
+		"Sessions expire after 12 hours. HTTP Basic credentials remain supported for scripts. " +
+		"Set TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file " +
+		"in the context environment to disable authentication. Configure TRAEFIK_BIND_ADDR to change the bind address."
 
-	create, _, err := cmd.Find([]string{"create"})
-	if err == nil {
-		create.PreRunE = func(cmd *cobra.Command, args []string) error {
-			return prepareGatewayAuth()
-		}
-	}
-	cmd.AddCommand(&cobra.Command{
+	var gatewayURL string
+	credentialsCmd := &cobra.Command{
 		Use:   "credentials",
-		Short: "Show the generated gateway login",
+		Short: "Show gateway credentials and single-use login links",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := filepath.Join(mwdd.DefaultForUser().Directory(), "compose", "traefik", "auth", "credentials")
+			if err := mwdd.EnsureTraefikAuth(); err != nil {
+				return err
+			}
 			credentials, err := os.ReadFile(path)
 			if err != nil {
-				return fmt.Errorf("gateway credentials are not available yet; create the Traefik service first: %w", err)
+				return fmt.Errorf("gateway credentials are not available yet: %w", err)
 			}
-			fmt.Print(strings.TrimSpace(string(credentials)) + "\n")
+			fmt.Fprintln(cmd.OutOrStdout(), strings.TrimSpace(string(credentials)))
+			origin := gatewayURL
+			if origin == "" {
+				port := mwdd.DefaultForUser().Env().Get("PORT")
+				if port == "" {
+					port = "8080"
+				}
+				origin = "http://" + net.JoinHostPort("localhost", port)
+			}
+			link, err := requestLoginLink(origin, string(credentials))
+			if err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Could not create a login link: %v\n", err)
+				return nil
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "\nLogin: %s\n", link)
+			if gatewayURL == "" {
+				if tunnel := runningTunnelURL(origin, string(credentials)); tunnel != "" {
+					tunnelLink, err := requestLoginLink(tunnel, string(credentials))
+					if err != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "Could not create a tunnel login link: %v\n", err)
+					} else {
+						fmt.Fprintf(cmd.OutOrStdout(), "Tunnel login: %s\n", tunnelLink)
+					}
+				}
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), "Each link is valid for 5 minutes and works once.")
 			return nil
 		},
-	})
+	}
+	credentialsCmd.Flags().StringVar(&gatewayURL, "url", "", "Use only this gateway URL instead of localhost and the active tunnel")
+	cmd.AddCommand(credentialsCmd)
 	return cmd
 }
 
-// StartGateway prepares authentication and starts the optional Traefik services.
+// StartGateway prepares authentication and starts the default Traefik proxy.
 func StartGateway() error {
 	instance := mwdd.DefaultForUser()
-	instance.EnsureReady()
-	if err := prepareGatewayAuth(); err != nil {
+	if err := instance.PrepareGateway(); err != nil {
 		return err
 	}
 	return instance.DockerCompose().Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})
 }
 
-func prepareGatewayAuth() error {
-	instance := mwdd.DefaultForUser()
-	instance.EnsureReady()
-
-	authDir := filepath.Join(instance.Directory(), "compose", "traefik", "auth")
-	if err := os.MkdirAll(authDir, 0o700); err != nil {
-		return err
+func gatewayRequest(method, origin, path, credentials string) (*http.Request, error) {
+	parsed, err := url.Parse(origin)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return nil, fmt.Errorf("expected a gateway origin such as http://localhost:8080")
 	}
-	usersPath := filepath.Join(authDir, "users")
-	credentialsPath := filepath.Join(authDir, "credentials")
-	if _, err := os.Stat(usersPath); err == nil {
-		return nil
-	} else if !os.IsNotExist(err) {
-		return err
+	parsed.Path = ""
+	origin = parsed.String()
+	var username, password string
+	for _, line := range strings.Split(credentials, "\n") {
+		if value, ok := strings.CutPrefix(line, "Username: "); ok {
+			username = value
+		}
+		if value, ok := strings.CutPrefix(line, "Password: "); ok {
+			password = value
+		}
 	}
-
-	passwordBytes := make([]byte, 24)
-	if _, err := rand.Read(passwordBytes); err != nil {
-		return err
+	if username == "" || password == "" {
+		return nil, fmt.Errorf("gateway credentials are incomplete")
 	}
-	password := base64.RawURLEncoding.EncodeToString(passwordBytes)
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	req, err := http.NewRequest(method, origin+path, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err := os.WriteFile(usersPath, []byte("mwcli:"+string(hash)+"\n"), 0o600); err != nil {
-		return err
-	}
-	credentials := fmt.Sprintf("Username: mwcli\nPassword: %s\n", password)
-	if err := os.WriteFile(credentialsPath, []byte(credentials), 0o600); err != nil {
-		_ = os.Remove(usersPath)
-		return err
-	}
-	fmt.Printf("Traefik gateway credentials generated and saved to %s\n%s", credentialsPath, credentials)
-	return nil
+	req.SetBasicAuth(username, password)
+	return req, nil
 }
+
+// The gateway issues a short-lived code; the CLI never puts the password in a URL.
+func requestLoginLink(origin, credentials string) (string, error) {
+	req, err := gatewayRequest(http.MethodPost, origin, "/_mwcli/login-link", credentials)
+	if err != nil {
+		return "", err
+	}
+	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	response, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gateway unavailable; start it with 'mw docker traefik start'")
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("gateway returned HTTP %d", response.StatusCode)
+	}
+	var result struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 4096)).Decode(&result); err != nil {
+		return "", fmt.Errorf("invalid login-link response: %w", err)
+	}
+	link, err := url.Parse(result.URL)
+	if err != nil || link.Scheme != req.URL.Scheme || link.Host != req.URL.Host || link.User != nil || link.Path != "/_mwcli/login" || link.RawQuery != "" || !strings.HasPrefix(link.Fragment, "login=") || strings.TrimPrefix(link.Fragment, "login=") == "" {
+		return "", fmt.Errorf("gateway returned an invalid login link")
+	}
+	return result.URL, nil
+}
+
+// Reuse the dashboard's readiness check instead of advertising old tunnel logs.
+func runningTunnelURL(origin, credentials string) string {
+	req, err := gatewayRequest(http.MethodGet, origin, "/proxy/dashboard/api/status", credentials)
+	if err != nil {
+		return ""
+	}
+	client := &http.Client{Timeout: 2 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	response, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return ""
+	}
+	var status struct {
+		TunnelURL string `json:"tunnel_url"`
+	}
+	if json.NewDecoder(io.LimitReader(response.Body, 65536)).Decode(&status) != nil || !activeQuickTunnelURL.MatchString(status.TunnelURL) {
+		return ""
+	}
+	return status.TunnelURL
+}
+
+var activeQuickTunnelURL = regexp.MustCompile(`^https://[a-zA-Z0-9-]+\.trycloudflare\.com$`)

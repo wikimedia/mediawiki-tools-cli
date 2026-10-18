@@ -28,20 +28,28 @@ We welcome contributions! Please see the following documents for more informatio
 
 ### Using a development build
 
-From the repository root, build the CLI and put its `bin` directory first on
-your current terminal's PATH:
+The checkout can live anywhere. In Bash, build the CLI and select it for the current shell:
 
 ```sh
-make build
-export PATH="$PWD/bin:$PATH"
-hash -r
+eval "$(make -s dev)"
 command -v mw
 ```
 
-The last command should show this repository's `bin/mw`. Documentation examples
-using `mw` will then run your development build unchanged. Rebuild with
-`make build` after changing the source; the PATH change lasts for this shell
-session. You can also run `./bin/mw` directly from the repository root.
+From another directory, replace `/path/to/cli` with your checkout location:
+
+```sh
+eval "$(make -s -C "/path/to/cli" dev)"
+```
+
+For convenience, add an alias to your Bash configuration, using your checkout's absolute path:
+
+```sh
+alias mw-dev='eval "$(make -s -C "/path/to/cli" dev)"'
+```
+
+Run `mw-dev` to build and activate it. Repeating activation avoids duplicate PATH entries. This affects only the current shell; rerun after changing code or branches. You can also use `make build` and run `./bin/mw` directly.
+
+Existing Bash completion follows the selected binary. To load it explicitly, run `source <(mw completion bash)`.
 
 ## Support
 

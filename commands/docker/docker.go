@@ -93,9 +93,9 @@ func NewCmd() *cobra.Command {
 					os.Exit(1)
 				}
 
-				// Bail if docker is not running
-				if !docker.DockerDaemonIsRunning() {
-					fmt.Println("Docker is not running. Please start it and try again.")
+				// Bail if Docker is unavailable through the selected context.
+				if err := docker.CheckDockerDaemon(); err != nil {
+					fmt.Fprintf(os.Stderr, "Docker is unavailable: %v\nCheck `docker context show` and `docker info` using the same environment.\n", err)
 					os.Exit(1)
 				}
 			}

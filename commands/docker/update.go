@@ -15,7 +15,10 @@ func NewMwddUpdateCmd() *cobra.Command {
 		Use:     "update",
 		GroupID: "core",
 		Short:   "Update running containers",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := mwdd.DefaultForUser().PrepareGateway(); err != nil {
+				return err
+			}
 			runningServices, runningServicesErr := mwdd.DefaultForUser().DockerCompose().ServicesWithStatus("running")
 			if runningServicesErr != nil {
 				logrus.Panic(runningServicesErr)
@@ -27,7 +30,7 @@ func NewMwddUpdateCmd() *cobra.Command {
 			existingServices := append(runningServices, stoppedServices...)
 			if len(existingServices) == 0 {
 				logrus.Info("No services to update")
-				return
+				return nil
 			}
 			logrus.Infof("Updating %d services", len(existingServices))
 			logrus.Tracef("Updating services: %v", existingServices)
@@ -39,9 +42,7 @@ func NewMwddUpdateCmd() *cobra.Command {
 				Detached:      true,
 				ForceRecreate: forceRecreate,
 			})
-			if err != nil {
-				panic(err)
-			}
+			return err
 		},
 	}
 	cmd.Annotations = make(map[string]string)
