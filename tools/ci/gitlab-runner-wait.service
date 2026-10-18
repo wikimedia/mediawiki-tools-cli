@@ -1,0 +1,14 @@
+[Unit]
+Description=MWCLI lightweight waiting runner
+After=network-online.target docker.service mwcli-wait-status.service
+Wants=network-online.target docker.service mwcli-wait-status.service
+
+[Service]
+ExecStart=/usr/bin/gitlab-runner run --config /etc/gitlab-runner-wait/config.toml --working-directory /var/lib/gitlab-runner-wait --service gitlab-runner-wait --user gitlab-runner
+Restart=always
+RestartSec=5
+KillSignal=SIGQUIT
+TimeoutStopSec=3600
+
+[Install]
+WantedBy=multi-user.target

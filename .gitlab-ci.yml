@@ -17,6 +17,7 @@ workflow:
       auto_cancel:
         on_new_commit: none
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api")'
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "weekly"'
       auto_cancel:
         on_new_commit: none
@@ -25,14 +26,14 @@ workflow:
 include:
 - local: ".gitlab/pipelines/commit.yml"
   rules:
-  - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push'"
+  - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push' || $CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'api'"
 # Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
 - template: Security/Secret-Detection.gitlab-ci.yml
   rules:
-  - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push'"
+  - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push' || $CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'api'"
 - template: Security/SAST.gitlab-ci.yml
   rules:
-  - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push'"
+  - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_PIPELINE_SOURCE == 'push' || $CI_PIPELINE_SOURCE == 'web' || $CI_PIPELINE_SOURCE == 'api'"
 - local: ".gitlab/pipelines/weekly.yml"
   rules:
   - if: "$CI_PIPELINE_SOURCE == 'schedule' && $GITLAB_SCHEDULE == 'weekly'"

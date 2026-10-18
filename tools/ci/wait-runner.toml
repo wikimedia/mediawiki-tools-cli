@@ -1,0 +1,24 @@
+# Registration template for the mwcli-wait pool on a four-CPU Cloud VPS worker.
+# Global concurrency is set separately in /etc/gitlab-runner-wait/config.toml.
+[[runners]]
+  limit = 50
+  request_concurrency = 5
+  output_limit = 1024
+  environment = ["FF_NETWORK_PER_BUILD=false"]
+  [runners.docker]
+    image = "python:3.13-alpine"
+    network_mode = "bridge"
+    allowed_images = ["python:3.13-alpine"]
+    allowed_services = [""]
+    privileged = false
+    services_privileged = false
+    disable_cache = true
+    volumes = ["/opt/mwcli-wait:/opt/mwcli-wait:ro", "/run/mwcli-wait:/run/mwcli-wait:ro"]
+    pull_policy = "if-not-present"
+    memory = "64m"
+    memory_swap = "64m"
+    cpus = "0.10"
+    cpu_shares = 64
+    cpuset_cpus = "3"
+    cap_drop = ["ALL"]
+    security_opt = ["no-new-privileges:true"]
