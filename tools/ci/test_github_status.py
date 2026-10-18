@@ -91,7 +91,7 @@ class StatusTests(unittest.TestCase):
 
 
 class NativeExecutionTests(unittest.TestCase):
-    def test_materializes_bundle_snapshot_binary_and_preserves_test_exit_status(self):
+    def test_prepares_snapshot_binary_and_preserves_test_exit_status(self):
         runner = Path(__file__).with_name("run-github-integration.py").resolve()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -127,9 +127,12 @@ class NativeExecutionTests(unittest.TestCase):
                     (inputs / "mw").write_text(f"#!/bin/sh\nexit {code}\n")
                     with tarfile.open(inputs / "mediawiki.tar.gz", "w:gz") as archive:
                         archive.add(media, arcname=".mediawiki")
+                    source = work / "source"
+                    subprocess.run(["git", "clone", str(inputs / "source.bundle"), str(source)],
+                                   check=True, capture_output=True)
                     env = {key: value for key, value in os.environ.items() if key != "GITLAB_STATUS_TOKEN"}
                     result = subprocess.run(["python3", str(runner), "docker-general"],
-                                            cwd=work, env=env, capture_output=True, text=True, timeout=15)
+                                            cwd=source, env=env, capture_output=True, text=True, timeout=15)
                     self.assertEqual(result.returncode, code, result.stdout + result.stderr)
 
 

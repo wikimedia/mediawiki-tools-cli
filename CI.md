@@ -48,10 +48,14 @@ for the authenticated workflow summary and its corresponding test result.
 
 The executor supports `linux-amd64`, `linux-arm64`, `macos-arm64` and
 `windows-amd64`. Test names select `tests/test-<name>.sh` from the exact prepared
-GitLab revision. Historical Docker test aliases remain supported. Native jobs
-build the CLI and use a source-only artifact. Adding a new test or platform row
-in a GitLab MR runs that MR's script without changing or merging another GitHub
-workflow. Only adding a new runner type requires an executor infrastructure
+GitLab revision. Historical Docker test aliases remain supported. Every runner
+downloads the same prepared artifact, checks out the exact source bundle, sets
+up Go, and invokes `tools/ci/run-github-integration.py` from that GitLab revision.
+That source helper owns platform preparation: Linux AMD64 restores the built
+binary and MediaWiki snapshot; other hosts build a native binary. Changes to
+preparation can therefore be made in the GitLab MR alongside the test.
+Adding a new test or platform row in a GitLab MR runs that MR's script without
+changing or merging another GitHub workflow. Only adding a new runner type requires an executor infrastructure
 update. Invalid platforms, unsafe names and missing planned results fail closed.
 
 Pipelines created before migration, with a single `integration-github` gate,
@@ -68,7 +72,7 @@ migration from the old fixed test list. The dispatcher still launches only
 
 Separate `gitlab-integration-<platform>.yml` workflows support `linux-arm64`,
 `macos-arm64`, and `windows-amd64`. They build and run tests from the exact
-GitLab source. The automated pipeline uses the Ubuntu AMD64 workflow.
+GitLab source. The automated pipeline uses the generic matrix executor described above.
 
 Native dispatches require a successful project 16 job named
 `integration-github-<platform>-<test>-request`, supplied as `job_id` and

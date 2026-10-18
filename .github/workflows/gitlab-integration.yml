@@ -74,15 +74,6 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v7
-        if: steps.prepare.outputs.active == 'true'
-        with:
-          name: ${{ steps.prepare.outputs.artifact }}-source
-          path: inputs/source.bundle
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
-
   integration:
     name: Integration (${{ matrix.name }})
     needs: prepare
@@ -95,6 +86,7 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.test_matrix) }}
     uses: ./.github/workflows/gitlab-integration-test.yml
     with:
+      name: ${{ matrix.name }}
       platform: ${{ matrix.platform }}
       test: ${{ matrix.test }}
       artifact: ${{ needs.prepare.outputs.artifact }}
