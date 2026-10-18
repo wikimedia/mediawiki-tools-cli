@@ -40,11 +40,17 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 	}
 	out.TableBinding.ProcessObjects = func(objects interface{}, table *output.Table) {
 		for _, row := range objects.([]map[string]interface{}) {
-			cells := make([]string, len(def.columns))
+			cells := make([]interface{}, len(def.columns))
 			for i, col := range def.columns {
-				cells[i] = metricCell(row, col.key, true)
+				text := metricCell(row, col.key, true)
+				cells[i] = text
+				if def.ranking && i == 1 {
+					if target := rankingPageURL(def.name, opts.project, text); target != "" {
+						cells[i] = output.Hyperlink{Text: text, URL: target}
+					}
+				}
 			}
-			table.AddRowS(cells...)
+			table.AddRow(cells...)
 		}
 	}
 	cmd := &cobra.Command{Use: def.name, Short: def.short, Example: def.example, Args: cobra.NoArgs}

@@ -43,6 +43,7 @@ func printMetricGraph(cmd *cobra.Command, rows []map[string]interface{}, def met
 		point := output.GraphPoint{Value: value}
 		if def.ranking {
 			point.Label = metricCell(row, def.columns[1].key, false)
+			point.URL = rankingPageURL(def.name, opts.project, point.Label)
 		} else {
 			point.Time, err = metricGraphTime(fmt.Sprint(row["timestamp"]))
 			if err != nil {

@@ -18,6 +18,7 @@ import (
 // GraphPoint is an observation or a ranked value. Time is required for line charts.
 type GraphPoint struct {
 	Label string
+	URL   string
 	Value float64
 	Time  time.Time
 }
@@ -79,7 +80,7 @@ func (g Graph) Print(writer io.Writer) error {
 	if len(g.Points) == 0 {
 		fmt.Fprintln(&result, "No data for this period.")
 	} else if g.Bars {
-		g.barGraph(&result, width, paint)
+		g.barGraph(&result, width, paint, supportsHyperlinks(writer))
 	} else {
 		if err := g.lineGraph(&result, width, paint); err != nil {
 			return err
@@ -89,7 +90,7 @@ func (g Graph) Print(writer io.Writer) error {
 	return err
 }
 
-func (g Graph) barGraph(result *strings.Builder, width int, paint func(string) string) {
+func (g Graph) barGraph(result *strings.Builder, width int, paint func(string) string, links bool) {
 	labelWidth, valueWidth, maxValue := 0, 0, 0.0
 	for _, point := range g.Points {
 		labelWidth = max(labelWidth, runewidth.StringWidth(graphLabel(point.Label)))
@@ -104,7 +105,9 @@ func (g Graph) barGraph(result *strings.Builder, width int, paint func(string) s
 		if maxValue > 0 && point.Value > 0 {
 			size = max(1, int(math.Round(point.Value/maxValue*float64(barWidth))))
 		}
-		fmt.Fprintf(result, "%s%s  %s%s  %*s\n", label, strings.Repeat(" ", labelWidth-runewidth.StringWidth(label)), paint(strings.Repeat("█", size)), strings.Repeat(" ", barWidth-size), valueWidth, graphNumber(point.Value))
+		padding := strings.Repeat(" ", labelWidth-runewidth.StringWidth(label))
+		label = terminalHyperlink(label, point.URL, links)
+		fmt.Fprintf(result, "%s%s  %s%s  %*s\n", label, padding, paint(strings.Repeat("█", size)), strings.Repeat(" ", barWidth-size), valueWidth, graphNumber(point.Value))
 	}
 }
 
