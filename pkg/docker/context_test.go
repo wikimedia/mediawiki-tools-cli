@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,8 +22,11 @@ func dockerTestConfig(t *testing.T) string {
 		t.Setenv(key, "")
 	}
 	contexts := store.New(filepath.Join(dir, "contexts"), dockerContextStoreConfig())
-	for _, name := range []string{"desktop-linux", "rootless"} {
-		err := contexts.CreateOrUpdate(store.Metadata{Name: name, Endpoints: map[string]interface{}{"docker": contextdocker.EndpointMeta{Host: "unix:///tmp/" + name + ".sock"}}})
+	for name, host := range map[string]string{
+		"desktop-linux": "tcp://127.0.0.1:12375",
+		"rootless":      "tcp://127.0.0.1:12376",
+	} {
+		err := contexts.CreateOrUpdate(store.Metadata{Name: name, Endpoints: map[string]interface{}{"docker": contextdocker.EndpointMeta{Host: host}}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -33,10 +37,12 @@ func dockerTestConfig(t *testing.T) string {
 func TestDockerClientContextSelection(t *testing.T) {
 	dir := dockerTestConfig(t)
 	for _, tc := range []struct{ name, current, context, host, want string }{
-		{"saved context", "desktop-linux", "", "", "unix:///tmp/desktop-linux.sock"},
-		{"explicit context wins", "desktop-linux", "rootless", "unix:///tmp/other.sock", "unix:///tmp/rootless.sock"},
-		{"host overrides saved context", "desktop-linux", "", "unix:///tmp/other.sock", "unix:///tmp/other.sock"},
-		{"explicit default context", "desktop-linux", "default", "unix:///tmp/other.sock", "unix:///tmp/other.sock"},
+		{"saved context", "desktop-linux", "", "", "tcp://127.0.0.1:12375"},
+		{"context overrides saved context", "desktop-linux", "rootless", "", "tcp://127.0.0.1:12376"},
+		{"host overrides explicit context", "desktop-linux", "rootless", "tcp://127.0.0.1:12377", "tcp://127.0.0.1:12377"},
+		{"host overrides missing context", "desktop-linux", "does-not-exist", "tcp://127.0.0.1:12377", "tcp://127.0.0.1:12377"},
+		{"host overrides saved context", "desktop-linux", "", "tcp://127.0.0.1:12377", "tcp://127.0.0.1:12377"},
+		{"explicit default context", "desktop-linux", "default", "tcp://127.0.0.1:12377", "tcp://127.0.0.1:12377"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"currentContext":"`+tc.current+`"}`), 0o600); err != nil {
@@ -66,9 +72,17 @@ func TestDockerClientInvalidContext(t *testing.T) {
 
 func TestDockerDaemonErrorIdentifiesEndpoint(t *testing.T) {
 	dockerTestConfig(t)
-	t.Setenv("DOCKER_HOST", "unix://"+filepath.Join(t.TempDir(), "missing.sock"))
-	err := CheckDockerDaemon()
-	if err == nil || !strings.Contains(err.Error(), "missing.sock") {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	host := "tcp://" + listener.Addr().String()
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("DOCKER_HOST", host)
+	err = CheckDockerDaemon()
+	if err == nil || !strings.Contains(err.Error(), host) {
 		t.Fatalf("lost daemon detail: %v", err)
 	}
 }

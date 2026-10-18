@@ -3,6 +3,9 @@ services:
     image: prom/statsd-exporter:v0.28.0
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.statsd-exporter-host.rule=Host(`${STATSD_EXPORTER_VIRTUAL_HOST:-statsd-exporter.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.statsd-exporter-host.entrypoints=web"
+      - "traefik.http.routers.statsd-exporter-host.service=statsd-exporter"
       - "traefik.http.routers.statsd-exporter.rule=Path(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}`) || PathPrefix(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}/`)"
       - "traefik.http.routers.statsd-exporter.entrypoints=web"
       - "traefik.http.routers.statsd-exporter.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-statsd-exporter@docker,forwarded-https@file"
@@ -27,11 +30,25 @@ services:
     image: prom/prometheus:v3.9.1
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.prometheus-host.rule=Host(`${PROMETHEUS_VIRTUAL_HOST:-prometheus.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.prometheus-host.entrypoints=web"
+      - "traefik.http.routers.prometheus-host.service=prometheus"
+      - "traefik.http.routers.prometheus-host.middlewares=local-prometheus-path@docker"
+      - "traefik.http.middlewares.local-prometheus-path.redirectregex.regex=^(https?://[^/]+)(/.*)?$$"
+      - "traefik.http.middlewares.local-prometheus-path.redirectregex.replacement=$${1}/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}$${2}"
+      - "traefik.http.routers.prometheus-local-path.rule=Host(`${PROMETHEUS_VIRTUAL_HOST:-prometheus.local.wmftest.net}`) && (Path(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}`) || PathPrefix(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}/`))"
+      - "traefik.http.routers.prometheus-local-path.entrypoints=web"
+      - "traefik.http.routers.prometheus-local-path.priority=100"
+      - "traefik.http.routers.prometheus-local-path.service=prometheus"
       - "traefik.http.routers.prometheus.rule=Path(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}`) || PathPrefix(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}/`)"
       - "traefik.http.routers.prometheus.entrypoints=web"
-      - "traefik.http.routers.prometheus.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-prometheus@docker,forwarded-https@file"
-      - "traefik.http.middlewares.strip-prometheus.stripprefix.prefixes=/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}"
+      - "traefik.http.routers.prometheus.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.services.prometheus.loadbalancer.server.port=${PROMETHEUS_VIRTUAL_PORT:-9090}"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.external-url=/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}
+      - --web.route-prefix=/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}
     volumes:
       - ./compose/prometheus/mount/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:

@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,14 +28,18 @@ type Service struct {
 	HasUI     bool   `json:"has_ui"`
 	UIHost    string `json:"ui_host,omitempty"`
 	UIURL     string `json:"ui_url,omitempty"`
+	ProxyURL  string `json:"proxy_url,omitempty"`
+	TunnelURL string `json:"tunnel_url,omitempty"`
 	CheckedAt string `json:"checked_at"`
 }
 
 // Site represents an installed MediaWiki site
 type Site struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	URL  string `json:"url"`
+	Name      string `json:"name"`
+	Host      string `json:"host"`
+	URL       string `json:"url"`
+	ProxyURL  string `json:"proxy_url,omitempty"`
+	TunnelURL string `json:"tunnel_url,omitempty"`
 }
 
 // Status represents the overall status response
@@ -43,6 +49,7 @@ type Status struct {
 	Timestamp string    `json:"timestamp"`
 	CacheAge  string    `json:"cache_age"`
 	BasePath  string    `json:"-"`
+	TunnelURL string    `json:"tunnel_url,omitempty"`
 }
 
 // ServiceConfig defines a service to check
@@ -260,11 +267,84 @@ func getStatus() *Status {
 		Services:  checkAllServices(),
 		Sites:     getSites(),
 		Timestamp: now.Format(time.RFC3339),
+		TunnelURL: currentTunnelURL(&http.Client{Timeout: 500 * time.Millisecond}, "http://cloudflared:20241"),
 		CacheAge:  "0s",
 	}
+	*statusCache = accessLinks(*statusCache)
 	statusCacheTime = now
 
 	return statusCache
+}
+
+// A Quick Tunnel's internal status endpoint disappears when its container stops.
+// Readiness prevents advertising a URL while it is still starting or disconnected.
+var quickTunnelHostname = regexp.MustCompile(`^(?:https://)?([a-zA-Z0-9-]+\.trycloudflare\.com)/?$`)
+
+func currentTunnelURL(client *http.Client, endpoint string) string {
+	ready, err := client.Get(endpoint + "/ready")
+	if err != nil {
+		return ""
+	}
+	ready.Body.Close()
+	if ready.StatusCode != http.StatusOK {
+		return ""
+	}
+	response, err := client.Get(endpoint + "/quicktunnel")
+	if err != nil {
+		return ""
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return ""
+	}
+	var tunnel struct {
+		Hostname string `json:"hostname"`
+	}
+	if json.NewDecoder(io.LimitReader(response.Body, 4096)).Decode(&tunnel) != nil {
+		return ""
+	}
+	matches := quickTunnelHostname.FindStringSubmatch(tunnel.Hostname)
+	if len(matches) != 2 {
+		return ""
+	}
+	return "https://" + matches[1]
+}
+
+// Keep access methods separate and leave the cached status unchanged.
+func accessLinks(status Status) Status {
+	status.Services = append([]Service(nil), status.Services...)
+	status.Sites = append([]Site(nil), status.Sites...)
+	for i := range status.Services {
+		service := &status.Services[i]
+		service.ProxyURL, service.TunnelURL = "", ""
+		if !service.HasUI || !service.Running {
+			continue
+		}
+		path := os.Getenv(strings.ToUpper(strings.ReplaceAll(service.Name, "-", "_")) + "_PROXY_PATH")
+		if path == "" {
+			path = service.Name
+		}
+		service.ProxyURL = "/proxy/" + strings.Trim(path, "/") + "/"
+		if service.Name == "novnc" {
+			service.ProxyURL += "vnc.html"
+			if !strings.HasSuffix(service.UIURL, "/vnc.html") {
+				service.UIURL = strings.TrimRight(service.UIURL, "/") + "/vnc.html"
+			}
+		}
+		if status.TunnelURL != "" {
+			service.TunnelURL = status.TunnelURL + service.ProxyURL
+		}
+	}
+	for i := range status.Sites {
+		site := &status.Sites[i]
+		dbName := strings.SplitN(site.Host, ".", 2)[0]
+		site.ProxyURL = "/proxy/" + dbName + "/"
+		site.TunnelURL = ""
+		if status.TunnelURL != "" {
+			site.TunnelURL = status.TunnelURL + site.ProxyURL
+		}
+	}
+	return status
 }
 
 // API handler for JSON status
@@ -401,10 +481,23 @@ const dashboardHTML = `<!DOCTYPE html>
         a:hover {
             text-decoration: underline;
         }
-        .ui-link {
-            margin-left: 10px;
+        .access-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
             font-size: 0.85em;
         }
+        .tunnel-status, .access-note {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .access-note {
+            color: #aaa;
+            font-size: 0.85em;
+        }
+        .service-item, .site-item { gap: 12px; }
+        .site-item { flex-wrap: wrap; }
         .site-link {
             color: var(--link-color);
         }
@@ -451,6 +544,16 @@ const dashboardHTML = `<!DOCTYPE html>
     <div class="container">
         <h1>🐳 MWDD Dashboard</h1>
         <p class="subtitle">MediaWiki Docker Development Environment Status</p>
+        {{if .BasePath}}<p class="access-note"><a href="/_mwcli/logout">Sign out of the gateway</a></p>{{end}}
+
+        <div class="tunnel-status">
+            {{if .TunnelURL}}
+            <strong>Tunnel connected</strong> · <a href="{{.TunnelURL}}/proxy/dashboard/" target="_blank" rel="noopener noreferrer">Open tunnel dashboard</a>
+            {{else}}
+            <strong>Tunnel not connected</strong> · Tunnel links appear when a connection is ready.
+            {{end}}
+        </div>
+        <p class="access-note">Local opens the service hostname. Proxy uses this gateway. Tunnel uses the public HTTPS address. Some services need additional setup for Proxy and Tunnel access.</p>
 
         <div class="api-links">
             <a href="{{.BasePath}}/api/status">API: Full Status</a>
@@ -467,7 +570,11 @@ const dashboardHTML = `<!DOCTYPE html>
                         <span class="service-name">
                             {{.Name}}
                             {{if and .Running .HasUI}}
-                            <a href="{{.UIURL}}" class="ui-link" target="_blank">🔗 Open UI</a>
+                            <span class="access-links">
+                                <a href="{{.UIURL}}" class="ui-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
+                                <a href="{{.ProxyURL}}" class="ui-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
+                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="ui-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
+                            </span>
                             {{end}}
                         </span>
                         <span class="status-badge {{if .Running}}status-running{{else}}status-stopped{{end}}">
@@ -486,7 +593,12 @@ const dashboardHTML = `<!DOCTYPE html>
                     {{range .Sites}}
                     <li class="site-item">
                         <span class="site-name">
-                            <a href="{{.URL}}" class="site-link" target="_blank">{{.Name}}</a>
+                            {{.Name}}
+                            <span class="access-links">
+                                <a href="{{.URL}}" class="site-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
+                                <a href="{{.ProxyURL}}" class="site-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
+                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="site-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
+                            </span>
                         </span>
                         <span style="color: #888; font-size: 0.85em;">{{.Host}}</span>
                     </li>
@@ -524,26 +636,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	response := *status
 	response.CacheAge = time.Since(statusCacheTime).Round(time.Millisecond).String()
 	response.BasePath = strings.TrimRight(r.Header.Get("X-Forwarded-Prefix"), "/")
-	if response.BasePath != "" {
-		originHost := r.Header.Get("X-Forwarded-Host")
-		if originHost == "" {
-			originHost = r.Host
-		}
-		originScheme := r.Header.Get("X-Forwarded-Proto")
-		if originScheme == "" {
-			originScheme = "https"
-		}
-		origin := originScheme + "://" + originHost
-		for i := range response.Services {
-			if response.Services[i].HasUI {
-				response.Services[i].UIURL = origin + "/proxy/" + response.Services[i].Name + "/"
-			}
-		}
-		for i := range response.Sites {
-			dbName := strings.SplitN(response.Sites[i].Host, ".", 2)[0]
-			response.Sites[i].URL = origin + "/proxy/" + dbName + "/"
-		}
-	}
+	response = accessLinks(response)
 
 	tmpl, err := template.New("dashboard").Parse(dashboardHTML)
 	if err != nil {

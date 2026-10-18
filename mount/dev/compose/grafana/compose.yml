@@ -3,10 +3,19 @@ services:
     image: grafana/grafana:11.4.0
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.grafana-host.rule=Host(`${GRAFANA_VIRTUAL_HOST:-grafana.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.grafana-host.entrypoints=web"
+      - "traefik.http.routers.grafana-host.service=grafana"
+      - "traefik.http.routers.grafana-host.middlewares=local-grafana-path@docker"
+      - "traefik.http.middlewares.local-grafana-path.redirectregex.regex=^(https?://[^/]+)(/.*)?$$"
+      - "traefik.http.middlewares.local-grafana-path.redirectregex.replacement=$${1}/proxy/${GRAFANA_PROXY_PATH:-grafana}$${2}"
+      - "traefik.http.routers.grafana-local-path.rule=Host(`${GRAFANA_VIRTUAL_HOST:-grafana.local.wmftest.net}`) && (Path(`/proxy/${GRAFANA_PROXY_PATH:-grafana}`) || PathPrefix(`/proxy/${GRAFANA_PROXY_PATH:-grafana}/`))"
+      - "traefik.http.routers.grafana-local-path.entrypoints=web"
+      - "traefik.http.routers.grafana-local-path.priority=100"
+      - "traefik.http.routers.grafana-local-path.service=grafana"
       - "traefik.http.routers.grafana.rule=Path(`/proxy/${GRAFANA_PROXY_PATH:-grafana}`) || PathPrefix(`/proxy/${GRAFANA_PROXY_PATH:-grafana}/`)"
       - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.routers.grafana.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-grafana@docker,forwarded-https@file"
-      - "traefik.http.middlewares.strip-grafana.stripprefix.prefixes=/proxy/${GRAFANA_PROXY_PATH:-grafana}"
+      - "traefik.http.routers.grafana.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.services.grafana.loadbalancer.server.port=${GRAFANA_VIRTUAL_PORT:-3000}"
     volumes:
       - grafana-storage:/var/lib/grafana
@@ -18,9 +27,14 @@ services:
     depends_on:
       - prometheus
     environment:
+      - GF_SERVER_ROOT_URL=/proxy/${GRAFANA_PROXY_PATH:-grafana}/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ADMIN_USER=admin
       - GF_INSTALL_PLUGINS=
+      - PROMETHEUS_PROXY_PATH=${PROMETHEUS_PROXY_PATH:-prometheus}
+      - GRAPHITE_PROXY_PATH=${GRAPHITE_PROXY_PATH:-graphite}
+      - JAEGER_PROXY_PATH=${JAEGER_PROXY_PATH:-jaeger}
       - VIRTUAL_HOST=${GRAFANA_VIRTUAL_HOST:-grafana.local.wmftest.net}
       - VIRTUAL_PORT=${GRAFANA_VIRTUAL_PORT:-3000}
       - DEFAULT_EXPOSE_PORT=3000

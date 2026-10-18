@@ -21,9 +21,10 @@ type ServiceContents struct {
 	Entrypoint  string   `yaml:"entrypoint"`
 	Volumes     []string `yaml:"volumes"`
 	Environment []string `yaml:"environment"`
-	DependsOn   []string `yaml:"depends_on"`
-	DNS         []string `yaml:"dns"`
-	Networks    []string `yaml:"networks"`
+	// Compose supports both a list and a mapping with health-check conditions.
+	DependsOn interface{} `yaml:"depends_on"`
+	DNS       []string    `yaml:"dns"`
+	Networks  []string    `yaml:"networks"`
 }
 
 func (p Project) File(name string) File {

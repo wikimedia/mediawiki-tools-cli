@@ -8,6 +8,7 @@ import copy
 import http.server
 import json
 import os
+import re
 from pathlib import Path
 import socketserver
 import threading
@@ -116,9 +117,12 @@ def dispatch(server, job):
     with server.dispatch_lock:
         marker = server.state / f"{repository.replace('/', '-')}-{pipeline_id}-{request_id}"
         if not marker.exists():
+            ref = pipeline.get("ref", "")
+            merge_request = re.fullmatch(r"refs/merge-requests/([1-9][0-9]*)/(?:head|merge)", ref)
+            label = f"MR !{merge_request[1]}" if merge_request else ref or f"pipeline {pipeline_id}"
             payload = {"ref": "main", "inputs": {
                 "project_id": str(PROJECT), "job_id": str(request_id),
-                "job_name": REQUEST_JOB, "job_status": "success"}}
+                "job_name": REQUEST_JOB, "job_status": "success", "run_label": label}}
             request = urllib.request.Request(
                 f"https://api.github.com/repos/{repository}/actions/workflows/gitlab-integration.yml/dispatches",
                 data=json.dumps(payload).encode(), method="POST", headers={

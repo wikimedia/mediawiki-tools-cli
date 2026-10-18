@@ -1,36 +1,62 @@
 services:
   traefik:
     image: "${TRAEFIK_IMAGE:-traefik:v3.6.16}"
-    profiles:
-      - gateway
     restart: unless-stopped
     environment:
+      # DPS resolves local service names to the proxy, including inside containers.
+      - HOSTNAMES=.local.wmftest.net,${DASHBOARD_VIRTUAL_HOST:-dashboard.local.wmftest.net,dash.local.wmftest.net}
+      - DASHBOARD_VIRTUAL_HOST=${DASHBOARD_VIRTUAL_HOST:-dashboard.local.wmftest.net,dash.local.wmftest.net}
+      - DEFAULT_EXPOSE_PORT=${PORT}
       - DOCKER_API_VERSION=${TRAEFIK_DOCKER_API_VERSION:-1.44}
     command:
-      - --entrypoints.web.address=:80
+      - --entrypoints.web.address=:${PORT}
       - --entrypoints.web.forwardedheaders.insecure=true
+      - --entrypoints.web.transport.respondingTimeouts.readTimeout=120s
+      - --entrypoints.web.transport.respondingTimeouts.writeTimeout=120s
       - --providers.docker=true
       - --providers.docker.endpoint=tcp://docker-socket-proxy:2375
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=${TRAEFIK_DOCKER_NETWORK}
+      - --providers.docker.constraints=Label(`com.docker.compose.project`, `${TRAEFIK_DOCKER_PROJECT}`)
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
       - --api.dashboard=false
     ports:
-      - "${TRAEFIK_BIND_ADDR:-127.0.0.1}:${TRAEFIK_PORT:-8081}:80"
+      - "${TRAEFIK_BIND_ADDR:-0.0.0.0}:${PORT}:${PORT}"
     volumes:
       - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./compose/traefik/auth/users:/etc/traefik/auth/users:ro
     depends_on:
-      - docker-socket-proxy
+      dps:
+        condition: service_started
+      dashboard:
+        condition: service_started
+      docker-socket-proxy:
+        condition: service_started
+      gateway-auth:
+        condition: service_healthy
     networks:
       - dps
       - gateway-control
 
+  gateway-auth:
+    image: "${GATEWAY_AUTH_IMAGE:-golang:1.26-alpine}"
+    restart: unless-stopped
+    working_dir: /app
+    command: ["go", "run", "main.go"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 6
+    volumes:
+      - ./compose/traefik/mount/auth:/app:ro
+      - ./compose/traefik/auth:/auth:ro
+    networks:
+      - gateway-control
+
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3.0
-    profiles:
-      - gateway
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

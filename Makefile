@@ -18,6 +18,19 @@ build: $(GOVVV) generate
 	@echo "Building $(GOFILES) to ./bin"
 	go build -v -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/mw ./
 
+# Build first; stdout contains only Bash commands for eval or another terminal.
+.PHONY: dev
+dev:
+	@$(MAKE) --no-print-directory build >&2 || { printf 'false\n'; exit 1; }
+	@dev_bin="$$(pwd -P)/bin"; dev_path=$$dev_bin; remaining=$$PATH; \
+	while :; do \
+		entry=$${remaining%%:*}; \
+		if [[ $$entry != "$$dev_bin" ]]; then dev_path+=:$$entry; fi; \
+		[[ $$remaining == *:* ]] || break; \
+		remaining=$${remaining#*:}; \
+	done; \
+	printf 'export PATH=%q\nhash -r\n' "$$dev_path"
+
 .PHONY: release
 release: $(GOX) $(GOVVV) generate
 	$(GOX) -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
