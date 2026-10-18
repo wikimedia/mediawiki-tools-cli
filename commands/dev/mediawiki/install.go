@@ -59,6 +59,8 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 			// TODO check that the required DB services is running? OR start it up?
 
+			cmdgloss.PrintStageHeading(cmd.OutOrStdout(), "Preparing MediaWiki configuration and writable directories")
+
 			mediawiki, _ := mediawiki.ForDirectory(devenv.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if !mediawiki.LocalSettingsIsPresent() {
 				createDefaultFile := false
@@ -200,7 +202,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return nil
 			}
 
-			err = checkComposer()
+			err = cmdgloss.RunStage(cmd.OutOrStdout(), "Checking Composer dependencies", checkComposer)
 			if err != nil {
 				return err
 			}
@@ -326,7 +328,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return nil
 			}
 
-			err = runInstall()
+			err = cmdgloss.RunStage(cmd.OutOrStdout(), "Installing the MediaWiki database", runInstall)
 			if err != nil {
 				return err
 			}
@@ -345,9 +347,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return err
 			}
 
-			err = runUpdate()
+			err = cmdgloss.RunStage(cmd.OutOrStdout(), "Updating the MediaWiki database", runUpdate)
 			if err != nil {
-				logrus.Error(fmt.Errorf("update.php was unable to run, please fix the issue and run update.php: %s", err))
+				return fmt.Errorf("update.php was unable to run; fix the issue and rerun update.php: %w", err)
 			}
 
 			outputDetails := make(map[string]string)
