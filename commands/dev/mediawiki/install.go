@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -147,7 +148,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			checkComposer := func() error {
 				// overrideConfig is a hack https://phabricator.wikimedia.org/T291613
 				// If this gets merged into Mediawiki we can remove it here https://gerrit.wikimedia.org/r/c/mediawiki/core/+/723308/
-				_, _, composerErr := devenv.DefaultForUser().DockerCompose().ExecCommand("mediawiki", dockercompose.ExecOptions{
+				composerStdout, composerStderr, composerErr := devenv.DefaultForUser().DockerCompose().ExecCommand("mediawiki", dockercompose.ExecOptions{
 					User: User,
 					CommandAndArgs: []string{
 						"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'MediaWiki\\Installer\\Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
@@ -162,13 +163,19 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 				if composerErr != nil || composerLocalJsonExists {
 					if composerErr != nil {
-						fmt.Println("Composer check failed:", composerErr)
+						fmt.Fprintln(cmd.ErrOrStderr(), "Could not verify Composer dependencies in the MediaWiki container:", composerErr)
+						if output := strings.TrimSpace(composerStdout.String()); output != "" {
+							fmt.Fprintln(cmd.OutOrStdout(), output)
+						}
+						if output := strings.TrimSpace(composerStderr.String()); output != "" {
+							fmt.Fprintln(cmd.ErrOrStderr(), output)
+						}
 					}
 
 					doComposerInstall := false
 					if cli.CanAskForInput() {
 						prompt := &survey.Confirm{
-							Message: "Composer dependencies may not be up to date, do you want to run composer update?",
+							Message: "Run Composer update and install in the MediaWiki container?",
 						}
 						err := survey.AskOne(prompt, &doComposerInstall)
 						if err != nil {
@@ -396,7 +403,10 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 func installComposerDependencies(run func([]string) int) error {
 	for _, action := range []string{"update", "install"} {
 		if code := run(composerCommand(action, "--ignore-platform-reqs", "--no-interaction")); code != 0 {
-			return fmt.Errorf("composer %s failed (exit code %d)", action, code)
+			return fmt.Errorf("composer %s failed in the MediaWiki container (exit code %d).\n"+
+				"Database installation was not started. Review the Composer output above.\n"+
+				"For DNS or connection timeout errors, check network access from the MediaWiki container; working host connectivity does not confirm container connectivity.\n"+
+				"Resolve the error, then rerun this MediaWiki install command", action, code)
 		}
 	}
 	return nil
