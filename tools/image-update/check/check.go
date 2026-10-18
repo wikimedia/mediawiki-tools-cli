@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
@@ -40,6 +42,7 @@ type CommandToRun struct {
 }
 
 type CheckResult struct {
+	Failed    []ImageData
 	Skipped   []ImageData
 	NoNewTags []ImageData
 	Commands  []CommandToRun
@@ -72,7 +75,13 @@ func main() {
 			continue
 		}
 
-		tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tagsForImageName(imageName)), imageData.RequireRegex)
+		tags, err := tagsForImageName(imageName)
+		if err != nil {
+			logrus.Errorf("Could not check %s: %v", image, err)
+			result.Failed = append(result.Failed, imageData)
+			continue
+		}
+		tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tags), imageData.RequireRegex)
 
 		if len(tagsOfInterest) > 0 {
 			lastTag := tagsOfInterest[len(tagsOfInterest)-1]
@@ -100,7 +109,13 @@ func main() {
 				continue
 			}
 
-			tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tagsForImageName(imageName)), imageData.RequireRegex)
+			tags, err := tagsForImageName(imageName)
+			if err != nil {
+				logrus.Errorf("Could not check %s: %v", image, err)
+				result.Failed = append(result.Failed, imageData)
+				continue
+			}
+			tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tags), imageData.RequireRegex)
 
 			if len(tagsOfInterest) > 0 {
 				lastTag := tagsOfInterest[len(tagsOfInterest)-1]
@@ -116,6 +131,11 @@ func main() {
 			} else {
 				result.NoNewTags = append(result.NoNewTags, imageData)
 			}
+		}
+		if len(imageUpdatePairs) > 0 && (len(imageUpdatePairs) != len(imageGroup.Images)*2 || !oneNewtag) {
+			logrus.Errorf("No complete matching build for image group %s; leaving the group unchanged", imageGroup.Name)
+			result.Failed = append(result.Failed, imageGroup.Images...)
+			continue
 		}
 		if len(imageUpdatePairs) > 0 {
 			description := ""
@@ -145,7 +165,7 @@ func main() {
 			fmt.Printf("Image: %s\n", v.Image)
 			fmt.Printf("URL: %s\n", v.humanURLForImageName())
 			if v.RequireRegex != "" {
-				fmt.Printf("Require Regex: %s", v.RequireRegex)
+				fmt.Printf("Require Regex: %s\n", v.RequireRegex)
 			}
 		}
 	}
@@ -157,7 +177,7 @@ func main() {
 		}
 	}
 
-	if len(result.Commands) > 0 {
+	{
 		bashOutput := ""
 		for _, v := range result.Commands {
 			bashOutput += fmt.Sprintf(`%s`+"\n", v.Command)
@@ -169,7 +189,7 @@ func main() {
 		fmt.Println("Commands to update images written to tools/image-update/.update.sh")
 	}
 
-	if len(result.Commands) > 0 {
+	{
 		gitlabOutput := ""
 		for _, v := range result.Commands {
 			gitlabOutput += fmt.Sprintf(`        - NAME: "%s"`+"\n", v.Name)
@@ -180,7 +200,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("A snippet for use in Gitlab CI is written to tools/image-update/.gitlab.update.sh")
+		fmt.Println("A snippet for use in Gitlab CI is written to tools/image-update/.gitlab.update.yaml")
+	}
+	if len(result.Failed) > 0 {
+		fmt.Println("The following images could not be checked:")
+		for _, image := range result.Failed {
+			fmt.Println(image.Image)
+		}
+		os.Exit(1)
 	}
 }
 
@@ -196,6 +223,9 @@ func (i ImageData) humanURLForImageName() string {
 	imageName, _ := i.nameAndTagFromTaggedName()
 	if stringStartsWith(imageName, "docker-registry.wikimedia.org") {
 		return "https://" + imageName + "/tags"
+	}
+	if strings.HasPrefix(imageName, "quay.io/") {
+		return "https://" + imageName + "?tab=tags"
 	}
 	if strings.Contains(imageName, "/") {
 		return "https://hub.docker.com/r/" + imageName + "/tags"
@@ -239,6 +269,11 @@ func keepNewerTags(currentTag string, allTags []string) []string {
 		}
 	}
 
+	sort.SliceStable(newerTags, func(i, j int) bool {
+		left, _ := version.NewVersion(newerTags[i])
+		right, _ := version.NewVersion(newerTags[j])
+		return left.LessThan(right)
+	})
 	return newerTags
 }
 
@@ -248,7 +283,7 @@ func keepTagsMatchingRegex(tags []string, regex string) []string {
 	}
 	matchingTags := []string{}
 	for _, tag := range tags {
-		if stringMatchesRegex(tag, regex) {
+		if stringMatchesRegex(tag, "^(?:"+regex+")$") {
 			matchingTags = append(matchingTags, tag)
 		}
 	}
@@ -260,58 +295,110 @@ func stringMatchesRegex(str string, regex string) bool {
 	return r.MatchString(str)
 }
 
-func tagsForImageName(imageName string) []string {
-	// Use the google code mirror, as the real registry requires auth...
-	apiURL := "https://mirror.gcr.io/v2/library/" + imageName + "/tags/list"
+var (
+	registryClient = &http.Client{Timeout: 20 * time.Second}
+	tagCache       = map[string][]string{}
+)
 
-	if stringStartsWith(imageName, "docker-registry.wikimedia.org") {
-		apiURL = "https://docker-registry.wikimedia.org/v2/" + strings.Replace(imageName, "docker-registry.wikimedia.org/", "", 1) + "/tags/list/"
+func tagsForImageName(imageName string) ([]string, error) {
+	if tags, ok := tagCache[imageName]; ok {
+		return tags, nil
 	}
-
-	v2Res := v2Response{}
-	_, err := jsonFromURL(apiURL, &v2Res)
+	var tags []string
+	var err error
+	switch {
+	case strings.HasPrefix(imageName, "docker-registry.wikimedia.org/"), strings.HasPrefix(imageName, "quay.io/"):
+		registry, repository, _ := strings.Cut(imageName, "/")
+		tags, err = registryTags("https://" + registry + "/v2/" + repository + "/tags/list")
+	default:
+		repository := strings.TrimPrefix(strings.TrimPrefix(imageName, "docker.io/"), "index.docker.io/")
+		if !strings.Contains(repository, "/") {
+			repository = "library/" + repository
+		}
+		tags, err = dockerHubTags(repository)
+	}
 	if err != nil {
-		logrus.Error(err)
-		return []string{}
+		return nil, err
 	}
-	return v2Res.Tags
+	if len(tags) == 0 {
+		return nil, fmt.Errorf("registry returned no tags for %s", imageName)
+	}
+	tagCache[imageName] = tags
+	return tags, nil
 }
 
-type v2Response struct {
-	Name string   `json:"name"`
-	Tags []string `json:"tags"`
+func registryTags(apiURL string, token ...string) ([]string, error) {
+	var tags []string
+	seen := map[string]bool{}
+	for apiURL != "" {
+		if seen[apiURL] {
+			return nil, fmt.Errorf("registry pagination loop at %s", apiURL)
+		}
+		seen[apiURL] = true
+		var page struct {
+			Tags []string `json:"tags"`
+		}
+		headers, err := jsonFromURL(apiURL, &page, token...)
+		if err != nil {
+			return nil, err
+		}
+		tags = append(tags, page.Tags...)
+		nextURL := ""
+		for _, link := range strings.Split(headers.Get("Link"), ",") {
+			if strings.Contains(link, `rel="next"`) {
+				start, end := strings.Index(link, "<"), strings.Index(link, ">")
+				if start >= 0 && end > start {
+					req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+					if err != nil {
+						return nil, err
+					}
+					next, err := req.URL.Parse(link[start+1 : end])
+					if err != nil {
+						return nil, err
+					}
+					nextURL = next.String()
+				}
+			}
+		}
+		apiURL = nextURL
+	}
+	return tags, nil
 }
 
-func jsonFromURL(url string, unmarshalTo interface{}) (interface{}, error) {
-	client := http.Client{}
+func dockerHubTags(repository string) ([]string, error) {
+	var auth struct {
+		Token string `json:"token"`
+	}
+	if _, err := jsonFromURL("https://auth.docker.io/token?service=registry.docker.io&scope=repository:"+repository+":pull", &auth); err != nil {
+		return nil, err
+	}
+	if auth.Token == "" {
+		return nil, fmt.Errorf("Docker Hub returned no anonymous pull token")
+	}
+	return registryTags("https://registry-1.docker.io/v2/"+repository+"/tags/list?n=10000", auth.Token)
+}
 
+func jsonFromURL(url string, unmarshalTo interface{}, token ...string) (http.Header, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	req.Header.Set("User-Agent", cli.HTTPUserAgent)
-
-	res, getErr := client.Do(req)
-	if getErr != nil {
-		return nil, getErr
+	if len(token) > 0 {
+		req.Header.Set("Authorization", "Bearer "+token[0])
 	}
-
-	if res.Body != nil {
-		defer res.Body.Close()
+	res, err := registryClient.Do(req)
+	if err != nil {
+		return nil, err
 	}
-
-	body, readErr := io.ReadAll(res.Body)
-	if readErr != nil {
-		return nil, readErr
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s: HTTP %s", url, res.Status)
 	}
-
-	jsonErr := json.Unmarshal(body, &unmarshalTo)
-	if jsonErr != nil {
-		return nil, jsonErr
+	if err := json.NewDecoder(io.LimitReader(res.Body, 16<<20)).Decode(unmarshalTo); err != nil {
+		return nil, fmt.Errorf("%s: %w", url, err)
 	}
-
-	return unmarshalTo, nil
+	return res.Header, nil
 }
 
 func stringStartsWith(s string, prefix string) bool {

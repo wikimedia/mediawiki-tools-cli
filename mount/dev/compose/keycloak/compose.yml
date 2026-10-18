@@ -1,7 +1,7 @@
 
 services:
   keycloak:
-    image: "${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:18.0.0}"
+    image: "${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:18.0.2}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.keycloak-host.rule=Host(`${KEYCLOAK_VIRTUAL_HOST:-keycloak.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"

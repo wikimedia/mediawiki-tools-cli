@@ -3,7 +3,7 @@
 services:
   eventlogging:
     # https://docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia/tags/
-    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.31.0}"
+    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.33.0}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.eventlogging-host.rule=Host(`${EVENTLOGGING_VIRTUAL_HOST:-eventlogging.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
@@ -18,7 +18,7 @@ services:
     environment:
       - VIRTUAL_HOST=${EVENTLOGGING_VIRTUAL_HOST:-eventlogging.local.wmftest.net}
       - VIRTUAL_PORT=${EVENTLOGGING_VIRTUAL_PORT:-8192}
-    entrypoint: /srv/service/node_modules/.bin/eventgate -c config.dev.yaml | /srv/service/node_modules/.bin/bunyan
+    entrypoint: [/srv/service/node_modules/.bin/eventgate, -c, config.dev.yaml]
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
