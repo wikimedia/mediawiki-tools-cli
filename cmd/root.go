@@ -222,6 +222,19 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
+	// Self-update may need root to replace the installed executable. Keep this
+	// operation out of config migration, timers, telemetry and command defaults:
+	// they can create root-owned files in the invoking user's config directory.
+	if isSudoInvocation(os.Geteuid(), os.Getenv("SUDO_UID")) {
+		if root := sudoUpdateCommand(os.Args[1:]); root != nil {
+			if err := root.Execute(); err != nil {
+				logrus.Error(err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
+
 	// Migration to v0.20.0+ moves the config directory from ~/.mwcli to an XDG based path
 	// This is a one time migration, and can be removed in a future release
 	{
@@ -378,4 +391,34 @@ func logLevelForVerbosity(verbosity int) logrus.Level {
 		return logrus.DebugLevel
 	}
 	return logrus.InfoLevel
+}
+
+// isSudoInvocation excludes direct root sessions and non-Unix platforms.
+func isSudoInvocation(euid int, sudoUID string) bool {
+	return euid == 0 && sudoUID != "" && sudoUID != "0"
+}
+
+// sudoUpdateCommand constructs only self-update, since constructing unrelated
+// commands can itself read user configuration. Other commands retain their
+// normal startup path, including privileged Docker hosts-file operations.
+func sudoUpdateCommand(args []string) *cobra.Command {
+	root := &cobra.Command{
+		Use:           "mw",
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cli.Opts.Telemetry = false
+			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
+		},
+	}
+	root.PersistentFlags().BoolVar(&cli.Opts.NoInteraction, "no-interaction", false, "Do not ask any interactive questions")
+	root.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity")
+	root.PersistentFlags().Bool("help", false, "Help for this command")
+	root.AddCommand(updatecmd.Cmd())
+	command, _, err := root.Find(args)
+	if err != nil || command.Name() != "update" {
+		return nil
+	}
+	root.SetArgs(args)
+	return root
 }
