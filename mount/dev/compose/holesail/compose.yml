@@ -1,0 +1,17 @@
+services:
+  holesail:
+    image: "${HOLESAIL_IMAGE:-mwcli-holesail:2.4.4}"
+    build: ./compose/holesail
+    profiles:
+      - gateway
+    init: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["--live", "80", "--host", "traefik"]
+    depends_on:
+      - traefik
+    networks:
+      - dps

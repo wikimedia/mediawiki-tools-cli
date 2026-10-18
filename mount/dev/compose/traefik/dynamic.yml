@@ -41,6 +41,8 @@ http:
         regex:
           - "^/proxy/[^/]+"
     forwarded-https:
-      headers:
-        customRequestHeaders:
-          X-Forwarded-Proto: https
+      # Keep the middleware name for existing service labels. Traefik preserves
+      # HTTPS forwarded by Cloudflare/public proxies and uses HTTP for a local
+      # Holesail client. Forcing HTTPS here breaks local links and redirects.
+      chain:
+        middlewares: []
