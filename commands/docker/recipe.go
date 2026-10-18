@@ -709,7 +709,9 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 		if cloneOpts.GerritInteractionType == "ssh" && cloneOpts.GerritUsername == "" {
 			return fmt.Errorf("gerrit username is required for ssh interaction type")
 		}
-		thisMW.CloneSetup(cloneOpts)
+		if err := thisMW.CloneSetup(cloneOpts); err != nil {
+			return err
+		}
 	}
 
 	// Clone arbitrary URL+Path repos.
