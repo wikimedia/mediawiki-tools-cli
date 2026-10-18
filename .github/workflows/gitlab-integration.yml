@@ -49,6 +49,7 @@ jobs:
       active: ${{ steps.prepare.outputs.active }}
       artifact: ${{ steps.prepare.outputs.artifact }}
       tested_sha: ${{ steps.prepare.outputs.tested_sha }}
+      test_matrix: ${{ steps.prepare.outputs.test_matrix }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,7 +75,7 @@ jobs:
           if-no-files-found: error
 
   integration:
-    name: Integration (${{ matrix.test }})
+    name: Integration (${{ matrix.name }})
     needs: prepare
     if: needs.prepare.outputs.active == 'true'
     permissions:
@@ -82,10 +83,11 @@ jobs:
       actions: read
     strategy:
       fail-fast: false
-      matrix:
-        test: [docker-general, all-databases, mysql-cycle, repoclient]
+      matrix: ${{ fromJSON(needs.prepare.outputs.test_matrix) }}
     uses: ./.github/workflows/gitlab-integration-test.yml
     with:
+      name: ${{ matrix.name }}
+      platform: ${{ matrix.platform }}
       test: ${{ matrix.test }}
       artifact: ${{ needs.prepare.outputs.artifact }}
       tested_sha: ${{ needs.prepare.outputs.tested_sha }}
@@ -122,4 +124,5 @@ jobs:
           REQUEST_JOB_ID: ${{ inputs.job_id }}
           TESTED_SHA: ${{ needs.prepare.outputs.tested_sha }}
           PREPARATION_RESULT: ${{ needs.prepare.result }}
+          WORKFLOW_NEEDS: ${{ toJSON(needs) }}
         run: python3 .github/scripts/gitlab-native.py finish
