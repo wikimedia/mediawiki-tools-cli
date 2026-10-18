@@ -12,10 +12,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// RemoveLegacyNginxProxy removes a proxy container left behind by an older
+// removeLegacyNginxProxy removes a proxy container left behind by an older
 // Compose manifest so it cannot hold Traefik's listener port during upgrade.
-func RemoveLegacyNginxProxy() error {
-	project := DefaultForUser().DockerCompose().Name
+func (m MWDD) removeLegacyNginxProxy() error {
+	project := m.DockerCompose().Name
 	args := []string{"ps", "-aq", "--filter", "label=com.docker.compose.project=" + project, "--filter", "label=com.docker.compose.service=nginx-proxy"}
 	output, err := exec.Command("docker", args...).Output()
 	if err != nil {
@@ -37,7 +37,20 @@ func RemoveLegacyNginxProxy() error {
 func EnsureTraefikAuth() error {
 	instance := DefaultForUser()
 	instance.EnsureReady()
-	authDir := filepath.Join(instance.Directory(), "compose", "traefik", "auth")
+	return instance.ensureTraefikAuth()
+}
+
+// PrepareGateway handles both fresh starts and upgrades of existing contexts.
+func (m MWDD) PrepareGateway() error {
+	m.EnsureReady()
+	if err := m.ensureTraefikAuth(); err != nil {
+		return err
+	}
+	return m.removeLegacyNginxProxy()
+}
+
+func (m MWDD) ensureTraefikAuth() error {
+	authDir := filepath.Join(m.Directory(), "compose", "traefik", "auth")
 	if err := os.MkdirAll(authDir, 0o700); err != nil {
 		return err
 	}

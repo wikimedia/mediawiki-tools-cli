@@ -803,6 +803,9 @@ func applyServices(services []recipe.Service, m mwdd.MWDD, dryRun bool) error {
 				fmt.Printf("[dry-run] docker compose up -d for service file %s (%v)\n", svc.Name, names)
 				continue
 			}
+			if err := m.PrepareGateway(); err != nil {
+				return err
+			}
 			if err := m.DockerCompose().Up(names, dockercompose.UpOptions{Detached: true}); err != nil {
 				return err
 			}

@@ -17,7 +17,7 @@ services:
       - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
     environment:
       - MW_DB_DEFAULT=${MEDIAWIKI_DEFAULT_DBNAME:-default}
-      - MW_DB_DEFAULT_HOSTS=${MEDIAWIKI_DEFAULT_HOSTS:-}
+      - MW_DB_DEFAULT_HOSTS=mediawiki-web,${MEDIAWIKI_DEFAULT_HOSTS:-}
       - MW_DB_DEFAULT_HTTPS_HOSTS=${MEDIAWIKI_DEFAULT_HTTPS_HOSTS:-}
       # MW_INSTALL_PATH is used by various maintenance scripts to find MediaWiki.
       # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882

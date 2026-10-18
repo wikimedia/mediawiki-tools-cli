@@ -45,8 +45,7 @@ func NewCmd() *cobra.Command {
 // StartGateway prepares authentication and starts the default Traefik proxy.
 func StartGateway() error {
 	instance := mwdd.DefaultForUser()
-	instance.EnsureReady()
-	if err := mwdd.EnsureTraefikAuth(); err != nil {
+	if err := instance.PrepareGateway(); err != nil {
 		return err
 	}
 	return instance.DockerCompose().Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})

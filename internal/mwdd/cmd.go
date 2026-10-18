@@ -94,11 +94,7 @@ func NewServiceCreateCmdP(name *string, onCreateText string) *cobra.Command {
 		Short: "Create the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
-			DefaultForUser().EnsureReady()
-			if err := EnsureTraefikAuth(); err != nil {
-				return err
-			}
-			if err := RemoveLegacyNginxProxy(); err != nil {
+			if err := DefaultForUser().PrepareGateway(); err != nil {
 				return err
 			}
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
@@ -195,8 +191,7 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 		Short:   "Start the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
-			DefaultForUser().EnsureReady()
-			if err := RemoveLegacyNginxProxy(); err != nil {
+			if err := DefaultForUser().PrepareGateway(); err != nil {
 				return err
 			}
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()

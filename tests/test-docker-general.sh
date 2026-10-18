@@ -51,9 +51,6 @@ test_command_success ./bin/mw docker env set PORT 6194
 # And already fill in the location of mediawiki
 MWDIR=$(pwd)/.mediawiki
 test_command_success ./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR}
-# The Selenium container reaches MediaWiki through the Compose service name,
-# so map that internal host to the default wiki database.
-test_command_success ./bin/mw docker env set MEDIAWIKI_DEFAULT_HOSTS mediawiki-web
 
 test_command_success ./bin/mw docker hosts show --no-interaction
 
