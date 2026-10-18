@@ -2,7 +2,7 @@
 
 # Create a development environment
 
-[Install the CLI](installation.md) and Docker with Docker Compose first. Make sure `docker info` works for your user.
+[Install the CLI](../installation.md) and Docker with Docker Compose first. Make sure `docker info` works for your user.
 
 ## Create MediaWiki and a database
 
@@ -12,7 +12,7 @@ Start the setup wizard:
 mw dev mediawiki create
 ```
 
-Choose a local port, a MediaWiki checkout and cloning options. You can use an existing checkout or let the wizard fetch one. For an existing `LocalSettings.php`, read the [configuration guide](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/LocalSettings.php) before reusing it.
+Choose a local port, a MediaWiki checkout and cloning options. You can use an existing checkout or let the wizard fetch one. For an existing `LocalSettings.php`, read the [configuration guide](configuration.md) before reusing it.
 
 Start MySQL and install the wiki:
 
@@ -45,4 +45,4 @@ mw dev mediawiki get-code --skin MinervaNeue
 
 Fetching an extension or skin does not enable it. Configure it in your checkout's `LocalSettings.php` and run any required MediaWiki updates.
 
-Use `mw dev SERVICE --help` for service commands. See the existing [service interaction](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Service_Interaction), [MediaWiki](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/MediaWiki) and [database](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Databases) guides for more workflows.
+Use `mw dev SERVICE --help` for service commands. See the existing [service interaction](services.md), [MediaWiki](mediawiki.md) and [database](databases.md) guides for more workflows.

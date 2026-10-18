@@ -2,20 +2,28 @@
 
 # a Wikimedia CLI guides
 
-Explore Wikimedia data, work with services, and develop MediaWiki. Examples use the default command name, `mw`.
+Explore Wikimedia data, work with services, and develop MediaWiki. Examples use the default command name, `mw`; the same commands work as `wm` when that is your executable's name.
+
+## Get started
 
 - [Install the CLI](guides/installation.md)
 - [Keep it up to date](guides/updating.md)
-- [Create a development environment](guides/mediawiki.md)
-- [Use the gateway, dashboard and tunnels](guides/gateway.md)
-- [Browse the command reference](https://www.mediawiki.org/wiki/Cli/ref)
 
-## More community guides
+## Development environments
 
-- [Service interaction](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Service_Interaction)
-- [LocalSettings.php](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/LocalSettings.php)
-- [MediaWiki](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/MediaWiki)
-- [Databases](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Databases)
-- [GitLab](https://www.mediawiki.org/wiki/Cli/guide/Gitlab)
+- [Create an environment](guides/dev/setup.md)
+- [Manage services and images](guides/dev/services.md)
+- [Configure MediaWiki](guides/dev/configuration.md)
+- [Work with MediaWiki and debug PHP](guides/dev/mediawiki.md)
+- [Use databases](guides/dev/databases.md)
+- [Use the gateway, dashboard and tunnels](guides/dev/gateway.md)
 
-These pages can be edited on the wiki. Corrections to published guides are reviewed before the next release and can be brought back into the repository.
+## Code and collaboration
+
+- [Work with GitLab](guides/gitlab/index.md)
+
+## Command reference
+
+[Browse all commands and options](https://www.mediawiki.org/wiki/Cli/ref). The reference is generated from the CLI; guides explain workflows across commands.
+
+These guides can also be edited on the wiki. Corrections are reviewed before the next release and can be brought back into the repository.

@@ -97,12 +97,15 @@ export DOCS_UPDATE_USER ?= $(user)
 export DOCS_UPDATE_PASS ?= $(password)
 export DOCS_VERSION ?= $(VERSION)
 
-.PHONY: docs docs-check docs-pull docs-publish docs-import docs-accept
+.PHONY: docs docs-check docs-audit docs-pull docs-publish docs-import docs-accept
 docs:
 	$(MISE) exec -- go run ./tools/docs-gen
 
 docs-check: docs
 	$(MISE) exec -- go run ./tools/docs-gen -mode check
+
+docs-audit: docs
+	$(MISE) exec -- go run ./tools/docs-gen -mode audit
 
 docs-pull: docs
 	$(MISE) exec -- go run ./tools/docs-gen -mode pull
