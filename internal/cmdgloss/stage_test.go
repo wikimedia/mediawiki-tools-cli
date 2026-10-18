@@ -1,4 +1,4 @@
-package mediawiki
+package cmdgloss
 
 import (
 	"bytes"
@@ -7,12 +7,12 @@ import (
 	"testing"
 )
 
-func TestRunInstallStage(t *testing.T) {
+func TestRunStage(t *testing.T) {
 	failure := errors.New("database unavailable")
 	for _, wantErr := range []error{nil, failure} {
 		var out bytes.Buffer
 		calls := 0
-		err := runInstallStage(&out, "Install database", func() error { calls++; return wantErr })
+		err := RunStage(&out, "Install database", func() error { calls++; return wantErr })
 		if calls != 1 || !errors.Is(err, wantErr) {
 			t.Fatalf("calls=%d err=%v", calls, err)
 		}

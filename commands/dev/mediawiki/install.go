@@ -3,7 +3,6 @@ package mediawiki
 import (
 	_ "embed"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -60,7 +59,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 			// TODO check that the required DB services is running? OR start it up?
 
-			cmd.Println("\n==> Preparing MediaWiki configuration and writable directories")
+			cmdgloss.PrintStageHeading(cmd.OutOrStdout(), "Preparing MediaWiki configuration and writable directories")
 
 			mediawiki, _ := mediawiki.ForDirectory(devenv.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if !mediawiki.LocalSettingsIsPresent() {
@@ -203,7 +202,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return nil
 			}
 
-			err = runInstallStage(cmd.OutOrStdout(), "Checking Composer dependencies", checkComposer)
+			err = cmdgloss.RunStage(cmd.OutOrStdout(), "Checking Composer dependencies", checkComposer)
 			if err != nil {
 				return err
 			}
@@ -329,7 +328,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return nil
 			}
 
-			err = runInstallStage(cmd.OutOrStdout(), "Installing the MediaWiki database", runInstall)
+			err = cmdgloss.RunStage(cmd.OutOrStdout(), "Installing the MediaWiki database", runInstall)
 			if err != nil {
 				return err
 			}
@@ -348,7 +347,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				return err
 			}
 
-			err = runInstallStage(cmd.OutOrStdout(), "Updating the MediaWiki database", runUpdate)
+			err = cmdgloss.RunStage(cmd.OutOrStdout(), "Updating the MediaWiki database", runUpdate)
 			if err != nil {
 				return fmt.Errorf("update.php was unable to run; fix the issue and rerun update.php: %w", err)
 			}
@@ -389,16 +388,5 @@ func installComposerDependencies(run func([]string) int) error {
 			return fmt.Errorf("composer %s failed (exit code %d)", action, code)
 		}
 	}
-	return nil
-}
-
-// runInstallStage uses plain headings in both terminals and CI logs.
-func runInstallStage(out io.Writer, name string, run func() error) error {
-	fmt.Fprintf(out, "\n==> %s\n", name)
-	start := time.Now()
-	if err := run(); err != nil {
-		return fmt.Errorf("%s: %w", name, err)
-	}
-	fmt.Fprintf(out, "Completed: %s (%s)\n", name, time.Since(start).Round(time.Millisecond))
 	return nil
 }
