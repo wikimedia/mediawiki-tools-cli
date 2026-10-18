@@ -59,7 +59,7 @@ cd ./..
 PORT=$(./bin/mw docker env get PORT)
 
 # Make sure a site is running and not connected to a db
-test_wget http://default.mediawiki.local.wmftest.net:$PORT "Could not find a running database for the database name"
+test_wget_eventually_contains http://default.mediawiki.local.wmftest.net:$PORT "Could not find a running database for the database name"
 
 # Turn on all of the services
 test_command_success ./bin/mw docker mysql-replica create
