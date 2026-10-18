@@ -31,6 +31,7 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 
 - [Work with GitLab](guides/gitlab/index.md)
 - [Upload files and new versions](guides/wiki/files.md)
+- [Run a demo pod on Toolforge](guides/tools/kubernetes-pod-helloworld.md)
 
 ## Command reference
 

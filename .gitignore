@@ -13,3 +13,5 @@ junit.xml
 .mediawiki
 /.cache/
 code-gen
+
+/_recordings/

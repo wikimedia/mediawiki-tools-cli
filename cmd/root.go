@@ -374,6 +374,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 	// Execute the root command
 	err := rootCmd.Execute()
+	tools.Cleanup()
 
 	// Print any update notice once the command has finished
 	// (waits at most the HTTP client timeout of the check)
