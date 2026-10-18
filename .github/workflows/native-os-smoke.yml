@@ -1,0 +1,160 @@
+name: Native OS smoke tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS (Apple silicon)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Docker CLI and Compose
+        run: brew install docker docker-compose
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Go tests and build mw
+        run: |
+          go test ./...
+          go build -o "$RUNNER_TEMP/mw" .
+
+      - name: Smoke test native config and embedded MediaWiki files
+        run: |
+          set -euo pipefail
+          export HOME="$RUNNER_TEMP/mw-home"
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/mw-config"
+          export MWCLI_MEDIAWIKI_ENV_COMMAND=1
+          export PORT=8080
+          export NETWORK_SUBNET_PREFIX=10.0.0
+          mkdir -p "$HOME"
+          mkdir -p "$XDG_CONFIG_HOME"
+
+          "$RUNNER_TEMP/mw" --no-interaction config show
+          config_path=$("$RUNNER_TEMP/mw" --no-interaction config where 2>&1)
+          test -f "$config_path"
+
+          "$RUNNER_TEMP/mw" --no-interaction docker --context ci-macos env set MEDIAWIKI_VOLUMES_CODE "$RUNNER_TEMP/mediawiki"
+          "$RUNNER_TEMP/mw" --no-interaction docker --context ci-macos mediawiki get-code --core --dry-run --gerrit-interaction-type http
+          mwdd_dir=$("$RUNNER_TEMP/mw" --no-interaction docker --context ci-macos where 2>&1)
+          test -f "$mwdd_dir/compose/base/compose.yml"
+          test -f "$mwdd_dir/mediawiki/jobrunner-sites"
+          "$RUNNER_TEMP/mw" --no-interaction docker --context ci-macos compose config > "$RUNNER_TEMP/compose-config.yml"
+          grep -q '^  mediawiki-web:' "$RUNNER_TEMP/compose-config.yml"
+
+      - name: Start the dev stack if a Linux Docker Engine is available
+        run: |
+          set -euo pipefail
+          if ! docker_os=$(docker info --format '{{.OSType}}' 2>/dev/null); then
+            echo "::notice::This macOS runner has no Docker Engine; Compose configuration was validated without starting containers."
+            exit 0
+          fi
+          if [[ "$docker_os" != linux ]]; then
+            echo "::notice::Docker Engine reports OSType=$docker_os; mwdd's Linux containers were not started."
+            exit 0
+          fi
+
+          mw="$RUNNER_TEMP/mw"
+          cleanup() {
+            "$mw" --no-interaction docker --context ci-macos destroy >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          "$mw" --no-interaction docker --context ci-macos env set MEDIAWIKI_VOLUMES_CODE "$RUNNER_TEMP/mediawiki"
+          export MW_DOCKER_MEDIAWIKI_GET_CODE=1
+          "$mw" --no-interaction docker --context ci-macos mediawiki create
+          docker ps --filter 'label=com.docker.compose.project=mwcli-mwdd-ci-macos' --format '{{.Names}} {{.Status}}'
+
+  windows:
+    name: Windows
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Go tests and build mw
+        shell: pwsh
+        run: |
+          $env:XDG_CONFIG_HOME = Join-Path $env:RUNNER_TEMP 'mwcli-config'
+          $env:MWCLI_MEDIAWIKI_ENV_COMMAND = '1'
+          $env:PORT = '8080'
+          $env:NETWORK_SUBNET_PREFIX = '10.0.0'
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -o "$env:RUNNER_TEMP\mw.exe" .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke test native config and embedded MediaWiki files
+        shell: pwsh
+        run: |
+          $mw = Join-Path $env:RUNNER_TEMP 'mw.exe'
+          & $mw --no-interaction config show
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $configPath = (& $mw --no-interaction config where 2>&1).Trim()
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path $configPath)) { throw "mw did not create its config at $configPath" }
+
+          $mediawikiCode = Join-Path $env:RUNNER_TEMP 'mediawiki'
+          & $mw --no-interaction docker --context ci-windows env set MEDIAWIKI_VOLUMES_CODE $mediawikiCode
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $mw --no-interaction docker --context ci-windows mediawiki get-code --core --dry-run --gerrit-interaction-type http
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $mwddDir = (& $mw --no-interaction docker --context ci-windows where 2>&1).Trim()
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path (Join-Path $mwddDir 'compose/base/compose.yml'))) { throw 'Embedded Compose file was not synchronized' }
+          if (-not (Test-Path (Join-Path $mwddDir 'mediawiki/jobrunner-sites'))) { throw 'Generated jobrunner-sites file was not created' }
+
+          $composeConfig = & $mw --no-interaction docker --context ci-windows compose config
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($composeConfig -notmatch '(?m)^  mediawiki-web:') { throw 'MediaWiki Compose service was not rendered' }
+
+      - name: Start the dev stack if a Linux Docker Engine is available
+        shell: pwsh
+        run: |
+          $dockerOS = (& docker info --format '{{.OSType}}' 2>$null).Trim()
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host '::notice::This Windows runner has no reachable Docker Engine; Compose configuration was validated without starting containers.'
+            exit 0
+          }
+          if ($dockerOS -ne 'linux') {
+            Write-Host "::notice::Docker Engine reports OSType=$dockerOS; mwdd's Linux containers were not started."
+            exit 0
+          }
+
+          $mw = Join-Path $env:RUNNER_TEMP 'mw.exe'
+          $mediawikiCode = Join-Path $env:RUNNER_TEMP 'mediawiki'
+          & $mw --no-interaction docker --context ci-windows env set MEDIAWIKI_VOLUMES_CODE $mediawikiCode
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:MW_DOCKER_MEDIAWIKI_GET_CODE = '1'
+          try {
+            & $mw --no-interaction docker --context ci-windows mediawiki create
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            docker ps --filter 'label=com.docker.compose.project=mwcli-mwdd-ci-windows' --format '{{.Names}} {{.Status}}'
+          } finally {
+            & $mw --no-interaction docker --context ci-windows destroy
+          }
