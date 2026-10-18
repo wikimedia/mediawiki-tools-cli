@@ -89,8 +89,11 @@ func (e EmbeddingDiskSync) EnsureNoExtraFilesOnDisk() {
 }
 
 func (e EmbeddingDiskSync) embeddedFiles() []string {
+	// Git may check out files.txt with CRLF on Windows. Carriage returns
+	// are line endings, not part of the embedded filenames.
+	index := strings.ReplaceAll(e.indexString(), "\r\n", "\n")
 	// "./" switched for EmbedPath as from content of files.txt
-	return stringsutil.ReplaceInAll(strings.Split(strings.Trim(e.indexString(), "\n"), "\n"), "./", e.EmbedPath+embedSeperator)
+	return stringsutil.ReplaceInAll(strings.Split(strings.Trim(index, "\n"), "\n"), "./", e.EmbedPath+embedSeperator)
 }
 
 func (e EmbeddingDiskSync) diskFiles() []string {
