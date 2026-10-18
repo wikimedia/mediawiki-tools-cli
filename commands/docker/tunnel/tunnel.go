@@ -91,7 +91,7 @@ func NewCmd() *cobra.Command {
 				fmt.Fprintf(cmd.OutOrStdout(), "On your computer, run:\n  holesail %s --host 127.0.0.1 --port 8082\nThen open http://127.0.0.1:8082/proxy/dashboard/\n", endpoint)
 				fmt.Fprintln(cmd.OutOrStdout(), "Treat this connection string as a secret. A Holesail client is required; it is not a public HTTPS URL.")
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), "Show the gateway login with 'mw docker traefik credentials' (authentication is enabled by default).")
+			fmt.Fprintf(cmd.OutOrStdout(), "Show the gateway login with '%s docker traefik credentials' (authentication is enabled by default).\n", cmd.Root().Name())
 			return nil
 		},
 	})
@@ -165,7 +165,7 @@ func NewCmd() *cobra.Command {
 				return err
 			}
 			if endpoint == "" {
-				return fmt.Errorf("no %s connection found; start it with 'mw docker tunnel start --provider %s'", p.label, p.name)
+				return fmt.Errorf("no %s connection found; start it with '%s start --provider %s'", p.label, cmd.Parent().CommandPath(), p.name)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), endpoint)
 			return nil
@@ -222,7 +222,7 @@ func waitForEndpoint(ctx context.Context, project dockercompose.Project, p provi
 		}
 		select {
 		case <-ctx.Done():
-			return "", fmt.Errorf("%s did not report a connection before the deadline; check 'mw docker tunnel logs --provider %s': %w\n%s", p.label, p.name, ctx.Err(), logs)
+			return "", fmt.Errorf("%s did not report a connection before the deadline; check tunnel logs for provider %s: %w\n%s", p.label, p.name, ctx.Err(), logs)
 		case <-time.After(time.Second):
 		}
 	}
@@ -235,7 +235,7 @@ func readEndpoint(ctx context.Context, project dockercompose.Project, p provider
 	}
 	id := strings.TrimSpace(ids.String())
 	if id == "" {
-		return "", "", fmt.Errorf("%s is stopped; start it with 'mw docker tunnel start --provider %s'", p.label, p.name)
+		return "", "", fmt.Errorf("%s is stopped; start a tunnel with --provider %s", p.label, p.name)
 	}
 	// Logs survive container restarts. Only return a connection from this start,
 	// otherwise old Cloudflare URLs or Holesail keys can be reported as ready.

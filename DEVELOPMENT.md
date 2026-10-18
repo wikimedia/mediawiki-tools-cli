@@ -53,56 +53,29 @@ Add the hostname to `MEDIAWIKI_VIRTUAL_HOSTS` and `MEDIAWIKI_DEFAULT_HOSTS` in t
 
 The local development environment uses Traefik as its web proxy. It listens on the configured `PORT` (8080 by default), routing the existing local virtual hosts as well as `/proxy/<service>/` paths. MediaWiki keeps its hostname based wiki selection for `*.mediawiki.local.wmftest.net`; the path gateway maps `/proxy/<database>/...` to the matching wiki, and an unmatched hostname uses the default wiki. The dashboard is available at `/proxy/dashboard/`, and web services with Traefik Compose labels are discovered as they start. Set `<SERVICE>_PROXY_PATH` to customize a path route prefix. Authentication is enabled by default; the first Docker service create generates a password. Show it with `mw docker traefik credentials`. Stop the proxy with `mw docker traefik stop` or remove it with `mw docker traefik destroy`.
 
-Proxy routes use a gateway login page and a signed session cookie that expires after 12 hours. The first Docker service `create` generates a random password for the `wm` user and saves it with owner-only permissions; show it with `mw docker traefik credentials`. The credentials command also prints single-use login links for localhost and any active tunnel, valid for five minutes; use `--url` to select a different gateway URL. Existing credentials are preserved on upgrade. Sign out through the dashboard or `/_wm/logout`. Application logins and Bearer tokens work independently of the gateway session. Scripts can still use HTTP Basic credentials, for example `curl -u wm:PASSWORD http://localhost:8080/proxy/dashboard/api/status`. To disable proxy authentication for a context, set `TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file` in its `.env` and recreate the web services. The login service and GET-only Docker API proxy are internal and publish no ports. Gateway URLs use `/_wm/`; old `/_mwcli/` links and signed session cookies remain supported during upgrades. Run `mw docker compose up -- -d --force-recreate gateway-auth traefik` after updating the CLI to load the new gateway code.
+Proxy routes use a gateway login page and a signed session cookie that expires after 12 hours. The first Docker service `create` generates a random password for the `wm` user and saves it with owner-only permissions; show it with `mw docker traefik credentials`. The credentials command also prints single-use login links for localhost and any active Cloudflare Quick Tunnel, valid for five minutes; use `--url` to select a different gateway URL. Existing credentials are preserved on upgrade. Sign out through the dashboard or `/_wm/logout`. Application logins and Bearer tokens work independently of the gateway session. Scripts can still use HTTP Basic credentials, for example `curl -u wm:PASSWORD http://localhost:8080/proxy/dashboard/api/status`. To disable proxy authentication for a context, set `TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file` in its `.env` and recreate the web services. The login service and GET-only Docker API proxy are internal and publish no ports. Gateway URLs use `/_wm/`; old `/_mwcli/` links and signed session cookies remain supported during upgrades. Run `mw docker compose up -- -d --force-recreate gateway-auth traefik` after updating the CLI to load the new gateway code.
 
-To expose the gateway from a development machine that is not directly reachable,
-start an optional tunnel. Cloudflare remains the default:
+To expose the gateway from a development machine that is not directly reachable, start an optional tunnel. Cloudflare remains the default:
 
 ```sh
 mw docker tunnel start
 mw docker tunnel start --provider holesail
 ```
 
-Select `cloudflare` or `holesail` with `--provider`, or set the context default
-with `mw docker env set TUNNEL_PROVIDER holesail`. A successful `start` remembers
-the provider and stops any running tunnel using the other provider. If startup
-fails, the previous tunnel remains running. `mw docker tunnel status`, `url`, and
-`logs --follow` use the saved provider; `--provider` overrides it for a command.
-`mw docker tunnel stop` stops both providers while leaving the gateway and wiki
-running. `stop --provider holesail` stops only Holesail. Gateway authentication
-remains enabled by default with either provider.
+Select `cloudflare` or `holesail` with `--provider`, or set the context default with `mw docker env set TUNNEL_PROVIDER holesail`. A successful `start` remembers the provider and stops any running tunnel using the other provider. If startup fails, the previous tunnel remains running. `mw docker tunnel status`, `url`, and `logs --follow` use the saved provider; `--provider` overrides it for a command. `mw docker tunnel stop` stops both providers while leaving the gateway and wiki running. `stop --provider holesail` stops only Holesail. Gateway authentication remains enabled by default with either provider.
 
-Cloudflare prints a temporary public `trycloudflare.com` HTTPS URL that works in
-an ordinary browser. Quick Tunnels do not guarantee uptime, have a 200 in-flight
-request limit, and do not support Server-Sent Events (SSE).
+Cloudflare prints a temporary public `trycloudflare.com` HTTPS URL that works in an ordinary browser. Quick Tunnels do not guarantee uptime, have a 200 in-flight request limit, and do not support Server-Sent Events (SSE).
 
-Holesail prints a private `hs://s000...` connection string. Treat it as a secret.
-The optional container is built on first use with Holesail 2.4.4 and locked npm
-dependencies; nothing needs installing on the server host. On the connecting
-computer, install Holesail and run the client command printed by `start`, such as:
+Holesail prints a private `hs://s000...` connection string. Treat it as a secret. The optional container is built on first use with Holesail 2.4.4 and locked npm dependencies; nothing needs installing on the server host. On the connecting computer, install Holesail and run the client command printed by `start`, such as:
 
 ```sh
 npm install --global holesail@2.4.4
 holesail 'hs://s000...' --host 127.0.0.1 --port 8082
 ```
 
-Then open `http://127.0.0.1:8082/proxy/dashboard/` or
-`http://127.0.0.1:8082/proxy/default/wiki/Main_Page`, using the gateway login from
-`mw docker traefik credentials`. The local port can be changed. Holesail does
-not provide a public browser URL: every connecting computer needs a client.
-Connections require working peer discovery and peer connectivity on the network.
-Server restarts generate a new connection string; use `mw docker tunnel url` to
-retrieve it. HTTP links use the local client origin; Cloudflare and other HTTPS
-proxies retain their forwarded HTTPS origin.
+Then open `http://127.0.0.1:8082/proxy/dashboard/` or `http://127.0.0.1:8082/proxy/default/wiki/Main_Page`, using the gateway login from `mw docker traefik credentials`. The local port can be changed. Holesail does not provide a public browser URL: every connecting computer needs a client. Connections require working peer discovery and peer connectivity on the network. Server restarts generate a new connection string; use `mw docker tunnel url` to retrieve it. HTTP links use the local client origin; Cloudflare and other HTTPS proxies retain their forwarded HTTPS origin.
 
-For a manual end-to-end Holesail check on a machine with an installed default
-wiki, default gateway authentication enabled and no active tunnel, run
-`./tests/test-docker-tunnel-holesail.sh`. It uses a separate client container
-with Linux host networking on the same VM and checks gateway authentication,
-the dashboard, wiki pages and the canonical URL. Set `MW_BIN`, `TUNNEL_CONTEXT`,
-or `CLIENT_PORT` to override its defaults. It stops its test tunnel and client,
-and restores the previous provider setting. Real public DHT connectivity is
-tested explicitly here; the normal CI suite uses offline lifecycle tests.
+For a manual end-to-end Holesail check on a machine with an installed default wiki, default gateway authentication enabled and no active tunnel, run `./tests/test-docker-tunnel-holesail.sh`. It uses a separate client container with Linux host networking on the same VM and checks gateway authentication, the dashboard, wiki pages and the canonical URL. Set `MW_BIN`, `TUNNEL_CONTEXT`, or `CLIENT_PORT` to override its defaults. It stops its test tunnel and client, and restores the previous provider setting. Real public DHT connectivity is tested explicitly here; the normal CI suite uses offline lifecycle tests.
 
 Traefik binds the existing `PORT` on all interfaces, so local virtual hosts and remote `/proxy/...` routes use the same listener. The root path on an unmatched host serves the default wiki behind the same authentication. Some tools require app-specific base-path settings for all links and assets to work under a prefix; prefix routing alone does not guarantee that every tool's UI is fully compatible.
 
