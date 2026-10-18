@@ -17,6 +17,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki. Examples use 
 - [Work with MediaWiki and debug PHP](guides/dev/mediawiki.md)
 - [Use databases](guides/dev/databases.md)
 - [Use the gateway, dashboard and tunnels](guides/dev/gateway.md)
+- [Troubleshoot an environment](guides/dev/troubleshooting.md)
 
 ## Code and collaboration
 

@@ -26,17 +26,19 @@ type wikiRevision struct {
 }
 
 type wikiPage struct {
-	Title     string         `json:"title"`
-	Missing   bool           `json:"missing"`
-	Revisions []wikiRevision `json:"revisions"`
+	Title     string            `json:"title"`
+	Missing   bool              `json:"missing"`
+	Revisions []wikiRevision    `json:"revisions"`
+	PageProps map[string]string `json:"pageprops"`
 }
 
 type snapshot struct {
-	Revision int64  `json:"revision"`
-	Text     string `json:"text"`
-	User     string `json:"user"`
-	Comment  string `json:"comment"`
-	Missing  bool   `json:"missing"`
+	Revision    int64  `json:"revision"`
+	Text        string `json:"text"`
+	User        string `json:"user"`
+	Comment     string `json:"comment"`
+	Missing     bool   `json:"missing"`
+	Translation bool   `json:"translation,omitempty"`
 }
 
 type review struct {
@@ -57,7 +59,7 @@ func fetchPages(client *mwclient.Client, titles []string) (review, error) {
 		if end > len(titles) {
 			end = len(titles)
 		}
-		response, err := client.Get(params.Values{"action": "query", "formatversion": "2", "curtimestamp": "1", "prop": "revisions", "rvprop": "ids|content|user|comment", "rvslots": "main", "titles": strings.Join(titles[start:end], "|")})
+		response, err := client.Get(params.Values{"action": "query", "formatversion": "2", "curtimestamp": "1", "prop": "revisions|pageprops", "ppprop": "translate-is-translation", "rvprop": "ids|content|user|comment", "rvslots": "main", "titles": strings.Join(titles[start:end], "|")})
 		if err != nil {
 			return result, err
 		}
@@ -82,7 +84,8 @@ func fetchPages(client *mwclient.Client, titles []string) (review, error) {
 		}
 		found := map[string]snapshot{}
 		for _, page := range reply.Query.Pages {
-			item := snapshot{Missing: page.Missing}
+			_, translation := page.PageProps["translate-is-translation"]
+			item := snapshot{Missing: page.Missing, Translation: translation}
 			if !page.Missing {
 				if len(page.Revisions) != 1 {
 					return result, fmt.Errorf("cannot read revision for %s", page.Title)

@@ -9,6 +9,8 @@ import (
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
+	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/cmd"
 )
 
 // List redirects as well as ordinary pages; an old URL may intentionally remain useful.
@@ -88,35 +90,60 @@ func auditDocumentation(config configuration) error {
 	if err != nil {
 		return err
 	}
-	var report strings.Builder
-	report.WriteString("# Wiki pages outside the current documentation build\n\nPreviously published pages may need a redirect or retirement. UNMANAGED pages have no detected automatic publication and may be community documentation. Redirects may deliberately preserve old links. Nothing is moved or deleted automatically.\n\n| Status | Page | Latest revision |\n| --- | --- | --- |\n")
+	commands := referenceCommands(cmd.NewMwCliCmd())
+	var retired, retained strings.Builder
 	obsolete := 0
 	for _, title := range candidates {
 		current := state.Pages[title]
 		if current.Missing {
 			continue // A page may be deleted between listing and reading.
 		}
-		published, err := lastPublication(client, config, title, current)
-		if err != nil {
-			return fmt.Errorf("%s: %w", title, err)
-		}
 		status := "UNMANAGED"
-		if strings.Contains(current.Text, markerPrefix) || (published != nil && automaticPublication(config, title, *published)) {
-			status = "OBSOLETE"
-			obsolete++
-			_, valid := unmark(current.Text)
-			if (published != nil && documentationBody(published.Text) != documentationBody(current.Text)) || (strings.Contains(current.Text, markerPrefix) && !valid) {
-				status = "OBSOLETE-EDITED"
+		reference := commands[strings.TrimPrefix(title, config.ReferenceRoot+"/")]
+		if current.Translation {
+			status = "TRANSLATION"
+		} else if strings.HasPrefix(title, config.ReferenceRoot+"/") && reference.Canonical != "" {
+			status = "SUPPORTED-COMMAND"
+			if strings.TrimPrefix(title, config.ReferenceRoot+"/") != strings.ReplaceAll(reference.Canonical, "_", " ") {
+				status = "ALIAS"
+			}
+			if reference.Deprecated {
+				status = "DEPRECATED-COMMAND"
+			}
+			if reference.Hidden {
+				status = "HIDDEN-COMMAND"
+			}
+		} else {
+			published, err := lastPublication(client, config, title, current)
+			if err != nil {
+				return fmt.Errorf("%s: %w", title, err)
+			}
+			if strings.Contains(current.Text, markerPrefix) || (published != nil && automaticPublication(config, title, *published)) {
+				status = "OBSOLETE"
+				obsolete++
+				_, valid := unmark(current.Text)
+				if (published != nil && documentationBody(published.Text) != documentationBody(current.Text)) || (strings.Contains(current.Text, markerPrefix) && !valid) {
+					status = "OBSOLETE-EDITED"
+				}
 			}
 		}
 		if strings.HasPrefix(strings.ToUpper(strings.TrimSpace(current.Text)), "#REDIRECT") {
 			status += "-REDIRECT"
 		}
-		fmt.Fprintf(&report, "| %s | [%s](%s) | [%d](%s?oldid=%d) |\n", status, title, wikiURL(config, title), current.Revision, wikiURL(config, title), current.Revision)
+		section := &retained
+		if strings.HasPrefix(status, "OBSOLETE") {
+			section = &retired
+		}
+		fmt.Fprintf(section, "| %s | [%s](%s) | [%d](%s?oldid=%d) |\n", status, title, wikiURL(config, title), current.Revision, wikiURL(config, title), current.Revision)
 	}
-	if len(candidates) == 0 {
-		report.WriteString("\nAll existing documentation pages are in the current build.\n")
+	var report strings.Builder
+	fmt.Fprintf(&report, "# Wiki page audit\n\n%d existing pages are outside the build; %d are previously generated pages needing review. Nothing is moved or deleted automatically.\n\n## Retirement candidates\n\nReview these for redirects or retirement. OBSOLETE-EDITED means content changed after publication; preserve those corrections. Redirects may intentionally preserve useful links.\n\n| Status | Page | Latest revision |\n| --- | --- | --- |\n", len(candidates), obsolete)
+	report.WriteString(retired.String())
+	if obsolete == 0 {
+		report.WriteString("\nNo retirement candidates found.\n")
 	}
+	report.WriteString("\n## Retained wiki content\n\nTRANSLATION pages are maintained through Translate. HIDDEN-COMMAND and DEPRECATED-COMMAND references describe commands still present but excluded from generated help. SUPPORTED-COMMAND references are other existing commands; ALIAS references describe another name for one. UNMANAGED pages have no verified automatic publication, and may include community guides, metadata and navigation redirects. None is a retirement candidate.\n\n| Status | Page | Latest revision |\n| --- | --- | --- |\n")
+	report.WriteString(retained.String())
 	file := filepath.Join(outputDir, "wiki", "audit.md")
 	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		return err
@@ -124,6 +151,36 @@ func auditDocumentation(config configuration) error {
 	if err := os.WriteFile(file, []byte(report.String()), 0o644); err != nil {
 		return err
 	}
-	fmt.Printf("Audited %d existing wiki pages: %d outside the build, %d previously published; review %s. No pages changed.\n", len(titles), len(candidates), obsolete, file)
+	fmt.Printf("Audited %d existing wiki pages: %d outside the build, %d retirement candidates; review %s. No pages changed.\n", len(titles), len(candidates), obsolete, file)
 	return nil
+}
+
+// Canonical names, aliases and hidden commands remain valid even when Cobra
+// omits them from the generated reference. Normalize underscores as MediaWiki does.
+type referenceCommand struct {
+	Canonical  string
+	Hidden     bool
+	Deprecated bool
+}
+
+func referenceCommands(root *cobra.Command) map[string]referenceCommand {
+	result := map[string]referenceCommand{}
+	var visit func(*cobra.Command, []string, bool)
+	visit = func(command *cobra.Command, parents []string, hidden bool) {
+		hidden = hidden || command.Hidden
+		names := append([]string{command.Name()}, command.Aliases...)
+		var prefixes []string
+		for _, parent := range parents {
+			for _, name := range names {
+				full := strings.TrimSpace(parent + " " + name)
+				prefixes = append(prefixes, full)
+				result[strings.ReplaceAll(full, "_", " ")] = referenceCommand{command.CommandPath(), hidden, command.Deprecated != ""}
+			}
+		}
+		for _, child := range command.Commands() {
+			visit(child, prefixes, hidden)
+		}
+	}
+	visit(root, []string{""}, false)
+	return result
 }

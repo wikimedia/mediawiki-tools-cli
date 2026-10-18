@@ -258,7 +258,7 @@ func TestPublishPreflightsLogsInAndSendsGuardedEdit(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Form.Get("prop") == "revisions":
+		case r.Form.Get("prop") == "revisions|pageprops":
 			_, _ = w.Write([]byte(`{"curtimestamp":"2026-10-18T00:00:00Z","query":{"pages":[{"title":"Cli/guide/Test","missing":true}]}}`))
 		case r.Form.Get("meta") == "tokens":
 			_, _ = w.Write([]byte(`{"query":{"tokens":{"logintoken":"login-fixture","csrftoken":"csrf-fixture"}}}`))

@@ -55,7 +55,7 @@ func NewRootCmd(name string) *cobra.Command {
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
-			logrus.Trace("mwcli: Top level PersistentPreRun")
+			logrus.Trace("CLI: Top level PersistentPreRun")
 
 			// Force the completion command to never ask for user input
 			if cmd.Name() == "__complete" {

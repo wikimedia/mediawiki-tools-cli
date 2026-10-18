@@ -70,7 +70,7 @@ func Cmd() *cobra.Command {
 
 	// Hide various built in glab commands
 	toHide := []string{
-		// glab does not need to be updated itself, instead mwcli would need to be updated
+		// glab does not need to be updated itself, instead the CLI would need to be updated
 		"check-update",
 		// issues will not be used on the Wikimedia gitlab instance
 		"issue",

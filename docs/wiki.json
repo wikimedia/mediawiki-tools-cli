@@ -44,9 +44,17 @@
     {
       "source": "guides/gitlab/index.md",
       "title": "Cli/guide/Gitlab"
+    },
+    {
+      "source": "guides/dev/troubleshooting.md",
+      "title": "Cli/FAQ"
     }
   ],
   "reviewed": {
+    "Cli/FAQ": {
+      "revision": 8232967,
+      "sha256": "80c6cc94cd0845aa4472ac907d5bad88d3f8fde4b12c8f7649e4ed7395f8b16e"
+    },
     "Cli/guide": {
       "revision": 5222832,
       "sha256": "5405ad0e06a5d8fb43849ae38f3723ccb323e1fdad46cbb8b5c44f4be1b282af"

@@ -16,7 +16,7 @@ import (
 
 var (
 	wikimediav4ApiURL = "https://gitlab.wikimedia.org/api/v4/"
-	projectID         = 16 // ID 16 is releng/mwcli
+	projectID         = 16 // ID 16 is repos/releng/cli
 	outOs             = runtime.GOOS
 	arch              = runtime.GOARCH
 )

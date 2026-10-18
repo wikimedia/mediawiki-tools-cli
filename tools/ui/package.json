@@ -1,5 +1,5 @@
 {
-  "name": "mwcli-codex-assets",
+  "name": "a-wikimedia-cli-ui",
   "private": true,
   "description": "Maintainer tooling for the bundled Codex CSS-only Link mixin",
   "devDependencies": {

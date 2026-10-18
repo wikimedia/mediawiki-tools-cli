@@ -24,9 +24,9 @@ Published pages carry a content fingerprint. If someone edits a page on the wiki
 
 ## Find pages left behind
 
-`make docs-audit` lists existing `Cli/` subpages absent from the current build in `_docs/wiki/audit.md`. It distinguishes previously published pages (`OBSOLETE`), pages changed since publication (`OBSOLETE-EDITED`), redirects and other community pages (`UNMANAGED`). Review obsolete pages for redirects, adoption or manual retirement; an absent mapping is not permission to delete a community page.
+`make docs-audit` lists existing `Cli/` subpages absent from the current build in `_docs/wiki/audit.md`. It separates retirement candidates (`OBSOLETE`, or `OBSOLETE-EDITED` when corrected on the wiki) from retained translations, supported aliases, hidden commands and community pages. Review obsolete pages for redirects, adoption or manual retirement; an absent mapping is not permission to delete a community page.
 
-Moving a Markdown file and updating its `source` in `wiki.json` preserves the wiki URL. Changing a mapped `title` creates or updates the new page; publishing never moves or deletes the old page. Keep useful old URLs as explicitly managed redirects, as the `docker` command reference does, or handle the wiki move manually after reviewing history and incoming links. The audit is read-only and needs no credentials.
+Moving a Markdown file and updating its `source` in `wiki.json` preserves the wiki URL. Changing a mapped `title` creates or updates the new page; publishing never moves or deletes the old page. Keep useful old URLs as explicitly managed redirects, as the `docker` command reference does, or handle the wiki move manually after reviewing history and incoming links. The audit is read-only and needs no credentials. The `Cli` homepage and its translations remain wiki-managed: edit the Translate source page to update their branding, preserving translation unit markers.
 
 ## Bring wiki corrections into Git
 
