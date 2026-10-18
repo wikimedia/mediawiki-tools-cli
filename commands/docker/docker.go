@@ -24,6 +24,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/redis"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/shellbox"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/traefik"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/tunnel"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/wdqs"
 	wdqsUi "gitlab.wikimedia.org/repos/releng/cli/commands/docker/wdqs-ui"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -92,9 +93,9 @@ func NewCmd() *cobra.Command {
 					os.Exit(1)
 				}
 
-				// Bail if docker is not running
-				if !docker.DockerDaemonIsRunning() {
-					fmt.Println("Docker is not running. Please start it and try again.")
+				// Bail if Docker is unavailable through the selected context.
+				if err := docker.CheckDockerDaemon(); err != nil {
+					fmt.Fprintf(os.Stderr, "Docker is unavailable: %v\nCheck `docker context show` and `docker info` using the same environment.\n", err)
 					os.Exit(1)
 				}
 			}
@@ -206,6 +207,7 @@ func NewCmd() *cobra.Command {
 	// Service commands
 	cmd.AddCommand(mediawiki.NewMediaWikiCmd())
 	cmd.AddCommand(traefik.NewCmd())
+	cmd.AddCommand(tunnel.NewCmd())
 	cmd.AddCommand(mwdd.NewServiceCmd("adminer", mwdd.ServiceTexts{Long: adminerLong, OnCreate: envSubst(adminerOnCreate)}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("novnc", mwdd.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(mwdd.NewServiceCmd("elasticsearch", mwdd.ServiceTexts{Long: elasticsearchLong}, []string{}))

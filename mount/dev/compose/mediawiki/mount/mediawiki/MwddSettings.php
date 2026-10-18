@@ -45,6 +45,7 @@ $wgAssumeProxiesUseDefaultProtocolPorts = false;
 $wgMaxArticleSize = 1000000;
 
 # Either use the MW_DB env var, or get the DB from the request
+$dockerProxyPrefix = '';
 if ( defined( "MW_DB" ) ) {
     $dockerDb = MW_DB;
     $wgServer = "//$dockerDb.mediawiki.local.wmftest.net:80";
@@ -60,14 +61,20 @@ if ( defined( "MW_DB" ) ) {
 	}
 	if ( $proxyDb !== '' ) {
 		$dockerDb = $proxyDb;
-	} elseif ( in_array( $dockerHost, $defaultDbHosts, true ) ) {
+		$dockerProxyPrefix = $forwardedPrefix;
+		// Traefik strips the public prefix before Apache routes the request.
+		// Restore it for MediaWiki's title parsing and canonical redirects.
+		$_SERVER['REQUEST_URI'] = $dockerProxyPrefix . ( $_SERVER['REQUEST_URI'] ?? '/' );
+	} elseif ( ( $_SERVER['HTTP_X_MWCLI_DEFAULT_WIKI'] ?? '' ) === '1' || in_array( $dockerHost, $defaultDbHosts, true ) ) {
 		$dockerDb = getenv( 'MW_DB_DEFAULT' ) ?: 'default';
 	} else {
 		$dockerHostParts = explode( '.', $dockerHost );
 		$dockerDb = $dockerHostParts[0];
 	}
-	if ( $forwardedHost !== '' && $forwardedPrefix !== '' ) {
-		$wgServer = 'https://' . $forwardedHost . $forwardedPrefix;
+	if ( $forwardedHost !== '' && $dockerProxyPrefix !== '' ) {
+		// Keep local HTTP and externally terminated HTTPS on their original scheme.
+		$forwardedProto = strtolower( trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' )[0] ) );
+		$wgServer = ( $forwardedProto === 'https' ? 'https://' : 'http://' ) . $forwardedHost;
 	} else {
 		$wgServer = in_array( $dockerHost, $defaultHttpsHosts, true ) ? 'https://' . $dockerHost : WebRequest::detectServer();
 	}
@@ -353,7 +360,11 @@ if(gethostbyname('eventlogging') !== 'eventlogging') {
 	];
 	$wgEventServiceDefault = '*';
 	$wgEventLoggingStreamNames = false;
-	$wgEventLoggingServiceUri = "http://eventlogging.local.wmftest.net:" . parse_url($wgServer)['port'] . "/v1/events";
+	// Browser events must stay on the gateway origin when accessed through a tunnel.
+	$eventLoggingPort = parse_url( $wgServer, PHP_URL_PORT );
+	$wgEventLoggingServiceUri = $dockerProxyPrefix !== ''
+		? '/proxy/eventlogging/v1/events'
+		: 'http://eventlogging.local.wmftest.net' . ( $eventLoggingPort !== null ? ":$eventLoggingPort" : '' ) . '/v1/events';
 	$wgEventLoggingQueueLingerSeconds = 1;
 	$wgEnableEventBus = defined( "MW_PHPUNIT_TEST" ) ? "TYPE_NONE" : "TYPE_ALL";
 }
@@ -427,7 +438,10 @@ $wgExtensionMessagesFiles['Mwdd'] = __DIR__ . '/MwddSpecialPage-aliases.php';
 $wgShowHostnames = true;
 
 ## Site settings
-$wgScriptPath = "/w";
+$wgScriptPath = "$dockerProxyPrefix/w";
+if ( $dockerProxyPrefix !== '' ) {
+	$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
+}
 $wgSitename = "mwdd-$dockerDb";
 $wgMetaNamespace = "Project"; // Set to "Project", instead of the default $wgSitename
 // TODO re add favicon (removed porting to go)

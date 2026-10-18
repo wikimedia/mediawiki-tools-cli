@@ -46,7 +46,7 @@ func NewMediaWikiCmd() *cobra.Command {
 			mwdd.EnsureReady()
 
 			// Skip the MediaWiki checks if the user is just trying to destroy the environment
-			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") {
+			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") || cmd.Name() == "doctor" {
 				return
 			}
 

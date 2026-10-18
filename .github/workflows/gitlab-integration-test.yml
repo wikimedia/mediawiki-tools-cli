@@ -1,5 +1,5 @@
 # Called once per test. Reporting gets a fresh VM; the test gets no callback token.
-name: Native integration test
+name: Integration test
 
 on:
   workflow_call:

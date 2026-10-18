@@ -13,18 +13,44 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
   rm -rf .mediawiki
 
   mkdir .mediawiki
-  curl --fail --location --retry 3 https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/core/+archive/refs/heads/master.tar.gz -o mediawiki.tar.gz
-  tar -xf mediawiki.tar.gz -C .mediawiki
+
+  download_archive() {
+    local gerrit_url=$1
+    local github_url=$2
+    local output_file=$3
+    ARCHIVE_STRIP_COMPONENTS=0
+
+    if curl --fail --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 "$gerrit_url" -o "$output_file"; then
+      return 0
+    fi
+
+    echo "Gerrit archive unavailable; falling back to the Wikimedia GitHub mirror"
+    rm -f "$output_file"
+    ARCHIVE_STRIP_COMPONENTS=1
+    curl --fail --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 "$github_url" -o "$output_file"
+  }
+
+  download_archive \
+    https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/core/+archive/refs/heads/master.tar.gz \
+    https://codeload.github.com/wikimedia/mediawiki/tar.gz/refs/heads/master \
+    mediawiki.tar.gz
+  tar -xf mediawiki.tar.gz --strip-components="$ARCHIVE_STRIP_COMPONENTS" -C .mediawiki
   rm mediawiki.tar.gz
 
-  mkdir .mediawiki/skins/Vector
-  curl --fail --location --retry 3 https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/skins/Vector/+archive/refs/heads/master.tar.gz -o vector.tar.gz
-  tar -xf vector.tar.gz -C .mediawiki/skins/Vector
+  mkdir -p .mediawiki/skins/Vector
+  download_archive \
+    https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/skins/Vector/+archive/refs/heads/master.tar.gz \
+    https://codeload.github.com/wikimedia/mediawiki-skins-Vector/tar.gz/refs/heads/master \
+    vector.tar.gz
+  tar -xf vector.tar.gz --strip-components="$ARCHIVE_STRIP_COMPONENTS" -C .mediawiki/skins/Vector
   rm vector.tar.gz
 
-  mkdir .mediawiki/vendor
-  curl --fail --location --retry 3 https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/vendor/+archive/refs/heads/master.tar.gz -o vendor.tar.gz
-  tar -xf vendor.tar.gz -C .mediawiki/vendor
+  mkdir -p .mediawiki/vendor
+  download_archive \
+    https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/vendor/+archive/refs/heads/master.tar.gz \
+    https://codeload.github.com/wikimedia/mediawiki-vendor/tar.gz/refs/heads/master \
+    vendor.tar.gz
+  tar -xf vendor.tar.gz --strip-components="$ARCHIVE_STRIP_COMPONENTS" -C .mediawiki/vendor
   rm vendor.tar.gz
 
   if [[ "${MWCLI_CI_NATIVE_DEPS:-0}" = 1 ]]; then

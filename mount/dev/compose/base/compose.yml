@@ -20,7 +20,7 @@ services:
       - "traefik.http.routers.dashboard.rule=Path(`/proxy/dashboard`) || PathPrefix(`/proxy/dashboard/`)"
       - "traefik.http.routers.dashboard.priority=100"
       - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.routers.dashboard.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},dashboard-prefix@file,forwarded-https@file"
+      - "traefik.http.routers.dashboard.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},dashboard-prefix@file"
       - "traefik.http.services.dashboard.loadbalancer.server.port=${DASHBOARD_VIRTUAL_PORT:-8080}"
     security_opt:
       - label:disable
@@ -33,6 +33,16 @@ services:
       - DEFAULT_EXPOSE_PORT=8080
       - PORT=${PORT}
       - DASHBOARD_PORT=8080
+      - GRAPHITE_PROXY_PATH=${GRAPHITE_PROXY_PATH:-graphite}
+      - JAEGER_PROXY_PATH=${JAEGER_PROXY_PATH:-jaeger}
+      - MAILHOG_PROXY_PATH=${MAILHOG_PROXY_PATH:-mailhog}
+      - PHPMYADMIN_PROXY_PATH=${PHPMYADMIN_PROXY_PATH:-phpmyadmin}
+      - ADMINER_PROXY_PATH=${ADMINER_PROXY_PATH:-adminer}
+      - WDQS_UI_PROXY_PATH=${WDQS_UI_PROXY_PATH:-wdqs-ui}
+      - KEYCLOAK_PROXY_PATH=${KEYCLOAK_PROXY_PATH:-keycloak}
+      - NOVNC_PROXY_PATH=${NOVNC_PROXY_PATH:-novnc}
+      - PROMETHEUS_PROXY_PATH=${PROMETHEUS_PROXY_PATH:-prometheus}
+      - GRAFANA_PROXY_PATH=${GRAFANA_PROXY_PATH:-grafana}
     volumes:
       - ./compose/base/mount/dashboard:/app:ro
       - ./:/data:ro
@@ -42,32 +52,6 @@ services:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
-
-  nginx-proxy:
-    image: "${NGINX_PROXY_IMAGE:-jwilder/nginx-proxy:0.10}"
-    security_opt:
-      - label:disable
-    restart: unless-stopped
-    environment:
-      - VIRTUAL_HOST=proxy.local.wmftest.net
-      - VIRTUAL_PORT=${PORT}
-      - HOSTNAMES=.mediawiki.local.wmftest.net,keycloak.local.wmftest.net,dashboard.local.wmftest.net     # wildcard name resolution, thanks to DPS
-      - HTTP_PORT=${PORT}      # internal port
-      - DEFAULT_EXPOSE_PORT=${PORT}
-    ports:
-      - "${PORT}:${PORT}"
-    depends_on:
-      - dps
-      - dashboard # For now always load the dashboard...
-    dns:
-      - ${NETWORK_SUBNET_PREFIX}.10
-    networks:
-      - dps
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./compose/base/mount/nginx/client_max_body_size.conf:/etc/nginx/conf.d/client_max_body_size.conf:ro
-      - ./compose/base/mount/nginx/timeouts.conf:/etc/nginx/conf.d/timeouts.conf:ro
-      - ./compose/base/mount/nginx/vhost.d:/etc/nginx/vhost.d:ro
 
 networks:
   dps:

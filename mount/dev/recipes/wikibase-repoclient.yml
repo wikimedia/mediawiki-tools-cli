@@ -6,6 +6,11 @@ description: >-
   entities; the client wiki ("client") reads from the repo via entity
   sources and cross-wiki links.
 
+source:
+  useGithub: true
+  shallow: true
+  gerritInteractionType: http
+
 services:
   - name: mediawiki
   - name: mysql

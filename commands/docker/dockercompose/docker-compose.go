@@ -22,13 +22,15 @@ func NewCmd() *cobra.Command {
 		Aliases: []string{"dc", "compose", "docker-compose"},
 		Short:   "Interact directly with the docker compose environment",
 		Long:    cli.RenderMarkdown(dockerComposeLong),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dev := mwdd.DefaultForUser()
 			dev.EnsureReady()
-			err := dev.DockerCompose().Command(args).RunAttached()
-			if err != nil {
-				panic(err)
+			if len(args) > 0 && (args[0] == "up" || args[0] == "create" || args[0] == "run") {
+				if err := dev.PrepareGateway(); err != nil {
+					return err
+				}
 			}
+			return dev.DockerCompose().Command(args).RunAttached()
 		},
 	}
 }

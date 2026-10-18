@@ -4,10 +4,19 @@ services:
     image: "${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:18.0.0}"
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.keycloak-host.rule=Host(`${KEYCLOAK_VIRTUAL_HOST:-keycloak.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.keycloak-host.entrypoints=web"
+      - "traefik.http.routers.keycloak-host.service=keycloak"
+      - "traefik.http.routers.keycloak-host.middlewares=local-keycloak-path@docker"
+      - "traefik.http.middlewares.local-keycloak-path.redirectregex.regex=^(https?://[^/]+)(/.*)?$$"
+      - "traefik.http.middlewares.local-keycloak-path.redirectregex.replacement=$${1}/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}$${2}"
+      - "traefik.http.routers.keycloak-local-path.rule=Host(`${KEYCLOAK_VIRTUAL_HOST:-keycloak.local.wmftest.net}`) && (Path(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}`) || PathPrefix(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}/`))"
+      - "traefik.http.routers.keycloak-local-path.entrypoints=web"
+      - "traefik.http.routers.keycloak-local-path.priority=100"
+      - "traefik.http.routers.keycloak-local-path.service=keycloak"
       - "traefik.http.routers.keycloak.rule=Path(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}`) || PathPrefix(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}/`)"
       - "traefik.http.routers.keycloak.entrypoints=web"
-      - "traefik.http.routers.keycloak.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-keycloak@docker,forwarded-https@file"
-      - "traefik.http.middlewares.strip-keycloak.stripprefix.prefixes=/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}"
+      - "traefik.http.routers.keycloak.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.services.keycloak.loadbalancer.server.port=${KEYCLOAK_VIRTUAL_PORT:-8080}"
     security_opt:
       - label:disable
@@ -16,13 +25,15 @@ services:
     volumes:
     - ./compose/keycloak/mount/keycloak:/mwdd:ro
     environment:
+      - KC_HTTP_RELATIVE_PATH=/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}
+      - KC_PROXY=edge
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       - VIRTUAL_HOST=${KEYCLOAK_VIRTUAL_HOST:-keycloak.local.wmftest.net}
       - VIRTUAL_PORT=${KEYCLOAK_VIRTUAL_PORT:-8080}
     depends_on:
       - dps
-      - nginx-proxy
+      - traefik
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
