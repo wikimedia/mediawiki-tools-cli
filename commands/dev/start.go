@@ -12,7 +12,7 @@ func NewDevStartCmd() *cobra.Command {
 		Use:     "start",
 		GroupID: "core",
 		Aliases: []string{"resume"},
-		Short:   "Start containers that were running before",
+		Short:   "Start existing containers intended to run",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
 			if gateway, err := m.GatewayStatus(cmd.Context()); err == nil && !gateway.HasContainers {
@@ -20,7 +20,12 @@ func NewDevStartCmd() *cobra.Command {
 				fmt.Fprintln(cmd.OutOrStdout(), dashboardNextStep(cmd, devenv.GatewayMissing))
 				return nil
 			}
-			resumed, err := resumeDevelopmentServices(m, m.DockerCompose())
+			var resumed bool
+			err := m.WithServiceLifecycle(cmd.Context(), func() error {
+				var err error
+				resumed, err = resumeDevelopmentServices(m, m.DockerCompose())
+				return err
+			})
 			if err != nil {
 				return err
 			}
