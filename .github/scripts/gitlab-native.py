@@ -129,7 +129,7 @@ def github_results(run_id, attempt):
                 jobs = json.load(response)["jobs"]
             for job in jobs:
                 for name in TESTS:
-                    if job["name"] == f"Native integration ({name}) / Test" and name not in results:
+                    if job["name"] == f"Integration ({name}) / Test" and name not in results:
                         results[name] = {
                             "state": "success" if job["conclusion"] == "success" else "failed",
                             "url": job["html_url"],
