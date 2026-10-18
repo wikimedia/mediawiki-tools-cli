@@ -40,6 +40,7 @@ require (
 	golang.org/x/term v0.44.0
 	gopkg.in/ini.v1 v1.67.3
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -141,7 +142,6 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.35.4 // indirect
 	k8s.io/apimachinery v0.35.4 // indirect
 	k8s.io/cli-runtime v0.35.4 // indirect
@@ -226,7 +226,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/yuin/goldmark v1.7.13 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
-	gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli v0.0.0-20261018165232-a458f79f238a
+	gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli v0.0.0-20261018181606-87ebddec9e50
 	golang.org/x/crypto v0.52.0
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
@@ -241,4 +241,4 @@ go 1.26.1
 
 replace gitlab.com/gitlab-org/cli/mwcli => ./internal/glab
 
-replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018165232-a458f79f238a
+replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018181606-87ebddec9e50

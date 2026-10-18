@@ -627,8 +627,8 @@ gitlab.com/gitlab-org/api/client-go v0.130.1 h1:1xF5C5Zq3sFeNg3PzS2z63oqrxifne3n
 gitlab.com/gitlab-org/api/client-go v0.130.1/go.mod h1:ZhSxLAWadqP6J9lMh40IAZOlOxBLPRh7yFOXR/bMJWM=
 gitlab.com/gitlab-org/cli v1.61.0 h1:1UNsipCs11i0qhyeft/KOG3qVb6t5zo2EXjgbBGB35Y=
 gitlab.com/gitlab-org/cli v1.61.0/go.mod h1:0GPtswhAV6c/rf1wo3kCChyOh96EJc1pg5wWvAwgWtw=
-gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018165232-a458f79f238a h1:9maRxhumZn/iJH4Be7mj9GjqbtfUeKiAG3ipFyOgyA4=
-gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018165232-a458f79f238a/go.mod h1:u+6q9RuORI7LcfQqP9Pn1pdQJAJ+mu7nPpLyuISfhgI=
+gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018181606-87ebddec9e50 h1:pc6Js7qNTmcHNYisjyV/nqWrExqBxZDIUSHL7TDW8r8=
+gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018181606-87ebddec9e50/go.mod h1:u+6q9RuORI7LcfQqP9Pn1pdQJAJ+mu7nPpLyuISfhgI=
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
 go.etcd.io/etcd/client/pkg/v3 v3.5.4/go.mod h1:IJHfcCEKxYu1Os13ZdwCwIUTUVGYTSAM3YSwc9/Ac1g=
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
