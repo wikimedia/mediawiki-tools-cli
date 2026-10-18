@@ -16,9 +16,8 @@ const authUrl = "https://openstack.eqiad1.wikimediacloud.org:25000/v3"
 
 func NewAuthCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "auth",
-		Short:  "Authenticate with Cloud VPS",
-		Hidden: true, // for now
+		Use:   "auth",
+		Short: "Authenticate with Cloud VPS",
 	}
 
 	cmd.AddCommand(NewAuthAddCmd())
