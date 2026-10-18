@@ -1,0 +1,8 @@
+{
+  "name": "mwcli-holesail",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "holesail": "2.4.4"
+  }
+}
