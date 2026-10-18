@@ -13,6 +13,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki. Examples use 
 
 - [Create an environment](guides/dev/setup.md)
 - [Manage services and images](guides/dev/services.md)
+- [Build custom service images](guides/dev/dockerfiles.md)
 - [Configure MediaWiki](guides/dev/configuration.md)
 - [Work with MediaWiki and debug PHP](guides/dev/mediawiki.md)
 - [Use databases](guides/dev/databases.md)

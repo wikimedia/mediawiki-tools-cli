@@ -107,7 +107,7 @@ func starterDockerfileContent(service string) string {
 	}
 	return fmt.Sprintf(`# Custom Dockerfile for the %s service.
 # Edit this file to customise the image (e.g. add packages), then run:
-#   mw dev %s create --force-recreate
+#   mw dev %s rebuild
 
 %s
 
