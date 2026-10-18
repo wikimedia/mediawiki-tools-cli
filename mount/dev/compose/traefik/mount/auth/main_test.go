@@ -541,3 +541,32 @@ func TestLegacyGatewayAssetsRemainAvailable(t *testing.T) {
 		}
 	}
 }
+
+func TestLoginRateLimitIsSharedAcrossGatewayNamespaces(t *testing.T) {
+	g, _ := testGateway(t)
+	get := httptest.NewRecorder()
+	g.ServeHTTP(get, request(http.MethodGet, loginPath, nil))
+	csrf := cookieFrom(t, get, "csrf")
+	form := url.Values{"username": {"alice"}, "password": {"incorrect"}, "csrf": {csrf.Value}}
+	for i := 0; i < loginFailureLimit; i++ {
+		path := loginPath
+		if i%2 == 1 {
+			path = legacyLoginPath
+		}
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodPost, path, form, csrf))
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("failed attempt %d: %d", i, w.Code)
+		}
+	}
+	for _, path := range []string{loginPath, legacyLoginPath} {
+		w := httptest.NewRecorder()
+		g.ServeHTTP(w, request(http.MethodPost, path, form, csrf))
+		if w.Code != http.StatusTooManyRequests || w.Header().Get("Retry-After") == "" {
+			t.Fatalf("rate limit bypassed through %s: %d", path, w.Code)
+		}
+	}
+	now := g.now()
+	g.now = func() time.Time { return now.Add(loginFailureWindow) }
+	login(t, g)
+}

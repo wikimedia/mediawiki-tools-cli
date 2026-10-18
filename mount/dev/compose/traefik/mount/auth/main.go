@@ -28,14 +28,19 @@ const (
 	legacyLoginPath     = "/_mwcli/login"
 	legacyLogoutPath    = "/_mwcli/logout"
 	legacyLoginLinkPath = "/_mwcli/login-link"
+	loginFailureLimit   = 5
+	loginFailureWindow  = time.Minute
 )
 
 type gateway struct {
-	credentials [32]byte
-	key         []byte
-	now         func() time.Time
-	linksMu     sync.Mutex
-	links       map[string]loginLink
+	credentials   [32]byte
+	key           []byte
+	now           func() time.Time
+	linksMu       sync.Mutex
+	links         map[string]loginLink
+	loginMu       sync.Mutex
+	loginWindow   time.Time
+	loginFailures int
 }
 
 type loginLink struct {
@@ -84,6 +89,34 @@ func newGateway(directory string) (*gateway, error) {
 func (g *gateway) credentialsMatch(username, password string) bool {
 	digest := sha256.Sum256([]byte(username + "\x00" + password))
 	return subtle.ConstantTimeCompare(digest[:], g.credentials[:]) == 1
+}
+
+func (g *gateway) loginRateLimited() bool {
+	g.loginMu.Lock()
+	defer g.loginMu.Unlock()
+	if !g.now().Before(g.loginWindow.Add(loginFailureWindow)) {
+		g.loginFailures = 0
+		return false
+	}
+	return g.loginFailures >= loginFailureLimit
+}
+
+func (g *gateway) recordLoginFailure() {
+	g.loginMu.Lock()
+	defer g.loginMu.Unlock()
+	now := g.now()
+	if !now.Before(g.loginWindow.Add(loginFailureWindow)) {
+		g.loginWindow = now
+		g.loginFailures = 0
+	}
+	g.loginFailures++
+}
+
+func (g *gateway) clearLoginFailures() {
+	g.loginMu.Lock()
+	g.loginWindow = time.Time{}
+	g.loginFailures = 0
+	g.loginMu.Unlock()
 }
 
 func (g *gateway) sign(purpose, origin string, lifetime time.Duration) (string, error) {
@@ -387,6 +420,11 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 				return
 			}
 		}
+		if g.loginRateLimited() {
+			w.Header().Set("Retry-After", fmt.Sprint(int(loginFailureWindow.Seconds())))
+			http.Error(w, "Too many failed login attempts. Try again in a minute.", http.StatusTooManyRequests)
+			return
+		}
 		authenticated := false
 		if value := r.PostForm.Get("login_token"); value != "" {
 			authenticated = g.consumeLoginLink(value, origin)
@@ -396,6 +434,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 			message = "Username or password is incorrect."
 		}
 		if authenticated {
+			g.clearLoginFailures()
 			session, err := g.sign("session", origin, sessionLifetime)
 			if err != nil {
 				http.Error(w, "Cannot create gateway session", http.StatusInternalServerError)
@@ -406,6 +445,7 @@ func (g *gateway) form(w http.ResponseWriter, r *http.Request, origin string) {
 			http.Redirect(w, r, target, http.StatusSeeOther)
 			return
 		}
+		g.recordLoginFailure()
 		status = http.StatusUnauthorized
 	}
 	csrf, err := g.sign("csrf", origin, 15*time.Minute)

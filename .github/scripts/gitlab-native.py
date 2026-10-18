@@ -9,12 +9,13 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/ci"))
 from github_status import (  # noqa: E402
     GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, SUMMARY_CONTEXT,
-    commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses, gate_test, gate_jobs,
+    commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses, gate_test, gate_jobs, SUPPORTED_PLATFORMS,
 )
 
 from integration_tests import TESTS  # noqa: E402
@@ -49,15 +50,37 @@ def load_request(api, job_id, *, wait=False, request_name=REQUEST_JOB, require_g
         return None  # A newer request superseded this run.
     if require_gate and not gate_jobs(jobs):
         raise ValueError("pipeline has no native integration gate")
-    return {"request_id": job_id, "pipeline_id": pipeline_id, "source_sha": sha}, jobs
+    return {"request_id": job_id, "pipeline_id": pipeline_id, "source_sha": sha,
+            "test_plan_artifact": bool((job.get("artifacts_file") or {}).get("filename"))}, jobs
 
 
 def git(*args, cwd):
     return subprocess.check_output(["git", *args], cwd=cwd, text=True).strip()
 
 
-def test_plan(jobs):
-    """Test selection belongs to the tested GitLab pipeline, not GitHub main."""
+def test_plan(api, request, jobs):
+    """Read the complete plan published by the single GitLab request job."""
+    if request.get("test_plan_artifact"):
+        entries = api.get(f"/projects/{PROJECT}/jobs/{request['request_id']}/artifacts/integration-plan.json")
+        if not isinstance(entries, list) or not 1 <= len(entries) <= 64:
+            raise ValueError("expected between one and 64 integration tests")
+        plan, names = [], set()
+        for entry in entries:
+            if not isinstance(entry, dict) or set(entry) != {"platform", "test"}:
+                raise ValueError("each integration test needs platform and test")
+            platform, test = entry["platform"], entry["test"]
+            if not isinstance(platform, str) or platform not in SUPPORTED_PLATFORMS:
+                raise ValueError("unsupported integration platform")
+            if not isinstance(test, str) or not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", test):
+                raise ValueError("invalid integration test name")
+            name = test if platform == "linux-amd64" else f"{platform}/{test}"
+            if name == "integration" or name in names:
+                raise ValueError("duplicate or reserved integration test name")
+            names.add(name)
+            plan.append({"platform": platform, "test": test, "name": name})
+        return plan
+    # Requests created before plans were artifacts may still be rerun.
+
     plan = [selected for name in sorted(jobs) if (selected := gate_test(name)) is not None]
     if plan:
         if len(plan) > 64:
@@ -101,7 +124,7 @@ def prepare(api, job_id, directory):
         api.request(f"/projects/{PROJECT}/jobs/{jobs[job_name]['id']}/artifacts/{artifact}",
                     destination=directory / filename)
     prepare_source(api, plan, jobs, directory)
-    plan["tests"] = test_plan(jobs)
+    plan["tests"] = test_plan(api, plan, jobs)
     output("test_matrix", json.dumps({"include": plan["tests"]}, separators=(",", ":")))
     # Upload only four explicit files, never the controller's .git directory.
     (directory / "plan.json").write_text(json.dumps(plan))
@@ -242,8 +265,14 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True, jobs_succeed
     # If preparation failed, publish failures; this SHA can never pass the gate
     # for an MR's merged checkout. No missing callback should appear successful.
     plan["tested_sha"] = commit_sha(tested_sha or plan["source_sha"])
+    try:
+        expected = test_plan(api, plan, jobs)
+    except (ValueError, urllib.error.HTTPError) as error:
+        print(f"Could not read the integration test plan: {error}", file=sys.stderr)
+        post_status(api, plan, SUMMARY_CONTEXT, {"state": "failed"}, run_id, attempt)
+        return
     fetched = github_results(run_id, attempt) if prepared and tested_sha else {}
-    results = {test["name"]: fetched.get(test["name"], {"state": "failed"}) for test in test_plan(jobs)}
+    results = {test["name"]: fetched.get(test["name"], {"state": "failed"}) for test in expected}
     report(api, plan, results, run_id, attempt)
     passed = prepared and jobs_succeeded and bool(results) and all(
         result["state"] == "success" for result in results.values())
@@ -287,7 +316,7 @@ def main():
             plan, jobs = loaded
             plan["tested_sha"] = commit_sha(os.environ["TESTED_SHA"])
             name = os.environ["TEST_NAME"]
-            if name not in {test["name"] for test in test_plan(jobs)}:
+            if name not in {test["name"] for test in test_plan(api, plan, jobs)}:
                 raise ValueError("test is not declared by this GitLab pipeline")
             results = github_results(os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
             report(api, plan, {name: results.get(name, {"state": "failed"})},
