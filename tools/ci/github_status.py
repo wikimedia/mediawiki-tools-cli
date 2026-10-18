@@ -19,6 +19,10 @@ TESTS = {
     "mysql-cycle": "test-docker-mw-mysql-cycle.sh",
     "repoclient": "test-docker-recipe-repoclient.sh",
 }
+REPORTS = {*TESTS, "platform-smoke"}
+PLATFORM_SMOKE_LABELS = {"Linux ARM64", "macOS ARM64", "Windows x64"}
+# The bootstrap reports platform-smoke without making it gate GitLab MRs yet.
+# Add it to CONTEXTS only after this trusted workflow has reached GitHub main.
 CONTEXTS = [f"github/{name}" for name in TESTS]
 
 

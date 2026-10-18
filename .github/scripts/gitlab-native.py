@@ -12,7 +12,8 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/ci"))
 from github_status import (  # noqa: E402
-    GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, TESTS, CONTEXTS,
+    GitLab, PROJECT, REPOSITORY, REQUEST_JOB, GATE_JOB, TESTS, REPORTS, CONTEXTS,
+    PLATFORM_SMOKE_LABELS,
     commit_sha, description, integration_repository, parse_description, pipeline_jobs, positive_id, statuses,
 )
 
@@ -107,6 +108,7 @@ def prepare(api, job_id, directory):
     # Upload only four explicit files, never the controller's .git directory.
     (directory / "plan.json").write_text(json.dumps(plan))
     output("artifact", f"gitlab-{plan['request_id']}-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}")
+    output("platform_artifact", f"gitlab-platform-{plan['request_id']}-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}")
     output("tested_sha", plan["tested_sha"])
     output("active", "true")
     report(api, plan, {name: {"state": "pending"} for name in TESTS},
@@ -116,6 +118,7 @@ def prepare(api, job_id, directory):
 def github_results(run_id, attempt):
     """Latest conclusion per matrix job, including successful jobs from a prior attempt."""
     results = {}
+    platform_results = {}
     for number in range(positive_id(attempt), 0, -1):
         page = 1
         while True:
@@ -134,9 +137,21 @@ def github_results(run_id, attempt):
                             "state": "success" if job["conclusion"] == "success" else "failed",
                             "url": job["html_url"],
                         }
+                prefix = "Integration (platform-smoke) / Test ("
+                if job["name"].startswith(prefix) and job["name"].endswith(")"):
+                    label = job["name"][len(prefix):-1]
+                    if label in PLATFORM_SMOKE_LABELS and label not in platform_results:
+                        platform_results[label] = job
             if len(jobs) < 100:
                 break
             page += 1
+    if platform_results:
+        results["platform-smoke"] = {
+            "state": "success" if set(platform_results) == PLATFORM_SMOKE_LABELS and all(
+                job["conclusion"] == "success" for job in platform_results.values()
+            ) else "failed",
+            "url": next(iter(platform_results.values()))["html_url"],
+        }
     return results
 
 
@@ -144,7 +159,7 @@ def report(api, plan, results, run_id, attempt):
     identity = description(plan["request_id"], run_id, attempt, plan["tested_sha"])
     run_url = f"https://github.com/{integration_repository()}/actions/runs/{positive_id(run_id)}"
     for name, result in results.items():
-        if name not in TESTS:
+        if name not in REPORTS:
             raise ValueError("unexpected integration test")
         api.post(f"/projects/{PROJECT}/statuses/{plan['source_sha']}", {
             "pipeline_id": plan["pipeline_id"], "name": f"github/{name}",
@@ -164,10 +179,12 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
     # for an MR's merged checkout. No missing callback should appear successful.
     plan["tested_sha"] = commit_sha(tested_sha or plan["source_sha"])
     results = github_results(run_id, attempt) if prepared and tested_sha else {}
-    for name in TESTS:
+    required = [context.removeprefix("github/") for context in CONTEXTS]
+    for name in required:
         results.setdefault(name, {"state": "failed"})
+    results.setdefault("platform-smoke", {"state": "failed"})
     report(api, plan, results, run_id, attempt)
-    if any(result["state"] != "success" for result in results.values()):
+    if any(results[name]["state"] != "success" for name in required):
         return  # The normal waiting job observes the failures itself.
     loaded = load_request(api, job_id)
     if loaded is not None:
@@ -194,7 +211,7 @@ def main():
             plan = loaded[0]
             plan["tested_sha"] = commit_sha(os.environ["TESTED_SHA"])
             name = os.environ["TEST_NAME"]
-            if name not in TESTS:
+            if name not in REPORTS:
                 raise ValueError("unexpected integration test")
             results = github_results(os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
             report(api, plan, {name: results.get(name, {"state": "failed"})},

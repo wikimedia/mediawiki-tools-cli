@@ -96,22 +96,24 @@ class CallbackTests(unittest.TestCase):
                        "url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i}"}
                 for i, name in enumerate(native.TESTS, 1)}
 
-    def test_posts_four_results_without_playing_or_restarting_a_running_gate(self):
+    def test_posts_existing_results_and_missing_platform_smoke_as_failure(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results()):
             native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 4)
+        self.assertEqual(len(api.posted), 5)
         for path, body in api.posted[:4]:
             self.assertEqual(path, "/projects/16/statuses/" + SHA)
             self.assertEqual(body["pipeline_id"], 23)
             self.assertEqual(body["description"], native.description(19, 123, 1, SHA))
         self.assertEqual(api.posted[3][1]["state"], "success")
+        self.assertEqual(api.posted[4][1]["name"], "github/platform-smoke")
+        self.assertEqual(api.posted[4][1]["state"], "failed")
 
     def test_native_failure_leaves_the_waiting_job_to_observe_failure(self):
         api = FakeGitLab()
         with patch.object(native, "github_results", return_value=self.results("repoclient")):
             native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 4)
+        self.assertEqual(len(api.posted), 5)
         self.assertEqual(api.posted[3][1]["state"], "failed")
         self.assertTrue(all("/statuses/" in path for path, _ in api.posted))
 
@@ -153,7 +155,7 @@ class CallbackTests(unittest.TestCase):
         api.post = cancel_after_post
         with patch.object(native, "github_results", return_value=self.results()):
             native.finish(api, 19, SHA, 123, 1)
-        self.assertEqual(len(api.posted), 4)
+        self.assertEqual(len(api.posted), 5)
 
     def test_failed_job_rerun_keeps_previous_successful_job_conclusions(self):
         def response(request, timeout):
@@ -168,6 +170,38 @@ class CallbackTests(unittest.TestCase):
             native.urllib.request, "urlopen", side_effect=response
         ):
             self.assertEqual(set(native.github_results(123, 2)), set(native.TESTS))
+
+    def test_platform_smoke_is_aggregated_from_all_three_native_runners(self):
+        def response(request, timeout):
+            return io.BytesIO(json.dumps({"jobs": [
+                {"name": f"Integration ({name}) / Test", "conclusion": "success",
+                 "html_url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i}"}
+                for i, name in enumerate(native.TESTS, 1)
+            ] + [
+                {"name": f"Integration (platform-smoke) / Test ({label})", "conclusion": "success",
+                 "html_url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i + 10}"}
+                for i, label in enumerate(native.PLATFORM_SMOKE_LABELS, 1)
+            ]}).encode())
+        with patch.dict(os.environ, {"GH_TOKEN": "test-token"}), patch.object(
+            native.urllib.request, "urlopen", side_effect=response
+        ):
+            results = native.github_results(123, 1)
+        self.assertEqual(results["platform-smoke"]["state"], "success")
+        self.assertEqual(set(native.REPORTS), set(native.TESTS) | {"platform-smoke"})
+
+    def test_platform_smoke_requires_every_runner_to_succeed(self):
+        def response(request, timeout):
+            return io.BytesIO(json.dumps({"jobs": [
+                {"name": f"Integration (platform-smoke) / Test ({label})",
+                 "conclusion": "failure" if label == "Windows x64" else "success",
+                 "html_url": f"https://github.com/{native.REPOSITORY}/actions/runs/123/job/{i}"}
+                for i, label in enumerate(native.PLATFORM_SMOKE_LABELS, 1)
+            ]}).encode())
+        with patch.dict(os.environ, {"GH_TOKEN": "test-token"}), patch.object(
+            native.urllib.request, "urlopen", side_effect=response
+        ):
+            results = native.github_results(123, 1)
+        self.assertEqual(results["platform-smoke"]["state"], "failed")
 
     def test_downloads_and_verifies_the_exact_merged_bundle(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -1,0 +1,80 @@
+# A single portability smoke check. It builds the tested source on native
+# runners and exercises configuration and embedded mwdd files without starting
+# the full Docker stack on every operating system.
+name: GitLab platform smoke
+
+on:
+  workflow_call:
+    inputs:
+      artifact:
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  GITHUB_INTEGRATION_REPOSITORY: wikimedia/mediawiki-tools-cli
+
+jobs:
+  test:
+    name: Test (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux ARM64
+            runner: ubuntu-24.04-arm
+          - label: macOS ARM64
+            runner: macos-15
+          - label: Windows x64
+            runner: windows-2025
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact }}
+          path: inputs
+      - name: Check out the exact GitLab source bundle
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/mwcli-source"
+          git -C "$RUNNER_TEMP/mwcli-source" init -q
+          git -C "$RUNNER_TEMP/mwcli-source" fetch -q "$GITHUB_WORKSPACE/inputs/source.bundle" HEAD
+          git -C "$RUNNER_TEMP/mwcli-source" checkout -q --detach FETCH_HEAD
+      - name: Check out the exact GitLab source bundle
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\mwcli-source" | Out-Null
+          git -C "$env:RUNNER_TEMP\mwcli-source" init -q
+          git -C "$env:RUNNER_TEMP\mwcli-source" fetch -q "$env:GITHUB_WORKSPACE\inputs\source.bundle" HEAD
+          git -C "$env:RUNNER_TEMP\mwcli-source" checkout -q --detach FETCH_HEAD
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ runner.temp }}/mwcli-source/go.mod
+          cache-dependency-path: ${{ runner.temp }}/mwcli-source/go.sum
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Build the tested source for this runner
+        if: runner.os != 'Windows'
+        shell: bash
+        working-directory: ${{ runner.temp }}/mwcli-source
+        run: go build -o "$RUNNER_TEMP/mw" .
+      - name: Build the tested source for this runner
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: ${{ runner.temp }}\mwcli-source
+        run: go build -o "$env:RUNNER_TEMP\mw.exe" .
+      - name: Check native build, config paths, and embedded dev files
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: python .github/scripts/platform-smoke.py
