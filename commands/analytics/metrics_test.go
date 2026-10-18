@@ -1,0 +1,268 @@
+package analytics
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestMetricCommandsUseCorrectRoutesAndPreserveContext(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, tc := range []struct {
+		name, path, body, field string
+		args                    []string
+	}{
+		{"pageviews totals", "/metrics/pageviews/aggregate/en.wikipedia.org/all-access/all-agents/daily/2025010100/2025010200", `{"items":[{"project":"en.wikipedia","timestamp":"2025010100","views":42}]}`, "views", []string{"pageviews"}},
+		{"page edits", "/metrics/edits/per-page/en.wikipedia.org/A%2FB/user/daily/20250101/20250103", `{"items":[{"project":"en.wikipedia","page-title":"A/B","results":[{"timestamp":"2025-01-01T00:00:00Z","edits":42}]}]}`, "edits", []string{"edits", "A/B", "--editor-type", "user"}},
+		{"project edits", "/metrics/edits/aggregate/en.wikipedia.org/all-editor-types/all-page-types/daily/20250101/20250103", `{"items":[{"project":"en.wikipedia","results":[{"timestamp":"2025-01-01T00:00:00Z","edits":42}]}]}`, "edits", []string{"edits"}},
+		{"editors", "/metrics/editors/aggregate/en.wikipedia.org/all-editor-types/all-page-types/5..24-edits/daily/20250101/20250103", `{"items":[{"project":"en.wikipedia","results":[{"timestamp":"2025-01-01T00:00:00Z","editors":42}]}]}`, "editors", []string{"editors", "--activity-level", "5..24-edits"}},
+		{"new pages", "/metrics/edited-pages/new/en.wikipedia.org/all-editor-types/content/daily/20250101/20250103", `{"items":[{"project":"en.wikipedia","results":[{"timestamp":"2025-01-01T00:00:00Z","new_pages":42}]}]}`, "new_pages", []string{"new-pages", "--page-type", "content"}},
+		{"devices", "/metrics/unique-devices/en.wikipedia.org/mobile-site/daily/20250101/20250102", `{"items":[{"project":"en.wikipedia","timestamp":"20250101","devices":42}]}`, "devices", []string{"devices", "--access-site", "mobile-site"}},
+		{"media requests", "/metrics/mediarequests/aggregate/all-referers/audio/user/daily/20250101/20250102", `{"items":[{"referer":"all-referers","timestamp":"2025010100","requests":42}]}`, "requests", []string{"mediarequests", "--media-type", "audio", "--agent", "user"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			http.DefaultClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				if r.URL.EscapedPath() != "/api/rest_v1"+tc.path {
+					t.Errorf("route: %s", r.URL.EscapedPath())
+				}
+				if r.Header.Get("User-Agent") == "" {
+					t.Error("missing user agent")
+				}
+				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tc.body))}, nil
+			})}
+			cmd := NewCmd()
+			var buf bytes.Buffer
+			cmd.SetOut(&buf)
+			cmd.SetArgs(append(tc.args, "--start", "20250101", "--end", "20250102", "--output", "json"))
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			var rows []map[string]interface{}
+			if err := json.Unmarshal(buf.Bytes(), &rows); err != nil {
+				t.Fatal(err)
+			}
+			if len(rows) != 1 || rows[0][tc.field] != float64(42) {
+				t.Fatalf("unexpected rows: %s", buf.String())
+			}
+			if _, ok := rows[0]["results"]; ok {
+				t.Fatal("time series not expanded into rows")
+			}
+			if tc.name != "media requests" && rows[0]["project"] != "en.wikipedia" {
+				t.Fatal("project context lost")
+			}
+		})
+	}
+}
+
+func TestRankingsUnwrapNestedResponsesAndApplyLimits(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, tc := range []struct {
+		name, path, body, field string
+		args                    []string
+	}{
+		{"top pages", "/metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01", `{"items":[{"project":"en.wikipedia","articles":[{"rank":1,"article":"First","views":42},{"rank":2,"article":"Second","views":20}]}]}`, "article", []string{"top-pages", "--date", "20250101"}},
+		{"top edited", "/metrics/edited-pages/top-by-edits/en.wikipedia.org/all-editor-types/all-page-types/2025/01/all-days", `{"items":[{"project":"en.wikipedia","results":[{"timestamp":"2025-01-01T00:00:00Z","top":[{"rank":1,"page_title":"First","edits":42},{"rank":2,"page_title":"Second","edits":20}]}]}]}`, "page_title", []string{"top-edited", "--month", "202501"}},
+		{"top files", "/metrics/mediarequests/top/all-referers/all-media-types/2025/01/01", `{"items":[{"referer":"all-referers","files":[{"rank":1,"file_path":"First","requests":42},{"rank":2,"file_path":"Second","requests":20}]}]}`, "file_path", []string{"mediarequests", "top", "--date", "20250101"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			http.DefaultClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				if r.URL.EscapedPath() != "/api/rest_v1"+tc.path {
+					t.Errorf("route: %s", r.URL.EscapedPath())
+				}
+				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tc.body))}, nil
+			})}
+			for _, selection := range []struct {
+				limit, offset string
+				count         int
+				first         string
+			}{
+				{"1", "0", 1, "First"},
+				{"0", "0", 2, "First"},
+				{"1", "1", 1, "Second"},
+				{"0", "1", 1, "Second"},
+				{"1", "2", 0, ""},
+				{"1", "999", 0, ""},
+			} {
+				cmd := NewCmd()
+				var buf bytes.Buffer
+				cmd.SetOut(&buf)
+				cmd.SetArgs(append(append([]string{}, tc.args...), "--limit", selection.limit, "--offset", selection.offset, "--output", "json"))
+				if err := cmd.Execute(); err != nil {
+					t.Fatal(err)
+				}
+				var rows []map[string]interface{}
+				if err := json.Unmarshal(buf.Bytes(), &rows); err != nil {
+					t.Fatal(err)
+				}
+				if len(rows) != selection.count {
+					t.Fatalf("wrong count for offset %s, limit %s: %s", selection.offset, selection.limit, buf.String())
+				}
+				offset, _ := strconv.Atoi(selection.offset)
+				if len(rows) > 0 && (rows[0][tc.field] != selection.first || rows[0]["rank"] != float64(1+offset)) {
+					t.Fatalf("ranking or offset lost: %s", buf.String())
+				}
+			}
+		})
+	}
+}
+
+func TestMetricValidationPreventsRequests(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		t.Fatal("invalid options made a request")
+		return nil, nil
+	})}
+	for _, args := range [][]string{
+		{"top-pages", "--date", "20250230"},
+		{"top-edited", "--month", "202513"},
+		{"top-pages", "--date", "20250101", "--month", "202501"},
+		{"top-pages", "--limit", "-1"},
+		{"top-pages", "--offset", "-1"},
+		{"devices", "--access-site", "mobile-app"},
+		{"editors", "--activity-level", "invalid"},
+		{"edits", "Article", "--page-type", "content"},
+		{"edits", "--editor-type", "robot"},
+		{"new-pages", "--start", "20250102", "--end", "20250101"},
+		{"mediarequests", "--agent", "automated"},
+		{"mediarequests", "--media-type", "invalid"},
+		{"devices", "--granularity", "hourly"},
+	} {
+		cmd := NewCmd()
+		cmd.SetOut(io.Discard)
+		cmd.SetErr(io.Discard)
+		cmd.SetArgs(args)
+		if err := cmd.Execute(); err == nil {
+			t.Errorf("invalid options accepted: %v", args)
+		}
+	}
+	if rows, err := metricRows(nil); err != nil || rows == nil || len(rows) != 0 {
+		t.Fatal("empty results must be an empty array")
+	}
+	if _, err := metricRows([]map[string]interface{}{{"results": "invalid"}}); err == nil {
+		t.Fatal("invalid response silently accepted")
+	}
+}
+
+func TestMetricTableCSVAndJQUseExpandedRows(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"items":[{"project":"en.wikipedia","results":[{"timestamp":"2025-01-01T00:00:00.000Z","new_pages":42}]}]}`))}, nil
+	})}
+	for _, format := range []string{"table", "csv", "jq"} {
+		cmd := NewCmd()
+		var buf bytes.Buffer
+		cmd.SetOut(&buf)
+		args := []string{"new-pages", "--output", format, "--start", "20250101", "--end", "20250101"}
+		if format == "jq" {
+			args = append(args, "--format", ".[].new_pages")
+		}
+		cmd.SetArgs(args)
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		switch format {
+		case "table":
+			if !strings.Contains(buf.String(), "2025-01-01") || !strings.Contains(buf.String(), "42") || strings.Contains(buf.String(), "T00:") {
+				t.Fatalf("bad table date or count: %q", buf.String())
+			}
+		case "csv":
+			if buf.String() != "timestamp,new_pages\n2025-01-01T00:00:00.000Z,42\n" {
+				t.Fatalf("bad CSV fields: %q", buf.String())
+			}
+		case "jq":
+			if buf.String() != "42\n" {
+				t.Fatalf("jq did not see flattened rows: %q", buf.String())
+			}
+		}
+	}
+}
+
+func TestRankingDefaultFindsLatestAvailableDay(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, args := range [][]string{{"top-pages"}, {"top-edited"}, {"mediarequests", "top"}} {
+		requests := 0
+		var paths []string
+		http.DefaultClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			requests++
+			paths = append(paths, r.URL.Path)
+			status, body := http.StatusNotFound, `{"detail":"not loaded yet"}`
+			if requests == 3 {
+				status, body = http.StatusOK, `{"items":[{"rank":1,"article":"First","views":42}]}`
+			}
+			return &http.Response{StatusCode: status, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
+		})}
+		cmd := NewCmd()
+		var out, stderr bytes.Buffer
+		cmd.SetOut(&out)
+		cmd.SetErr(&stderr)
+		cmd.SetArgs(append(append([]string{}, args...), "--output", "json"))
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if requests != 3 || !strings.Contains(out.String(), "First") {
+			t.Fatalf("requests %d, output %s", requests, out.String())
+		}
+		parts := strings.Split(paths[0], "/")
+		firstDate, err := time.Parse("2006/01/02", strings.Join(parts[len(parts)-3:], "/"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, path := range paths {
+			if !strings.HasSuffix(path, firstDate.AddDate(0, 0, -i).Format("2006/01/02")) {
+				t.Fatalf("incorrect lookback: %v", paths)
+			}
+		}
+		if !strings.Contains(stderr.String(), firstDate.AddDate(0, 0, -2).Format("2006-01-02")) {
+			t.Fatalf("actual date not reported: %s", stderr.String())
+		}
+	}
+}
+
+func TestRankingsDoNotHideOtherFailuresOrSearchIndefinitely(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, tc := range []struct {
+		name             string
+		status, requests int
+		args             []string
+	}{
+		{"explicit day", 404, 1, []string{"--date", "20250101"}},
+		{"explicit month", 404, 1, []string{"--month", "202501"}},
+		{"rate limit", 429, 1, nil},
+		{"server error", 503, 1, nil},
+		{"unknown project", 404, 7, []string{"--project", "unknown.wikipedia.org"}},
+		{"no recent data", 404, 7, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			http.DefaultClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				requests++
+				return &http.Response{StatusCode: tc.status, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"detail":"missing"}`))}, nil
+			})}
+			cmd := NewCmd()
+			cmd.SetOut(io.Discard)
+			var stderr bytes.Buffer
+			cmd.SetErr(&stderr)
+			cmd.SetArgs(append([]string{"top-pages", "--output", "graph"}, tc.args...))
+			if err := cmd.Execute(); err == nil {
+				t.Fatal("API failure hidden")
+			}
+			if requests != tc.requests {
+				t.Fatalf("requests: %d, want %d", requests, tc.requests)
+			}
+			if strings.Contains(stderr.String(), "Using rankings") {
+				t.Fatal("failed request reported as fallback success")
+			}
+		})
+	}
+}
