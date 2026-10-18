@@ -5,7 +5,6 @@ variables:
     # Trial only: the production branch keeps native integration disabled.
     GITHUB_NATIVE_INTEGRATION: "1"
     GITHUB_INTEGRATION_REPOSITORY: "addshore/testing"
-    GITHUB_STATUS_BOT_ID: "3072"
 
 default:
   interruptible: true
@@ -83,12 +82,15 @@ include:
 wait-pool-smoke:
   stage: test
   image: python:3.13-alpine
-  tags: [mwcli-wait]
+  tags: [mwcli-wait, "gitlab-runner-addshore-$WAIT_HOST-wait"]
   needs: []
   dependencies: []
   services: []
   cache: []
-  parallel: 3
+  parallel:
+    matrix:
+      - WAIT_HOST: ["1018", "1019"]
+        SLOT: ["1", "2", "3"]
   variables:
     GIT_STRATEGY: none
   script:
