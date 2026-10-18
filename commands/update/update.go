@@ -198,15 +198,18 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 						logrus.Error("could not unzip the downloaded file: "+tempDownloadFilePath, err)
 						os.Exit(1)
 					}
-					// it should contain a dir called bin, and in that a file called mw
-					newMwFileLocation = tempDir + "/bin/mw"
+					newMwFileLocation, err = archiveBinaryPath(tempDir, runtime.GOOS)
+					if err != nil {
+						logrus.Error(err)
+						os.Exit(1)
+					}
 				} else {
 					newMwFileLocation = tempDownloadFilePath
 				}
 
 				// Make sure it exists or error
 				if _, err := os.Stat(newMwFileLocation); os.IsNotExist(err) {
-					logrus.Error(fmt.Errorf("could not find the mw binary in the downloaded file: %s", newMwFileLocation))
+					logrus.Error(fmt.Errorf("could not find the executable in the downloaded file: %s", newMwFileLocation))
 					os.Exit(1)
 				}
 
@@ -294,7 +297,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				if err != nil {
 					logrus.Error(fmt.Errorf("could not fetch release notes for transition %s -> %s: %s", currDetails.Version, targetVersion, err))
 					cmd.Println("You can try running the following command to see the last version's changelog:")
-					cmd.Println("  " + targetVersion.ReleaseNotesCommand())
+					cmd.Println("  " + strings.Replace(targetVersion.ReleaseNotesCommand(), cli.DefaultCommandName+" ", cmd.Root().Name()+" ", 1))
 					cmd.Println("Or view the changelog online:")
 					cmd.Println("  " + targetVersion.ReleasePage())
 				} else {
@@ -458,4 +461,18 @@ func describeVersionTransition(from, to cli.Version) string {
 	}
 
 	return fmt.Sprintf("Updated from %s to %s.", from, to)
+}
+
+// CI archives may contain either command name, independently of the local name.
+func archiveBinaryPath(directory, platform string) (string, error) {
+	for _, name := range cli.BinaryNames() {
+		if platform == "windows" {
+			name += ".exe"
+		}
+		path := filepath.Join(directory, "bin", name)
+		if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("archive contains no supported executable in bin/ for %s", platform)
 }

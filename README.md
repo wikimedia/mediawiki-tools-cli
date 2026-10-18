@@ -1,6 +1,6 @@
-# MediaWiki CLI (`mw`)
+# a Wikimedia CLI
 
-`mw` is a command-line interface for MediaWiki and Wikimedia developers. It provides a set of tools to simplify common tasks, such as managing a local development environment, interacting with GitLab and Gerrit, and more.
+A command-line interface for MediaWiki and Wikimedia developers, currently installed as `mw`. It provides a set of tools to simplify common tasks, such as managing a local development environment, interacting with GitLab and Gerrit, and more.
 
 ## Key Features
 
@@ -38,6 +38,10 @@ We welcome contributions! Please see the following documents for more informatio
 
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: Guidelines for contributing to the project and the workflow we follow.
 - **[DEVELOPMENT.md](DEVELOPMENT.md)**: Detailed instructions on how to set up your local development environment, build the project, and run tests.
+
+### Executable names
+
+`mw` remains the default. The same executable can be renamed or symlinked as `wm` (or another name); help, examples, and generated shell completion follow its invocation name. Both names use the existing `mwcli` configuration and credentials. Build another name with `make BINARY_NAME=wm build`, then run `./bin/wm`.
 
 ### Using a development build
 

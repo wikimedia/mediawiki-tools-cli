@@ -40,9 +40,16 @@ import (
 
 var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
 
+// NewMwCliCmd builds the canonical command tree for documentation and tooling.
 func NewMwCliCmd() *cobra.Command {
+	return NewRootCmd(cli.DefaultCommandName)
+}
+
+// NewRootCmd builds a command tree using the executable's invocation name.
+func NewRootCmd(name string) *cobra.Command {
 	mwcliCmd := &cobra.Command{
-		Use:           "mw",
+		Use:           cli.InvocationName(name),
+		Long:          cli.DisplayName + "\n\nDeveloper utilities for working with MediaWiki and Wikimedia services.",
 		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -112,7 +119,7 @@ func NewMwCliCmd() *cobra.Command {
 			}
 			commandWords = append(commandWords, arg)
 		}
-		mwa := "mw " + strings.Join(commandWords, " ")
+		mwa := mwcliCmd.Name() + " " + strings.Join(commandWords, " ")
 		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
 			logrus.Errorf("unknown command: %s", strings.Join(commandWords, " "))
 			c.Root().Annotations = make(map[string]string)
@@ -123,6 +130,12 @@ func NewMwCliCmd() *cobra.Command {
 		// Help bypasses PersistentPreRun, so load the telemetry preference here too.
 		cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
 		events.AddCommandHelpEvent(c, cli.VersionDetails.Version)
+		originalExample, originalLong := c.Example, c.Long
+		c.Example = cobrautil.CommandExamples(c)
+		if c == mwcliCmd && rootBanner(c) {
+			c.Long = c.Short
+		}
+		defer func() { c.Example, c.Long = originalExample, originalLong }()
 		defaultHelpFunc(c, a)
 	})
 
@@ -160,6 +173,11 @@ func NewMwCliCmd() *cobra.Command {
 		help.NewOutputTopicCmd(),
 	}...)
 
+	if mwcliCmd.Name() != "mw" {
+		cobrautil.VisitAllSubCommands(mwcliCmd, func(c *cobra.Command) {
+			c.Long = strings.ReplaceAll(c.Long, "mw ", mwcliCmd.Name()+" ")
+		})
+	}
 	return mwcliCmd
 }
 
@@ -308,7 +326,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// mwdd mode (always...)
 	cli.MwddIsDevAlias = true
 
-	rootCmd := NewMwCliCmd()
+	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
 	// - Commands can be split into sections based on annotations

@@ -1,4 +1,5 @@
-GONAME=mw
+BINARY_NAME ?= mw
+GOEXE := $(shell go env GOEXE)
 
 SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
@@ -16,7 +17,7 @@ include .bingo/Variables.mk
 .PHONY: build
 build: $(GOVVV) generate
 	@echo "Building $(GOFILES) to ./bin"
-	go build -v -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/mw ./
+	go build -v -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/$(BINARY_NAME)$(GOEXE) ./
 
 # Build first; stdout contains only Bash commands for eval or another terminal.
 .PHONY: dev
@@ -33,10 +34,10 @@ dev:
 
 .PHONY: release
 release: $(GOX) $(GOVVV) generate
-	$(GOX) -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
+	$(GOX) -output="$(RELEASE_DIR)/$(SEMVER)/$(BINARY_NAME)_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
 	rm -f ./_release/latest/*.sha256
-	for f in "$(RELEASE_DIR)"/$(SEMVER)/mw_*; do \
+	for f in "$(RELEASE_DIR)"/$(SEMVER)/$(BINARY_NAME)_*; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
 	done
 

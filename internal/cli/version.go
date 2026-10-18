@@ -42,7 +42,7 @@ func (v Version) ReleasePage() string {
 
 func (v Version) ReleaseNotesCommand() string {
 	if v == "latest" {
-		return "mw gitlab release view --repo repos/releng/cli"
+		return DefaultCommandName + " gitlab release view --repo repos/releng/cli"
 	}
-	return "mw gitlab release view --repo repos/releng/cli " + v.Tag()
+	return DefaultCommandName + " gitlab release view --repo repos/releng/cli " + v.Tag()
 }

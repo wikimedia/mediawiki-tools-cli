@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
 )
 
@@ -21,6 +23,7 @@ func main() {
 	path := "./_docs"
 	dirs.EnsureExists(path)
 	cmdForDocs := cmd.NewMwCliCmd()
+	cobrautil.VisitAllSubCommands(cmdForDocs, func(c *cobra.Command) { c.Example = cobrautil.CommandExamples(c) })
 
 	// Disable this tag while we push docs to MediaWiki pages, to avoid a new edit even if there are no doc changes.
 	// https://phabricator.wikimedia.org/T299976

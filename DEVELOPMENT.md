@@ -1,6 +1,6 @@
 # Development Guide
 
-This document provides detailed information for developers who want to contribute to the `mwcli` project.
+This document provides detailed information for developers contributing to a Wikimedia CLI.
 
 ## Environment Setup
 
@@ -232,3 +232,9 @@ make docs
 # To publish (requires credentials)
 make user="someUser" password="somePassword" docs-publish
 ```
+
+### Naming and releases
+
+The display brand is `a Wikimedia CLI`; `mw` remains the default command name. `make BINARY_NAME=wm build` builds `bin/wm`, and `make BINARY_NAME=wm release` selects the release filename prefix. Help and shell completion use the invoked executable name; generated documentation uses `cli.DefaultCommandName`. Configuration paths, telemetry streams, package-registry identity, and the Go module path retain their existing identities during the transition.
+
+Each platform has one uploaded executable and checksum. When publishing `wm_…` assets, release metadata adds legacy `mw_…` links through the canonical release download URL, preserving old updaters without uploading duplicate binaries. New updaters accept either prefix and either `bin/mw` or `bin/wm` in CI archives (`.exe` on Windows); updates preserve the installed executable's path and name.
