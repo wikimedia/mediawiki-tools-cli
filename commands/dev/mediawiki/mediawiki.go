@@ -37,6 +37,7 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "mediawiki",
 		Short:   "MediaWiki service",
+		Long:    "Create and manage MediaWiki, fetch code, and run maintenance or development tools.\n\nPHP debugging: https://www.mediawiki.org/wiki/Cli/guide/Xdebug\nBrowser tests and recording: https://www.mediawiki.org/wiki/Cli/guide/Fresh",
 		GroupID: "service",
 		Aliases: []string{"mw"},
 		RunE:    nil,

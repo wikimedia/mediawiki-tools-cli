@@ -17,10 +17,11 @@ var devMediawikiFreshLong string
 
 func NewMediaWikiFreshCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "fresh [flags] [fresh-commands]... -- [fresh-args]",
-		Short: "Runs commands in a 'fresh' container.",
-		Args:  cobra.MinimumNArgs(1),
-		Long:  cli.RenderMarkdown(devMediawikiFreshLong),
+		Use:     "fresh [flags] [fresh-commands]... -- [fresh-args]",
+		Short:   "Runs commands in a 'fresh' container.",
+		Args:    cobra.MinimumNArgs(1),
+		Long:    cli.RenderMarkdown(devMediawikiFreshLong),
+		Example: cobrautil.NormalizeExample("fresh bash\nfresh npm ci"),
 		Run: func(cmd *cobra.Command, args []string) {
 			devenv.DefaultForUser().EnsureReady()
 			err := devenv.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{

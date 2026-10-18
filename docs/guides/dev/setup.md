@@ -46,3 +46,5 @@ mw dev mediawiki get-code --skin MinervaNeue
 Fetching an extension or skin does not enable it. Configure it in your checkout's `LocalSettings.php` and run any required MediaWiki updates.
 
 Use `mw dev SERVICE --help` for service commands. See the existing [service interaction](services.md), [MediaWiki](mediawiki.md) and [database](databases.md) guides for more workflows.
+
+Use [contexts](contexts.md) for separate environments, or [change the HTTP port](ports.md) of an existing environment.

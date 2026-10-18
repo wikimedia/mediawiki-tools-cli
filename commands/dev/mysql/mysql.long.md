@@ -1,12 +1,5 @@
-# Mysql Service
+# MySQL service
 
-## Exposing locally
+Manage the bundled MariaDB service. Use `mysql` to open its database client; a host database port is not required.
 
-To expose the MySQL service locally, you can set the `MYSQL_PORT_3306` environment variable to a port on your host machine.
-
-For example, to expose the MySQL service on port 3306:
-
-```bash
-mw dev env set MYSQL_PORT_3306 3306
-mw dev mysql create
-```
+See [database services](https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Databases) for connection settings, or [MySQL dumps](https://www.mediawiki.org/wiki/Cli/guide/MySQL_dumps) for importing and exporting SQL without a terminal.

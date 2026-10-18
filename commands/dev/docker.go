@@ -79,6 +79,7 @@ func NewCmd() *cobra.Command {
 		GroupID: "dev",
 		Short:   "Manage a development environment",
 		Long:    cli.RenderMarkdown(dockerLong),
+		Example: cobrautil.NormalizeExample("dev mediawiki create\ndev mysql create\ndev mediawiki install --dbtype=mysql"),
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
@@ -173,7 +174,7 @@ func NewCmd() *cobra.Command {
 		Title: "Service Commands",
 	})
 
-	cmd.PersistentFlags().StringVarP(&devenv.Context, "context", "c", defaultContext(), "The context to use")
+	cmd.PersistentFlags().StringVarP(&devenv.Context, "context", "c", defaultContext(), "Development context to use (overrides CONTEXT)")
 	// Parse PersistentFlags early so that the context is already known to other commands that are added
 	err := cmd.PersistentFlags().Parse(os.Args[1:])
 	if err != nil {
