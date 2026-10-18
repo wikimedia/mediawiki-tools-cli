@@ -31,7 +31,7 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 	if fileInfo, err := os.Stat(urlStr); err == nil && !fileInfo.IsDir() {
 		file, err := os.Open(urlStr)
 		if err != nil {
-			logrus.Fatal(err)
+			return nil, fmt.Errorf("open update file %q: %w", urlStr, err)
 		}
 
 		resp := &http.Response{
@@ -52,14 +52,14 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 		// Parse the file URL to get the path
 		parsedURL, err := url.Parse(urlStr)
 		if err != nil {
-			logrus.Fatal(err)
+			return nil, fmt.Errorf("parse update file URL %q: %w", urlStr, err)
 		}
 		filePath := parsedURL.Path
 
 		// Open the file
 		file, err := os.Open(filePath)
 		if err != nil {
-			logrus.Fatal(err)
+			return nil, fmt.Errorf("open update file %q: %w", filePath, err)
 		}
 
 		// Get file info for content length
@@ -68,7 +68,7 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 			if closeErr := file.Close(); closeErr != nil {
 				logrus.Warn(closeErr)
 			}
-			logrus.Fatal(err)
+			return nil, fmt.Errorf("stat update file %q: %w", filePath, err)
 		}
 
 		// Create a fake HTTP response for the file
@@ -95,7 +95,13 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 
 	resp, err := client.Get(urlStr)
 	if err != nil {
-		logrus.Fatal(err)
+		return nil, fmt.Errorf("download update %q: %w", urlStr, err)
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			logrus.Warn(closeErr)
+		}
+		return nil, fmt.Errorf("download update %q: unexpected HTTP status %s", urlStr, resp.Status)
 	}
 
 	return resp, nil

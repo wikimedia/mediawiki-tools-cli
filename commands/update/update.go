@@ -34,7 +34,7 @@ func Cmd() *cobra.Command {
 update --version=v0.10.0 --no-interaction
 update --force
 update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			currDetails := cli.VersionDetails
 			var targetVersion cli.Version
 			var targetArtifact string
@@ -119,8 +119,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			if !dryRun {
 				response, err := updater.DownloadFileResponse(targetArtifact)
 				if err != nil {
-					cmd.Println(err)
-					os.Exit(1)
+					return fmt.Errorf("could not download update: %w", err)
 				}
 				defer response.Body.Close()
 
@@ -314,6 +313,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 					}
 				}
 			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
