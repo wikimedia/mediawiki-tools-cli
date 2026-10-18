@@ -25,7 +25,7 @@ func NewConfigSetCmd() *cobra.Command {
 				logrus.Error(err)
 				os.Exit(1)
 			}
-			fmt.Println("Set " + keyName + " to " + value)
+			fmt.Println("Set " + keyName)
 		},
 	}
 }

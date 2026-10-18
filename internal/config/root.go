@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"os"
@@ -24,27 +23,15 @@ func Path() string {
 }
 
 func ensureExists() {
-	logrus.Trace("ensuring config exists")
-	if _, err := os.Stat(Path()); err != nil {
-		logrus.Trace("config does not exist. Creating...")
-		err := os.MkdirAll(strings.Replace(Path(), "config.json", "", -1), 0o700)
-		if err != nil {
+	if err := secureConfigPath(); err != nil {
+		logrus.Fatal(err)
+	}
+	if _, err := os.Lstat(Path()); os.IsNotExist(err) {
+		if err := writePrivateConfig([]byte("{}")); err != nil {
 			logrus.Fatal(err)
 		}
-		file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		defer file.Close()
-		w := bufio.NewWriter(file)
-		_, err = w.WriteString("{}")
-		if err != nil {
-			panic(err)
-		}
-		flushErr := w.Flush()
-		if flushErr != nil {
-			logrus.Error(flushErr)
-		}
+	} else if err != nil {
+		logrus.Fatal(err)
 	}
 }
 
@@ -145,17 +132,13 @@ func load() *koanf.Koanf {
 	preload()
 
 	logrus.Trace("loading config")
-	logrus.Trace(PrettyPrint(k))
 	logrus.Trace("loading defaults")
 	loadDefaults()
-	logrus.Trace(PrettyPrint(k))
 	logrus.Trace("loading json")
 	f := file.Provider(Path())
 	loadJson(k, f)
 	loadJson(kOnDisk, f)
-	logrus.Trace(PrettyPrint(k))
 	logrus.Trace("loading env")
-	PrettyPrint(k)
 	loadEnv()
 	c = koanfToConfig(k)
 	cOnDisk = koanfToConfig(kOnDisk)
@@ -202,45 +185,28 @@ func PutDiskConfig(kToPut *koanf.Koanf) error {
 	if err != nil {
 		return err
 	}
-	// XXX: TODO validate, and check, this probably doesn't apply deletes correctly
 	ReApplyKoanfConf(kToPut)
 	return nil
 }
 
 func putDiskConfig(kToPut *koanf.Koanf) error {
-	logrus.Tracef("putting config on disk: %s", PrettyPrint(kToPut))
-	bytes, err := Marshal(kToPut)
+	logrus.Trace("persisting configuration")
+	data, err := Marshal(kToPut)
 	if err != nil {
 		return err
 	}
-
-	file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	w := bufio.NewWriter(file)
-	_, err = w.WriteString(string(bytes))
-	if err != nil {
-		return err
-	}
-	flushErr := w.Flush()
-	if flushErr != nil {
-		return flushErr
-	}
-	return nil
+	return writePrivateConfig(data)
 }
 
 func PutKeyValueOnDisk(key string, value string) error {
-	logrus.Tracef("setting %s to %s", key, value)
-	odk := State().OnDiskKoanf
+	logrus.Trace("updating a configuration setting")
+	odk := State().OnDiskKoanf.Copy()
 	odk.Set(key, value)
 	return PutDiskConfig(odk)
 }
 
 func DeleteKeyValueFromDisk(key string) error {
-	odk := State().OnDiskKoanf
+	odk := State().OnDiskKoanf.Copy()
 	odk.Delete(key)
 	return PutDiskConfig(odk)
 }
@@ -256,10 +222,13 @@ func soloPutKeyValueOnDisk(key string, value string) error {
 }
 
 func ReApplyKoanfConf(override *koanf.Koanf) {
-	k.Merge(override)
-	kOnDisk.Merge(override)
-	c = koanfToConfig(k)
+	kOnDisk = override.Copy()
 	cOnDisk = koanfToConfig(kOnDisk)
+	k = koanf.New(".")
+	loadDefaults()
+	_ = k.Merge(kOnDisk)
+	loadEnv()
+	c = koanfToConfig(k)
 }
 
 func loadDefaults() {
