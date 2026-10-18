@@ -18,11 +18,15 @@ import (
 //go:embed update-code.long.md
 var updateCodeLong string
 
+//go:embed update-code.example
+var updateCodeExample string
+
 func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 	var dryRun, composer bool
 	var mode string
 	cmd := &cobra.Command{
-		Use: "update-code", Short: "Update core, skin and extension checkouts", Long: cli.RenderMarkdown(updateCodeLong), Args: cobra.NoArgs,
+		Example: cobrautil.NormalizeExample(updateCodeExample),
+		Use:     "update-code", Short: "Update core, skin and extension checkouts", Long: cli.RenderMarkdown(updateCodeLong), Args: cobra.NoArgs,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if !composer || dryRun {
 				// Git-only updates need mw's setup, but no Docker daemon,
