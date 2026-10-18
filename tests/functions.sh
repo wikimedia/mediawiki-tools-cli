@@ -372,3 +372,38 @@ _finish_wrapper() {
     fi
     finish
 }
+
+# Issue simultaneous requests without retries, so transient HTTP failures fail the test.
+test_wget_parallel() {
+    local url="$1"
+    local expected_match="$2"
+    local count="${3:-8}"
+    local response_dir
+    response_dir=$(mktemp -d)
+    local pids=()
+    local request
+    for ((request = 0; request < count; request++)); do
+        (
+            local response="$response_dir/$request"
+            if ! curl --fail --silent --show-error --max-time 60 "$url" -o "$response" ||
+                ! grep -Fq -- "$expected_match" "$response"; then
+                echo "FAIL: parallel request $request to $url"
+                cat "$response" 2>/dev/null || true
+                exit 1
+            fi
+        ) &
+        pids+=("$!")
+    done
+    local failed=0
+    local pid
+    for pid in "${pids[@]}"; do
+        if ! wait "$pid"; then
+            failed=1
+        fi
+    done
+    rm -rf "$response_dir"
+    if [ "$failed" -eq 0 ]; then
+        echo "PASS: $count parallel requests to $url contain $expected_match"
+    fi
+    return "$failed"
+}

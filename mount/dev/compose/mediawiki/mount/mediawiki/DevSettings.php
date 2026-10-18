@@ -261,6 +261,32 @@ if( $dockerDbType === 'sqlite' ) {
 			'load' => 1,
 		],
 	];
+
+    // Mirror SqliteInstaller::getLocalSettings(): cache and job writes must not
+    // share the main wiki's deferred read transaction. Otherwise simultaneous
+    // requests can hit SQLITE_BUSY and poison that transaction (T330940).
+    $wgSQLiteDataDir = $IP . '/cache/docker';
+    $sqliteAuxiliaryServer = [
+        'type' => 'sqlite',
+        'tablePrefix' => '',
+        'variables' => [ 'synchronous' => 'NORMAL' ],
+        'dbDirectory' => $wgSQLiteDataDir,
+        'trxMode' => 'IMMEDIATE',
+        'flags' => 0,
+    ];
+    $wgObjectCaches[CACHE_DB] = [
+        'class' => 'SqlBagOStuff',
+        'loggroup' => 'SQLBagOStuff',
+        'server' => $sqliteAuxiliaryServer + [ 'dbname' => 'wikicache' ],
+    ];
+    $wgLocalisationCacheConf['storeServer'] = $sqliteAuxiliaryServer + [
+        'dbname' => $dockerDb . '_l10n_cache',
+    ];
+    $wgJobTypeConf['default'] = [
+        'class' => 'JobQueueDB',
+        'claimTTL' => 3600,
+        'server' => $sqliteAuxiliaryServer + [ 'dbname' => $dockerDb . '_jobqueue' ],
+    ];
 }
 
 if( $dockerDbType === 'mysql' ) {

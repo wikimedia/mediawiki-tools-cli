@@ -87,9 +87,12 @@ if [ "$replica_site_stats_table" != "site_stats" ]; then
 fi
 echo "PASS: mysqlwiki.site_stats replicated to mysql-replica"
 
-# This is currently disabled, as Warning: you have SQLite 3.27.2, which is lower than minimum required version 3.31.0. SQLite will be unavailable.
-# This is due to still using an older mediawiki image due to https://phabricator.wikimedia.org/T388411
-# test_command_success ./bin/mw dev mediawiki install --dbtype sqlite
+# The bundled bookworm PHP image has a supported SQLite version.
+test_command_success ./bin/mw dev mediawiki install --dbname sqlitewiki --dbtype sqlite
+# Version loads database-backed language messages (T364085), not only connection setup.
+test_command_success ./bin/mw dev mediawiki mwscript MW_DB=sqlitewiki Version
+test_command ./bin/mw dev mediawiki mwscript MW_DB=sqlitewiki Version "MediaWiki version:"
+
 
 # Test foreachwiki
 test_command_success ./bin/mw dev mediawiki foreachwiki showSiteStats.php
@@ -124,7 +127,9 @@ test_command_success ./bin/mw dev mediawiki exec -- curl --noproxy '*' --connect
 test_command_success ./bin/mw dev mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://mysqlwiki.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page
 
 # And check the installed sites (mysql, postgres, sqlite)
-# test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+test_wget http://sqlitewiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+# Concurrent cold/cache writes must not leave a transaction in ERROR (T330940).
+test_wget_parallel "http://sqlitewiki.mediawiki.local.wmftest.net:$PORT/w/index.php?title=Special:RecentChanges&hidebots=1&limit=50&days=7&enhanced=1&urlversion=2" "Recent changes" 8
 test_wget http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 # Follow the gateway redirect; local HTTP must not redirect to an HTTPS listener.
