@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 type fakeLifecycleProject struct {
@@ -14,6 +15,19 @@ type fakeLifecycleProject struct {
 	failure                                               error
 	stopFailure                                           error
 	calls                                                 int
+}
+
+func (p *fakeLifecycleProject) ServiceStatuses() ([]dockercompose.ServiceStatus, error) {
+	if p.failure != nil {
+		return nil, p.failure
+	}
+	var result []dockercompose.ServiceStatus
+	for status, names := range map[string][]string{"running": p.running, "exited": p.exited, "created": p.created} {
+		for _, name := range names {
+			result = append(result, dockercompose.ServiceStatus{Name: name, State: status})
+		}
+	}
+	return result, nil
 }
 
 func (p *fakeLifecycleProject) ServicesWithStatus(status string) ([]string, error) {
@@ -145,14 +159,14 @@ func TestSuspendRetryPreservesPartlyStoppedServices(t *testing.T) {
 			if !reflect.DeepEqual(p.started, []string{"mediawiki", "mysql"}) {
 				t.Fatalf("resumed %v", p.started)
 			}
-			// A fresh suspension must not merge an old completed snapshot.
+			// A fresh suspension preserves wanted services even if they crashed or stopped externally.
 			p.running = []string{"mysql"}
 			if err := suspendDevelopmentServices(m, p); err != nil {
 				t.Fatal(err)
 			}
 			wanted, _, err = m.ResumeServices()
-			if err != nil || !reflect.DeepEqual(wanted, []string{"mysql"}) {
-				t.Fatalf("new suspension retained stale services: wanted=%v err=%v", wanted, err)
+			if err != nil || !reflect.DeepEqual(wanted, []string{"mediawiki", "mysql"}) {
+				t.Fatalf("new suspension lost running intent: wanted=%v err=%v", wanted, err)
 			}
 		})
 	}
@@ -164,7 +178,7 @@ func TestLegacyResumeAndRunningOnlyRestart(t *testing.T) {
 	if err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(p.started, []string{"created", "existing"}) {
+	if len(p.started) != 0 {
 		t.Fatal(p.started)
 	}
 	if err := restartDevelopmentServices(p); err != nil {
@@ -194,7 +208,7 @@ func TestResumeAfterFailedStopEndsPendingSuspension(t *testing.T) {
 		t.Fatal(err)
 	}
 	wanted, _, err := m.ResumeServices()
-	if err != nil || !reflect.DeepEqual(wanted, []string{"mysql"}) {
-		t.Fatalf("resume left an old suspension pending: %v %v", wanted, err)
+	if err != nil || !reflect.DeepEqual(wanted, []string{"mediawiki", "mysql"}) {
+		t.Fatalf("resume lost desired services during suspension: %v %v", wanted, err)
 	}
 }

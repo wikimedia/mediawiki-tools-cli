@@ -18,34 +18,36 @@ func NewDevDestroyCmd() *cobra.Command {
 		Short:   "Destroy all containers and data",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			err := m.DockerCompose().Down(dockercompose.DownOptions{
-				Volumes:       true,
-				RemoveOrphans: true,
-				Timeout:       1,
-			})
-			if err != nil {
-				return err
-			}
-			if err := m.ClearResumeServices(); err != nil {
-				return err
-			}
-			logrus.Debug("Removing used hosts file")
-			m.RemoveUsedHostsIfExists()
-
-			if err := cleanupRecipeRuntimeState(m, false); err != nil {
-				return err
-			}
-
-			mediaWikiPath := m.Env().Get("MEDIAWIKI_VOLUMES_CODE")
-			if mediaWikiPath != "" {
-				localSettingsDPath := filepath.Clean(filepath.Join(mediaWikiPath, "LocalSettings.d"))
-				// Remove recipe-managed files from LocalSettings.d
-				// Note: We do NOT delete LocalSettings.php as it may contain user edits
-				if err := cleanupRecipeLocalSettingsDFiles(localSettingsDPath); err != nil && !os.IsNotExist(err) {
+			return m.WithServiceLifecycle(cmd.Context(), func() error {
+				err := m.DockerCompose().Down(dockercompose.DownOptions{
+					Volumes:       true,
+					RemoveOrphans: true,
+					Timeout:       1,
+				})
+				if err != nil {
 					return err
 				}
-			}
-			return nil
+				if err := m.ClearResumeServices(); err != nil {
+					return err
+				}
+				logrus.Debug("Removing used hosts file")
+				m.RemoveUsedHostsIfExists()
+
+				if err := cleanupRecipeRuntimeState(m, false); err != nil {
+					return err
+				}
+
+				mediaWikiPath := m.Env().Get("MEDIAWIKI_VOLUMES_CODE")
+				if mediaWikiPath != "" {
+					localSettingsDPath := filepath.Clean(filepath.Join(mediaWikiPath, "LocalSettings.d"))
+					// Remove recipe-managed files from LocalSettings.d
+					// Note: We do NOT delete LocalSettings.php as it may contain user edits
+					if err := cleanupRecipeLocalSettingsDFiles(localSettingsDPath); err != nil && !os.IsNotExist(err) {
+						return err
+					}
+				}
+				return nil
+			})
 		},
 	}
 	cmd.Annotations = make(map[string]string)

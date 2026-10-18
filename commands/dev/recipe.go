@@ -1,6 +1,7 @@
 package dev
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -808,10 +809,12 @@ func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool)
 				fmt.Printf("[dry-run] docker compose up -d for service file %s (%v)\n", svc.Name, names)
 				continue
 			}
-			if err := m.PrepareGateway(); err != nil {
-				return err
-			}
-			if err := m.DockerCompose().Up(names, dockercompose.UpOptions{Detached: true}); err != nil {
+			if err := m.ChangeServices(context.Background(), names, devenv.ServiceStarted, func() error {
+				if err := m.PrepareGateway(); err != nil {
+					return err
+				}
+				return m.DockerCompose().Up(names, dockercompose.UpOptions{Detached: true})
+			}); err != nil {
 				return err
 			}
 		case "stopped":
@@ -819,7 +822,9 @@ func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool)
 				fmt.Printf("[dry-run] docker compose stop for service file %s (%v)\n", svc.Name, names)
 				continue
 			}
-			if err := m.DockerCompose().Stop(names); err != nil {
+			if err := m.ChangeServices(context.Background(), names, devenv.ServiceStopped, func() error {
+				return m.DockerCompose().Stop(names)
+			}); err != nil {
 				return err
 			}
 		}

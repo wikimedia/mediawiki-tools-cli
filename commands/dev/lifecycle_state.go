@@ -5,20 +5,31 @@ import (
 	"sort"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
 type lifecycleProject interface {
-	ServicesWithStatus(string) ([]string, error)
+	ServiceStatuses() ([]dockercompose.ServiceStatus, error)
 	StartContainers([]string) error
 	Stop([]string) error
 	Restart([]string) error
 }
 
 func suspendDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
-	running, err := p.ServicesWithStatus("running")
+	inventory, err := p.ServiceStatuses()
 	if err != nil {
-		return fmt.Errorf("list running containers: %w", err)
+		return err
 	}
+	if err := m.EnsureServiceIntent(inventory); err != nil {
+		return err
+	}
+	var running []string
+	for _, service := range inventory {
+		if service.State == "running" {
+			running = append(running, service.Name)
+		}
+	}
+	sort.Strings(running)
 	// Persist before stop, so a partial stop failure still leaves a resume target.
 	if err := m.BeginSuspendServices(running); err != nil {
 		return err
@@ -32,29 +43,25 @@ func suspendDevelopmentServices(m devenv.Environment, p lifecycleProject) error 
 }
 
 func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
-	wanted, hasSnapshot, err := m.ResumeServices()
+	inventory, err := p.ServiceStatuses()
 	if err != nil {
 		return err
 	}
-	// Compose calls this state exited, not stopped. Include created containers for
-	// legacy contexts that have never recorded a suspend set.
-	stopped, err := p.ServicesWithStatus("exited")
-	if err != nil {
-		return fmt.Errorf("list exited containers: %w", err)
+	if err := m.EnsureServiceIntent(inventory); err != nil {
+		return err
 	}
-	created, err := p.ServicesWithStatus("created")
+	wanted, _, err := m.ResumeServices()
 	if err != nil {
-		return fmt.Errorf("list created containers: %w", err)
+		return err
 	}
-	available := append(stopped, created...)
-	selected := map[string]bool{}
-	intent := map[string]bool{}
+	intent := make(map[string]bool, len(wanted))
 	for _, name := range wanted {
 		intent[name] = true
 	}
-	for _, name := range available {
-		if !hasSnapshot || intent[name] {
-			selected[name] = true
+	selected := map[string]bool{}
+	for _, service := range inventory {
+		if !service.OneShot && intent[service.Name] && (service.State == "exited" || service.State == "created") {
+			selected[service.Name] = true
 		}
 	}
 	targets := make([]string, 0, len(selected))
@@ -73,10 +80,17 @@ func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
 }
 
 func restartDevelopmentServices(p lifecycleProject) error {
-	running, err := p.ServicesWithStatus("running")
+	inventory, err := p.ServiceStatuses()
 	if err != nil {
 		return fmt.Errorf("list running containers: %w", err)
 	}
+	var running []string
+	for _, service := range inventory {
+		if service.State == "running" && !service.OneShot {
+			running = append(running, service.Name)
+		}
+	}
+	sort.Strings(running)
 	if len(running) == 0 {
 		return nil
 	}

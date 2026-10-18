@@ -14,6 +14,7 @@ type UpOptions struct {
 	Detached      bool
 	ForceRecreate bool
 	Build         bool
+	NoDeps        bool
 }
 
 func (p Project) Up(services []string, opts UpOptions) error {
@@ -26,6 +27,9 @@ func (p Project) Up(services []string, opts UpOptions) error {
 	}
 	if opts.Build {
 		args = append(args, "--build")
+	}
+	if opts.NoDeps {
+		args = append(args, "--no-deps")
 	}
 	args = append(args, services...)
 	return p.Command(append([]string{"up"}, args...)).RunAttached()
@@ -142,7 +146,7 @@ func (p Project) VolumesRm(volumes []string) error {
 
 /*ServicesWithStatus lists services in the docker compose setup that have the given status.*/
 func (p Project) ServicesWithStatus(statusFilter string) ([]string, error) {
-	stdout, stderr, err := p.Command([]string{"ps", "--services", "--filter", "status=" + statusFilter}).RunAndCollect()
+	stdout, stderr, err := p.Command([]string{"ps", "--all", "--services", "--filter", "status=" + statusFilter}).RunAndCollect()
 
 	serviceList := stringsutil.SplitMultiline(strings.Trim(stdout.String(), "\n"))
 	if stderr.String() != "" || err != nil {

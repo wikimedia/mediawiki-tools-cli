@@ -42,7 +42,9 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 			`compose\/traefik\/auth\/.*`,
 			// Generated display metadata; contains names and hosts only.
 			`^dashboard-services\.json$`,
-			// Suspended services are runtime state, not embedded assets.
+			// Service intent, transaction locks and atomic-write temporary files are runtime state.
+			`^\.(?:service-lifecycle|service-state)\.lock$`,
+			`^\.resume-services-.*$`,
 			`^state-suspended-services\.json$`,
 			// Applied recipe records must survive until the next recipe cleanup.
 			`^\.mwcli-recipe-state\.json$`,

@@ -1,6 +1,7 @@
 package devenv
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,8 @@ import (
 type resumeState struct {
 	Version        int      `json:"version"`
 	Services       []string `json:"services"`
+	Stopped        []string `json:"stopped,omitempty"`
+	OneShot        []string `json:"one_shot,omitempty"`
 	SuspendPending bool     `json:"suspend_pending,omitempty"`
 }
 
@@ -39,10 +42,10 @@ func (m Environment) readResumeState() (resumeState, bool, error) {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return resumeState{}, true, fmt.Errorf("read resume state: %w", err)
 	}
-	if state.Version != 1 {
+	if state.Version != 1 && state.Version != 2 {
 		return resumeState{}, true, fmt.Errorf("unsupported resume state version %d", state.Version)
 	}
-	for _, name := range state.Services {
+	for _, name := range append(append(append([]string{}, state.Services...), state.Stopped...), state.OneShot...) {
 		if !resumeServiceName.MatchString(name) {
 			return resumeState{}, true, fmt.Errorf("invalid service name in resume state %q", name)
 		}
@@ -50,56 +53,91 @@ func (m Environment) readResumeState() (resumeState, bool, error) {
 	return state, true, nil
 }
 
+// SaveResumeServices replaces a legacy suspend snapshot. Lifecycle actions use
+// EnsureServiceIntent and ChangeServices so stopped-service records are retained.
 func (m Environment) SaveResumeServices(services []string) error {
-	return m.saveResumeState(resumeState{Version: 1, Services: services})
+	return m.mutateResumeState(func(state *resumeState, exists bool) error {
+		*state = resumeState{Version: 1, Services: services}
+		return nil
+	})
 }
 
 // BeginSuspendServices preserves the full target set while retrying an
-// incomplete stop. A fresh stop records only the currently running services.
+// incomplete stop. Version-two records also retain desired services which are
+// temporarily not running, such as after a machine restart.
 func (m Environment) BeginSuspendServices(running []string) error {
-	state, exists, err := m.readResumeState()
-	if err != nil {
-		return err
-	}
-	if state.SuspendPending {
-		state.Services = append(state.Services, running...)
-	} else if len(running) == 0 && exists {
+	return m.mutateResumeState(func(state *resumeState, exists bool) error {
+		if state.Version == 2 {
+			// A machine restart or crash must not erase recorded running intent.
+			stopped := serviceNameSet(append(append([]string{}, state.Stopped...), state.OneShot...))
+			for _, name := range running {
+				if !stopped[name] {
+					state.Services = append(state.Services, name)
+				}
+			}
+		} else if state.SuspendPending {
+			state.Services = append(state.Services, running...)
+		} else if len(running) == 0 && exists {
+			return nil
+		} else {
+			state.Services = running
+		}
+		if state.Version == 0 {
+			state.Version = 1
+		}
+		state.SuspendPending = true
 		return nil
-	} else {
-		state.Services = running
-	}
-	state.Version = 1
-	state.SuspendPending = true
-	return m.saveResumeState(state)
+	})
 }
 
-// CompleteSuspendServices ends retry tracking after a successful stop or resume.
+// CompleteSuspendServices ends retry tracking without discarding running intent.
 func (m Environment) CompleteSuspendServices() error {
-	state, exists, err := m.readResumeState()
-	if err != nil {
-		return err
-	}
-	if !exists || !state.SuspendPending {
+	return m.mutateResumeState(func(state *resumeState, exists bool) error {
+		if exists {
+			state.SuspendPending = false
+		}
 		return nil
-	}
-	state.SuspendPending = false
-	return m.saveResumeState(state)
+	})
+}
+
+// mutateResumeState holds a separate state lock so exported state APIs remain
+// safe even when called outside the broader lifecycle-operation lock.
+func (m Environment) mutateResumeState(change func(*resumeState, bool) error) error {
+	return m.withServiceLock(context.Background(), ".service-state.lock", func() error {
+		state, exists, err := m.readResumeState()
+		if err != nil {
+			return err
+		}
+		if err := change(&state, exists); err != nil {
+			return err
+		}
+		if state.Version == 0 {
+			return nil
+		}
+		return m.saveResumeState(state)
+	})
 }
 
 func (m Environment) saveResumeState(state resumeState) error {
-	unique := map[string]bool{}
-	for _, name := range state.Services {
-		if !resumeServiceName.MatchString(name) {
-			return fmt.Errorf("invalid resume service name %q", name)
+	for _, names := range [][]string{state.Services, state.Stopped, state.OneShot} {
+		for _, name := range names {
+			if !resumeServiceName.MatchString(name) {
+				return fmt.Errorf("invalid resume service name %q", name)
+			}
 		}
-		unique[name] = true
 	}
-	names := make([]string, 0, len(unique))
-	for name := range unique {
-		names = append(names, name)
+	running := serviceNameSet(state.Services)
+	stopped := serviceNameSet(state.Stopped)
+	for _, name := range state.OneShot {
+		delete(running, name)
+		stopped[name] = true
 	}
-	sort.Strings(names)
-	state.Services = names
+	for name := range running {
+		delete(stopped, name)
+	}
+	state.Services = sortedServiceNames(running)
+	state.Stopped = sortedServiceNames(stopped)
+	state.OneShot = sortedServiceNames(serviceNameSet(state.OneShot))
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return err
@@ -117,59 +155,82 @@ func (m Environment) saveResumeState(state resumeState) error {
 		_ = file.Close()
 		return err
 	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return err
+	}
 	if err := file.Close(); err != nil {
 		return err
 	}
 	return os.Rename(path, m.resumeStatePath())
 }
 
-// UpdateResumeServices records explicit CLI service actions only when a snapshot
-// already exists. Direct Docker/Compose actions are intentionally not inferred.
+// UpdateResumeServices changes running/stopped intent after an explicit action.
+// Runtime callers initialize the inventory before mutating Docker.
 func (m Environment) UpdateResumeServices(services []string, add bool) error {
-	state, exists, err := m.readResumeState()
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return nil
-	}
-	wanted := map[string]bool{}
-	for _, name := range state.Services {
-		wanted[name] = true
-	}
-	for _, name := range services {
-		if add {
-			wanted[name] = true
-		} else {
-			delete(wanted, name)
+	return m.mutateResumeState(func(state *resumeState, exists bool) error {
+		if !exists {
+			state.Version = 2
 		}
-	}
-	state.Services = nil
-	for name := range wanted {
-		state.Services = append(state.Services, name)
-	}
-	return m.saveResumeState(state)
+		running, stopped := serviceNameSet(state.Services), serviceNameSet(state.Stopped)
+		for _, name := range services {
+			if add {
+				running[name] = true
+				delete(stopped, name)
+			} else {
+				delete(running, name)
+				if state.Version == 2 {
+					stopped[name] = true
+				}
+			}
+		}
+		state.Services, state.Stopped = sortedServiceNames(running), sortedServiceNames(stopped)
+		return nil
+	})
 }
 
+// MergeRunningResumeServices adopts the current inventory and records running
+// services. New lifecycle commands use ChangeServices to scope explicit changes.
 func (m Environment) MergeRunningResumeServices() error {
-	_, exists, err := m.ResumeServices()
+	inventory, err := m.DockerCompose().ServiceStatuses()
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return nil
-	}
-	running, err := m.DockerCompose().ServicesWithStatus("running")
-	if err != nil {
+	if err := m.EnsureServiceIntent(inventory); err != nil {
 		return err
+	}
+	var running []string
+	for _, service := range inventory {
+		if service.State == "running" && !service.OneShot {
+			running = append(running, service.Name)
+		}
 	}
 	return m.UpdateResumeServices(running, true)
 }
 
 func (m Environment) ClearResumeServices() error {
-	err := os.Remove(m.resumeStatePath())
-	if os.IsNotExist(err) {
-		return nil
+	return m.withServiceLock(context.Background(), ".service-state.lock", func() error {
+		err := os.Remove(m.resumeStatePath())
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	})
+}
+
+func serviceNameSet(names []string) map[string]bool {
+	result := make(map[string]bool, len(names))
+	for _, name := range names {
+		result[name] = true
 	}
-	return err
+	return result
+}
+
+func sortedServiceNames(names map[string]bool) []string {
+	result := make([]string, 0, len(names))
+	for name := range names {
+		result = append(result, name)
+	}
+	sort.Strings(result)
+	return result
 }

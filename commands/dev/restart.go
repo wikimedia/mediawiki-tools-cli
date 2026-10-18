@@ -13,7 +13,17 @@ func NewDevRestartCmd() *cobra.Command {
 		GroupID: "core",
 		Short:   "Restart the running containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return restartDevelopmentServices(devenv.DefaultForUser().DockerCompose())
+			m := devenv.DefaultForUser()
+			return m.WithServiceLifecycle(cmd.Context(), func() error {
+				inventory, err := m.DockerCompose().ServiceStatuses()
+				if err != nil {
+					return err
+				}
+				if err := m.EnsureServiceIntent(inventory); err != nil {
+					return err
+				}
+				return restartDevelopmentServices(m.DockerCompose())
+			})
 		},
 	}
 	cmd.Annotations = make(map[string]string)

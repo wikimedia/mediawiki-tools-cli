@@ -1,6 +1,7 @@
 package traefik
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -80,10 +81,13 @@ func NewCmd() *cobra.Command {
 // StartGateway prepares authentication and starts the default Traefik proxy.
 func StartGateway() error {
 	instance := devenv.DefaultForUser()
-	if err := instance.PrepareGateway(); err != nil {
-		return err
-	}
-	return instance.DockerCompose().Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})
+	services := []string{"traefik", "docker-socket-proxy"}
+	return instance.ChangeServices(context.Background(), services, devenv.ServiceStarted, func() error {
+		if err := instance.PrepareGateway(); err != nil {
+			return err
+		}
+		return instance.DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
+	})
 }
 
 func gatewayRequest(method, origin, path, credentials string) (*http.Request, error) {
