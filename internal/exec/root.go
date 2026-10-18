@@ -31,7 +31,7 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 
 /*RunTTYCommand runs a command in an interactive shell.*/
 func RunTTYCommand(cmd *exec.Cmd) {
-	logrus.Trace(cmd.String())
+	logrus.Tracef("Running %s (arguments omitted)", cmd.Path)
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
@@ -43,7 +43,7 @@ func RunTTYCommand(cmd *exec.Cmd) {
 
 /*RunCommand runs a command, collecting output and errors.*/
 func RunCommandCollect(cmd *exec.Cmd) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	logrus.Trace(cmd.String())
+	logrus.Tracef("Running %s (arguments omitted)", cmd.Path)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err = cmd.Run()
