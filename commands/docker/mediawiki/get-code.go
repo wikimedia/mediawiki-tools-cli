@@ -32,7 +32,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1")
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			core, _ := cmd.Flags().GetBool("core")
 			extensions, _ := cmd.Flags().GetStringSlice("extension")
 			skins, _ := cmd.Flags().GetStringSlice("skin")
@@ -41,6 +41,11 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			gerritInteractionType, _ := cmd.Flags().GetString("gerrit-interaction-type")
 			gerritUsername, _ := cmd.Flags().GetString("gerrit-username")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			jobs, _ := cmd.Flags().GetInt("jobs")
+			if jobs < 1 {
+				return fmt.Errorf("jobs must be positive")
+			}
+			skipCommitHook, _ := cmd.Flags().GetBool("no-commit-hook")
 
 			if gerritUsername == "" {
 				c := config.State()
@@ -63,6 +68,8 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				GerritInteractionType: gerritInteractionType,
 				GerritUsername:        gerritUsername,
 				DryRun:                dryRun,
+				SkipCommitHook:        skipCommitHook,
+				Jobs:                  jobs,
 			}
 
 			// If someone runs the command but doesn't ask for anything, run the wizard, or output help in no interaction mode
@@ -184,7 +191,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			if cloneOpts.UseShallow {
 				cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-shallow", cli.VersionDetails.Version)
 			}
-			thisMw.CloneSetup(cloneOpts)
+			return thisMw.CloneSetup(cloneOpts)
 		},
 	}
 	cmd.Annotations = make(map[string]string)
@@ -197,6 +204,8 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 	cmd.Flags().Bool("use-github", false, "Use GitHub for speed & switch to Gerrit remotes after")
 	cmd.Flags().String("gerrit-interaction-type", "", "How to interact with Gerrit (overriding config) (http, ssh)")
 	cmd.Flags().String("gerrit-username", "", "Gerrit username / shell name for ssh interaction type (overriding config)")
+	cmd.Flags().IntP("jobs", "j", 1, "Maximum simultaneous skin/extension clones (core is cloned first)")
+	cmd.Flags().Bool("no-commit-hook", false, "Do not download/install the Gerrit commit-msg hook")
 	cmd.Flags().Bool("dry-run", false, "Show what would be done without actually doing it")
 
 	return cmd
