@@ -30,7 +30,7 @@ func NewPageviewsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "pageviews <article>",
 		Short:   "Get pageview counts for a Wikimedia page",
-		Example: "mw metrics pageviews 'Main Page' --project en.wikipedia.org\nmw metrics pageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\nmw metrics pageviews 'Albert Einstein' --format csv",
+		Example: "pageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --format csv",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if format != "table" && format != "json" && format != "csv" {
