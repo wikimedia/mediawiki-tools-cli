@@ -54,7 +54,7 @@ func (m Environment) EnsureServiceIntent(inventory []dockercompose.ServiceStatus
 			if running[service.Name] {
 				continue
 			}
-			if service.State == "running" {
+			if !exists && service.State == "running" {
 				running[service.Name] = true
 			} else {
 				stopped[service.Name] = true
