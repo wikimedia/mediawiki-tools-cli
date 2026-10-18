@@ -13,13 +13,26 @@ PROJECT = 16
 REPOSITORY = "wikimedia/mediawiki-tools-cli"
 REQUEST_JOB = "integration-github-request"
 GATE_JOB = "integration-github"
-TESTS = {
-    "docker-general": "test-docker-general.sh",
-    "all-databases": "test-docker-mw-all-dbs.sh",
-    "mysql-cycle": "test-docker-mw-mysql-cycle.sh",
-    "repoclient": "test-docker-recipe-repoclient.sh",
-}
-CONTEXTS = [f"github/{name}" for name in TESTS]
+SUMMARY_CONTEXT = "github/integration"
+
+
+SUPPORTED_PLATFORMS = {"linux-amd64", "linux-arm64", "macos-arm64", "windows-amd64"}
+
+
+def gate_test(name):
+    """Read the platform/test declared by a GitLab parallel matrix gate job."""
+    if not name.startswith(GATE_JOB + ":"):
+        return None
+    match = re.fullmatch(r"integration-github: \[([a-z][a-z0-9-]*), ([a-z][a-z0-9-]{0,63})\]", name)
+    if not match or match[1] not in SUPPORTED_PLATFORMS:
+        raise ValueError("invalid GitLab integration matrix job")
+    platform, test = match.groups()
+    context = test if platform == "linux-amd64" else f"{platform}/{test}"
+    return {"platform": platform, "test": test, "name": context}
+
+
+def gate_jobs(jobs):
+    return {name: job for name, job in jobs.items() if name == GATE_JOB or gate_test(name) is not None}
 
 
 def integration_repository():
@@ -137,31 +150,21 @@ def parse_description(value):
     return match.groups()
 
 
-def verify_results(records, *, bot_id, request_id, tested_sha, repository=REPOSITORY):
-    """Require every test to pass for the same bot/run/snapshot."""
-    bot_id = positive_id(bot_id)
-    expected_request = str(positive_id(request_id))
-    commit_sha(tested_sha)
-    by_name = {}
-    for record in records:
-        name = record.get("name")
-        if name in CONTEXTS and (name not in by_name or record["id"] > by_name[name]["id"]):
-            by_name[name] = record
-    identity = None
-    for name in CONTEXTS:
-        record = by_name.get(name)
-        if record is None or record.get("status") != "success" or record.get("allow_failure", False):
-            raise ValueError(f"{name} has not passed")
-        if record.get("author", {}).get("id") != bot_id:
-            raise ValueError(f"{name} was not posted by the configured GitHub CI bot")
-        batch = parse_description(record.get("description"))
-        if batch[0] != expected_request or batch[3] != tested_sha:
-            raise ValueError(f"{name} belongs to another request or source snapshot")
-        if identity is not None and identity != batch:
-            raise ValueError("integration results belong to different GitHub runs or attempts")
-        identity = batch
-        prefix = f"https://github.com/{repository}/actions/runs/{batch[1]}"
-        url = record.get("target_url", "")
-        if url != prefix and not url.startswith(prefix + "/"):
-            raise ValueError(f"{name} has an unexpected GitHub run URL")
-    return identity
+def verify_status(record, context, *, bot_id, request_id, tested_sha, repository=REPOSITORY):
+    """Authenticate a trusted controller result for an expected context."""
+    if record.get("name") != context or record.get("allow_failure", False):
+        raise ValueError("missing required integration result")
+    if record.get("author", {}).get("id") != positive_id(bot_id):
+        raise ValueError("result was not posted by the configured GitHub CI bot")
+    batch = parse_description(record.get("description"))
+    if batch[0] != str(positive_id(request_id)) or batch[3] != commit_sha(tested_sha):
+        raise ValueError("result belongs to another request or source snapshot")
+    prefix = f"https://github.com/{repository}/actions/runs/{batch[1]}"
+    url = record.get("target_url", "")
+    if url != prefix and not url.startswith(prefix + "/"):
+        raise ValueError("result has an unexpected GitHub run URL")
+    return batch
+
+
+def verify_summary(record, **identity):
+    return verify_status(record, SUMMARY_CONTEXT, **identity)
