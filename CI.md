@@ -1,6 +1,6 @@
 # CI
 
-GitLab runs checks and builds on shared Wikimedia runners. Docker integration tests run in [GitHub Actions](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-integration.yml); Cloud VPS jobs wait for their results.
+GitLab runs checks and builds on shared Wikimedia runners. Docker integration tests run in [GitHub Actions](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-integration.yml); One Cloud VPS job waits for their combined result.
 
 ## When CI runs
 
@@ -26,25 +26,29 @@ attempts. Missing or failed planned tests fail the result. It publishes
 blocks downstream jobs until it passes. The waiting service has no test list
 or expected test count.
 
-The tested GitLab pipeline defines the test plan through the `integration-github`
-parallel matrix. The trusted GitHub controller reads those job names from the
-GitLab API and exports a dynamic matrix to the generic executor. For example:
+The GitLab pipeline uses one `integration-github-request` job and one
+`integration-github` waiting job, regardless of the number of tests. The request
+publishes its `INTEGRATION_TEST_PLAN` variable as `integration-plan.json`, then
+dispatches the GitHub workflow once. Define the complete plan in the GitLab CI
+configuration for the revision being tested:
 
 ```yaml
-integration-github:
-    parallel:
-      matrix:
-        - PLATFORM: linux-amd64
-          TEST: [docker-general, all-databases, mysql-cycle, repoclient]
-        - PLATFORM: windows-amd64
-          TEST: windows-update
+integration-github-request:
+    variables:
+      GIT_STRATEGY: none
+      INTEGRATION_TEST_PLAN: >-
+        [{"platform":"linux-amd64","test":"docker-general"},
+         {"platform":"linux-amd64","test":"all-databases"},
+         {"platform":"linux-amd64","test":"mysql-cycle"},
+         {"platform":"linux-amd64","test":"repoclient"},
+         {"platform":"windows-amd64","test":"windows-update"}]
 ```
 
-Keep the existing gate's runner, script, rules and dependencies; only add its
-parallel matrix. The variable order is `PLATFORM`, then `TEST`, so GitLab names
-jobs `integration-github: [windows-amd64, windows-update]`. Each matrix job waits
-for the authenticated workflow summary and its corresponding test result.
-`integration-github-request` still dispatches once for the whole pipeline.
+Keep the request job's existing runner, artifact, script, rules and dependencies.
+The trusted GitHub controller reads the plan artifact from the successful request
+job and expands it into parallel GitHub tests. Each test publishes an external
+status with its log link. The single GitLab waiting job checks the authenticated
+overall result, which succeeds only when every requested test succeeds.
 
 The executor supports `linux-amd64`, `linux-arm64`, `macos-arm64` and
 `windows-amd64`. Test names select `tests/test-<name>.sh` from the exact prepared
@@ -54,7 +58,7 @@ up Go, and invokes `tools/ci/run-github-integration.py` from that GitLab revisio
 That source helper owns platform preparation: Linux AMD64 restores the built
 binary and MediaWiki snapshot; other hosts build a native binary. Changes to
 preparation can therefore be made in the GitLab MR alongside the test.
-Adding a new test or platform row in a GitLab MR runs that MR's script without
+Adding an entry to the plan in a GitLab MR runs that MR's script without
 changing or merging another GitHub workflow. Only adding a new runner type requires an executor infrastructure
 update. Invalid platforms, unsafe names and missing planned results fail closed.
 

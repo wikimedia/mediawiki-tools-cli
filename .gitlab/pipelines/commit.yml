@@ -197,6 +197,11 @@ integration-github-request:
     stage: integration
     variables:
       GIT_STRATEGY: none
+      INTEGRATION_TEST_PLAN: >-
+        [{"platform":"linux-amd64","test":"docker-general"},
+         {"platform":"linux-amd64","test":"all-databases"},
+         {"platform":"linux-amd64","test":"mysql-cycle"},
+         {"platform":"linux-amd64","test":"repoclient"}]
     cache: []
     rules:
       - if: '$CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
@@ -209,7 +214,12 @@ integration-github-request:
         artifacts: false
       - job: prepare-mediawiki
         artifacts: false
+    artifacts:
+      expire_in: 2 weeks
+      paths:
+        - integration-plan.json
     script:
+      - python3 -c 'import os, pathlib; pathlib.Path("integration-plan.json").write_text(os.environ["INTEGRATION_TEST_PLAN"])'
       - python3 /opt/mwcli-wait/wait-github.py dispatch
 
 # A small normal job waits on the Cloud VPS pool; no manual action is required.
