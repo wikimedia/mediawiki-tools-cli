@@ -13,11 +13,17 @@ import (
 func NewGerritAuthLoginCmd() *cobra.Command {
 	var username, password string
 	var passwordStdin, insecureStorage bool
+	var provider string
 	cmd := &cobra.Command{
 		Use:     "login",
 		Short:   "Login to Wikimedia Gerrit using HTTP credentials",
 		Example: "login\nlogin --username myname --password-stdin",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if provider != "" {
+				if err := config.ValidateCredentialProvider(provider); err != nil {
+					return err
+				}
+			}
 			if passwordStdin {
 				var err error
 				password, err = secrets.ReadInput(cmd.InOrStdin())
@@ -55,7 +61,7 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 				return fmt.Errorf("Gerrit credentials were not validated or saved: %w", err)
 			}
 			credential := config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: username}
-			if err := credential.SaveWithMetadata(password, insecureStorage, map[string]string{"gerrit.username": username}); err != nil {
+			if err := credential.SaveWithProvider(password, insecureStorage, map[string]string{"gerrit.username": username}, provider); err != nil {
 				return err
 			}
 			cmd.Println("Credentials saved")
@@ -67,5 +73,10 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&passwordStdin, "password-stdin", false, "Read the password from stdin")
 	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Store the password in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("password", "password-stdin")
+	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring or keepassxc)")
+	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
+	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{"keyring", "keepassxc"}, cobra.ShellCompDirectiveNoFileComp
+	})
 	return cmd
 }

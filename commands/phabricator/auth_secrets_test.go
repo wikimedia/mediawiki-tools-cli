@@ -64,7 +64,10 @@ func TestLoginIgnoresProjectDestinationAndLogoutDisablesLegacy(t *testing.T) {
 	cmd.SetOut(out)
 	cmd.SetErr(out)
 	cmd.SetIn(strings.NewReader("fixture-secret\n"))
-	cmd.SetArgs([]string{"auth", "login", "--username", "fixture", "--token-stdin"})
+	if err := mwconfig.PutKeyValueOnDisk("secrets.provider", "keepassxc"); err != nil {
+		t.Fatal(err)
+	}
+	cmd.SetArgs([]string{"auth", "login", "--username", "fixture", "--token-stdin", "--provider", "keyring"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}

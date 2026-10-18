@@ -1,6 +1,6 @@
 # Credentials and password managers
 
-Gerrit, Cloud VPS and Phabricator logins save secrets in the OS keyring. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
+Gerrit, Cloud VPS and Phabricator logins save secrets with the selected credential provider; the initial default is the OS keyring. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
 
 ```sh
 mw gerrit auth login
@@ -21,19 +21,44 @@ mw config secrets migrate
 
 Migration verifies each saved value before removing its plaintext copy from configuration. It does not import `phab.cfg` or migrate GitLab credentials. Existing backups may still contain the old values.
 
-`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential to another account, endpoint or storage backend. Logout removes saved keyring credentials; environment overrides are unchanged. Phabricator logout also disables legacy `phab.cfg` authentication for that site until the next login.
+`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential to another account, endpoint or storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator logout also disables legacy `phab.cfg` authentication for that site until the next login.
 
 If the selected provider is unavailable, login fails rather than silently saving plaintext. Add `--insecure-storage` to explicitly use the config file instead. On Unix, the CLI restricts its config directory to the current user and writes the file atomically with mode `0600`. Windows file permissions depend on its ACLs; prefer Credential Manager there.
 
 GitLab commands use the embedded GitLab CLI's separate authentication store. Use `mw gl auth login --use-keyring --stdin` for a new keyring login. This does not migrate or remove an existing token from GitLab's configuration file.
 
+## Choosing storage
+
+Select the default for new credentials and plaintext migrations:
+
+```sh
+mw config secrets provider keepassxc
+mw config secrets provider
+```
+
+Use `provider keyring` to switch back. Existing credentials keep their saved provider. Override the default for an individual login, configuration write or migration:
+
+```sh
+mw gerrit auth login --provider keyring
+mw config set gerrit.password --stdin --provider keyring
+mw config secrets migrate gerrit.password --provider keyring
+```
+
+Changing providers for an already linked credential requires logging out first. Pairing KeePassXC alone does not select it as the default.
+
+The OS keyring is the simplest choice for credentials used on one computer: it integrates with that OS and needs no separate KeePassXC pairing. Availability and unlock policy depend on the desktop; WSL uses its Linux Secret Service, not Windows Credential Manager.
+
+KeePassXC GUI access suits an existing shared vault, including Windows KeePassXC used from WSL. You control the database, backups and synchronization. It requires KeePassXC to be running with the paired database unlocked, and adds a sensitive local pairing file. The CLI retrieves approved entries without handling the master password.
+
 ## KeePassXC
 
-Enable Browser Integration in KeePassXC and unlock the intended database. Pair the CLI, then link an existing entry. Approve requests in KeePassXC:
+Enable Browser Integration in KeePassXC and unlock the intended database. Pair the CLI, select it as the default, then preview and migrate existing plaintext credentials. Approve requests in KeePassXC:
 
 ```sh
 mw config secrets keepassxc connect
-mw config secrets use-keepassxc gerrit.password
+mw config secrets provider keepassxc
+mw config secrets migrate --dry-run
+mw config secrets migrate
 ```
 
 For Windows KeePassXC from WSL, put its installation directory on PATH or select its proxy once:
@@ -44,6 +69,7 @@ mw config secrets keepassxc connect --proxy '/mnt/c/Program Files/KeePassXC/keep
 
 KeePassXC handles database unlocking and entry approvals. Select the paired database before running a command. A locked database, denied request or revoked pairing fails without falling back to plaintext or direct file access. KeePassXC may show entry-access dialogs according to its permissions settings.
 
+New credentials are created directly in the `wm` group, with the service hostname as the entry title and the account as the username. Multiple accounts can share a hostname. KeePassXC’s browser protocol cannot set a custom title; after linking, you can rename entries to labels such as “Gerrit — addshore” or “Cloud VPS — mwcli”, or move them, without breaking their UUID references. Existing linked entries are updated through the GUI. Each write is read back and verified before plaintext is removed. A dry run opens no GUI dialogs.
 
 To link an entry you created yourself, use `mw config secrets use-keepassxc KEY --entry PATH`. Create it with the same username and password as the configured CLI account. `use-keepassxc KEY` reuses the entry path from an existing direct-access link; otherwise it uses `wm/KEY`. Use `--entry 'Wikimedia/Gerrit'` to select another path. The entry username must match the configured account. Linking verifies any retained plaintext before removing it, then pins the database ID and entry UUID so renaming the entry does not break access. Older direct-access links must be relinked with this command; their saved entry paths are reused.
 
