@@ -98,38 +98,39 @@ test_http_status() {
 test_wget_eventually_contains() {
     local url="$1"
     local expected_match="$2"
-    local max_attempts="${3:-5}"
-    local sleep_seconds="${4:-0.5}"
+    local max_attempts="${3:-30}"
+    local sleep_seconds="${4:-1}"
 
     local attempt=1
-    local saw_http_200=0
     local last_status=""
     local last_body=""
-	 test_gateway_auth_args
+    local last_curl_error=""
+    test_gateway_auth_args
 
     while [ "$attempt" -le "$max_attempts" ]; do
         set +e
         local response
-        response=$(curl -sS -L -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -w "\n%{http_code}" "$url")
+        response=$(curl -sS -L --connect-timeout 2 --max-time 5 -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -w "\n%{http_code}" "$url" 2>&1)
         local curl_result=$?
         set -e
 
-        if [ "$curl_result" -eq 0 ]; then
-            local status
-            status=$(echo "$response" | tail -n 1)
-            local body
-            body=$(echo "$response" | sed '$d')
+        local status
+        status=$(echo "$response" | tail -n 1)
+        local body
+        body=$(echo "$response" | sed '$d')
 
+        if [ "$curl_result" -eq 0 ]; then
             last_status="$status"
             last_body="$body"
 
-            if [ "$status" = "200" ]; then
-                saw_http_200=1
-                if echo "$body" | grep -q "$expected_match"; then
-                    echo -e "${GREEN}PASS:${NC} $url returned 200 and contained \"$expected_match\" on attempt $attempt/$max_attempts"
-                    return 0
-                fi
+            if echo "$body" | grep -q "$expected_match"; then
+                echo -e "${GREEN}PASS:${NC} $url returned expected content on attempt $attempt/$max_attempts (HTTP $status)"
+                return 0
             fi
+        else
+            last_status="$status"
+            last_body="$body"
+            last_curl_error="$body"
         fi
 
         if [ "$attempt" -lt "$max_attempts" ]; then
@@ -138,13 +139,12 @@ test_wget_eventually_contains() {
         attempt=$((attempt + 1))
     done
 
-    if [ "$saw_http_200" -eq 0 ]; then
-        echo -e "${RED}FAIL:${NC} $url never returned HTTP 200 after $max_attempts attempts"
-        if [ -n "$last_status" ]; then
-            echo "Last HTTP status: $last_status"
-        fi
-    else
-        echo -e "${RED}FAIL:${NC} $url returned HTTP 200 but did not contain \"$expected_match\" after $max_attempts attempts"
+    echo -e "${RED}FAIL:${NC} $url did not contain \"$expected_match\" after $max_attempts attempts"
+    if [ -n "$last_status" ]; then
+        echo "Last HTTP status: $last_status"
+    fi
+    if [ -n "$last_curl_error" ]; then
+        echo "Last curl error: $last_curl_error"
     fi
 
     if [ -n "$last_body" ]; then

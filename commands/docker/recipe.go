@@ -41,6 +41,8 @@ type recipeRuntimeState struct {
 	JobRunnerSites []string `json:"jobRunnerSites"`
 }
 
+const recipeStatusCommand = "mw docker compose ps"
+
 func NewRecipeCmd() *cobra.Command {
 	var recipeFile string
 	var recipeURL string
@@ -207,7 +209,7 @@ func NewRecipeCmd() *cobra.Command {
 			cmdgloss.PrintThreePartBlock(
 				cmdgloss.SuccessHeading("Recipe applied successfully"),
 				outputDetails,
-				"Run `mw dev status` to see running services.",
+				"Run `"+recipeStatusCommand+"` to see running services.",
 			)
 			return nil
 		},
@@ -709,7 +711,9 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 		if cloneOpts.GerritInteractionType == "ssh" && cloneOpts.GerritUsername == "" {
 			return fmt.Errorf("gerrit username is required for ssh interaction type")
 		}
-		thisMW.CloneSetup(cloneOpts)
+		if err := thisMW.CloneSetup(cloneOpts); err != nil {
+			return err
+		}
 	}
 
 	// Clone arbitrary URL+Path repos.
