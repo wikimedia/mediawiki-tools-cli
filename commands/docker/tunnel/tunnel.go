@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/docker/traefik"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
@@ -122,10 +124,28 @@ func NewCmd() *cobra.Command {
 }
 
 func readURL(project dockercompose.Project) (string, string, error) {
-	stdout, stderr, err := project.Command([]string{"logs", "--no-color", "--tail", "100", "cloudflared"}).RunAndCollect()
+	id, err := project.ContainerID("cloudflared")
+	if err != nil {
+		return "", "", err
+	}
+	client := docker.NewClientFromEnvOrPanic()
+	defer client.Close()
+	container, err := client.ContainerInspect(context.Background(), id)
+	if err != nil {
+		return "", "", err
+	}
+	if container.State == nil || container.State.StartedAt == "" {
+		return "", "", fmt.Errorf("cloudflared has no recorded start time")
+	}
+	// Docker preserves logs across restarts, but Quick Tunnels get a new URL.
+	stdout, stderr, err := project.Command([]string{"logs", "--no-color", "--since", container.State.StartedAt, "--tail", "100", "cloudflared"}).RunAndCollect()
 	logs := stdout.String() + stderr.String()
 	if err != nil {
 		return "", logs, err
 	}
-	return quickTunnelURL.FindString(logs), logs, nil
+	urls := quickTunnelURL.FindAllString(logs, -1)
+	if len(urls) == 0 {
+		return "", logs, nil
+	}
+	return urls[len(urls)-1], logs, nil
 }

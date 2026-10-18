@@ -17,7 +17,7 @@ services:
       - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
     environment:
       - MW_DB_DEFAULT=${MEDIAWIKI_DEFAULT_DBNAME:-default}
-      - MW_DB_DEFAULT_HOSTS=${MEDIAWIKI_DEFAULT_HOSTS:-}
+      - MW_DB_DEFAULT_HOSTS=mediawiki-web,${MEDIAWIKI_DEFAULT_HOSTS:-}
       - MW_DB_DEFAULT_HTTPS_HOSTS=${MEDIAWIKI_DEFAULT_HTTPS_HOSTS:-}
       # MW_INSTALL_PATH is used by various maintenance scripts to find MediaWiki.
       # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
@@ -41,7 +41,7 @@ services:
       - "traefik.http.routers.wiki.rule=PathPrefix(`/proxy/`)"
       - "traefik.http.routers.wiki.priority=10"
       - "traefik.http.routers.wiki.entrypoints=web"
-      - "traefik.http.routers.wiki.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},wiki-prefix@file,forwarded-https@file"
+      - "traefik.http.routers.wiki.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},wiki-prefix@file"
       - "traefik.http.services.wiki.loadbalancer.server.port=${MEDIAWIKI_VIRTUAL_PORT:-8080}"
       - "traefik.http.routers.wiki-local.rule=HostRegexp(`^[a-z0-9-]+\\.mediawiki\\.local\\.wmftest\\.net$`) && PathPrefix(`/`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.wiki-local.priority=5"
@@ -50,7 +50,8 @@ services:
       - "traefik.http.routers.wiki-host.rule=PathPrefix(`/`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.wiki-host.priority=1"
       - "traefik.http.routers.wiki-host.entrypoints=web"
-      - "traefik.http.routers.wiki-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.wiki-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},default-wiki@docker"
+      - "traefik.http.middlewares.default-wiki.headers.customrequestheaders.X-Mwcli-Default-Wiki=1"
       - "traefik.http.routers.wiki-host.service=wiki"
     security_opt:
       - label:disable

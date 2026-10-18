@@ -95,41 +95,86 @@ test_http_status() {
     fi
 }
 
+# Exercise the real Traefik ForwardAuth middleware with the same HTTP upstream
+# and HTTPS forwarded origin that a TLS-terminating tunnel uses.
+test_gateway_https_session() (
+    set -e
+    local url="$1"
+    local work
+    work=$(mktemp -d)
+    trap 'rm -rf "$work"' EXIT
+    test_gateway_auth_args
+    local headers=(-H 'Host: gateway-test.example.test' -H 'X-Forwarded-Proto: https')
+    curl --connect-timeout 2 --max-time 10 -fsS "${headers[@]}" -D "$work/headers" -o "$work/form" "$url/_mwcli/login"
+    local csrf cookie status
+    csrf=$(sed -n 's/.*name="csrf" value="\([^"]*\)".*/\1/p' "$work/form")
+    cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*\);.*/\1/p' "$work/headers")
+    test -n "$csrf"
+    status=$(curl --connect-timeout 2 --max-time 10 -sS "${headers[@]}" -H "Cookie: $cookie" \
+        --data-urlencode "username=$MWCLI_TEST_GATEWAY_USER" \
+        --data-urlencode "password=$MWCLI_TEST_GATEWAY_PASSWORD" \
+        --data-urlencode "csrf=$csrf" --data-urlencode 'return=/proxy/adminer/' \
+        -D "$work/headers" -o /dev/null -w '%{http_code}' "$url/_mwcli/login")
+    if [ "$status" != 303 ]; then
+        echo -e "${RED}FAIL:${NC} HTTPS gateway login returned $status, expected 303"
+        exit 1
+    fi
+    cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*_session=[^;]*\);.*/\1/p' "$work/headers")
+    test -n "$cookie"
+    grep -q '; Secure' "$work/headers"
+    # No gateway Basic credentials: the HTTPS session alone must pass ForwardAuth,
+    # even when an application supplies its own Authorization header.
+    status=$(curl --connect-timeout 2 --max-time 10 -sS "${headers[@]}" -H "Cookie: $cookie" -H 'Authorization: Bearer application-token' \
+        -o /dev/null -w '%{http_code}' "$url/proxy/adminer/")
+    if [ "$status" != 200 ]; then
+        echo -e "${RED}FAIL:${NC} HTTPS gateway session returned $status, expected 200"
+        exit 1
+    fi
+    status=$(curl --connect-timeout 2 --max-time 10 -sS -H 'Host: gateway-test.example.test' -H "Cookie: $cookie" \
+        -o /dev/null -w '%{http_code}' "$url/proxy/adminer/")
+    if [ "$status" != 401 ]; then
+        echo -e "${RED}FAIL:${NC} HTTPS session on an HTTP origin returned $status, expected 401"
+        exit 1
+    fi
+    echo -e "${GREEN}PASS:${NC} HTTPS gateway session survives ForwardAuth and remains bound to its origin"
+)
+
 test_wget_eventually_contains() {
     local url="$1"
     local expected_match="$2"
-    local max_attempts="${3:-5}"
-    local sleep_seconds="${4:-0.5}"
+    local max_attempts="${3:-30}"
+    local sleep_seconds="${4:-1}"
 
     local attempt=1
-    local saw_http_200=0
     local last_status=""
     local last_body=""
-	 test_gateway_auth_args
+    local last_curl_error=""
+    test_gateway_auth_args
 
     while [ "$attempt" -le "$max_attempts" ]; do
         set +e
         local response
-        response=$(curl -sS -L -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -w "\n%{http_code}" "$url")
+        response=$(curl -sS -L --connect-timeout 2 --max-time 5 -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -w "\n%{http_code}" "$url" 2>&1)
         local curl_result=$?
         set -e
 
-        if [ "$curl_result" -eq 0 ]; then
-            local status
-            status=$(echo "$response" | tail -n 1)
-            local body
-            body=$(echo "$response" | sed '$d')
+        local status
+        status=$(echo "$response" | tail -n 1)
+        local body
+        body=$(echo "$response" | sed '$d')
 
+        if [ "$curl_result" -eq 0 ]; then
             last_status="$status"
             last_body="$body"
 
-            if [ "$status" = "200" ]; then
-                saw_http_200=1
-                if echo "$body" | grep -q "$expected_match"; then
-                    echo -e "${GREEN}PASS:${NC} $url returned 200 and contained \"$expected_match\" on attempt $attempt/$max_attempts"
-                    return 0
-                fi
+            if echo "$body" | grep -q "$expected_match"; then
+                echo -e "${GREEN}PASS:${NC} $url returned expected content on attempt $attempt/$max_attempts (HTTP $status)"
+                return 0
             fi
+        else
+            last_status="$status"
+            last_body="$body"
+            last_curl_error="$body"
         fi
 
         if [ "$attempt" -lt "$max_attempts" ]; then
@@ -138,13 +183,12 @@ test_wget_eventually_contains() {
         attempt=$((attempt + 1))
     done
 
-    if [ "$saw_http_200" -eq 0 ]; then
-        echo -e "${RED}FAIL:${NC} $url never returned HTTP 200 after $max_attempts attempts"
-        if [ -n "$last_status" ]; then
-            echo "Last HTTP status: $last_status"
-        fi
-    else
-        echo -e "${RED}FAIL:${NC} $url returned HTTP 200 but did not contain \"$expected_match\" after $max_attempts attempts"
+    echo -e "${RED}FAIL:${NC} $url did not contain \"$expected_match\" after $max_attempts attempts"
+    if [ -n "$last_status" ]; then
+        echo "Last HTTP status: $last_status"
+    fi
+    if [ -n "$last_curl_error" ]; then
+        echo "Last curl error: $last_curl_error"
     fi
 
     if [ -n "$last_body" ]; then

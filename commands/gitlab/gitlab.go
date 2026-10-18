@@ -1,8 +1,10 @@
 package gitlab
 
 import (
+	"errors"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -86,8 +88,115 @@ func Cmd() *cobra.Command {
 	}
 
 	setDefaultHostname(glabCommand)
+	addPushViaAPIFlag(glabCommand)
 
 	return glabCommand
+}
+
+func addPushViaAPIFlag(glabCommand *cobra.Command) {
+	createCommand, _, err := glabCommand.Find([]string{"mr", "create"})
+	if err != nil || createCommand == nil || createCommand.RunE == nil {
+		return
+	}
+
+	originalRunE := createCommand.RunE
+	var pushViaAPI bool
+	createCommand.Flags().BoolVar(&pushViaAPI, "push-via-api", false, "Push with Git over HTTPS using your mw gl token credentials.")
+
+	createCommand.RunE = func(cmd *cobra.Command, args []string) error {
+		if !pushViaAPI {
+			return originalRunE(cmd, args)
+		}
+
+		if err := cmd.Flags().Set("push", "true"); err != nil {
+			return err
+		}
+
+		restore, err := useGitLabTokenForHTTPS()
+		if err != nil {
+			return err
+		}
+		defer restore()
+
+		return originalRunE(cmd, args)
+	}
+}
+
+// useGitLabTokenForHTTPS temporarily makes Git rewrite Wikimedia's SSH remote
+// to HTTPS and use mw gl's stored GitLab token as its credential helper. The
+// Git config environment variables are inherited by the Git push subprocess,
+// so this does not change the user's remotes or saved Git configuration.
+func useGitLabTokenForHTTPS() (func(), error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	if value := os.Getenv("GIT_CONFIG_COUNT"); value != "" {
+		count, err = strconv.Atoi(value)
+		if err != nil {
+			return nil, err
+		}
+		if count < 0 {
+			return nil, errors.New("GIT_CONFIG_COUNT cannot be negative")
+		}
+	}
+
+	settings := []struct{ key, value string }{
+		{"url.https://gitlab.wikimedia.org/.insteadOf", "git@gitlab-ssh.wikimedia.org:"},
+		{"url.https://gitlab.wikimedia.org/.insteadOf", "ssh://git@gitlab-ssh.wikimedia.org/"},
+		{"url.https://gitlab.wikimedia.org/.insteadOf", "ssh://git@gitlab-ssh.wikimedia.org:22/"},
+		{"credential.helper", ""},
+		{"credential.https://gitlab.wikimedia.org.helper", "!" + shellQuote(executable) + " gl auth git-credential"},
+	}
+
+	keys := []string{"GIT_CONFIG_COUNT"}
+	for i := range settings {
+		keys = append(keys, "GIT_CONFIG_KEY_"+strconv.Itoa(count+i), "GIT_CONFIG_VALUE_"+strconv.Itoa(count+i))
+	}
+
+	previous := make(map[string]struct {
+		value string
+		set   bool
+	}, len(keys))
+	for _, key := range keys {
+		value, set := os.LookupEnv(key)
+		previous[key] = struct {
+			value string
+			set   bool
+		}{value: value, set: set}
+	}
+	restore := func() {
+		for key, old := range previous {
+			if old.set {
+				_ = os.Setenv(key, old.value)
+			} else {
+				_ = os.Unsetenv(key)
+			}
+		}
+	}
+	for i, setting := range settings {
+		if err := os.Setenv("GIT_CONFIG_KEY_"+strconv.Itoa(count+i), setting.key); err != nil {
+			restore()
+			return nil, err
+		}
+		if err := os.Setenv("GIT_CONFIG_VALUE_"+strconv.Itoa(count+i), setting.value); err != nil {
+			restore()
+			return nil, err
+		}
+	}
+
+	if err := os.Setenv("GIT_CONFIG_COUNT", strconv.Itoa(count+len(settings))); err != nil {
+		restore()
+		return nil, err
+	}
+
+	return restore, nil
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
 
 func setDefaultHostname(glabCommand *cobra.Command) {

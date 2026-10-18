@@ -65,7 +65,10 @@
 ./compose/traefik/auth/README.md
 ./compose/traefik/compose.yml
 ./compose/traefik/dynamic.yml
+./compose/traefik/mount/auth/main.go
 ./compose/wdqs-ui/compose.yml
+./compose/wdqs-ui/mount/custom-config.json
+./compose/wdqs-ui/mount/default.conf
 ./compose/wdqs/compose.yml
 ./files.txt
 ./recipes/contenttranslation.yml

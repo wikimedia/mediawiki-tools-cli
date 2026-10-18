@@ -116,14 +116,26 @@ test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401
 test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401 0 adminer.local.wmftest.net
 test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 200 1
 test_http_status http://127.0.0.1:$PORT/ 401
+test_gateway_https_session http://127.0.0.1:$PORT
+
+# Requests from MediaWiki must resolve through DPS and reach the same listener
+# port as host requests, without requiring the public gateway login.
+test_command_success ./bin/mw docker mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://adminer.local.wmftest.net:$PORT/
+test_command_success ./bin/mw docker mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://mysqlwiki.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page
 
 # And check the installed sites (mysql, postgres, sqlite)
 # test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 test_wget http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+# Follow the gateway redirect; local HTTP must not redirect to an HTTPS listener.
+test_wget http://127.0.0.1:$PORT/proxy/mysqlwiki/ "MediaWiki has been installed"
+# Assets must retain the wiki prefix and load from the selected wiki.
+test_wget http://127.0.0.1:$PORT/proxy/mysqlwiki/wiki/Main_Page 'href="/proxy/mysqlwiki/w/load.php'
+test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=skins.vector.styles&only=styles&skin=vector-2022" '.mw'
+test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022" 'mw.loader'
 
 # Make sure the expected number of services appear
-test_docker_ps_service_count 11
+test_docker_ps_service_count 12
 
 # Try other DB related commands
 test_command_success ./bin/mw docker postgres stop

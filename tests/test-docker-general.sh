@@ -51,9 +51,6 @@ test_command_success ./bin/mw docker env set PORT 6194
 # And already fill in the location of mediawiki
 MWDIR=$(pwd)/.mediawiki
 test_command_success ./bin/mw docker env set MEDIAWIKI_VOLUMES_CODE ${MWDIR}
-# The Selenium container reaches MediaWiki through the Compose service name,
-# so map that internal host to the default wiki database.
-test_command_success ./bin/mw docker env set MEDIAWIKI_DEFAULT_HOSTS mediawiki-web
 
 test_command_success ./bin/mw docker hosts show --no-interaction
 
@@ -108,6 +105,8 @@ test_wget http://default.mediawiki.local.wmftest.net:$PORT "Could not find a run
 test_command_success ./bin/mw docker mysql create
 test_command_success ./bin/mw docker mediawiki install --dbtype mysql
 test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+# The authenticated catch-all uses the configured default wiki, not the hostname as a database name.
+test_wget "http://localhost:$PORT/w/api.php?action=query&meta=siteinfo&format=json" '"sitename":"mwdd-default"'
 
 # Set the default dbname to something else, restarting the container
 test_command_success ./bin/mw docker env set MEDIAWIKI_DEFAULT_DBNAME second
@@ -122,6 +121,8 @@ else
     test_command_success sudo -E ./bin/mw docker hosts add --no-interaction
 fi
 test_wget http://second.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+test_wget "http://localhost:$PORT/w/api.php?action=query&meta=siteinfo&format=json" '"sitename":"mwdd-second"'
+test_wget "http://default.mediawiki.local.wmftest.net:$PORT/w/api.php?action=query&meta=siteinfo&format=json" '"sitename":"mwdd-default"'
 
 # Make sure that maintenance scripts run for the current default wiki dbname
 test_command ./bin/mw docker mediawiki mwscript "requires at least 1 arg(s), only received 0"

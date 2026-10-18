@@ -26,6 +26,9 @@ func NewMwddDestroyCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := m.ClearResumeServices(); err != nil {
+				return err
+			}
 			logrus.Debug("Removing used hosts file")
 			m.RemoveUsedHostsIfExists()
 
