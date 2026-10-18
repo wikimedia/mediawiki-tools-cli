@@ -13,6 +13,8 @@ import (
 
 func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 	return []func(*cobra.Command, string) *issue.Issue{
+		detectLongHelp,
+		detectLongExamples,
 		// short-required: Short description is always required
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
 			if len(theCmd.Short) == 0 {

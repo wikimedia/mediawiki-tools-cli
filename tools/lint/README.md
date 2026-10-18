@@ -1,35 +1,13 @@
-# lint
+# Repository lint
 
-Check CLI command help and metadata.
+Run `make linti` from the repository root to check command metadata and examples.
 
-Trying to make the commands have a consistent look and feel, one step at a time.
+Help-size checks warn when `Long` exceeds 200 words, or `Example` exceeds 12 nonblank lines or 150 words. Word counts do not depend on manual line wrapping. Keep the command's immediate purpose and a few copyable examples in help; put full workflows in `docs/guides/` and link to them.
 
-You can run this work in progress tool as follows:
+These are warnings so existing long help can be shortened incrementally. `make docs` checks guide links and generates the command reference; integration tests validate the workflows that need running services.
 
-```sh
-go run ./tools/lint/main.go
-```
-
-You can also run this from the main makefile
-
-```sh
-make linti
-```
-
-This will soon be included as a pre commit hook...
-
-## Rules
-
-All rules and conditions can currently be seen in `main.go`.
-
-## Skipping
-
-Skipping can be done by adding annotations to commands
-
-### Skip children
-
-You can skip linting certain commands children.
+Commands can opt out using `mwcli-lint-skip`, or skip embedded third-party command trees with `mwcli-lint-skip-children`:
 
 ```go
-cmd.Annotations["mwcli-lint-skip-children"] = "yarhar"
+cmd.Annotations["mwcli-lint-skip-children"] = "Embedded third-party CLI"
 ```
