@@ -28,25 +28,30 @@ services:
       - dps
 
   logs-collector:
-    image: "${LOGS_COLLECTOR_IMAGE:-opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0}"
+    image: "${LOGS_COLLECTOR_IMAGE:-timberio/vector:0.59.0-debian}"
     restart: unless-stopped
     environment:
-      - LS_JAVA_OPTS=${LOGS_COLLECTOR_JAVA_OPTS:--Xms256m -Xmx256m}
+      - MWCLI_LOGS_PROJECT=${TRAEFIK_DOCKER_PROJECT}
+      # Only the generated Compose project name is interpolated in our config.
+      - VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION=true
+    command: ["--config", "/etc/vector/vector.yml"]
     volumes:
       # Defined by mediawiki/compose.yml, deliberately NOT owned by this stack.
       # Match MediaWiki's override for either a named volume or a host directory.
       - "${MEDIAWIKI_VOLUMES_LOGS:-mediawiki-logs}:/var/log/mediawiki:ro"
-      - ./compose/opensearch-dashboards/mount/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./compose/opensearch-dashboards/mount/logstash/pipeline:/usr/share/logstash/pipeline:ro
-      - ./compose/opensearch-dashboards/mount/logstash/template.json:/usr/share/logstash/config/mwcli-template.json:ro
-      - logs-collector-data:/usr/share/logstash/data
+      - ./compose/opensearch-dashboards/mount/vector.yml:/etc/vector/vector.yml:ro
+      - logs-collector-data:/var/lib/vector
     depends_on:
       logs-opensearch:
         condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
+      # Reuse the existing GET-only Docker API proxy; no raw socket mount.
+      - gateway-control
 
   opensearch-dashboards:
     image: "${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:2.19.4}"
@@ -55,25 +60,25 @@ services:
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
       - SERVER_NAME=mwcli-logs
       - SERVER_HOST=0.0.0.0
-      - SERVER_BASEPATH=/proxy/opensearch-dashboards
+      - SERVER_BASEPATH=/proxy/logs
       - SERVER_REWRITEBASEPATH=true
       - 'OPENSEARCH_HOSTS=["http://logs-opensearch:9200"]'
-      - VIRTUAL_HOST=opensearch-dashboards.local.wmftest.net
+      - VIRTUAL_HOST=logs.local.wmftest.net
       - VIRTUAL_PORT=5601
       - DEFAULT_EXPOSE_PORT=5601
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.opensearch-dashboards-host.rule=Host(`opensearch-dashboards.local.wmftest.net`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.opensearch-dashboards-host.rule=Host(`logs.local.wmftest.net`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.opensearch-dashboards-host.entrypoints=web"
       - "traefik.http.routers.opensearch-dashboards-host.service=opensearch-dashboards"
       - "traefik.http.routers.opensearch-dashboards-host.middlewares=opensearch-dashboards-path@docker"
       - "traefik.http.middlewares.opensearch-dashboards-path.redirectregex.regex=^(https?://[^/]+)(/.*)?$$"
-      - "traefik.http.middlewares.opensearch-dashboards-path.redirectregex.replacement=$${1}/proxy/opensearch-dashboards$${2}"
-      - "traefik.http.routers.opensearch-dashboards-local.rule=Host(`opensearch-dashboards.local.wmftest.net`) && (Path(`/proxy/opensearch-dashboards`) || PathPrefix(`/proxy/opensearch-dashboards/`))"
+      - "traefik.http.middlewares.opensearch-dashboards-path.redirectregex.replacement=$${1}/proxy/logs$${2}"
+      - "traefik.http.routers.opensearch-dashboards-local.rule=Host(`logs.local.wmftest.net`) && (Path(`/proxy/logs`) || PathPrefix(`/proxy/logs/`))"
       - "traefik.http.routers.opensearch-dashboards-local.entrypoints=web"
       - "traefik.http.routers.opensearch-dashboards-local.priority=100"
       - "traefik.http.routers.opensearch-dashboards-local.service=opensearch-dashboards"
-      - "traefik.http.routers.opensearch-dashboards.rule=Path(`/proxy/opensearch-dashboards`) || PathPrefix(`/proxy/opensearch-dashboards/`)"
+      - "traefik.http.routers.opensearch-dashboards.rule=Path(`/proxy/logs`) || PathPrefix(`/proxy/logs/`)"
       - "traefik.http.routers.opensearch-dashboards.entrypoints=web"
       - "traefik.http.routers.opensearch-dashboards.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
       - "traefik.http.services.opensearch-dashboards.loadbalancer.server.port=5601"

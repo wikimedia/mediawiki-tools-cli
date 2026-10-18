@@ -43,6 +43,7 @@ services:
       - NOVNC_PROXY_PATH=${NOVNC_PROXY_PATH:-novnc}
       - PROMETHEUS_PROXY_PATH=${PROMETHEUS_PROXY_PATH:-prometheus}
       - GRAFANA_PROXY_PATH=${GRAFANA_PROXY_PATH:-grafana}
+      - OPENSEARCH_DASHBOARDS_PROXY_PATH=logs
     volumes:
       - ./compose/base/mount/dashboard:/app:ro
       - ./compose/base/mount/ui:/ui:ro

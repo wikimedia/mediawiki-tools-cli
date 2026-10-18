@@ -58,9 +58,7 @@
 ./compose/mysql/mount/wait-for-it.sh
 ./compose/novnc/compose.yml
 ./compose/opensearch-dashboards/compose.yml
-./compose/opensearch-dashboards/mount/logstash/logstash.yml
-./compose/opensearch-dashboards/mount/logstash/pipeline/mediawiki.conf
-./compose/opensearch-dashboards/mount/logstash/template.json
+./compose/opensearch-dashboards/mount/vector.yml
 ./compose/opensearch/compose.yml
 ./compose/phpmyadmin/compose.yml
 ./compose/phpmyadmin/mount/phpmyadmin/config.user.inc.php
