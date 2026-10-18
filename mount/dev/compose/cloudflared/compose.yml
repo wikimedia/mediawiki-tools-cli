@@ -1,6 +1,7 @@
 services:
   cloudflared:
     image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.0}"
+    profiles: ["tunnel"]
     restart: unless-stopped
     command:
       - tunnel
@@ -8,7 +9,7 @@ services:
       - --metrics
       - 0.0.0.0:20241
       - --url
-      - http://traefik:80
+      - http://traefik:${PORT}
     depends_on:
       - traefik
     networks:

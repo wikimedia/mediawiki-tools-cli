@@ -36,6 +36,8 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 		EmbedPath: mount.DevEmbedPath,
 		DiskPath:  projectDirectory,
 		IgnoreFiles: []string{
+			// Keep legacy bind mounts available for rollback until nginx is retired.
+			`compose\/base\/mount\/nginx\/.*`,
 			// Generated gateway credentials are private to each local mwdd context.
 			`compose\/traefik\/auth\/.*`,
 			// Used by docker compose to store current environment variables in

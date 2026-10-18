@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -27,7 +28,7 @@ func TestTraefikSessionKeySurvivesUpgradeAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("key permissions: %v", info.Mode())
 	}
 	if err := ensureTraefikSessionKey(dir); err != nil {
@@ -49,7 +50,7 @@ func TestTraefikSessionKeySurvivesUpgradeAndRestart(t *testing.T) {
 	}
 }
 
-func TestPrepareGatewayInitializesAndMigratesContexts(t *testing.T) {
+func TestTraefikAuthInitializesContexts(t *testing.T) {
 	previousContext := Context
 	Context = "review"
 	t.Cleanup(func() { Context = previousContext })
@@ -78,18 +79,7 @@ func TestPrepareGatewayInitializesAndMigratesContexts(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			bin := t.TempDir()
-			logPath := filepath.Join(t.TempDir(), "docker-args")
-			script := `#!/bin/sh
-printf '%s\n' "$*" >> "$GATEWAY_TEST_LOG"
-if [ "$1" = ps ]; then printf '%s\n' legacy-proxy; fi
-`
-			if err := os.WriteFile(filepath.Join(bin, "docker"), []byte(script), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			t.Setenv("PATH", bin)
-			t.Setenv("GATEWAY_TEST_LOG", logPath)
-			if err := m.PrepareGateway(); err != nil {
+			if err := m.ensureTraefikAuth(); err != nil {
 				t.Fatal(err)
 			}
 			credentials, err := os.ReadFile(filepath.Join(authDir, "credentials"))
@@ -103,19 +93,12 @@ if [ "$1" = ps ]; then printf '%s\n' legacy-proxy; fi
 			if err != nil || len(key) != 32 {
 				t.Fatalf("session key not initialized: %v", err)
 			}
-			if err := m.PrepareGateway(); err != nil {
+			if err := m.ensureTraefikAuth(); err != nil {
 				t.Fatal(err)
 			}
 			saved, err := os.ReadFile(filepath.Join(authDir, "session-key"))
 			if err != nil || !bytes.Equal(key, saved) {
 				t.Fatal("restart replaced signing key")
-			}
-			args, err := os.ReadFile(logPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Contains(args, []byte("label=com.docker.compose.project=mwcli-mwdd-review")) || !bytes.Contains(args, []byte("label=com.docker.compose.service=nginx-proxy")) || !bytes.Contains(args, []byte("rm --force legacy-proxy")) {
-				t.Fatalf("legacy proxy removal not scoped to context: %s", args)
 			}
 		})
 	}

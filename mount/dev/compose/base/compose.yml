@@ -22,9 +22,6 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=web"
       - "traefik.http.routers.dashboard.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},dashboard-prefix@file"
       - "traefik.http.services.dashboard.loadbalancer.server.port=${DASHBOARD_VIRTUAL_PORT:-8080}"
-      - "traefik.http.routers.dashboard-host.rule=(Host(`dashboard.local.wmftest.net`) || Host(`dash.local.wmftest.net`) || Host(`proxy.local.wmftest.net`)) && !PathPrefix(`/proxy/`)"
-      - "traefik.http.routers.dashboard-host.entrypoints=web"
-      - "traefik.http.routers.dashboard-host.service=dashboard"
     security_opt:
       - label:disable
     restart: unless-stopped

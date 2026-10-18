@@ -1,5 +1,7 @@
 apiVersion: 1
 
+# These are direct backend connections, without gateway authentication. The
+# backends themselves serve under /proxy/<name>, so internal URLs need it too.
 datasources:
   - name: Prometheus
     type: prometheus

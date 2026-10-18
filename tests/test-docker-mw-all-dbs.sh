@@ -116,6 +116,12 @@ test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401
 test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401 0 adminer.local.wmftest.net
 test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 200 1
 test_http_status http://127.0.0.1:$PORT/ 401
+test_gateway_https_session http://127.0.0.1:$PORT
+
+# Requests from MediaWiki must resolve through DPS and reach the same listener
+# port as host requests, without requiring the public gateway login.
+test_command_success ./bin/mw docker mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://adminer.local.wmftest.net:$PORT/
+test_command_success ./bin/mw docker mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://mysqlwiki.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page
 
 # And check the installed sites (mysql, postgres, sqlite)
 # test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"

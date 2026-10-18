@@ -12,24 +12,75 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// removeLegacyNginxProxy removes a proxy container left behind by an older
-// Compose manifest so it cannot hold Traefik's listener port during upgrade.
-func (m MWDD) removeLegacyNginxProxy() error {
-	project := m.DockerCompose().Name
-	args := []string{"ps", "-aq", "--filter", "label=com.docker.compose.project=" + project, "--filter", "label=com.docker.compose.service=nginx-proxy"}
-	output, err := exec.Command("docker", args...).Output()
+// gatewayCommand allows migration ordering and rollback to be tested without
+// shell scripts or a Docker daemon (including on Windows).
+type gatewayCommand func([]string) (string, error)
+
+// migrateLegacyProxy recreates running services with their new routing labels
+// before retiring nginx. Stopped applications are not selected for migration.
+func (m MWDD) migrateLegacyProxy(docker, compose gatewayCommand) error {
+	projectFilter := "label=com.docker.compose.project=" + strings.ToLower(m.DockerCompose().Name)
+	output, err := docker([]string{"ps", "-aq", "--filter", projectFilter, "--filter", "label=com.docker.compose.service=nginx-proxy"})
 	if err != nil {
 		return fmt.Errorf("find the previous nginx proxy container: %w", err)
 	}
-	containers := strings.Fields(string(output))
+	containers := strings.Fields(output)
 	if len(containers) == 0 {
 		return nil
 	}
-	removeArgs := append([]string{"rm", "--force"}, containers...)
-	remove := exec.Command("docker", removeArgs...)
-	remove.Stdout = os.Stdout
-	remove.Stderr = os.Stderr
-	return remove.Run()
+	fmt.Println("Migrating the development proxy from nginx to Traefik...")
+	output, err = docker([]string{"ps", "--filter", projectFilter, "--format", `{{.Label "com.docker.compose.service"}}`})
+	if err != nil {
+		return fmt.Errorf("find running services for proxy migration: %w", err)
+	}
+	running := strings.Fields(output)
+	available, err := compose([]string{"--profile", "*", "config", "--services"})
+	if err != nil {
+		return fmt.Errorf("validate proxy migration configuration: %w", err)
+	}
+	known := make(map[string]bool)
+	for _, name := range strings.Fields(available) {
+		known[name] = true
+	}
+	services := []string{"traefik"}
+	nginxRunning := false
+	for _, name := range running {
+		if name == "nginx-proxy" {
+			nginxRunning = true
+			continue
+		}
+		if !known[name] {
+			return fmt.Errorf("cannot migrate running service %s: missing from Compose configuration", name)
+		}
+		if name != "traefik" {
+			services = append(services, name)
+		}
+	}
+	// Prepare proxy containers and missing images without interrupting the working
+	// listener. Creating a container does not bind its published port.
+	if _, err := compose([]string{"create", "--no-recreate", "traefik", "gateway-auth", "docker-socket-proxy"}); err != nil {
+		return fmt.Errorf("prepare proxy migration containers: %w", err)
+	}
+	if _, err := docker(append([]string{"stop"}, containers...)); err != nil {
+		return fmt.Errorf("stop the previous nginx proxy: %w", err)
+	}
+	if _, err := compose(append([]string{"up", "-d"}, services...)); err != nil {
+		// Keep the previous container until the replacement starts successfully.
+		_, stopErr := compose([]string{"stop", "traefik"})
+		if stopErr != nil {
+			return fmt.Errorf("migrate web proxy: %w; stop replacement before recovery: %v", err, stopErr)
+		}
+		if nginxRunning {
+			if _, restartErr := docker(append([]string{"start"}, containers...)); restartErr != nil {
+				return fmt.Errorf("migrate web proxy: %w; restore nginx: %v", err, restartErr)
+			}
+		}
+		return fmt.Errorf("migrate web proxy (previous nginx container retained): %w", err)
+	}
+	if _, err := docker(append([]string{"rm"}, containers...)); err != nil {
+		return fmt.Errorf("retire the previous nginx proxy: %w", err)
+	}
+	return nil
 }
 
 // EnsureTraefikAuth creates private credentials for the default Traefik proxy.
@@ -46,7 +97,19 @@ func (m MWDD) PrepareGateway() error {
 	if err := m.ensureTraefikAuth(); err != nil {
 		return err
 	}
-	return m.removeLegacyNginxProxy()
+	return m.migrateLegacyProxy(func(args []string) (string, error) {
+		output, err := exec.Command("docker", args...).CombinedOutput()
+		if err != nil {
+			return "", fmt.Errorf("%w: %s", err, output)
+		}
+		return string(output), nil
+	}, func(args []string) (string, error) {
+		stdout, stderr, err := m.DockerCompose().Command(args).RunAndCollect()
+		if err != nil {
+			return "", fmt.Errorf("%w: %s%s", err, stdout.String(), stderr.String())
+		}
+		return stdout.String(), nil
+	})
 }
 
 func (m MWDD) ensureTraefikAuth() error {
