@@ -97,14 +97,16 @@ Server restarts generate a new connection string; use `mw docker tunnel url` to
 retrieve it. HTTP links use the local client origin; Cloudflare and other HTTPS
 proxies retain their forwarded HTTPS origin.
 
-For a manual end-to-end Holesail check on a machine with an installed default
-wiki, default gateway authentication enabled and no active tunnel, run
+For an end-to-end Holesail check on a machine with Docker, curl, Python 3,
+Linux host networking, and public DHT access, run
 `./tests/test-docker-tunnel-holesail.sh`. It uses a separate client container
 with Linux host networking on the same VM and checks gateway authentication,
 the dashboard, wiki pages and the canonical URL. Set `MW_BIN`, `TUNNEL_CONTEXT`,
 or `CLIENT_PORT` to override its defaults. It stops its test tunnel and client,
-and restores the previous provider setting. Real public DHT connectivity is
-tested explicitly here; the normal CI suite uses offline lifecycle tests.
+and restores the previous provider setting. The GitLab request plan selects
+`docker-tunnel-holesail` on `linux-amd64`; the shared GitHub executor runs it
+with a disposable context and prepared default wiki. The real public DHT path
+is checked end to end, alongside the offline lifecycle tests.
 
 Traefik binds the existing `PORT` on all interfaces, so local virtual hosts and remote `/proxy/...` routes use the same listener. The root path on an unmatched host serves the default wiki behind the same authentication. Some tools require app-specific base-path settings for all links and assets to work under a prefix; prefix routing alone does not guarantee that every tool's UI is fully compatible.
 

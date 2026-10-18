@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
-# Manual network integration test. Requires an installed default wiki, Docker,
-# curl, Python 3, Linux host networking, and public Holesail DHT access. No extra VM.
-# Run against a context with no tunnel running; normal CI uses offline tests.
+# End-to-end network integration test. Requires Docker, curl, Python 3, Linux
+# host networking, and public Holesail DHT access. No extra VM.
+# CI bootstraps a disposable context; manual runs require an installed default wiki.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 MW_BIN=${MW_BIN:-./bin/mw}
-TUNNEL_CONTEXT=${TUNNEL_CONTEXT:-default}
+ci_bootstrap=${MWCLI_CI_HOLESAIL_BOOTSTRAP:-${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-0}}
+if [ "$ci_bootstrap" = "1" ]; then
+    TUNNEL_CONTEXT=${TUNNEL_CONTEXT:-ci-holesail}
+else
+    TUNNEL_CONTEXT=${TUNNEL_CONTEXT:-default}
+fi
 CLIENT_PORT=${CLIENT_PORT:-18082}
 client_name="mwcli-holesail-proof-$$"
 project="mwcli-mwdd-$TUNNEL_CONTEXT"
@@ -22,7 +28,10 @@ previous_provider=$(mw env get TUNNEL_PROVIDER 2>/dev/null || true)
 cleanup() {
     docker rm -f "$client_name" >/dev/null 2>&1 || true
     mw tunnel stop --provider holesail >/dev/null 2>&1 || true
-    if [ -n "$previous_provider" ]; then
+    if [ "$ci_bootstrap" = "1" ]; then
+        mw destroy >/dev/null 2>&1 || true
+        mw env clear >/dev/null 2>&1 || true
+    elif [ -n "$previous_provider" ]; then
         mw env set TUNNEL_PROVIDER "$previous_provider" >/dev/null
     else
         mw env delete TUNNEL_PROVIDER >/dev/null
@@ -30,6 +39,18 @@ cleanup() {
     rm -rf "$work"
 }
 trap cleanup EXIT
+
+if [ "$ci_bootstrap" = "1" ]; then
+    echo "Preparing an isolated MediaWiki context for the Holesail test."
+    source "$SCRIPT_DIR/pretest-mediawiki.sh"
+    # The shared preparation script disables errexit for its other callers.
+    set -euo pipefail
+    mw env clear
+    mw env set MEDIAWIKI_VOLUMES_CODE "$(cd "$SCRIPT_DIR/.." && pwd)/.mediawiki"
+    mw mediawiki create
+    mw mysql create
+    mw mediawiki install --dbtype mysql
+fi
 
 echo "Starting real Holesail server (connection secret stays in temporary files)."
 if ! mw tunnel start --provider holesail >"$work/start.log" 2>&1; then
