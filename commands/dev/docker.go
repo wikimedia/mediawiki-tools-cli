@@ -158,6 +158,7 @@ func NewCmd() *cobra.Command {
 					}
 
 					thisDev.Env().Set("PORT", port)
+					cmd.Printf("To change this later, see `%s help guides dev ports`.\n", cmd.Root().Name())
 				} else {
 					thisDev.Env().Set("PORT", ports.FreeUpFrom("8080"))
 				}
