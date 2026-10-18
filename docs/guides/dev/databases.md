@@ -24,3 +24,18 @@ You can choose to add a mysql replica at any time. Replication will be handled a
 ```
 mw dev mysql-replica create
 ```
+
+## Import and export SQL
+
+See [MySQL dumps](mysql-dumps.md) for import and export commands, including terminal handling and restoring MediaWiki data.
+
+## Expose MySQL on the host
+
+Use the bundled client or the [dump commands](mysql-dumps.md) without exposing a port. To connect a host database tool on port 3306:
+
+```sh
+mw dev env set MYSQL_PORT_3306 3306
+mw dev mysql create --force-recreate
+```
+
+Choose an unused host port. The HTTP gateway's [PORT setting](ports.md) is separate.

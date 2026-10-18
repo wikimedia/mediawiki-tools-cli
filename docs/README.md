@@ -46,7 +46,7 @@ Commit the source fixes and updated `wiki.json`. Acceptance is tied to that snap
 
 ## Add or import a guide
 
-For a new guide, add Markdown under `guides/`, a `source`/`title` entry in `wiki.json`, and a link in `index.md`. Relative Markdown links between mapped guides are converted to wiki URLs. Broken guide links fail the build.
+For a new guide, add Markdown under `guides/`, a `source`/`title` entry in `wiki.json`, and a link in `index.md`. Relative Markdown links between mapped guides are converted to wiki URLs. Broken guide links fail the build. Mapped guides are also bundled for offline reading under `mw help guides`, following their folder paths; `index.md` provides the parent topic. Use `--web` to open the mapped wiki page. Keep command help short and point to a guide for longer workflows.
 
 To adopt an existing wiki page:
 
@@ -67,3 +67,7 @@ make VERSION=vX.Y.Z docs-publish
 The release job uses the existing CI secrets. Credentials are read from the environment. Publishing repeats the drift check and sends the inspected revision ID with every edit; a concurrent wiki edit, deletion or creation causes an API conflict instead of an overwrite. There is no force-publish bypass. A conflict during publishing can leave earlier pages updated; correct it and rerun to finish.
 
 The guides are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Imported pages retain revision links for attribution to their wiki contributors. Generated reference remains derived from the command source under the repository license.
+
+## Check workflow examples
+
+Run `make docs` to validate guide links and publication mappings, and `make linti` to check help size and command metadata. Runtime examples are covered by `tests/guide-examples.sh`, called from the existing Docker integration jobs: MySQL dump/restore in the MySQL cycle, and Xdebug, port changes and playable Fresh recordings in the general Docker job. Keep those checks aligned when editing their corresponding guides. Use a separate development context for manual checks; the full CI scripts create and destroy their test environment.

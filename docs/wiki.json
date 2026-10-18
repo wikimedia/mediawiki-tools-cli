@@ -50,6 +50,26 @@
       "title": "Cli/guide/Gitlab"
     },
     {
+      "source": "guides/dev/contexts.md",
+      "title": "Cli/guide/Contexts"
+    },
+    {
+      "source": "guides/dev/ports.md",
+      "title": "Cli/guide/Ports"
+    },
+    {
+      "source": "guides/dev/mysql-dumps.md",
+      "title": "Cli/guide/MySQL dumps"
+    },
+    {
+      "source": "guides/dev/xdebug.md",
+      "title": "Cli/guide/Xdebug"
+    },
+    {
+      "source": "guides/dev/fresh.md",
+      "title": "Cli/guide/Fresh"
+    },
+    {
       "source": "guides/dev/troubleshooting.md",
       "title": "Cli/FAQ"
     }
