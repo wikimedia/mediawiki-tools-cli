@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 // conduitClient wraps the Phabricator Conduit API.
@@ -34,7 +35,7 @@ func newConduitClient(cfg *PhabConfig) *conduitClient {
 		apiToken:   cfg.Key,
 		username:   cfg.Username,
 		cache:      cache,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
@@ -47,6 +48,10 @@ type conduitResponse struct {
 }
 
 func (c *conduitClient) post(method string, params map[string]interface{}) (json.RawMessage, error) {
+	endpoint, err := secrets.Endpoint(c.baseURL)
+	if err != nil {
+		return nil, err
+	}
 	params["__conduit__"] = map[string]string{"token": c.apiToken}
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
@@ -56,7 +61,7 @@ func (c *conduitClient) post(method string, params map[string]interface{}) (json
 		"params": {string(paramsJSON)},
 		"output": {"json"},
 	}
-	req, err := http.NewRequest("POST", c.baseURL+"/api/"+method, strings.NewReader(formData.Encode()))
+	req, err := http.NewRequest("POST", endpoint+"/api/"+method, strings.NewReader(formData.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +73,9 @@ func (c *conduitClient) post(method string, params map[string]interface{}) (json
 		return nil, fmt.Errorf("POST %s: %w", method, err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Phabricator returned HTTP %s", resp.Status)
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)

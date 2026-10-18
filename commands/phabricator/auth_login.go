@@ -9,99 +9,77 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
-	var username string
-	var token string
-
+	var username, token, endpoint string
+	var tokenStdin, insecureStorage bool
 	cmd := &cobra.Command{
-		Use:   "login",
-		Short: "Login to Wikimedia Phabricator using API token",
+		Use:     "login",
+		Short:   "Login to Phabricator using an API token",
+		Long:    "Save a validated Phabricator token with the selected credential provider. The default destination is Wikimedia Phabricator; --url explicitly selects another HTTPS endpoint. A project-local phab.cfg never chooses where a newly entered token is sent.",
+		Example: "login\nlogin --username myname --token-stdin",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			siteName := resolveAuthSite(*site)
-
+			normalized, err := secrets.Endpoint(endpoint)
+			if err != nil {
+				return err
+			}
+			if tokenStdin {
+				token, err = secrets.ReadInput(cmd.InOrStdin())
+				if err != nil {
+					return err
+				}
+			}
 			if strings.TrimSpace(username) == "" {
-				prompt := &survey.Input{Message: "Phabricator username:"}
-				if err := survey.AskOne(prompt, &username); err != nil {
+				if !cli.CanAskForInput() {
+					return fmt.Errorf("provide --username")
+				}
+				if err := survey.AskOne(&survey.Input{Message: "Phabricator username:"}, &username, survey.WithValidator(survey.Required)); err != nil {
 					return err
 				}
 			}
 			username = strings.TrimSpace(username)
-			if username == "" {
-				return fmt.Errorf("username is required")
-			}
-
 			if strings.TrimSpace(token) == "" {
-				cmd.Printf("Create a token at https://phabricator.wikimedia.org/settings/user/%s/page/apitokens/\n", url.PathEscape(username))
+				if !cli.CanAskForInput() {
+					return fmt.Errorf("provide --token-stdin or --token")
+				}
+				cmd.Printf("Create a token at %s/settings/user/%s/page/apitokens/\n", normalized, url.PathEscape(username))
 				hostname, _ := os.Hostname()
 				cmd.Printf("Suggested token name (paste into Phabricator): %s\n", suggestedTokenName(time.Now(), hostname))
-				prompt := &survey.Password{Message: "Phabricator API token:"}
-				if err := survey.AskOne(prompt, &token); err != nil {
+				if err := survey.AskOne(&survey.Password{Message: "Phabricator API token:"}, &token, survey.WithValidator(survey.Required)); err != nil {
 					return err
 				}
 			}
 			token = strings.TrimSpace(token)
-			if token == "" {
-				return fmt.Errorf("API token is required")
+			if username == "" || token == "" {
+				return fmt.Errorf("username and token are required")
 			}
-
-			cfg := &PhabConfig{
-				SiteName: siteName,
-				URL:      defaultPhabricatorURL,
-				Username: username,
-				Key:      token,
-			}
-
-			if existing, err := loadConfig(siteName); err == nil {
-				if strings.TrimSpace(existing.URL) != "" {
-					cfg.URL = existing.URL
-				}
-				if strings.TrimSpace(existing.DefaultProject) != "" {
-					cfg.DefaultProject = existing.DefaultProject
-				}
-				if strings.TrimSpace(existing.CachePath) != "" {
-					cfg.CachePath = existing.CachePath
-				}
-			}
-
+			cfg := &PhabConfig{SiteName: siteName, URL: normalized, Username: username, Key: token}
 			whoami, err := validatePhabricatorCredentials(cmd, cfg)
 			if err != nil {
-				var ignoreError bool
-				prompt := &survey.Confirm{Message: "Could not validate credentials. Save them anyway?"}
-				if askErr := survey.AskOne(prompt, &ignoreError); askErr != nil {
-					return askErr
-				}
-				if !ignoreError {
-					return fmt.Errorf("credentials not saved")
-				}
-			} else {
-				cmd.Printf("Authenticated as %s\n", whoami)
+				return fmt.Errorf("Phabricator credentials were not validated or saved: %w", err)
 			}
-
-			if err := mwconfig.PutKeyValueOnDisk("phabricator.default_site", siteName); err != nil {
+			prefix := "phabricator.sites." + siteName + "."
+			credential := mwconfig.Credential{Key: prefix + "key", Service: "phabricator", Endpoint: normalized, Account: username}
+			if err := credential.SaveWithMetadata(token, insecureStorage, map[string]string{
+				"phabricator.default_site": siteName, prefix + "url": normalized, prefix + "username": username, prefix + "logged_out": "false",
+			}); err != nil {
 				return err
 			}
-			if err := mwconfig.PutKeyValueOnDisk(phabSiteConfigKey(siteName, "url"), cfg.URL); err != nil {
-				return err
-			}
-			if err := mwconfig.PutKeyValueOnDisk(phabSiteConfigKey(siteName, "username"), cfg.Username); err != nil {
-				return err
-			}
-			if err := mwconfig.PutKeyValueOnDisk(phabSiteConfigKey(siteName, "key"), cfg.Key); err != nil {
-				return err
-			}
-
-			cmd.Printf("Saved credentials for site %q\n", siteName)
-			cmd.Printf("Tip: if a legacy phab.cfg exists, it takes precedence over CLI config.\n")
+			cmd.Printf("Authenticated as %s; credentials saved for %s\n", whoami, normalized)
 			return nil
 		},
 	}
-
 	cmd.Flags().StringVarP(&username, "username", "u", "", "Phabricator username")
-	cmd.Flags().StringVarP(&token, "token", "t", "", "Phabricator API token")
-
+	cmd.Flags().StringVarP(&token, "token", "t", "", "API token (prefer a hidden prompt or stdin)")
+	cmd.Flags().StringVar(&endpoint, "url", defaultPhabricatorURL, "Explicit Phabricator HTTPS endpoint")
+	cmd.Flags().BoolVar(&tokenStdin, "token-stdin", false, "Read the API token from stdin")
+	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Store the token in the private plaintext config using insecure storage")
+	cmd.MarkFlagsMutuallyExclusive("token", "token-stdin")
 	return cmd
 }
 
