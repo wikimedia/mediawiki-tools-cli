@@ -29,6 +29,7 @@ type pageviewItem struct {
 func NewPageviewsCmd() *cobra.Command {
 	var project, access, agent, granularity, start, end string
 	var timeout time.Duration
+	var graphWidth int
 	out := output.Output{
 		TableBinding: &output.TableBinding{
 			Headings: []string{"Date", "Views"},
@@ -47,9 +48,12 @@ func NewPageviewsCmd() *cobra.Command {
 		Use:     "pageviews [article]",
 		Short:   "Get pageview counts for a page or project",
 		Long:    "Get pageview counts for an article, or omit the article for project totals. Dates are inclusive. All agents, including bots, are included by default; use --agent user for human traffic.",
-		Example: "pageviews --project en.wikipedia.org\npageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --output csv\npageviews 'Albert Einstein' --output jq --format '.[].views'",
+		Example: "pageviews --project en.wikipedia.org\npageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --output graph\npageviews 'Albert Einstein' --output csv\npageviews 'Albert Einstein' --output jq --format '.[].views'",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateGraphWidth(graphWidth); err != nil {
+				return err
+			}
 			if err := validateMetricOutput(out); err != nil {
 				return err
 			}
@@ -70,6 +74,21 @@ func NewPageviewsCmd() *cobra.Command {
 			if items == nil {
 				items = []pageviewItem{}
 			}
+			if out.Type == "graph" {
+				points := make([]output.GraphPoint, 0, len(items))
+				for _, item := range items {
+					date, err := metricGraphTime(item.Timestamp)
+					if err != nil {
+						return err
+					}
+					points = append(points, output.GraphPoint{Time: date, Value: float64(item.Views)})
+				}
+				title := "Pageviews — " + project
+				if article != "" {
+					title = "Pageviews — " + article + " (" + project + ")"
+				}
+				return (output.Graph{Title: title, Points: points, Width: graphWidth}).Print(cmd.OutOrStdout())
+			}
 			if out.Type == "csv" {
 				return printPageviewsCSV(cmd.OutOrStdout(), items)
 			}
@@ -86,9 +105,10 @@ func NewPageviewsCmd() *cobra.Command {
 	out.AddFlagsWithOpts(cmd,
 		output.WithDefaultTTY(output.TableType),
 		output.WithDefaultPipe(output.JSONType),
-		output.WithAdditionalTypes(output.Type("csv")),
+		output.WithAdditionalTypes(output.Type("csv"), output.Type("graph")),
 		output.WithFilterFlagDisabled(),
 	)
+	cmd.Flags().IntVar(&graphWidth, "graph-width", 0, "Graph width in columns (0 detects the terminal; otherwise 24–1000)")
 	cmd.Flags().DurationVar(&timeout, "timeout", 20*time.Second, "HTTP request timeout")
 	return cmd
 }

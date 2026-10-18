@@ -17,11 +17,11 @@ For user-facing documentation and a guide on how to use `mw`, visit the [MediaWi
 
 ### Analytics and REST APIs
 
-`mw analytics` queries the [Wikimedia Analytics API](https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/) for pageviews, edits, editors, new pages, unique devices, and media requests. Omit the article from `pageviews` or `edits` for project totals. Rankings support `--date YYYYMMDD`, `--month YYYYMM`, and `--limit`. Tables are the default in a terminal; pipes receive JSON. Use `--output json|table|jq|csv` to choose explicitly.
+`mw analytics` queries the [Wikimedia Analytics API](https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/) for pageviews, edits, editors, new pages, unique devices, and media requests. Omit the article from `pageviews` or `edits` for project totals. Rankings support `--date YYYYMMDD`, `--month YYYYMM`, and `--limit`. Tables are the default in a terminal; pipes receive JSON. Use `--output json|table|jq|csv|graph` to choose explicitly. Graphs show time series as lines and rankings as horizontal bars; `--graph-width` overrides the detected terminal width.
 
 ```sh
-mw analytics pageviews 'Albert Einstein' --agent user
-mw analytics top-pages --project en.wikipedia.org --date 20250101 --limit 10
+mw analytics pageviews 'Albert Einstein' --agent user --output graph
+mw analytics top-pages --project en.wikipedia.org --date 20250101 --limit 10 --output graph
 mw analytics mediarequests top --month 202501
 mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output jq --format '.items[0].articles[:5]'
 ```

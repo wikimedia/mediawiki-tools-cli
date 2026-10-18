@@ -16,6 +16,7 @@ import (
 )
 
 type metricOptions struct {
+	graphWidth                                                                 int
 	project, editorType, pageType, activity, access, referer, mediaType, agent string
 	granularity, start, end, date, month                                       string
 	limit                                                                      int
@@ -54,6 +55,9 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		cmd.Args = cobra.MaximumNArgs(1)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := validateGraphWidth(opts.graphWidth); err != nil {
+			return err
+		}
 		if err := validateMetricOutput(out); err != nil {
 			return err
 		}
@@ -79,6 +83,9 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		}
 		if def.ranking && opts.limit > 0 && len(rows) > opts.limit {
 			rows = rows[:opts.limit]
+		}
+		if out.Type == "graph" {
+			return printMetricGraph(cmd, rows, def, opts)
 		}
 		if out.Type == "csv" {
 			writer := csv.NewWriter(cmd.OutOrStdout())
@@ -139,16 +146,17 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		flags.StringVar(&opts.start, "start", "", "Start date in YYYYMMDD format (default: 30 days ago)")
 		flags.StringVar(&opts.end, "end", "", "End date in YYYYMMDD format (default: yesterday)")
 	}
+	flags.IntVar(&opts.graphWidth, "graph-width", 0, "Graph width in columns (0 detects the terminal; otherwise 24–1000)")
 	flags.DurationVar(&opts.timeout, "timeout", 20*time.Second, "HTTP request timeout")
-	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.TableType), output.WithDefaultPipe(output.JSONType), output.WithAdditionalTypes(output.Type("csv")), output.WithFilterFlagDisabled())
+	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.TableType), output.WithDefaultPipe(output.JSONType), output.WithAdditionalTypes(output.Type("csv"), output.Type("graph")), output.WithFilterFlagDisabled())
 	return cmd
 }
 
 func validateMetricOutput(out output.Output) error {
 	switch out.Type {
-	case string(output.AutoType), string(output.TableType), string(output.JSONType), string(output.JQType), "csv":
+	case string(output.AutoType), string(output.TableType), string(output.JSONType), string(output.JQType), "csv", "graph":
 	default:
-		return fmt.Errorf("--output must be table, json, jq, or csv")
+		return fmt.Errorf("--output must be table, json, jq, csv, or graph")
 	}
 	if out.Type == string(output.JQType) && out.Format == "" {
 		return fmt.Errorf("--output jq requires a --format expression")
