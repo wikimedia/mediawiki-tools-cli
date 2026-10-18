@@ -29,7 +29,7 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Use:     "record [spec]",
 		Short:   "Record a Selenium test run as video",
 		Long:    "Run npm run selenium-test with video recording enabled, a non-headless browser, and one worker. Optionally select a spec; otherwise run the full suite. Run npm ci first to install dependencies. Videos normally appear in tests/selenium/log/ in the host checkout.",
-		Example: cobrautil.NormalizeExample("fresh record\nfresh record tests/selenium/specs/recentchanges.js"),
+		Example: cobrautil.NormalizeExample("record\nrecord tests/selenium/specs/recentchanges.js"),
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			command := []string{
