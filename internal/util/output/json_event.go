@@ -17,23 +17,28 @@ func PrintJSONEvent(writer io.Writer, data []byte) error {
 }
 
 func printJSONEvent(writer io.Writer, data []byte, terminal bool) error {
+	var compacted bytes.Buffer
+	if err := json.Compact(&compacted, data); err != nil {
+		return err
+	}
+
 	var rendered bytes.Buffer
-	var err error
 	switch {
 	case !terminal:
-		err = json.Compact(&rendered, data)
+		_, _ = rendered.Write(compacted.Bytes())
 	case os.Getenv("NO_COLOR") == "" && os.Getenv("CLICOLOR") != "0" && os.Getenv("TERM") != "dumb":
 		// Render into a buffer because jsoncolor does not propagate writer errors.
-		err = jsoncolor.Write(&rendered, bytes.NewReader(data), "  ")
+		if err := jsoncolor.Write(&rendered, bytes.NewReader(data), "  "); err != nil {
+			return err
+		}
 	default:
-		err = json.Indent(&rendered, bytes.TrimSpace(data), "", "  ")
-	}
-	if err != nil {
-		return err
+		if err := json.Indent(&rendered, bytes.TrimSpace(data), "", "  "); err != nil {
+			return err
+		}
 	}
 	if rendered.Len() == 0 || rendered.Bytes()[rendered.Len()-1] != '\n' {
 		rendered.WriteByte('\n')
 	}
-	_, err = rendered.WriteTo(writer)
+	_, err := rendered.WriteTo(writer)
 	return err
 }

@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-const eventStreamsURL = "https://stream.wikimedia.org"
-const eventStreamsUserAgent = "mwcli WikimediaEventStream/1.0 (https://www.mediawiki.org/wiki/CLI)"
+const (
+	eventStreamsURL       = "https://stream.wikimedia.org"
+	eventStreamsUserAgent = "mwcli WikimediaEventStream/1.0 (https://www.mediawiki.org/wiki/CLI)"
+)
 
 type tailOptions struct {
 	stream, wiki, title, user string
