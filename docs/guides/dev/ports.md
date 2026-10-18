@@ -2,6 +2,19 @@
 
 `PORT` controls Traefik's published host port and the HTTP listener inside its container. It defaults to 8080, or another free port chosen during setup. Apache and other services keep their own internal ports.
 
+## Find the saved port
+
+Each development context stores `PORT` in its own `.env` file. Show the saved
+value and the location of that file with:
+
+```sh
+mw dev env get PORT
+mw dev env where
+```
+
+Destroying containers preserves this file. Recreating them reuses the saved port,
+so the initial port prompt does not appear again.
+
 ## Set and apply a port
 
 For an existing environment, choose an unused port and inspect the configuration:
