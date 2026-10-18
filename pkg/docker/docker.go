@@ -21,12 +21,12 @@ func NewClientFromEnv() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load Docker configuration: %w", err)
 	}
-	name := os.Getenv("DOCKER_CONTEXT")
-	if name == "" {
-		// An explicit host takes precedence over the saved current context.
-		if os.Getenv("DOCKER_HOST") != "" {
-			name = "default"
-		} else {
+	// Match Docker CLI v27's resolver: DOCKER_HOST takes precedence over
+	// DOCKER_CONTEXT and the saved current context.
+	name := "default"
+	if os.Getenv("DOCKER_HOST") == "" {
+		name = os.Getenv("DOCKER_CONTEXT")
+		if name == "" {
 			name = cfg.CurrentContext
 		}
 	}
