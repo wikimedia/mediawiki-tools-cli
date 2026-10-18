@@ -76,19 +76,6 @@ secret_detection:
         - .cache/go-mod/
         - .cache/golangci-lint/
 
-.docker-job:
-    extends: .commit-job
-    image: docker:26.1.1
-    tags:
-      - dind
-    services:
-      - name: docker:26.1.1-dind
-    cache: []
-    before_script:
-      # gcompat runs the glibc-linked mw binary in Alpine.
-      - apk add --no-cache libc6-compat bash curl tar git docker-compose
-      - *checkout-merged-source
-
 test:
     extends: .go-job
     stage: test
@@ -201,26 +188,57 @@ integration-get-code:
     script:
       - ./tests/test-docker-get-code.sh
 
-integration:
-    extends: .docker-job
+# Dispatch explicitly after prerequisites; no Job events webhook is needed.
+# Neither this job nor the gate needs a long-lived GitLab/GitHub secret.
+integration-github-request:
+    image: python:3.13-alpine
+    tags: [mwcli-wait]
+    timeout: 10m
     stage: integration
+    variables:
+      GIT_STRATEGY: none
+    cache: []
+    rules:
+      - if: '$CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
     needs:
-      - *merged-source-need
       - job: checks
         artifacts: false
       - job: test
         artifacts: false
       - job: build
+        artifacts: false
       - job: prepare-mediawiki
-    parallel:
-      matrix:
-        - TEST_SCRIPT: test-docker-general.sh
-        - TEST_SCRIPT: test-docker-mw-all-dbs.sh
-        - TEST_SCRIPT: test-docker-mw-mysql-cycle.sh
-        - TEST_SCRIPT: test-docker-recipe-repoclient.sh
+        artifacts: false
     script:
-      - tar -xzf .cache/mediawiki.tar.gz
-      - ./tests/$TEST_SCRIPT
+      - python3 /opt/mwcli-wait/wait-github.py dispatch
+
+# A small normal job waits on the Cloud VPS pool; no manual action is required.
+integration-github:
+    image: python:3.13-alpine
+    tags: [mwcli-wait]
+    stage: integration
+    timeout: 45m
+    variables:
+      GIT_STRATEGY: none
+    cache: []
+    dependencies: []
+    rules:
+      - if: '$CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
+    needs:
+      - job: integration-github-request
+        artifacts: false
+    script:
+      - python3 /opt/mwcli-wait/wait-github.py
+
+ci-bridge-checks:
+    extends: .commit-job
+    image: python:3.13-bookworm
+    tags: [wmcs]
+    stage: test
+    cache: []
+    script:
+      - python3 -m unittest discover -s tools/ci -p 'test_*.py'
+      - python3 -m unittest discover -s .github/scripts -p 'test_*.py'
 
 build-release:
     extends: .go-job
@@ -241,7 +259,13 @@ build-docs:
     rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     stage: release
-    needs: [*merged-source-need,build,integration-cli,integration-get-code,integration]
+    needs:
+      - *merged-source-need
+      - build
+      - integration-cli
+      - integration-get-code
+      - job: integration-github
+        optional: true
     before_script:
       - *checkout-merged-source
       - apt update
@@ -254,7 +278,13 @@ release-build:
     rules:
       - if: '$CI_COMMIT_TAG'
     stage: release
-    needs: [*merged-source-need,build,integration-cli,integration-get-code,integration]
+    needs:
+      - *merged-source-need
+      - build
+      - integration-cli
+      - integration-get-code
+      - job: integration-github
+        optional: true
     artifacts:
       paths:
         - _release/
