@@ -16,7 +16,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/fatih/color"
+	"github.com/mattn/go-runewidth"
 	"github.com/rodaine/table"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
@@ -75,6 +77,8 @@ func (t *Table) Print(writer io.Writer) {
 	tbl := table.New(t.Headings...)
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
+	links := supportsHyperlinks(writer)
+	hasLinks := false
 	for _, row := range t.Rows {
 		processed := make([]interface{}, len(row))
 		for i, cell := range row {
@@ -85,11 +89,19 @@ func (t *Table) Print(writer io.Writer) {
 			if len(t.ColumnMaxWidths) > i {
 				s = truncateCell(s, t.ColumnMaxWidths[i])
 			}
+			if link, ok := cell.(Hyperlink); ok {
+				linked := terminalHyperlink(s, link.URL, links)
+				hasLinks = hasLinks || linked != s
+				s = linked
+			}
 			processed[i] = s
 		}
 		tbl.AddRow(processed...)
 	}
 
+	if hasLinks {
+		tbl.WithWidthFunc(func(s string) int { return runewidth.StringWidth(ansi.Strip(s)) })
+	}
 	tbl.WithWriter(writer)
 	tbl.Print()
 }
