@@ -6,6 +6,9 @@ if [[ "$(uname -s)" != Darwin || "$(id -u)" == 0 ]]; then
     echo "This test requires an unprivileged macOS user with passwordless sudo"
     exit 1
 fi
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+bash "$SCRIPT_DIR/check-platform.sh"
+
 sudo -n true
 export MWCLI_CONTEXT_TEST=1
 

@@ -6,6 +6,9 @@ if [[ "${RUNNER_OS:-}" != "Windows" ]]; then
     echo "This test requires a native Windows runner"
     exit 1
 fi
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+bash "$SCRIPT_DIR/check-platform.sh"
+
 export MWCLI_CONTEXT_TEST=1
 
 TEST_ROOT="$(mktemp -d)"
