@@ -30,7 +30,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 				applyRelevantMediawikiWorkingDirectory(
 					docker.ExecOptions{
 						// Composer requires $HOME to be set: Default it to / if we must
-						Command: append([]string{"sh", "-c", "HOME=${HOME:-/} \"$@\"", "--", "composer"}, command...),
+						Command: composerCommand(command...),
 						Env:     env,
 						User:    User,
 					},
@@ -45,4 +45,18 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	return cmd
+}
+
+// composerCommand supplies HOME for runtimes that execute an arbitrary UID
+// without a passwd entry. Positional arguments preserve spaces and shell metacharacters.
+func composerCommand(args ...string) []string {
+	return append([]string{"sh", "-c", `HOME=${HOME:-/} "$@"`, "--", "composer"}, args...)
+}
+
+// withComposerHome supplies Composer's required HOME when a generic exec starts it.
+func withComposerHome(command []string) []string {
+	if len(command) > 0 && command[0] == "composer" {
+		return composerCommand(command[1:]...)
+	}
+	return command
 }

@@ -179,21 +179,18 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						// Run composer update to regenerate the lock file (handles composer.local.json
 						// additions/removals via the merge plugin, see T300989 / T393088).
 						// Then run composer install to ensure all deps from the merge plugin are present.
-						for _, composerCmd := range [][]string{
-							{"composer", "update", "--ignore-platform-reqs", "--no-interaction"},
-							{"composer", "install", "--ignore-platform-reqs", "--no-interaction"},
-						} {
-							containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki")
-							if containerIDErr != nil {
-								return fmt.Errorf("failed to get container ID %v", containerIDErr)
-							}
-							docker.Exec(
-								containerID,
-								docker.ExecOptions{
-									Command: composerCmd,
-									User:    User,
-								},
-							)
+						containerID, containerIDErr := mwdd.DefaultForUser().DockerCompose().ContainerID("mediawiki")
+						if containerIDErr != nil {
+							return fmt.Errorf("failed to get container ID: %w", containerIDErr)
+						}
+						if err := installComposerDependencies(func(command []string) int {
+							return docker.Exec(containerID, docker.ExecOptions{
+								Command:    command,
+								User:       User,
+								WorkingDir: "/var/www/html/w",
+							})
+						}); err != nil {
+							return err
 						}
 					} else if composerErr != nil {
 						return fmt.Errorf("can't install without up to date composer dependencies")
@@ -378,4 +375,15 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 	cmd.Flags().String("dbtype", "", "Type of database to install. One of mysql, postgres, sqlite (overriding config)")
 
 	return cmd
+}
+
+// installComposerDependencies must stop at the first error: a successful install
+// after a failed update must not hide a broken dependency resolution.
+func installComposerDependencies(run func([]string) int) error {
+	for _, action := range []string{"update", "install"} {
+		if code := run(composerCommand(action, "--ignore-platform-reqs", "--no-interaction")); code != 0 {
+			return fmt.Errorf("composer %s failed (exit code %d)", action, code)
+		}
+	}
+	return nil
 }
