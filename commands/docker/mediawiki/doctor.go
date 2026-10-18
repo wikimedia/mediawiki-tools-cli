@@ -30,13 +30,15 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			if branches, err := mw.CheckoutBranches(); err != nil {
 				logrus.Warnf("Could not inspect checkout branches: %v", err)
 			} else {
+				var branchWarnings []string
 				for _, checkout := range branches {
-					cmd.Printf("Git branch: %s: %s\n", checkout.Name, checkout.Branch)
 					if checkout.Warning != "" {
-						logrus.Warn(checkout.Warning)
+						branchWarnings = append(branchWarnings, checkout.Warning)
 					}
 				}
-				cmd.Println("Branch checks are advisory; matching names do not guarantee compatibility.")
+				if len(branchWarnings) > 0 {
+					logrus.Warnf("Git checkout advisory: %s", strings.Join(branchWarnings, "; "))
+				}
 			}
 			settings, _ := os.ReadFile(mw.LocalSettingsPath())
 			settingsContents := string(settings)

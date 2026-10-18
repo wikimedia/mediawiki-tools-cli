@@ -23,7 +23,11 @@ func (m MediaWiki) CheckoutBranches() ([]CheckoutBranch, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := []CheckoutBranch{{Name: "core", Branch: core}}
+	coreCheckout := CheckoutBranch{Name: "core", Branch: core}
+	if strings.HasPrefix(core, "detached@") {
+		coreCheckout.Warning = fmt.Sprintf("core is detached at %s", strings.TrimPrefix(core, "detached@"))
+	}
+	result := []CheckoutBranch{coreCheckout}
 	for _, parent := range []string{"skins", "extensions"} {
 		entries, err := os.ReadDir(m.Path(parent))
 		if os.IsNotExist(err) {
@@ -48,7 +52,9 @@ func (m MediaWiki) CheckoutBranches() ([]CheckoutBranch, error) {
 				continue
 			}
 			warning := ""
-			if branchesLikelyIncompatible(core, branch) {
+			if strings.HasPrefix(branch, "detached@") {
+				warning = fmt.Sprintf("%s is detached at %s", name, strings.TrimPrefix(branch, "detached@"))
+			} else if branchesLikelyIncompatible(core, branch) {
 				warning = fmt.Sprintf("%s uses %s while core uses %s; check release compatibility", name, branch, core)
 			}
 			result = append(result, CheckoutBranch{Name: name, Branch: branch, Warning: warning})

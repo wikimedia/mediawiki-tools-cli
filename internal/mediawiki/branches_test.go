@@ -38,14 +38,26 @@ func TestCheckoutBranches(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	detachedPath := filepath.Join(dir, "extensions", "Detached")
+	if output, err := osexec.Command("git", "init", detachedPath).CombinedOutput(); err != nil {
+		t.Fatalf("%s %v", output, err)
+	}
+	if err := os.WriteFile(filepath.Join(detachedPath, "README"), []byte("test"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"config", "user.email", "test@example.org"}, {"config", "user.name", "Test"}, {"add", "README"}, {"commit", "-m", "test"}, {"checkout", "--detach"}} {
+		if output, err := osexec.Command("git", append([]string{"-C", detachedPath}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("%s %v", output, err)
+		}
+	}
 	if err := os.MkdirAll(filepath.Join(dir, "extensions", "PlainFolder"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	got, err := MediaWiki(dir).CheckoutBranches()
-	if err != nil || len(got) != 3 {
+	if err != nil || len(got) != 4 {
 		t.Fatalf("%+v %v", got, err)
 	}
-	if got[0].Name != "core" || got[1].Warning != "" || got[2].Warning == "" {
+	if got[0].Name != "core" || got[1].Warning != "" || got[2].Warning == "" || got[3].Warning == "" {
 		t.Fatalf("%+v", got)
 	}
 }
