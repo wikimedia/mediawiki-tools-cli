@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Vendor the pinned Wikimedia Codex styles used by MWDD's Go-rendered pages."""
+"""Vendor the pinned Wikimedia Codex styles used by the CLI's Go-rendered pages."""
 
 import base64
 import hashlib

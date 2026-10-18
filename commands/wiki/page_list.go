@@ -8,6 +8,7 @@ import (
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
@@ -49,7 +50,7 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 				logrus.Fatal("wiki is not set")
 			}
 
-			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
 				panic(err)
 			}

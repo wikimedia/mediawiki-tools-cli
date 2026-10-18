@@ -72,7 +72,7 @@ class GitLab:
     def request(self, path, data=None, destination=None):
         if not path.startswith("/") or ".." in path or "://" in path:
             raise ValueError("expected a GitLab API path")
-        headers = {"User-Agent": "mwcli-native-ci"}
+        headers = {"User-Agent": "a-wikimedia-cli-ci"}
         if self.token:
             headers["PRIVATE-TOKEN"] = self.token
         body = None

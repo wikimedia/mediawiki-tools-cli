@@ -231,7 +231,7 @@ Use an `mw` build with `cloudvps` commands; see [development builds](README.md#u
 In [Horizon](https://horizon.wikimedia.org/), select `mwcli`, then **Identity → Application Credentials → Create Application Credential**. Save its ID and secret.
 
 ```sh
-mw cloudvps auth add --project mwcli --id <application-credential-id> --secret <application-credential-secret>
+mw cloudvps auth add --project mwcli
 mw cloudvps auth check --project mwcli
 mw gitlab auth status --hostname gitlab.wikimedia.org
 ```

@@ -1,4 +1,6 @@
-GONAME=mw
+BINARY_NAME ?= mw
+MISE ?= mise
+GOEXE := $(shell go env GOEXE)
 
 SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
@@ -16,7 +18,7 @@ include .bingo/Variables.mk
 .PHONY: build
 build: $(GOVVV) generate
 	@echo "Building $(GOFILES) to ./bin"
-	go build -v -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/mw ./
+	go build -v -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/$(BINARY_NAME)$(GOEXE) ./
 
 # Build first; stdout contains only Bash commands for eval or another terminal.
 .PHONY: dev
@@ -33,10 +35,10 @@ dev:
 
 .PHONY: release
 release: $(GOX) $(GOVVV) generate
-	$(GOX) -output="$(RELEASE_DIR)/$(SEMVER)/mw_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
+	$(GOX) -output="$(RELEASE_DIR)/$(SEMVER)/$(BINARY_NAME)_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
 	rm -f ./_release/latest/*.sha256
-	for f in "$(RELEASE_DIR)"/$(SEMVER)/mw_*; do \
+	for f in "$(RELEASE_DIR)"/$(SEMVER)/$(BINARY_NAME)_*; do \
 		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
 	done
 
@@ -59,7 +61,7 @@ test: $(GOVVV) generate
 
 .PHONY: recipe-validate
 recipe-validate:
-	go test ./internal/mwdd/recipe -run TestParseRecipeExamples
+	go test ./internal/devenv/recipe -run TestParseRecipeExamples
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
@@ -90,21 +92,29 @@ linti:
 upgrade: $(GO_MOD_UPGRADE)
 	$(GO_MOD_UPGRADE)
 
-.PHONY: docs
-docs: build
-	rm -rf ./_docs/*
-	go run ./tools/docs-gen/main.go
-	for path in ./_docs/*.md; do \
-		echo "Converting "$${path}" to wikitext"; \
-		pandoc --from markdown --to mediawiki --output $${path::-3}.wiki "$${path}"; \
-	done
+# Credentials stay in the environment, not command arguments or CI logs.
+export DOCS_UPDATE_USER ?= $(user)
+export DOCS_UPDATE_PASS ?= $(password)
+export DOCS_VERSION ?= $(VERSION)
 
-.PHONY: docs-publish
+.PHONY: docs docs-check docs-audit docs-pull docs-publish docs-import docs-accept
+docs:
+	$(MISE) exec -- go run ./tools/docs-gen
+
+docs-check: docs
+	$(MISE) exec -- go run ./tools/docs-gen -mode check
+
+docs-audit: docs
+	$(MISE) exec -- go run ./tools/docs-gen -mode audit
+
+docs-pull: docs
+	$(MISE) exec -- go run ./tools/docs-gen -mode pull
+
 docs-publish: docs
-	for path in ./_docs/*.wiki; do \
-		file=$${path/.\/_docs\//}; \
-		fileNoExt=$${file::-5}; \
-		echo $${fileNoExt}; \
-		echo $${path}; \
-		printf "__NOTOC__" | cat $${path} - | ./bin/mw --no-interaction wiki --wiki https://www.mediawiki.org/w/api.php --user ${user} --password ${password} page --title Cli/ref/$${fileNoExt} put --summary "Pushing auto generated docs for mwcli from cobra" --minor --bot; \
-	done
+	$(MISE) exec -- go run ./tools/docs-gen -mode publish
+
+docs-import:
+	$(MISE) exec -- go run ./tools/docs-gen -mode import -page "$(page)" -source "$(file)"
+
+docs-accept:
+	$(MISE) exec -- go run ./tools/docs-gen -mode accept -page "$(page)"

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gopkg.in/yaml.v2"
 )
@@ -289,7 +290,7 @@ func jsonFromURL(url string, unmarshalTo interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", "mwcli-tools-image-check")
+	req.Header.Set("User-Agent", cli.HTTPUserAgent)
 
 	res, getErr := client.Do(req)
 	if getErr != nil {

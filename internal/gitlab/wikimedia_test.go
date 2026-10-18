@@ -151,3 +151,31 @@ func TestReleasesBetweenTags_SameTag(t *testing.T) {
 		t.Fatalf("expected 0 releases, got %d", len(got))
 	}
 }
+
+func TestReleaseBinaryAcceptsBothNamesAndSelectsPlatform(t *testing.T) {
+	previousOS, previousArch := outOs, arch
+	t.Cleanup(func() { outOs, arch = previousOS, previousArch })
+	outOs, arch = "linux", "amd64"
+	for _, name := range []string{"mw", "wm"} {
+		right := &gitlab.ReleaseLink{Name: name + "_v1.2.3_linux_amd64", URL: "https://example.org/binary"}
+		release := &gitlab.Release{TagName: "v1.2.3"}
+		release.Assets.Links = []*gitlab.ReleaseLink{{Name: name + "_v1.2.3_linux_arm64"}, {Name: right.Name + ".sha256"}, right}
+		got, err := releaseBinary(release)
+		if err != nil || got != right {
+			t.Fatalf("%s asset: got %v, %v", name, got, err)
+		}
+	}
+	release := &gitlab.Release{TagName: "v1.2.3"}
+	release.Assets.Links = []*gitlab.ReleaseLink{{Name: "mw_v1.2.3_linux_arm64"}, {Name: "wm_v1.2.3_windows_amd64.exe"}}
+	if _, err := releaseBinary(release); err == nil {
+		t.Fatal("wrong platform accepted")
+	}
+	outOs = "windows"
+	want := &gitlab.ReleaseLink{Name: "wm_v1.2.3_windows_amd64.exe"}
+	release.Assets.Links = append(release.Assets.Links, want)
+	got, err := releaseBinary(release)
+	// Either matching Windows link is acceptable; Linux links must not win.
+	if err != nil || got.Name != want.Name {
+		t.Fatalf("Windows asset: %v, %v", got, err)
+	}
+}

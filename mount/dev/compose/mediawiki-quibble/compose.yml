@@ -20,6 +20,8 @@ services:
       # Only mount code and config, don't mount logs or image
       # TODO is this bit of config even needed?
       - "${MEDIAWIKI_VOLUMES_CODE}:/workspace/src:cached"
+      - ./compose/mediawiki/mount/mediawiki:/wm-dev:ro
+      # Compatibility for existing LocalSettings.php files.
       - ./compose/mediawiki/mount/mediawiki:/mwdd:ro
       # TODO cache should be mounted from the user machine?
       - mw-quibble-workspace-cache:/workspace/cache

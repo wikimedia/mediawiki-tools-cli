@@ -16,8 +16,8 @@ func TestGitCloneUserAgent(t *testing.T) {
 	for _, tt := range []struct {
 		name, version, override, want string
 	}{
-		{"release", "1.2.3", "", "mwcli/1.2.3 (https://www.mediawiki.org/wiki/Cli)"},
-		{"development", "", "", "mwcli/dev (https://www.mediawiki.org/wiki/Cli)"},
+		{"release", "1.2.3", "", "a-wikimedia-cli/1.2.3 (https://www.mediawiki.org/wiki/Cli)"},
+		{"development", "", "", "a-wikimedia-cli/dev (https://www.mediawiki.org/wiki/Cli)"},
 		{"user override", "1.2.3", "custom-agent/1.0", "custom-agent/1.0"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

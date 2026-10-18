@@ -57,3 +57,27 @@ func TestReplaceExecutableNonWindows_UsesSameDirStagedReplacement(t *testing.T) 
 		t.Fatalf("expected new file to be moved away, stat err=%v", err)
 	}
 }
+
+func TestArchiveBinaryPathSupportsBothNamesAndWindows(t *testing.T) {
+	for _, tc := range []struct{ platform, name string }{{"linux", "mw"}, {"linux", "wm"}, {"windows", "mw.exe"}, {"windows", "wm.exe"}} {
+		dir := t.TempDir()
+		if err := os.Mkdir(filepath.Join(dir, "bin"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		want := filepath.Join(dir, "bin", tc.name)
+		if err := os.WriteFile(want, []byte("test-binary"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		got, err := archiveBinaryPath(dir, tc.platform)
+		if err != nil || got != want {
+			t.Fatalf("%s/%s: %q, %v", tc.platform, tc.name, got, err)
+		}
+	}
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "bin", "wm"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := archiveBinaryPath(dir, "linux"); err == nil {
+		t.Fatal("directory accepted as executable")
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 const (
@@ -66,7 +67,7 @@ func CraftSearchURL(flavour string, isApi bool, query string, options *SearchOpt
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
-	req.Header.Set("User-Agent", "mwcli codesearch")
+	req.Header.Set("User-Agent", cli.HTTPUserAgent)
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return err

@@ -26,8 +26,8 @@ func Cmd() *cobra.Command {
 	cmdFactory := mwcli.NewFactory(io)
 
 	// Try to keep this version in line with the addshore fork for now...
-	glabCommand := commands.NewCmdRoot(cmdFactory, "mwcli "+glabVersion(), cli.VersionDetails.BuildDate)
-	glabCommand.Short = "Wikimedia Gitlab instance"
+	glabCommand := commands.NewCmdRoot(cmdFactory, cli.DisplayName+" "+glabVersion(), cli.VersionDetails.BuildDate)
+	glabCommand.Short = "Work with Wikimedia GitLab"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.GroupID = "service"
 	glabCommand.Aliases = []string{"glab", "gl"}
@@ -70,7 +70,7 @@ func Cmd() *cobra.Command {
 
 	// Hide various built in glab commands
 	toHide := []string{
-		// glab does not need to be updated itself, instead mwcli would need to be updated
+		// glab does not need to be updated itself, instead the CLI would need to be updated
 		"check-update",
 		// issues will not be used on the Wikimedia gitlab instance
 		"issue",

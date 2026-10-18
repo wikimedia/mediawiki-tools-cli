@@ -1,6 +1,6 @@
 # image-update
 
-This tool is intended to make updating container images that are used in mwcli much easier.
+Check and update container image references used by the development environment.
 
 Data about currently used container images is stored in `data.yml`.
 
@@ -12,7 +12,7 @@ You can check all images for tags that look newer:
 go run ./tools/image-update/check/check.go
 ```
 
-If updates are possible `check.go` will output commands that can be used to update the images throughout mwcli.
+If updates are available, `check.go` prints commands to update image references.
 
 Those commands will use `update.go`, and look something like this:
 

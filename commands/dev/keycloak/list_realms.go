@@ -1,0 +1,35 @@
+package keycloak
+
+import (
+	_ "embed"
+
+	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
+)
+
+func NewKeycloakListRealmsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "realms",
+		Short: "List keycloak realms",
+		Run: func(cmd *cobra.Command, args []string) {
+			devenv.DefaultForUser().EnsureReady()
+			keycloakLogin()
+			err := devenv.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
+				User: "root",
+				CommandAndArgs: []string{
+					"/opt/keycloak/bin/kcadm.sh",
+					"get",
+					"realms",
+					"--fields", "realm",
+					"--format", "csv",
+					"--noquotes",
+				},
+			})
+			if err != nil {
+				panic(err)
+			}
+		},
+	}
+	return cmd
+}

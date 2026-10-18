@@ -66,7 +66,7 @@ Remote arguments are passed literally; use sh -lc for shell expressions.`,
 	cmd.Flags().StringVar(&opts.project, "project", "", "Project name (defaults to cloud_vps.default_project)")
 	cmd.Flags().StringVar(&opts.name, "name", "", "Instance name (alternative to a positional instance)")
 	cmd.Flags().StringVar(&opts.id, "id", "", "Instance ID (requires configured OpenStack credentials)")
-	cmd.Flags().StringVarP(&opts.user, "user", "u", "", "Developer shell username (defaults to mwcli or SSH configuration)")
+	cmd.Flags().StringVarP(&opts.user, "user", "u", "", "Developer shell username (defaults to CLI or SSH configuration)")
 	cmd.Flags().StringVar(&opts.jumpHost, "jump-host", "", "SSH jump host; 'none' disables the default bastion")
 	cmd.Flags().StringVar(&opts.region, "region", "", "DNS region (defaults to eqiad1)")
 	cmd.Flags().StringArrayVarP(&opts.options, "ssh-option", "o", nil, "OpenSSH -o option (repeatable)")
@@ -308,7 +308,7 @@ func projectInstances(ctx context.Context, client *http.Client, baseURL, project
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "mwcli cloudvps ssh")
+	req.Header.Set("User-Agent", cli.HTTPUserAgent)
 	response, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("discover project instances: %w", err)

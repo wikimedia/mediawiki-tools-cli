@@ -17,7 +17,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
-	"gitlab.wikimedia.org/repos/releng/cli/commands/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev"
 	eventscmd "gitlab.wikimedia.org/repos/releng/cli/commands/events"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
@@ -40,15 +40,22 @@ import (
 
 var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
 
+// NewMwCliCmd builds the canonical command tree for documentation and tooling.
 func NewMwCliCmd() *cobra.Command {
+	return NewRootCmd(cli.DefaultCommandName)
+}
+
+// NewRootCmd builds a command tree using the executable's invocation name.
+func NewRootCmd(name string) *cobra.Command {
 	mwcliCmd := &cobra.Command{
-		Use:           "mw",
-		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
+		Use:           cli.InvocationName(name),
+		Long:          cli.DisplayName + "\n\n" + cli.Description,
+		Short:         cli.Description,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
-			logrus.Trace("mwcli: Top level PersistentPreRun")
+			logrus.Trace("CLI: Top level PersistentPreRun")
 
 			// Force the completion command to never ask for user input
 			if cmd.Name() == "__complete" {
@@ -112,7 +119,7 @@ func NewMwCliCmd() *cobra.Command {
 			}
 			commandWords = append(commandWords, arg)
 		}
-		mwa := "mw " + strings.Join(commandWords, " ")
+		mwa := mwcliCmd.Name() + " " + strings.Join(commandWords, " ")
 		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
 			logrus.Errorf("unknown command: %s", strings.Join(commandWords, " "))
 			c.Root().Annotations = make(map[string]string)
@@ -123,6 +130,12 @@ func NewMwCliCmd() *cobra.Command {
 		// Help bypasses PersistentPreRun, so load the telemetry preference here too.
 		cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
 		events.AddCommandHelpEvent(c, cli.VersionDetails.Version)
+		originalExample, originalLong := c.Example, c.Long
+		c.Example = cobrautil.CommandExamples(c)
+		if c == mwcliCmd && rootBanner(c) {
+			c.Long = c.Short
+		}
+		defer func() { c.Example, c.Long = originalExample, originalLong }()
 		defaultHelpFunc(c, a)
 	})
 
@@ -153,13 +166,18 @@ func NewMwCliCmd() *cobra.Command {
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
-		docker.NewCmd(),
+		dev.NewCmd(),
 		wiki.NewWikiCmd(),
 		quip.NewQuipCmd(),
 		phabricatorcmd.NewPhabricatorCmd(),
 		help.NewOutputTopicCmd(),
 	}...)
 
+	if mwcliCmd.Name() != "mw" {
+		cobrautil.VisitAllSubCommands(mwcliCmd, func(c *cobra.Command) {
+			c.Long = strings.ReplaceAll(c.Long, "mw ", mwcliCmd.Name()+" ")
+		})
+	}
 	return mwcliCmd
 }
 
@@ -318,10 +336,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 	}
 
-	// mwdd mode (always...)
-	cli.MwddIsDevAlias = true
-
-	rootCmd := NewMwCliCmd()
+	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
 	// - Commands can be split into sections based on annotations
@@ -403,7 +418,7 @@ func isSudoInvocation(euid int, sudoUID string) bool {
 // normal startup path, including privileged Docker hosts-file operations.
 func sudoUpdateCommand(args []string) *cobra.Command {
 	root := &cobra.Command{
-		Use:           "mw",
+		Use:           cli.InvocationName(os.Args[0]),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {

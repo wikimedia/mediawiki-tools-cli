@@ -69,3 +69,15 @@ func TestOtherSudoCommandsKeepNormalStartup(t *testing.T) {
 		}
 	}
 }
+
+func TestSudoUpdateUsesInvokedExecutableName(t *testing.T) {
+	previousArgs, previousOpts := os.Args, cli.Opts
+	t.Cleanup(func() { os.Args, cli.Opts = previousArgs, previousOpts })
+	for _, name := range []string{"mw", "wm", "/tmp/wiki-tool"} {
+		os.Args = []string{name, "update", "--help"}
+		root := sudoUpdateCommand(os.Args[1:])
+		if root == nil || root.Name() != cli.InvocationName(name) {
+			t.Fatalf("sudo update lost executable name %q", name)
+		}
+	}
+}

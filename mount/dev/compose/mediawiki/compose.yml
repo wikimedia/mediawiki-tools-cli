@@ -6,9 +6,11 @@ services:
     security_opt:
       - label:disable
     restart: unless-stopped
-    entrypoint: "/mwdd/entrypoint.sh"
+    entrypoint: "/wm-dev/entrypoint.sh"
     volumes:
       - ./compose/mediawiki/mount/wait-for-it.sh:/wait-for-it.sh:ro
+      - ./compose/mediawiki/mount/mediawiki:/wm-dev:ro
+      # Compatibility for existing LocalSettings.php files.
       - ./compose/mediawiki/mount/mediawiki:/mwdd:ro
       - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
       - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"

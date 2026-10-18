@@ -1,4 +1,4 @@
-# MWCLI web interface assets
+# a Wikimedia CLI web interface assets
 
 The dashboard and gateway login/logout pages use the official CSS-only
 components from Wikimedia Codex 2.7.0. Both containers mount this directory at

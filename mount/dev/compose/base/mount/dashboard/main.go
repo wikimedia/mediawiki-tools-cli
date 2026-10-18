@@ -1,4 +1,4 @@
-// MWDD Dashboard - A simple status dashboard for MediaWiki Docker Development environment
+// Development dashboard for a Wikimedia CLI
 // Run with: go run main.go
 // //nolint:depguard
 package main
@@ -61,7 +61,7 @@ type ServiceConfig struct {
 }
 
 var (
-	// Services to check - these match the services in MwddSettings.php
+	// Services to check - these match the services in DevSettings.php
 	servicesToCheck = []ServiceConfig{
 		{Name: "mysql", HasUI: false},
 		{Name: "mysql-replica", HasUI: false},
@@ -121,7 +121,7 @@ func init() {
 }
 
 // checkHost checks if a hostname resolves to something other than itself
-// This is the same check used in MwddSettings.php
+// This is the same check used in DevSettings.php
 func checkHost(hostname string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), dnsLookupTimeout)
 	defer cancel()
@@ -389,7 +389,7 @@ const dashboardHTML = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWDD Dashboard</title>
+    <title>a Wikimedia CLI · Development dashboard</title>
     <link rel="stylesheet" href="{{.BasePath}}/assets/tokens.css">
     <link rel="stylesheet" href="{{.BasePath}}/assets/tokens-dark.css" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="{{.BasePath}}/assets/codex.style.css">
@@ -397,17 +397,17 @@ const dashboardHTML = `<!DOCTYPE html>
     <link rel="stylesheet" href="{{.BasePath}}/assets/app.css">
 </head>
 <body>
-    <a class="cdx-link mwcli-skip-link" href="#main">Skip to content</a>
-    <header class="mwcli-header">
-        <span class="mwcli-brand">mwcli</span>
-        <span>Docker development</span>
-        {{if .BasePath}}<nav aria-label="Gateway"><a class="cdx-link" href="/_mwcli/logout">Sign out of the gateway</a></nav>{{end}}
+    <a class="cdx-link wm-skip-link" href="#main">Skip to content</a>
+    <header class="wm-header">
+        <span class="wm-brand">a Wikimedia CLI</span>
+        <span>Development environment</span>
+        {{if .BasePath}}<nav aria-label="Gateway"><a class="cdx-link" href="/_wm/logout">Sign out of the gateway</a></nav>{{end}}
     </header>
-    <main id="main" class="mwcli-page mwcli-stack">
-        <div class="mwcli-page-heading">
+    <main id="main" class="wm-page wm-stack">
+        <div class="wm-page-heading">
             <div>
-                <h1>MWDD Dashboard</h1>
-                <p class="mwcli-description">MediaWiki Docker Development Environment Status</p>
+                <h1>Development dashboard</h1>
+                <p class="wm-description">MediaWiki and service status</p>
             </div>
             <form method="get" action="{{.BasePath}}/">
                 <button class="cdx-button cdx-button--action-progressive cdx-button--weight-normal" type="submit">Refresh</button>
@@ -423,15 +423,15 @@ const dashboardHTML = `<!DOCTYPE html>
                 {{end}}
             </div>
         </div>
-        <p class="mwcli-description">Local opens the service hostname. Proxy uses this gateway. Tunnel uses the public HTTPS address. Some services need additional setup for Proxy and Tunnel access.</p>
-        <div class="mwcli-columns">
-            <section class="mwcli-section" aria-labelledby="services-heading">
+        <p class="wm-description">Local opens the service hostname. Proxy uses this gateway. Tunnel uses the public HTTPS address. Some services need additional setup for Proxy and Tunnel access.</p>
+        <div class="wm-columns">
+            <section class="wm-section" aria-labelledby="services-heading">
                 <h2 id="services-heading">Services</h2>
-                <ul class="mwcli-card-list mwcli-card-list--services" id="services">
+                <ul class="wm-card-list wm-card-list--services" id="services">
                     {{range .Services}}
                     <li class="cdx-card">
                         <div class="cdx-card__text">
-                            <div class="cdx-card__text__title mwcli-item-heading">
+                            <div class="cdx-card__text__title wm-item-heading">
                                 <span>{{.Name}}</span>
                                 <span class="cdx-info-chip {{if .Running}}cdx-info-chip--success{{else}}cdx-info-chip--notice{{end}}">
                                     <span class="cdx-info-chip__icon" aria-hidden="true"></span>
@@ -439,7 +439,7 @@ const dashboardHTML = `<!DOCTYPE html>
                                 </span>
                             </div>
                             {{if and .Running .HasUI}}
-                            <div class="cdx-card__text__supporting-text mwcli-links" aria-label="Access {{.Name}}">
+                            <div class="cdx-card__text__supporting-text wm-links" aria-label="Access {{.Name}}">
                                 <a href="{{.UIURL}}" class="cdx-link ui-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
                                 <a href="{{.ProxyURL}}" class="cdx-link ui-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
                                 {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="cdx-link ui-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
@@ -452,15 +452,15 @@ const dashboardHTML = `<!DOCTYPE html>
                     {{end}}
                 </ul>
             </section>
-            <section class="mwcli-section" aria-labelledby="sites-heading">
+            <section class="wm-section" aria-labelledby="sites-heading">
                 <h2 id="sites-heading">Installed Sites</h2>
-                <ul class="mwcli-card-list" id="sites">
+                <ul class="wm-card-list" id="sites">
                     {{range .Sites}}
                     <li class="cdx-card">
                         <div class="cdx-card__text">
                             <span class="cdx-card__text__title">{{.Name}}</span>
-                            <span class="cdx-card__text__description mwcli-host">{{.Host}}</span>
-                            <div class="cdx-card__text__supporting-text mwcli-links" aria-label="Access {{.Name}}">
+                            <span class="cdx-card__text__description wm-host">{{.Host}}</span>
+                            <div class="cdx-card__text__supporting-text wm-links" aria-label="Access {{.Name}}">
                                 <a href="{{.URL}}" class="cdx-link site-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
                                 <a href="{{.ProxyURL}}" class="cdx-link site-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
                                 {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="cdx-link site-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
@@ -468,13 +468,13 @@ const dashboardHTML = `<!DOCTYPE html>
                         </div>
                     </li>
                     {{else}}
-                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw docker mediawiki install</code> to add your first site.</span></div></li>
+                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw dev mediawiki install</code> to add your first site.</span></div></li>
                     {{end}}
                 </ul>
             </section>
         </div>
-        <footer class="mwcli-meta mwcli-stack mwcli-stack--compact">
-            <nav class="mwcli-links" aria-label="Dashboard APIs">
+        <footer class="wm-meta wm-stack wm-stack--compact">
+            <nav class="wm-links" aria-label="Dashboard APIs">
                 <a class="cdx-link" href="{{.BasePath}}/api/status">API: Full Status</a>
                 <a class="cdx-link" href="{{.BasePath}}/api/services">API: Services</a>
                 <a class="cdx-link" href="{{.BasePath}}/api/sites">API: Sites</a>
@@ -562,7 +562,7 @@ func main() {
 	http.HandleFunc("/api/sites", apiSitesHandler)
 	http.HandleFunc("/health", healthHandler)
 
-	log.Printf("MWDD Dashboard starting on port %s", listenPort)
+	log.Printf("Development dashboard starting on port %s", listenPort)
 	log.Printf("Dashboard: http://localhost:%s", listenPort)
 	log.Printf("API endpoints:")
 	log.Printf("  - GET /api/status   - Full status (services + sites)")

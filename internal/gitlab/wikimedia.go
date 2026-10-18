@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 var (
 	wikimediav4ApiURL = "https://gitlab.wikimedia.org/api/v4/"
-	projectID         = 16 // ID 16 is releng/mwcli
+	projectID         = 16 // ID 16 is repos/releng/cli
 	outOs             = runtime.GOOS
 	arch              = runtime.GOARCH
 )
@@ -113,13 +115,7 @@ func RelengCliLatestReleaseBinary() (*gitlab.ReleaseLink, error) {
 		return nil, err
 	}
 
-	lookFor := binaryName(release.TagName)
-	for _, link := range release.Assets.Links {
-		if link.Name == lookFor {
-			return link, nil
-		}
-	}
-	return nil, errors.New("no binary release found: " + lookFor)
+	return releaseBinary(release)
 }
 
 func RelengCliRelease(tagName string) (*gitlab.Release, error) {
@@ -133,19 +129,27 @@ func RelengCliReleaseBinary(tagName string) (*gitlab.ReleaseLink, error) {
 		return nil, err
 	}
 
-	lookFor := binaryName(release.TagName)
-	for _, link := range release.Assets.Links {
-		if link.Name == lookFor {
-			return link, nil
-		}
-	}
-	return nil, errors.New("no binary release found: " + lookFor)
+	return releaseBinary(release)
 }
 
-func binaryName(tagName string) string {
-	// something like mw_v0.5.0_linux_386
-	if outOs == "windows" {
-		return "mw_" + tagName + "_" + outOs + "_" + arch + ".exe"
+func releaseBinary(release *gitlab.Release) (*gitlab.ReleaseLink, error) {
+	var expected []string
+	for _, name := range cli.BinaryNames() {
+		filename := releaseBinaryName(name, release.TagName, outOs, arch)
+		expected = append(expected, filename)
+		for _, link := range release.Assets.Links {
+			if link.Name == filename {
+				return link, nil
+			}
+		}
 	}
-	return "mw_" + tagName + "_" + outOs + "_" + arch
+	return nil, errors.New("no binary release found: " + strings.Join(expected, " or "))
+}
+
+func releaseBinaryName(name, tag, platform, architecture string) string {
+	filename := name + "_" + tag + "_" + platform + "_" + architecture
+	if platform == "windows" {
+		filename += ".exe"
+	}
+	return filename
 }

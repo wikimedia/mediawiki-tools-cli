@@ -16,7 +16,7 @@ CLIENT_PORT=${CLIENT_PORT:-18082}
 client_name="mwcli-holesail-proof-$$"
 project="mwcli-mwdd-$TUNNEL_CONTEXT"
 work=$(mktemp -d)
-mw() { "$MW_BIN" --no-interaction docker --context "$TUNNEL_CONTEXT" "$@"; }
+mw() { "$MW_BIN" --no-interaction dev --context "$TUNNEL_CONTEXT" "$@"; }
 
 for service in cloudflared holesail; do
     if [ -n "$(docker ps -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$service")" ]; then

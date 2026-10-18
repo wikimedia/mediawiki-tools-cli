@@ -28,7 +28,7 @@ func TestInstallGerritCommitHook(t *testing.T) {
 	previousVersion := cli.VersionDetails.Version
 	cli.VersionDetails.Version = cli.Version("1.2.3")
 	t.Cleanup(func() { cli.VersionDetails.Version = previousVersion })
-	const wantUserAgent = "mwcli/1.2.3 (https://www.mediawiki.org/wiki/Cli)"
+	const wantUserAgent = "a-wikimedia-cli/1.2.3 (https://www.mediawiki.org/wiki/Cli)"
 	for _, tc := range []struct {
 		name, body string
 		code       int
