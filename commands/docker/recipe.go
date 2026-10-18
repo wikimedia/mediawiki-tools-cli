@@ -41,6 +41,8 @@ type recipeRuntimeState struct {
 	JobRunnerSites []string `json:"jobRunnerSites"`
 }
 
+const recipeStatusCommand = "mw docker compose ps"
+
 func NewRecipeCmd() *cobra.Command {
 	var recipeFile string
 	var recipeURL string
@@ -207,7 +209,7 @@ func NewRecipeCmd() *cobra.Command {
 			cmdgloss.PrintThreePartBlock(
 				cmdgloss.SuccessHeading("Recipe applied successfully"),
 				outputDetails,
-				"Run `mw dev status` to see running services.",
+				"Run `"+recipeStatusCommand+"` to see running services.",
 			)
 			return nil
 		},
