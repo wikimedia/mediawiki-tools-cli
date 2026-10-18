@@ -19,6 +19,6 @@ func Cmd() *cobra.Command {
 
 func NewSecretsCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "secrets", Short: "Manage credential storage and password-manager connections"}
-	cmd.AddCommand(NewCredentialProviderCmd(), NewMigrateSecretsCmd(), NewUseKeePassXCCmd(), NewKeePassXCCmd())
+	cmd.AddCommand(NewCredentialProviderCmd(), NewMigrateSecretsCmd(), NewTransferSecretCmd(), NewUseKeePassXCCmd(), NewKeePassXCCmd())
 	return cmd
 }
