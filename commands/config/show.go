@@ -6,7 +6,7 @@ import (
 )
 
 func NewConfigShowCmd() *cobra.Command {
-	var effective bool
+	var effective, showSecrets bool
 
 	cmd := &cobra.Command{
 		Use:   "show",
@@ -14,15 +14,19 @@ func NewConfigShowCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			s := config.State()
+			values := s.OnDiskKoanf
 			if effective {
-				cmd.Printf("%s\n", config.PrettyPrint(s.EffectiveKoanf))
-			} else {
-				cmd.Printf("%s\n", config.PrettyPrint(s.OnDiskKoanf))
+				values = s.EffectiveKoanf
 			}
+			if !showSecrets {
+				values = config.Redacted(values)
+			}
+			cmd.Printf("%s\n", config.PrettyPrint(values))
 		},
 	}
 
 	cmd.Flags().BoolVar(&effective, "effective", false, "Show the effective config, considering all sources.")
 
+	cmd.Flags().BoolVar(&showSecrets, "show-secrets", false, "Reveal plaintext secrets in the configuration")
 	return cmd
 }

@@ -20,7 +20,7 @@ var (
 )
 
 func (c Command) logRun() {
-	logrus.Trace(c.Cmd.String())
+	logrus.Trace("Running docker compose (arguments omitted)")
 }
 
 func (c Command) RunAttached() error {
