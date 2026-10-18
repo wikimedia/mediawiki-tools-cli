@@ -3,7 +3,7 @@ package tools
 import (
 	_ "embed"
 	"errors"
-	"os/exec"
+	osexec "os/exec"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -28,6 +28,15 @@ func NewToolsCmd() *cobra.Command {
 	command.Aliases = []string{"toolforge"}
 	command.Short = "Manage Toolforge tools, jobs, builds and deployments"
 	for _, child := range command.Commands() {
+		if child.Name() == "kubernetes" {
+			// Imported kubectl examples include full command paths, pipelines and
+			// shell setup; they follow upstream conventions rather than mw's.
+			if child.Annotations == nil {
+				child.Annotations = make(map[string]string)
+			}
+			child.Annotations["mwcli-lint-skip"] = "upstream kubectl command tree"
+			child.Annotations["mwcli-lint-skip-children"] = "upstream kubectl command tree"
+		}
 		if child.Name() == "shell" {
 			child.Example = cobrautil.NormalizeExample(execExample)
 			child.Long = cli.RenderMarkdown(execLong)
@@ -73,7 +82,7 @@ func inheritMwSetup(tree, command *cobra.Command) {
 }
 
 func preserveExitCode(cmd *cobra.Command, err error) error {
-	var exit *exec.ExitError
+	var exit *osexec.ExitError
 	if errors.As(err, &exit) && exit.ExitCode() > 0 {
 		root := cmd.Root()
 		if root.Annotations == nil {

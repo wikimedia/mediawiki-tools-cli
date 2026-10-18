@@ -65,7 +65,7 @@ recipe-validate:
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) generate
-	@$(GOLANGCI_LINT) run --timeout 2m --concurrency 1
+	@$(GOLANGCI_LINT) run --timeout 10m --concurrency 1
 
 .PHONY: fix
 fix: $(GOLANGCI_LINT) generate

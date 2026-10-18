@@ -2,7 +2,7 @@ package tools
 
 import (
 	"fmt"
-	"os/exec"
+	osexec "os/exec"
 	"strconv"
 	"strings"
 
@@ -64,7 +64,7 @@ func newCopyCmd() *cobra.Command {
 			rsyncArgs = append(rsyncArgs, "--")
 			rsyncArgs = append(rsyncArgs, args[:len(args)-1]...)
 			rsyncArgs = append(rsyncArgs, connection.Host+":"+destination)
-			rsync := exec.CommandContext(cmd.Context(), "rsync", rsyncArgs...)
+			rsync := osexec.CommandContext(cmd.Context(), "rsync", rsyncArgs...)
 			rsync.Stdin = cmd.InOrStdin()
 			rsync.Stdout = cmd.OutOrStdout()
 			rsync.Stderr = cmd.ErrOrStderr()
@@ -74,7 +74,7 @@ func newCopyCmd() *cobra.Command {
 }
 
 func rsyncProtectsArguments(cmd *cobra.Command) (bool, error) {
-	output, err := exec.CommandContext(cmd.Context(), "rsync", "--version").Output()
+	output, err := osexec.CommandContext(cmd.Context(), "rsync", "--version").Output()
 	if err != nil {
 		return false, fmt.Errorf("read rsync version: %w", err)
 	}

@@ -1,6 +1,6 @@
 shell                                                          # Open an interactive Toolforge session
 shell --tool=mytool                                            # Open a login shell as a tool
 shell --tool=mytool -- printf '%s\n' 'hello world'               # Preserve a single argument containing spaces
-exec --tool=mytool whoami                                      # Existing exec spelling remains supported
-exec --tool=mytool webservice -- --backend=kubernetes start     # Pass flags to a remote command
+shell --tool=mytool whoami                                      # Check the tool account identity
+shell --tool=mytool webservice -- --backend=kubernetes start     # Pass flags to a remote command
 shell --tool=mytool -- sh -c 'printf hello | wc -c'              # Explicitly request remote shell syntax
