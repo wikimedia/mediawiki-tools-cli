@@ -196,6 +196,42 @@ test_command_success() {
     fi
 }
 
+test_command_success_with_retries() {
+    local max_attempts="$1"
+    local sleep_seconds="$2"
+    shift 2
+
+    local attempt=1
+    local output=""
+    local result=1
+    while [ "$attempt" -le "$max_attempts" ]; do
+        set +e
+        output="$("$@" 2>&1)"
+        result=$?
+        set -e
+
+        if [ "$result" -eq 0 ]; then
+            echo "$output"
+            echo -e "${GREEN}PASS:${NC} $* returned $result on attempt $attempt/$max_attempts"
+            return 0
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            echo "Command failed with code $result; retrying in ${sleep_seconds}s (attempt $attempt/$max_attempts): $*"
+            sleep "$sleep_seconds"
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    echo "$output"
+    echo -e "${RED}FAIL:${NC} $* returned non-zero code $result after $max_attempts attempts"
+    if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+        echo "STOP_ON_FAIL=1 detected, exiting immediately"
+        exit 1
+    fi
+    return 1
+}
+
 test_docker_ps_service_count() {
     local expected_count="$1"
     local context="default"

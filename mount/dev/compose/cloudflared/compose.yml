@@ -1,0 +1,15 @@
+services:
+  cloudflared:
+    image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.0}"
+    profiles:
+      - gateway
+    restart: unless-stopped
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --url
+      - http://traefik:80
+    depends_on:
+      - traefik
+    networks:
+      - dps
