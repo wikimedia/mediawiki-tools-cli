@@ -6,6 +6,10 @@
   "legacy_summary": "Pushing auto generated docs for mwcli from cobra",
   "guides": [
     {
+      "source": "guides/tools/kubernetes.md",
+      "title": "Cli/guide/Toolforge Kubernetes"
+    },
+    {
       "source": "guides/installation.md",
       "title": "Cli/guide/Installation"
     },

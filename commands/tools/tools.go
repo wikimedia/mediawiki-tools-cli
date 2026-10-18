@@ -29,6 +29,7 @@ func NewToolsCmd() *cobra.Command {
 	command.Short = "Manage Toolforge tools, jobs, builds and deployments"
 	for _, child := range command.Commands() {
 		if child.Name() == "kubernetes" {
+			child.Long += "\n\nDemo walkthrough: mw help guides tools kubernetes"
 			// Imported kubectl examples include full command paths, pipelines and
 			// shell setup; they follow upstream conventions rather than mw's.
 			if child.Annotations == nil {

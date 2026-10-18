@@ -33,9 +33,10 @@ func RenderMarkdown(markdownIn string) string {
 		style = styles.DarkStyleConfig
 	}
 
-	// Styletweak: Avoid a 2 char margin along the "document" on output
+	// Avoid decorative margins: copied heredoc delimiters must stay at column zero.
 	uintPtr := func(u uint) *uint { return &u }
 	style.Document.Margin = uintPtr(0)
+	style.CodeBlock.Margin = uintPtr(0)
 
 	r, _ := glamour.NewTermRenderer(
 		glamour.WithStyles(style),

@@ -226,7 +226,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/yuin/goldmark v1.7.13 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
-	gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli v0.0.0-20261018181606-87ebddec9e50
+	gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a
 	golang.org/x/crypto v0.52.0
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
@@ -241,4 +241,4 @@ go 1.26.1
 
 replace gitlab.com/gitlab-org/cli/mwcli => ./internal/glab
 
-replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018181606-87ebddec9e50
+replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a
