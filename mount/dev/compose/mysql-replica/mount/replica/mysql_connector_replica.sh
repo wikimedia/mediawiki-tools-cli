@@ -1,8 +1,8 @@
 #!/bin/bash
 # Modified from https://tarunlalwani.com/post/mysql-master-slave-using-docker/
 
-position_file=/wm-dev-connector/mysql_position
-file_file=/wm-dev-connector/mysql_file
+position_file=/mwdd-connector/mysql_position
+file_file=/mwdd-connector/mysql_file
 
 echo "Waiting for mysql replica to start"
 /wait-for-it.sh  mysql:3306

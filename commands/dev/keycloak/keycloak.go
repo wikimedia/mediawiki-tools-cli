@@ -36,7 +36,7 @@ func NewCmd() *cobra.Command {
 func keycloakLogin() {
 	_, _, err := devenv.DefaultForUser().DockerCompose().ExecCommand("keycloak", dockercompose.ExecOptions{
 		User:           "root",
-		CommandAndArgs: []string{"/wm-dev/login.sh"},
+		CommandAndArgs: []string{"/mwdd/login.sh"},
 	}).RunAndCollect()
 	if err != nil {
 		panic(err)

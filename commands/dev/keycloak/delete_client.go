@@ -19,7 +19,7 @@ func NewKeycloakDeleteClientCmd() *cobra.Command {
 			err := devenv.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
-					"/wm-dev/delete_client.sh",
+					"/mwdd/delete_client.sh",
 					args[0],
 					args[1],
 				},

@@ -82,7 +82,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					if err != nil {
 						return err
 					}
-					settingsStringToWrite := "<?php\nrequire_once '/wm-dev/DevSettings.php';\n"
+					settingsStringToWrite := "<?php\nrequire_once '/mwdd/DevSettings.php';\n"
 					if mediawiki.VectorIsPresent() {
 						settingsStringToWrite += "\nwfLoadSkin('Vector');\n"
 					}
@@ -99,7 +99,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				}
 			}
 
-			if !mediawiki.LocalSettingsContains("/wm-dev/DevSettings.php") && !mediawiki.LocalSettingsContains("/mwdd/MwddSettings.php") {
+			if !mediawiki.LocalSettingsContains("/mwdd/DevSettings.php") && !mediawiki.LocalSettingsContains("/wm-dev/DevSettings.php") && !mediawiki.LocalSettingsContains("/mwdd/MwddSettings.php") {
 				return fmt.Errorf("LocalSettings.php file exists, but doesn't look right (missing the CLI development settings shim)")
 			}
 
@@ -259,7 +259,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						User: "nobody",
 						CommandAndArgs: []string{
 							"php",
-							"/wm-dev/DevInstall.php",
+							"/mwdd/DevInstall.php",
 							"--confpath", "/tmp",
 							"--server", serverLink,
 							"--dbtype", dbType,
@@ -304,7 +304,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 						User: "nobody",
 						CommandAndArgs: []string{
 							"php",
-							"/wm-dev/DevInstall.php",
+							"/mwdd/DevInstall.php",
 							"--confpath", "/tmp",
 							"--server", serverLink,
 							"--dbtype", dbType,

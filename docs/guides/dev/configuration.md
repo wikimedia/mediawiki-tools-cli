@@ -6,10 +6,10 @@ The development environment supplies database connections, service endpoints, lo
 
 ```php
 <?php
-require_once '/wm-dev/DevSettings.php';
+require_once '/mwdd/DevSettings.php';
 ```
 
-The [settings source](https://gitlab.wikimedia.org/repos/releng/cli/-/blob/main/mount/dev/compose/mediawiki/mount/mediawiki/DevSettings.php) shows the defaults. Existing checkouts using `/mwdd/MwddSettings.php` still work through a compatibility shim.
+The [settings source](https://gitlab.wikimedia.org/repos/releng/cli/-/blob/main/mount/dev/compose/mediawiki/mount/mediawiki/DevSettings.php) shows the defaults. The internal `/mwdd` mount path is retained so existing containers keep working. Checkouts using `/mwdd/MwddSettings.php` still work through a compatibility shim.
 
 ## Add settings and extensions
 
@@ -17,7 +17,7 @@ Put your settings after the shared file so they can override its defaults:
 
 ```php
 <?php
-require_once '/wm-dev/DevSettings.php';
+require_once '/mwdd/DevSettings.php';
 
 wfLoadSkin( 'Vector' );
 wfLoadExtension( 'BoilerPlate' );

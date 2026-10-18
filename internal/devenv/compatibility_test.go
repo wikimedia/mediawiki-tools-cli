@@ -41,3 +41,25 @@ func TestInstalledWikiSettingsCompatibility(t *testing.T) {
 		}
 	}
 }
+
+func TestExistingContainersKeepRuntimeMountPaths(t *testing.T) {
+	for _, tc := range []struct {
+		file, path string
+	}{
+		{"mysql/compose.yml", "/mwdd-custom/entrypoint.sh"},
+		{"mysql/mount/main/entrypoint.sh", "/mwdd-custom/custom.cnf"},
+		{"mysql-replica/compose.yml", "/mwdd-custom/entrypoint.sh"},
+		{"mysql-replica/mount/replica/entrypoint.sh", "/mwdd-custom/replica.cnf"},
+		{"keycloak/compose.yml", "/mwdd:ro"},
+		{"mediawiki-jobrunner/compose.yml", "/mwdd/entrypoint-jobrunner.sh"},
+		{"mediawiki/mount/mediawiki/entrypoint-jobrunner.sh", "/mwdd-runtime/jobrunner-sites"},
+	} {
+		data, err := fs.ReadFile(mount.DevContent, "dev/compose/"+tc.file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), tc.path) {
+			t.Errorf("%s no longer works with an existing container's %s mount", tc.file, tc.path)
+		}
+	}
+}

@@ -18,8 +18,8 @@ services:
       - ${MYSQL_PORT_3306-}:3306
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./compose/mysql/mount/main:/wm-dev-custom
-    entrypoint: "/wm-dev-custom/entrypoint.sh"
+      - ./compose/mysql/mount/main:/mwdd-custom
+    entrypoint: "/mwdd-custom/entrypoint.sh"
     command: "mysqld"
 
   mysql-configure-replication:
@@ -36,9 +36,9 @@ services:
       - dps
     volumes:
       - ./compose/mysql/mount/wait-for-it.sh:/wait-for-it.sh:ro
-      - ./compose/mysql/mount/main:/wm-dev-custom
-      - mysql-configure-replication-data:/wm-dev-connector
-    command: /bin/bash -x /wm-dev-custom/mysql_connector_main.sh
+      - ./compose/mysql/mount/main:/mwdd-custom
+      - mysql-configure-replication-data:/mwdd-connector
+    command: /bin/bash -x /mwdd-custom/mysql_connector_main.sh
 
 volumes:
   mysql-data:

@@ -19,7 +19,7 @@ func NewKeycloakAddUserCmd() *cobra.Command {
 			err := devenv.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
-					"/wm-dev/create_user.sh",
+					"/mwdd/create_user.sh",
 					args[0],
 					args[1],
 					args[2],

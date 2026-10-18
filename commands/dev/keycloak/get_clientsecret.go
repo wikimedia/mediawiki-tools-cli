@@ -19,7 +19,7 @@ func NewKeycloakGetClientSecretCmd() *cobra.Command {
 			err := devenv.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
-					"/wm-dev/get_client_secret.sh",
+					"/mwdd/get_client_secret.sh",
 					args[0],
 					args[1],
 				},
