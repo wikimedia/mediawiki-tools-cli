@@ -1,0 +1,6 @@
+update-code --dry-run
+update-code
+update-code --mode=stash
+update-code --mode=mop --dry-run
+update-code --mode=mop
+update-code --composer
