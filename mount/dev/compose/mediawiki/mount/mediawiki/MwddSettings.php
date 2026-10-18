@@ -65,7 +65,7 @@ if ( defined( "MW_DB" ) ) {
 		// Traefik strips the public prefix before Apache routes the request.
 		// Restore it for MediaWiki's title parsing and canonical redirects.
 		$_SERVER['REQUEST_URI'] = $dockerProxyPrefix . ( $_SERVER['REQUEST_URI'] ?? '/' );
-	} elseif ( in_array( $dockerHost, $defaultDbHosts, true ) ) {
+	} elseif ( ( $_SERVER['HTTP_X_MWCLI_DEFAULT_WIKI'] ?? '' ) === '1' || in_array( $dockerHost, $defaultDbHosts, true ) ) {
 		$dockerDb = getenv( 'MW_DB_DEFAULT' ) ?: 'default';
 	} else {
 		$dockerHostParts = explode( '.', $dockerHost );

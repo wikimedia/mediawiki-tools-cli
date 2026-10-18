@@ -36,6 +36,16 @@ services:
       - DEFAULT_EXPOSE_PORT=8080
       - PORT=${PORT}
       - DASHBOARD_PORT=8080
+      - GRAPHITE_PROXY_PATH=${GRAPHITE_PROXY_PATH:-graphite}
+      - JAEGER_PROXY_PATH=${JAEGER_PROXY_PATH:-jaeger}
+      - MAILHOG_PROXY_PATH=${MAILHOG_PROXY_PATH:-mailhog}
+      - PHPMYADMIN_PROXY_PATH=${PHPMYADMIN_PROXY_PATH:-phpmyadmin}
+      - ADMINER_PROXY_PATH=${ADMINER_PROXY_PATH:-adminer}
+      - WDQS_UI_PROXY_PATH=${WDQS_UI_PROXY_PATH:-wdqs-ui}
+      - KEYCLOAK_PROXY_PATH=${KEYCLOAK_PROXY_PATH:-keycloak}
+      - NOVNC_PROXY_PATH=${NOVNC_PROXY_PATH:-novnc}
+      - PROMETHEUS_PROXY_PATH=${PROMETHEUS_PROXY_PATH:-prometheus}
+      - GRAFANA_PROXY_PATH=${GRAFANA_PROXY_PATH:-grafana}
     volumes:
       - ./compose/base/mount/dashboard:/app:ro
       - ./:/data:ro

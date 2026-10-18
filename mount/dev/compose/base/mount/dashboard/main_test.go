@@ -188,3 +188,22 @@ func TestDashboardShowsSeparateAccessLinks(t *testing.T) {
 		t.Fatal("changed cached local URL")
 	}
 }
+
+func TestDashboardLinksRespectCustomProxyPaths(t *testing.T) {
+	t.Setenv("GRAFANA_PROXY_PATH", "metrics")
+	t.Setenv("WDQS_UI_PROXY_PATH", "query")
+	t.Setenv("NOVNC_PROXY_PATH", "desktop")
+	status := accessLinks(Status{
+		TunnelURL: "https://active.trycloudflare.com",
+		Services: []Service{
+			{Name: "grafana", Running: true, HasUI: true},
+			{Name: "wdqs-ui", Running: true, HasUI: true},
+			{Name: "novnc", Running: true, HasUI: true, UIURL: "http://novnc.local.wmftest.net:8080/"},
+		},
+	})
+	for i, path := range []string{"/proxy/metrics/", "/proxy/query/", "/proxy/desktop/vnc.html"} {
+		if status.Services[i].ProxyURL != path || status.Services[i].TunnelURL != status.TunnelURL+path {
+			t.Fatalf("incorrect custom links: %+v", status.Services[i])
+		}
+	}
+}

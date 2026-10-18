@@ -276,7 +276,11 @@ func accessLinks(status Status) Status {
 		if !service.HasUI || !service.Running {
 			continue
 		}
-		service.ProxyURL = "/proxy/" + service.Name + "/"
+		path := os.Getenv(strings.ToUpper(strings.ReplaceAll(service.Name, "-", "_")) + "_PROXY_PATH")
+		if path == "" {
+			path = service.Name
+		}
+		service.ProxyURL = "/proxy/" + strings.Trim(path, "/") + "/"
 		if service.Name == "novnc" {
 			service.ProxyURL += "vnc.html"
 			if !strings.HasSuffix(service.UIURL, "/vnc.html") {
