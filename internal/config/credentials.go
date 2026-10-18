@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -9,18 +10,29 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
-var credentialStore secrets.Store = secrets.Keyring{}
+var (
+	credentialStore      secrets.Store = secrets.Keyring{}
+	readKeePassXCBrowser               = func(provider secrets.KeePassXCBrowser) (string, error) { return provider.Read() }
+	findKeePassXCBrowser               = secrets.FindKeePassXCBrowserEntry
+)
 
 type Credential struct {
 	Key, Service, Endpoint, Account string
 }
 
 type credentialReference struct {
-	Service  string `koanf:"service"`
-	Endpoint string `koanf:"endpoint"`
-	Account  string `koanf:"account"`
-	Identity string `koanf:"identity"`
-	Provider string `koanf:"provider"`
+	Service   string                    `koanf:"service"`
+	Endpoint  string                    `koanf:"endpoint"`
+	Account   string                    `koanf:"account"`
+	Identity  string                    `koanf:"identity"`
+	Provider  string                    `koanf:"provider"`
+	KeePassXC *legacyKeePassXCReference `koanf:"keepassxc"`
+	Browser   *secrets.KeePassXCBrowser `koanf:"browser"`
+}
+
+// Retain only the old entry path so file-backed links can be switched safely.
+type legacyKeePassXCReference struct {
+	Entry string `koanf:"entry"`
 }
 
 func credentialReferenceKey(key string) string {
@@ -65,6 +77,16 @@ func (c Credential) Read() (string, error) {
 	if stored.Service != expected.Service || stored.Endpoint != expected.Endpoint || stored.Account != expected.Account || stored.Identity != expected.Identity {
 		return "", fmt.Errorf("stored credential does not match this account or endpoint; log in again")
 	}
+	if stored.Provider == "keepassxc-browser" {
+		if stored.Browser == nil || stored.Browser.Login != c.Account {
+			return "", fmt.Errorf("invalid KeePassXC GUI account reference")
+		}
+		return readKeePassXCBrowser(*stored.Browser)
+	}
+	if stored.Provider == "keepassxc" {
+		return "", fmt.Errorf("link this entry through KeePassXC with config secrets use-keepassxc %s", c.Key)
+	}
+
 	if stored.Provider != "" && stored.Provider != "keyring" {
 		return "", fmt.Errorf("unknown credential provider")
 	}
@@ -158,6 +180,7 @@ func (c Credential) Delete() error {
 			return fmt.Errorf("stored credential does not match this account or endpoint; refusing to delete another credential")
 		}
 		switch ref.Provider {
+		case "keepassxc", "keepassxc-browser": // Forget the reference; the external entry belongs to the user.
 		case "", "keyring":
 			if err := credentialStore.Delete(ref.Service, ref.Account); err != nil && !errors.Is(err, secrets.ErrNotFound) {
 				return fmt.Errorf("delete keyring credential: %w", err)
@@ -199,6 +222,69 @@ func CredentialForKey(key string) (Credential, error) {
 		return Credential{Key: key, Service: "phabricator", Endpoint: endpoint, Account: account}, nil
 	}
 	return Credential{}, fmt.Errorf("no credential provider is defined for %s", key)
+}
+
+// UseKeePassXC links a credential through the paired KeePassXC application.
+// A direct KeePassXC link can supply the old path without unlocking its file.
+func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
+	ref, err := c.reference()
+	if err != nil {
+		return err
+	}
+	disk := State().OnDiskKoanf.Copy()
+	key := credentialReferenceKey(c.Key)
+	if disk.Exists(key) {
+		var old credentialReference
+		if err := disk.Unmarshal(key, &old); err != nil {
+			return fmt.Errorf("invalid credential reference")
+		}
+		if old.Service != ref.Service || old.Endpoint != ref.Endpoint || old.Account != ref.Account || old.Identity != ref.Identity {
+			return fmt.Errorf("stored credential does not match this account or endpoint")
+		}
+		switch old.Provider {
+		case "keepassxc":
+			if entry == "" && old.KeePassXC != nil {
+				entry = old.KeePassXC.Entry
+			}
+		case "keepassxc-browser":
+			if entry == "" {
+				if old.Browser == nil || old.Browser.Login != c.Account {
+					return fmt.Errorf("invalid KeePassXC GUI account reference")
+				}
+				value, err := readKeePassXCBrowser(*old.Browser)
+				if err != nil {
+					return err
+				}
+				if previous := disk.String(c.Key); previous != "" && previous != value {
+					return fmt.Errorf("KeePassXC entry does not match the saved credential; plaintext was not removed")
+				}
+				disk.Delete(c.Key)
+				return PutDiskConfig(disk)
+			}
+		default:
+			return fmt.Errorf("log out before replacing a different credential provider")
+		}
+	}
+	if entry == "" {
+		entry = "wm/" + c.Key
+	}
+	browser, value, err := findKeePassXCBrowser(ctx, entry)
+	if err != nil {
+		return err
+	}
+	if browser.Login != c.Account {
+		return fmt.Errorf("KeePassXC entry username does not match the configured account; nothing changed")
+	}
+	if previous := disk.String(c.Key); previous != "" && previous != value {
+		return fmt.Errorf("KeePassXC entry does not match the saved credential; plaintext was not removed")
+	}
+	values := map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc-browser", "browser": map[string]any{"database_hash": browser.DatabaseHash, "entry_id": browser.EntryID, "login": browser.Login}}
+	disk.Delete(c.Key)
+	disk.Delete(key)
+	if err := disk.Set(key, values); err != nil {
+		return err
+	}
+	return PutDiskConfig(disk)
 }
 
 // MigrateTo never overwrites a provider's value with a stale plaintext copy.
