@@ -40,7 +40,7 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 			`compose\/base\/mount\/nginx\/.*`,
 			// Generated gateway credentials are private to each local mwdd context.
 			`compose\/traefik\/auth\/.*`,
-// Generated display metadata; contains names and hosts only.
+			// Generated display metadata; contains names and hosts only.
 			`^dashboard-services\.json$`,
 			// Suspended services are runtime state, not embedded assets.
 			`^state-suspended-services\.json$`,
