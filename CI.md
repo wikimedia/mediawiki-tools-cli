@@ -20,6 +20,18 @@ After checks, builds and MediaWiki preparation pass, `integration-github-request
 
 Results appear in GitLab's `external` stage with links to GitHub logs. `integration-github` blocks downstream jobs until all tests pass.
 
+### Native platform workflows
+
+Separate `gitlab-integration-<platform>.yml` workflows support `linux-arm64`,
+`macos-arm64`, and `windows-amd64`. They build and run tests from the exact
+GitLab source. The automated pipeline uses the Ubuntu AMD64 workflow.
+
+Native dispatches require a successful project 16 job named
+`integration-github-<platform>-<test>-request`, supplied as `job_id` and
+`job_name`. The required `test` input selects a shell test from the GitLab
+source; results appear as `github/<platform>/<test>`. Preparation and reporting
+hold the callback credentials on separate runners from builds and tests.
+
 ### Credentials
 
 Install the workflows and helpers on the official GitHub repository's `main` branch before using the bridge.
