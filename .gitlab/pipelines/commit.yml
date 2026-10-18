@@ -230,7 +230,7 @@ integration:
 # Only the successful request event should dispatch native GitHub tests.
 # Neither this job nor the gate needs a long-lived GitLab/GitHub secret.
 integration-github-request:
-    image: alpine:3.22
+    image: debian:bookworm-slim
     tags: [wmcs]
     stage: integration
     variables:
