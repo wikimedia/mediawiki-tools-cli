@@ -3,6 +3,7 @@ http:
     gateway-auth:
       basicAuth:
         usersFile: /etc/traefik/auth/users
+        removeHeader: true
     dashboard-prefix:
       stripPrefix:
         prefixes:

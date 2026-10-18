@@ -121,6 +121,12 @@ test_http_status http://127.0.0.1:$PORT/ 401
 # test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 test_wget http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
 test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+# Follow the gateway redirect; local HTTP must not redirect to an HTTPS listener.
+test_wget http://127.0.0.1:$PORT/proxy/mysqlwiki/ "MediaWiki has been installed"
+# Assets must retain the wiki prefix and load from the selected wiki.
+test_wget http://127.0.0.1:$PORT/proxy/mysqlwiki/wiki/Main_Page 'href="/proxy/mysqlwiki/w/load.php'
+test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=skins.vector.styles&only=styles&skin=vector-2022" '.mw'
+test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022" 'mw.loader'
 
 # Make sure the expected number of services appear
 test_docker_ps_service_count 11
