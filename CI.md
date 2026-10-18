@@ -22,50 +22,15 @@ Results appear in GitLab's `external` stage with links to GitHub logs. `integrat
 
 ### Native platform workflows
 
-The following dispatchable workflows provide native runner targets:
+Separate `gitlab-integration-<platform>.yml` workflows support `linux-arm64`,
+`macos-arm64`, and `windows-amd64`. They build and run tests from the exact
+GitLab source. The automated pipeline uses the Ubuntu AMD64 workflow.
 
-| Platform | Workflow | Test runner |
-| --- | --- | --- |
-| Linux ARM64 | `.github/workflows/gitlab-integration-linux-arm64.yml` | `ubuntu-24.04-arm` |
-| macOS ARM64 | `.github/workflows/gitlab-integration-macos-arm64.yml` | `macos-15` |
-| Windows AMD64 | `.github/workflows/gitlab-integration-windows-amd64.yml` | `windows-2025` |
-
-These files bootstrap the runner targets. After merging them to GitLab `main`,
-wait for them to appear on the official GitHub mirror's `main` before enabling
-platform request and waiting jobs in a follow-up GitLab CI change. That change
-also needs to extend the waiting-pool dispatch service, which currently only
-dispatches `gitlab-integration.yml`. This bootstrap does not activate platform
-jobs or change the existing Ubuntu integration gate.
-
-GitLab chooses a workflow and a `test` input for each request. The workflow
-expects a successful job named `integration-github-<platform>-<test>-request`
-in project 16, identified by the `job_id` and `job_name` inputs. It verifies
-the request's current pipeline and prerequisites, fetches the exact merged MR
-source bundle, builds it on the native runner, and executes
-`tests/test-<test>.py` or `tests/test-<test>.sh` from that source. Existing names
-such as `docker-general` use the same script mapping as Ubuntu integration.
-Test scripts receive the native binary
-path as `MWCLI_TEST_BINARY`. Adding tests does not require changing a GitHub
-workflow or adding a GitHub matrix. Each platform/test pair reports its own
-`github/<platform>/<test>` status and log link, independently of the default
-Ubuntu gate. Future GitLab waiting jobs must verify those individual results
-against their request identity before accepting them.
-
-The initial `test` is `platform-filesystem`. It checks config persistence, paths
-with spaces and extraction of embedded development files; it needs no Docker
-daemon. It covers the embedded-files failure from T295473, but does not test
-the sudo/update ownership sequence from T384914. Run it locally with:
-
-```sh
-go build -o bin/mw .
-MWCLI_TEST_BINARY="$PWD/bin/mw" python3 tests/test-platform-filesystem.py
-```
-
-Docker tests can use the same dispatch interface. Their platform workflows
-will need a working Linux-container runtime before enabling them; this
-bootstrap does not install Docker Desktop or a Linux VM on macOS/Windows.
-Preparation and reporting use separate Ubuntu runners so their callback
-credentials never reach code built or tested from an MR.
+Native dispatches require a successful project 16 job named
+`integration-github-<platform>-<test>-request`, supplied as `job_id` and
+`job_name`. The `test` input defaults to `platform-filesystem`; results appear
+as `github/<platform>/<test>`. Preparation and reporting hold the callback
+credentials on separate runners from builds and tests.
 
 ### Credentials
 
