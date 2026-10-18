@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"os"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/knadh/koanf"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 type memorySecrets struct {
@@ -268,5 +270,170 @@ func TestKeyringReferenceDoesNotFallBackToPlaintext(t *testing.T) {
 	store.failGet = true
 	if value, err := cred.Read(); err == nil || value != "" {
 		t.Fatal("locked keyring fell back to plaintext")
+	}
+}
+
+func TestGUIProviderSwitchPreservesIdentityAndNeverUnlocksDatabaseFile(t *testing.T) {
+	for _, failure := range []string{"", "denied", "wrong-account", "mismatch"} {
+		t.Run(failure, func(t *testing.T) {
+			isolatedConfig(t)
+			cred := seedCredential(t)
+			oldFind, oldGUI := findKeePassXCBrowser, readKeePassXCBrowser
+			t.Cleanup(func() { findKeePassXCBrowser, readKeePassXCBrowser = oldFind, oldGUI })
+			seedLegacyKeePassXCLink(t, cred)
+			if failure == "mismatch" {
+				if err := PutKeyValueOnDisk(cred.Key, "different-plaintext"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			calls := 0
+			findKeePassXCBrowser = func(_ context.Context, path string) (secrets.KeePassXCBrowser, string, error) {
+				calls++
+				if path != "Custom/Gerrit" {
+					t.Fatal("lost existing entry path")
+				}
+				ref := secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("a", 64), EntryID: strings.Repeat("b", 32), Login: "fixture"}
+				if failure == "denied" {
+					return ref, "", errors.New("denied")
+				}
+				if failure == "wrong-account" {
+					ref.Login = "someone-else"
+				}
+				return ref, "legacy-secret", nil
+			}
+			before, err := os.ReadFile(Path())
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = cred.UseKeePassXC(context.Background(), "")
+			if calls != 1 || (err != nil) != (failure != "") {
+				t.Fatalf("unexpected GUI switch result: %v", err)
+			}
+			if failure != "" {
+				after, err := os.ReadFile(Path())
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(after) != string(before) {
+					t.Fatal("failed GUI switch changed config")
+				}
+				return
+			}
+			data, err := os.ReadFile(Path())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(data), "legacy-secret") || strings.Contains(string(data), "Passwords.kdbx") {
+				t.Fatal("GUI reference retained direct-access data")
+			}
+			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return "gui-secret", nil }
+			if value, err := cred.Read(); err != nil || value != "gui-secret" {
+				t.Fatalf("GUI read failed: %v", err)
+			}
+			changed := cred
+			changed.Account = "someone-else"
+			if _, err := changed.Read(); err == nil {
+				t.Fatal("used GUI entry for another account")
+			}
+			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return "", errors.New("locked") }
+			if err := PutKeyValueOnDisk(cred.Key, "stale-plaintext"); err != nil {
+				t.Fatal(err)
+			}
+			if value, err := cred.Read(); err == nil || value != "" {
+				t.Fatal("locked GUI fell back to plaintext")
+			}
+			if err := cred.Delete(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestGUIProviderMigrationRemovesPlaintextOnlyAfterVerification(t *testing.T) {
+	isolatedConfig(t)
+	cred := seedCredential(t)
+	old := findKeePassXCBrowser
+	t.Cleanup(func() { findKeePassXCBrowser = old })
+	findKeePassXCBrowser = func(_ context.Context, path string) (secrets.KeePassXCBrowser, string, error) {
+		if path != "wm/gerrit.password" {
+			t.Fatal("unexpected default path")
+		}
+		return secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("a", 64), EntryID: strings.Repeat("b", 32), Login: "fixture"}, "legacy-secret", nil
+	}
+	if err := cred.UseKeePassXC(context.Background(), ""); err != nil {
+		t.Fatal(err)
+	}
+	if State().OnDiskKoanf.Exists(cred.Key) {
+		t.Fatal("plaintext survived GUI migration")
+	}
+}
+
+func seedLegacyKeePassXCLink(t *testing.T, cred Credential) {
+	t.Helper()
+	ref, err := cred.reference()
+	if err != nil {
+		t.Fatal(err)
+	}
+	disk := State().OnDiskKoanf.Copy()
+	disk.Delete(cred.Key)
+	if err := disk.Set(credentialReferenceKey(cred.Key), map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc", "keepassxc": map[string]any{"entry": "Custom/Gerrit", "database": "Passwords.kdbx", "executable": "never-run-this"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := PutDiskConfig(disk); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cred.Read(); err == nil || !strings.Contains(err.Error(), "config secrets use-keepassxc") {
+		t.Fatal("old link did not request GUI relinking")
+	}
+}
+
+func TestKeePassXCRelinkVerifiesBeforeRemovingLeftoverPlaintext(t *testing.T) {
+	for _, mode := range []string{"success", "locked", "mismatch"} {
+		t.Run(mode, func(t *testing.T) {
+			isolatedConfig(t)
+			cred := seedCredential(t)
+			oldFind, oldRead := findKeePassXCBrowser, readKeePassXCBrowser
+			t.Cleanup(func() { findKeePassXCBrowser, readKeePassXCBrowser = oldFind, oldRead })
+			findKeePassXCBrowser = func(context.Context, string) (secrets.KeePassXCBrowser, string, error) {
+				return secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("a", 64), EntryID: strings.Repeat("b", 32), Login: "fixture"}, "legacy-secret", nil
+			}
+			if err := cred.UseKeePassXC(context.Background(), ""); err != nil {
+				t.Fatal(err)
+			}
+			if err := PutKeyValueOnDisk(cred.Key, "legacy-secret"); err != nil {
+				t.Fatal(err)
+			}
+			calls := 0
+			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) {
+				calls++
+				if mode == "locked" {
+					return "", errors.New("locked")
+				}
+				if mode == "mismatch" {
+					return "different", nil
+				}
+				return "legacy-secret", nil
+			}
+			err := cred.UseKeePassXC(context.Background(), "")
+			if calls != 1 || (err != nil) != (mode != "success") {
+				t.Fatalf("unexpected verification result: %v", err)
+			}
+			if mode != "success" {
+				if State().OnDiskKoanf.String(cred.Key) != "legacy-secret" {
+					t.Fatal("failed verification removed plaintext")
+				}
+				return
+			}
+			if err := PutKeyValueOnDisk("timer_last_emitted_event", "fixture"); err != nil {
+				t.Fatal(err)
+			}
+			data, err := os.ReadFile(Path())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if State().EffectiveKoanf.String(cred.Key) != "" || strings.Contains(string(data), "legacy-secret") {
+				t.Fatal("later config write restored plaintext")
+			}
+		})
 	}
 }
