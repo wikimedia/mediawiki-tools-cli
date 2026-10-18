@@ -283,13 +283,3 @@ make docs
 # To publish (requires credentials)
 make user="someUser" password="somePassword" docs-publish
 ```
-
-### Elevated self-update
-
-`sudo mw update` replaces a system-owned executable without loading or migrating
-user configuration, checking startup timers, or recording telemetry. This keeps
-first-use updates from creating root-owned files in the invoking user's config
-directory (T384914). Run ordinary development commands as your normal user.
-The native macOS `macos-sudo-update` integration test checks first-use and existing
-configuration, with a root-owned installed executable and an unprivileged command
-after each update.
