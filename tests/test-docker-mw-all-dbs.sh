@@ -71,6 +71,22 @@ test_command_success ./bin/mw docker adminer create
 # Install everything (mysql, postgres, sqlite)
 test_command_success ./bin/mw docker mediawiki install --dbname mysqlwiki --dbtype mysql
 test_command_success ./bin/mw docker mediawiki install --dbname postgreswiki --dbtype postgres
+# foreachwiki's read-only maintenance commands may use the MySQL replica. Wait
+# for the newly installed MySQL schema to replicate before exercising it.
+replica_wait_attempt=0
+while [ "$replica_wait_attempt" -lt 60 ]; do
+    if replica_site_stats_table=$(./bin/mw docker mysql-replica exec -- mysql -uroot -ptoor -Nse "SHOW TABLES FROM mysqlwiki LIKE 'site_stats'" 2>/dev/null | tr -d '\r') && [ "$replica_site_stats_table" = "site_stats" ]; then
+        break
+    fi
+    replica_wait_attempt=$((replica_wait_attempt + 1))
+    sleep 1
+done
+if [ "$replica_site_stats_table" != "site_stats" ]; then
+    echo "FAIL: mysqlwiki.site_stats did not replicate to mysql-replica within 60 seconds"
+    exit 1
+fi
+echo "PASS: mysqlwiki.site_stats replicated to mysql-replica"
+
 # This is currently disabled, as Warning: you have SQLite 3.27.2, which is lower than minimum required version 3.31.0. SQLite will be unavailable.
 # This is due to still using an older mediawiki image due to https://phabricator.wikimedia.org/T388411
 # test_command_success ./bin/mw docker mediawiki install --dbtype sqlite

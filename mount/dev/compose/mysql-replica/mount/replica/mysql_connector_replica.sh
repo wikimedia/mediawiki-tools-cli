@@ -12,13 +12,21 @@ sleep 1
 /wait-for-it.sh  mysql:3306
 /wait-for-it.sh  mysql-replica:3306
 
-# TODO add resilience? and wait for the position file to be created...?
-# But this is probably okay, as the replica will take a while to start anyway..
+# The master setup container and this container are started independently by
+# Compose. The master position files may not exist yet even though both MySQL
+# servers are accepting connections.
+echo "Waiting for MySQL master position files"
+position_wait_attempt=0
+while [ "$position_wait_attempt" -lt 60 ]; do
+    if [ -s "$position_file" ] && [ -s "$file_file" ]; then
+        break
+    fi
+    position_wait_attempt=$((position_wait_attempt + 1))
+    sleep 1
+done
 
-# Only save the data if the files don't already exist
-# They might have been created during another container startup
-if [ ! -e "$position_file" ]; then
-    echo "Position file doesnt exist, can't start replication"
+if [ ! -s "$position_file" ] || [ ! -s "$file_file" ]; then
+    echo "Position files were not created within 60 seconds; can't start replication"
     exit 1
 fi
 
