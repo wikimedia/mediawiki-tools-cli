@@ -251,7 +251,7 @@ integration-github-request:
       - echo "Native GitHub integration requested for pipeline $CI_PIPELINE_ID"
 
 # A blocking manual job occupies no runner while waiting for the webhook.
-# GitHub automatically plays it after posting all results (including failures).
+# GitHub automatically plays it after all four results pass.
 integration-github:
     extends: .merged-source
     image: python:3.13-bookworm

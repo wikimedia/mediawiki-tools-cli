@@ -71,8 +71,9 @@ no callback token; reporting uses trusted GitHub workflow code and GitHub's job
 conclusions, rather than files supplied by the tested branch.
 
 `integration-github` is a blocking manual GitLab job while GitHub runs. It occupies
-no runner during that wait. GitHub automatically starts it after reporting the
-four results, including failures. It supplies a nonsecret receipt of those GitLab
+no runner during that wait. GitHub automatically starts it after all four results pass. Failed external
+results fail the pipeline while the gate stays blocked. GitHub supplies a
+nonsecret receipt of those GitLab
 statuses as job variables. The job briefly uses a shared Wikimedia runner to
 check GitLab identifies its issuer as the configured bot, then checks all four
 results belong to that bot, request, GitHub attempt and merged commit. Manually
@@ -186,11 +187,32 @@ production branch, remove any temporary project-wide trial bot ID, or replace it
 with the production token's bot ID when enabling production. Disable the trial
 webhook and revoke the temporary token when the test is finished.
 
+### Lightweight waiting pool
+
+Runner `gitlab-runner-addshore-1019-wait` ([#1550](https://gitlab.wikimedia.org/repos/releng/cli/-/runners/1550))
+provides up to 50 small jobs tagged `mwcli-wait`, locked to this project with
+untagged jobs disabled. It uses a separate `gitlab-runner-wait` systemd service and
+`/etc/gitlab-runner-wait/config.toml`; the existing Docker service retains its
+two-job limit. [The setup script](tools/ci/wait-runner.py) reads the JSON runner
+creation response from stdin, keeps its token in root-only configuration and
+leaves the original runner configuration unchanged.
+
+Only `python:3.13-alpine` is accepted. Jobs have no privileged mode, Docker socket,
+cache mounts or sidecar services. Each job has a 64 MiB memory limit, a 0.1 CPU
+limit and a 64-process limit. All waiting containers share one CPU core; 50 is a
+concurrency ceiling, not a reservation of 50 CPUs. Use `GIT_STRATEGY: none`, empty
+cache/dependencies and no artifacts so these jobs stay small. The pool shares
+Docker's bridge instead of allocating a network per wait, avoiding exhaustion of
+the host's default network address pools at high concurrency.
+
+This pool prepares for replacing the manual gate with a normal waiting job.
+The native bridge currently still uses the manual gate described above.
+
 ### Retry, retire and roll back
 
 For a failing native test, use **Re-run failed jobs** in the matching GitHub run.
 The reporter keeps successful results from earlier attempts of that same run,
-refreshes the four GitLab statuses and retries the failed gate automatically.
+refreshes the four GitLab statuses and starts the waiting gate automatically.
 Do not retry only the GitLab gate to rerun tests: it only verifies existing results.
 For a failed or blocked run, use **Re-run all jobs** to repeat preparation and all
 tests. An already passed gate is left unchanged; start a new GitLab pipeline to

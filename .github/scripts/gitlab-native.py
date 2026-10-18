@@ -159,6 +159,12 @@ def finish(api, job_id, tested_sha, run_id, attempt, prepared=True):
     for name in TESTS:
         results.setdefault(name, {"state": "failed"})
     report(api, plan, results, run_id, attempt)
+    if any(result["state"] != "success" for result in results.values()):
+        # Failed external statuses already fail the pipeline. Keep the manual
+        # gate untouched until success: GitLab 19.2 reuses old manual variables
+        # when replaying a failed gate, ignoring its refreshed result receipt.
+        print("Native tests have not all passed; the gate remains blocked.")
+        return
     # Re-check cancellation after posting; never revive a canceled pipeline.
     loaded = load_request(api, job_id)
     if loaded is None:

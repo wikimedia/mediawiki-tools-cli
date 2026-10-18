@@ -72,18 +72,26 @@ class CallbackTests(unittest.TestCase):
 
     def test_posts_four_independent_results_to_exact_pipeline_then_plays_gate(self):
         api = FakeGitLab()
-        with patch.object(native, "github_results", return_value=self.results("repoclient")):
+        with patch.object(native, "github_results", return_value=self.results()):
             native.finish(api, 19, SHA, 123, 1)
         self.assertEqual(len(api.posted), 5)
         for path, body in api.posted[:4]:
             self.assertEqual(path, "/projects/16/statuses/" + SHA)
             self.assertEqual(body["pipeline_id"], 23)
             self.assertEqual(body["description"], native.description(19, 123, 1, SHA))
-        self.assertEqual(api.posted[3][1]["state"], "failed")
+        self.assertEqual(api.posted[3][1]["state"], "success")
         self.assertEqual(api.posted[-1][0], "/projects/16/jobs/20/play")
         receipt = json.loads(api.posted[-1][1]["job_variables_attributes"][0]["value"])
         self.assertEqual(receipt["pipeline_id"], 23)
         self.assertEqual(len(receipt["records"]), 4)
+
+    def test_native_failure_does_not_poison_the_manual_gate_with_a_failed_receipt(self):
+        api = FakeGitLab()
+        with patch.object(native, "github_results", return_value=self.results("repoclient")):
+            native.finish(api, 19, SHA, 123, 1)
+        self.assertEqual(len(api.posted), 4)
+        self.assertEqual(api.posted[3][1]["state"], "failed")
+        self.assertTrue(all("/statuses/" in path for path, _ in api.posted))
 
     def test_missing_native_job_is_reported_as_failed(self):
         api = FakeGitLab()
