@@ -74,3 +74,6 @@ test_command_success ./bin/mw update -vv --version "$TEST_BINARY_PATH" --no-inte
 if [ -z "$CI" ] && [ -z "$GITLAB_CI" ]; then
 	rm -rf "$TEST_BINARY_DIR"
 fi
+
+# Source updates must work offline without invoking Docker.
+bash "$SCRIPT_DIR/test-mediawiki-update-code.sh" "$PWD/bin/mw"
