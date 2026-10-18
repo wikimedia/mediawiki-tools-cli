@@ -4,6 +4,9 @@ services:
     image: "${ADMINER_IMAGE:-adminer:4}"
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.adminer-host.rule=Host(`${ADMINER_VIRTUAL_HOST:-adminer.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.adminer-host.entrypoints=web"
+      - "traefik.http.routers.adminer-host.service=adminer"
       - "traefik.http.routers.adminer.rule=Path(`/proxy/${ADMINER_PROXY_PATH:-adminer}`) || PathPrefix(`/proxy/${ADMINER_PROXY_PATH:-adminer}/`)"
       - "traefik.http.routers.adminer.entrypoints=web"
       - "traefik.http.routers.adminer.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-adminer@docker,forwarded-https@file"
@@ -16,7 +19,7 @@ services:
       - DEFAULT_EXPOSE_PORT=8080
     depends_on:
       - dps
-      - nginx-proxy
+      - traefik
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:

@@ -53,3 +53,20 @@ func TestEnsureReadyCreatesJobRunnerSitesFile(t *testing.T) {
 		t.Fatalf("%q is a directory, want file", jobRunnerSitesPath)
 	}
 }
+
+func TestEnsureReadyPreservesLegacyProxyMounts(t *testing.T) {
+	projectDir := t.TempDir()
+	path := filepath.Join(projectDir, "compose", "base", "mount", "nginx", "timeouts.conf")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	contents := "proxy_read_timeout 120s;\n"
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	EnsureReady(projectDir)
+	got, err := os.ReadFile(path)
+	if err != nil || string(got) != contents {
+		t.Fatalf("legacy bind mount must remain available for rollback: %q %v", got, err)
+	}
+}

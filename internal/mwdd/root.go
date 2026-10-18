@@ -3,6 +3,7 @@ package mwdd
 import (
 	"os"
 	"regexp"
+	"strings"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mwdd/files"
@@ -37,6 +38,7 @@ func (m MWDD) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
 	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
+	m.Env().Set("TRAEFIK_DOCKER_PROJECT", strings.ToLower(m.DockerCompose().Name))
 	m.ensureDockerfileComposeFiles()
 }
 
