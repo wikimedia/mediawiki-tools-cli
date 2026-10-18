@@ -52,3 +52,11 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 func composerCommand(args ...string) []string {
 	return append([]string{"sh", "-c", `HOME=${HOME:-/} "$@"`, "--", "composer"}, args...)
 }
+
+// withComposerHome supplies Composer's required HOME when a generic exec starts it.
+func withComposerHome(command []string) []string {
+	if len(command) > 0 && command[0] == "composer" {
+		return composerCommand(command[1:]...)
+	}
+	return command
+}

@@ -62,3 +62,19 @@ func TestComposerCommandHomeAndArguments(t *testing.T) {
 		}
 	}
 }
+
+func TestWithComposerHome(t *testing.T) {
+	composerArgs := []string{"composer", "phpunit", "argument with spaces"}
+	if got, want := withComposerHome(composerArgs), composerCommand("phpunit", "argument with spaces"); !reflect.DeepEqual(got, want) {
+		t.Fatalf("composer command: got %v, want %v", got, want)
+	}
+
+	otherCommand := []string{"php", "maintenance/run.php", "update"}
+	if got := withComposerHome(otherCommand); !reflect.DeepEqual(got, otherCommand) {
+		t.Fatalf("non-Composer command changed: got %v, want %v", got, otherCommand)
+	}
+
+	if got := withComposerHome(nil); got != nil {
+		t.Fatalf("empty command changed: got %v, want nil", got)
+	}
+}

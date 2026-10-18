@@ -30,7 +30,7 @@ func NewMediaWikiExecCmd() *cobra.Command {
 				containerID,
 				applyRelevantMediawikiWorkingDirectory(
 					docker.ExecOptions{
-						Command: command,
+						Command: withComposerHome(command),
 						Env:     env,
 						User:    User,
 					},
