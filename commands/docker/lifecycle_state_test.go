@@ -2,6 +2,7 @@ package docker
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 type fakeLifecycleProject struct {
 	running, exited, created, started, stopped, restarted []string
 	failure                                               error
+	stopFailure                                           error
 	calls                                                 int
 }
 
@@ -29,7 +31,7 @@ func (p *fakeLifecycleProject) ServicesWithStatus(status string) ([]string, erro
 	panic(status)
 }
 
-func (p *fakeLifecycleProject) Start(s []string) error {
+func (p *fakeLifecycleProject) StartContainers(s []string) error {
 	p.calls++
 	p.started = append([]string{}, s...)
 	return p.failure
@@ -38,7 +40,7 @@ func (p *fakeLifecycleProject) Start(s []string) error {
 func (p *fakeLifecycleProject) Stop(s []string) error {
 	p.calls++
 	p.stopped = append([]string{}, s...)
-	return p.failure
+	return p.stopFailure
 }
 
 func (p *fakeLifecycleProject) Restart(s []string) error {
@@ -116,6 +118,46 @@ func TestLifecycleEnumerationErrorsDoNotMutate(t *testing.T) {
 	}
 }
 
+func TestSuspendRetryPreservesPartlyStoppedServices(t *testing.T) {
+	for _, stillRunning := range [][]string{{"mysql"}, nil} {
+		t.Run(fmt.Sprint(stillRunning), func(t *testing.T) {
+			m := lifecycleTestMWDD(t)
+			failure := errors.New("stop partly failed")
+			p := &fakeLifecycleProject{running: []string{"mediawiki", "mysql"}, stopFailure: failure}
+			if err := suspendDevelopmentServices(m, p); !errors.Is(err, failure) {
+				t.Fatalf("expected stop failure, got %v", err)
+			}
+			// The first stop managed to stop some or all targets before failing.
+			p.running = stillRunning
+			p.stopFailure = nil
+			if err := suspendDevelopmentServices(m, p); err != nil {
+				t.Fatal(err)
+			}
+			wanted, _, err := m.ResumeServices()
+			if err != nil || !reflect.DeepEqual(wanted, []string{"mediawiki", "mysql"}) {
+				t.Fatalf("retry lost the original set: wanted=%v err=%v", wanted, err)
+			}
+			p.running = nil
+			p.exited = []string{"mediawiki", "mysql", "one-shot"}
+			if err := resumeDevelopmentServices(m, p); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(p.started, []string{"mediawiki", "mysql"}) {
+				t.Fatalf("resumed %v", p.started)
+			}
+			// A fresh suspension must not merge an old completed snapshot.
+			p.running = []string{"mysql"}
+			if err := suspendDevelopmentServices(m, p); err != nil {
+				t.Fatal(err)
+			}
+			wanted, _, err = m.ResumeServices()
+			if err != nil || !reflect.DeepEqual(wanted, []string{"mysql"}) {
+				t.Fatalf("new suspension retained stale services: wanted=%v err=%v", wanted, err)
+			}
+		})
+	}
+}
+
 func TestLegacyResumeAndRunningOnlyRestart(t *testing.T) {
 	m := lifecycleTestMWDD(t)
 	p := &fakeLifecycleProject{running: []string{"running"}, exited: []string{"existing"}, created: []string{"created"}}
@@ -130,5 +172,29 @@ func TestLegacyResumeAndRunningOnlyRestart(t *testing.T) {
 	}
 	if !reflect.DeepEqual(p.restarted, []string{"running"}) {
 		t.Fatal(p.restarted)
+	}
+}
+
+func TestResumeAfterFailedStopEndsPendingSuspension(t *testing.T) {
+	m := lifecycleTestMWDD(t)
+	p := &fakeLifecycleProject{running: []string{"mediawiki", "mysql"}, stopFailure: errors.New("partial stop")}
+	if err := suspendDevelopmentServices(m, p); err == nil {
+		t.Fatal("expected partial stop failure")
+	}
+	p.running = []string{"mysql"}
+	p.exited = []string{"mediawiki", "one-shot"}
+	if err := resumeDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.started, []string{"mediawiki"}) {
+		t.Fatalf("resumed %v", p.started)
+	}
+	p.stopFailure = nil
+	if err := suspendDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	wanted, _, err := m.ResumeServices()
+	if err != nil || !reflect.DeepEqual(wanted, []string{"mysql"}) {
+		t.Fatalf("resume left an old suspension pending: %v %v", wanted, err)
 	}
 }

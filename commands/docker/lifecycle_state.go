@@ -9,7 +9,7 @@ import (
 
 type lifecycleProject interface {
 	ServicesWithStatus(string) ([]string, error)
-	Start([]string) error
+	StartContainers([]string) error
 	Stop([]string) error
 	Restart([]string) error
 }
@@ -19,22 +19,16 @@ func suspendDevelopmentServices(m mwdd.MWDD, p lifecycleProject) error {
 	if err != nil {
 		return fmt.Errorf("list running containers: %w", err)
 	}
-	if len(running) == 0 {
-		// Do not replace a useful suspended snapshot on a repeated stop.
-		if _, exists, err := m.ResumeServices(); err != nil {
-			return err
-		} else if exists {
-			return nil
-		}
-	}
 	// Persist before stop, so a partial stop failure still leaves a resume target.
-	if err := m.SaveResumeServices(running); err != nil {
+	if err := m.BeginSuspendServices(running); err != nil {
 		return err
 	}
-	if len(running) == 0 {
-		return nil
+	if len(running) > 0 {
+		if err := p.Stop(running); err != nil {
+			return lifecycleError("stop", err)
+		}
 	}
-	return lifecycleError("stop", p.Stop(running))
+	return m.CompleteSuspendServices()
 }
 
 func resumeDevelopmentServices(m mwdd.MWDD, p lifecycleProject) error {
@@ -68,11 +62,14 @@ func resumeDevelopmentServices(m mwdd.MWDD, p lifecycleProject) error {
 		targets = append(targets, name)
 	}
 	sort.Strings(targets)
-	// Empty Compose arguments mean ALL services, so never call Start with none.
+	// Empty Compose arguments mean ALL services, so never start with none.
 	if len(targets) == 0 {
-		return nil
+		return m.CompleteSuspendServices()
 	}
-	return lifecycleError("start", p.Start(targets))
+	if err := p.StartContainers(targets); err != nil {
+		return lifecycleError("start", err)
+	}
+	return m.CompleteSuspendServices()
 }
 
 func restartDevelopmentServices(p lifecycleProject) error {

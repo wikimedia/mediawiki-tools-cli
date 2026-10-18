@@ -69,3 +69,35 @@ func TestMalformedResumeState(t *testing.T) {
 		t.Fatal("accepted invalid service name")
 	}
 }
+
+func TestPendingSuspendSurvivesReloadAndExplicitServiceChanges(t *testing.T) {
+	original := Context
+	Context = "test"
+	t.Cleanup(func() { Context = original })
+	m := MWDD{BaseDir: t.TempDir()}
+	if err := m.BeginSuspendServices([]string{"mediawiki", "mysql"}); err != nil {
+		t.Fatal(err)
+	}
+	// A later CLI invocation reads the pending operation from disk.
+	m = MWDD{BaseDir: m.BaseDir}
+	if err := m.UpdateResumeServices([]string{"mysql"}, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.BeginSuspendServices([]string{"redis"}); err != nil {
+		t.Fatal(err)
+	}
+	wanted, _, err := m.ResumeServices()
+	if err != nil || !reflect.DeepEqual(wanted, []string{"mediawiki", "redis"}) {
+		t.Fatalf("pending state lost across an explicit change: %v %v", wanted, err)
+	}
+	if err := m.CompleteSuspendServices(); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.BeginSuspendServices([]string{"redis"}); err != nil {
+		t.Fatal(err)
+	}
+	wanted, _, err = m.ResumeServices()
+	if err != nil || !reflect.DeepEqual(wanted, []string{"redis"}) {
+		t.Fatalf("fresh suspension retained the completed operation: %v %v", wanted, err)
+	}
+}
