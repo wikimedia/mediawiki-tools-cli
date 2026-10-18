@@ -3,12 +3,15 @@ package mediawiki
 import (
 	_ "embed"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 )
 
@@ -17,11 +20,32 @@ var updateCodeLong string
 
 func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 	var dryRun, composer bool
+	var mode string
 	cmd := &cobra.Command{
-		Use: "update-code", Short: "Fast-forward clean core, skin and extension checkouts", Long: cli.RenderMarkdown(updateCodeLong), Args: cobra.NoArgs,
+		Use: "update-code", Short: "Update core, skin and extension checkouts", Long: cli.RenderMarkdown(updateCodeLong), Args: cobra.NoArgs,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if !composer || dryRun {
+				// Git-only updates need mw's setup, but no Docker daemon,
+				// environment provisioning or MediaWiki/container wizards.
+				root := cmd.Root()
+				if root != cmd && root.PersistentPreRun != nil {
+					root.PersistentPreRun(cmd, args)
+				}
+				return
+			}
+			cobrautil.CallAllPersistentPreRun(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			code, err := mediawiki.ForDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+			env, err := godotenv.Read(m.Env().Path())
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			directory := env["MEDIAWIKI_VOLUMES_CODE"]
+			if directory == "" {
+				return fmt.Errorf("MEDIAWIKI_VOLUMES_CODE is not configured; run mw dev mediawiki get-code first")
+			}
+			code, err := mediawiki.ForDirectory(directory)
 			if err != nil {
 				return err
 			}
@@ -29,7 +53,7 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			results, updateErr := mediawiki.UpdateSourceRepositories(cmd.Context(), repos, dryRun)
+			results, updateErr := mediawiki.UpdateSourceRepositoriesWithOptions(cmd.Context(), repos, mediawiki.SourceUpdateOptions{DryRun: dryRun, Mode: mode})
 			skipped := false
 			for _, result := range results {
 				cmd.Printf("%s: %s", result.Name, result.Status)
@@ -37,6 +61,9 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 					cmd.Printf(" (%s -> %s)", result.Branch, result.Upstream)
 				}
 				cmd.Println()
+				if result.Detail != "" {
+					cmd.Printf("  %s\n", result.Detail)
+				}
 				skipped = skipped || strings.HasPrefix(result.Status, "skipped-")
 			}
 			if updateErr != nil {
@@ -63,6 +90,7 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&mode, "mode", "ff-only", "Update mode: ff-only, stash (reapply changes), or mop (save changes and reset to the default branch)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show eligible/skipped repositories without fetching or updating")
 	cmd.Flags().BoolVar(&composer, "composer", false, "Run Composer update in the PHP container after all source checkouts succeed")
 	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User for the optional Composer command")

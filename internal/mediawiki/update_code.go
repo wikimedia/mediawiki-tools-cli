@@ -44,27 +44,54 @@ func (m MediaWiki) SourceRepositories() ([]SourceRepository, error) {
 }
 
 func sourceGit(ctx context.Context, directory string, args ...string) (string, error) {
+	output, err := sourceGitOutput(ctx, directory, args...)
+	return strings.TrimSpace(output), err
+}
+
+func sourceGitOutput(ctx context.Context, directory string, args ...string) (string, error) {
 	cmd := osexec.CommandContext(ctx, "git", append([]string{"-C", directory}, args...)...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(output)))
 	}
-	return strings.TrimSpace(string(output)), nil
+	return string(output), nil
 }
 
-// UpdateSourceRepositories never resets, checks out branches, rebases or creates
-// merge commits. A dry run does not fetch or otherwise contact remotes.
+// UpdateSourceRepositories updates clean checkouts using fast-forward pulls.
+// A dry run does not fetch or otherwise contact remotes.
 func UpdateSourceRepositories(ctx context.Context, repos []SourceRepository, dryRun bool) ([]SourceUpdate, error) {
+	return UpdateSourceRepositoriesWithOptions(ctx, repos, SourceUpdateOptions{DryRun: dryRun, Mode: "ff-only"})
+}
+
+// UpdateSourceRepositoriesWithOptions applies the selected mode independently to
+// each checkout. Recovery failures stop the batch rather than touching more repos.
+func UpdateSourceRepositoriesWithOptions(ctx context.Context, repos []SourceRepository, options SourceUpdateOptions) ([]SourceUpdate, error) {
+	if options.Mode == "" {
+		options.Mode = "ff-only"
+	}
+	if options.Mode != "ff-only" && options.Mode != "stash" && options.Mode != "mop" {
+		return nil, fmt.Errorf("unknown update mode %q (choose ff-only, stash or mop)", options.Mode)
+	}
 	results := make([]SourceUpdate, 0, len(repos))
 	var failures []error
 	for _, repo := range repos {
 		if err := ctx.Err(); err != nil {
 			return results, err
 		}
-		result, err := updateSourceRepository(ctx, repo, dryRun)
+		var result SourceUpdate
+		var err error
+		if options.Mode == "ff-only" {
+			result, err = updateSourceRepository(ctx, repo, options.DryRun)
+		} else {
+			result, err = updateStashedSource(ctx, repo, options)
+		}
 		results = append(results, result)
 		if err != nil {
 			failures = append(failures, fmt.Errorf("%s: %w", repo.Name, err))
+			var recovery *sourceRecoveryError
+			if errors.As(err, &recovery) {
+				break
+			}
 		}
 	}
 	return results, errors.Join(failures...)
