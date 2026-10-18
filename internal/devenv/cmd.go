@@ -426,7 +426,7 @@ func NewImageCmdP(service *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedService := *service
 			DefaultForUser().EnsureReady()
-			DefaultForUser().Env().Set(strings.ToUpper(dereferencedService)+"_IMAGE", args[0])
+			DefaultForUser().Env().Set(strings.ToUpper(strings.ReplaceAll(dereferencedService, "-", "_"))+"_IMAGE", args[0])
 		},
 	}
 	cmd.AddCommand(set)
@@ -438,7 +438,7 @@ func NewImageCmdP(service *string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			dereferencedService := *service
 			DefaultForUser().EnsureReady()
-			DefaultForUser().Env().Delete(strings.ToUpper(dereferencedService) + "_IMAGE")
+			DefaultForUser().Env().Delete(strings.ToUpper(strings.ReplaceAll(dereferencedService, "-", "_")) + "_IMAGE")
 		},
 	}
 	cmd.AddCommand(reset)

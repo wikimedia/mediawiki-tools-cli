@@ -210,6 +210,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(devenv.NewServiceCmd("novnc", devenv.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("elasticsearch", devenv.ServiceTexts{Long: elasticsearchLong}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("opensearch", devenv.ServiceTexts{Long: opensearchLong}, []string{}))
+	cmd.AddCommand(devenv.NewServiceCmd("opensearch-dashboards", devenv.ServiceTexts{Long: opensearchDashboardsLong, OnCreate: opensearchDashboardsOnCreate}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("eventlogging", devenv.ServiceTexts{Long: eventLoggingLong}, []string{"eventgate"}))
 	cmd.AddCommand(devenv.NewServiceCmd("graphite", devenv.ServiceTexts{Long: graphiteLong, OnCreate: envSubst(graphiteOnCreate)}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("mailhog", devenv.ServiceTexts{Long: mailhogLong, OnCreate: envSubst(mailhogOnCreate)}, []string{}))
@@ -266,6 +267,12 @@ var elasticsearchLong string
 
 //go:embed opensearch/opensearch.long.md
 var opensearchLong string
+
+//go:embed opensearch-dashboards/opensearch-dashboards.long.md
+var opensearchDashboardsLong string
+
+//go:embed opensearch-dashboards/opensearch-dashboards.oncreate.md
+var opensearchDashboardsOnCreate string
 
 //go:embed eventlogging/eventlogging.long.md
 var eventLoggingLong string
