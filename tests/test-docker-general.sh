@@ -5,6 +5,7 @@
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/guide-examples.sh"
 source $SCRIPT_DIR/pretest-mediawiki.sh
 
 export MWCLI_CONTEXT_TEST=1
@@ -180,6 +181,14 @@ test_command_success ./bin/mw dev shellbox media stop
 test_command_success ./bin/mw dev update
 # TODO could make sure shellbox media is still stopped after the update..
 
+# Validate the Xdebug guide against the real PHP service.
+test_xdebug_settings "$(pwd)/bin/mw"
+
+# Change an already running gateway, not just its initial .env value.
+test_http_port_change "$(pwd)/bin/mw" 6195
+PORT=$(./bin/mw dev env get PORT)
+test_wget_eventually_contains "http://default.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page" "MediaWiki has been installed" 60 1
+
 # cd to mediawiki
 cd .mediawiki
 
@@ -194,8 +203,8 @@ test_command ./../bin/mw dev mediawiki exec ls "api.php"
 # PHP Fatal error:  Uncaught TypeError: implode(): Argument #1 ($pieces) must be of type array, string given in /var/www/html/w/tests/phpunit/getPHPUnitExtensionsAndSkins.php:44
 # test_command "./../bin/mw dev mediawiki exec -- composer phpunit tests/phpunit/unit/includes/installer/PingbackTest.php" "OK "
 
-# fresh: Make sue a basic browser test works
-test_command_success ./../bin/mw dev mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
+# fresh: Run the guide example and verify its recording, using the existing browser test.
+test_fresh_recording "$(cd .. && pwd)/bin/mw"
 
 # quibble: Make sure a quibble works
 test_command_success ./../bin/mw dev mediawiki quibble quibble -- --help

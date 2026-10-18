@@ -7,6 +7,7 @@
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/guide-examples.sh"
 source $SCRIPT_DIR/pretest-mediawiki.sh
 
 export MWCLI_CONTEXT_TEST=1
@@ -71,6 +72,9 @@ test_command_success ./bin/mw dev mediawiki install --dbname mysqlwiki --dbtype 
 hosts_command "add"
 test_file_contains "/etc/hosts" "mysqlwiki.mediawiki.local.wmftest.net"
 test_wget http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
+
+# Validate the import/export workflow without touching the wiki database.
+test_mysql_dump_roundtrip "$(pwd)/bin/mw"
 
 # Stop and start and check the site is still there
 test_command_success ./bin/mw dev mysql stop
