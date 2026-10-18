@@ -2,6 +2,8 @@
 variables:
     WM_APPSEC_GOLANG_IMAGE: "bookworm:20251109"
     AST_ENABLE_MR_PIPELINES: "true"
+    # Opt in only after the native GitHub workflow and callback token are ready.
+    GITHUB_NATIVE_INTEGRATION: "0"
 
 default:
   interruptible: true

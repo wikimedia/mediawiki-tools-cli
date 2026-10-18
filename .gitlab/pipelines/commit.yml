@@ -203,6 +203,11 @@ integration-get-code:
 
 integration:
     extends: .docker-job
+    rules:
+      - if: '$GITHUB_NATIVE_INTEGRATION == "1" && $CI_PROJECT_ID == "16"'
+        when: never
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
     stage: integration
     needs:
       - *merged-source-need
@@ -221,6 +226,58 @@ integration:
     script:
       - tar -xzf .cache/mediawiki.tar.gz
       - ./tests/$TEST_SCRIPT
+
+# Only the successful request event should dispatch native GitHub tests.
+# Neither this job nor the gate needs a long-lived GitLab/GitHub secret.
+integration-github-request:
+    image: alpine:3.22
+    tags: [wmcs]
+    stage: integration
+    variables:
+      GIT_STRATEGY: none
+    cache: []
+    rules:
+      - if: '$GITHUB_NATIVE_INTEGRATION == "1" && $CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
+    needs:
+      - job: checks
+        artifacts: false
+      - job: test
+        artifacts: false
+      - job: build
+        artifacts: false
+      - job: prepare-mediawiki
+        artifacts: false
+    script:
+      - echo "Native GitHub integration requested for pipeline $CI_PIPELINE_ID"
+
+# A blocking manual job occupies no runner while waiting for the webhook.
+# GitHub automatically plays it after posting all results (including failures).
+integration-github:
+    extends: .merged-source
+    image: python:3.13-bookworm
+    tags: [wmcs]
+    stage: integration
+    cache: []
+    rules:
+      - if: '$GITHUB_NATIVE_INTEGRATION == "1" && $CI_PROJECT_ID == "16" && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG)'
+        when: manual
+        allow_failure: false
+    needs:
+      - *merged-source-need
+      - job: integration-github-request
+        artifacts: false
+    script:
+      - python3 tools/ci/check-github-integration.py
+
+ci-bridge-checks:
+    extends: .commit-job
+    image: python:3.13-bookworm
+    tags: [wmcs]
+    stage: test
+    cache: []
+    script:
+      - python3 -m unittest discover -s tools/ci -p 'test_*.py'
+      - python3 -m unittest discover -s .github/scripts -p 'test_*.py'
 
 build-release:
     extends: .go-job
@@ -241,7 +298,15 @@ build-docs:
     rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     stage: release
-    needs: [*merged-source-need,build,integration-cli,integration-get-code,integration]
+    needs:
+      - *merged-source-need
+      - build
+      - integration-cli
+      - integration-get-code
+      - job: integration
+        optional: true
+      - job: integration-github
+        optional: true
     before_script:
       - *checkout-merged-source
       - apt update
@@ -254,7 +319,15 @@ release-build:
     rules:
       - if: '$CI_COMMIT_TAG'
     stage: release
-    needs: [*merged-source-need,build,integration-cli,integration-get-code,integration]
+    needs:
+      - *merged-source-need
+      - build
+      - integration-cli
+      - integration-get-code
+      - job: integration
+        optional: true
+      - job: integration-github
+        optional: true
     artifacts:
       paths:
         - _release/

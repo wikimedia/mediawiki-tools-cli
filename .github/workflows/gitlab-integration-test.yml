@@ -1,0 +1,73 @@
+# Called once per test. Reporting gets a fresh VM; the test gets no callback token.
+name: Native integration test
+
+on:
+  workflow_call:
+    inputs:
+      test:
+        required: true
+        type: string
+      artifact:
+        required: true
+        type: string
+      tested_sha:
+        required: true
+        type: string
+      request_job_id:
+        required: true
+        type: string
+    secrets:
+      GITLAB_STATUS_TOKEN:
+        required: true
+
+permissions: {}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact }}
+          path: inputs
+      - name: Provide the Docker Compose command used by the tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          printf '#!/bin/sh\nexec docker compose "$@"\n' > "$RUNNER_TEMP/bin/docker-compose"
+          chmod +x "$RUNNER_TEMP/bin/docker-compose"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Test with the GitHub host Docker daemon
+        env:
+          TEST: ${{ inputs.test }}
+        run: python3 tools/ci/run-github-integration.py "$TEST"
+
+  report:
+    name: Report result
+    needs: test
+    if: always() && !cancelled()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish this test's result and log link immediately
+        env:
+          GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_JOB_ID: ${{ inputs.request_job_id }}
+          TESTED_SHA: ${{ inputs.tested_sha }}
+          TEST_NAME: ${{ inputs.test }}
+        run: python3 .github/scripts/gitlab-native.py report-test

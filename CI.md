@@ -2,9 +2,9 @@
 
 Continuous integration runs in Wikimedia GitLab. Shared Wikimedia runners handle
 Go checks, builds, basic CLI tests, get-code tests and MediaWiki preparation.
-Docker integration jobs use the `dind` tag, shared by persistent Cloud VPS runners
-and temporary GitHub-hosted workers. Each GitHub worker connects back to GitLab,
-runs one job and uploads its logs and artifacts there.
+By default, Docker integration jobs use the `dind` tag, shared by persistent Cloud
+VPS runners and temporary GitHub-hosted GitLab workers. Native GitHub integration
+is available behind `GITHUB_NATIVE_INTEGRATION=1`; its rollout is described below.
 
 Full CI requires the project's configured runners and is not available in forks.
 
@@ -45,7 +45,143 @@ use **Clear runner caches** in
 GitLab to force an earlier refresh. Each runner can rebuild its own cache on a miss,
 so no shared cache service is required.
 
-## GitHub workers
+## Native GitHub integration (opt in)
+
+[Native test runs](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-integration.yml)
+run the four Docker tests as ordinary GitHub Actions jobs, using each Ubuntu VM's
+Docker daemon. No GitLab Runner or Cloud VPS worker is needed in this mode.
+Shared Wikimedia runners still handle the other GitLab jobs.
+
+`integration-github-request` finishes after checks, unit tests, the binary build
+and MediaWiki preparation. Its successful Job event dispatches
+[the native workflow](.github/workflows/gitlab-integration.yml). GitHub downloads
+the binary, clean MediaWiki snapshot and exact merged Git bundle from that
+pipeline. Every test uses those same inputs; it does not build another revision.
+
+Four individual results appear in GitLab's `external` stage:
+
+- `github/docker-general`
+- `github/all-databases`
+- `github/mysql-cycle`
+- `github/repoclient`
+
+Each links to its GitHub job and full log. GitLab does not store the native logs.
+A fresh reporting VM posts each result when that test finishes. The test VMs have
+no callback token; reporting uses trusted GitHub workflow code and GitHub's job
+conclusions, rather than files supplied by the tested branch.
+
+`integration-github` is a blocking manual GitLab job while GitHub runs. It occupies
+no runner during that wait. GitHub automatically starts it after reporting the
+four results, including failures. It supplies a nonsecret receipt of those GitLab
+statuses as job variables. The job briefly uses a shared Wikimedia runner to
+check GitLab identifies its issuer as the configured bot, then checks all four
+results belong to that bot, request, GitHub attempt and merged commit. Manually
+playing it as another user fails verification and requires a new GitLab pipeline.
+The controller will not retry a gate that another user started. Documentation builds and tagged releases wait for that check;
+preview release builds can still run alongside integration.
+
+If a dispatch or callback is lost, the gate remains blocked. It cannot silently
+pass with missing tests. Native tests check for GitLab cancellation every 30
+seconds while their test script runs. Duplicate dispatches share a concurrency
+group, and completed requests are skipped. There is no scheduled polling workflow
+and no coordinator VM.
+
+### Enable the bridge
+
+Keep the current runners and webhook until these steps are complete:
+
+1. Merge this change into GitLab `main`, then confirm the mirror has copied
+   `gitlab-integration.yml` and `gitlab-integration-test.yml` to GitHub `main`.
+   Dispatchable workflows must exist on the GitHub default branch.
+2. Create a project access token in
+   [GitLab access tokens](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens),
+   named `Native GitHub integration`, with **Maintainer** role and **api** scope.
+   Maintainer is needed to play the manual gate on protected `main` and release
+   tags. Set an expiry and arrange rotation; `read_api` is insufficient.
+3. Save its value as the GitHub Actions repository secret **GITLAB_STATUS_TOKEN**
+   in [the official repository](https://github.com/wikimedia/mediawiki-tools-cli/settings/secrets/actions).
+   Never add it to GitLab CI variables or the test jobs.
+4. Obtain the token bot's numeric user ID. From a Bash terminal, this command
+   prompts without echoing the token and prints only the bot ID:
+
+   ```sh
+   python3 - <<'PY'
+   import getpass, json, urllib.request
+   request = urllib.request.Request(
+       "https://gitlab.wikimedia.org/api/v4/user",
+       headers={"PRIVATE-TOKEN": getpass.getpass("GitLab status token: ")},
+   )
+   with urllib.request.urlopen(request, timeout=30) as response:
+       print(json.load(response)["id"])
+   PY
+   ```
+
+   Set **GITHUB_STATUS_BOT_ID** to that ID in the
+   [GitLab CI/CD variables](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd).
+   It is a nonsecret variable and must be available to MR pipelines, so leave
+   **Protected** unchecked.
+5. Set the GitHub Actions repository variable **GITLAB_NATIVE_ENABLED** to `true`.
+6. Add a Job events webhook in
+   [GitLab webhooks](https://gitlab.wikimedia.org/repos/releng/cli/-/hooks), using:
+
+   ```text
+   https://api.github.com/repos/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-integration.yml/dispatches
+   ```
+
+   Enable **Job events**, keep SSL verification enabled and use this custom body:
+
+   ```json
+   {"ref":"main","inputs":{"project_id":"{{project_id}}","job_id":"{{build_id}}","job_name":"{{build_name}}","job_status":"{{build_status}}"}}
+   ```
+
+   Add the custom header **Authorization** with value `Bearer YOUR_GITHUB_TOKEN`.
+   The GitHub fine-grained token needs access only to this repository and
+   **Actions: read and write**. The existing dispatch token can be reused if it
+   still has those permissions. GitLab sends all job events; the workflow accepts
+   only successful `integration-github-request` jobs from project 16 before
+   allocating a runner, then checks the event against the GitLab API.
+7. Enable **Pipelines must succeed** in
+   [GitLab merge request settings](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/merge_requests)
+   so failed or blocked pipelines prevent merging.
+8. Set the nonsecret GitLab CI/CD variable **GITHUB_NATIVE_INTEGRATION** to `1`,
+   available to MR pipelines with **Protected** unchecked. Open a draft MR or push
+   a new commit to an existing MR to exercise the native path. Check that four
+   results appear, each log link works, and the gate finishes automatically.
+   Test a failing integration change too: the gate and downstream jobs must not
+   pass. Then verify a `main` pipeline before retiring the old setup.
+
+This mode is restricted to upstream project 16. Fork pipelines retain the legacy
+`dind` jobs and need their own runners; the callback credential is never shared
+with forks.
+
+### Retry, retire and roll back
+
+For a failing native test, use **Re-run failed jobs** in the matching GitHub run.
+The reporter keeps successful results from earlier attempts of that same run,
+refreshes the four GitLab statuses and retries the failed gate automatically.
+Do not retry only the GitLab gate to rerun tests: it only verifies existing results.
+For a failed or blocked run, use **Re-run all jobs** to repeat preparation and all
+tests. An already passed gate is left unchanged; start a new GitLab pipeline to
+repeat a successful pipeline. Inputs expire after
+one day; start a new GitLab pipeline if its artifacts have expired.
+
+If the webhook was missed, run **GitLab native integration** manually in GitHub
+with project `16`, the successful `integration-github-request` job ID, and status
+`success`. If reporting failed, rerun the failed GitHub reporting job. A canceled
+GitLab pipeline is not revived. Cancel its matching GitHub run directly if needed.
+
+After successful MR and `main` trials, disable the old queue webhook and set
+**GITLAB_WORKERS_ENABLED** to `false`. Pause the Cloud VPS runners and the old
+GitHub project runner in GitLab. Keep their tokens and VM data until the rollback
+window has passed, then unregister the old runners and remove the old GitHub
+secrets **GITLAB_RUNNER_TOKEN** and **GITLAB_API_READ_TOKEN**. Native integration
+uses neither secret. Keep **GITLAB_STATUS_TOKEN** and the new webhook token.
+
+To roll back, set **GITHUB_NATIVE_INTEGRATION** to `0`, restore the old webhook and
+**GITLAB_WORKERS_ENABLED**, and unpause the `dind` runners. Start a new pipeline;
+changing the variable does not alter jobs in an existing pipeline.
+
+## GitHub workers (legacy mode)
 
 See [actual worker runs](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-worker.yml)
 in GitHub Actions.
@@ -87,7 +223,7 @@ The tokens for this setup will need rotating.
 - GITLAB_API_READ_TOKEN expires 21 November 2027 (Currently https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens `GitHub official worker queue`)
 - GH token in GL webhook expires 18 October 2027 (Currently https://github.com/settings/personal-access-tokens/21319900)
 
-## Custom runners
+## Custom runners (legacy mode)
 
 Custom runners run in the `mwcli` Cloud VPS project.
 
