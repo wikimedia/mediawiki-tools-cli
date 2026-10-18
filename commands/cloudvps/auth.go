@@ -1,12 +1,13 @@
 package cloudvps
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -16,9 +17,8 @@ const authUrl = "https://openstack.eqiad1.wikimediacloud.org:25000/v3"
 
 func NewAuthCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "auth",
-		Short:  "Authenticate with Cloud VPS",
-		Hidden: true, // for now
+		Use:   "auth",
+		Short: "Authenticate with Cloud VPS",
 	}
 
 	cmd.AddCommand(NewAuthAddCmd())
@@ -31,16 +31,29 @@ func NewAuthCmd() *cobra.Command {
 
 func NewAuthAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "Add a new application credential",
+		Use:     "add",
+		Short:   "Add a new application credential",
+		Long:    "Validate and save OpenStack application credentials. Missing values are prompted for in a terminal, with the secret hidden. Create credentials for the selected project at https://horizon.wikimedia.org/identity/application_credentials/.",
+		Example: "add\nadd --project mwcli\nadd --project mwcli --id APPLICATION_CREDENTIAL_ID --secret APPLICATION_CREDENTIAL_SECRET",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 			id, _ := cmd.Flags().GetString("id")
 			secret, _ := cmd.Flags().GetString("secret")
 
+			if project == "" && !cmd.Flags().Changed("project") {
+				project = config.State().Effective.CloudVPS.DefaultProject
+			}
 			if project == "" || id == "" || secret == "" {
-				// TODO interactive mode
-				return fmt.Errorf("project, credential-id, and credential-secret are required")
+				if !cli.CanAskForInput() {
+					return fmt.Errorf("provide --project (or cloud_vps.default_project), --id and --secret; run in an interactive terminal to be prompted; create credentials at https://horizon.wikimedia.org/identity/application_credentials/")
+				}
+				if err := promptApplicationCredential(cmd, &project, &id, &secret, survey.AskOne); err != nil {
+					return err
+				}
+			}
+			if !sshDNSLabel.MatchString(project) {
+				return fmt.Errorf("project must be a valid Cloud VPS project name")
 			}
 
 			auth := gophercloud.AuthOptions{
@@ -49,26 +62,52 @@ func NewAuthAddCmd() *cobra.Command {
 				ApplicationCredentialSecret: secret,
 				DomainID:                    "default",
 			}
-			_, err := openstack.AuthenticatedClient(context.Background(), auth)
+			_, err := openstack.AuthenticatedClient(cmd.Context(), auth)
 			if err != nil {
 				return err
 			}
 
 			// TODO check the creds are for the right project before saving?
 
-			config.PutKeyValueOnDisk("cloud_vps.projects."+project+".credential.id", id)
-			config.PutKeyValueOnDisk("cloud_vps.projects."+project+".credential.secret", secret)
+			disk := config.State().OnDiskKoanf.Copy()
+			if err := disk.Set("cloud_vps.projects."+project+".credential", map[string]interface{}{"id": id, "secret": secret}); err != nil {
+				return err
+			}
+			if err := config.PutDiskConfig(disk); err != nil {
+				return fmt.Errorf("save application credential: %w", err)
+			}
 
-			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Added new application credential for project: %s", project)))
+			fmt.Fprint(cmd.OutOrStdout(), cmdgloss.SuccessHeading(fmt.Sprintf("Added new application credential for project: %s", project)))
 			return nil
 		},
 	}
 
-	cmd.Flags().String("project", "", "Project name (required)")
-	cmd.Flags().String("id", "", "Application credential ID (required)")
-	cmd.Flags().String("secret", "", "Application credential secret (required)")
+	cmd.Flags().String("project", "", "Project name (uses cloud_vps.default_project, otherwise prompts)")
+	cmd.Flags().String("id", "", "Application credential ID (prompts if omitted)")
+	cmd.Flags().String("secret", "", "Application credential secret (prompts with hidden input if omitted)")
 
 	return cmd
+}
+
+func promptApplicationCredential(cmd *cobra.Command, project, id, secret *string, ask func(survey.Prompt, interface{}, ...survey.AskOpt) error) error {
+	fmt.Fprintln(cmd.ErrOrStderr(), "Select your project in Horizon, then create an application credential:")
+	fmt.Fprintln(cmd.ErrOrStderr(), "https://horizon.wikimedia.org/identity/application_credentials/")
+	if *project == "" {
+		if err := ask(projectPrompt(cmd.Context()), project, survey.WithValidator(survey.Required)); err != nil {
+			return err
+		}
+	}
+	if *id == "" {
+		if err := ask(&survey.Input{Message: "Application credential ID:"}, id, survey.WithValidator(survey.Required)); err != nil {
+			return err
+		}
+	}
+	if *secret == "" {
+		if err := ask(&survey.Password{Message: "Application credential secret:"}, secret, survey.WithValidator(survey.Required)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewAuthRemoveCmd() *cobra.Command {

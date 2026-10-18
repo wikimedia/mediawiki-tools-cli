@@ -61,6 +61,54 @@ To expose the gateway from a development machine that is not directly reachable,
 
 Traefik binds the existing `PORT` on all interfaces, so local virtual hosts and remote `/proxy/...` routes use the same listener. The root path on an unmatched host serves the default wiki behind the same authentication. Some tools require app-specific base-path settings for all links and assets to work under a prefix; prefix routing alone does not guarantee that every tool's UI is fully compatible.
 
+### Cloud VPS sessions
+
+Open a Cloud VPS shell without manually building a hostname or bastion command:
+
+```sh
+mw cloudvps ssh gitlab-runner-addshore-1018 --project mwcli --user addshore
+mw cloudvps ssh --project mwcli  # Choose a VM from the public instance inventory
+mw cloudvps connect --project mwcli --name gitlab-runner-addshore-1018
+```
+
+Save defaults for repeated use:
+
+```sh
+mw config set cloud_vps.default_project mwcli
+mw config set cloud_vps.ssh.user addshore
+mw cloudvps ssh gitlab-runner-addshore-1018
+mw cloudvps ssh gitlab-runner-addshore-1018 -- uname -a
+```
+
+The command uses your local OpenSSH client and retains your SSH configuration,
+keys, agent, and host-key checks. It supplies `bastion.wmcloud.org` when no SSH
+proxy is configured. You still need project membership and a public key registered
+at [Wikimedia IDM](https://idm.wikimedia.org). On an interactive first connection,
+the command asks for and remembers your developer shell username if SSH is using
+your local default username. `--no-interaction` also enables SSH batch mode;
+preconfigure your username, keys and known hosts for unattended commands.
+
+Short names and the interactive chooser do not require OpenStack application
+credentials. `--id` uses the existing per-project credentials to resolve a VM's
+name. The public chooser lists instances, not the instances you are authorized
+to access. Use a full `*.wikimedia.cloud` hostname to bypass project selection,
+or provide a VM name to bypass public discovery if the inventory is unavailable.
+
+Use `--dry-run` to inspect the command, `-vv` for SSH diagnostics, `--tty` for a
+remote command needing a terminal, and repeated `--ssh-option` flags for native
+OpenSSH options. Remote arguments are literal; use `-- sh -lc '...'` for shell
+expressions. SSH exit status is preserved for scripting. The optional
+`cloud_vps.ssh.region` and `cloud_vps.ssh.jump_host` settings change the defaults;
+`--jump-host none` disables the automatic bastion.
+
+This builds on [T292906](https://phabricator.wikimedia.org/T292906), its
+`addshore-aug-2025` SSH prototype, and the native SSH session pattern in
+[Toolforge Gen CLI](https://gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/-/blob/main/cmd/shell.go).
+
+The existing `mw cloudvps compute ssh <instance-id>` command remains available
+for OpenStack-based connections and `--script` / `--sudo` runner provisioning.
+Its `--jump` flag and script-upload behavior are unchanged. Configure OpenStack credentials with `mw cloudvps auth add`; it links to Horizon and prompts for missing values, hiding the secret. Project prompts and `--project` flags support Tab completion using cached public inventory, with a short lookup timeout and configured projects as fallbacks.
+
 ### Running the development build
 
 Follow the [development build instructions in README.md](README.md#using-a-development-build)
