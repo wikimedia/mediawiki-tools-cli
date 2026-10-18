@@ -129,7 +129,7 @@ test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=ski
 test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022" 'mw.loader'
 
 # Make sure the expected number of services appear
-test_docker_ps_service_count 11
+test_docker_ps_service_count 12
 
 # Try other DB related commands
 test_command_success ./bin/mw docker postgres stop
