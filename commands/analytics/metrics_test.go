@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestMetricCommandsUseCorrectRoutesAndPreserveContext(t *testing.T) {
@@ -169,5 +170,86 @@ func TestMetricTableCSVAndJQUseExpandedRows(t *testing.T) {
 				t.Fatalf("jq did not see flattened rows: %q", buf.String())
 			}
 		}
+	}
+}
+
+func TestRankingDefaultFindsLatestAvailableDay(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, args := range [][]string{{"top-pages"}, {"top-edited"}, {"mediarequests", "top"}} {
+		requests := 0
+		var paths []string
+		http.DefaultClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			requests++
+			paths = append(paths, r.URL.Path)
+			status, body := http.StatusNotFound, `{"detail":"not loaded yet"}`
+			if requests == 3 {
+				status, body = http.StatusOK, `{"items":[{"rank":1,"article":"First","views":42}]}`
+			}
+			return &http.Response{StatusCode: status, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
+		})}
+		cmd := NewCmd()
+		var out, stderr bytes.Buffer
+		cmd.SetOut(&out)
+		cmd.SetErr(&stderr)
+		cmd.SetArgs(append(append([]string{}, args...), "--output", "json"))
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if requests != 3 || !strings.Contains(out.String(), "First") {
+			t.Fatalf("requests %d, output %s", requests, out.String())
+		}
+		parts := strings.Split(paths[0], "/")
+		firstDate, err := time.Parse("2006/01/02", strings.Join(parts[len(parts)-3:], "/"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, path := range paths {
+			if !strings.HasSuffix(path, firstDate.AddDate(0, 0, -i).Format("2006/01/02")) {
+				t.Fatalf("incorrect lookback: %v", paths)
+			}
+		}
+		if !strings.Contains(stderr.String(), firstDate.AddDate(0, 0, -2).Format("2006-01-02")) {
+			t.Fatalf("actual date not reported: %s", stderr.String())
+		}
+	}
+}
+
+func TestRankingsDoNotHideOtherFailuresOrSearchIndefinitely(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, tc := range []struct {
+		name             string
+		status, requests int
+		args             []string
+	}{
+		{"explicit day", 404, 1, []string{"--date", "20250101"}},
+		{"explicit month", 404, 1, []string{"--month", "202501"}},
+		{"rate limit", 429, 1, nil},
+		{"server error", 503, 1, nil},
+		{"unknown project", 404, 7, []string{"--project", "unknown.wikipedia.org"}},
+		{"no recent data", 404, 7, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			http.DefaultClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				requests++
+				return &http.Response{StatusCode: tc.status, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"detail":"missing"}`))}, nil
+			})}
+			cmd := NewCmd()
+			cmd.SetOut(io.Discard)
+			var stderr bytes.Buffer
+			cmd.SetErr(&stderr)
+			cmd.SetArgs(append([]string{"top-pages", "--output", "graph"}, tc.args...))
+			if err := cmd.Execute(); err == nil {
+				t.Fatal("API failure hidden")
+			}
+			if requests != tc.requests {
+				t.Fatalf("requests: %d, want %d", requests, tc.requests)
+			}
+			if strings.Contains(stderr.String(), "Using rankings") {
+				t.Fatal("failed request reported as fallback success")
+			}
+		})
 	}
 }

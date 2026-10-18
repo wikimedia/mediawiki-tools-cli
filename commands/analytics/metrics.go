@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -78,6 +79,23 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		ctx, cancel := context.WithTimeout(cmd.Context(), opts.timeout)
 		defer cancel()
 		rows, err := fetchMetrics(ctx, path)
+		// Daily rankings can lag behind the calendar. Only an omitted date
+		// permits looking back; explicit dates and other failures stay exact.
+		if def.ranking && !cmd.Flags().Changed("date") && !cmd.Flags().Changed("month") {
+			date, _ := time.Parse("2006/01/02", strings.Join(path[len(path)-3:], "/"))
+			for daysBack := 1; daysBack < 7 && err != nil; daysBack++ {
+				var apiErr *restapi.HTTPError
+				if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusNotFound {
+					break
+				}
+				date = date.AddDate(0, 0, -1)
+				path = append(path[:len(path)-3], date.Format("2006"), date.Format("01"), date.Format("02"))
+				rows, err = fetchMetrics(ctx, path)
+				if err == nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Using rankings for %s (newer data is unavailable).\n", date.Format("2006-01-02"))
+				}
+			}
+		}
 		if err != nil {
 			return err
 		}
@@ -137,7 +155,7 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		}
 	}
 	if def.ranking {
-		flags.StringVar(&opts.date, "date", "", "Day in YYYYMMDD format (default: yesterday)")
+		flags.StringVar(&opts.date, "date", "", "Day in YYYYMMDD format (default: latest available in the past 7 days)")
 		flags.StringVar(&opts.month, "month", "", "Whole month in YYYYMM format, instead of --date")
 		cmd.MarkFlagsMutuallyExclusive("date", "month")
 		flags.IntVar(&opts.limit, "limit", 20, "Maximum results (0 means all available results)")

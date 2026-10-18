@@ -62,6 +62,14 @@ func validURL(u *url.URL) bool {
 	return u != nil && (u.Scheme == "http" || u.Scheme == "https") && u.Hostname() != "" && u.User == nil && u.Fragment == ""
 }
 
+// HTTPError retains the status code alongside bounded API error details.
+type HTTPError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *HTTPError) Error() string { return e.Message }
+
 // CheckStatus includes bounded API error details and rate-limit guidance.
 func CheckStatus(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
@@ -75,5 +83,5 @@ func CheckStatus(resp *http.Response) error {
 	if detail := strings.TrimSpace(string(body)); detail != "" {
 		message += ": " + detail
 	}
-	return fmt.Errorf("%s", message)
+	return &HTTPError{StatusCode: resp.StatusCode, Message: message}
 }
