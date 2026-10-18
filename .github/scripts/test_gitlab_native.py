@@ -28,11 +28,15 @@ class FakeGitLab:
         self.merge_bundle = None
         self.sha = SHA
         self.matrix = []
+        self.test_plan = None
 
     def get(self, path):
         if path == "/projects/16/jobs/19":
             return {"id": 19, "name": self.request_name, "status": "success",
-                    "pipeline": {"id": 23}, "commit": {"id": self.sha}}
+                    "pipeline": {"id": 23}, "commit": {"id": self.sha},
+                    "artifacts_file": {"filename": "artifacts.zip"} if self.test_plan is not None else {}}
+        if path == "/projects/16/jobs/19/artifacts/integration-plan.json":
+            return self.test_plan
         if path == "/projects/16/pipelines/23":
             return {"id": 23, "sha": self.sha, "status": "canceled" if self.canceled else "manual"}
         raise AssertionError(path)
@@ -216,15 +220,15 @@ class CallbackTests(unittest.TestCase):
             results = native.github_results(123, 1)
         self.assertEqual(list(results), ["windows-amd64/new-update"])
         api = FakeGitLab()
-        api.matrix = [{"id": 21, "name": "integration-github: [windows-amd64, new-update]", "status": "running"}]
+        api.test_plan = [{"platform": "windows-amd64", "test": "new-update"}]
         with patch.object(native, "github_results", return_value=results):
             native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
         self.assertEqual(api.posted[-1][1]["name"], native.SUMMARY_CONTEXT)
         self.assertEqual(api.posted[-1][1]["state"], "success")
 
-    def test_preparation_exports_the_gitlab_matrix_without_github_main_test_entries(self):
+    def test_preparation_expands_the_single_request_artifact_without_github_main_test_entries(self):
         api = FakeGitLab()
-        api.matrix = [{"id": 21, "name": "integration-github: [windows-amd64, future-test]", "status": "created"}]
+        api.test_plan = [{"platform": "windows-amd64", "test": "future-test"}]
         def source(api, plan, jobs, directory):
             plan["tested_sha"] = SHA
         with tempfile.TemporaryDirectory() as temporary, patch.object(
@@ -242,14 +246,14 @@ class CallbackTests(unittest.TestCase):
         self.assertEqual({body["name"] for _, body in api.posted},
                          {"github/windows-amd64/future-test", native.SUMMARY_CONTEXT})
 
-    def test_pipeline_jobs_select_new_platforms_and_missing_tests_fail_closed(self):
+    def test_request_plan_selects_new_platforms_and_missing_tests_fail_closed(self):
         api = FakeGitLab()
-        api.matrix = [
-            {"id": 21, "name": "integration-github: [windows-amd64, new-update]", "status": "running"},
-            {"id": 22, "name": "integration-github: [linux-arm64, holesail]", "status": "running"},
+        api.test_plan = [
+            {"platform": "windows-amd64", "test": "new-update"},
+            {"platform": "linux-arm64", "test": "holesail"},
         ]
         jobs = {job["name"]: job for job in api.all("/projects/16/pipelines/23/jobs")}
-        plan = native.test_plan(jobs)
+        plan = native.test_plan(api, native.load_request(api, 19)[0], jobs)
         self.assertEqual({test["name"] for test in plan}, {"windows-amd64/new-update", "linux-arm64/holesail"})
         with patch.object(native, "github_results", return_value={"windows-amd64/new-update": {"state": "success"}}):
             native.finish(api, 19, SHA, 123, 1, jobs_succeeded=True)
