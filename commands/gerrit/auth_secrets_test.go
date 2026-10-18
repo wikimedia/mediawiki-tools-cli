@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
@@ -34,6 +35,9 @@ func setupAuthTest(t *testing.T) *bytes.Buffer {
 	logrus.SetLevel(logrus.TraceLevel)
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = transportFunc(func(r *http.Request) (*http.Response, error) {
+		if r.UserAgent() != cli.HTTPUserAgent {
+			t.Errorf("unexpected User-Agent: %q", r.UserAgent())
+		}
 		user, password, ok := r.BasicAuth()
 		if !ok || user != "fixture" || password != "fixture-secret" {
 			t.Errorf("unexpected HTTP authentication")
