@@ -157,7 +157,22 @@ func convertLinks(input []byte, from, to string, rewrite func(string, string) (s
 			if value["t"] == "Link" {
 				fields := value["c"].([]interface{})
 				target := fields[len(fields)-1].([]interface{})
-				raw, title, err := rewrite(target[0].(string), target[1].(string))
+				title := target[1].(string)
+				// Recent Pandoc releases use a class instead of the legacy
+				// title marker for MediaWiki links. Remove it for Markdown.
+				if from == "mediawiki" {
+					attributes := fields[0].([]interface{})
+					classes := []interface{}{}
+					for _, class := range attributes[1].([]interface{}) {
+						if class == "wikilink" {
+							title = "wikilink"
+						} else {
+							classes = append(classes, class)
+						}
+					}
+					attributes[1] = classes
+				}
+				raw, title, err := rewrite(target[0].(string), title)
 				if err != nil {
 					linkErr = err
 					return

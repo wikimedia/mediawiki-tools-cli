@@ -1,4 +1,5 @@
 BINARY_NAME ?= mw
+MISE ?= mise
 GOEXE := $(shell go env GOEXE)
 
 SHELL := /bin/bash
@@ -98,19 +99,19 @@ export DOCS_VERSION ?= $(VERSION)
 
 .PHONY: docs docs-check docs-pull docs-publish docs-import docs-accept
 docs:
-	go run ./tools/docs-gen
+	$(MISE) exec -- go run ./tools/docs-gen
 
 docs-check: docs
-	go run ./tools/docs-gen -mode check
+	$(MISE) exec -- go run ./tools/docs-gen -mode check
 
 docs-pull: docs
-	go run ./tools/docs-gen -mode pull
+	$(MISE) exec -- go run ./tools/docs-gen -mode pull
 
 docs-publish: docs
-	go run ./tools/docs-gen -mode publish
+	$(MISE) exec -- go run ./tools/docs-gen -mode publish
 
 docs-import:
-	go run ./tools/docs-gen -mode import -page "$(page)" -source "$(file)"
+	$(MISE) exec -- go run ./tools/docs-gen -mode import -page "$(page)" -source "$(file)"
 
 docs-accept:
-	go run ./tools/docs-gen -mode accept -page "$(page)"
+	$(MISE) exec -- go run ./tools/docs-gen -mode accept -page "$(page)"

@@ -254,6 +254,15 @@ build-release:
     script:
       - make release VERSION=${CI_COMMIT_TAG:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}}
 
+# Use the same pinned documentation tools locally and in release jobs.
+.docs-tools:
+    before_script: &setup-docs-tools
+      - curl -fsSL https://mise.run -o /tmp/install-mise.sh
+      - MISE_VERSION=2026.10.12 sh /tmp/install-mise.sh
+      - export PATH="$HOME/.local/bin:$PATH"
+      - mise trust mise.toml
+      - mise install
+
 build-docs:
     extends: .go-job
     rules:
@@ -268,10 +277,9 @@ build-docs:
         optional: true
     before_script:
       - *checkout-merged-source
-      - apt update
-      - apt -y install pandoc
+      - *setup-docs-tools
     script:
-      - go test ./tools/docs-gen
+      - mise exec -- go test ./tools/docs-gen
       - make docs
     artifacts:
       paths: [_docs/]
@@ -357,8 +365,7 @@ release-docs:
     tags:
     - wmcs
     before_script:
-      - apt update
-      - apt -y install pandoc
+      - *setup-docs-tools
     script:
       - make VERSION="$CI_COMMIT_TAG" docs-publish
     artifacts:

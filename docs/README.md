@@ -4,12 +4,16 @@
 
 ## Build and review
 
-Install Pandoc and Go, then run:
+Install [mise](https://mise.jdx.dev/getting-started.html) and Go, then run:
 
 ```sh
+mise trust
+mise install
 make docs
 make docs-check
 ```
+
+Pandoc is pinned in `mise.toml`. The Make targets use `mise exec`, so shell activation is optional.
 
 `_docs/` contains Markdown, converted wikitext and `pages.json`. `docs-check` reads the managed wiki pages without credentials, prints proposed updates and flags community edits as `WIKI-EDIT`. `_docs/wiki/` contains a `report.md` index, current wikitext, diffs and a revision snapshot. CI keeps these files as documentation job artifacts.
 

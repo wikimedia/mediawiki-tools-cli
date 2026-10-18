@@ -7,6 +7,7 @@ Build, test, and contribute to a Wikimedia CLI.
 ### Requirements
 
 - [Go](https://go.dev/) 1.26+ installed (matching the version in `go.mod`).
+- [mise](https://mise.jdx.dev/getting-started.html) for pinned project tools (currently Pandoc for documentation).
 - [bingo](https://github.com/bwplotka/bingo) tool (used for managing Go-based build tools).
 
 ### Initial Setup
@@ -28,6 +29,15 @@ Build, test, and contribute to a Wikimedia CLI.
     ```sh
     bingo get
     ```
+
+To install the tools pinned in `mise.toml`:
+
+```sh
+mise trust
+mise install
+```
+
+Documentation targets use `mise exec`; activating mise in your shell is optional.
 
 ## Building
 
