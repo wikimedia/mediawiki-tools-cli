@@ -15,7 +15,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki from your term
 
 ### Usage
 
-For user-facing documentation and a guide on how to use `mw`, visit the [MediaWiki.org page](https://www.mediawiki.org/wiki/Cli).
+Read the [guides in this repository](docs/index.md), or visit the [published documentation on MediaWiki.org](https://www.mediawiki.org/wiki/Cli).
 
 ### Analytics and REST APIs
 

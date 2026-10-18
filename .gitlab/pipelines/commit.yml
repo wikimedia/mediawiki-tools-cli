@@ -271,7 +271,10 @@ build-docs:
       - apt update
       - apt -y install pandoc
     script:
+      - go test ./tools/docs-gen
       - make docs
+    artifacts:
+      paths: [_docs/]
 
 release-build:
     extends: .go-job
@@ -357,5 +360,7 @@ release-docs:
       - apt update
       - apt -y install pandoc
     script:
-      - make docs
-      - make user="$DOCS_UPDATE_USER" password="$DOCS_UPDATE_PASS" docs-publish
+      - make VERSION="$CI_COMMIT_TAG" docs-publish
+    artifacts:
+      when: always
+      paths: [_docs/]

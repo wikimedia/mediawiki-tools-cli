@@ -91,21 +91,26 @@ linti:
 upgrade: $(GO_MOD_UPGRADE)
 	$(GO_MOD_UPGRADE)
 
-.PHONY: docs
-docs: build
-	rm -rf ./_docs/*
-	go run ./tools/docs-gen/main.go
-	for path in ./_docs/*.md; do \
-		echo "Converting "$${path}" to wikitext"; \
-		pandoc --from markdown --to mediawiki --output $${path::-3}.wiki "$${path}"; \
-	done
+# Credentials stay in the environment, not command arguments or CI logs.
+export DOCS_UPDATE_USER ?= $(user)
+export DOCS_UPDATE_PASS ?= $(password)
+export DOCS_VERSION ?= $(VERSION)
 
-.PHONY: docs-publish
+.PHONY: docs docs-check docs-pull docs-publish docs-import docs-accept
+docs:
+	go run ./tools/docs-gen
+
+docs-check: docs
+	go run ./tools/docs-gen -mode check
+
+docs-pull: docs
+	go run ./tools/docs-gen -mode pull
+
 docs-publish: docs
-	for path in ./_docs/*.wiki; do \
-		file=$${path/.\/_docs\//}; \
-		fileNoExt=$${file::-5}; \
-		echo $${fileNoExt}; \
-		echo $${path}; \
-		printf "__NOTOC__" | cat $${path} - | ./bin/mw --no-interaction wiki --wiki https://www.mediawiki.org/w/api.php --user ${user} --password ${password} page --title Cli/ref/$${fileNoExt} put --summary "Update generated documentation for a Wikimedia CLI" --minor --bot; \
-	done
+	go run ./tools/docs-gen -mode publish
+
+docs-import:
+	go run ./tools/docs-gen -mode import -page "$(page)" -source "$(file)"
+
+docs-accept:
+	go run ./tools/docs-gen -mode accept -page "$(page)"

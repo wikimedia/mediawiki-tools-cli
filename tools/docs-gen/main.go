@@ -1,45 +1,38 @@
+// Command docs-gen builds and synchronizes the CLI documentation.
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
-	"gitlab.wikimedia.org/repos/releng/cli/cmd"
-	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/dirs"
 )
 
 func main() {
-	// Rendering the markdown before then trying to turn it into markdown does bad things, so skip it
-	envErr := os.Setenv("MWCLI_SKIP_RENDER_MARKDOWN", "true")
-	if envErr != nil {
-		logrus.Errorln(envErr)
+	mode := flag.String("mode", "generate", "generate, check, pull, publish, import, or accept")
+	page := flag.String("page", "", "Wiki title for import or accept")
+	source := flag.String("source", "", "Markdown path within docs/ for import")
+	flag.Parse()
+	if err := run(*mode, *page, *source); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
+}
 
-	path := "./_docs"
-	dirs.EnsureExists(path)
-	cmdForDocs := cmd.NewMwCliCmd()
-	cobrautil.VisitAllSubCommands(cmdForDocs, func(c *cobra.Command) { c.Example = cobrautil.CommandExamples(c) })
-
-	// Disable this tag while we push docs to MediaWiki pages, to avoid a new edit even if there are no doc changes.
-	// https://phabricator.wikimedia.org/T299976
-	cmdForDocs.DisableAutoGenTag = true
-
-	filePrepender := func(filename string) string {
-		return ""
-	}
-
-	linkHandler := func(name string) string {
-		trimmedName := strings.TrimSuffix(name, filepath.Ext(name))
-		return "../" + trimmedName
-	}
-
-	err := doc.GenMarkdownTreeCustom(cmdForDocs, path, filePrepender, linkHandler)
+func run(mode, title, source string) error {
+	config, err := loadConfig()
 	if err != nil {
-		logrus.Fatal(err)
+		return err
+	}
+	switch mode {
+	case "generate":
+		return generate(config)
+	case "import":
+		return importGuide(config, title, source)
+	case "accept":
+		return acceptReview(config, title)
+	case "check", "pull", "publish":
+		return synchronize(config, mode)
+	default:
+		return fmt.Errorf("unknown mode %q", mode)
 	}
 }
