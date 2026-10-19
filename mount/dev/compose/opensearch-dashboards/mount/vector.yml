@@ -23,7 +23,7 @@ transforms:
     inputs: [containers]
     condition: |
       .label."com.docker.compose.project" == get_env_var!("MWCLI_LOGS_PROJECT") &&
-      !includes(["logs-collector", "logs-opensearch", "opensearch-dashboards"], .label."com.docker.compose.service")
+      !includes(["logs-collector", "logs-opensearch", "logs-setup", "opensearch-dashboards"], .label."com.docker.compose.service")
   container_metadata:
     type: remap
     inputs: [context_containers]

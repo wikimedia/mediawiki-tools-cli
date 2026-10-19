@@ -10,12 +10,36 @@ Docker logging and original log files stay unchanged, even while collection runs
 mw dev logs create
 ```
 
-Open [local log browsing](http://localhost:8080/proxy/logs/), or follow the link on
-your development dashboard if you use another gateway port. After logs arrive:
+Open [the MediaWiki log view](http://logs.local.wmftest.net:8080/proxy/logs/app/discover#/view/mwcli-mediawiki-logs),
+or follow the link on your development dashboard if you use another gateway
+port. Setup creates the `mwcli-logs-*` index pattern with `@timestamp` and a
+saved MediaWiki view automatically. Existing saved views and preferences survive
+subsequent starts.
 
-1. In Dashboards Management → Index patterns, create `mwcli-logs-*`.
-2. Choose `@timestamp` as the time field.
-3. Open Discover. Search `message` or filter by `service`, `stream`, or file `path`.
+Open your local wiki and reload a page or call its API. Refresh Discover and
+check that the time range covers your request. You should see file events with
+`source=mediawiki_file` and HTTP request/container events with `source=container`.
+Search `message` or filter by `service`, `stream`, or file `path`. Clear the saved
+service filter to browse other containers in this context.
+
+## Use the Observability Logs explorer
+
+`/proxy/logs/app/observability-logs#/` lists saved queries and visualizations;
+"No Queries or Visualizations" does not mean no logs were collected. Click
+**Event Explorer** to open the query interface. It does not open the saved
+Discover view or automatically choose the log index. Enter:
+
+```text
+source = `mwcli-logs-*` | where service = 'mediawiki'
+```
+
+Choose a time range covering your request, then run the query. Remove the
+`where` clause for all services, or use `service = 'mediawiki-web'` for HTTP
+access logs. See [OpenSearch event analytics](https://docs.opensearch.org/2.19/observing-your-data/event-analytics/)
+for PPL examples.
+
+A running but idle wiki may not produce new entries. This is MediaWiki and
+container logging; it does not capture the mwcli binary's host-terminal output.
 
 ## Stop or remove
 
@@ -36,5 +60,10 @@ Allow several GiB of spare Docker memory. Linux hosts may need
 Inspect startup or collection errors with:
 
 ```sh
-mw dev compose logs --tail=100 logs-opensearch logs-collector opensearch-dashboards
+mw dev compose logs -- --tail=100 logs-setup logs-opensearch logs-collector opensearch-dashboards
 ```
+
+If startup failed, check `logs-setup` first. After fixing the cause, rerun
+`mw dev logs create`. It fills in missing setup without overwriting saved-view
+edits or user preferences. To reopen the supplied view after choosing another
+homepage, use `/proxy/logs/app/discover#/view/mwcli-mediawiki-logs`.
