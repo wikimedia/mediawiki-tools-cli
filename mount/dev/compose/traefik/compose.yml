@@ -32,14 +32,13 @@ services:
         condition: service_started
       docker-socket-proxy:
         condition: service_started
-      gateway-auth:
-        condition: service_healthy
     networks:
       - dps
       - gateway-control
 
   gateway-auth:
     image: "${GATEWAY_AUTH_IMAGE:-golang:1.26-alpine}"
+    profiles: ["gateway", "tunnel"]
     restart: unless-stopped
     working_dir: /app
     command: ["go", "run", "main.go"]

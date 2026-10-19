@@ -50,6 +50,7 @@ func NewCmd() *cobra.Command {
 			"Cloudflare gives a public HTTPS URL; Holesail needs a client on the connecting machine. " +
 			"Select with --provider or the context's TUNNEL_PROVIDER variable (default: cloudflare). " +
 			"A successful start remembers the provider for status, url, logs and stop. " +
+			"The gateway authentication service starts only when a tunnel is active. " +
 			"Gateway authentication remains enabled by default with either provider.",
 	}
 	cmd.PersistentFlags().StringVar(&providerFlag, "provider", "", "Tunnel provider: cloudflare or holesail (defaults to TUNNEL_PROVIDER)")
@@ -106,7 +107,13 @@ func NewCmd() *cobra.Command {
 			}
 			project := instance.DockerCompose()
 			if providerFlag != "" {
-				return project.Stop([]string{p.service})
+				if err := project.Stop([]string{p.service}); err != nil {
+					return err
+				}
+				if err := instance.UpdateResumeServices([]string{p.service}, false); err != nil {
+					return err
+				}
+				return instance.StopGatewayAuthIfNoTunnel()
 			}
 			// Stop all known providers even if the default was changed by hand.
 			running, err := project.ServicesWithStatus("running")
@@ -119,10 +126,21 @@ func NewCmd() *cobra.Command {
 					services = append(services, candidate.service)
 				}
 			}
-			if len(services) == 0 {
-				return nil
+			if len(services) > 0 {
+				if err := project.Stop(services); err != nil {
+					return err
+				}
 			}
-			return project.Stop(services)
+			// An explicit tunnel stop is an opt-out from automatic resume. Keep
+			// TUNNEL_PROVIDER so status and a later start still select the same one.
+			allTunnelServices := make([]string, 0, len(providers))
+			for _, candidate := range providers {
+				allTunnelServices = append(allTunnelServices, candidate.service)
+			}
+			if err := instance.UpdateResumeServices(allTunnelServices, false); err != nil {
+				return err
+			}
+			return instance.StopGatewayAuthIfNoTunnel()
 		},
 	})
 	cmd.AddCommand(&cobra.Command{

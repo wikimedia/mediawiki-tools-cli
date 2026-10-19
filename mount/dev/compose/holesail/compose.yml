@@ -12,6 +12,9 @@ services:
       - ALL
     command: ["--live", "${PORT}", "--host", "traefik"]
     depends_on:
-      - traefik
+      traefik:
+        condition: service_started
+      gateway-auth:
+        condition: service_healthy
     networks:
       - dps

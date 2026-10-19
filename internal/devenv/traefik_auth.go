@@ -58,7 +58,7 @@ func (m Environment) migrateLegacyProxy(docker, compose gatewayCommand) error {
 	}
 	// Prepare proxy containers and missing images without interrupting the working
 	// listener. Creating a container does not bind its published port.
-	if _, err := compose([]string{"create", "--no-recreate", "traefik", "gateway-auth", "docker-socket-proxy"}); err != nil {
+	if _, err := compose([]string{"create", "--no-recreate", "traefik", "docker-socket-proxy"}); err != nil {
 		return fmt.Errorf("prepare proxy migration containers: %w", err)
 	}
 	if _, err := docker(append([]string{"stop"}, containers...)); err != nil {
@@ -97,7 +97,7 @@ func (m Environment) PrepareGateway() error {
 	if err := m.ensureTraefikAuth(); err != nil {
 		return err
 	}
-	return m.migrateLegacyProxy(func(args []string) (string, error) {
+	if err := m.migrateLegacyProxy(func(args []string) (string, error) {
 		output, err := exec.Command("docker", args...).CombinedOutput()
 		if err != nil {
 			return "", fmt.Errorf("%w: %s", err, output)
@@ -109,7 +109,36 @@ func (m Environment) PrepareGateway() error {
 			return "", fmt.Errorf("%w: %s%s", err, stdout.String(), stderr.String())
 		}
 		return stdout.String(), nil
-	})
+	}); err != nil {
+		return err
+	}
+	return m.StopGatewayAuthIfNoTunnel()
+}
+
+// StopGatewayAuthIfNoTunnel keeps the auth process scoped to active public
+// tunnel access. The router middleware remains configured and fails closed if
+// a /proxy route is reached without the service.
+func (m Environment) StopGatewayAuthIfNoTunnel() error {
+	running, err := m.DockerCompose().ServicesWithStatus("running")
+	if err != nil {
+		return fmt.Errorf("list running gateway services: %w", err)
+	}
+	for _, service := range []string{"cloudflared", "holesail"} {
+		for _, name := range running {
+			if name == service {
+				return nil
+			}
+		}
+	}
+	for _, name := range running {
+		if name == "gateway-auth" {
+			if err := m.DockerCompose().Stop([]string{"gateway-auth"}); err != nil {
+				return fmt.Errorf("stop unused gateway authentication service: %w", err)
+			}
+			break
+		}
+	}
+	return m.UpdateResumeServices([]string{"gateway-auth"}, false)
 }
 
 func (m Environment) ensureTraefikAuth() error {

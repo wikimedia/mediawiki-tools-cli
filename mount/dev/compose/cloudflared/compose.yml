@@ -11,6 +11,9 @@ services:
       - --url
       - http://traefik:${PORT}
     depends_on:
-      - traefik
+      traefik:
+        condition: service_started
+      gateway-auth:
+        condition: service_healthy
     networks:
       - dps

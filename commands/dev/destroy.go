@@ -26,6 +26,9 @@ func NewDevDestroyCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			// Tunnel provider selection is runtime state: after destroying the
+			// environment, the next tunnel command should use its default provider.
+			m.Env().Delete("TUNNEL_PROVIDER")
 			if err := m.ClearResumeServices(); err != nil {
 				return err
 			}
