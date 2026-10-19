@@ -123,6 +123,7 @@ build:
     extends: .go-job
     stage: build
     artifacts:
+      expire_in: 1 week
       paths:
         - bin/
     script:
@@ -170,7 +171,7 @@ prepare-mediawiki:
       paths:
         - .cache/mediawiki.tar.gz
     artifacts:
-      expire_in: 1 day
+      expire_in: 30 minutes
       paths:
         - .cache/mediawiki.tar.gz
     script:
@@ -218,7 +219,7 @@ integration-github-request:
       - job: prepare-mediawiki
         artifacts: false
     artifacts:
-      expire_in: 2 weeks
+      expire_in: 1 week
       paths:
         - integration-plan.json
     script:
@@ -261,7 +262,7 @@ build-release:
     needs: [*merged-source-need,checks,test,build]
     # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
     artifacts:
-      expire_in: 2 weeks
+      expire_in: 1 week
       paths:
         - _release/
     script:
@@ -295,6 +296,7 @@ build-docs:
       - mise exec -- go test ./tools/docs-gen
       - make docs
     artifacts:
+      expire_in: 1 week
       paths: [_docs/]
 
 release-build:

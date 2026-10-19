@@ -17,6 +17,7 @@ image-update-build:
        - cat ./tools/image-update/.gitlab.update.yaml >> .gitlab/pipelines/weekly.image-update.generated.yml
        - cat .gitlab/pipelines/weekly.image-update.generated.yml
     artifacts:
+        expire_in: 1 week
         paths:
           - .gitlab/pipelines/weekly.image-update.generated.yml
 
