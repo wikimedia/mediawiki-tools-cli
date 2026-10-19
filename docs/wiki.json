@@ -46,6 +46,10 @@
       "title": "Cli/guide/Docker-Development-Environment/LocalSettings.php"
     },
     {
+      "source": "guides/dev/keycloak.md",
+      "title": "Cli/guide/Docker-Development-Environment/Keycloak"
+    },
+    {
       "source": "guides/dev/mediawiki.md",
       "title": "Cli/guide/Docker-Development-Environment/MediaWiki"
     },

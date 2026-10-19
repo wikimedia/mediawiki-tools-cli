@@ -11,9 +11,16 @@ argument validation and flag descriptions are warnings; name collisions are
 errors. Commands imported from another CLI can use the lint skip annotations
 when their help and tests are maintained upstream.
 
-Help-size checks warn when `Long` exceeds 450 words, or `Example` exceeds 12 nonblank lines or 150 words. Word counts do not depend on manual line wrapping. Keep the command's purpose, important behavior, and safety details in help; put step-by-step workflows and recovery recipes in `docs/guides/` and link to them.
+Help-size checks suggest a readability review when `Long` exceeds 450 words,
+or `Example` exceeds 12 nonblank lines or 150 words. These are review thresholds,
+not limits: complex commands can need longer help and more examples. Word counts
+do not depend on manual line wrapping. Keep command behavior, defaults, side
+effects, safety details and usage examples in help. Move broader workflows to
+guides when that improves the explanation; do not shorten help just to clear a
+suggestion. See [Writing command help and guides](../../docs/writing.md).
 
-These are warnings so existing long help can be shortened incrementally. `make docs` checks guide links and generates the command reference; integration tests validate the workflows that need running services.
+`make docs` checks guide links and generates the command reference; integration
+tests validate the workflows that need running services.
 
 Commands can opt out using `mwcli-lint-skip`, or skip embedded third-party command trees with `mwcli-lint-skip-children`:
 

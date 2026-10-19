@@ -1,35 +1,29 @@
-# Custom docker-compose services
+# Add and manage a custom service
 
-You can define one or more custom sets of `docker compose` services or files.
-The default service and file would be found in `custom.yml`,
-with additional service sets and files being prefixed with `custom-` such as `custom-two.yml`.
-Names prefixed with `custom.` (for example `custom.local.yml`) are also accepted.
-These files should be created in the location returned by the `mw dev custom where` command.
-That directory is managed by the CLI, but `custom*.yml` and `custom*.yaml` files are preserved and will not be cleaned up by sync.
-You can then create these services by running the `mw dev custom` command,
-optionally with a `--name` flag, such as `mw dev custom --name custom-two create`.
+This walkthrough adds a small internal container to an existing
+[development environment](setup.md), inspects it, and removes it. Use the same
+[context](contexts.md) for every command.
 
-## Example override
+For file conventions, Compose override and web-routing examples, dashboard
+discovery, and authentication behavior, read `mw dev custom --help`.
 
-You can use these files to override any default docker compose attributes.
+## Define a service
 
-Such as defining a custom environment variable for a service.
+Find the Compose file selected by the example service-set name:
 
-```yaml
-services:
-  mysql:
-    environment:
-      - CUSTOM=yes
+```sh
+mw dev custom --name custom-example where
 ```
 
-## Example internal service
-
-This service will be accessible within the `docker compose` network to other services.
+Create the file at the printed path with the following content. If that file
+already exists, choose another `custom-` name and adjust the commands and
+service name below. Do not overwrite an existing definition.
 
 ```yaml
 services:
-  <service-name>:
-    image: <service-image>
+  custom-example:
+    image: busybox:1.37
+    command: ["sleep", "86400"]
     security_opt:
       - label:disable
     dns:
@@ -38,48 +32,37 @@ services:
       - dps
 ```
 
-## Example web service
+This container runs for a day and publishes no web endpoint. Matching its
+service name to the service-set name lets `custom exec` select it directly.
 
-This services will be accessible on your host machine via the virtual host specified.
+## Start and inspect it
 
-```yaml
-services:
-  <service-name>:
-    image: <service-image>
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.<service-name>-host.rule=Host(`<service-name>.local.wmftest.net`) && !PathPrefix(`/proxy/`)"
-      - "traefik.http.routers.<service-name>-host.entrypoints=web"
-      - "traefik.http.routers.<service-name>-host.service=<service-name>"
-      - "traefik.http.routers.<service-name>.rule=Path(`/proxy/<service-name>`) || PathPrefix(`/proxy/<service-name>/`)"
-      - "traefik.http.routers.<service-name>.entrypoints=web"
-      - "traefik.http.routers.<service-name>.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-<service-name>@docker,forwarded-https@file"
-      - "traefik.http.middlewares.strip-<service-name>.stripprefix.prefixes=/proxy/<service-name>"
-      - "traefik.http.services.<service-name>.loadbalancer.server.port=<service-port>"
-    depends_on:
-      - traefik
-    security_opt:
-      - label:disable
-    dns:
-      - ${NETWORK_SUBNET_PREFIX}.10
-    networks:
-      - dps
+```sh
+mw dev custom --name custom-example create
+mw dev custom --name custom-example exec -- uname -a
 ```
 
-Note: If you use the docker hosts file integration, you may need to manually add this host to gain access.
+Check the command output and find `custom-example` on the environment dashboard.
+Allow its five-second status cache to refresh. The dashboard lists internal
+services too, so a service can appear without a web UI link.
 
+To adapt this example into a web service, follow the configuration examples in
+`mw dev custom --help` and the [gateway guide](gateway.md). They explain local
+hostname access and authenticated public routes.
 
-## Dashboard discovery
+## Stop, restart, and remove it
 
-Custom Compose services are listed automatically after a CLI command prepares
-the environment (including `custom create`). Both web and non-web services are
-included; status uses the same internal DNS check as bundled services. A
-`VIRTUAL_HOST` value supplies the web UI link, using the first hostname when it
-lists aliases. Map and list environment syntax and standard variable/default
-substitution are supported. The dashboard reads generated name/host metadata
-from its existing read-only data mount; it does not receive the Docker socket or
-other service environment values. Reload after its five-second status cache
-expires. If you edit custom YAML while the dashboard is running, run a CLI
-command such as `mw dev where` to refresh the metadata.
+```sh
+mw dev custom --name custom-example stop
+mw dev custom --name custom-example start
+mw dev custom --name custom-example exec -- uname -a
+```
 
-The host-based route keeps local development access open, like the previous nginx proxy. The `/proxy/<service-name>/...` route is for the public gateway and requires the generated Traefik login by default. `TRAEFIK_AUTH_MIDDLEWARE` can override the middleware used by gateway routes. Add the local hostname with `mw dev hosts add --host <service-name>.local.wmftest.net` when needed; `VIRTUAL_HOST` and `VIRTUAL_PORT` are not required for Traefik or local DNS.
+Remove the example container when finished:
+
+```sh
+mw dev custom --name custom-example destroy
+```
+
+Then delete only the example Compose file you created. Refresh dashboard
+metadata with `mw dev where` and reload after the status cache expires.

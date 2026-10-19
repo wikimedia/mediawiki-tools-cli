@@ -20,6 +20,7 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 - [Build custom service images](guides/dev/dockerfiles.md)
 - [Add custom Compose services](guides/dev/custom-services.md)
 - [Configure MediaWiki](guides/dev/configuration.md)
+- [Configure login with Keycloak](guides/dev/keycloak.md)
 - [Work with MediaWiki and debug PHP](guides/dev/mediawiki.md)
 - [Update MediaWiki checkouts safely](guides/dev/update-code.md)
 - [Use databases](guides/dev/databases.md)

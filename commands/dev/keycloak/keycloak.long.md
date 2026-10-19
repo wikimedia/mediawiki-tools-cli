@@ -1,65 +1,23 @@
 # Keycloak service
 
-[Keycloak](https://www.keycloak.org/) is an open source identity manager (IdM) that can be used to
-provide single-sign on. It supports OpenID Connect and SAML.
+[Keycloak](https://www.keycloak.org/) is an open source identity manager that
+supports OpenID Connect and SAML single sign-on.
 
-They keycloak service allows you to add, delete, list, and get metadata for keycloak
-realms, clients, and users.
+Use the service commands to create, start, stop, or destroy its container. The
+`add`, `delete`, `list`, and `get` subcommands manage realms, clients, and users,
+or retrieve their metadata. Each subcommand's `--help` describes its arguments.
 
-## Setting up MediaWiki with OpenID Connect
+For direct administration, open a shell in the running container:
 
-You will need to create a realm, a client, and at least one user as follows:
-
-```bash
-mw dev keycloak create
-mw dev keycloak add realm <realmname>
-mw dev keycloak add client <clientname> <realmname>
-mw dev keycloak add user <username> <temporarypassword> <realmname>
-```
-
-where &lt;realmname&gt; is the name you choose for your realm, &lt;clientname&gt; is the name
-you choose for your client, &lt;username&gt; is the name you choose for your user, and
-&lt;temporarypassword&gt; is a temporary password that you will be asked to change at your
-first login.
-
-Then, you will need to get the client secret that was assigned to your client:
-
-```bash
-mw dev keycloak get clientsecret <clientname> <realmname>
-```
-
-Using the client secret returned as &lt;clientsecret&gt; below, add the following to your
-LocalSettings.php:
-
-```php
-wfLoadExtension('PluggableAuth');
-wfLoadExtension('OpenIDConnect');
-$wgPluggableAuth_Config = [
-  "Keycloak" => [
-    'plugin' => 'OpenIDConnect',
-    'data' => [
-      'providerURL' => 'http://keycloak.local.wmftest.net:8080/realms/<realmname>',
-      'clientID' => '<clientname>',
-      'clientsecret' => '<clientsecret>'
-    ]
-  ]
-];
-```
-
-## More Control
-
-If you need finer-grained control of the keycloak service, you can
-use the exec command:
-
-```bash
+```sh
 mw dev keycloak exec -- bash
 ```
 
-to get a command line and then use the ```/opt/keycloak/bin/kcadm.sh``` commands shown in
-[the Keycloak Admin CLI guide](https://www.keycloak.org/docs/latest/server_admin/#admin-cli).
+Use `/opt/keycloak/bin/kcadm.sh` there for operations beyond the built-in
+subcommands. See the [Keycloak Admin CLI guide](https://www.keycloak.org/docs/latest/server_admin/#admin-cli)
+for its syntax.
 
-## See Also
+## Learn more
 
-- [Keycloak](https://www.keycloak.org/docs/latest/server_admin/)
-- [PluggableAuth](https://www.mediawiki.org/wiki/Extension:PluggableAuth)
-- [OpenID Connect](https://www.mediawiki.org/wiki/Extension:OpenID_Connect)
+For a workflow creating a realm, client, and user and configuring MediaWiki's
+OpenID Connect login, see `mw help guides dev keycloak`.

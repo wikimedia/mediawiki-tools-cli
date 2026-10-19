@@ -1,68 +1,103 @@
-# Updating development source checkouts
+# Update a development wiki
 
-Update core and checked-out skins/extensions. Preview any mode without contacting
-remotes or changing source checkouts:
+This workflow updates a configured MediaWiki checkout, reviews the source
+changes, then updates dependencies and database schemas. First [set up a wiki](setup.md)
+and select the [development context](contexts.md) you want to update. Review or
+back up any development data you need before running schema changes.
+
+For update modes, skipped repositories, saved changes, and failure behavior,
+read `mw dev mediawiki update-code --help`.
+
+## Preview and update the source
+
+Preview which checkouts are eligible without fetching or changing them:
 
 ```sh
 mw dev mediawiki update-code --dry-run
-mw dev mediawiki update-code
-mw dev mediawiki update-code --mode=stash
-mw dev mediawiki update-code --mode=mop
 ```
 
-Git-only updates and dry runs do not require Docker to be installed or running.
-The code directory is read from `MEDIAWIKI_VOLUMES_CODE` in the selected development
-context. Configure it first with `mw dev mediawiki get-code`.
+Check the reported branches and skipped repositories. Then fast-forward eligible
+clean checkouts:
 
-## Modes
+```sh
+mw dev mediawiki update-code
+```
 
-The default, `--mode=ff-only`, fast-forwards clean checkouts on their existing
-tracking branches. Dirty worktrees (including untracked files), detached HEADs
-and branches without an upstream are skipped and listed. Diverged branches or
-failed fetches return an error while independent repositories are still checked.
+For uncommitted work you want reapplied after updating, use this instead:
 
-`--mode=stash` saves tracked and untracked changes, fast-forwards the current
-branch, and reapplies the changes with their staged/unstaged state preserved.
-It checks the saved changes in a temporary worktree before advancing the original
-checkout. If the update or reapplication fails, it restores the original branch,
-commit, index and worktree and reports `restored` with a nonzero exit status.
-Detached HEADs and branches without an upstream are still skipped. Local commits
-are not rebased; a diverged branch is left unchanged and reported as an error.
+```sh
+mw dev mediawiki update-code --mode=stash
+```
 
-`--mode=mop` saves tracked and untracked changes and leaves them saved. It fetches
-`origin`, switches to its advertised default branch (usually `main` or `master`),
-and resets that local branch to the remote tip. It can also start from a detached
-HEAD. The previous HEAD and any existing local default-branch tip are preserved
-under recovery refs before reset, so local commits remain reachable. A default
-branch checked out in another worktree is not forcibly taken over. Dry-run uses
-local remote refs to infer the default branch; the real update asks `origin`.
+Review the results before continuing. In the core checkout and any extensions
+or skins you changed, inspect the working tree and recent commits:
 
-Both stash modes retain the saved stash even after a successful update or
-restoration. Output identifies stable recovery refs under
-`refs/mwcli/update-code/`, including `/original`, `/default` when applicable, and
-`/stash` when there were changes. For example, use `git stash apply --index` with
-the printed stash ref to restore saved changes, or create a recovery branch from
-the printed original commit ref. Existing stash entries are not popped or dropped.
-Ignored files are not stashed; an update that would overwrite them is refused.
-Finish any merge, rebase or cherry-pick before using these modes.
+```sh
+git status --short
+git log -5 --oneline
+git diff
+git diff --cached
+```
 
-Core is processed first. Submodules are handled individually, without recursive
-Git checkout behavior. A superproject stash cannot save dirty nested worktrees;
-if it remains dirty after stashing, it is restored and reported instead of reset.
-Each repository is independent: successful updates are retained if another fails.
-If automatic restoration itself fails, the batch stops and reports `recovery-needed`
-alongside the recovery refs; it does not claim the original state was restored.
+Source updates are independent: an error does not undo repositories that already
+updated. Resolve failures and review skipped repositories before updating
+shared dependencies or running maintenance.
 
-## Composer and database updates
+## Update dependencies and schemas
 
-`--composer` runs Composer update in the MediaWiki PHP container only after every
-source checkout succeeds, with none skipped. Docker is required for this step;
-`--dry-run --composer` only previews it. Source updates are not rolled back if
-Composer fails. Without this flag, Composer is not run.
+With the environment running, update PHP dependencies after reviewing the
+source changes:
 
-This command does not run database maintenance. After reviewing source/dependency
-changes, use maintenance explicitly, for example:
+```sh
+mw dev mediawiki composer update --no-interaction
+```
+
+Alternatively, `mw dev mediawiki update-code --composer` combines source and
+Composer updates, running Composer only when all checkouts succeed with none
+skipped. Review its output before proceeding to database maintenance.
+
+Update the configured development wikis:
 
 ```sh
 mw dev mediawiki foreachwiki update.php -- --quick
 ```
+
+Check the maintenance output, then open your wiki and verify the features you
+are developing. Composer and database changes are separate from Git recovery;
+restoring source refs does not reverse either of them.
+
+## Recover saved work after a reset
+
+If you deliberately want to switch to the remote default branch and leave local
+changes saved, preview mop mode before using it:
+
+```sh
+mw dev mediawiki update-code --mode=mop --dry-run
+mw dev mediawiki update-code --mode=mop
+```
+
+In each affected repository, use the exact refs printed by the command. The
+following placeholders stand for those printed refs. Inspect the saved work
+before applying it:
+
+```sh
+git show --stat <printed-original-ref>
+git stash show --stat <printed-stash-ref>
+```
+
+To preserve the old commit on a named branch:
+
+```sh
+git branch recovered-work <printed-original-ref>
+```
+
+To reapply saved changes to your current checkout, start from a clean worktree
+and use:
+
+```sh
+git stash apply --index <printed-stash-ref>
+```
+
+Resolve any conflicts and inspect `git status` and `git diff` before continuing.
+If the CLI reports `recovery-needed`, inspect the repository and its printed
+recovery refs first; do not assume it restored the original state.
