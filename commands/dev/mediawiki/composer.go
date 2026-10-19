@@ -17,6 +17,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "composer",
 		Short:   "Runs composer in a container in the context of MediaWiki",
+		Long:    "Runs Composer in the MediaWiki container with the MediaWiki source directory as its working directory. Composer receives a fallback HOME when the container user has no home directory. Use `--user` to select the container user.",
 		Example: cobrautil.NormalizeExample(composerExample),
 		Run: func(cmd *cobra.Command, args []string) {
 			devenv.DefaultForUser().EnsureReady()

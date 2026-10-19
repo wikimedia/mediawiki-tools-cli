@@ -18,6 +18,7 @@ func NewMediaWikiMWScriptCmd() *cobra.Command {
 		Use:     "mwscript [flags] [script...] -- [script flags]",
 		Example: cobrautil.NormalizeExample(exampleMediawikiMWScript),
 		Short:   "Executes a MediaWiki script using run.php in the MediaWiki container",
+		Long:    "Runs a maintenance script through `php maintenance/run.php` in the MediaWiki container. Put script arguments after `--` so they are passed to the maintenance script. Use `--user` to select the container user.",
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			devenv.DefaultForUser().EnsureReady()

@@ -21,6 +21,7 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sites",
 		Short: "Lists sites created in your environment (since the last top level destroy command was run)",
+		Long:  "Lists wiki sites discovered from the development environment's configured local hosts. Select an output format with `--output`; JSON is used when output is piped.",
 		Example: cobrautil.NormalizeExample(`
 		sites
 		sites --output json

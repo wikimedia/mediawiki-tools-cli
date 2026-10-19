@@ -22,6 +22,7 @@ func NewCmd() *cobra.Command {
 		Aliases: []string{"dc", "compose", "docker-compose"},
 		Short:   "Interact directly with the docker compose environment",
 		Long:    cli.RenderMarkdown(dockerComposeLong),
+		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dev := devenv.DefaultForUser()
 			dev.EnsureReady()
