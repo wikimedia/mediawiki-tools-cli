@@ -27,6 +27,23 @@ services:
     networks:
       - dps
 
+  logs-setup:
+    image: "${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:2.19.4}"
+    restart: "no"
+    entrypoint: /usr/share/opensearch-dashboards/node/bin/node
+    command: ["/setup.js"]
+    volumes:
+      - ./compose/opensearch-dashboards/mount/setup.js:/setup.js:ro
+    depends_on:
+      logs-opensearch:
+        condition: service_healthy
+      opensearch-dashboards:
+        condition: service_started
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
   logs-collector:
     image: "${LOGS_COLLECTOR_IMAGE:-timberio/vector:0.59.0-debian}"
     restart: unless-stopped
@@ -42,8 +59,8 @@ services:
       - ./compose/opensearch-dashboards/mount/vector.yml:/etc/vector/vector.yml:ro
       - logs-collector-data:/var/lib/vector
     depends_on:
-      logs-opensearch:
-        condition: service_healthy
+      logs-setup:
+        condition: service_completed_successfully
       docker-socket-proxy:
         condition: service_started
     dns:
