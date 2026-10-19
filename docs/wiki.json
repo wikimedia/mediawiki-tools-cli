@@ -18,6 +18,10 @@
       "title": "Cli/guide/Update"
     },
     {
+      "source": "guides/analytics/pageviews.md",
+      "title": "Cli/guide/Pageviews"
+    },
+    {
       "source": "guides/dev/setup.md",
       "title": "Cli/guide/Docker-Development-Environment/First-Setup"
     },
@@ -48,6 +52,10 @@
     {
       "source": "guides/dev/keycloak.md",
       "title": "Cli/guide/Docker-Development-Environment/Keycloak"
+    },
+    {
+      "source": "guides/dev/extension-workflow.md",
+      "title": "Cli/guide/Docker-Development-Environment/Extension workflow"
     },
     {
       "source": "guides/dev/mediawiki.md",

@@ -21,14 +21,19 @@ var (
 	arch              = runtime.GOARCH
 )
 
+const (
+	wikimediaAPIRequestTimeout = 30 * time.Second
+	wikimediaReleasesPerPage   = 100
+)
+
 func wikimediaClient() *gitlab.Client {
 	httpClient := http.Client{
-		Timeout: 2 * time.Second,
+		Timeout: wikimediaAPIRequestTimeout,
 	}
 	git, err := gitlab.NewClient(
 		"",
 		gitlab.WithBaseURL(wikimediav4ApiURL),
-		gitlab.WithoutRetries(),
+		gitlab.WithCustomRetryMax(1),
 		gitlab.WithHTTPClient(
 			&httpClient,
 		),
@@ -91,7 +96,12 @@ func releasesBetweenTags(releases []*gitlab.Release, from, to string) ([]*gitlab
 }
 
 func RelengCliGetReleases() ([]*gitlab.Release, error) {
-	releases, _, err := wikimediaClient().Releases.ListReleases(projectID, nil)
+	// Ask for the largest supported page. The default page is needlessly small
+	// for release history, and the unqualified endpoint can be very slow on
+	// Wikimedia GitLab.
+	releases, _, err := wikimediaClient().Releases.ListReleases(projectID, &gitlab.ListReleasesOptions{
+		ListOptions: gitlab.ListOptions{PerPage: wikimediaReleasesPerPage},
+	})
 	return releases, err
 }
 

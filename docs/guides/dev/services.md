@@ -52,3 +52,13 @@ Reset the override with `mw dev mediawiki image reset`, then recreate the servic
 Service create/start/stop/destroy commands update an existing record. `mw dev restart` targets running services; global destroy removes the record. Direct Docker or Compose commands bypass this tracking. State is separate for each [context](contexts.md).
 
 An older context with no saved stop record initially starts its exited or created services. Its first global stop establishes the selective resume set.
+
+For a quick environment check, inspect the Compose services and recent web logs after starting:
+
+```sh
+mw dev start
+mw dev compose ps
+mw dev compose logs -- --tail=20 mediawiki-web
+```
+
+Use `mw dev restart` to restart the currently running services. `mw dev stop` preserves the service set so `mw dev start` can resume it later.

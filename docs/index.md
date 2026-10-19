@@ -11,6 +11,10 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 - [Install the CLI](guides/installation.md)
 - [Keep it up to date](guides/updating.md)
 
+## Wikimedia data
+
+- [Explore pageviews as a graph, JSON or CSV](guides/analytics/pageviews.md)
+
 ## Development environments
 
 - [Create an environment](guides/dev/setup.md)
@@ -21,6 +25,7 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 - [Add custom Compose services](guides/dev/custom-services.md)
 - [Configure MediaWiki](guides/dev/configuration.md)
 - [Configure login with Keycloak](guides/dev/keycloak.md)
+- [Add an extension, configure it and run its tests](guides/dev/extension-workflow.md)
 - [Work with MediaWiki and debug PHP](guides/dev/mediawiki.md)
 - [Update MediaWiki checkouts safely](guides/dev/update-code.md)
 - [Use databases](guides/dev/databases.md)
