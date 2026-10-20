@@ -57,6 +57,9 @@
 ./compose/mysql/mount/main/mysql_connector_main.sh
 ./compose/mysql/mount/wait-for-it.sh
 ./compose/novnc/compose.yml
+./compose/opensearch-dashboards/compose.yml
+./compose/opensearch-dashboards/mount/setup.js
+./compose/opensearch-dashboards/mount/vector.yml
 ./compose/opensearch/compose.yml
 ./compose/phpmyadmin/compose.yml
 ./compose/phpmyadmin/mount/phpmyadmin/config.user.inc.php

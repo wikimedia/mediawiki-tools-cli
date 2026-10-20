@@ -13,6 +13,8 @@ mw dev memcached destroy
 
 `destroy` removes containers and service data. Use `stop` to keep data for later. Some services also provide tools such as `mw dev mediawiki composer`, `fresh` and `quibble`, or `mw dev redis redis-cli`. Check `mw dev SERVICE --help` for the commands available.
 
+For optional OpenSearch Dashboards log browsing, see [local logs](logs.md).
+
 ## Inspect configuration
 
 Show the generated Compose configuration or inspect a service's source file:

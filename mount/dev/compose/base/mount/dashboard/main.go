@@ -70,6 +70,7 @@ var (
 		{Name: "memcached", HasUI: false},
 		{Name: "elasticsearch", HasUI: false},
 		{Name: "opensearch", HasUI: false},
+		{Name: "opensearch-dashboards", HasUI: true, UIHost: "logs.local.wmftest.net"},
 		{Name: "eventlogging", HasUI: false},
 		{Name: "graphite", HasUI: true, UIHost: "graphite.local.wmftest.net"},
 		{Name: "citoid", HasUI: false},
