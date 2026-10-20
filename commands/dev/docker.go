@@ -216,7 +216,6 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(devenv.NewServiceCmd("memcached", devenv.ServiceTexts{Long: memcachedLong}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("phpmyadmin", devenv.ServiceTexts{Long: phpmyadminLong, OnCreate: envSubst(phpmyadminOnCreate)}, []string{"ppma"}))
 	cmd.AddCommand(devenv.NewServiceCmd("citoid", devenv.ServiceTexts{Long: citoidLong}, []string{}))
-	cmd.AddCommand(devenv.NewServiceCmd("novnc", devenv.ServiceTexts{Long: novncLong}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("jaeger", devenv.ServiceTexts{Long: jaegerLong, OnCreate: envSubst(jaegerOnCreate)}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("prometheus", devenv.ServiceTexts{Long: prometheusLong, OnCreate: envSubst(prometheusOnCreate)}, []string{}))
 	cmd.AddCommand(devenv.NewServiceCmd("grafana", devenv.ServiceTexts{Long: grafanaLong, OnCreate: envSubst(grafanaOnCreate)}, []string{}))

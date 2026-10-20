@@ -114,6 +114,7 @@ func newServiceUpCmdP(name *string, onCreateText string, opts *dockercompose.UpO
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create the containers",
+		Long:  fmt.Sprintf("Start the %s service in the local development environment. Use --build to build its image first or --force-recreate to replace its containers.", *name),
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
@@ -240,6 +241,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 		Use:     "exec [flags] [command...]",
 		Example: cobrautil.NormalizeExample("exec bash\nexec -- bash --help\nexec --user root bash\nexec --user root -- bash --help"),
 		Short:   "Execute a command in the main container",
+		Long:    fmt.Sprintf("Run a command inside the %s container. Arguments after -- are passed to the container command; use --user to choose the execution user.", *service),
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
@@ -362,6 +364,8 @@ func NewServiceCommandCmdP(service *string, commands []string, aliases []string)
 		Use:     fmt.Sprintf("%s [flags] -- [%s flags]", commands[0], commands[0]),
 		Aliases: aliases,
 		Short:   fmt.Sprintf("Runs %s in the container", commands[0]),
+		Long:    fmt.Sprintf("Run %s in the service container. Arguments after -- are passed directly to %s.", commands[0], commands[0]),
+		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *service
 			DefaultForUser().EnsureReady()

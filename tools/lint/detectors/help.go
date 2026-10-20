@@ -9,20 +9,20 @@ import (
 )
 
 const (
-	maxLongHelpWords = 200
-	maxExampleWords  = 150
-	maxExampleLines  = 12
+	longHelpReviewWords = 450
+	exampleReviewWords  = 150
+	exampleReviewLines  = 12
 )
 
 func detectLongHelp(cmd *cobra.Command, path string) *issue.Issue {
 	words := len(strings.Fields(cmd.Long))
-	if words <= maxLongHelpWords {
+	if words <= longHelpReviewWords {
 		return nil
 	}
 	return &issue.Issue{
-		Target: "cmd: " + path, Level: issue.WarningLevel, Code: "long-help-size",
-		Text:    "Move detailed workflows into a guide and link to it from help",
-		Context: fmt.Sprintf("Long has %d words; suggested maximum is %d", words, maxLongHelpWords),
+		Target: "cmd: " + path, Level: issue.SuggestLevel, Code: "long-help-size",
+		Text:    "Review long help for readability; keep command behavior here and move broader workflows to guides",
+		Context: fmt.Sprintf("Long has %d words; review threshold is %d (not a limit)", words, longHelpReviewWords),
 	}
 }
 
@@ -34,12 +34,12 @@ func detectLongExamples(cmd *cobra.Command, path string) *issue.Issue {
 		}
 	}
 	words := len(strings.Fields(cmd.Example))
-	if lines <= maxExampleLines && words <= maxExampleWords {
+	if lines <= exampleReviewLines && words <= exampleReviewWords {
 		return nil
 	}
 	return &issue.Issue{
-		Target: "cmd: " + path, Level: issue.WarningLevel, Code: "example-help-size",
-		Text:    "Keep a few short examples in help; put complete walkthroughs in a guide",
-		Context: fmt.Sprintf("Example has %d nonblank lines and %d words; suggested maxima are %d lines and %d words", lines, words, maxExampleLines, maxExampleWords),
+		Target: "cmd: " + path, Level: issue.SuggestLevel, Code: "example-help-size",
+		Text:    "Review examples for clarity and repetition; keep examples needed to use this command",
+		Context: fmt.Sprintf("Example has %d nonblank lines and %d words; review thresholds are %d lines and %d words (not limits)", lines, words, exampleReviewLines, exampleReviewWords),
 	}
 }

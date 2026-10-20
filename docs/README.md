@@ -44,9 +44,16 @@ make docs-accept page="Cli/ref/mw_docker"
 
 Commit the source fixes and updated `wiki.json`. Acceptance is tied to that snapshot; a later wiki edit is flagged again. Re-run `make docs-check` before tagging a release.
 
+## Write command help and guides
+
+[Writing command help and guides](writing.md) describes what belongs in each.
+Keep command behavior and operation in command help; use guides for workflows
+and worked explorations. Help length suggestions are prompts to review clarity,
+not word limits.
+
 ## Add or import a guide
 
-For a new guide, add Markdown under `guides/`, a `source`/`title` entry in `wiki.json`, and a link in `index.md`. Relative Markdown links between mapped guides are converted to wiki URLs. Broken guide links fail the build. Mapped guides are also bundled for offline reading under `mw help guides`, following their folder paths; `index.md` provides the parent topic. Use `--web` to open the mapped wiki page. Keep command help short and point to a guide for longer workflows.
+For a new guide, add Markdown under `guides/`, a `source`/`title` entry in `wiki.json`, and a link in `index.md`. Relative Markdown links between mapped guides are converted to wiki URLs. Broken guide links fail the build. Mapped guides are also bundled for offline reading under `mw help guides`, following their folder paths; `index.md` provides the parent topic. Use `--web` to open the mapped wiki page. Keep command details in help and link to guides for workflows and worked examples.
 
 To adopt an existing wiki page:
 

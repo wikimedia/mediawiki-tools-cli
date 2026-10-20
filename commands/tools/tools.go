@@ -28,6 +28,14 @@ func NewToolsCmd() *cobra.Command {
 	command.Aliases = []string{"toolforge"}
 	command.Short = "Manage Toolforge tools, jobs, builds and deployments"
 	for _, child := range command.Commands() {
+		// The generated Toolforge commands are maintained and tested in their
+		// upstream module. Keep linti focused on mwcli-owned commands.
+		if child.Annotations == nil {
+			child.Annotations = make(map[string]string)
+		}
+		child.Annotations["mwcli-lint-skip"] = "Toolforge command is maintained upstream"
+		child.Annotations["mwcli-lint-skip-children"] = "Toolforge command tree is maintained upstream"
+
 		if child.Name() == "kubernetes" {
 			child.Long += "\n\nDemo walkthrough: mw help guides tools kubernetes-pod-helloworld"
 			// Imported kubectl examples include full command paths, pipelines and
@@ -47,10 +55,29 @@ func NewToolsCmd() *cobra.Command {
 				return preserveExitCode(cmd, run(cmd, args))
 			}
 		}
+		if child.Name() == "envvar" {
+			// The upstream tree accidentally also inserts build quota under
+			// envvar. Keep the first quota command, which is envvar quota.
+			removeDuplicateSubcommands(child, "quota")
+		}
 	}
 	command.AddCommand(newCopyCmd())
 	inheritMwSetup(command, command)
 	return command
+}
+
+func removeDuplicateSubcommands(parent *cobra.Command, name string) {
+	keptFirst := false
+	for _, child := range parent.Commands() {
+		if child.Name() != name {
+			continue
+		}
+		if !keptFirst {
+			keptFirst = true
+			continue
+		}
+		parent.RemoveCommand(child)
+	}
 }
 
 // Preserve mw's telemetry/verbosity setup while retaining upstream's API and

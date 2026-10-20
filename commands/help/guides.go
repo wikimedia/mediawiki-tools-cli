@@ -24,6 +24,10 @@ func AddGuides(root *cobra.Command) {
 	if err != nil {
 		panic(err)
 	}
+	if help.Annotations == nil {
+		help.Annotations = make(map[string]string)
+	}
+	help.Annotations["mwcli-lint-skip"] = "Cobra help accepts a multi-word command path"
 	// Reading documentation must not run configuration or authentication wizards.
 	help.Short = "Help about commands and workflow guides (" + root.Name() + " help guides)"
 	help.PersistentPreRun = func(*cobra.Command, []string) {}

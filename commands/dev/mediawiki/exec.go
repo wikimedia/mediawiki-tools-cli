@@ -18,6 +18,7 @@ func NewMediaWikiExecCmd() *cobra.Command {
 		Use:     "exec [flags] [command...]",
 		Example: cobrautil.NormalizeExample(exampleMediawikiExec),
 		Short:   "Executes a command in the MediaWiki container",
+		Long:    "Runs a command in the MediaWiki container with the MediaWiki source directory as its working directory. Pass the command and its arguments after `--`; use `--user` to select the container user.",
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			devenv.DefaultForUser().EnsureReady()

@@ -24,8 +24,9 @@ failed fetches return an error while independent repositories are still checked.
 `--mode=stash` saves tracked and untracked changes, fast-forwards the current
 branch, and reapplies the changes with their staged/unstaged state preserved.
 It checks the saved changes in a temporary worktree before advancing the original
-checkout. If the update or reapplication fails, it restores the original branch,
-commit, index and worktree and reports `restored` with a nonzero exit status.
+checkout. If the update or reapplication fails, it attempts to restore the original branch,
+commit, index and worktree. Successful restoration is reported as `restored` with
+a nonzero exit status; failed restoration is reported as `recovery-needed`.
 Detached HEADs and branches without an upstream are still skipped. Local commits
 are not rebased; a diverged branch is left unchanged and reported as an error.
 
@@ -36,6 +37,8 @@ HEAD. The previous HEAD and any existing local default-branch tip are preserved
 under recovery refs before reset, so local commits remain reachable. A default
 branch checked out in another worktree is not forcibly taken over. Dry-run uses
 local remote refs to infer the default branch; the real update asks `origin`.
+
+## Saved changes and recovery
 
 Both stash modes retain the saved stash even after a successful update or
 restoration. Output identifies stable recovery refs under
@@ -66,3 +69,8 @@ changes, use maintenance explicitly, for example:
 ```sh
 mw dev mediawiki foreachwiki update.php -- --quick
 ```
+
+## Learn more
+
+For a workflow combining source updates, dependency updates, database maintenance
+and Git recovery, see `mw help guides dev update-code`.

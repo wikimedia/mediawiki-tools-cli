@@ -15,6 +15,7 @@ func NewMediaWikiNPMCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "npm [flags] [npm-commands]... -- [npm-args]",
 		Short: "Runs commands in a `fresh` container which has 'npm'.",
+		Long:  "Runs `npm` in the MediaWiki fresh container, using the MediaWiki source directory as its working directory. Arguments after `--` are passed to npm. Use `--user` to select the container user.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			devenv.DefaultForUser().EnsureReady()
