@@ -17,6 +17,11 @@ Use `/opt/keycloak/bin/kcadm.sh` there for operations beyond the built-in
 subcommands. See the [Keycloak Admin CLI guide](https://www.keycloak.org/docs/latest/server_admin/#admin-cli)
 for its syntax.
 
+Relevant extensions for this service include:
+
+- [PluggableAuth](https://www.mediawiki.org/wiki/Extension:PluggableAuth)
+- [OpenID Connect](https://www.mediawiki.org/wiki/Extension:OpenID_Connect)
+
 ## Learn more
 
 For a workflow creating a realm, client, and user and configuring MediaWiki's
