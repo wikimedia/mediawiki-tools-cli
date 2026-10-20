@@ -95,6 +95,30 @@ test_http_status() {
     fi
 }
 
+# Start the profile-gated ForwardAuth service and wait until Traefik can reach
+# it. This lets local integration tests exercise protected path routes without
+# depending on an external tunnel provider.
+test_start_gateway_auth() {
+    local probe_url="$1"
+    local status=""
+
+    test_command_success ./bin/mw dev compose up -- -d gateway-auth
+    for ((attempt=1; attempt<=60; attempt++)); do
+        status=$(curl --silent --max-time 3 -o /dev/null -w '%{http_code}' "$probe_url" || true)
+        if [ "$status" = "401" ]; then
+            echo -e "${GREEN}PASS:${NC} local gateway authentication is ready"
+            return 0
+        fi
+        sleep 1
+    done
+
+    echo -e "${RED}FAIL:${NC} local gateway authentication did not become ready (last HTTP status: ${status:-none})"
+    if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+        exit 1
+    fi
+    return 1
+}
+
 # Exercise the real Traefik ForwardAuth middleware with the same HTTP upstream
 # and HTTPS forwarded origin that a TLS-terminating tunnel uses.
 test_gateway_https_session() (
