@@ -21,6 +21,7 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 - [Choose a context](guides/dev/contexts.md)
 - [Change the HTTP port](guides/dev/ports.md)
 - [Manage services and images](guides/dev/services.md)
+- [Browse local logs](guides/dev/logs.md)
 - [Build custom service images](guides/dev/dockerfiles.md)
 - [Add custom Compose services](guides/dev/custom-services.md)
 - [Configure MediaWiki](guides/dev/configuration.md)

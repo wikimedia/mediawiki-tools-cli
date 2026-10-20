@@ -38,6 +38,10 @@
       "title": "Cli/guide/Docker-Development-Environment/Service_Interaction"
     },
     {
+      "source": "guides/dev/logs.md",
+      "title": "Cli/guide/Local log browsing"
+    },
+    {
       "source": "guides/dev/dockerfiles.md",
       "title": "Cli/guide/Custom Dockerfiles"
     },

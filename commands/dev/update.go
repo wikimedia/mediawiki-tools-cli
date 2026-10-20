@@ -38,6 +38,11 @@ func NewDevUpdateCmd() *cobra.Command {
 			if err != nil {
 				panic(err)
 			}
+			// An empty Compose up selection means all configured services, including
+			// optional services the user has never created.
+			if len(runningServices) == 0 {
+				return nil
+			}
 			err = devenv.DefaultForUser().DockerCompose().Up(runningServices, dockercompose.UpOptions{
 				Detached:      true,
 				ForceRecreate: forceRecreate,
