@@ -9,7 +9,9 @@ mw dev mediawiki fresh npm ci
 mw dev mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
 ```
 
-Fresh sets `MW_SERVER=http://mediawiki-web:8080`, `MW_SCRIPT_PATH=/w`, `MEDIAWIKI_USER=Admin` and `MEDIAWIKI_PASSWORD=mwddpassword`. These are development defaults; override them for another wiki or account. The server address is internal to Docker and does not follow the host's HTTP port.
+For connection defaults, argument forwarding, and recording behavior, read
+`mw dev mediawiki fresh --help`. Override the development account when testing
+another user, as shown below.
 
 To inspect the container or override an environment variable for one command:
 
@@ -31,8 +33,6 @@ Omit the spec to record the full Selenium suite, running one spec at a time:
 ```sh
 mw dev mediawiki fresh record
 ```
-
-Under the hood, `record` runs `npm run selenium-test` with `--recordVideo`, `--useBrowserHeadless=false` and `--maxInstances=1`, adding `--spec` when a path is provided. It uses the same Fresh container, wiki settings and working directory as other Fresh commands.
 
 The explicit equivalent for a single spec is:
 

@@ -59,6 +59,7 @@ Remote arguments are passed literally; use sh -lc for shell expressions.`,
   ssh vm --project project -- uname -a
   ssh vm --project project -- sh -lc 'cd ~/src && git status'
   ssh vm --project project --dry-run`,
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCloudVPSSSH(cmd, args, opts)
 		},

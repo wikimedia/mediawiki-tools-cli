@@ -60,14 +60,24 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAuthCmd())
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
 
-	// Add auto generated commands...
-	cmd.AddCommand(NewGerritAccessCmd())
-	cmd.AddCommand(NewGerritAccountsCmd())
-	cmd.AddCommand(NewGerritChangesCmd())
-	cmd.AddCommand(NewGerritGroupsCmd())
-	cmd.AddCommand(NewGerritProjectsCmd())
-	cmd.AddCommand(NewGerritServerCmd())
-	cmd.AddCommand(NewGerritPluginsCmd())
+	// Generated command trees are documented and exercised by their generator's
+	// fixtures. Keep linti focused on the handwritten Gerrit commands here.
+	for _, generated := range []*cobra.Command{
+		NewGerritAccessCmd(),
+		NewGerritAccountsCmd(),
+		NewGerritChangesCmd(),
+		NewGerritGroupsCmd(),
+		NewGerritProjectsCmd(),
+		NewGerritServerCmd(),
+		NewGerritPluginsCmd(),
+	} {
+		if generated.Annotations == nil {
+			generated.Annotations = make(map[string]string)
+		}
+		generated.Annotations["mwcli-lint-skip"] = "Generated Gerrit command group"
+		generated.Annotations["mwcli-lint-skip-children"] = "Generated Gerrit commands are maintained by code generation"
+		cmd.AddCommand(generated)
+	}
 
 	return cmd
 }

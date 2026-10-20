@@ -38,12 +38,24 @@
       "title": "Cli/guide/Custom Dockerfiles"
     },
     {
+      "source": "guides/dev/custom-services.md",
+      "title": "Cli/guide/Docker-Development-Environment/Custom services"
+    },
+    {
       "source": "guides/dev/configuration.md",
       "title": "Cli/guide/Docker-Development-Environment/LocalSettings.php"
     },
     {
+      "source": "guides/dev/keycloak.md",
+      "title": "Cli/guide/Docker-Development-Environment/Keycloak"
+    },
+    {
       "source": "guides/dev/mediawiki.md",
       "title": "Cli/guide/Docker-Development-Environment/MediaWiki"
+    },
+    {
+      "source": "guides/dev/update-code.md",
+      "title": "Cli/guide/Docker-Development-Environment/Update code"
     },
     {
       "source": "guides/dev/databases.md",

@@ -83,9 +83,11 @@ func NewListCmd() *cobra.Command {
 	}
 	out := output.Output{}
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List available public Wikimedia event streams",
-		Args:  cobra.NoArgs,
+		Use:     "list",
+		Short:   "List available public Wikimedia event streams",
+		Long:    "Fetches the public EventStreams specification and lists its available streams with a short description. The command needs network access but no authentication. Use `mw events info <stream>` to inspect a stream's schema and example, or `mw events tail` to follow it.",
+		Example: "list\nlist --output json",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			streams, err := fetchStreams(cmd.Context())
 			if err != nil {

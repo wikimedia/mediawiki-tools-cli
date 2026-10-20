@@ -15,6 +15,7 @@ func NewMediaWikiNPXCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "npx [flags] [npx-commands]... -- [npx-args]",
 		Short: "Runs commands in a `fresh` container which has 'npx'.",
+		Long:  "Runs `npx` in the MediaWiki fresh container, using the MediaWiki source directory as its working directory. Arguments after `--` are passed to npx. Use `--user` to select the container user.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			devenv.DefaultForUser().EnsureReady()
