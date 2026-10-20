@@ -92,3 +92,29 @@ Install mise and FFmpeg first; mise provides pinned VHS and ttyd versions. Toolf
 This recording extracts its manifest from the guide, creates and deletes only `cli-guide-hello`, and forwards localhost port 18080. It refuses to start if that pod exists. After an interrupted recording, stop its port forward and remove only the demo pod before retrying.
 
 For Commons, upload the generated WebM using `A Wikimedia CLI - Guide - <guide-path-with-hyphens> - <language>.webm`, for example `A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm`. Include the source guide/tape, Git revision, recording date and free license in its description. Mark recordings intended for updates with `{{Current}}`; minor corrections can replace the file, while substantially different demonstrations should use a new dated filename, following [Commons’ overwrite guidance](https://commons.wikimedia.org/wiki/Commons:Overwriting_existing_files).
+
+## Record local development workflows
+
+The local development recordings use a running Docker Compose environment and need no Wikimedia account:
+
+```sh
+CONTEXT=recording-setup ./docs/guides/dev/fresh.record.sh
+CONTEXT=recording-setup ./docs/guides/dev/api.record.sh
+CONTEXT=recording-setup ./docs/guides/dev/mysql-dumps.record.sh
+./docs/guides/analytics/pageviews.record.sh
+./docs/guides/updating.record.sh
+CONTEXT=recording-setup-final ./docs/guides/dev/lifecycle.record.sh
+CONTEXT=recording-clean ./docs/guides/dev/extension-workflow.record.sh
+CONTEXT=recording-setup-final ./docs/guides/dev/tunnel.record.sh
+```
+
+The Fresh recording also requires `mw dev --context recording-setup mediawiki fresh npm ci` first. To record the initial setup flow, point it at a disposable MediaWiki checkout; the script creates a fresh context, installs the wiki and leaves its services running:
+
+```sh
+MEDIAWIKI_CODE=/path/to/disposable-mediawiki CONTEXT=recording-setup \
+  ./docs/guides/dev/setup.record.sh
+```
+
+The setup script refuses to reuse a context that already has Docker containers or volumes, so choose a new context for each fresh setup. All generated media and the temporary database dump go in the ignored repository-root `_recordings/` directory.
+
+The extension workflow recording needs an installed disposable wiki checkout without Cite already cloned or enabled; set `CONTEXT` to that context. The tunnel recording starts a temporary authenticated Cloudflare Quick Tunnel and stops it on exit, including when recording fails.

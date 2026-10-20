@@ -28,10 +28,12 @@ For a temporary public HTTPS address:
 
 ```sh
 mw dev tunnel start
+mw dev tunnel status
+mw dev tunnel url
 mw dev traefik credentials
 ```
 
-Open the printed tunnel login link. Gateway authentication remains enabled. Stop the tunnel with `mw dev tunnel stop` when finished.
+Open the printed tunnel login link. Gateway authentication remains enabled, including for public Quick Tunnels. The tunnel URL is temporary and can change after a restart. Stop the tunnel with `mw dev tunnel stop` when finished; `mw dev tunnel logs --follow` helps diagnose connection problems.
 
 For a private connection instead:
 

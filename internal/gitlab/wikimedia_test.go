@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -15,6 +16,9 @@ func TestLatestReleaseBinary(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		// Test request parameters
 		if req.URL.Path == "/api/v4/projects/16/releases" {
+			if req.URL.Query().Get("per_page") != "100" {
+				t.Errorf("expected per_page=100, got %q", req.URL.Query().Get("per_page"))
+			}
 			b, err := os.ReadFile("testdata/wikimedia_test_data.json")
 			if err != nil {
 				panic(err)
@@ -79,6 +83,39 @@ func TestLatestReleaseBinary(t *testing.T) {
 				t.Errorf("LatestReleaseBinary() mismatch (-got +want):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestRelengCliGetReleasesRetriesServerErrors(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if requests.Add(1) == 1 {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		b, err := os.ReadFile("testdata/wikimedia_test_data.json")
+		if err != nil {
+			t.Errorf("read release fixture: %v", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, _ = rw.Write(b)
+	}))
+	defer server.Close()
+
+	previousURL := wikimediav4ApiURL
+	wikimediav4ApiURL = server.URL + "/api/v4/"
+	t.Cleanup(func() { wikimediav4ApiURL = previousURL })
+
+	releases, err := RelengCliGetReleases()
+	if err != nil {
+		t.Fatalf("RelengCliGetReleases() error = %v", err)
+	}
+	if len(releases) == 0 {
+		t.Fatal("expected releases after retry")
+	}
+	if got := requests.Load(); got != 2 {
+		t.Fatalf("expected 2 requests, got %d", got)
 	}
 }
 
