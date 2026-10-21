@@ -25,6 +25,24 @@ mw gitlab ci lint
 mw gitlab ci status
 ```
 
+List individual artifacts created by recent jobs in the current project, or
+select another project with `-R`:
+
+```sh
+mw gitlab ci artifacts list --since 48h --min-size 300MiB
+mw gitlab ci artifacts list --since 7d --min-size 1GiB -R releng/cli
+mw gitlab ci artifacts list --since 24h --min-size 300MiB --ref-prefix refs/merge-requests/
+mw gitlab ci artifacts prune --since 24h --min-size 300MiB --ref-prefix refs/merge-requests/
+```
+
+Listing scans recent jobs and shows individual artifact files and their sizes.
+The prune command without `--yes` shows the matching files and stops without
+deleting them. Add `--yes` to delete those individual files; job logs are not
+included. GitLab marks bulk artifact deletion as experimental.
+
+The [artifact recording](artifacts.tape) demonstrates listing merge request
+artifacts from the last 24 hours and previewing the same set for pruning.
+
 ## Find repositories
 
 ```sh
