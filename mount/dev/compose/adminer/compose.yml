@@ -1,7 +1,7 @@
 
 services:
   adminer:
-    image: "${ADMINER_IMAGE:-adminer:4}"
+    image: "${ADMINER_IMAGE:-adminer:6.1.2}"
     restart: unless-stopped
     environment:
       - VIRTUAL_HOST=adminer.local.wmftest.net
