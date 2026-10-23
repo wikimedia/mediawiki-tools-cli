@@ -12,6 +12,7 @@ Each tagged release MUST have a section 2 heading starting at the time of releas
   - Updated Adminer to `adminer:6.1.2` (PHP 8.4.27).
   - Switched phpMyAdmin from `phpmyadmin/phpmyadmin:5` to `phpmyadmin:5` (PHP 8.3.36), as the legacy image did not provide a patched PHP build.
   - Updated Quibble to `releng/quibble-bookworm-php83:1.22.0-s3` (PHP 8.3.36).
+  - Fixed Quibble's Memcached startup when running as root, including in CI, while preserving the selected execution user.
   - These PHP updates address [GHSA-w8hw-w9fx-j79w](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w) and [GHSA-6wmf-4rv5-p3rp](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp).
 
 ## v0.33.0

@@ -204,7 +204,8 @@ test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.me
 test_command_success bash -c "./../bin/mw wiki page put --wiki http://default.mediawiki.local.wmftest.net:$PORT/w/api.php --user admin --password mwddpassword --title Testpage2 <<< 'Test content'"
 # We expect to see all of this output in the logs for the job runner...
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Running jobs for default"
-test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Job queue is empty"
+# Draining jobs created by the browser test can take a few seconds.
+test_command_eventually ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " Job queue is empty"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " STARTING"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " title=Testpage1"
 test_command ./../bin/mw docker docker-compose logs -- --tail all mediawiki-jobrunner " good"

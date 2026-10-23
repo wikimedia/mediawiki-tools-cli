@@ -25,6 +25,7 @@
 ./compose/mediawiki-jobrunner/compose.yml
 ./compose/mediawiki-jobrunner/mount/wait-for-it.sh
 ./compose/mediawiki-quibble/compose.yml
+./compose/mediawiki-quibble/memcached.sh
 ./compose/mediawiki/compose.yml
 ./compose/mediawiki/mount/mediawiki/MwddInstall.php
 ./compose/mediawiki/mount/mediawiki/MwddSettings.php

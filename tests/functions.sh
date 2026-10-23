@@ -177,6 +177,26 @@ test_command() {
     fi
 }
 
+test_command_eventually() {
+    local expected_match="${*: -1}"
+    local command=("${@:1:(($#-1))}")
+    local OUTPUT
+    local attempt
+    for attempt in {1..30}; do
+        if OUTPUT="$("${command[@]}" 2>&1)" && grep -q "$expected_match" <<< "$OUTPUT"; then
+            echo -e "${GREEN}PASS:${NC} ${command[*]} output contains \"$expected_match\""
+            return 0
+        fi
+        sleep 1
+    done
+    echo -e "${RED}FAIL:${NC} ${command[*]} output did not contain \"$expected_match\" after 30 attempts"
+    echo "$OUTPUT"
+    if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+        exit 1
+    fi
+    return 1
+}
+
 test_command_success() {
     set +e
     local OUTPUT

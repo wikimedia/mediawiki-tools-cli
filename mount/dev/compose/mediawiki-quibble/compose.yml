@@ -17,6 +17,8 @@ services:
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     volumes:
+      # Quibble starts Memcached without a user option, including when run as root in CI.
+      - ./compose/mediawiki-quibble/memcached.sh:/usr/local/bin/memcached:ro
       # Only mount code and config, don't mount logs or image
       # TODO is this bit of config even needed?
       - "${MEDIAWIKI_VOLUMES_CODE}:/workspace/src:cached"
