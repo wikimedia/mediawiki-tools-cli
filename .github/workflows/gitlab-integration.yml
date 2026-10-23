@@ -1,0 +1,128 @@
+name: GitLab integration
+run-name: GitLab integration${{ inputs.run_label && format(' {0}', inputs.run_label) || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: GitLab project ID
+        default: '16'
+        type: string
+      job_id:
+        description: Successful integration-github-request job ID
+        required: true
+        type: string
+      run_label:
+        description: GitLab MR or ref (display only)
+        type: string
+      job_name:
+        description: GitLab job name
+        default: integration-github-request
+        type: string
+      job_status:
+        description: GitLab job status
+        default: success
+        type: string
+
+permissions: {}
+
+env:
+  GITHUB_INTEGRATION_REPOSITORY: wikimedia/mediawiki-tools-cli
+
+# Duplicate dispatches wait, then the controller skips finished requests.
+concurrency:
+  group: gitlab-native-${{ inputs.project_id }}-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.repository == 'wikimedia/mediawiki-tools-cli' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.project_id == '16' && inputs.job_status == 'success' &&
+      inputs.job_name == 'integration-github-request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      active: ${{ steps.prepare.outputs.active }}
+      artifact: ${{ steps.prepare.outputs.artifact }}
+      tested_sha: ${{ steps.prepare.outputs.tested_sha }}
+      test_matrix: ${{ steps.prepare.outputs.test_matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Fetch exact GitLab inputs without executing MR code
+        id: prepare
+        env:
+          GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
+          REQUEST_JOB_ID: ${{ inputs.job_id }}
+        run: python3 .github/scripts/gitlab-native.py prepare
+      - uses: actions/upload-artifact@v7
+        if: steps.prepare.outputs.active == 'true'
+        with:
+          name: ${{ steps.prepare.outputs.artifact }}
+          path: |
+            inputs/plan.json
+            inputs/mw
+            inputs/source.bundle
+            inputs/mediawiki.tar.gz
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  integration:
+    name: Integration (${{ matrix.name }})
+    needs: prepare
+    if: needs.prepare.outputs.active == 'true'
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.test_matrix) }}
+    uses: ./.github/workflows/gitlab-integration-test.yml
+    with:
+      name: ${{ matrix.name }}
+      platform: ${{ matrix.platform }}
+      test: ${{ matrix.test }}
+      artifact: ${{ needs.prepare.outputs.artifact }}
+      tested_sha: ${{ needs.prepare.outputs.tested_sha }}
+      request_job_id: ${{ inputs.job_id }}
+    secrets:
+      GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
+
+  report:
+    name: Report to GitLab
+    needs: [prepare, integration]
+    if: >-
+      always() && !cancelled() &&
+      github.repository == 'wikimedia/mediawiki-tools-cli' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.project_id == '16' && inputs.job_status == 'success' &&
+      inputs.job_name == 'integration-github-request' &&
+      (needs.prepare.outputs.active == 'true' || needs.prepare.result == 'failure')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # A fresh VM and trusted workflow revision keep the callback token away
+      # from all MR code, downloaded binaries and test-produced files.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish individual results and release the GitLab gate
+        env:
+          GITLAB_STATUS_TOKEN: ${{ secrets.GITLAB_STATUS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_JOB_ID: ${{ inputs.job_id }}
+          TESTED_SHA: ${{ needs.prepare.outputs.tested_sha }}
+          PREPARATION_RESULT: ${{ needs.prepare.result }}
+          WORKFLOW_NEEDS: ${{ toJSON(needs) }}
+        run: python3 .github/scripts/gitlab-native.py finish

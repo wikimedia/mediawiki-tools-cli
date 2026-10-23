@@ -2,6 +2,7 @@ package wiki
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	mwclient "cgt.name/pkg/go-mwclient"
@@ -9,10 +10,11 @@ import (
 )
 
 var (
-	wiki         string
-	wikiUser     string
-	wikiPassword string
-	wikiAnon     bool
+	wiki             string
+	wikiUser         string
+	wikiPassword     string
+	wikiPasswordFile string
+	wikiAnon         bool
 )
 
 func NewWikiCmd() *cobra.Command {
@@ -25,9 +27,13 @@ func NewWikiCmd() *cobra.Command {
 
 	cmd.AddCommand(NewWikiPageCmd())
 	cmd.AddCommand(NewWikiExtCmd())
+	cmd.AddCommand(NewWikiFileCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
 	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "A user to interact using")
 	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
+	cmd.PersistentFlags().StringVar(&wikiPasswordFile, "password-file", "", "Read the login password from a file")
+	cmd.MarkFlagsMutuallyExclusive("password", "password-file")
+	_ = cmd.MarkPersistentFlagFilename("password-file")
 	cmd.PersistentFlags().BoolVar(&wikiAnon, "anon", false, "Perform anonymous edits using the anonymous CSRF token")
 	err := cmd.MarkPersistentFlagRequired("wiki")
 	if err != nil {
@@ -57,11 +63,19 @@ func loginIfCredentialsProvided(w *mwclient.Client) error {
 	if wikiAnon {
 		return nil
 	}
-	if wikiUser == "" && wikiPassword == "" {
+	password := wikiPassword
+	if wikiPasswordFile != "" {
+		data, err := os.ReadFile(wikiPasswordFile)
+		if err != nil {
+			return fmt.Errorf("read password file: %w", err)
+		}
+		password = strings.TrimRight(string(data), "\r\n")
+	}
+	if wikiUser == "" && password == "" {
 		return nil
 	}
-	if wikiUser == "" || wikiPassword == "" {
-		return fmt.Errorf("--user and --password must either both be set or both be omitted")
+	if wikiUser == "" || password == "" {
+		return fmt.Errorf("--user and either --password or --password-file must be provided together")
 	}
-	return w.Login(wikiUser, wikiPassword)
+	return w.Login(wikiUser, password)
 }

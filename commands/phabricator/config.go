@@ -48,7 +48,7 @@ func loadConfig(site string) (*PhabConfig, error) {
 	}
 
 	return nil, fmt.Errorf(
-		"could not find usable Phabricator config. looked for phab.cfg in: %s; and mwcli config at: %s",
+		"could not find usable Phabricator config. looked for phab.cfg in: %s; and CLI config at: %s",
 		strings.Join(candidates, ", "),
 		mwconfig.Path(),
 	)
@@ -134,7 +134,7 @@ func configFromMWCLI(site string) (*PhabConfig, error) {
 	}
 
 	if phabCfg.Key == "" {
-		return nil, fmt.Errorf("no Phabricator API key in mwcli config")
+		return nil, fmt.Errorf("no Phabricator API key in CLI config")
 	}
 
 	if phabCfg.SiteName == "" {

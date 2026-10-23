@@ -11,11 +11,14 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	analyticscmd "gitlab.wikimedia.org/repos/releng/cli/commands/analytics"
+	apicmd "gitlab.wikimedia.org/repos/releng/cli/commands/api"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/codesearch"
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
-	"gitlab.wikimedia.org/repos/releng/cli/commands/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev"
+	eventscmd "gitlab.wikimedia.org/repos/releng/cli/commands/events"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
@@ -37,15 +40,22 @@ import (
 
 var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
 
+// NewMwCliCmd builds the canonical command tree for documentation and tooling.
 func NewMwCliCmd() *cobra.Command {
+	return NewRootCmd(cli.DefaultCommandName)
+}
+
+// NewRootCmd builds a command tree using the executable's invocation name.
+func NewRootCmd(name string) *cobra.Command {
 	mwcliCmd := &cobra.Command{
-		Use:           "mw",
-		Short:         "Developer utilities for working with MediaWiki and Wikimedia services.",
+		Use:           cli.InvocationName(name),
+		Long:          cli.DisplayName + "\n\n" + cli.Description,
+		Short:         cli.Description,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
-			logrus.Trace("mwcli: Top level PersistentPreRun")
+			logrus.Trace("CLI: Top level PersistentPreRun")
 
 			// Force the completion command to never ask for user input
 			if cmd.Name() == "__complete" {
@@ -70,7 +80,7 @@ func NewMwCliCmd() *cobra.Command {
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
 			if cli.Opts.Telemetry {
-				events.AddCommandRunEvent(cobrautil.FullCommandStringWithoutPrefix(cmd, "mw"), cli.VersionDetails.Version)
+				events.AddCommandRunEvent(cmd, cli.VersionDetails.Version)
 			}
 		},
 	}
@@ -109,7 +119,7 @@ func NewMwCliCmd() *cobra.Command {
 			}
 			commandWords = append(commandWords, arg)
 		}
-		mwa := "mw " + strings.Join(commandWords, " ")
+		mwa := mwcliCmd.Name() + " " + strings.Join(commandWords, " ")
 		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
 			logrus.Errorf("unknown command: %s", strings.Join(commandWords, " "))
 			c.Root().Annotations = make(map[string]string)
@@ -117,7 +127,15 @@ func NewMwCliCmd() *cobra.Command {
 			return
 		}
 
-		events.AddCommandRunEvent(strings.Trim(cobrautil.FullCommandStringWithoutPrefix(c, "mw")+" --help", " "), cli.VersionDetails.Version)
+		// Help bypasses PersistentPreRun, so load the telemetry preference here too.
+		cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
+		events.AddCommandHelpEvent(c, cli.VersionDetails.Version)
+		originalExample, originalLong := c.Example, c.Long
+		c.Example = cobrautil.CommandExamples(c)
+		if c == mwcliCmd && rootBanner(c) {
+			c.Long = c.Short
+		}
+		defer func() { c.Example, c.Long = originalExample, originalLong }()
 		defaultHelpFunc(c, a)
 	})
 
@@ -141,17 +159,27 @@ func NewMwCliCmd() *cobra.Command {
 
 		// Older commands, not yet moved to the /commands directory
 		codesearch.NewCodeSearchCmd(),
+		analyticscmd.NewCmd(),
+		apicmd.NewCmd(),
+		eventscmd.NewCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
-		docker.NewCmd(),
+		dev.NewCmd(),
 		wiki.NewWikiCmd(),
 		quip.NewQuipCmd(),
 		phabricatorcmd.NewPhabricatorCmd(),
 		help.NewOutputTopicCmd(),
 	}...)
 
+	help.AddGuides(mwcliCmd)
+
+	if mwcliCmd.Name() != "mw" {
+		cobrautil.VisitAllSubCommands(mwcliCmd, func(c *cobra.Command) {
+			c.Long = strings.ReplaceAll(c.Long, "mw ", mwcliCmd.Name()+" ")
+		})
+	}
 	return mwcliCmd
 }
 
@@ -213,6 +241,19 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.GitSummary = GitSummary
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
+
+	// Self-update may need root to replace the installed executable. Keep this
+	// operation out of config migration, timers, telemetry and command defaults:
+	// they can create root-owned files in the invoking user's config directory.
+	if isSudoInvocation(os.Geteuid(), os.Getenv("SUDO_UID")) {
+		if root := sudoUpdateCommand(os.Args[1:]); root != nil {
+			if err := root.Execute(); err != nil {
+				logrus.Error(err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
 
 	// Migration to v0.20.0+ moves the config directory from ~/.mwcli to an XDG based path
 	// This is a one time migration, and can be removed in a future release
@@ -297,10 +338,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 	}
 
-	// mwdd mode (always...)
-	cli.MwddIsDevAlias = true
-
-	rootCmd := NewMwCliCmd()
+	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
 	// - Commands can be split into sections based on annotations
@@ -336,6 +374,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 	// Execute the root command
 	err := rootCmd.Execute()
+	tools.Cleanup()
 
 	// Print any update notice once the command has finished
 	// (waits at most the HTTP client timeout of the check)
@@ -370,4 +409,34 @@ func logLevelForVerbosity(verbosity int) logrus.Level {
 		return logrus.DebugLevel
 	}
 	return logrus.InfoLevel
+}
+
+// isSudoInvocation excludes direct root sessions and non-Unix platforms.
+func isSudoInvocation(euid int, sudoUID string) bool {
+	return euid == 0 && sudoUID != "" && sudoUID != "0"
+}
+
+// sudoUpdateCommand constructs only self-update, since constructing unrelated
+// commands can itself read user configuration. Other commands retain their
+// normal startup path, including privileged Docker hosts-file operations.
+func sudoUpdateCommand(args []string) *cobra.Command {
+	root := &cobra.Command{
+		Use:           cli.InvocationName(os.Args[0]),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cli.Opts.Telemetry = false
+			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
+		},
+	}
+	root.PersistentFlags().BoolVar(&cli.Opts.NoInteraction, "no-interaction", false, "Do not ask any interactive questions")
+	root.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity")
+	root.PersistentFlags().Bool("help", false, "Help for this command")
+	root.AddCommand(updatecmd.Cmd())
+	command, _, err := root.Find(args)
+	if err != nil || command.Name() != "update" {
+		return nil
+	}
+	root.SetArgs(args)
+	return root
 }

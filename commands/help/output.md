@@ -1,77 +1,37 @@
-# How to use --output, --filter and --format
+# Output formats
 
-Many commands that print data back to you will come with these three flags by default.
-They allow you to change how the data is returned to you.
+Many commands that return data offer `--output` to choose a format. Available formats and defaults depend on the command; check its `--help`.
 
-There are currently 5 available output types.
+- `table`: Aligned columns.
+- `pretty`: Human-readable sections.
+- `json`: JSON, indented and coloured in a terminal and compact when piped.
+- `jq`: Filter or transform data with a jq expression; string results print without quotes.
 
- - `table`: A pretty table
- - `json`: JSON
- - `template`: Golang templates (gotmpl)
- - `ack`: Ack style
- - `web`: Open in a web browser
+Some commands offer additional formats: analytics supports `csv` and `graph`, and commands with `web` can open a browser. Where the default is `auto`, output adapts to whether it is displayed in a terminal or piped.
 
-These are most easily testable using the `mw version` command, which supports all output types, filters and format options.
+## Examples
 
-Other commands will provide more complex output, filtering and formatting options, but the same principles apply.
+Show version information as a table or JSON:
 
-## Table
-
-`mw version --output=table` outputs a 2 column table.
-
-```
-Version Information  Value
-BuildDate            2022-10-07T15:06:15Z
-Version              latest
+```sh
+mw version --output table
+mw version --output json
 ```
 
-## Ack
+Print just the version string:
 
-`mw version --output=ack` outputs a single ack section with 2 rows of information.
-
-```
-Version Information:
-BuildDate: 2022-10-07T15:06:15Z
-Version: latest
+```sh
+mw version --output jq --format '.version'
 ```
 
-## JSON
+Graph a ranking, skipping its first entry:
 
-`mw version --output=json` outputs a single json object with 2 keys of information.
-
-
-```json
-{
-  "BuildDate": "2022-10-07T15:08:29Z",
-  "Version" :"latest"
-}
+```sh
+mw analytics top-pages --output graph --offset 1 --limit 10
 ```
 
-This can be manipulated via `jq` compatible syntax to the `--format` flag.
+## Filtering and formatting
 
-For example, `mwdev version --output=json --format=.Version`
+`--format` supplies a jq expression for `json` or `jq` output. JSON output keeps JSON encoding; `jq` prints string results without quotes.
 
-```
-"latest"
-```
-
-## JQ
-
-The `jq` output type filters and transforms output using [jq](https://jqlang.org/) syntax.
-A `--format` filter must be provided.
-
-`mw version --output=jq --format='.'` produces the following data.
-
-```json
-{"BuildDate":"2022-10-07T15:08:29Z","Version":"latest"}
-```
-
-String values are printed without quotes (like `jq -r`), for example `mw version --output=jq --format='.Version'`
-
-```
-latest
-```
-
-## Web
-
-`mw version --output=web` will open the output in a web browser.
+Where available, `--filter` selects matching records before formatting. Its conditions depend on the command's data; check that command's help.

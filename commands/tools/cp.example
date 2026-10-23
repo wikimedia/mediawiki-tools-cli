@@ -1,3 +1,5 @@
-cp ./foo foo                                                     # Copy the ./foo file to your home directory
-cp --tool=mytool ./foo foo                                       # Copy the ./foo file to the tool
-cp --tool=mytool ./foo /tmp/foo                                  # Copy the ./foo file to /tmp/foo on the tool
+cp ./foo foo                                                    # Copy a file to your Toolforge home
+cp --tool=mytool ./foo foo                                      # Copy a file to the tool account
+cp --tool=mytool ./foo ./bar 'directory with spaces/'            # Copy multiple files
+cp --tool=mytool ./foo /tmp/foo                                 # Copy to an absolute remote path
+cp --beta --tool=mytool ./foo foo                               # Copy to toolsbeta

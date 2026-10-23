@@ -9,11 +9,11 @@ export MWCLI_CONTEXT_TEST=1
 
 test_command_success_or_matching_failure 'quip service returned HTTP 503:' ./bin/mw quip
 
-test_command_success ./bin/mw codesearch search addshore
+test_command_success_with_retries 3 2 ./bin/mw codesearch search addshore
 
-test_command_success ./bin/mw toolhub tools list
-test_command_success ./bin/mw toolhub tools search addshore
-test_command_success ./bin/mw toolhub tools get toolforge-bash
+test_command_success_with_retries 3 2 ./bin/mw toolhub tools list
+test_command_success_with_retries 3 2 ./bin/mw toolhub tools search addshore
+test_command_success_with_retries 3 2 ./bin/mw toolhub tools get toolforge-bash
 
 # Ignore linting e2e suggestions for some commands that are too involved with online things for now
 # SUGGEST cmd: mw tools: (end-to-end-test) End to end tests are suggested, none found

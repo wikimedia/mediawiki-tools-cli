@@ -1,0 +1,26 @@
+[Unit]
+Description=a Wikimedia CLI integration dispatch and results
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/mwcli-wait/wait-status.py
+DynamicUser=yes
+StateDirectory=mwcli-wait
+StateDirectoryMode=0700
+RuntimeDirectory=mwcli-wait
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+LoadCredential=gitlab-read-token:/etc/gitlab-runner-wait/status-token
+LoadCredential=github-dispatch-token:/etc/gitlab-runner-wait/github-token
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+MemoryMax=128M
+TasksMax=24
+
+[Install]
+WantedBy=multi-user.target

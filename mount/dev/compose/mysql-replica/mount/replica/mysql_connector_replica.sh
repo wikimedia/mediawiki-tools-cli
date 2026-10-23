@@ -12,13 +12,23 @@ sleep 1
 /wait-for-it.sh  mysql:3306
 /wait-for-it.sh  mysql-replica:3306
 
-# TODO add resilience? and wait for the position file to be created...?
-# But this is probably okay, as the replica will take a while to start anyway..
+# The master setup container and this container are started independently by
+# Compose. The master position files may not exist yet even though both MySQL
+# servers are accepting connections.
+echo "Waiting for MySQL master position files"
+position_wait_attempt=0
+while [ "$position_wait_attempt" -lt 60 ]; do
+    MYSQL01_Position=$(cat "$position_file" 2>/dev/null || true)
+    MYSQL01_File=$(cat "$file_file" 2>/dev/null || true)
+    if [[ "$MYSQL01_File" =~ ^[^[:space:]]+$ && "$MYSQL01_Position" =~ ^[0-9]+$ ]]; then
+        break
+    fi
+    position_wait_attempt=$((position_wait_attempt + 1))
+    sleep 1
+done
 
-# Only save the data if the files don't already exist
-# They might have been created during another container startup
-if [ ! -e "$position_file" ]; then
-    echo "Position file doesnt exist, can't start replication"
+if ! [[ "$MYSQL01_File" =~ ^[^[:space:]]+$ && "$MYSQL01_Position" =~ ^[0-9]+$ ]]; then
+    echo "Valid binlog coordinates were not created within 60 attempts; can't start replication"
     exit 1
 fi
 
@@ -34,9 +44,7 @@ mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'flush privileges;'
 
 echo "* Set MySQL01 as master on MySQL02"
 
-# Grab the position that should have been set from the first step of mysql-configure when the master was created
-MYSQL01_Position=$(<$position_file)
-MYSQL01_File=$(<$file_file)
+# Use the coordinates validated above; do not reread files during reconfiguration.
 
 MAIN_IP=$(eval "getent hosts mysql|awk '{print \$1}'")
 echo $MAIN_IP

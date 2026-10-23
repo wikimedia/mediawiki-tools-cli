@@ -18,7 +18,9 @@ services:
       - ${NETWORK_SUBNET_PREFIX}.10
     environment:
       # https://www.mediawiki.org/wiki/Selenium/How-to/Run_tests_targeting_MediaWiki-Docker_using_Fresh#Environment_variables
-      - MW_SERVER=http://default.mediawiki.local.wmftest.net:${PORT}
+      # This container runs inside the Docker network. Use the Apache service's
+      # internal port; ${PORT} is mapped on the host and is not reachable here.
+      - MW_SERVER=http://mediawiki-web:8080
       - MW_SCRIPT_PATH=/w
       - MEDIAWIKI_USER=Admin
       - MEDIAWIKI_PASSWORD=mwddpassword
@@ -26,4 +28,6 @@ services:
       # Only mount code and config, don't mount logs or image
       # TODO is this bit of config even needed?
       - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
+      - ./compose/mediawiki/mount/mediawiki:/wm-dev:ro
+      # Compatibility for existing LocalSettings.php files.
       - ./compose/mediawiki/mount/mediawiki:/mwdd:ro

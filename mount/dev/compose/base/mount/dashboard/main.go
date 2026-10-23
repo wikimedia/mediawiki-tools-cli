@@ -1,4 +1,4 @@
-// MWDD Dashboard - A simple status dashboard for MediaWiki Docker Development environment
+// Development dashboard for a Wikimedia CLI
 // Run with: go run main.go
 // //nolint:depguard
 package main
@@ -8,10 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,14 +29,18 @@ type Service struct {
 	HasUI     bool   `json:"has_ui"`
 	UIHost    string `json:"ui_host,omitempty"`
 	UIURL     string `json:"ui_url,omitempty"`
+	ProxyURL  string `json:"proxy_url,omitempty"`
+	TunnelURL string `json:"tunnel_url,omitempty"`
 	CheckedAt string `json:"checked_at"`
 }
 
 // Site represents an installed MediaWiki site
 type Site struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	URL  string `json:"url"`
+	Name      string `json:"name"`
+	Host      string `json:"host"`
+	URL       string `json:"url"`
+	ProxyURL  string `json:"proxy_url,omitempty"`
+	TunnelURL string `json:"tunnel_url,omitempty"`
 }
 
 // Status represents the overall status response
@@ -42,17 +49,19 @@ type Status struct {
 	Sites     []Site    `json:"sites"`
 	Timestamp string    `json:"timestamp"`
 	CacheAge  string    `json:"cache_age"`
+	BasePath  string    `json:"-"`
+	TunnelURL string    `json:"tunnel_url,omitempty"`
 }
 
 // ServiceConfig defines a service to check
 type ServiceConfig struct {
-	Name   string
-	HasUI  bool
-	UIHost string
+	Name   string `json:"name"`
+	HasUI  bool   `json:"has_ui"`
+	UIHost string `json:"ui_host,omitempty"`
 }
 
 var (
-	// Services to check - these match the services in MwddSettings.php
+	// Services to check - these match the services in DevSettings.php
 	servicesToCheck = []ServiceConfig{
 		{Name: "mysql", HasUI: false},
 		{Name: "mysql-replica", HasUI: false},
@@ -61,6 +70,7 @@ var (
 		{Name: "memcached", HasUI: false},
 		{Name: "elasticsearch", HasUI: false},
 		{Name: "opensearch", HasUI: false},
+		{Name: "opensearch-dashboards", HasUI: true, UIHost: "logs.local.wmftest.net"},
 		{Name: "eventlogging", HasUI: false},
 		{Name: "graphite", HasUI: true, UIHost: "graphite.local.wmftest.net"},
 		{Name: "citoid", HasUI: false},
@@ -112,7 +122,7 @@ func init() {
 }
 
 // checkHost checks if a hostname resolves to something other than itself
-// This is the same check used in MwddSettings.php
+// This is the same check used in DevSettings.php
 func checkHost(hostname string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), dnsLookupTimeout)
 	defer cancel()
@@ -129,13 +139,57 @@ func checkHost(hostname string) bool {
 	return false
 }
 
+// serviceConfigs merges generated custom-service metadata with bundled entries.
+// No Docker socket or YAML parser is needed inside the dashboard.
+func serviceConfigs() []ServiceConfig {
+	result := append([]ServiceConfig{}, servicesToCheck...)
+	path := os.Getenv("DASHBOARD_SERVICES_FILE")
+	if path == "" {
+		path = "/data/dashboard-services.json"
+	}
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return result
+	}
+	if err != nil {
+		log.Printf("Could not read custom services: %v", err)
+		return result
+	}
+	var custom []ServiceConfig
+	if err := json.Unmarshal(data, &custom); err != nil {
+		log.Printf("Could not parse custom services: %v", err)
+		return result
+	}
+	positions := map[string]int{}
+	for i, service := range result {
+		positions[service.Name] = i
+	}
+	for _, service := range custom {
+		if service.Name == "" {
+			continue
+		}
+		if i, exists := positions[service.Name]; exists {
+			// A build-only override must not erase bundled UI metadata.
+			if service.HasUI {
+				result[i] = service
+			}
+			continue
+		}
+		positions[service.Name] = len(result)
+		result = append(result, service)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	return result
+}
+
 // checkAllServices checks all services in parallel
 func checkAllServices() []Service {
 	var wg sync.WaitGroup
-	services := make([]Service, len(servicesToCheck))
+	configs := serviceConfigs()
+	services := make([]Service, len(configs))
 	checkedAt := time.Now().Format(time.RFC3339)
 
-	for i, svc := range servicesToCheck {
+	for i, svc := range configs {
 		wg.Add(1)
 		go func(idx int, config ServiceConfig) {
 			defer wg.Done()
@@ -215,11 +269,84 @@ func getStatus() *Status {
 		Services:  checkAllServices(),
 		Sites:     getSites(),
 		Timestamp: now.Format(time.RFC3339),
+		TunnelURL: currentTunnelURL(&http.Client{Timeout: 500 * time.Millisecond}, "http://cloudflared:20241"),
 		CacheAge:  "0s",
 	}
+	*statusCache = accessLinks(*statusCache)
 	statusCacheTime = now
 
 	return statusCache
+}
+
+// A Quick Tunnel's internal status endpoint disappears when its container stops.
+// Readiness prevents advertising a URL while it is still starting or disconnected.
+var quickTunnelHostname = regexp.MustCompile(`^(?:https://)?([a-zA-Z0-9-]+\.trycloudflare\.com)/?$`)
+
+func currentTunnelURL(client *http.Client, endpoint string) string {
+	ready, err := client.Get(endpoint + "/ready")
+	if err != nil {
+		return ""
+	}
+	ready.Body.Close()
+	if ready.StatusCode != http.StatusOK {
+		return ""
+	}
+	response, err := client.Get(endpoint + "/quicktunnel")
+	if err != nil {
+		return ""
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return ""
+	}
+	var tunnel struct {
+		Hostname string `json:"hostname"`
+	}
+	if json.NewDecoder(io.LimitReader(response.Body, 4096)).Decode(&tunnel) != nil {
+		return ""
+	}
+	matches := quickTunnelHostname.FindStringSubmatch(tunnel.Hostname)
+	if len(matches) != 2 {
+		return ""
+	}
+	return "https://" + matches[1]
+}
+
+// Keep access methods separate and leave the cached status unchanged.
+func accessLinks(status Status) Status {
+	status.Services = append([]Service(nil), status.Services...)
+	status.Sites = append([]Site(nil), status.Sites...)
+	for i := range status.Services {
+		service := &status.Services[i]
+		service.ProxyURL, service.TunnelURL = "", ""
+		if !service.HasUI || !service.Running {
+			continue
+		}
+		path := os.Getenv(strings.ToUpper(strings.ReplaceAll(service.Name, "-", "_")) + "_PROXY_PATH")
+		if path == "" {
+			path = service.Name
+		}
+		service.ProxyURL = "/proxy/" + strings.Trim(path, "/") + "/"
+		if service.Name == "novnc" {
+			service.ProxyURL += "vnc.html"
+			if !strings.HasSuffix(service.UIURL, "/vnc.html") {
+				service.UIURL = strings.TrimRight(service.UIURL, "/") + "/vnc.html"
+			}
+		}
+		if status.TunnelURL != "" {
+			service.TunnelURL = status.TunnelURL + service.ProxyURL
+		}
+	}
+	for i := range status.Sites {
+		site := &status.Sites[i]
+		dbName := strings.SplitN(site.Host, ".", 2)[0]
+		site.ProxyURL = "/proxy/" + dbName + "/"
+		site.TunnelURL = ""
+		if status.TunnelURL != "" {
+			site.TunnelURL = status.TunnelURL + site.ProxyURL
+		}
+	}
+	return status
 }
 
 // API handler for JSON status
@@ -263,213 +390,110 @@ const dashboardHTML = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Docker Dashboard</title>
-    <style>
-        :root {
-            --bg-color: #1a1a2e;
-            --card-bg: #16213e;
-            --text-color: #eee;
-            --accent-color: #0f3460;
-            --success-color: #00d26a;
-            --error-color: #e94560;
-            --link-color: #4da6ff;
-        }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2em;
-        }
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        .card h2 {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--accent-color);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .service-list, .site-list {
-            list-style: none;
-        }
-        .service-item, .site-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            margin: 5px 0;
-            background-color: var(--accent-color);
-            border-radius: 5px;
-        }
-        .service-name, .site-name {
-            font-weight: 500;
-        }
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .status-running {
-            background-color: var(--success-color);
-            color: #000;
-        }
-        .status-stopped {
-            background-color: var(--error-color);
-            color: #fff;
-        }
-        a {
-            color: var(--link-color);
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .ui-link {
-            margin-left: 10px;
-            font-size: 0.85em;
-        }
-        .site-link {
-            color: var(--link-color);
-        }
-        .meta-info {
-            text-align: center;
-            color: #666;
-            font-size: 0.85em;
-            margin-top: 20px;
-        }
-        .refresh-btn {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 30px;
-            background-color: var(--accent-color);
-            color: var(--text-color);
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-        }
-        .refresh-btn:hover {
-            background-color: #1a4980;
-        }
-        .api-links {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .api-links a {
-            margin: 0 10px;
-        }
-        .empty-message {
-            color: #888;
-            font-style: italic;
-            padding: 10px;
-        }
-        @media (max-width: 600px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <title>a Wikimedia CLI · Development dashboard</title>
+    <link rel="stylesheet" href="{{.BasePath}}/assets/tokens.css">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/tokens-dark.css" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/codex.style.css">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/codex-links.css">
+    <link rel="stylesheet" href="{{.BasePath}}/assets/app.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🐳 MWDD Dashboard</h1>
-        <p class="subtitle">MediaWiki Docker Development Environment Status</p>
-
-        <div class="api-links">
-            <a href="/api/status">API: Full Status</a>
-            <a href="/api/services">API: Services</a>
-            <a href="/api/sites">API: Sites</a>
+    <a class="cdx-link wm-skip-link" href="#main">Skip to content</a>
+    <header class="wm-header">
+        <span class="wm-brand">a Wikimedia CLI</span>
+        <span>Development environment</span>
+        {{if .BasePath}}<nav aria-label="Gateway"><a class="cdx-link" href="/_wm/logout">Sign out of the gateway</a></nav>{{end}}
+    </header>
+    <main id="main" class="wm-page wm-stack">
+        <div class="wm-page-heading">
+            <div>
+                <h1>Development dashboard</h1>
+                <p class="wm-description">MediaWiki and service status</p>
+            </div>
+            <form method="get" action="{{.BasePath}}/">
+                <button class="cdx-button cdx-button--action-progressive cdx-button--weight-normal" type="submit">Refresh</button>
+            </form>
         </div>
-
-        <div class="grid">
-            <div class="card">
-                <h2>📦 Services</h2>
-                <ul class="service-list" id="services">
+        <div class="cdx-message cdx-message--block {{if .TunnelURL}}cdx-message--success{{else}}cdx-message--notice{{end}}" aria-live="polite">
+            <span class="cdx-message__icon" aria-hidden="true"></span>
+            <div class="cdx-message__content">
+                {{if .TunnelURL}}
+                <strong>Tunnel connected</strong> · <a class="cdx-link" href="{{.TunnelURL}}/proxy/dashboard/" target="_blank" rel="noopener noreferrer">Open tunnel dashboard</a>
+                {{else}}
+                <strong>Tunnel not connected</strong> · Tunnel links appear when a connection is ready.
+                {{end}}
+            </div>
+        </div>
+        <p class="wm-description">Local opens the service hostname. Proxy uses this gateway. Tunnel uses the public HTTPS address. Some services need additional setup for Proxy and Tunnel access.</p>
+        <div class="wm-columns">
+            <section class="wm-section" aria-labelledby="services-heading">
+                <h2 id="services-heading">Services</h2>
+                <ul class="wm-card-list wm-card-list--services" id="services">
                     {{range .Services}}
-                    <li class="service-item">
-                        <span class="service-name">
-                            {{.Name}}
+                    <li class="cdx-card">
+                        <div class="cdx-card__text">
+                            <div class="cdx-card__text__title wm-item-heading">
+                                <span>{{.Name}}</span>
+                                <span class="cdx-info-chip {{if .Running}}cdx-info-chip--success{{else}}cdx-info-chip--notice{{end}}">
+                                    <span class="cdx-info-chip__icon" aria-hidden="true"></span>
+                                    <span class="cdx-info-chip__text">{{if .Running}}Running{{else}}Stopped{{end}}</span>
+                                </span>
+                            </div>
                             {{if and .Running .HasUI}}
-                            <a href="{{.UIURL}}" class="ui-link" target="_blank">🔗 Open UI</a>
+                            <div class="cdx-card__text__supporting-text wm-links" aria-label="Access {{.Name}}">
+                                <a href="{{.UIURL}}" class="cdx-link ui-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
+                                <a href="{{.ProxyURL}}" class="cdx-link ui-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
+                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="cdx-link ui-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
+                            </div>
                             {{end}}
-                        </span>
-                        <span class="status-badge {{if .Running}}status-running{{else}}status-stopped{{end}}">
-                            {{if .Running}}Running{{else}}Stopped{{end}}
-                        </span>
+                        </div>
                     </li>
                     {{else}}
-                    <li class="empty-message">No services configured</li>
+                    <li class="cdx-card"><span class="cdx-card__text">No services configured</span></li>
                     {{end}}
                 </ul>
-            </div>
-
-            <div class="card">
-                <h2>🌐 Installed Sites</h2>
-                <ul class="site-list" id="sites">
+            </section>
+            <section class="wm-section" aria-labelledby="sites-heading">
+                <h2 id="sites-heading">Installed Sites</h2>
+                <ul class="wm-card-list" id="sites">
                     {{range .Sites}}
-                    <li class="site-item">
-                        <span class="site-name">
-                            <a href="{{.URL}}" class="site-link" target="_blank">{{.Name}}</a>
-                        </span>
-                        <span style="color: #888; font-size: 0.85em;">{{.Host}}</span>
+                    <li class="cdx-card">
+                        <div class="cdx-card__text">
+                            <span class="cdx-card__text__title">{{.Name}}</span>
+                            <span class="cdx-card__text__description wm-host">{{.Host}}</span>
+                            <div class="cdx-card__text__supporting-text wm-links" aria-label="Access {{.Name}}">
+                                <a href="{{.URL}}" class="cdx-link site-link local-link" target="_blank" rel="noopener noreferrer">Local</a>
+                                <a href="{{.ProxyURL}}" class="cdx-link site-link proxy-link" target="_blank" rel="noopener noreferrer">Proxy</a>
+                                {{if .TunnelURL}}<a href="{{.TunnelURL}}" class="cdx-link site-link tunnel-link" target="_blank" rel="noopener noreferrer">Tunnel</a>{{end}}
+                            </div>
+                        </div>
                     </li>
                     {{else}}
-                    <li class="empty-message">No sites installed. Run: mw docker mediawiki install</li>
+                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw dev mediawiki install</code> to add your first site.</span></div></li>
                     {{end}}
                 </ul>
-            </div>
+            </section>
         </div>
-
-        <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
-
-        <p class="meta-info">
-            Last updated: {{.Timestamp}}<br>
-            Cache age: {{.CacheAge}} (cached for 5s)
-        </p>
-    </div>
-
-    <script>
-        // Auto-refresh every 30 seconds
-        setTimeout(() => location.reload(), 30000);
-    </script>
+        <footer class="wm-meta wm-stack wm-stack--compact">
+            <nav class="wm-links" aria-label="Dashboard APIs">
+                <a class="cdx-link" href="{{.BasePath}}/api/status">API: Full Status</a>
+                <a class="cdx-link" href="{{.BasePath}}/api/services">API: Services</a>
+                <a class="cdx-link" href="{{.BasePath}}/api/sites">API: Sites</a>
+            </nav>
+            <p>Last updated: {{.Timestamp}} · Cache age: {{.CacheAge}} (cached for 5s). Refreshes automatically every 30 seconds.</p>
+        </footer>
+    </main>
+    <script>setTimeout(() => location.reload(), 30000);</script>
 </body>
 </html>
 `
 
 // Dashboard handler
 func dashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/assets/") {
+		uiAssetHandler(w, r)
+		return
+	}
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -478,6 +502,8 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	status := getStatus()
 	response := *status
 	response.CacheAge = time.Since(statusCacheTime).Round(time.Millisecond).String()
+	response.BasePath = strings.TrimRight(r.Header.Get("X-Forwarded-Prefix"), "/")
+	response = accessLinks(response)
 
 	tmpl, err := template.New("dashboard").Parse(dashboardHTML)
 	if err != nil {
@@ -490,6 +516,28 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	if err := tmpl.Execute(w, response); err != nil {
 		log.Printf("Template execution error: %v", err)
 	}
+}
+
+// Serve only the shared UI styles, including when the dashboard is proxied.
+func uiAssetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	name := strings.TrimPrefix(r.URL.Path, "/assets/")
+	switch name {
+	case "tokens.css", "tokens-dark.css", "codex.style.css", "codex-links.css", "app.css":
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	directory := os.Getenv("MWCLI_UI_ASSETS")
+	if directory == "" {
+		directory = "/ui"
+	}
+	w.Header().Set("Cache-Control", "no-cache")
+	http.ServeFile(w, r, filepath.Join(directory, name))
 }
 
 // Health check endpoint
@@ -515,7 +563,7 @@ func main() {
 	http.HandleFunc("/api/sites", apiSitesHandler)
 	http.HandleFunc("/health", healthHandler)
 
-	log.Printf("MWDD Dashboard starting on port %s", listenPort)
+	log.Printf("Development dashboard starting on port %s", listenPort)
 	log.Printf("Dashboard: http://localhost:%s", listenPort)
 	log.Printf("API endpoints:")
 	log.Printf("  - GET /api/status   - Full status (services + sites)")

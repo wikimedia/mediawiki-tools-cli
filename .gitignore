@@ -11,4 +11,7 @@ coverage.html
 coverage.xml
 junit.xml
 .mediawiki
+/.cache/
 code-gen
+
+/_recordings/

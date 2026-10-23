@@ -1,161 +1,315 @@
 # CI
 
-Continuous integration for this project is currently split between Wikimedia Gitlab shared runners and custom mwcli runners.
+GitLab runs checks and builds on shared Wikimedia runners. Docker integration tests run in [GitHub Actions](https://github.com/wikimedia/mediawiki-tools-cli/actions/workflows/gitlab-integration.yml); One Cloud VPS job waits for their combined result.
 
-The shared runners are used where possible.
-The custom mwcli runners are used when docker in docker is needed (integration tests).
+## When CI runs
 
-This means that the FULL CI will NOT work for forks of this project, only for actual project branches.
+CI runs for MRs (including drafts), `main`, tags and weekly image updates. You can also start `main` pipelines through the UI or API. New commits cancel older interruptible jobs.
 
-## Custom runners
+MR pipelines test a temporary merge with the target branch. If the target advances, start a new pipeline; retries reuse the existing merge.
 
-There are currently 2 runners:
- - gitlab-runner-addshore-1016.mwcli.eqiad1.wikimedia.cloud
- - gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud
+## Caches and scheduling
 
-You can view the usage at https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&from=now-24h&to=now&timezone=utc&var-project=mwcli&var-instance=$__all
+`prepare-mediawiki` shares a clean snapshot with integration tests. It refreshes weekly or when preparation scripts change. Use GitLab's **Clear runner caches** to force a refresh.
 
-### Maintenance
+Preview release builds run alongside integration. Documentation builds and tagged releases wait for integration to pass.
 
-If the runner starts running out of space...
+## GitHub integration
 
-```sh
-sudo docker system prune -af
-sudo docker volume prune
+After checks, builds and MediaWiki preparation pass, `integration-github-request` starts [the GitHub workflow](.github/workflows/gitlab-integration.yml) with the pipeline's prepared inputs. No webhook is needed.
+
+Each test publishes a GitLab external status with a link to its GitHub log.
+The final report checks the actual `Integration (...) / Test` jobs against the
+expected GitLab test plan, including successful jobs from earlier rerun
+attempts. Missing or failed planned tests fail the result. It publishes
+`github/integration` only after every dependency of the final report succeeds. `integration-github` authenticates that overall result and
+blocks downstream jobs until it passes. The waiting service has no test list
+or expected test count.
+
+The GitLab pipeline uses one `integration-github-request` job and one
+`integration-github` waiting job, regardless of the number of tests. The request
+publishes its `INTEGRATION_TEST_PLAN` variable as `integration-plan.json`, then
+dispatches the GitHub workflow once. Define the complete plan in the GitLab CI
+configuration for the revision being tested:
+
+```yaml
+integration-github-request:
+    variables:
+      GIT_STRATEGY: none
+      INTEGRATION_TEST_PLAN: >-
+        [{"platform":"linux-amd64","test":"docker-general"},
+         {"platform":"linux-amd64","test":"all-databases"},
+         {"platform":"linux-amd64","test":"mysql-cycle"},
+         {"platform":"linux-amd64","test":"repoclient"},
+         {"platform":"windows-amd64","test":"windows-update"}]
 ```
 
-If this doesn't free up enough space the next step would be to nuke the registry container and volume and recreate it!
+Keep the request job's existing runner, artifact, script, rules and dependencies.
+The trusted GitHub controller reads the plan artifact from the successful request
+job and expands it into parallel GitHub tests. Each test publishes an external
+status with its log link. The single GitLab waiting job checks the authenticated
+overall result, which succeeds only when every requested test succeeds.
 
-### Initial Setup
+The executor supports `linux-amd64`, `linux-arm64`, `macos-arm64` and
+`windows-amd64`. Test names select `tests/test-<name>.sh` from the exact prepared
+GitLab revision. Historical Docker test aliases remain supported. Every runner
+downloads the same prepared artifact, checks out the exact source bundle, sets
+up Go, and invokes `tools/ci/run-github-integration.py` from that GitLab revision.
+That source helper owns platform preparation: Linux AMD64 restores the built
+binary and MediaWiki snapshot; other hosts build a native binary. Changes to
+preparation can therefore be made in the GitLab MR alongside the test.
+Adding an entry to the plan in a GitLab MR runs that MR's script without
+changing or merging another GitHub workflow. Only adding a new runner type requires an executor infrastructure
+update. Invalid platforms, unsafe names and missing planned results fail closed.
 
-#### Make a machine
+### Native platform workflows
 
-Make a VM, such as `gitlab-runner-addshore-1017.mwcli.eqiad1.wikimedia.cloud`
+Separate `gitlab-integration-<platform>.yml` workflows support `linux-arm64`,
+`macos-arm64`, and `windows-amd64`. They build and run tests from the exact
+GitLab source. The automated pipeline uses the generic matrix executor described above.
 
-#### Attach a volume
+Native dispatches require a successful project 16 job named
+`integration-github-<platform>-<test>-request`, supplied as `job_id` and
+`job_name`. The required `test` input selects a shell test from the GitLab
+source; results appear as `github/<platform>/<test>`. Preparation and reporting
+hold the callback credentials on separate runners from builds and tests.
 
-See https://wikitech.wikimedia.org/wiki/Help:Adding_Disk_Space_to_Cloud_VPS_instances
+### Credentials
 
-- Make a volume of 40GB for the instance
-- Attach a volume in the horizon UI
-- Run `sudo wmcs-prepare-cinder-volume` on the instance
-  - Select `/var/lib/docker` as the mount point
-  - Wait for the mount to be created
+Install the workflows and helpers on the official GitHub repository's `main` branch before using the bridge.
 
-#### Install docker
+| Credential | Permission | Storage | Expires (UTC) |
+| --- | --- | --- | --- |
+| `GITLAB_STATUS_TOKEN` | GitLab project 16, Maintainer, `api` | Official GitHub Actions secret | 2027-11-22 |
+| Result reader | GitLab project 16, Reporter, `read_api` | Cloud VMs: `/etc/gitlab-runner-wait/status-token`, root-only | 2027-11-22 |
+| GitHub dispatch token | Official repository, Actions read/write | Cloud VMs: `/etc/gitlab-runner-wait/github-token`, root-only | 2027-10-19 |
+| Waiting runner authentication | Accept and report assigned jobs | VM: `/etc/gitlab-runner-wait/config.toml`, root-only | No expiry configured |
 
-```sh
-sudo apt-get update
-sudo apt-get remove docker docker-engine docker.io containerd runc
-sudo apt-get --yes install \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
-curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo \
-  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-sudo apt-get install --yes docker-ce docker-ce-cli containerd.io
-```
-
-#### Authenticate to docker hub
-
-Grab a key from https://hub.docker.com/settings/security
-
-Perform a `docker login` with your username and they READ ONLY PUBLIC key you created.
-
-#### Install gitlab runner
+Create tokens in [GitLab settings](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens) or with the command below. Replace `YYYY-MM-DD` with an allowed expiry; record it above when rotating. For the reader, use a separate name, `access_level: 20` and `read_api`:
 
 ```sh
-curl -LJO "https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb"
-sudo dpkg -i gitlab-runner_amd64.deb
-rm gitlab-runner_amd64.deb
+mw gl api projects/16/access_tokens --hostname gitlab.wikimedia.org --method POST --input - <<'JSON'
+{"name":"mwcli native GitHub results","access_level":40,"scopes":["api"],"expires_at":"YYYY-MM-DD"}
+JSON
 ```
 
-#### Register the runner
-
-WARNING: Support for registration tokens and runner parameters in the 'register' command has been deprecated in GitLab Runner 15.6 and will be replaced with support for authentication tokens. For more information, see https://gitlab.com/gitlab-org/gitlab/-/issues/380872
+Save the writer token at the hidden prompt:
 
 ```sh
-sudo gitlab-runner register -n \
-  --url https://gitlab.wikimedia.org/ \
-  --registration-token XXXreleng-mwcli-tokenXXX \
-  --executor docker \
-  --limit 2 \
-  --name "gitlab-runner-addshore-1017-docker" \
-  --docker-image "docker:26.1.1" \
-  --docker-privileged \
-  --tag-list mwcli \
-  --docker-volumes "/certs/client"
+gh secret set GITLAB_STATUS_TOKEN --repo wikimedia/mediawiki-tools-cli
 ```
 
-Check it is registered @ https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings
+Keep the writer's returned `user_id` for [pool setup](#waiting-pools). Host tokens stay outside MR jobs; [masked CI variables remain readable by scripts](https://docs.gitlab.com/ci/variables/#cicd-variable-security). Root and privileged Docker jobs can access host tokens.
 
-#### Extra configuration
+Create a GitHub fine-grained token for `wikimedia/mediawiki-tools-cli` with **Actions: read and write**. Install it on both VMs below.
 
-##### Configure "global" runner jobs
+Enable **Pipelines must succeed** in GitLab's merge checks.
 
-Allow 2 jobs at once globally on this runner and restart gitlab runner.
-(Any more than this and things get slow, timeout, use too much storage, fail etc)
+Verify an MR pipeline's external results and waiting job, then test `main`:
 
 ```sh
-sudo sed -i 's/^concurrent =.*/concurrent = 2/' "/etc/gitlab-runner/config.toml"
-sudo systemctl restart gitlab-runner
+mw gl api projects/16/pipeline --hostname gitlab.wikimedia.org --method POST --raw-field ref=main
 ```
 
-##### Register local pull through cache / mirror
+### Waiting pools
 
-Reading:
- - https://about.gitlab.com/blog/2020/10/30/mitigating-the-impact-of-docker-hub-pull-requests-limits/
- - https://docs.docker.com/registry/recipes/mirror/#run-a-registry-as-a-pull-through-cache
+Each VM provides 50 slots tagged `mwcli-wait`, locked to this project. Services: `gitlab-runner-wait` (jobs) and `mwcli-wait-status` (dispatch and results).
 
-Create an authenticaed pull through cache / mirror (using docker)
-You can use the same username and password/key you used earlier
+Set `INSTANCE_NAME`, `INSTANCE_ID` and `SSH_USER` from the [inventory](#cloud-vps-workers), or [create a VM](#add-a-cloud-vps-worker). On a new VM, install packages:
 
 ```sh
-sudo docker run -d -p 6000:5000 \
-    -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
-    -e REGISTRY_PROXY_USERNAME=<TODO-USERNAME> \
-    -e REGISTRY_PROXY_PASSWORD=<TODO-PASSWORD/KEY> \
-    --restart always \
-    --name registry registry:2
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  --script tools/ci/runner.sh --sudo -- install
 ```
 
-Add the mirror (You might need to do this as root, not sudo...):
+On your workstation, create a runner (skip for existing pools):
 
 ```sh
-sudo mkdir /etc/docker
-# NOTE: If sudo doesn't work for the file change you may need to sudo su, and then run the echo as root...
-sudo echo "{\"registry-mirrors\": [\"http://"$(hostname --ip-address)":6000\"]}" > /etc/docker/daemon.json
-sudo service docker restart
+mw gl api user/runners --hostname gitlab.wikimedia.org --method POST \
+  --raw-field runner_type=project_type --field project_id=16 \
+  --raw-field description="${INSTANCE_NAME}-wait" --raw-field tag_list=mwcli-wait \
+  --field locked=true --field run_untagged=false --field maximum_timeout=3600
 ```
 
-Check with that a mirror appears in the info...
+Keep the returned `glrt-...` token for registration. From the repository root, copy files and connect:
 
 ```sh
-sudo docker system info
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  -- sudo install -d -m 0755 /opt/mwcli-wait
+
+tar -C tools/ci -cf - github_status.py wait-github.py wait-status.py \
+  wait-runner.toml gitlab-runner-wait.service mwcli-wait-status.service | \
+  mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+    --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+    -- sudo tar --no-same-owner -xf - -C /opt/mwcli-wait
+
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org --tty
 ```
 
-Also add the mirror for dind in `/etc/gitlab-runner/config.toml` to each runner it is needed for
-https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#enable-registry-mirror-for-dockerdind-service
-
-You can also tweak the pull_policy to fallback to "if-not-present".
+On the VM, enter a root shell:
 
 ```sh
-  [[runners.docker]]
-    pull_policy = ["always", "if-not-present"]
-    [[runners.docker.services]]
-      name = "docker:26.1.1-dind"
-      command = ["--registry-mirror", "http://172.16.5.159:6000"]
+sudo -i
+set +x
+umask 077
+install -d -m 0700 /etc/gitlab-runner-wait
+install -d -m 0750 /var/lib/gitlab-runner-wait
 ```
 
-And restart the gitlab runner service:
+Register once. **Skip for existing pools** to avoid duplicate entries.
 
 ```sh
-sudo systemctl restart gitlab-runner
+(set -o noclobber; printf 'concurrent = 50\ncheck_interval = 3\nshutdown_timeout = 30\n' > /etc/gitlab-runner-wait/config.toml) || exit 1
+read -rsp 'Waiting runner authentication token: ' runner_token; echo
+CI_SERVER_TOKEN="$runner_token" gitlab-runner register --non-interactive \
+  --config /etc/gitlab-runner-wait/config.toml \
+  --template-config /opt/mwcli-wait/wait-runner.toml \
+  --url https://gitlab.wikimedia.org --name "$(hostname -s)-wait" \
+  --executor docker --docker-image python:3.13-alpine
+unset runner_token
 ```
+
+In that root shell, save credentials and the writer bot's `user_id`. Skip unchanged credentials on existing VMs:
+
+```sh
+read -rsp 'GitLab read_api token: ' reader_token; echo
+printf '%s\n' "$reader_token" > /etc/gitlab-runner-wait/status-token
+unset reader_token
+read -rsp 'GitHub Actions dispatch token: ' dispatch_token; echo
+[[ -n $dispatch_token ]] || exit 1
+printf '%s\n' "$dispatch_token" > /etc/gitlab-runner-wait/github-token
+unset dispatch_token
+read -rp 'Writer bot user_id: ' writer_id
+[[ $writer_id =~ ^[1-9][0-9]*$ ]] || exit 1
+printf '{"bot_id":%s,"repository":"wikimedia/mediawiki-tools-cli"}\n' "$writer_id" > /etc/mwcli-wait-status.json
+chmod 0644 /etc/mwcli-wait-status.json
+```
+
+Install and start the services:
+
+```sh
+install -m 0644 /opt/mwcli-wait/*.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now mwcli-wait-status gitlab-runner-wait
+systemctl restart mwcli-wait-status
+gitlab-runner verify --config /etc/gitlab-runner-wait/config.toml
+systemctl status gitlab-runner-wait mwcli-wait-status
+```
+
+Verify an `integration-github` job receives results. The [registration template](tools/ci/wait-runner.toml) pins jobs to CPU 3; adjust for other hardware. Edit existing pools in `/etc/gitlab-runner-wait/config.toml`; the template applies only at registration.
+
+### Retries and recovery
+
+Use GitHub's **Re-run failed jobs** to repeat failed tests and automatically retry the GitLab waiting job. Retrying only the waiting job rechecks existing results. Start a new pipeline if inputs have expired (one day).
+
+For a missed dispatch, run **GitLab integration** in GitHub with project `16`, the successful request job ID and status `success`. Rerun failed reporting jobs to retry callbacks.
+
+## Cloud VPS workers
+
+Workers run in the `mwcli` Cloud VPS project.
+
+| Instance | OpenStack ID | Docker volume |
+| --- | --- | --- |
+| `gitlab-runner-addshore-1018` | `b4fe2ce4-1a42-4668-9d07-c9fb6be16fc9` | `mwcli-ci-0002` |
+| `gitlab-runner-addshore-1019` | `ea86a663-eee4-4ed7-9962-d7f339800b5c` | `mwcli-ci-0001` |
+
+Both VMs use Trixie, 4 CPUs, 8 GiB RAM, 20 GB root disks and 40 GiB Docker volumes at `/var/lib/docker`.
+
+[GitLab runner settings](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/ci_cd#js-runners-settings) · [Cloud VPS usage dashboard](https://grafana.wmcloud.org/d/0g9N-7pVz/cloud-vps-project-board?orgId=1&var-project=mwcli)
+
+## Add a Cloud VPS worker
+
+Run from the repository root in one Bash session. Skip resources that already exist.
+
+### 1. Authenticate
+
+Use an `mw` build with `cloudvps` commands; see [development builds](README.md#using-a-development-build).
+
+In [Horizon](https://horizon.wikimedia.org/), select `mwcli`, then **Identity → Application Credentials → Create Application Credential**. Save its ID and secret.
+
+```sh
+mw cloudvps auth add --project mwcli
+mw cloudvps auth check --project mwcli
+mw gitlab auth status --hostname gitlab.wikimedia.org
+```
+
+Skip `auth add` if configured. Use `mw gitlab auth login --hostname gitlab.wikimedia.org` if needed. Runner creation requires `create_runner`; editing requires `manage_runner`.
+
+Cloud VPS credentials are stored in an owner-only plaintext config. `--secret` also exposes them in shell history and process arguments.
+
+### 2. Create the VM and attach storage
+
+Check resources and choose unused names:
+
+```sh
+mw cloudvps compute list --project mwcli
+mw cloudvps volume list --project mwcli
+
+INSTANCE_NAME=gitlab-runner-addshore-1020
+VOLUME_NAME=mwcli-ci-0003
+SSH_USER=addshore
+```
+
+Set `SSH_USER` to your Wikimedia shell username. Check example IDs with `mw cloudvps image list`, `flavor list` and `network list`, each using `--project mwcli`. This example uses Debian 13, 4 CPUs and 8 GiB RAM.
+
+Create the VM:
+
+```sh
+INSTANCE_ID=$(mw cloudvps compute create "$INSTANCE_NAME" --project mwcli \
+  --image 09ac7914-8b26-41c2-b5ab-9c2319ca9e9b \
+  --flavor acdad2e5-6221-4f3c-ac17-ec6fa13bf523 \
+  --network d8a16ddf-c01f-4f22-8b67-8ed18b4b1b45 \
+  --security-group default --wait --output jq --format .id)
+```
+
+For fresh storage:
+
+```sh
+VOLUME_ID=$(mw cloudvps volume create "$VOLUME_NAME" --project mwcli \
+  --size 40 --wait --output jq --format .id)
+```
+
+For reused storage, skip creation and set `VOLUME_ID` to an **available** volume's ID. Its existing data will be preserved.
+
+```sh
+mw cloudvps volume attach "$VOLUME_ID" --project mwcli --server "$INSTANCE_ID" --wait
+```
+
+`--wait` does not wait for SSH or cloud-init. If creation fails, inspect existing resources before retrying to avoid duplicates.
+
+### 3. Prepare the volume
+
+From your workstation, prepare the volume and check its mount:
+
+```sh
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  --tty -- sudo wmcs-prepare-cinder-volume
+
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  -- findmnt /var/lib/docker
+```
+
+Mount the attached volume at `/var/lib/docker`. Preserve reused filesystems; stop if formatting is proposed. See [disk preparation](https://wikitech.wikimedia.org/wiki/Help:Adding_Disk_Space_to_Cloud_VPS_instances).
+
+Continue with [waiting-pool setup](#waiting-pools).
+
+## Maintenance
+
+Set `INSTANCE_ID` from the inventory and `SSH_USER` to your shell username:
+
+```sh
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  -- sudo systemctl status gitlab-runner-wait mwcli-wait-status
+
+mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
+  -- sudo journalctl -u mwcli-wait-status -n 30 --no-pager
+```
+
+For updates, repeat file copying and service installation from [pool setup](#waiting-pools). Preserve the runner config, token files and `/var/lib/mwcli-wait` dispatch records.

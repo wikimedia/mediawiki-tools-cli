@@ -33,6 +33,14 @@ type GerritConfig struct {
 type CloudVPSConfig struct {
 	DefaultProject string                     `koanf:"default_project" json:"default_project"`
 	Projects       map[string]CloudVPSProject `koanf:"projects" json:"projects"`
+	SSH            CloudVPSSSHConfig          `koanf:"ssh" json:"ssh"`
+}
+
+// CloudVPSSSHConfig supplies defaults without requiring OpenStack credentials.
+type CloudVPSSSHConfig struct {
+	User     string `koanf:"user" json:"user"`
+	JumpHost string `koanf:"jump_host" json:"jump_host"`
+	Region   string `koanf:"region" json:"region"`
 }
 
 type CloudVPSProject struct {

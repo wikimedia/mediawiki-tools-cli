@@ -10,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
@@ -32,7 +33,7 @@ quip --link`),
 			c := http.Client{}
 			req = req.WithContext(ctx)
 
-			req.Header.Set("User-Agent", "mwcli quip")
+			req.Header.Set("User-Agent", cli.HTTPUserAgent)
 			res, err := c.Do(req)
 			if err != nil {
 				return fmt.Errorf("request quip: %w", err)

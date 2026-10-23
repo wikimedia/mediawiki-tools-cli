@@ -1,6 +1,6 @@
 # image-update
 
-This tool is intended to make updating container images that are used in mwcli much easier.
+Check and update container image references used by the development environment.
 
 Data about currently used container images is stored in `data.yml`.
 
@@ -12,7 +12,9 @@ You can check all images for tags that look newer:
 go run ./tools/image-update/check/check.go
 ```
 
-If updates are possible `check.go` will output commands that can be used to update the images throughout mwcli.
+If updates are available, `check.go` prints commands to update image references. It reads Docker Hub, Wikimedia and Quay tag listings, follows registry pagination, and selects the highest matching version. `requireRegex` matches the whole tag; use it to preserve a release family or runtime version. Shellbox variants must share a build timestamp.
+
+Failed registry checks are reported separately and return a nonzero exit code. Generated command files are refreshed on every check so old proposals are not reused. Review the proposed changes before applying them; this tool does not validate application compatibility.
 
 Those commands will use `update.go`, and look something like this:
 
@@ -32,4 +34,4 @@ These commands are also written to a file for convenience...
 tools/image-update/.update.sh
 ```
 
-In the future the desire would be for this to run in CI and make MRs where easily possible...
+The weekly GitLab pipeline uses the generated matrix to open image update MRs.

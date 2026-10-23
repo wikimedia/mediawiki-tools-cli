@@ -10,7 +10,7 @@ services:
       - query-service-data:/wdqs/data
     depends_on:
       - dps
-      - nginx-proxy
+      - traefik
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:

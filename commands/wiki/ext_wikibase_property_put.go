@@ -7,6 +7,7 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
@@ -46,7 +47,7 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 				return
 			}
 
-			w, err := mwclient.New(normalizeWiki(wiki), "mwcli")
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
 				panic(err)
 			}
@@ -76,7 +77,7 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&summary, "summary", "mwcli wikibase property put", "Summary of the edit")
+	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+": Wikibase property update", "Summary of the edit")
 	cmd.Flags().StringVar(&label, "label", "text", "English label for the property")
 	cmd.Flags().StringVar(&datatype, "datatype", "string", "Property datatype")
 	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")

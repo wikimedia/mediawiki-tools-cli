@@ -63,16 +63,20 @@ func replaceInDirectory(dirPath string, find string, replace string) {
 func replaceInFile(filePath string, find string, replace string) {
 	fileContent, err := os.ReadFile(filepath.Clean(filePath))
 	if err != nil {
-		logrus.Printf("os.ReadFile err   #%v ", err)
+		logrus.Fatalf("read %s: %v", filePath, err)
 	}
 
 	text := string(fileContent)
 	newText := strings.ReplaceAll(text, find, replace)
 
 	if text != newText {
-		err := os.WriteFile(filePath, []byte(newText), 0o755) // #nosec G306,G703 -- filePath comes from repository-maintained image update metadata.
+		info, err := os.Stat(filePath)
 		if err != nil {
-			logrus.Printf("ioutil.WriteFile err   #%v ", err)
+			logrus.Fatalf("stat %s: %v", filePath, err)
+		}
+		err = os.WriteFile(filePath, []byte(newText), info.Mode().Perm()) // #nosec G703 -- filePath comes from repository-maintained image update metadata.
+		if err != nil {
+			logrus.Fatalf("write %s: %v", filePath, err)
 		}
 		fmt.Println("Updated " + filePath)
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// FullCommandString for example "mw docker redis exec".
+// FullCommandString for example "mw dev redis exec".
 func FullCommandString(cmd *cobra.Command) string {
 	s := cmd.Name()
 	for cmd.HasParent() {
@@ -54,7 +54,7 @@ func FullCommandStringWithoutPrefix(cmd *cobra.Command, prefix string) string {
 }
 
 // CommandIsSubCommandOfString detects if a command is a subcommand of a given command string.
-// Example: CommandIsSubCommandOfString(cmd, "mw docker env") returns true if cmd is a subcommand of docker env command.
+// Example: CommandIsSubCommandOfString(cmd, "mw dev env") returns true if cmd is a subcommand of the dev env command.
 func CommandIsSubCommandOfString(cmd *cobra.Command, cmdString string) bool {
 	fullCommandStrings := FullCommandStrings(cmd)
 

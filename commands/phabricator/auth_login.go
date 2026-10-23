@@ -89,7 +89,7 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 			}
 
 			cmd.Printf("Saved credentials for site %q\n", siteName)
-			cmd.Printf("Tip: if a legacy phab.cfg exists, it takes precedence over mwcli config.\n")
+			cmd.Printf("Tip: if a legacy phab.cfg exists, it takes precedence over CLI config.\n")
 			return nil
 		},
 	}

@@ -30,6 +30,35 @@ test_command_success ./bin/mw output
 test_command_success ./bin/mw gitlab
 test_command_success ./bin/mw gitlab alias list
 
+# cloudvps ssh: exercise command parsing and exit status without keys or network.
+SSH_TEST_DIR=$(mktemp -d)
+cat > "$SSH_TEST_DIR/ssh" <<'SSH_FIXTURE'
+#!/bin/sh
+for arg in "$@"; do
+    if [ "$arg" = "-G" ]; then
+        printf '%s\n' 'user developer' 'proxyjump none' 'connecttimeout none'
+        exit 0
+    fi
+done
+printf '%s\n' "$@"
+exit "${MWCLI_TEST_SSH_EXIT_STATUS:-0}"
+SSH_FIXTURE
+chmod +x "$SSH_TEST_DIR/ssh"
+test_command env PATH="$SSH_TEST_DIR:$PATH" ./bin/mw --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 --dry-run "developer@bastion.wmcloud.org"
+test_command env PATH="$SSH_TEST_DIR:$PATH" ./bin/mw --no-interaction cloudvps connect --project project --name vm --user developer --region eqiad1 --dry-run "vm.project.eqiad1.wikimedia.cloud"
+test_command env PATH="$SSH_TEST_DIR:$PATH" ./bin/mw --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 -- printf '%s' 'two words' "'printf' '%s' 'two words'"
+if env PATH="$SSH_TEST_DIR:$PATH" MWCLI_TEST_SSH_EXIT_STATUS=42 ./bin/mw --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 -- false; then
+    echo "FAIL: cloudvps ssh did not propagate the remote exit status"
+    exit 1
+else
+    SSH_TEST_STATUS=$?
+    if [ "$SSH_TEST_STATUS" -ne 42 ]; then
+        echo "FAIL: cloudvps ssh returned $SSH_TEST_STATUS, expected 42"
+        exit 1
+    fi
+fi
+rm -rf "$SSH_TEST_DIR"
+
 # update: Test with local file copy (actually exercises file replacement logic)
 # Create a temporary directory for test binary
 TEST_BINARY_DIR=$(mktemp -d)
@@ -45,3 +74,6 @@ test_command_success ./bin/mw update -vv --version "$TEST_BINARY_PATH" --no-inte
 if [ -z "$CI" ] && [ -z "$GITLAB_CI" ]; then
 	rm -rf "$TEST_BINARY_DIR"
 fi
+
+# Source updates must work offline without invoking Docker.
+bash "$SCRIPT_DIR/test-mediawiki-update-code.sh" "$PWD/bin/mw"

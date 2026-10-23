@@ -15,6 +15,8 @@ import (
 )
 
 type ExecOptions struct {
+	// Output receives the combined TTY stream; nil uses os.Stdout.
+	Output     io.Writer
 	Command    []string
 	Env        []string
 	WorkingDir string
@@ -24,6 +26,7 @@ type ExecOptions struct {
 func Exec(containerID string, command ExecOptions) (ExitCode int) {
 	ctx := context.Background()
 	cli := NewClientFromEnvOrPanic()
+	defer cli.Close()
 
 	execConfig := container.ExecOptions{
 		AttachStderr: true,
@@ -58,6 +61,7 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 		fmt.Println(err)
 		return 1
 	}
+	defer waiter.Close()
 
 	if execConfig.Tty {
 		if err := monitorTtySize(ctx, cli, execID, true); err != nil {
@@ -68,7 +72,15 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 
 	// When TTY is ON, just copy stdout https://phabricator.wikimedia.org/T282340
 	// See: https://github.com/docker/cli/blob/70a00157f161b109be77cd4f30ce0662bfe8cc32/cli/command/container/hijack.go#L121-L130
-	go io.Copy(os.Stdout, waiter.Reader)
+	output := command.Output
+	if output == nil {
+		output = os.Stdout
+	}
+	outputDone := make(chan error, 1)
+	go func() {
+		_, err := io.Copy(output, waiter.Reader)
+		outputDone <- err
+	}()
 	go io.Copy(waiter.Conn, os.Stdin)
 
 	fd := int(os.Stdin.Fd())
@@ -86,6 +98,12 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 		}
 
 		if !resp.Running {
+			// Process exit can be reported before the attached output has arrived.
+			// Drain that output before callers can exit or close their stdout pipe.
+			if err := <-outputDone; err != nil {
+				fmt.Fprintln(os.Stderr, "Error reading Docker exec output:", err)
+				return 1
+			}
 			return resp.ExitCode
 		}
 	}

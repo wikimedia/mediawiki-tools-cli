@@ -1,15 +1,10 @@
 package cloudvps
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -21,6 +16,8 @@ func NewComputeCmd() *cobra.Command {
 
 	cmd.AddCommand(NewComputeListCmd())
 	cmd.AddCommand(NewComputeGetCmd())
+	cmd.AddCommand(NewComputeCreateCmd())
+	cmd.AddCommand(NewComputeSSHCmd())
 
 	return cmd
 }
@@ -55,51 +52,24 @@ func NewComputeListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List compute resources",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			project, _ := cmd.Flags().GetString("project")
-			if project == "" {
-				c := config.State()
-				project = c.Effective.CloudVPS.DefaultProject
-				if project == "" {
-					return fmt.Errorf("project is required")
-				}
-			}
-
-			c := config.State()
-			// make sure the project exists
-			_, exists := c.Effective.CloudVPS.Projects[project]
-			if !exists {
-				return fmt.Errorf("project not found: %s", project)
-			}
-			credentials := c.Effective.CloudVPS.Projects[project].Credential
-			logrus.Tracef("Using credentials for project %s", project)
-
-			auth := gophercloud.AuthOptions{
-				IdentityEndpoint:            authUrl,
-				ApplicationCredentialID:     credentials.ID,
-				ApplicationCredentialSecret: credentials.Secret,
-				DomainID:                    "default",
-				AllowReauth:                 true,
-			}
-
-			providerClient, err := openstack.AuthenticatedClient(context.Background(), auth)
+			providerClient, err := authenticatedProvider(cmd)
 			if err != nil {
-				panic(err)
+				return err
 			}
-
 			computeClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{})
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			// List all servers
-			allPages, err := servers.List(computeClient, servers.ListOpts{}).AllPages(context.Background())
+			allPages, err := servers.List(computeClient, servers.ListOpts{}).AllPages(cmd.Context())
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			allServers, err := servers.ExtractServers(allPages)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			objects := make(map[interface{}]interface{}, len(allServers))

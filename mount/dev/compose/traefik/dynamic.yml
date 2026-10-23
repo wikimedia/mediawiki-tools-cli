@@ -1,0 +1,48 @@
+http:
+  routers:
+    dashboard-host:
+      # Compose passes the CSV setting through to Traefik's file template.
+      rule: '({{ range $index, $host := splitList "," (env "DASHBOARD_VIRTUAL_HOST") }}{{ if $index }} || {{ end }}Host({{ printf "%q" (trim $host) }}){{ end }} || Host(`proxy.local.wmftest.net`)) && !PathPrefix(`/proxy/`)'
+      entryPoints:
+        - web
+      service: dashboard@docker
+    gateway-login:
+      rule: Path(`/_wm/login`) || Path(`/_wm/logout`) || Path(`/_wm/login-link`) || PathPrefix(`/_wm/assets/`) || Path(`/_mwcli/login`) || Path(`/_mwcli/logout`) || Path(`/_mwcli/login-link`) || PathPrefix(`/_mwcli/assets/`)
+      priority: 1000
+      entryPoints:
+        - web
+      service: gateway-login
+  services:
+    gateway-login:
+      loadBalancer:
+        servers:
+          - url: http://gateway-auth:8080
+  middlewares:
+    gateway-auth:
+      forwardAuth:
+        address: http://gateway-auth:8080/check
+        trustForwardHeader: true
+        preserveLocationHeader: true
+        maxResponseBodySize: 8192
+        authRequestHeaders:
+          - Authorization
+          - Cookie
+          - Accept
+          # Preserve the browser's HTTPS origin behind a TLS-terminating tunnel.
+          - X-Forwarded-Proto
+        authResponseHeaders:
+          - Authorization
+    dashboard-prefix:
+      stripPrefix:
+        prefixes:
+          - /proxy/dashboard
+    wiki-prefix:
+      stripPrefixRegex:
+        regex:
+          - "^/proxy/[^/]+"
+    forwarded-https:
+      # Keep the middleware name for existing service labels. Traefik preserves
+      # HTTPS forwarded by Cloudflare/public proxies and uses HTTP for a local
+      # Holesail client. Forcing HTTPS here breaks local links and redirects.
+      chain:
+        middlewares: []

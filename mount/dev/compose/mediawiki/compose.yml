@@ -6,9 +6,11 @@ services:
     security_opt:
       - label:disable
     restart: unless-stopped
-    entrypoint: "/mwdd/entrypoint.sh"
+    entrypoint: "/wm-dev/entrypoint.sh"
     volumes:
       - ./compose/mediawiki/mount/wait-for-it.sh:/wait-for-it.sh:ro
+      - ./compose/mediawiki/mount/mediawiki:/wm-dev:ro
+      # Compatibility for existing LocalSettings.php files.
       - ./compose/mediawiki/mount/mediawiki:/mwdd:ro
       - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
       - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
@@ -17,6 +19,8 @@ services:
       - "${MEDIAWIKI_VOLUMES_DOT_COMPOSER:-mediawiki-dot-composer}:/.composer:delegated"
     environment:
       - MW_DB_DEFAULT=${MEDIAWIKI_DEFAULT_DBNAME:-default}
+      - MW_DB_DEFAULT_HOSTS=mediawiki-web,${MEDIAWIKI_DEFAULT_HOSTS:-}
+      - MW_DB_DEFAULT_HTTPS_HOSTS=${MEDIAWIKI_DEFAULT_HTTPS_HOSTS:-}
       # MW_INSTALL_PATH is used by various maintenance scripts to find MediaWiki.
       # Also required for /var/www/index.php - https://phabricator.wikimedia.org/T153882
       - MW_INSTALL_PATH=/var/www/html/w
@@ -34,6 +38,23 @@ services:
 
   mediawiki-web:
     image: "${MEDIAWIKI_WEB_IMAGE:-docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wiki.rule=PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.wiki.priority=10"
+      - "traefik.http.routers.wiki.entrypoints=web"
+      - "traefik.http.routers.wiki.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},wiki-prefix@file"
+      - "traefik.http.services.wiki.loadbalancer.server.port=${MEDIAWIKI_VIRTUAL_PORT:-8080}"
+      - "traefik.http.routers.wiki-local.rule=HostRegexp(`^[a-z0-9-]+\\.mediawiki\\.local\\.wmftest\\.net$`) && PathPrefix(`/`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.wiki-local.priority=5"
+      - "traefik.http.routers.wiki-local.entrypoints=web"
+      - "traefik.http.routers.wiki-local.service=wiki"
+      - "traefik.http.routers.wiki-host.rule=PathPrefix(`/`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.wiki-host.priority=1"
+      - "traefik.http.routers.wiki-host.entrypoints=web"
+      - "traefik.http.routers.wiki-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},default-wiki@docker"
+      - "traefik.http.middlewares.default-wiki.headers.customrequestheaders.X-Mwcli-Default-Wiki=1"
+      - "traefik.http.routers.wiki-host.service=wiki"
     security_opt:
       - label:disable
     restart: unless-stopped
@@ -42,11 +63,11 @@ services:
       - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
       - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
     environment:
-      - VIRTUAL_HOST=*.mediawiki.local.wmftest.net
-      - VIRTUAL_PORT=8080
+      - VIRTUAL_HOST=${MEDIAWIKI_VIRTUAL_HOSTS:-*.mediawiki.local.wmftest.net}
+      - VIRTUAL_PORT=${MEDIAWIKI_VIRTUAL_PORT:-8080}
       - DEFAULT_EXPOSE_PORT=8080
     depends_on:
-      - nginx-proxy
+      - traefik
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:

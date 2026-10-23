@@ -7,12 +7,19 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 )
 
 func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 	return []func(*cobra.Command, string) *issue.Issue{
+		detectLongHelp,
+		detectLongExamples,
+		detectLongHelpRequired,
+		detectPositionalArgsValidated,
+		detectFlagNames,
+		detectFlagHelp,
 		// short-required: Short description is always required
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
 			if len(theCmd.Short) == 0 {
@@ -28,7 +35,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 		// examples-required-when-flagged-lowlevel: Low level commands with flags require at least one example
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
 			if len(theCmd.Commands()) == 0 && /*No sub commands*/
-				theCmd.Flags().HasFlags() && /*At least one flag*/
+				hasLocalFlags(theCmd) && /*At least one local flag*/
 				len(stringsutil.SplitMultiline(theCmd.Example)) <= 0 /*No example lines*/ {
 				return &issue.Issue{
 					Target: "cmd: " + cmdStirng,
@@ -70,6 +77,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 				"group",
 				"mwcli-lint-skip",
 				"mwcli-lint-skip-children",
+				"mwcli-docs-skip-children",
 			}
 			// TODO check all annotaitons and issue for each
 			for key := range theCmd.Annotations {
@@ -124,6 +132,68 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 	}
 }
 
+// detectFlagNames suggests lowercase flag names with hyphen-separated words.
+func detectFlagNames(cmd *cobra.Command, path string) *issue.Issue {
+	for _, flags := range []*pflag.FlagSet{cmd.LocalNonPersistentFlags(), cmd.PersistentFlags()} {
+		var badNames []string
+		flags.VisitAll(func(flag *pflag.Flag) {
+			if !isKebabFlagName(flag.Name) {
+				badNames = append(badNames, "--"+flag.Name)
+			}
+		})
+		if len(badNames) > 0 {
+			return &issue.Issue{
+				Target: "cmd: " + path, Level: issue.SuggestLevel, Code: "flag-name-style",
+				Text:    "Use lowercase, hyphen-separated flag names",
+				Context: strings.Join(badNames, ", "),
+			}
+		}
+	}
+	return nil
+}
+
+func isKebabFlagName(name string) bool {
+	if name == "" || name[0] < 'a' || name[0] > 'z' {
+		return false
+	}
+	previousHyphen := false
+	for i := 1; i < len(name); i++ {
+		char := name[i]
+		if char == '-' {
+			if previousHyphen || i == len(name)-1 {
+				return false
+			}
+			previousHyphen = true
+			continue
+		}
+		if (char < 'a' || char > 'z') && (char < '0' || char > '9') {
+			return false
+		}
+		previousHyphen = false
+	}
+	return true
+}
+
+// detectFlagHelp warns when a local flag has no description for --help output.
+func detectFlagHelp(cmd *cobra.Command, path string) *issue.Issue {
+	for _, flags := range []*pflag.FlagSet{cmd.LocalNonPersistentFlags(), cmd.PersistentFlags()} {
+		var undocumented []string
+		flags.VisitAll(func(flag *pflag.Flag) {
+			if strings.TrimSpace(flag.Usage) == "" {
+				undocumented = append(undocumented, "--"+flag.Name)
+			}
+		})
+		if len(undocumented) > 0 {
+			return &issue.Issue{
+				Target: "cmd: " + path, Level: issue.WarningLevel, Code: "flag-help-required",
+				Text:    "Add help text for every flag",
+				Context: strings.Join(undocumented, ", "),
+			}
+		}
+	}
+	return nil
+}
+
 func detectCobraCommandIssues(theCmd *cobra.Command, cmdString string) []issue.Issue {
 	issues := []issue.Issue{}
 	for _, detector := range cobraCommandDetectorList() {
@@ -144,11 +214,84 @@ func detectCobraCommandIssuesRecursively(theCmd *cobra.Command, parentNamePrefix
 	}
 
 	if len(theCmd.Annotations["mwcli-lint-skip-children"]) == 0 {
+		issues = append(issues, detectSiblingCommandNameCollisions(theCmd, theCmdName)...)
 		for _, nextCmd := range theCmd.Commands() {
 			issues = append(issues, detectCobraCommandIssuesRecursively(nextCmd, theCmdName+" ")...)
 		}
 	}
 
+	return issues
+}
+
+// detectLongHelpRequired suggests long help for executable leaf commands whose
+// flags or positional arguments need more explanation than a one-line summary.
+func detectLongHelpRequired(cmd *cobra.Command, path string) *issue.Issue {
+	if len(cmd.Commands()) != 0 || (cmd.Run == nil && cmd.RunE == nil) || strings.TrimSpace(cmd.Long) != "" {
+		return nil
+	}
+	if !hasLocalFlags(cmd) && !useHasPositionalArgs(cmd.Use) {
+		return nil
+	}
+	return &issue.Issue{
+		Target: "cmd: " + path, Level: issue.SuggestLevel, Code: "long-help-required",
+		Text: "Add long help to explain arguments, flags, and behavior",
+	}
+}
+
+func hasLocalFlags(cmd *cobra.Command) bool {
+	return cmd.LocalNonPersistentFlags().HasFlags() || cmd.PersistentFlags().HasFlags()
+}
+
+// detectPositionalArgsValidated warns when Use documents positional arguments
+// but Cobra is not configured to reject missing or unexpected arguments.
+func detectPositionalArgsValidated(cmd *cobra.Command, path string) *issue.Issue {
+	if (cmd.Run == nil && cmd.RunE == nil) || cmd.DisableFlagParsing || cmd.Args != nil || !useHasPositionalArgs(cmd.Use) {
+		return nil
+	}
+	return &issue.Issue{
+		Target: "cmd: " + path, Level: issue.WarningLevel, Code: "positional-args-unvalidated",
+		Text: "Add a Cobra Args validator so invalid positional arguments fail with usage",
+	}
+}
+
+func useHasPositionalArgs(use string) bool {
+	fields := strings.Fields(use)
+	if len(fields) < 2 {
+		return false
+	}
+	for _, field := range fields[1:] {
+		if field == "[flags]" || field == "--" {
+			continue
+		}
+		argument := strings.Trim(field, "[]<>{}")
+		if strings.HasPrefix(argument, "-") {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// detectSiblingCommandNameCollisions reports names or aliases that shadow a
+// sibling command name or alias and make command lookup ambiguous.
+func detectSiblingCommandNameCollisions(parent *cobra.Command, parentPath string) []issue.Issue {
+	owners := map[string]*cobra.Command{}
+	var issues []issue.Issue
+	for _, child := range parent.Commands() {
+		names := append([]string{child.Name()}, child.Aliases...)
+		for _, name := range names {
+			if previous, ok := owners[name]; ok && previous != child {
+				issues = append(issues, issue.Issue{
+					Target: "cmd: " + parentPath + " " + child.Name(), Level: issue.ErrorLevel,
+					Code:    "command-name-collision",
+					Text:    "Command names and aliases must be unique among siblings",
+					Context: name + " is also used by " + parentPath + " " + previous.Name(),
+				})
+				continue
+			}
+			owners[name] = child
+		}
+	}
 	return issues
 }
 

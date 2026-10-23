@@ -1,7 +1,7 @@
 images: 
   # docker dev env: Base services
   - image: defreitas/dns-proxy-server:5.9.0
-  - image: jwilder/nginx-proxy:0.10
+    requireRegex: ^5\.\d+\.\d+$
   # docker dev env: MediaWiki related services
   - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.20.2
   - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s3
@@ -27,18 +27,18 @@ images:
     requireRegex: v1\.\d+(\.\d+)?
   - image: memcached:1.6
     requireRegex: 1\.\d+$
-  - image: redis:8.6.4
-    requireRegex: 6\.\d+$
-  - image: quay.io/keycloak/keycloak:18.0.0
+  - image: redis:8.6.7
+    requireRegex: ^8\.6\.\d+$
+  - image: quay.io/keycloak/keycloak:18.0.2
     requireRegex: 18\.\d+\.\d+
-  - image: graphiteapp/graphite-statsd:1.1.10-4
+  - image: graphiteapp/graphite-statsd:1.1.10-5
     requireRegex: 1\.\d+\.\d+(\-\d+)
   - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-12
   # docker dev env: Other stuff
-  - image: alpine/socat:1.7.4.4-r0
+  - image: alpine/socat:1.8.1.3
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
   # docker dev env: Regularly released WMF production images
-  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.31.0
+  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.33.0
   # Latest images...
   - image: ubuntu:latest
     noCheck: true
@@ -58,17 +58,18 @@ imageGroups:
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-21-154428-media83
-        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-media
+        requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-media83$
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-21-154428-php-rpc83
-        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc
+        requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc83$
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-21-154428-score83
-        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-score
+        requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-score83$
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-21-154428-syntaxhighlight83
-        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight
+        requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight83$
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-21-154428-timeline83
-        requireRegex: \d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline
+        requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline83$
 # Files and directories to check
-files:
 directories:
   - mount/dev
   - .gitlab/pipelines
+files:
+  - internal/devenv/cmd.go

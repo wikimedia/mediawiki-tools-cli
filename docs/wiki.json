@@ -1,0 +1,155 @@
+{
+  "api": "https://www.mediawiki.org/w/api.php",
+  "page_url": "https://www.mediawiki.org/wiki",
+  "reference_root": "Cli/ref",
+  "legacy_publisher": "Addbot",
+  "legacy_summary": "Pushing auto generated docs for mwcli from cobra",
+  "guides": [
+    {
+      "source": "guides/tools/kubernetes-pod-helloworld.md",
+      "title": "Cli/guide/Toolforge Kubernetes"
+    },
+    {
+      "source": "guides/installation.md",
+      "title": "Cli/guide/Installation"
+    },
+    {
+      "source": "guides/updating.md",
+      "title": "Cli/guide/Update"
+    },
+    {
+      "source": "guides/analytics/pageviews.md",
+      "title": "Cli/guide/Pageviews"
+    },
+    {
+      "source": "guides/dev/setup.md",
+      "title": "Cli/guide/Docker-Development-Environment/First-Setup"
+    },
+    {
+      "source": "index.md",
+      "title": "Cli/guide"
+    },
+    {
+      "source": "guides/dev/gateway.md",
+      "title": "Cli/guide/Gateway"
+    },
+    {
+      "source": "guides/dev/services.md",
+      "title": "Cli/guide/Docker-Development-Environment/Service_Interaction"
+    },
+    {
+      "source": "guides/dev/logs.md",
+      "title": "Cli/guide/Local log browsing"
+    },
+    {
+      "source": "guides/dev/dockerfiles.md",
+      "title": "Cli/guide/Custom Dockerfiles"
+    },
+    {
+      "source": "guides/dev/custom-services.md",
+      "title": "Cli/guide/Docker-Development-Environment/Custom services"
+    },
+    {
+      "source": "guides/dev/configuration.md",
+      "title": "Cli/guide/Docker-Development-Environment/LocalSettings.php"
+    },
+    {
+      "source": "guides/dev/keycloak.md",
+      "title": "Cli/guide/Docker-Development-Environment/Keycloak"
+    },
+    {
+      "source": "guides/dev/extension-workflow.md",
+      "title": "Cli/guide/Docker-Development-Environment/Extension workflow"
+    },
+    {
+      "source": "guides/dev/mediawiki.md",
+      "title": "Cli/guide/Docker-Development-Environment/MediaWiki"
+    },
+    {
+      "source": "guides/dev/update-code.md",
+      "title": "Cli/guide/Docker-Development-Environment/Update code"
+    },
+    {
+      "source": "guides/dev/databases.md",
+      "title": "Cli/guide/Docker-Development-Environment/Databases"
+    },
+    {
+      "source": "guides/gitlab/index.md",
+      "title": "Cli/guide/Gitlab"
+    },
+    {
+      "source": "guides/dev/contexts.md",
+      "title": "Cli/guide/Contexts"
+    },
+    {
+      "source": "guides/dev/ports.md",
+      "title": "Cli/guide/Ports"
+    },
+    {
+      "source": "guides/dev/mysql-dumps.md",
+      "title": "Cli/guide/MySQL dumps"
+    },
+    {
+      "source": "guides/dev/xdebug.md",
+      "title": "Cli/guide/Xdebug"
+    },
+    {
+      "source": "guides/dev/fresh.md",
+      "title": "Cli/guide/Fresh"
+    },
+    {
+      "source": "guides/dev/troubleshooting.md",
+      "title": "Cli/FAQ"
+    },
+    {
+      "source": "guides/wiki/files.md",
+      "title": "Cli/guide/Upload files"
+    }
+  ],
+  "reviewed": {
+    "Cli/FAQ": {
+      "revision": 8232967,
+      "sha256": "80c6cc94cd0845aa4472ac907d5bad88d3f8fde4b12c8f7649e4ed7395f8b16e"
+    },
+    "Cli/guide": {
+      "revision": 5222832,
+      "sha256": "5405ad0e06a5d8fb43849ae38f3723ccb323e1fdad46cbb8b5c44f4be1b282af"
+    },
+    "Cli/guide/Docker-Development-Environment/Databases": {
+      "revision": 5181886,
+      "sha256": "631eef7f199e2ced361cfdddf895bb3abc9c840ddc4cc0fe9678b6a2ea41ce3e"
+    },
+    "Cli/guide/Docker-Development-Environment/First-Setup": {
+      "revision": 8232981,
+      "sha256": "7d4488cc743e68560ed163f0fff9da3492e96d0247034ce9d076ba8162369e46"
+    },
+    "Cli/guide/Docker-Development-Environment/LocalSettings.php": {
+      "revision": 5181877,
+      "sha256": "8070cae4f16a3a431f7f729079d8f98f5b75b046b1e0284116b527bf5722f8a9"
+    },
+    "Cli/guide/Docker-Development-Environment/MediaWiki": {
+      "revision": 8308003,
+      "sha256": "001d42d6bc4302c1b15972ebf351fd5f854ba50cd00d11c0007d9579e7ab4029"
+    },
+    "Cli/guide/Docker-Development-Environment/Service_Interaction": {
+      "revision": 5406037,
+      "sha256": "5ea6fe07d3d7893e453ce9d037a18ddfdd913193c610440d7927168eacc903f8"
+    },
+    "Cli/guide/Gitlab": {
+      "revision": 5065509,
+      "sha256": "5459a9241520bf9d5213f77d347622620f5734157b67454924f30c18ea13cc68"
+    },
+    "Cli/guide/Installation": {
+      "revision": 8605285,
+      "sha256": "16276d220eab455cb282ece43fcb6a1b714c286784f34197c22ce59d9daa6778"
+    },
+    "Cli/guide/Update": {
+      "revision": 5784907,
+      "sha256": "83e30a526728326cfa2e7886bda2ee2f2db5d5ff206a51472ed59a51fb82ecd7"
+    },
+    "Cli/ref": {
+      "revision": 5020260,
+      "sha256": "fc97eae0298a9a8ef8cdc3d7c568bba374e15715f70706d83401e23c09c45d79"
+    }
+  }
+}
