@@ -1,7 +1,7 @@
 
 services:
   phpmyadmin:
-    image: "${PHPMYADMIN_IMAGE:-phpmyadmin/phpmyadmin:5}"
+    image: "${PHPMYADMIN_IMAGE:-phpmyadmin:5}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.phpmyadmin-host.rule=Host(`${PHPMYADMIN_VIRTUAL_HOST:-phpmyadmin.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"

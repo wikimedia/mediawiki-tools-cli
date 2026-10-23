@@ -1,7 +1,7 @@
 
 services:
   adminer:
-    image: "${ADMINER_IMAGE:-adminer:4}"
+    image: "${ADMINER_IMAGE:-adminer:6.1.2}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.adminer-host.rule=Host(`${ADMINER_VIRTUAL_HOST:-adminer.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"

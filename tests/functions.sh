@@ -287,6 +287,31 @@ test_command_success() {
     fi
 }
 
+test_command_success_or_matching_failure() {
+    local expected_failure="$1"
+    shift
+    set +e
+    local OUTPUT
+    OUTPUT="$("$@" 2>&1)"
+    local RESULT=$?
+    set -e
+    if [ "$RESULT" -eq 0 ]; then
+        echo "$OUTPUT"
+        echo -e "${GREEN}PASS:${NC} $* returned $RESULT"
+    elif echo "$OUTPUT" | grep -Fq "$expected_failure"; then
+        echo -e "${GREEN}SKIP:${NC} $* failed with expected unavailable-service response: $expected_failure"
+    else
+        echo -e "${RED}FAIL:${NC} $* returned non-zero code $RESULT"
+        echo "Raw output was..."
+        echo "$OUTPUT"
+        if [ "${STOP_ON_FAIL:-0}" = "1" ]; then
+            echo "STOP_ON_FAIL=1 detected, exiting immediately"
+            exit 1
+        fi
+        return 1
+    fi
+}
+
 test_command_success_with_retries() {
     local max_attempts="$1"
     local sleep_seconds="$2"
