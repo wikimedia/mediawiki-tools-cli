@@ -7,7 +7,7 @@ source $SCRIPT_DIR/functions.sh
 
 export MWCLI_CONTEXT_TEST=1
 
-test_command_success ./bin/mw quip
+test_command_success_or_matching_failure 'quip service returned HTTP 503:' ./bin/mw quip
 
 test_command_success ./bin/mw codesearch search addshore
 

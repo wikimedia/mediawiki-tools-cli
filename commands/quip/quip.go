@@ -23,10 +23,10 @@ func NewQuipCmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample(`quip
 quip --link`),
 		Hidden: true,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			req, err := http.NewRequest("GET", "https://bash.toolforge.org/random", nil)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("create quip request: %w", err)
 			}
 
 			ctx := context.Background()
@@ -36,7 +36,7 @@ quip --link`),
 			req.Header.Set("User-Agent", "mwcli quip")
 			res, err := c.Do(req)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("request quip: %w", err)
 			}
 
 			defer res.Body.Close()
@@ -44,15 +44,14 @@ quip --link`),
 			if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
 				b, err := io.ReadAll(res.Body)
 				if err != nil {
-					logrus.Fatalln(err)
+					return fmt.Errorf("read quip response: %w", err)
 				}
-
-				panic(fmt.Sprintf("unknown error, status code: %d, raw result: %s", res.StatusCode, string(b)))
+				return fmt.Errorf("quip service returned HTTP %d: %s", res.StatusCode, string(b))
 			}
 
 			doc, err := goquery.NewDocumentFromReader(res.Body)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("parse quip response: %w", err)
 			}
 
 			firstQuote := doc.Find(".quote").First()
@@ -66,7 +65,7 @@ quip --link`),
 
 			if (!hasCowsay && !hasLolcat) || noFun {
 				fmt.Println(text)
-				return
+				return nil
 			}
 
 			// Lets have some fun
@@ -85,7 +84,7 @@ quip --link`),
 			execCmd.Stdout = os.Stdout
 			execCmd.Stderr = os.Stderr
 			if err := execCmd.Run(); err != nil {
-				panic(err)
+				return fmt.Errorf("display quip: %w", err)
 			}
 
 			// Finally output the link if requested
@@ -93,6 +92,7 @@ quip --link`),
 			if printLink {
 				fmt.Println(link)
 			}
+			return nil
 		},
 	}
 	cmd.Flags().BoolP("no-fun", "n", false, "disable fun")
