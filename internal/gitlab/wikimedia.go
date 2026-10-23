@@ -41,6 +41,7 @@ func wikimediaClient() *gitlab.Client {
 	if err != nil {
 		panic(err)
 	}
+	git.UserAgent = cli.HTTPUserAgent
 	return git
 }
 
