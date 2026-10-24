@@ -21,6 +21,9 @@ workflow:
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "weekly"'
       auto_cancel:
         on_new_commit: none
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "dependabot"'
+      auto_cancel:
+        on_new_commit: none
     - when: never
 
 include:
@@ -37,6 +40,9 @@ include:
 - local: ".gitlab/pipelines/weekly.yml"
   rules:
   - if: "$CI_PIPELINE_SOURCE == 'schedule' && $GITLAB_SCHEDULE == 'weekly'"
+- local: ".gitlab/pipelines/dependabot.yml"
+  rules:
+  - if: "$CI_PIPELINE_SOURCE == 'schedule' && $GITLAB_SCHEDULE == 'dependabot'"
 # - project: 'repos/security/gitlab-ci-security-templates'
 #   ref: 0.1.3
 #   file: 'golang-gosec/golang-gosec-ci.yml'
