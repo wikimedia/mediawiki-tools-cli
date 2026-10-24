@@ -175,6 +175,7 @@ func NewRootCmd(name string) *cobra.Command {
 	}...)
 
 	help.AddGuides(mwcliCmd)
+	completeTargetHelp(mwcliCmd)
 
 	if mwcliCmd.Name() != "mw" {
 		cobrautil.VisitAllSubCommands(mwcliCmd, func(c *cobra.Command) {
@@ -376,7 +377,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// Resolve a service target prefix (for example, @gerrit.wikimedia.org) to
 	// its existing command group before Cobra parses the command tree. This
 	// keeps the normal command tree and its nested completions reusable.
-	rootCmd.SetArgs(resolveServiceTargetArgs(os.Args[1:]))
+	rootCmd.SetArgs(resolveServiceTargetArgs(rootCmd, os.Args[1:]))
 
 	// Execute the root command
 	err := rootCmd.Execute()

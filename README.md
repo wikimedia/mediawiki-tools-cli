@@ -36,7 +36,9 @@ Service commands can also be selected with an `@target` prefix. For example,
 `mw @gerr<TAB>` completes to `@gerrit.wikimedia.org`; after accepting the
 target, the next completion offers Gerrit commands. Short targets such as
 `@phab` work too. Known MediaWiki hosts can be used directly, for example
-`mw @en.wikipedia.org page list`.
+`mw @en.wikipedia.org page list`. The explicit `@en.wiki` shortcut selects
+English Wikipedia too. Global flags can precede the target, for example
+`mw -v @en.wiki page list`. Use `mw help @en.wiki page` for command help.
 
 Targets select a service command group; they do not claim that every command
 connects to the URL typed. Cloud VPS commands use the OpenStack API endpoint
