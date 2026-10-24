@@ -35,7 +35,6 @@ const (
 
 type gateway struct {
 	proxy         *httputil.ReverseProxy
-	proxyNoAuth   bool
 	credentials   [32]byte
 	key           []byte
 	now           func() time.Time
@@ -280,15 +279,9 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		gatewayBasic := false
-		if !g.proxyNoAuth {
-			allowed, basic := g.authenticate(w, r, origin, r.Method, r.URL.RequestURI())
-			if !allowed {
-				return
-			}
-			gatewayBasic = basic
-		} else if username, password, ok := r.BasicAuth(); ok {
-			gatewayBasic = g.credentialsMatch(username, password)
+		allowed, gatewayBasic := g.authenticate(w, r, origin, r.Method, r.URL.RequestURI())
+		if !allowed {
+			return
 		}
 		if gatewayBasic {
 			r = r.Clone(r.Context())
@@ -591,7 +584,6 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		g.proxyNoAuth = os.Getenv("TRAEFIK_AUTH_MIDDLEWARE") == "forwarded-https@file"
 	}
 	server := &http.Server{Addr: ":8080", Handler: g, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: time.Minute, MaxHeaderBytes: 32768}
 	if err := server.ListenAndServe(); err != nil {

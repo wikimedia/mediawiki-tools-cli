@@ -44,7 +44,6 @@ services:
     command: ["go", "run", "main.go"]
     environment:
       - GATEWAY_UPSTREAM=http://traefik:${PORT}
-      - TRAEFIK_AUTH_MIDDLEWARE=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 5s

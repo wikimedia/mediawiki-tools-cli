@@ -88,17 +88,17 @@ func TestTunnelProxyPreservesApplicationRequest(t *testing.T) {
 	}
 }
 
-func TestTunnelProxyExplicitAuthOptOut(t *testing.T) {
+func TestTunnelProxyIgnoresLegacyAuthOptOut(t *testing.T) {
+	t.Setenv("TRAEFIK_AUTH_MIDDLEWARE", "forwarded-https@file")
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "opt-out") }))
 	defer upstream.Close()
 	g, _ := testGateway(t)
 	if err := g.setUpstream(upstream.URL); err != nil {
 		t.Fatal(err)
 	}
-	g.proxyNoAuth = true
 	response := httptest.NewRecorder()
 	g.ServeHTTP(response, request(http.MethodGet, "/proxy/dashboard/", nil))
-	if response.Code != http.StatusOK || response.Body.String() != "opt-out" {
-		t.Fatalf("explicit opt-out failed: %d %s", response.Code, response.Body.String())
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("legacy opt-out bypassed authentication: %d %s", response.Code, response.Body.String())
 	}
 }

@@ -24,6 +24,9 @@ type ServiceTexts struct {
 	Long string
 	// Output after the service has been created
 	OnCreate string
+	// Additional containers to stop/remove with this service group, but never
+	// start implicitly. For example, tunnels depend on the local web proxy.
+	ShutdownServices []string
 }
 
 func NewServiceCmd(name string, texts ServiceTexts, aliases []string) *cobra.Command {
@@ -57,8 +60,8 @@ func NewServiceCmdDifferingNamesP(commandName *string, serviceName *string, text
 	cmd.AddCommand(NewImageCmdP(serviceName))
 	cmd.AddCommand(NewServiceCreateCmdP(serviceName, texts.OnCreate))
 	cmd.AddCommand(NewServiceRebuildCmdP(serviceName, texts.OnCreate))
-	cmd.AddCommand(NewServiceDestroyCmdP(serviceName))
-	cmd.AddCommand(NewServiceStopCmdP(serviceName))
+	cmd.AddCommand(NewServiceDestroyCmdP(serviceName, texts.ShutdownServices...))
+	cmd.AddCommand(NewServiceStopCmdP(serviceName, texts.ShutdownServices...))
 	cmd.AddCommand(NewServiceStartCmdP(serviceName))
 	cmd.AddCommand(NewServiceExposeCmdP(serviceName))
 	// There is an expectation that the main service for exec has the same name as the service command overall
@@ -143,7 +146,7 @@ func NewServiceDestroyCmd(name string) *cobra.Command {
 	return NewServiceDestroyCmdP(&name)
 }
 
-func NewServiceDestroyCmdP(name *string) *cobra.Command {
+func NewServiceDestroyCmdP(name *string, additionalServices ...string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "destroy",
 		Short: "Destroy the containers",
@@ -152,6 +155,7 @@ func NewServiceDestroyCmdP(name *string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			services = append(services, additionalServices...)
 			volumes := DefaultForUser().DockerCompose().File(dereferencedName).Contents().VolumeNames()
 
 			err := DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
@@ -180,7 +184,7 @@ func NewServiceStopCmd(name string) *cobra.Command {
 	return NewServiceStopCmdP(&name)
 }
 
-func NewServiceStopCmdP(name *string) *cobra.Command {
+func NewServiceStopCmdP(name *string, additionalServices ...string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "stop",
 		Aliases: []string{"suspend"},
@@ -190,6 +194,7 @@ func NewServiceStopCmdP(name *string) *cobra.Command {
 			DefaultForUser().EnsureReady()
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
 			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			services = append(services, additionalServices...)
 			err := DefaultForUser().DockerCompose().Stop(services)
 			if err != nil {
 				return err

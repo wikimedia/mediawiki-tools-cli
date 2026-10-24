@@ -29,12 +29,16 @@ def main():
 import("encoding/json";"net/http")
 func main(){http.ListenAndServe(":8080",http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){json.NewEncoder(w).Encode(map[string]string{"path":r.URL.RequestURI(),"host":r.Host,"authorization":r.Header.Get("Authorization"),"proto":r.Header.Get("X-Forwarded-Proto")})}))}
 ''')
+        (work / "provider.go").write_text('''package main
+import("net";"net/http";"net/http/httputil";"net/url";"time")
+func main(){target,_:=url.Parse("http://gateway-auth:8080");proxy:=httputil.NewSingleHostReverseProxy(target);proxy.Transport=&http.Transport{DialContext:(&net.Dialer{Timeout:time.Second}).DialContext};http.ListenAndServe(":8080",proxy)}
+''')
         image = os.environ.get("GATEWAY_AUTH_IMAGE", "golang:1.26-alpine")
         subprocess.run([
             "docker", "run", "--rm", "--network", "none", "-e", "CGO_ENABLED=0", "-e", "GO111MODULE=off",
             "-v", str(ROOT / "mount/dev/compose/traefik/mount/auth/main.go") + ":/src/main.go:ro",
             "-v", str(work) + ":/out", image, "sh", "-ec",
-            "go build -o /out/gateway /src/main.go; go build -o /out/app /out/app.go",
+            "go build -o /out/gateway /src/main.go; go build -o /out/app /out/app.go; go build -o /out/provider /out/provider.go",
         ], check=True)
         (work / "dynamic.yml").write_text('''http:
   routers:
@@ -64,9 +68,12 @@ func main(){http.ListenAndServe(":8080",http.HandlerFunc(func(w http.ResponseWri
     image: ${GATEWAY_AUTH_IMAGE:-golang:1.26-alpine}
     profiles: [tunnel]
     restart: "no"
+    stop_grace_period: 1s
     command: [/gateway]
     environment:
       GATEWAY_UPSTREAM: http://traefik:8080
+      # A legacy opt-out must no longer disable authentication at ingress.
+      TRAEFIK_AUTH_MIDDLEWARE: forwarded-https@file
     # Only the test publishes ingress; production tunnels reach it internally.
     ports: ["${GATEWAY_TEST_BIND_ADDR:-127.0.0.1}::8080"]
     volumes: ["./gateway:/gateway:ro", "./auth:/auth:ro"]
@@ -79,7 +86,11 @@ func main(){http.ListenAndServe(":8080",http.HandlerFunc(func(w http.ResponseWri
     image: ${GATEWAY_AUTH_IMAGE:-golang:1.26-alpine}
     profiles: [tunnel]
     restart: "no"
-    command: ["sleep", "infinity"]
+    stop_grace_period: 1s
+    command: [/provider]
+    volumes: ["./provider:/provider:ro"]
+    ports: ["${GATEWAY_TEST_BIND_ADDR:-127.0.0.1}::8080"]
+    networks: [access]
     depends_on:
       gateway-auth:
         condition: service_healthy
@@ -87,7 +98,11 @@ func main(){http.ListenAndServe(":8080",http.HandlerFunc(func(w http.ResponseWri
     image: ${GATEWAY_AUTH_IMAGE:-golang:1.26-alpine}
     profiles: [tunnel]
     restart: "no"
-    command: ["sleep", "infinity"]
+    stop_grace_period: 1s
+    command: [/provider]
+    volumes: ["./provider:/provider:ro"]
+    ports: ["${GATEWAY_TEST_BIND_ADDR:-127.0.0.1}::8080"]
+    networks: [access]
     depends_on:
       gateway-auth:
         condition: service_healthy
@@ -140,6 +155,7 @@ networks:
             port = published.rsplit(":", 1)[1]
             return "http://" + (daemon_host if remote else "127.0.0.1") + ":" + port
 
+        decoy = "mwcli-decoy-" + context
         try:
             compose("up", "-d", "traefik", "dashboard")
             local = origin("traefik")
@@ -195,8 +211,30 @@ networks:
             except (OSError, urllib.error.URLError):
                 pass
             print("PASS: local access still works after tunnel authentication stops", flush=True)
-            # Sleeping fixtures represent providers without establishing exposure.
+            # Forwarders model both providers entirely inside Docker.
             compose("up", "-d", "cloudflared", "holesail")
+            ingress = origin("cloudflared")
+            assert request(ingress, "/proxy/dashboard/")[0] == 401
+            other_ingress = origin("holesail")
+            assert request(other_ingress, "/proxy/dashboard/")[0] == 401
+            compose("stop", "traefik", "dashboard", "holesail")
+            # Reuse the old host port for an unrelated application. A surviving
+            # tunnel must not fall back to that host listener when auth is down.
+            host_port = local.rsplit(":", 1)[1]
+            binding = env.get("GATEWAY_TEST_BIND_ADDR", "127.0.0.1")
+            subprocess.run(["docker", "run", "--rm", "-d", "--name", decoy, "-p", binding + ":" + host_port + ":8080", "-v", str(work / "app") + ":/app:ro", image, "/app"], check=True, capture_output=True)
+            wait_local()
+            assert request(ingress, "/proxy/dashboard/")[0] == 401
+            try:
+                assert request(ingress, "/proxy/dashboard/", {"Authorization": basic})[0] >= 500
+            except (OSError, urllib.error.URLError):
+                pass
+            compose("stop", "gateway-auth")
+            assert set(compose("ps", "--services", "--filter", "status=running").splitlines()) == {"cloudflared"}
+            assert request(ingress, "/proxy/dashboard/")[0] >= 500
+            subprocess.run(["docker", "rm", "-f", decoy], check=True, capture_output=True)
+            print("PASS: tunnel alone fails closed when auth is down, even with the old host port reused", flush=True)
+            compose("up", "-d", "traefik", "dashboard", "cloudflared", "holesail")
             mw("stop")
             snapshot = state / "mwdd" / context / "state-suspended-services.json"
             saved = json.loads(snapshot.read_text())
@@ -221,8 +259,20 @@ networks:
             assert mw("tunnel", "status") == "No tunnel is running."
             assert request(local, "/proxy/dashboard/")[0] == 200
             print("PASS: status detects active Holesail; dev restart closes tunnel access without restoring it", flush=True)
+            for action in ["stop", "destroy"]:
+                compose("up", "-d", "traefik", "dashboard", "cloudflared", "holesail")
+                mw("traefik", action)
+                running = set(compose("ps", "--services", "--filter", "status=running").splitlines())
+                assert running == {"dashboard"}, (action, running)
+                assert mw("tunnel", "status") == "No tunnel is running."
+                if action == "destroy":
+                    remaining = set(compose("ps", "--all", "--services").splitlines())
+                    assert remaining == {"dashboard"}, remaining
+                print("PASS: traefik " + action + " closes both providers and auth, preserving other local services", flush=True)
+
 
         finally:
+            subprocess.run(["docker", "rm", "-f", decoy], capture_output=True)
             compose("--profile", "*", "down", "--remove-orphans")
 
 
