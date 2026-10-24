@@ -283,7 +283,7 @@ func getStatus() *Status {
 var quickTunnelHostname = regexp.MustCompile(`^(?:https://)?([a-zA-Z0-9-]+\.trycloudflare\.com)/?$`)
 
 func currentTunnelURL(client *http.Client, endpoint string) string {
-	ready, err := client.Get(endpoint + "/ready")
+	ready, err := dashboardGet(client, endpoint+"/ready")
 	if err != nil {
 		return ""
 	}
@@ -291,7 +291,7 @@ func currentTunnelURL(client *http.Client, endpoint string) string {
 	if ready.StatusCode != http.StatusOK {
 		return ""
 	}
-	response, err := client.Get(endpoint + "/quicktunnel")
+	response, err := dashboardGet(client, endpoint+"/quicktunnel")
 	if err != nil {
 		return ""
 	}
@@ -578,4 +578,14 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+// The embedded dashboard builds standalone, outside the CLI module.
+func dashboardGet(client *http.Client, target string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodGet, target, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "a-wikimedia-cli (https://www.mediawiki.org/wiki/Cli)")
+	return client.Do(req)
 }

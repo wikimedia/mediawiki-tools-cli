@@ -5,7 +5,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/gophercloud/gophercloud/v2"
-	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
@@ -62,7 +61,7 @@ func NewAuthAddCmd() *cobra.Command {
 				ApplicationCredentialSecret: secret,
 				DomainID:                    "default",
 			}
-			_, err := openstack.AuthenticatedClient(cmd.Context(), auth)
+			_, err := authenticatedCloudClient(cmd.Context(), auth)
 			if err != nil {
 				return err
 			}

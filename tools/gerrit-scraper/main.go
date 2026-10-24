@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 	"sort"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gopkg.in/yaml.v2"
 )
 
@@ -120,7 +120,7 @@ var (
 
 func fetchPage(baseURL, slug string) (*goquery.Document, error) {
 	url := fmt.Sprintf("%s/%s.html", baseURL, slug)
-	resp, err := http.Get(url)
+	resp, err := cli.NewHTTPClient().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("fetching %s: %w", url, err)
 	}

@@ -229,7 +229,10 @@ func runCloneCommand(cmd *osexec.Cmd, interactive bool) error {
 }
 
 func gitCloneCommand(directory, remote string, useShallow bool) *osexec.Cmd {
-	cmd := exec.Command("git", gitCloneArguments(directory, remote, useShallow)...)
+	return identifyGitCommand(exec.Command("git", gitCloneArguments(directory, remote, useShallow)...))
+}
+
+func identifyGitCommand(cmd *osexec.Cmd) *osexec.Cmd {
 	// Identify the CLI to HTTP servers, including in recursive submodule clones.
 	// Keep the override local to this subprocess and respect user configuration.
 	if _, overridden := os.LookupEnv("GIT_HTTP_USER_AGENT"); !overridden {

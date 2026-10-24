@@ -12,11 +12,16 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func TestDownloadFileResponseHTTP(t *testing.T) {
 	const payload = "replacement executable fixture"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.UserAgent() != cli.HTTPUserAgent {
+			t.Errorf("User-Agent = %q, want %q", r.UserAgent(), cli.HTTPUserAgent)
+		}
 		if r.URL.Path == "/redirect" {
 			http.Redirect(w, r, "/200", http.StatusFound)
 			return

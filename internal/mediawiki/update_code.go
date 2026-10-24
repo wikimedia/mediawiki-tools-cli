@@ -49,7 +49,7 @@ func sourceGit(ctx context.Context, directory string, args ...string) (string, e
 }
 
 func sourceGitOutput(ctx context.Context, directory string, args ...string) (string, error) {
-	cmd := osexec.CommandContext(ctx, "git", append([]string{"-C", directory}, args...)...)
+	cmd := identifyGitCommand(osexec.CommandContext(ctx, "git", append([]string{"-C", directory}, args...)...))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(output)))

@@ -9,6 +9,7 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
@@ -48,7 +49,7 @@ func NewGerritAPICmd() *cobra.Command {
 			}
 
 			instance := "https://gerrit.wikimedia.org/r/"
-			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
+			client, _ := gerrit.NewClient(cmd.Context(), instance, cli.NewHTTPClient())
 			if user != "" && password != "" {
 				client.Authentication.SetBasicAuth(user, password)
 				logrus.Trace("Using username and password")

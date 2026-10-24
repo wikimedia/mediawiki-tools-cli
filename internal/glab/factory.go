@@ -28,13 +28,14 @@ func Hostname(host string) string {
 
 type factory struct {
 	*cmdutils.DefaultFactory
-	mu       sync.Mutex
-	override string
+	mu        sync.Mutex
+	override  string
+	userAgent string
 }
 
 // NewFactory preserves Git transport URLs while using the canonical API identity.
-func NewFactory(io *iostreams.IOStreams) cmdutils.Factory {
-	return &factory{DefaultFactory: cmdutils.NewFactory(io, false)}
+func NewFactory(io *iostreams.IOStreams, userAgent string) cmdutils.Factory {
+	return &factory{DefaultFactory: cmdutils.NewFactory(io, false), userAgent: userAgent}
 }
 
 func (f *factory) RepoOverride(repo string) {
@@ -93,6 +94,17 @@ func (f *factory) BaseRepo() (glrepo.Interface, error) {
 }
 
 func (f *factory) HttpClient() (*gitlab.Client, error) {
+	client, err := f.httpClient()
+	if err == nil && f.userAgent != "" && !strings.HasPrefix(client.UserAgent, f.userAgent) {
+		// The upstream renderer starts with glab/<version>. Put the embedding
+		// application first, removing its fallback occurrence in that renderer.
+		upstream := strings.TrimSpace(strings.ReplaceAll(client.UserAgent, f.userAgent, ""))
+		client.UserAgent = strings.Join(strings.Fields(f.userAgent+" "+upstream), " ")
+	}
+	return client, err
+}
+
+func (f *factory) httpClient() (*gitlab.Client, error) {
 	repo, err := f.BaseRepo()
 	if err != nil {
 		return f.DefaultFactory.HttpClient()

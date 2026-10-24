@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	composerutil "gitlab.wikimedia.org/repos/releng/cli/internal/composer"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
@@ -441,7 +442,7 @@ func loadRecipe(recipeFile string, recipeURL string, recipeName string, m devenv
 	}
 
 	if recipeURL != "" {
-		resp, err := http.Get(recipeURL) // #nosec G107
+		resp, err := cli.NewHTTPClient().Get(recipeURL) // #nosec G107
 		if err != nil {
 			return recipe.Spec{}, err
 		}
@@ -1478,6 +1479,7 @@ func waitForSites(sites []recipe.Site, port string, dryRun bool) error {
 }
 
 func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempts int, delay time.Duration) error {
+	client = cli.WithHTTPUserAgent(client)
 	if attempts <= 0 {
 		attempts = 1
 	}

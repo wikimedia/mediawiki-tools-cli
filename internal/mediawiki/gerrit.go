@@ -11,6 +11,7 @@ import (
 
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 // GerritChangeInfo holds the relevant details extracted from a Gerrit change.
@@ -130,7 +131,7 @@ func querySingleChange(ctx context.Context, client *gerrit.Client, changeRef, pr
 
 // FetchGerritChangeInfo retrieves key details about a Gerrit change.
 func FetchGerritChangeInfo(ctx context.Context, changeID, preferredBranch, preferredProject string) (*GerritChangeInfo, error) {
-	client, err := gerrit.NewClient(ctx, "https://gerrit.wikimedia.org/r/", nil)
+	client, err := gerrit.NewClient(ctx, "https://gerrit.wikimedia.org/r/", cli.NewHTTPClient())
 	if err != nil {
 		return nil, fmt.Errorf("creating Gerrit client: %w", err)
 	}
@@ -402,7 +403,7 @@ func (m MediaWiki) ApplyGerritPatches(ctx context.Context, opts ApplyPatchOpts) 
 // runGitTTY runs a git command with stdin/stdout/stderr connected to the terminal,
 // returning any error rather than calling logrus.Fatal.
 func runGitTTY(name string, args ...string) error {
-	cmd := osexec.Command(name, args...)
+	cmd := identifyGitCommand(osexec.Command(name, args...))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
