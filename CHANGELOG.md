@@ -15,6 +15,10 @@ notes will be missed.
       migrated on first start and cannot be downgraded afterwards; destroy and recreate the `mysql` service for a clean
       reinitialisation if preferred.
 
+## v0.33.2
+
+Fix UA used for update requests to Wikimedia GitLab API.
+
 ## v0.33.1
 
 - Development environment (`mw docker`):
