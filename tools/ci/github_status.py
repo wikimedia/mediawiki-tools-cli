@@ -8,6 +8,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+HTTP_USER_AGENT = "a-wikimedia-cli (https://www.mediawiki.org/wiki/Cli)"
+
 API = "https://gitlab.wikimedia.org/api/v4"
 PROJECT = 16
 REPOSITORY = "wikimedia/mediawiki-tools-cli"
@@ -72,7 +74,7 @@ class GitLab:
     def request(self, path, data=None, destination=None):
         if not path.startswith("/") or ".." in path or "://" in path:
             raise ValueError("expected a GitLab API path")
-        headers = {"User-Agent": "a-wikimedia-cli-ci"}
+        headers = {"User-Agent": HTTP_USER_AGENT}
         if self.token:
             headers["PRIVATE-TOKEN"] = self.token
         body = None

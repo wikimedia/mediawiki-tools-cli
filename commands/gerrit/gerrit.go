@@ -87,7 +87,7 @@ func sshGerritCommand(args []string) *exec.Cmd {
 }
 
 func client(ctx context.Context) *gerrit.Client {
-	client, err := gerrit.NewClient(ctx, "https://gerrit.wikimedia.org/r/", nil)
+	client, err := gerrit.NewClient(ctx, "https://gerrit.wikimedia.org/r/", cli.NewHTTPClient())
 	if err != nil {
 		panic(err)
 	}

@@ -14,7 +14,7 @@ import threading
 import urllib.error
 import urllib.request
 
-from github_status import (API, SUMMARY_CONTEXT, GATE_JOB, PROJECT, REQUEST_JOB, GitLab,
+from github_status import (HTTP_USER_AGENT, API, SUMMARY_CONTEXT, GATE_JOB, PROJECT, REQUEST_JOB, GitLab,
                            SafeRedirect, REPOSITORY, positive_id, commit_sha, pipeline_jobs, statuses, verify_summary, verify_status, gate_test, gate_jobs)
 
 
@@ -57,7 +57,7 @@ def check(api, job, config):
         if merge["status"] != "success":
             raise ValueError("merged source preparation has not passed")
         url = API + f"/projects/{PROJECT}/jobs/{merge['id']}/artifacts/.ci-merge.bundle"
-        req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": api.token})
+        req = urllib.request.Request(url, headers={"PRIVATE-TOKEN": api.token, "User-Agent": HTTP_USER_AGENT})
         with urllib.request.build_opener(SafeRedirect()).open(req, timeout=30) as stream:
             tested_sha = bundle_head(stream)
     all_records = statuses(api, sha, pipeline_id)
@@ -134,7 +134,7 @@ def dispatch(server, job):
                 data=json.dumps(payload).encode(), method="POST", headers={
                     "Authorization": "Bearer " + server.dispatch_token,
                     "Accept": "application/vnd.github+json",
-                    "Content-Type": "application/json", "User-Agent": "a-wikimedia-cli-ci"})
+                    "Content-Type": "application/json", "User-Agent": HTTP_USER_AGENT})
             with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
                 if response.status not in {200, 204}:
                     raise ValueError("unexpected GitHub dispatch response")
@@ -160,7 +160,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             token = self.headers.get("JOB-TOKEN", "")
             if not token or len(token) > 4096:
                 raise PermissionError("missing job identity")
-            request = urllib.request.Request(API + "/job", headers={"JOB-TOKEN": token})
+            request = urllib.request.Request(API + "/job", headers={"JOB-TOKEN": token, "User-Agent": HTTP_USER_AGENT})
             with urllib.request.urlopen(request, timeout=20) as response:
                 job = json.load(response)
             result = dispatch(self.server, job) if launching else check(self.server.api, job, self.server.config)

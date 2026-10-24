@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cli/mwcli"
 	glabgit "gitlab.com/gitlab-org/cli/pkg/git"
 	"gitlab.com/gitlab-org/cli/pkg/iostreams"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func testFactory(t *testing.T) cmdutils.Factory {
@@ -34,7 +35,7 @@ func testFactory(t *testing.T) cmdutils.Factory {
 		t.Fatal(err)
 	}
 	runGit(t, "init", "--quiet")
-	return mwcli.NewFactory(iostreams.Init())
+	return mwcli.NewFactory(iostreams.Init(), cli.HTTPUserAgent)
 }
 
 func runGit(t *testing.T, args ...string) string {
@@ -79,6 +80,9 @@ func TestWikimediaRemoteHosts(t *testing.T) {
 			api.RefreshClient()
 			t.Cleanup(api.RefreshClient)
 			_, err = api.TestClient(&http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				if !strings.HasPrefix(request.UserAgent(), cli.HTTPUserAgent+" glab/") {
+					t.Errorf("GitLab User-Agent = %q", request.UserAgent())
+				}
 				if request.URL.Host != "gitlab.wikimedia.org" || request.Header.Get("PRIVATE-TOKEN") != "canonical-test-token" {
 					t.Error("API did not use the canonical host and its credentials")
 				}

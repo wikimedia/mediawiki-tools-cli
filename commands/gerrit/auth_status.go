@@ -6,6 +6,7 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 )
 
@@ -24,7 +25,7 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 			}
 
 			instance := "https://gerrit.wikimedia.org/r/"
-			client, _ := gerrit.NewClient(cmd.Context(), instance, nil)
+			client, _ := gerrit.NewClient(cmd.Context(), instance, cli.NewHTTPClient())
 			client.Authentication.SetBasicAuth(gerritUsername, gerritPassword)
 			response, err := client.Call(cmd.Context(), "GET", "accounts/self/name", nil, nil)
 			if err != nil {

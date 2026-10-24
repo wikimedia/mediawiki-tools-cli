@@ -241,4 +241,4 @@ go 1.26.1
 
 replace gitlab.com/gitlab-org/cli/mwcli => ./internal/glab
 
-replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a
+replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261024151630-d98cb6b1b438

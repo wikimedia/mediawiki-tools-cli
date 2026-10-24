@@ -3,12 +3,14 @@ package gitlab
 import (
 	"errors"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	glabapi "gitlab.com/gitlab-org/cli/api"
 	"gitlab.com/gitlab-org/cli/commands"
 	"gitlab.com/gitlab-org/cli/mwcli"
 	"gitlab.com/gitlab-org/cli/pkg/glinstance"
@@ -21,9 +23,11 @@ import (
 
 func Cmd() *cobra.Command {
 	glinstance.OverrideDefault("gitlab.wikimedia.org")
+	// The embedded CLI bypasses glab's main(), which normally sets this.
+	glabapi.SetUserAgent(glabVersion()+" "+cli.HTTPUserAgent, runtime.GOOS, runtime.GOARCH)
 
 	io := iostreams.Init()
-	cmdFactory := mwcli.NewFactory(io)
+	cmdFactory := mwcli.NewFactory(io, cli.HTTPUserAgent)
 
 	// Try to keep this version in line with the addshore fork for now...
 	glabCommand := commands.NewCmdRoot(cmdFactory, cli.DisplayName+" "+glabVersion(), cli.VersionDetails.BuildDate)

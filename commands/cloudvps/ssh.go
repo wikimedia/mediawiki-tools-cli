@@ -342,7 +342,7 @@ func instanceNameByID(ctx context.Context, project, id string, cfg config.CloudV
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	provider, err := openstack.AuthenticatedClient(ctx, gophercloud.AuthOptions{
+	provider, err := authenticatedCloudClient(ctx, gophercloud.AuthOptions{
 		IdentityEndpoint: authUrl, ApplicationCredentialID: entry.Credential.ID,
 		ApplicationCredentialSecret: entry.Credential.Secret, DomainID: "default",
 	})

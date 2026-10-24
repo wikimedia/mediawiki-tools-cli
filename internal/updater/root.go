@@ -86,11 +86,10 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 	}
 
 	// Handle regular HTTP(S) URLs
-	client := http.Client{
-		CheckRedirect: func(r *http.Request, via []*http.Request) error {
-			r.URL.Opaque = r.URL.Path
-			return nil
-		},
+	client := cli.NewHTTPClient()
+	client.CheckRedirect = func(r *http.Request, via []*http.Request) error {
+		r.URL.Opaque = r.URL.Path
+		return nil
 	}
 
 	resp, err := client.Get(urlStr)
