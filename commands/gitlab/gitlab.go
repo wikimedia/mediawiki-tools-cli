@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cli/commands"
+	"gitlab.com/gitlab-org/cli/commands/cmdutils"
 	"gitlab.com/gitlab-org/cli/mwcli"
 	"gitlab.com/gitlab-org/cli/pkg/glinstance"
 	"gitlab.com/gitlab-org/cli/pkg/iostreams"
@@ -89,8 +90,17 @@ func Cmd() *cobra.Command {
 
 	setDefaultHostname(glabCommand)
 	addPushViaAPIFlag(glabCommand)
+	addCIArtifactsCommand(glabCommand, cmdFactory)
 
 	return glabCommand
+}
+
+func addCIArtifactsCommand(glabCommand *cobra.Command, factory cmdutils.Factory) {
+	ciCommand, _, err := glabCommand.Find([]string{"ci"})
+	if err != nil || ciCommand == nil {
+		return
+	}
+	ciCommand.AddCommand(newCIArtifactsCommand(factory))
 }
 
 func addPushViaAPIFlag(glabCommand *cobra.Command) {
