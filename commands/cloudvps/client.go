@@ -1,11 +1,13 @@
 package cloudvps
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
@@ -39,7 +41,7 @@ func authenticatedProvider(cmd *cobra.Command) (*gophercloud.ProviderClient, err
 	if err != nil {
 		return nil, err
 	}
-	provider, err := openstack.AuthenticatedClient(cmd.Context(), gophercloud.AuthOptions{
+	provider, err := authenticatedCloudClient(cmd.Context(), gophercloud.AuthOptions{
 		IdentityEndpoint:            authUrl,
 		ApplicationCredentialID:     credentials.ID,
 		ApplicationCredentialSecret: credentials.Secret,
@@ -54,4 +56,18 @@ func authenticatedProvider(cmd *cobra.Command) (*gophercloud.ProviderClient, err
 
 func addProjectFlag(cmd *cobra.Command) {
 	cmd.Flags().String("project", "", "Project name (uses cloud_vps.default_project if omitted)")
+}
+
+// Configure identity before authentication so token requests and reauthentication
+// carry it as well as compute, network, image and volume requests.
+func authenticatedCloudClient(ctx context.Context, options gophercloud.AuthOptions) (*gophercloud.ProviderClient, error) {
+	provider, err := openstack.NewClient(options.IdentityEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	provider.UserAgent.Prepend(cli.HTTPUserAgent)
+	if err := openstack.Authenticate(ctx, provider, options); err != nil {
+		return nil, err
+	}
+	return provider, nil
 }

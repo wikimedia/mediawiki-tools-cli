@@ -34,7 +34,7 @@ def main():
     token_definitions = ""
     for package, (checksum, files) in PACKAGES.items():
         url = f"https://registry.npmjs.org/@wikimedia/{package}/-/{package}-{VERSION}.tgz"
-        with urllib.request.urlopen(url, timeout=60) as response:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "a-wikimedia-cli (https://www.mediawiki.org/wiki/Cli)"}), timeout=60) as response:
             archive = response.read()
         if base64.b64encode(hashlib.sha512(archive).digest()).decode() != checksum:
             raise ValueError(f"Unexpected integrity for {package} {VERSION}")

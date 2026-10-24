@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 )
@@ -103,7 +104,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				}
 
 				ctx := context.Background()
-				c := http.Client{}
+				c := cli.NewHTTPClient()
 				req = req.WithContext(ctx)
 
 				res, err := c.Do(req)

@@ -1,7 +1,10 @@
 package docker
 
 import (
+	"context"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +13,42 @@ import (
 	dockerconfig "github.com/docker/cli/cli/config"
 	contextdocker "github.com/docker/cli/cli/context/docker"
 	"github.com/docker/cli/cli/context/store"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
+
+func TestDockerUserAgent(t *testing.T) {
+	for _, namedContext := range []bool{false, true} {
+		t.Run(map[bool]string{false: "environment", true: "context"}[namedContext], func(t *testing.T) {
+			dir := dockerTestConfig(t)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.UserAgent() != cli.HTTPUserAgent {
+					t.Errorf("Docker User-Agent = %q", r.UserAgent())
+				}
+				w.Header().Set("API-Version", "1.45")
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			host := "tcp://" + strings.TrimPrefix(server.URL, "http://")
+			if namedContext {
+				contexts := store.New(filepath.Join(dir, "contexts"), dockerContextStoreConfig())
+				if err := contexts.CreateOrUpdate(store.Metadata{Name: "ua-test", Endpoints: map[string]interface{}{"docker": contextdocker.EndpointMeta{Host: host}}}); err != nil {
+					t.Fatal(err)
+				}
+				t.Setenv("DOCKER_CONTEXT", "ua-test")
+			} else {
+				t.Setenv("DOCKER_HOST", host)
+			}
+			client, err := NewClientFromEnv()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Close()
+			if _, err := client.Ping(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
 
 func dockerTestConfig(t *testing.T) string {
 	t.Helper()

@@ -12,6 +12,7 @@ import (
 	"github.com/docker/cli/cli/context/store"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 // NewClientFromEnv uses Docker's own endpoint resolution, including the saved
@@ -31,7 +32,7 @@ func NewClientFromEnv() (*client.Client, error) {
 		}
 	}
 	if name == "" || name == "default" {
-		return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation(), client.WithUserAgent(cli.HTTPUserAgent))
 	}
 	contexts := store.New(dockerconfig.ContextStoreDir(), dockerContextStoreConfig())
 	metadata, err := contexts.GetMetadata(name)
@@ -50,7 +51,7 @@ func NewClientFromEnv() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Docker context %q client: %w", name, err)
 	}
-	return client.NewClientWithOpts(opts...)
+	return client.NewClientWithOpts(append(opts, client.WithUserAgent(cli.HTTPUserAgent))...)
 }
 
 func dockerContextStoreConfig() store.Config {

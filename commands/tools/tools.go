@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	toolforge "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/cli"
+	toolforgeua "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/useragent"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
@@ -22,6 +23,7 @@ var cpExample string
 var execLong string
 
 func NewToolsCmd() *cobra.Command {
+	toolforgeua.SetApplication(cli.HTTPUserAgent)
 	command := toolforge.NewCommand()
 	command.Use = "tools"
 	command.GroupID = "service"
