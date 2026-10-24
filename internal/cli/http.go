@@ -11,13 +11,13 @@ func NewHTTPClient() *http.Client {
 // WithHTTPUserAgent copies client and wraps its transport, preserving timeouts
 // and redirect policies. Requests with an explicit User-Agent keep that value.
 func WithHTTPUserAgent(client *http.Client) *http.Client {
-	copy := *client
-	base := copy.Transport
+	identifiedClient := *client
+	base := identifiedClient.Transport
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	copy.Transport = userAgentTransport{base: base}
-	return &copy
+	identifiedClient.Transport = userAgentTransport{base: base}
+	return &identifiedClient
 }
 
 type userAgentTransport struct {
