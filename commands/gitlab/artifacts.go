@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	gitlabapi "gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"gitlab.com/gitlab-org/cli/commands/cmdutils"
 	mwoutput "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"golang.org/x/term"
@@ -145,7 +145,7 @@ func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, pr
 			if err != nil {
 				return err
 			}
-			if _, err := client.GraphQL.Do(gitlabapi.GraphQLQuery{Query: query}, &response); err != nil {
+			if _, err := client.GraphQL.Do(gitlab.GraphQLQuery{Query: query}, &response); err != nil {
 				return fmt.Errorf("delete artifacts: %w", err)
 			}
 			if len(response.Data.BulkDestroy.Errors) > 0 {
@@ -166,8 +166,8 @@ func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, pr
 	return cmd
 }
 
-func listCIArtifacts(cmd *cobra.Command, client *gitlabapi.Client, projectID int, cutoff time.Time, minSize int64, refPrefix string) ([]ciArtifact, error) {
-	options := &gitlabapi.ListJobsOptions{ListOptions: gitlabapi.ListOptions{
+func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int, cutoff time.Time, minSize int64, refPrefix string) ([]ciArtifact, error) {
+	options := &gitlab.ListJobsOptions{ListOptions: gitlab.ListOptions{
 		PerPage: 100,
 		Page:    1,
 	}}
@@ -177,7 +177,7 @@ func listCIArtifacts(cmd *cobra.Command, client *gitlabapi.Client, projectID int
 	if progress != nil {
 		defer progress.finish()
 	}
-	for job, err := range gitlabapi.Scan2(func(page gitlabapi.PaginationOptionFunc) ([]*gitlabapi.Job, *gitlabapi.Response, error) {
+	for job, err := range gitlab.Scan2(func(page gitlab.PaginationOptionFunc) ([]*gitlab.Job, *gitlab.Response, error) {
 		return client.Jobs.ListProjectJobs(projectID, options, page)
 	}) {
 		if err != nil {
@@ -263,7 +263,7 @@ func (p *artifactProgress) finish() {
 	<-p.done
 }
 
-func resolveArtifactIDs(cmd *cobra.Command, client *gitlabapi.Client, projectPath string, artifacts []ciArtifact) error {
+func resolveArtifactIDs(cmd *cobra.Command, client *gitlab.Client, projectPath string, artifacts []ciArtifact) error {
 	jobArtifacts := make(map[string][]int)
 	for index, artifact := range artifacts {
 		jobArtifacts[artifact.JobID] = append(jobArtifacts[artifact.JobID], index)
@@ -298,7 +298,7 @@ func resolveArtifactIDs(cmd *cobra.Command, client *gitlabapi.Client, projectPat
 				} `json:"project"`
 			} `json:"data"`
 		}
-		if _, err := client.GraphQL.Do(gitlabapi.GraphQLQuery{Query: query}, &response, gitlabapi.WithContext(cmd.Context())); err != nil {
+		if _, err := client.GraphQL.Do(gitlab.GraphQLQuery{Query: query}, &response, gitlab.WithContext(cmd.Context())); err != nil {
 			return fmt.Errorf("resolve artifact IDs for job %s: %w", jobID, err)
 		}
 		if len(response.Errors) > 0 {
@@ -357,7 +357,8 @@ func graphqlString(value string) string {
 
 func graphQLErrorMessages(errors []struct {
 	Message string `json:"message"`
-}) string {
+},
+) string {
 	messages := make([]string, len(errors))
 	for index, graphQLError := range errors {
 		messages[index] = graphQLError.Message
