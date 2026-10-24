@@ -115,14 +115,9 @@ fi
 test_wget http://phpmyadmin.local.wmftest.net:$PORT "Open new phpMyAdmin window"
 test_wget http://adminer.local.wmftest.net:$PORT "Login - Adminer"
 test_http_status http://adminer.local.wmftest.net:$PORT/ 200
-# Exercise the protected Traefik path routes locally without creating a public
-# tunnel. The auth service is profile-gated and normally starts with a tunnel.
-test_start_gateway_auth "http://127.0.0.1:$PORT/proxy/adminer/"
-test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401
-test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 401 0 adminer.local.wmftest.net
-test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 200 1
-test_http_status http://127.0.0.1:$PORT/ 401
-test_gateway_https_session http://127.0.0.1:$PORT
+# Local path access works without a tunnel or an authentication process.
+test_http_status http://127.0.0.1:$PORT/proxy/adminer/ 200
+test_http_status http://127.0.0.1:$PORT/ 200
 
 # Requests from MediaWiki must resolve through DPS and reach the same listener
 # port as host requests, without requiring the public gateway login.
@@ -141,7 +136,9 @@ test_wget http://127.0.0.1:$PORT/proxy/mysqlwiki/ "MediaWiki has been installed"
 test_wget http://127.0.0.1:$PORT/proxy/mysqlwiki/wiki/Main_Page 'href="/proxy/mysqlwiki/w/load.php'
 test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=skins.vector.styles&only=styles&skin=vector-2022" '.mw'
 test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022" 'mw.loader'
-test_command_success ./bin/mw dev compose stop gateway-auth
+
+# Exercise the tunnel ingress separately, without requiring a public tunnel.
+test_command_success python3 "$SCRIPT_DIR/test-docker-gateway.py"
 
 # Make sure the expected number of services appear
 test_docker_ps_service_count 11

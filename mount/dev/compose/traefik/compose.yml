@@ -22,7 +22,7 @@ services:
       - --providers.file.watch=true
       - --api.dashboard=false
     ports:
-      - "${TRAEFIK_BIND_ADDR:-0.0.0.0}:${PORT}:${PORT}"
+      - "${TRAEFIK_BIND_ADDR:-127.0.0.1}:${PORT}:${PORT}"
     volumes:
       - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
     depends_on:
@@ -42,6 +42,9 @@ services:
     restart: unless-stopped
     working_dir: /app
     command: ["go", "run", "main.go"]
+    environment:
+      - GATEWAY_UPSTREAM=http://traefik:${PORT}
+      - TRAEFIK_AUTH_MIDDLEWARE=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 5s
@@ -54,6 +57,7 @@ services:
       - ./compose/traefik/auth:/auth:ro
     networks:
       - gateway-control
+      - gateway-access
 
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3.0
@@ -73,4 +77,6 @@ services:
 
 networks:
   gateway-control:
+    internal: true
+  gateway-access:
     internal: true

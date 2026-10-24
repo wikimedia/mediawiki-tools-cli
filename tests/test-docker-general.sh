@@ -106,8 +106,7 @@ test_wget http://default.mediawiki.local.wmftest.net:$PORT "Could not find a run
 test_command_success ./bin/mw dev mysql create
 test_command_success ./bin/mw dev mediawiki install --dbtype mysql
 test_wget http://default.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
-# The authenticated catch-all uses the configured default wiki, not the hostname as a database name.
-test_start_gateway_auth "http://localhost:$PORT/w/api.php?action=query&meta=siteinfo&format=json"
+# The local catch-all uses the configured default wiki, not the hostname as a database name.
 test_wget "http://localhost:$PORT/w/api.php?action=query&meta=siteinfo&format=json" '"sitename":"Dev wiki - default"'
 
 # Set the default dbname to something else, restarting the container
@@ -123,7 +122,6 @@ else
     test_command_success sudo -E ./bin/mw dev hosts add --no-interaction
 fi
 test_wget http://second.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
-test_start_gateway_auth "http://localhost:$PORT/w/api.php?action=query&meta=siteinfo&format=json"
 test_wget "http://localhost:$PORT/w/api.php?action=query&meta=siteinfo&format=json" '"sitename":"Dev wiki - second"'
 test_wget "http://default.mediawiki.local.wmftest.net:$PORT/w/api.php?action=query&meta=siteinfo&format=json" '"sitename":"Dev wiki - default"'
 

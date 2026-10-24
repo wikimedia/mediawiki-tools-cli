@@ -9,7 +9,7 @@ services:
       - --metrics
       - 0.0.0.0:20241
       - --url
-      - http://traefik:${PORT}
+      - http://gateway-auth:8080
     depends_on:
       traefik:
         condition: service_started
@@ -17,3 +17,4 @@ services:
         condition: service_healthy
     networks:
       - dps
+      - gateway-access

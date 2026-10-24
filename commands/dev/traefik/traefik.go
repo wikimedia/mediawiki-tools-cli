@@ -26,10 +26,10 @@ func NewCmd() *cobra.Command {
 		"(8080 by default) and routes local virtual hosts and /proxy paths. It discovers services through " +
 		"Traefik Compose labels and a read-only Docker API proxy. Tunnel gateway routes use " +
 		"cookie-based authentication by default; the authentication service starts with a tunnel, not " +
-		"for local hostname access. 'mw dev traefik create' generates a password. " +
+		"for local hostname or /proxy access. 'mw dev traefik create' generates a password. " +
 		"Sessions expire after 12 hours. HTTP Basic credentials remain supported for scripts. " +
 		"Set TRAEFIK_AUTH_MIDDLEWARE=forwarded-https@file " +
-		"in the context environment to disable authentication. Configure TRAEFIK_BIND_ADDR to change the bind address."
+		"in the context environment to disable authentication. Local access binds to loopback by default. Configure TRAEFIK_BIND_ADDR to change it."
 
 	var gatewayURL string
 	credentialsCmd := &cobra.Command{
@@ -51,7 +51,11 @@ func NewCmd() *cobra.Command {
 				if port == "" {
 					port = "8080"
 				}
-				origin = "http://" + net.JoinHostPort("localhost", port)
+				origin = runningTunnelURL("http://"+net.JoinHostPort("localhost", port), string(credentials))
+				if origin == "" {
+					fmt.Fprintln(cmd.OutOrStdout(), "Local access does not require a gateway login. Use --url with your tunnel address to create a login link.")
+					return nil
+				}
 			}
 			link, err := requestLoginLink(origin, string(credentials))
 			if err != nil {
@@ -59,16 +63,6 @@ func NewCmd() *cobra.Command {
 				return nil
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "\nLogin: %s\n", link)
-			if gatewayURL == "" {
-				if tunnel := runningTunnelURL(origin, string(credentials)); tunnel != "" {
-					tunnelLink, err := requestLoginLink(tunnel, string(credentials))
-					if err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "Could not create a tunnel login link: %v\n", err)
-					} else {
-						fmt.Fprintf(cmd.OutOrStdout(), "Tunnel login: %s\n", tunnelLink)
-					}
-				}
-			}
 			fmt.Fprintln(cmd.OutOrStdout(), "Each link is valid for 5 minutes and works once.")
 			return nil
 		},
@@ -132,7 +126,7 @@ func requestLoginLinkAt(origin, credentials, prefix string) (string, int, error)
 	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(req)
 	if err != nil {
-		return "", 0, fmt.Errorf("gateway unavailable; start it with the CLI's dev traefik start command")
+		return "", 0, fmt.Errorf("gateway unavailable; start it with the CLI's dev tunnel start command")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
@@ -157,6 +151,7 @@ func runningTunnelURL(origin, credentials string) string {
 	if err != nil {
 		return ""
 	}
+	req.Header.Del("Authorization")
 	client := &http.Client{Timeout: 2 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(req)
 	if err != nil {

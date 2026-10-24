@@ -10,7 +10,7 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    command: ["--live", "${PORT}", "--host", "traefik"]
+    command: ["--live", "8080", "--host", "gateway-auth"]
     depends_on:
       traefik:
         condition: service_started
@@ -18,3 +18,4 @@ services:
         condition: service_healthy
     networks:
       - dps
+      - gateway-access
