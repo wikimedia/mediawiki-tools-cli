@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release notes will be missed.
 
+## v0.33.2
+
+Fix UA used for update requests to Wikimedia GitLab API.
+
 ## v0.33.1
 
 - Development environment (`mw docker`):
