@@ -41,23 +41,23 @@ func TestResolveServiceTargetArgs(t *testing.T) {
 		{"empty", "", ""},
 		{"ordinary command", "wiki page list", "wiki page list"},
 		{"service alias", "@gerr changes", "gerrit changes"},
-		{"site", "@en.wikipedia.org page list", "wiki --wiki=https://en.wikipedia.org/w/api.php page list"},
-		{"site alias", "@en.wiki page list", "wiki --wiki=https://en.wikipedia.org/w/api.php page list"},
+		{"site", "@en.wikipedia.org page list", "@en.wikipedia.org page list"},
+		{"site alias", "@en.wiki page list", "@en.wikipedia.org page list"},
 		{"generic site", "@example.org page list", "wiki --wiki=https://example.org/w/api.php page list"},
 		{"unknown", "@unknown", "@unknown"},
 		{"invalid host", "@example.org/path page list", "@example.org/path page list"},
-		{"global flags", "-vv --no-interaction @en.wiki page list", "-vv --no-interaction wiki --wiki=https://en.wikipedia.org/w/api.php page list"},
+		{"global flags", "-vv --no-interaction @en.wiki page list", "-vv --no-interaction @en.wikipedia.org page list"},
 		{"flag value", "--context @literal @gerr changes", "--context @literal gerrit changes"},
 		{"unknown flag", "--unknown @gerr", "--unknown @gerr"},
 		{"flag terminator", "-- @gerr", "-- @gerr"},
 		{"partial site", "__complete @en.wiki", "__complete @en.wiki"},
 		{"partial service", "__complete @gerr", "__complete @gerr"},
 		{"partial with flag", "__complete -v @en.wiki", "__complete -v @en.wiki"},
-		{"help", "help @en.wiki page", "help wiki page"},
+		{"help", "help @en.wiki page", "help @en.wikipedia.org page"},
 		{"help completion", "__complete help @en.wiki", "__complete help @en.wiki"},
 		{"tool", "@mytool.toolforge.org exec", "tools exec --tool=mytool"},
 		{"tool with flags", "-v @mytool.toolforge.org --beta exec", "-v tools --beta exec --tool=mytool"},
-		{"explicit endpoint", "@en.wiki --wiki=https://example.org/api.php page list", "wiki --wiki=https://en.wikipedia.org/w/api.php --wiki=https://example.org/api.php page list"},
+		{"explicit endpoint", "@en.wiki --wiki=https://example.org/api.php page list", "@en.wikipedia.org --wiki=https://example.org/api.php page list"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			root := targetTestRoot()
@@ -125,15 +125,20 @@ func TestServiceTargetExecution(t *testing.T) {
 	root := targetTestRoot()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs(resolveServiceTargetArgs(root, []string{"-vv", "@en.wiki", "page", "list"}))
+	args := resolveServiceTargetArgs(root, []string{"-vv", "@en.wiki", "page", "list"})
+	page, _, err := root.Find([]string{"@en.wikipedia.org", "page", "list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page.RunE = func(*cobra.Command, []string) error { return nil }
+	root.SetArgs(args)
 	if err := root.Execute(); err != nil {
 		t.Fatal(err)
 	}
 	if count, _ := root.PersistentFlags().GetCount("verbose"); count != 2 {
 		t.Errorf("verbosity = %d, want 2", count)
 	}
-	wiki, _, _ := root.Find([]string{"wiki"})
-	if endpoint, _ := wiki.PersistentFlags().GetString("wiki"); endpoint != "https://en.wikipedia.org/w/api.php" {
+	if endpoint, _ := page.Flags().GetString("wiki"); endpoint != "https://en.wikipedia.org/w/api.php" {
 		t.Errorf("endpoint = %q", endpoint)
 	}
 }
