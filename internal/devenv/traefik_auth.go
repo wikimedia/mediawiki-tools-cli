@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -112,31 +113,61 @@ func (m Environment) PrepareGateway() error {
 	}); err != nil {
 		return err
 	}
-	return m.StopGatewayAuthIfNoTunnel()
+	// Preparing another service must not stop a manually started gateway or
+	// change suspend/resume intent. Explicit tunnel stop owns auth cleanup.
+	return nil
 }
 
 // StopGatewayAuthIfNoTunnel keeps the auth process scoped to active public
-// tunnel access. The router middleware remains configured and fails closed if
-// a /proxy route is reached without the service.
+// tunnel access. Local Traefik routes are independent of this process.
 func (m Environment) StopGatewayAuthIfNoTunnel() error {
-	running, err := m.DockerCompose().ServicesWithStatus("running")
+	return m.stopGatewayAuthIfNoTunnel(m.DockerCompose())
+}
+
+type gatewayServices interface {
+	ServicesWithStatus(string) ([]string, error)
+	Stop([]string) error
+}
+
+func hasTunnelService(services []string) bool {
+	return slices.Contains(services, "cloudflared") || slices.Contains(services, "holesail")
+}
+
+func (m Environment) stopGatewayAuthIfNoTunnel(project gatewayServices) error {
+	running, err := project.ServicesWithStatus("running")
 	if err != nil {
 		return fmt.Errorf("list running gateway services: %w", err)
 	}
-	for _, service := range []string{"cloudflared", "holesail"} {
-		for _, name := range running {
-			if name == service {
-				return nil
-			}
+	if hasTunnelService(running) {
+		return nil
+	}
+	// A provider can recover automatically from a restart, or be unpaused by
+	// Docker. Stopping its auth backend would leave that tunnel unusable.
+	for _, status := range []string{"restarting", "paused"} {
+		services, err := project.ServicesWithStatus(status)
+		if err != nil {
+			return fmt.Errorf("list %s gateway services: %w", status, err)
 		}
+		if hasTunnelService(services) {
+			return nil
+		}
+	}
+	wanted, _, err := m.ResumeServices()
+	if err != nil {
+		return err
 	}
 	for _, name := range running {
 		if name == "gateway-auth" {
-			if err := m.DockerCompose().Stop([]string{"gateway-auth"}); err != nil {
+			if err := project.Stop([]string{"gateway-auth"}); err != nil {
 				return fmt.Errorf("stop unused gateway authentication service: %w", err)
 			}
 			break
 		}
+	}
+	// A suspended tunnel is still intended to run on the next resume. Runtime
+	// cleanup must not remove the authentication service it will need then.
+	if hasTunnelService(wanted) {
+		return nil
 	}
 	return m.UpdateResumeServices([]string{"gateway-auth"}, false)
 }
