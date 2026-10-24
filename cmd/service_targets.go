@@ -161,6 +161,12 @@ func resolveServiceTargetArgs(root *cobra.Command, args []string) []string {
 	}
 	command, known := serviceTargets[target]
 	host := strings.TrimPrefix(target, "@")
+	if (command == "wiki" || !known) && isWikimediaWikiHost(host) {
+		root.AddCommand(newWikiTargetCmd(host))
+		result := append([]string(nil), args...)
+		result[index] = "@" + host
+		return result
+	}
 	var flags []string
 	if known && command == "wiki" {
 		flags = []string{"--wiki=https://" + strings.TrimPrefix(target, "@") + "/w/api.php"}

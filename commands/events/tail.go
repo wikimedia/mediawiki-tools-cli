@@ -23,9 +23,9 @@ const (
 )
 
 type tailOptions struct {
-	stream, wiki, title, user string
-	namespace, limit          int
-	since, until              time.Time
+	stream, wiki, domain, title, user string
+	namespace, limit                  int
+	since, until                      time.Time
 }
 
 type streamEvent struct {
@@ -74,6 +74,7 @@ func NewTailCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&opts.stream, "stream", "recentchange", "EventStreams stream name")
 	cmd.Flags().StringVar(&opts.wiki, "wiki", "", "Filter by wiki database name, for example enwiki")
+	cmd.Flags().StringVar(&opts.domain, "domain", "", "Filter by event domain, for example en.wikipedia.org")
 	cmd.Flags().StringVar(&opts.title, "title", "", "Filter by exact page title")
 	cmd.Flags().StringVar(&opts.user, "user", "", "Filter by exact username")
 	cmd.Flags().IntVar(&opts.namespace, "namespace", -1, "Filter by namespace ID")
@@ -153,7 +154,7 @@ func tail(ctx context.Context, opts tailOptions, out io.Writer) error {
 					}
 				}()
 			}
-			if message.Meta.Domain == "canary" {
+			if message.Meta.Domain == "canary" || (opts.domain != "" && !strings.EqualFold(opts.domain, message.Meta.Domain)) {
 				return nil
 			}
 			if !opts.since.IsZero() || !opts.until.IsZero() {

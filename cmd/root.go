@@ -375,8 +375,8 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	})
 
 	// Resolve a service target prefix (for example, @gerrit.wikimedia.org) to
-	// its existing command group before Cobra parses the command tree. This
-	// keeps the normal command tree and its nested completions reusable.
+	// its service command group or combined wiki capabilities before Cobra
+	// parses the command tree, keeping nested completions reusable.
 	rootCmd.SetArgs(resolveServiceTargetArgs(rootCmd, os.Args[1:]))
 
 	// Execute the root command

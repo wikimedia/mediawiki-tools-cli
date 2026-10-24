@@ -40,6 +40,21 @@ target, the next completion offers Gerrit commands. Short targets such as
 English Wikipedia too. Global flags can precede the target, for example
 `mw -v @en.wiki page list`. Use `mw help @en.wiki page` for command help.
 
+Wikimedia wiki targets combine content commands with project analytics and events:
+
+```sh
+mw @en.wikipedia.org pageviews 'Main Page' --agent user
+mw @commons.wikimedia.org top-pages
+mw @en.wikipedia.org events tail --limit 10
+```
+
+Tab completion after the target offers all these capabilities. Analytics use the
+selected hostname as their default `--project`; events filter by that hostname
+using `--domain` (including streams other than recent changes). Explicit flags
+can override those defaults. Content commands use the target's Action API URL.
+Other MediaWiki hosts retain content commands only. The usual `mw wiki`,
+`mw analytics` and `mw events` commands remain available.
+
 Targets select a service command group; they do not claim that every command
 connects to the URL typed. Cloud VPS commands use the OpenStack API endpoint
 (`openstack.eqiad1.wikimediacloud.org`) while Horizon is its web interface
