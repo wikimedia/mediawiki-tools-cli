@@ -4,7 +4,7 @@ GitLab runs checks and builds on shared Wikimedia runners. Docker integration te
 
 ## When CI runs
 
-CI runs for MRs (including drafts), `main`, tags and weekly image updates. You can also start `main` pipelines through the UI or API. New commits cancel older interruptible jobs.
+CI runs for MRs (including drafts), `main`, tags, weekly image updates and scheduled Dependabot updates. You can also start `main` pipelines through the UI or API. New commits cancel older interruptible jobs.
 
 MR pipelines test a temporary merge with the target branch. If the target advances, start a new pipeline; retries reuse the existing merge.
 
@@ -13,6 +13,18 @@ MR pipelines test a temporary merge with the target branch. If the target advanc
 `prepare-mediawiki` shares a clean snapshot with integration tests. It refreshes weekly or when preparation scripts change. Use GitLab's **Clear runner caches** to force a refresh.
 
 Preview release builds run alongside integration. Documentation builds and tagged releases wait for integration to pass.
+
+## Dependabot Go updates
+
+The **Dependabot, gomod, /** schedule uses `.gitlab/dependabot.yml`.
+Set `GITLAB_SCHEDULE=dependabot`, `PACKAGE_MANAGER_SET=gomod` and `DIRECTORY=/`.
+Store `SETTINGS__GITLAB_ACCESS_TOKEN` as a masked CI/CD variable with Developer
+access and `api` + `read_repository` scopes. Protected variables require a
+protected target branch. Use `SETTINGS__DRY_RUN=true` to test without creating MRs.
+
+The updater image requires [Puppet change 1358418](https://gerrit.wikimedia.org/r/c/operations/puppet/+/1358418)
+to be deployed. See the [upstream setup guide](https://dependabot-gitlab.gitlab.io/dependabot/guide/getting-started.html)
+for further configuration.
 
 ## GitHub integration
 
