@@ -122,7 +122,10 @@ func newServiceUpCmdP(name *string, onCreateText string, opts *dockercompose.UpO
 				return err
 			}
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().StartServiceNames(dereferencedName)
+			if len(services) == 0 {
+				return fmt.Errorf("no default services to start for %s", dereferencedName)
+			}
 			if err := DefaultForUser().DockerCompose().Up(services, *opts); err != nil {
 				return err
 			}
@@ -214,7 +217,10 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 				return err
 			}
 			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().StartServiceNames(dereferencedName)
+			if len(services) == 0 {
+				return fmt.Errorf("no default services to start for %s", dereferencedName)
+			}
 			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
 			if err != nil {
 				return err
