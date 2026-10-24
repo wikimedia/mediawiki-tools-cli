@@ -102,6 +102,7 @@ CONTEXT=recording-setup ./docs/guides/dev/fresh.record.sh
 CONTEXT=recording-setup ./docs/guides/dev/api.record.sh
 CONTEXT=recording-setup ./docs/guides/dev/mysql-dumps.record.sh
 ./docs/guides/analytics/pageviews.record.sh
+./docs/guides/gitlab/artifacts.record.sh
 ./docs/guides/updating.record.sh
 CONTEXT=recording-setup-final ./docs/guides/dev/lifecycle.record.sh
 CONTEXT=recording-clean ./docs/guides/dev/extension-workflow.record.sh
