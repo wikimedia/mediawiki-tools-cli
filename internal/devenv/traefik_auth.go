@@ -152,10 +152,6 @@ func (m Environment) stopGatewayAuthIfNoTunnel(project gatewayServices) error {
 			return nil
 		}
 	}
-	wanted, _, err := m.ResumeServices()
-	if err != nil {
-		return err
-	}
 	for _, name := range running {
 		if name == "gateway-auth" {
 			if err := project.Stop([]string{"gateway-auth"}); err != nil {
@@ -164,12 +160,7 @@ func (m Environment) stopGatewayAuthIfNoTunnel(project gatewayServices) error {
 			break
 		}
 	}
-	// A suspended tunnel is still intended to run on the next resume. Runtime
-	// cleanup must not remove the authentication service it will need then.
-	if hasTunnelService(wanted) {
-		return nil
-	}
-	return m.UpdateResumeServices([]string{"gateway-auth"}, false)
+	return nil
 }
 
 func (m Environment) ensureTraefikAuth() error {

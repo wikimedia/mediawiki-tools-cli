@@ -12,6 +12,7 @@ import (
 func TestGatewayIngressIsSeparateFromLocalProxy(t *testing.T) {
 	type service struct {
 		Ports, Networks, Command, Environment []string
+		Restart                               string
 	}
 	read := func(name string) map[string]service {
 		t.Helper()
@@ -26,6 +27,9 @@ func TestGatewayIngressIsSeparateFromLocalProxy(t *testing.T) {
 		return config.Services
 	}
 	proxy := read("traefik")
+	if proxy["gateway-auth"].Restart != "no" {
+		t.Fatal("authentication must not restart automatically")
+	}
 	if len(proxy["gateway-auth"].Ports) != 0 {
 		t.Fatal("production auth ingress must not publish a host port")
 	}
@@ -45,6 +49,9 @@ func TestGatewayIngressIsSeparateFromLocalProxy(t *testing.T) {
 	}
 	for _, provider := range []string{"cloudflared", "holesail"} {
 		svc := read(provider)[provider]
+		if svc.Restart != "no" {
+			t.Errorf("%s automatically restarts", provider)
+		}
 		if !slices.Contains(svc.Networks, "gateway-access") {
 			t.Errorf("%s cannot reach auth ingress", provider)
 		}

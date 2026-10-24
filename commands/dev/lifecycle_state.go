@@ -46,7 +46,7 @@ func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
 	if err != nil {
 		return fmt.Errorf("list created containers: %w", err)
 	}
-	available := append(stopped, created...)
+	available := devenv.WithoutTunnelServices(append(stopped, created...))
 	selected := map[string]bool{}
 	intent := map[string]bool{}
 	for _, name := range wanted {
@@ -77,6 +77,18 @@ func restartDevelopmentServices(p lifecycleProject) error {
 	if err != nil {
 		return fmt.Errorf("list running containers: %w", err)
 	}
+	var temporary []string
+	for _, name := range running {
+		if devenv.IsTunnelRuntimeService(name) {
+			temporary = append(temporary, name)
+		}
+	}
+	if len(temporary) > 0 {
+		if err := p.Stop(temporary); err != nil {
+			return lifecycleError("stop tunnel access", err)
+		}
+	}
+	running = devenv.WithoutTunnelServices(running)
 	if len(running) == 0 {
 		return nil
 	}

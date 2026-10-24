@@ -5,7 +5,7 @@ services:
     profiles:
       - gateway
     init: true
-    restart: unless-stopped
+    restart: "no"
     security_opt:
       - no-new-privileges:true
     cap_drop:

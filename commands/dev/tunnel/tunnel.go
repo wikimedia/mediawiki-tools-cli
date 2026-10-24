@@ -25,11 +25,7 @@ var providers = []provider{
 	{"holesail", "holesail", "Holesail tunnel", regexp.MustCompile(`hs://s000[a-fA-F0-9]{64}`)},
 }
 
-func selectProvider(flag, configured string) (provider, error) {
-	name := flag
-	if name == "" {
-		name = configured
-	}
+func selectProvider(name string) (provider, error) {
 	if name == "" {
 		name = "cloudflare"
 	}
@@ -41,6 +37,26 @@ func selectProvider(flag, configured string) (provider, error) {
 	return provider{}, fmt.Errorf("unknown tunnel provider %q; choose cloudflare or holesail", name)
 }
 
+// activeProvider uses current containers rather than the previous invocation.
+func activeProvider(flag string, running []string) (provider, error) {
+	if flag != "" {
+		return selectProvider(flag)
+	}
+	var active []provider
+	for _, candidate := range providers {
+		if slices.Contains(running, candidate.service) {
+			active = append(active, candidate)
+		}
+	}
+	if len(active) > 1 {
+		return provider{}, fmt.Errorf("multiple tunnels are running; choose one with --provider")
+	}
+	if len(active) == 1 {
+		return active[0], nil
+	}
+	return provider{}, nil
+}
+
 func NewCmd() *cobra.Command {
 	var providerFlag string
 	cmd := &cobra.Command{
@@ -48,17 +64,26 @@ func NewCmd() *cobra.Command {
 		Short: "Connect to the development environment through an optional tunnel",
 		Long: "Manage a Cloudflare Quick Tunnel or a private Holesail connection to the Traefik gateway. " +
 			"Cloudflare gives a public HTTPS URL; Holesail needs a client on the connecting machine. " +
-			"Select with --provider or the context's TUNNEL_PROVIDER variable (default: cloudflare). " +
-			"A successful start remembers the provider for status, url, logs and stop. " +
+			"Start defaults to cloudflare; use --provider holesail for Holesail. " +
+			"Status, url and logs detect the currently running provider. " +
+			"Tunnels are temporary and are not restored by normal environment start or resume. " +
 			"The gateway authentication service starts only when a tunnel is active. " +
 			"Gateway authentication remains enabled by default with either provider.",
 	}
-	cmd.PersistentFlags().StringVar(&providerFlag, "provider", "", "Tunnel provider: cloudflare or holesail (defaults to TUNNEL_PROVIDER)")
+	cmd.PersistentFlags().StringVar(&providerFlag, "provider", "", "Tunnel provider: cloudflare or holesail (start defaults to cloudflare; other commands detect the active tunnel)")
 	_ = cmd.RegisterFlagCompletionFunc("provider", cobra.FixedCompletions([]string{"cloudflare", "holesail"}, cobra.ShellCompDirectiveNoFileComp))
-	selected := func() (devenv.Environment, provider, error) {
+	selected := func(start bool) (devenv.Environment, provider, error) {
 		instance := devenv.DefaultForUser()
 		instance.EnsureReady()
-		p, err := selectProvider(providerFlag, instance.Env().Get("TUNNEL_PROVIDER"))
+		if start || providerFlag != "" {
+			p, err := selectProvider(providerFlag)
+			return instance, p, err
+		}
+		running, err := instance.DockerCompose().ServicesWithStatus("running")
+		if err != nil {
+			return instance, provider{}, err
+		}
+		p, err := activeProvider("", running)
 		return instance, p, err
 	}
 	cmd.AddCommand(&cobra.Command{
@@ -67,7 +92,7 @@ func NewCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Example: "start\nstart --provider holesail",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instance, p, err := selected()
+			instance, p, err := selected(true)
 			if err != nil {
 				return err
 			}
@@ -86,7 +111,7 @@ func NewCmd() *cobra.Command {
 			if err := stopOtherProviders(project, p); err != nil {
 				return err
 			}
-			instance.Env().Set("TUNNEL_PROVIDER", p.name)
+			instance.Env().Delete("TUNNEL_PROVIDER")
 			fmt.Fprintf(cmd.OutOrStdout(), "%s is available at %s\n", p.label, endpoint)
 			if p.name == "holesail" {
 				fmt.Fprintf(cmd.OutOrStdout(), "On your computer, run:\n  holesail %s --host 127.0.0.1 --port 8082\nThen open http://127.0.0.1:8082/proxy/dashboard/\n", endpoint)
@@ -97,49 +122,26 @@ func NewCmd() *cobra.Command {
 		},
 	})
 	cmd.AddCommand(&cobra.Command{
-		Use:   "stop",
-		Short: "Stop tunnels while leaving the gateway running",
-		Args:  cobra.NoArgs,
+		Use: "stop", Short: "Stop tunnels and their authentication while keeping local access running", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instance, p, err := selected()
-			if err != nil {
-				return err
-			}
-			project := instance.DockerCompose()
-			if providerFlag != "" {
-				if err := project.Stop([]string{p.service}); err != nil {
-					return err
-				}
-				if err := instance.UpdateResumeServices([]string{p.service}, false); err != nil {
-					return err
-				}
-				return instance.StopGatewayAuthIfNoTunnel()
-			}
-			// Stop all known providers even if the default was changed by hand.
-			running, err := project.ServicesWithStatus("running")
-			if err != nil {
-				return err
-			}
+			instance := devenv.DefaultForUser()
+			instance.EnsureReady()
 			var services []string
-			for _, candidate := range providers {
-				if slices.Contains(running, candidate.service) {
+			if providerFlag != "" {
+				p, err := selectProvider(providerFlag)
+				if err != nil {
+					return err
+				}
+				services = []string{p.service}
+			} else {
+				for _, candidate := range providers {
 					services = append(services, candidate.service)
 				}
 			}
-			if len(services) > 0 {
-				if err := project.Stop(services); err != nil {
-					return err
-				}
-			}
-			// An explicit tunnel stop is an opt-out from automatic resume. Keep
-			// TUNNEL_PROVIDER so status and a later start still select the same one.
-			allTunnelServices := make([]string, 0, len(providers))
-			for _, candidate := range providers {
-				allTunnelServices = append(allTunnelServices, candidate.service)
-			}
-			if err := instance.UpdateResumeServices(allTunnelServices, false); err != nil {
+			if err := instance.DockerCompose().Stop(services); err != nil {
 				return err
 			}
+			instance.Env().Delete("TUNNEL_PROVIDER")
 			return instance.StopGatewayAuthIfNoTunnel()
 		},
 	})
@@ -148,9 +150,13 @@ func NewCmd() *cobra.Command {
 		Short: "Show whether the selected tunnel is running",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instance, p, err := selected()
+			instance, p, err := selected(false)
 			if err != nil {
 				return err
+			}
+			if p.name == "" {
+				fmt.Fprintln(cmd.OutOrStdout(), "No tunnel is running.")
+				return nil
 			}
 			running, err := instance.DockerCompose().ServicesWithStatus("running")
 			if err != nil {
@@ -174,10 +180,14 @@ func NewCmd() *cobra.Command {
 		Short: "Print the current tunnel URL or Holesail connection string",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instance, p, err := selected()
+			instance, p, err := selected(false)
 			if err != nil {
 				return err
 			}
+			if p.name == "" {
+				return fmt.Errorf("no tunnel is running; start one with '%s start'", cmd.Parent().CommandPath())
+			}
+
 			endpoint, _, err := readEndpoint(cmd.Context(), instance.DockerCompose(), p)
 			if err != nil {
 				return err
@@ -196,10 +206,14 @@ func NewCmd() *cobra.Command {
 		Short: "Show or follow the selected tunnel's logs",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			instance, p, err := selected()
+			instance, p, err := selected(false)
 			if err != nil {
 				return err
 			}
+			if p.name == "" {
+				return fmt.Errorf("no tunnel is running; choose --provider cloudflare or --provider holesail to read stopped logs")
+			}
+
 			composeArgs := []string{"logs", "--no-color", "--tail", tail}
 			if follow {
 				composeArgs = append(composeArgs, "--follow")

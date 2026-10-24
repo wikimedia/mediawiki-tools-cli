@@ -2,7 +2,7 @@ services:
   cloudflared:
     image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.0}"
     profiles: ["tunnel"]
-    restart: unless-stopped
+    restart: "no"
     command:
       - tunnel
       - --no-autoupdate

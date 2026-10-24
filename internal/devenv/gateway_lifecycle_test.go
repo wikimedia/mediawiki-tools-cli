@@ -27,15 +27,15 @@ func (p *fakeGatewayServices) Stop(services []string) error {
 	return p.stopErr
 }
 
-func TestGatewayCleanupPreservesResumeDependencies(t *testing.T) {
+func TestGatewayCleanupLeavesLocalResumeStateUnchanged(t *testing.T) {
 	for _, tc := range []struct {
 		name                                   string
 		running, saved, wantSaved, wantStopped []string
 	}{
-		{name: "suspended Cloudflare", saved: []string{"cloudflared", "gateway-auth", "traefik"}, wantSaved: []string{"cloudflared", "gateway-auth", "traefik"}},
-		{name: "suspended Holesail", saved: []string{"gateway-auth", "holesail", "traefik"}, wantSaved: []string{"gateway-auth", "holesail", "traefik"}},
-		{name: "active Cloudflare", running: []string{"cloudflared", "gateway-auth"}, saved: []string{"cloudflared", "gateway-auth"}, wantSaved: []string{"cloudflared", "gateway-auth"}},
-		{name: "active Holesail", running: []string{"gateway-auth", "holesail"}, saved: []string{"gateway-auth", "holesail"}, wantSaved: []string{"gateway-auth", "holesail"}},
+		{name: "suspended Cloudflare", saved: []string{"cloudflared", "gateway-auth", "traefik"}, wantSaved: []string{"traefik"}},
+		{name: "suspended Holesail", saved: []string{"gateway-auth", "holesail", "traefik"}, wantSaved: []string{"traefik"}},
+		{name: "active Cloudflare", running: []string{"cloudflared", "gateway-auth"}, saved: []string{"cloudflared", "gateway-auth"}},
+		{name: "active Holesail", running: []string{"gateway-auth", "holesail"}, saved: []string{"gateway-auth", "holesail"}},
 		{name: "no remaining intent", running: []string{"gateway-auth"}, saved: []string{"gateway-auth", "mysql"}, wantSaved: []string{"mysql"}, wantStopped: []string{"gateway-auth"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -64,12 +64,12 @@ func TestGatewayCleanupPreservesResumeDependencies(t *testing.T) {
 	}
 }
 
-func TestGatewayCleanupDoesNotForgetAuthOnStopFailure(t *testing.T) {
+func TestGatewayCleanupPreservesLocalStateOnStopFailure(t *testing.T) {
 	previous := Context
 	Context = "test"
 	t.Cleanup(func() { Context = previous })
 	m := Environment{BaseDir: t.TempDir()}
-	if err := m.SaveResumeServices([]string{"gateway-auth"}); err != nil {
+	if err := m.SaveResumeServices([]string{"gateway-auth", "mysql"}); err != nil {
 		t.Fatal(err)
 	}
 	failure := errors.New("stop failed")
@@ -78,7 +78,7 @@ func TestGatewayCleanupDoesNotForgetAuthOnStopFailure(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 	saved, _, err := m.ResumeServices()
-	if err != nil || !reflect.DeepEqual(saved, []string{"gateway-auth"}) {
+	if err != nil || !reflect.DeepEqual(saved, []string{"mysql"}) {
 		t.Fatalf("resume intent lost: %v, %v", saved, err)
 	}
 }
