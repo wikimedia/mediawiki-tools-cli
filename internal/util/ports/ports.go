@@ -13,6 +13,12 @@ var (
 
 /*FreeUpFrom get a free port up from and including the startingPort. Will attempt 25 ports.*/
 func FreeUpFrom(startingPort string) string {
+	return freeUpFrom(startingPort, IsValidAndFree)
+}
+
+// Keep the search independent of sockets so occupied-port scenarios can be
+// checked deterministically. The public entrypoint always probes real ports.
+func freeUpFrom(startingPort string, available func(string) error) string {
 	if isValid(startingPort) != nil {
 		startingPort = defaultStartingPort
 	}
@@ -22,7 +28,7 @@ func FreeUpFrom(startingPort string) string {
 
 	for portFloat < 65535 && loops <= portSearchLoopsBeforePanic {
 		loopPort := strconv.FormatFloat(portFloat, 'f', 0, 64)
-		if IsValidAndFree(loopPort) == nil {
+		if available(loopPort) == nil {
 			return loopPort
 		}
 		portFloat++
