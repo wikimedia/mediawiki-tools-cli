@@ -28,7 +28,7 @@ position_wait_attempt=0
 MYSQL01_File=""
 MYSQL01_Position=""
 while [ "$position_wait_attempt" -lt 60 ]; do
-    MYSQL01_Status=$(mysql --host mysql -uroot -p"$MYSQL_MAIN_PASSWORD" --batch --skip-column-names -e 'SHOW MASTER STATUS' 2>/dev/null || true)
+    MYSQL01_Status=$(mariadb --host mysql -uroot -p"$MYSQL_MAIN_PASSWORD" --batch --skip-column-names -e 'SHOW MASTER STATUS' 2>/dev/null || true)
     if [ -n "$MYSQL01_Status" ]; then
         read -r MYSQL01_File MYSQL01_Position _ <<< "$MYSQL01_Status"
         if [[ "$MYSQL01_File" =~ ^[^[:space:]]+$ && "$MYSQL01_Position" =~ ^[0-9]+$ ]]; then

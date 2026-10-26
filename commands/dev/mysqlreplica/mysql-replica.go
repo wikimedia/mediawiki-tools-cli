@@ -9,6 +9,6 @@ import (
 
 func NewCmd() *cobra.Command {
 	mysqlReplica := devenv.NewServiceCmd("mysql-replica", devenv.ServiceTexts{}, []string{})
-	mysqlReplica.AddCommand(devenv.NewServiceCommandCmd("mysql-replica", []string{"mysql", "-uroot", "-ptoor"}, []string{"cli"}))
+	mysqlReplica.AddCommand(devenv.NewServiceCommandCmd("mysql-replica", []string{"mariadb", "-uroot", "-ptoor"}, []string{"cli", "mysql"}))
 	return mysqlReplica
 }

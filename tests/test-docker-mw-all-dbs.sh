@@ -75,7 +75,7 @@ test_command_success ./bin/mw dev mediawiki install --dbname postgreswiki --dbty
 # for the newly installed MySQL schema to replicate before exercising it.
 replica_wait_attempt=0
 while [ "$replica_wait_attempt" -lt 60 ]; do
-    if replica_site_stats_table=$(./bin/mw dev mysql-replica exec -- mysql -uroot -ptoor -Nse "SHOW TABLES FROM mysqlwiki LIKE 'site_stats'" 2>/dev/null | tr -d '\r') && [ "$replica_site_stats_table" = "site_stats" ]; then
+    if replica_site_stats_table=$(./bin/mw dev mysql-replica exec -- mariadb -uroot -ptoor -Nse "SHOW TABLES FROM mysqlwiki LIKE 'site_stats'" 2>/dev/null | tr -d '\r') && [ "$replica_site_stats_table" = "site_stats" ]; then
         break
     fi
     replica_wait_attempt=$((replica_wait_attempt + 1))

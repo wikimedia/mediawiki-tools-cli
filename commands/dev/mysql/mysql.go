@@ -12,6 +12,6 @@ var devMysqlLong string
 
 func NewCmd() *cobra.Command {
 	mysql := devenv.NewServiceCmd("mysql", devenv.ServiceTexts{Long: devMysqlLong}, []string{})
-	mysql.AddCommand(devenv.NewServiceCommandCmd("mysql", []string{"mysql", "-uroot", "-ptoor"}, []string{"cli"}))
+	mysql.AddCommand(devenv.NewServiceCommandCmd("mysql", []string{"mariadb", "-uroot", "-ptoor"}, []string{"cli", "mysql"}))
 	return mysql
 }
