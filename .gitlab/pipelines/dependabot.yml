@@ -1,0 +1,28 @@
+# Runs in the ecosystem updater image; the core image does not include Go.
+# Requires this image to be allowed on the shared Wikimedia runners.
+gomod:
+  stage: test
+  image:
+    name: ghcr.io/dependabot-gitlab/dependabot-gitlab-gomod:7.12.0-alpha.1
+    entrypoint: [""]
+  tags:
+    - wmcs
+  interruptible: false
+  timeout: 1h
+  variables:
+    GIT_STRATEGY: none
+    SETTINGS__GITLAB_URL: "$CI_SERVER_URL"
+    SETTINGS__STANDALONE_CACHE_PATH: "$CI_PROJECT_DIR/.dependabot/cache"
+  rules:
+    - if: '$DEPENDENCY_UPDATES_DISABLED'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "dependabot" && $PACKAGE_MANAGER_SET =~ /\bgomod\b/'
+  script:
+    - ': "${SETTINGS__GITLAB_ACCESS_TOKEN:?Set a GitLab API token for Dependabot}"'
+    - cd /home/dependabot/app
+    - ./scripts/run.sh --project-name "${PROJECT_PATH:-$CI_PROJECT_PATH}" --package-ecosystem gomod --directory "${DIRECTORY:-/}"
+  cache:
+    key: dependabot-gomod
+    policy: pull-push
+    paths:
+      - .dependabot/cache/
