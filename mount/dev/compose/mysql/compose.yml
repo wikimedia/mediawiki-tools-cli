@@ -1,7 +1,6 @@
-
 services:
   mysql:
-    image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    image: "${MYSQL_IMAGE:-mariadb:11.4}"
     security_opt:
       - label:disable
     restart: unless-stopped
@@ -20,10 +19,10 @@ services:
       - mysql-data:/var/lib/mysql
       - ./compose/mysql/mount/main:/mwdd-custom
     entrypoint: "/mwdd-custom/entrypoint.sh"
-    command: "mysqld"
+    command: "mariadbd"
 
   mysql-configure-replication:
-    image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    image: "${MYSQL_IMAGE:-mariadb:11.4}"
     security_opt:
       - label:disable
     environment:
