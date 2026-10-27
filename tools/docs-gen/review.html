@@ -467,9 +467,15 @@
               <option value="all">All pages</option>
               <option value="review">Needs review</option>
               <option value="new">New pages</option>
+              <option value="additions">Existing pages: additions only</option>
+              <option value="removals">Existing pages: removals only</option>
+              <option value="mixed">Existing pages: additions and removals</option>
+              <option value="unchanged">Unchanged pages</option>
+              <option value="version">Version-only changes</option>
               <option value="wiki">Wiki corrections</option>
             </select>
           </div>
+          <div class="counts">Change types use wikitext lines. Rewritten lines count as additions and removals.</div>
           <div class="bulk">
             <button id="select">Select visible publishable pages</button
             ><button id="clear">Clear selection</button>
@@ -581,6 +587,16 @@
             return !p.safe;
           case "new":
             return p.status === "New";
+          case "additions":
+            return p.changes.added > 0 && p.changes.removed === 0;
+          case "removals":
+            return p.changes.removed > 0 && p.changes.added === 0;
+          case "mixed":
+            return p.changes.added > 0 && p.changes.removed > 0;
+          case "unchanged":
+            return !p.changed;
+          case "version":
+            return p.status === "Version only";
           case "wiki":
             return p.wikiEdits;
           default:
@@ -647,6 +663,8 @@
             const cls =
               p.status === "New" ? "new" : !p.safe ? "review" : p.status === "Updated" ? "updated" : "";
             info.append(el("span", p.status, "badge " + cls));
+            if (p.changes.added || p.changes.removed)
+              info.append(document.createTextNode(" "), el("span", `+${p.changes.added} −${p.changes.removed} lines`, "badge"));
             if (p.wikiEdits)
               info.append(document.createTextNode(" "), el("span", "Wiki corrections", "badge review"));
             row.append(box, info);

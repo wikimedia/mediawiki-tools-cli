@@ -14,6 +14,7 @@ type documentationVersion struct {
 	Commit     string `json:"commit"`
 	Unreleased bool   `json:"unreleased"`
 	Modified   bool   `json:"modified"`
+	Notice     bool   `json:"notice"`
 }
 
 func gitOutput(args ...string) string {
@@ -26,6 +27,8 @@ func gitOutput(args ...string) string {
 
 func currentDocumentationVersion() documentationVersion {
 	version := documentationVersion{Commit: gitOutput("rev-parse", "--short", "HEAD")}
+	notice := strings.TrimSpace(os.Getenv("DOCS_VERSION_NOTICE"))
+	version.Notice = notice == "1" || strings.EqualFold(notice, "true")
 	ref := strings.TrimSpace(os.Getenv("DOCS_VERSION"))
 	if ref == "" || ref == "latest" {
 		ref = strings.TrimSpace(os.Getenv("CI_COMMIT_TAG"))
@@ -59,6 +62,9 @@ func currentDocumentationVersion() documentationVersion {
 }
 
 func versionedDocumentation(body string, version documentationVersion) string {
+	if !version.Notice {
+		return body
+	}
 	// Redirects must start with #REDIRECT; their target carries the version notice.
 	if strings.HasPrefix(strings.TrimSpace(body), "#REDIRECT") {
 		return body

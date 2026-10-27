@@ -178,6 +178,11 @@ func convertLinks(input []byte, from, to string, rewrite func(string, string) (s
 					return
 				}
 				target[0], target[1] = raw, title
+				if to == "mediawiki" && title == "wikilink" {
+					attributes := fields[0].([]interface{})
+					attributes[1] = append(attributes[1].([]interface{}), "wikilink")
+					target[1] = ""
+				}
 			}
 			for _, child := range value {
 				walk(child)
@@ -199,24 +204,61 @@ func convertLinks(input []byte, from, to string, rewrite func(string, string) (s
 	return pandoc(ast, "json", to)
 }
 
-func convertMarkdown(input []byte, source string, links map[string]string) ([]byte, error) {
+func convertMarkdown(input []byte, source, page string, links map[string]string, config configuration) ([]byte, error) {
+	wiki, err := url.Parse(config.PageURL)
+	if err != nil {
+		return nil, err
+	}
 	return convertLinks(input, "gfm", "mediawiki", func(raw, title string) (string, string, error) {
 		parsed, err := url.Parse(raw)
 		if err != nil {
 			return "", "", err
 		}
-		if parsed.Scheme != "" || parsed.Host != "" || !strings.HasSuffix(parsed.Path, ".md") {
-			return raw, title, nil
+		if parsed.Scheme == "" && parsed.Host == "" && strings.HasSuffix(parsed.Path, ".md") {
+			key := path.Clean(path.Join(path.Dir(source), parsed.Path))
+			mapped, found := links[key]
+			if !found {
+				return "", "", fmt.Errorf("%s: unmapped documentation link %s", source, raw)
+			}
+			if parsed.Fragment != "" {
+				mapped += "#" + parsed.EscapedFragment()
+			}
+			raw = mapped
+			parsed, err = url.Parse(mapped)
+			if err != nil {
+				return "", "", err
+			}
 		}
-		key := path.Clean(path.Join(path.Dir(source), parsed.Path))
-		mapped, found := links[key]
-		if !found {
-			return "", "", fmt.Errorf("%s: unmapped documentation link %s", source, raw)
+		prefix := strings.TrimRight(wiki.Path, "/") + "/"
+		if wiki.Host != "" && parsed.Scheme == wiki.Scheme && strings.EqualFold(parsed.Host, wiki.Host) && parsed.User == nil && parsed.RawQuery == "" && !parsed.ForceQuery && strings.HasPrefix(parsed.Path, prefix) {
+			target := strings.TrimPrefix(parsed.Path, prefix)
+			if target != "" {
+				// Keep the established sibling-link style in command reference
+				// pages instead of rewriting every SEE ALSO entry on release.
+				referencePrefix := strings.TrimRight(config.ReferenceRoot, "/") + "/"
+				if config.ReferenceRoot != "" && target != page && strings.HasPrefix(page, referencePrefix) && strings.HasPrefix(target, referencePrefix) {
+					relative, err := filepath.Rel(page, target)
+					if err != nil {
+						return "", "", err
+					}
+					target = filepath.ToSlash(relative)
+					if !strings.HasPrefix(target, "../") && !strings.HasPrefix(target, "./") {
+						target = "./" + target
+					}
+				}
+				// Category and file links must remain navigation, not add a
+				// category or embed a file in the generated page.
+				namespace, _, _ := strings.Cut(target, ":")
+				if strings.EqualFold(namespace, "Category") || strings.EqualFold(namespace, "File") || strings.EqualFold(namespace, "Image") {
+					target = ":" + target
+				}
+				if parsed.Fragment != "" {
+					target += "#" + parsed.Fragment
+				}
+				return target, "wikilink", nil
+			}
 		}
-		if parsed.Fragment != "" {
-			mapped += "#" + parsed.EscapedFragment()
-		}
-		return mapped, title, nil
+		return raw, title, nil
 	})
 }
 
@@ -312,7 +354,7 @@ func generate(config configuration) error {
 			return err
 		}
 		source := strings.TrimPrefix(filepath.ToSlash(document.Source), "docs/")
-		converted, err := convertMarkdown(data, source, links)
+		converted, err := convertMarkdown(data, source, document.Title, links, config)
 		if err != nil {
 			return fmt.Errorf("%s: %w", document.Title, err)
 		}
@@ -321,7 +363,7 @@ func generate(config configuration) error {
 			body = "#REDIRECT [[" + config.ReferenceRoot + "/" + root.Name() + "]]\n"
 		}
 		if strings.HasPrefix(document.Title, config.ReferenceRoot+"/") {
-			body += "\n__NOTOC__\n"
+			body = strings.TrimRight(body, "\r\n") + "\n__NOTOC__\n"
 		}
 		if err := os.WriteFile(document.Wikitext, []byte(marked(versionedDocumentation(body, version))), 0o644); err != nil {
 			return err

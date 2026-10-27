@@ -29,28 +29,32 @@ make docs-review
 ```
 
 This generates documentation from your current checkout, reads the managed pages
-and their publication history from MediaWiki.org, then opens a local browser
-review interface. No wiki edits happen when opening or refreshing a review.
+and their publication history from MediaWiki.org, then prints the URL of a local
+review interface. Open that URL in your browser. No wiki edits happen when opening or refreshing a review.
 The server listens only on a random loopback port. Keep the printed URL private;
-it grants access to this review session. Press Ctrl+C to stop it. If automatic
-browser opening is unavailable, use `make docs-review DOCS_REVIEW_ARGS=-no-browser`
-and open the printed URL yourself.
+it grants access to this review session. Press Ctrl+C to stop it.
 
 Search by title or source, filter changed/new/conflicted pages, and select pages
 individually or by command family or guide area. Selection applies to visible
 pages, so you can narrow an area before selecting it. Version-only updates have
-a separate filter to keep them out of content reviews.
+a separate filter to keep them out of content reviews. Existing pages can also
+be filtered to additions only, removals only, or both; unchanged pages have their
+own filter. These groups count wikitext line changes, excluding version notices
+and publication fingerprints. Rewriting a line counts as both an addition and
+a removal. New pages remain a separate group.
 
 Each page has four views:
 
 - **Publication diff:** the current wiki text compared with the exact proposed
-  wikitext, including the version notice.
+  wikitext, including a version notice if enabled.
 - **Rendered preview:** proposed or current content rendered through MediaWiki.org's
   read-only parse API. Content styles are loaded from the wiki; site navigation is
   omitted. Previewing sends the proposed text to MediaWiki.org but does not save it.
 - **Wiki corrections:** changes since the last publication or reviewed import.
 - **Source:** the generated Markdown and its repository source location. Edit the
   original guide or command help, then refresh to rebuild and review it.
+
+Published wikitext uses internal links for pages on the configured wiki. Links between command reference pages keep their existing relative form, such as `[[../mw_config|mw config]]`. Generated Markdown keeps full URLs for standalone use; links to other sites and URLs with query parameters remain external links.
 
 For a page needing review, incorporate wiki corrections into the source or
 resolve the differences deliberately. **Mark wiki revision reviewed** records
@@ -80,9 +84,22 @@ then the current branch. Non-release checkouts display a label such as
 `main / unreleased · abc1234`; local changes add `modified`. The former automatic
 `latest` label now triggers this detection instead of implying a release.
 
-Generated content pages show a version notice, and unreleased pages explain that
-the installed release may differ. Redirects remain plain redirects. Publication
-summaries use the same version snapshot as the generated pages. Version notices
+The version is shown in the review interface and publication summaries. Published
+pages omit version notices by default, so documentation can be reviewed and
+published ahead of a release without rewriting unchanged pages when the release
+is tagged. Pages stay managed: future source changes are still published, and
+wiki corrections still require review. Commit source edits and reviewed wiki
+baselines before the release so CI builds the same content.
+
+To include visible version notices explicitly, use:
+
+```sh
+make docs-review DOCS_VERSION_NOTICE=1
+```
+
+With notices enabled, unreleased pages explain that the installed release may
+differ. Use the same setting for subsequent publications; changing the setting
+adds or removes the notice. Redirects remain plain redirects. Version notices
 are excluded when importing wiki text back into Markdown guides.
 
 ## Find pages left behind

@@ -133,6 +133,54 @@ func TestCheckExportsOnlyWikiCorrectionsAndPublishDoesNotLogin(t *testing.T) {
 	}
 }
 
+func TestReleasePublishSkipsContentPublishedAheadOfRelease(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("DOCS_UPDATE_USER", "fixture-bot")
+	t.Setenv("DOCS_UPDATE_PASS", "fixture-password")
+	t.Setenv("DOCS_VERSION_NOTICE", "0")
+	t.Setenv("DOCS_VERSION", "docs/interactive-review")
+	const body = "Reviewed documentation published ahead of release.\n"
+	earlyVersion := currentDocumentationVersion()
+	current := snapshot{Revision: 42, Text: marked(versionedDocumentation(body, earlyVersion)), User: "Publisher", Comment: publicationSummary + " (" + earlyVersion.Label + ")"}
+
+	t.Setenv("DOCS_VERSION", "v0.34.0")
+	releaseVersion := currentDocumentationVersion()
+	if earlyVersion.Label == releaseVersion.Label {
+		t.Fatal("test did not change documentation version")
+	}
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	item := document{Title: "Cli/guide/Test", Wikitext: filepath.Join(outputDir, "test.wiki")}
+	desired := marked(versionedDocumentation(body, releaseVersion))
+	if current.Text != desired {
+		t.Fatal("release label changed page text or fingerprint")
+	}
+	if err := os.WriteFile(item.Wikitext, []byte(desired), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeJSON(filepath.Join(outputDir, "pages.json"), []document{item}); err != nil {
+		t.Fatal(err)
+	}
+	posts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			posts++
+			t.Error("unchanged release publication attempted login or an edit")
+			http.Error(w, "unexpected write", http.StatusBadRequest)
+			return
+		}
+		replyRevisions(w, item.Title, []snapshot{current}, "")
+	}))
+	defer server.Close()
+	if err := synchronize(configuration{API: server.URL, ReferenceRoot: "Cli/ref"}, "publish"); err != nil {
+		t.Fatal(err)
+	}
+	if posts != 0 {
+		t.Fatal("unchanged release publication made a write request")
+	}
+}
+
 func replyRevisions(w http.ResponseWriter, title string, revisions []snapshot, continuation string) {
 	records := []interface{}{}
 	for _, revision := range revisions {
@@ -172,16 +220,75 @@ func TestGuideLinksAreConvertedWithoutChangingCode(t *testing.T) {
 		t.Skip("pandoc is installed in the documentation CI job")
 	}
 	markdown := "[Install](../installation.md)\n\n```sh\necho '[Install](../installation.md)'\n```\n"
-	converted, err := convertMarkdown([]byte(markdown), "advanced/test.md", map[string]string{"installation.md": "https://www.mediawiki.org/wiki/Cli/guide/Installation"})
+	config := configuration{PageURL: "https://www.mediawiki.org/wiki"}
+	converted, err := convertMarkdown([]byte(markdown), "advanced/test.md", "Cli/guide/Advanced/Test", map[string]string{"installation.md": "https://www.mediawiki.org/wiki/Cli/guide/Installation"}, config)
 	if err != nil {
 		t.Fatal(err)
 	}
 	output := string(converted)
-	if !strings.Contains(output, "https://www.mediawiki.org/wiki/Cli/guide/Installation") || !strings.Contains(output, "echo '[Install](../installation.md)'") {
+	if !strings.Contains(output, "[[Cli/guide/Installation|Install]]") || !strings.Contains(output, "echo '[Install](../installation.md)'") {
 		t.Fatalf("link rewrite changed code or lost link: %s", output)
 	}
-	if _, err := convertMarkdown([]byte("[Missing](missing.md)"), "index.md", nil); err == nil {
+	if _, err := convertMarkdown([]byte("[Missing](missing.md)"), "index.md", "Cli/guide/Index", nil, config); err == nil {
 		t.Fatal("unmapped guide link accepted")
+	}
+}
+
+func TestPublishedLinksUseInternalWikiSyntax(t *testing.T) {
+	if _, err := osexec.LookPath("pandoc"); err != nil {
+		t.Skip("pandoc is installed in the documentation CI job")
+	}
+	config := configuration{PageURL: "https://www.mediawiki.org/wiki"}
+	for _, tc := range []struct{ name, input, want string }{
+		{"reference", "[mw config](https://www.mediawiki.org/wiki/Cli/ref/mw_config)", "[[Cli/ref/mw_config|mw config]]"},
+		{"fragment", "[Details](https://www.mediawiki.org/wiki/Cli/guide/Installation#Command_names)", "[[Cli/guide/Installation#Command_names|Details]]"},
+		{"escaped page", "[Page](https://www.mediawiki.org/wiki/Help:Example%20page)", "[[Help:Example page|Page]]"},
+		{"category", "[Category](https://www.mediawiki.org/wiki/Category:Help)", "[[:Category:Help|Category]]"},
+		{"file", "[File](https://www.mediawiki.org/wiki/File:Example.png)", "[[:File:Example.png|File]]"},
+		{"external wiki", "[Wikipedia](https://en.wikipedia.org/wiki/Main_Page)", "[https://en.wikipedia.org/wiki/Main_Page Wikipedia]"},
+		{"query", "[History](https://www.mediawiki.org/wiki/Cli?action=history)", "[https://www.mediawiki.org/wiki/Cli?action=history History]"},
+		{"other path", "[API](https://www.mediawiki.org/w/api.php)", "[https://www.mediawiki.org/w/api.php API]"},
+		{"path boundary", "[Other](https://www.mediawiki.org/wikipedia/Page)", "[https://www.mediawiki.org/wikipedia/Page Other]"},
+		{"code", "`https://www.mediawiki.org/wiki/Cli/ref/mw_config`", "https://www.mediawiki.org/wiki/Cli/ref/mw_config"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			converted, err := convertMarkdown([]byte(tc.input), "index.md", "Cli/guide/Index", nil, config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(converted), tc.want) {
+				t.Fatalf("expected %q in %s", tc.want, converted)
+			}
+		})
+	}
+}
+
+func TestReferenceWikiLinksRemainRelative(t *testing.T) {
+	if _, err := osexec.LookPath("pandoc"); err != nil {
+		t.Skip("pandoc is installed in the documentation CI job")
+	}
+	config := configuration{PageURL: "https://www.mediawiki.org/wiki", ReferenceRoot: "Cli/ref"}
+	for _, tc := range []struct{ page, target, want string }{
+		{"Cli/ref/mw", "Cli/ref/mw_config", "../mw_config"},
+		{"Cli/ref/mw_config", "Cli/ref/mw", "../mw"},
+		{"Cli/ref/mw_config", "Cli/ref/mw_config_show#Options", "../mw_config_show#Options"},
+		{"Cli/ref/mw", "Cli/ref/mw/Subpage", "./Subpage"},
+		{"Cli/ref/mw", "Cli/guide/Installation", "Cli/guide/Installation"},
+		{"Cli/guide/Installation", "Cli/ref/mw", "Cli/ref/mw"},
+		{"Cli/ref/mw", "Cli/ref/mw#Options", "Cli/ref/mw#Options"},
+	} {
+		t.Run(tc.page+" to "+tc.target, func(t *testing.T) {
+			input := "[Link](" + wikiURL(config, tc.target) + ")"
+			// wikiURL escapes page titles; anchors belong outside the path.
+			input = strings.ReplaceAll(input, "%23", "#")
+			converted, err := convertMarkdown([]byte(input), "commands/", tc.page, nil, config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := "[[" + tc.want + "|Link]]"; !strings.Contains(string(converted), want) {
+				t.Fatalf("expected %q in %s", want, converted)
+			}
+		})
 	}
 }
 

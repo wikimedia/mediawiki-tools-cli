@@ -26,27 +26,32 @@ import (
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
-	"github.com/pkg/browser"
 )
 
 //go:embed review.html
 var reviewHTML []byte
 
 type reviewItem struct {
-	ID        int       `json:"id"`
-	Title     string    `json:"title"`
-	Source    string    `json:"source"`
-	Area      string    `json:"area"`
-	URL       string    `json:"url"`
-	Status    string    `json:"status"`
-	Safe      bool      `json:"safe"`
-	WikiEdits bool      `json:"wikiEdits"`
-	Revision  int64     `json:"revision"`
-	Changed   bool      `json:"changed"`
-	Current   snapshot  `json:"-"`
-	Baseline  *snapshot `json:"-"`
-	Proposed  string    `json:"-"`
-	Markdown  string    `json:"-"`
+	ID        int         `json:"id"`
+	Title     string      `json:"title"`
+	Source    string      `json:"source"`
+	Area      string      `json:"area"`
+	URL       string      `json:"url"`
+	Status    string      `json:"status"`
+	Safe      bool        `json:"safe"`
+	WikiEdits bool        `json:"wikiEdits"`
+	Revision  int64       `json:"revision"`
+	Changed   bool        `json:"changed"`
+	Changes   lineChanges `json:"changes"`
+	Current   snapshot    `json:"-"`
+	Baseline  *snapshot   `json:"-"`
+	Proposed  string      `json:"-"`
+	Markdown  string      `json:"-"`
+}
+
+type lineChanges struct {
+	Added   int `json:"added"`
+	Removed int `json:"removed"`
 }
 
 type reviewSession struct {
@@ -151,6 +156,10 @@ func loadReviewSession(config configuration) (*reviewSession, error) {
 		}
 		item.Safe = !current.Translation && safeToPublish(config, doc.Title, current, item.Proposed, item.Baseline)
 		item.Changed = current.Missing || normalize(current.Text) != normalize(item.Proposed)
+		item.Changes, err = publicationLineChanges(current, item.Proposed)
+		if err != nil {
+			return nil, fmt.Errorf("classify changes for %s: %w", doc.Title, err)
+		}
 		switch {
 		case !item.Safe:
 			item.Status = "Needs review"
@@ -166,6 +175,44 @@ func loadReviewSession(config configuration) (*reviewSession, error) {
 		session.Pages = append(session.Pages, item)
 	}
 	return session, nil
+}
+
+func publicationLineChanges(current snapshot, proposed string) (lineChanges, error) {
+	var changes lineChanges
+	// New pages have their own filter. Ignore publication metadata so version
+	// labels and content fingerprints do not turn additions into mixed changes.
+	if current.Missing {
+		return changes, nil
+	}
+	before := strings.TrimRight(withoutVersionNotice(documentationBody(current.Text)), "\r\n")
+	after := strings.TrimRight(withoutVersionNotice(documentationBody(proposed)), "\r\n")
+	if before != "" {
+		before = normalize(before)
+	}
+	if after != "" {
+		after = normalize(after)
+	}
+	diff, err := unifiedReviewDiff(before, after)
+	if err != nil {
+		return changes, err
+	}
+	inHunk := false
+	for _, line := range strings.Split(diff, "\n") {
+		if strings.HasPrefix(line, "@@ ") {
+			inHunk = true
+			continue
+		}
+		if !inHunk || line == "" {
+			continue
+		}
+		switch line[0] {
+		case '+':
+			changes.Added++
+		case '-':
+			changes.Removed++
+		}
+	}
+	return changes, nil
 }
 
 func unifiedReviewDiff(before, after string) (string, error) {
@@ -230,10 +277,14 @@ func (s *reviewServer) selectPlan(request selectedPages) (publicationPlan, error
 	for _, id := range plan.IDs {
 		item := s.session.Pages[id]
 		for _, match := range links.FindAllStringSubmatch(item.Proposed, -1) {
-			target := normalizedWikiTitle(strings.TrimPrefix(match[1], ":"))
-			if missing[target] && !warned[target] {
-				plan.Warnings = append(plan.Warnings, item.Title+" links to an unpublished, unselected page: "+match[1])
-				warned[target] = true
+			target := strings.TrimPrefix(match[1], ":")
+			if strings.HasPrefix(target, "../") || strings.HasPrefix(target, "./") {
+				target = path.Clean(path.Join(item.Title, target))
+			}
+			key := normalizedWikiTitle(target)
+			if missing[key] && !warned[key] {
+				plan.Warnings = append(plan.Warnings, item.Title+" links to an unpublished, unselected page: "+target)
+				warned[key] = true
 			}
 		}
 	}
@@ -289,7 +340,9 @@ func renderWikiPreview(config configuration, title, text string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	reply, err := client.Post(params.Values{"action": "parse", "formatversion": "2", "title": title, "text": text, "contentmodel": "wikitext", "prop": "text|modules", "preview": "1", "disableeditsection": "1", "useskin": "vector-2022"})
+	// MediaWiki requires configuration alongside modules, even though this static
+	// preview only consumes module styles and does not execute wiki JavaScript.
+	reply, err := client.Post(params.Values{"action": "parse", "formatversion": "2", "title": title, "text": text, "contentmodel": "wikitext", "prop": "text|modules|jsconfigvars", "preview": "1", "disableeditsection": "1", "useskin": "vector-2022"})
 	if err != nil {
 		return "", err
 	}
@@ -563,11 +616,6 @@ func serveDocumentationReview(config configuration) error {
 	}()
 	address := origin + "/#" + token
 	fmt.Printf("Review %d pages: %s\nPress Ctrl+C to stop.\n", len(session.Pages), address)
-	if !reviewNoBrowser {
-		if err := browser.OpenURL(address); err != nil {
-			fmt.Fprintf(os.Stderr, "Open the review URL in your browser: %v\n", err)
-		}
-	}
 	err = server.Serve(listener)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil

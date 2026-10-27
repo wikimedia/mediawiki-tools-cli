@@ -96,13 +96,14 @@ upgrade: $(GO_MOD_UPGRADE)
 export DOCS_UPDATE_USER ?= $(user)
 export DOCS_UPDATE_PASS ?= $(password)
 export DOCS_VERSION ?= $(if $(filter latest,$(VERSION)),,$(VERSION))
+export DOCS_VERSION_NOTICE ?= 0
 
 .PHONY: docs docs-review docs-check docs-audit docs-pull docs-publish docs-import docs-accept
 docs:
 	$(MISE) exec -- go run ./tools/docs-gen
 
 docs-review: docs
-	$(MISE) exec -- go run ./tools/docs-gen -mode review $(DOCS_REVIEW_ARGS)
+	$(MISE) exec -- go run ./tools/docs-gen -mode review
 
 docs-check: docs
 	$(MISE) exec -- go run ./tools/docs-gen -mode check
