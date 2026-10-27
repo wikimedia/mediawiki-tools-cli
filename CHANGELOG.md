@@ -8,12 +8,12 @@ notes will be missed.
 ## Unreleased
 
 - Development environment (`mw docker`):
-    - Updated the default MariaDB service image from `mariadb:10.11` to `mariadb:11.4` (current MariaDB LTS, supported
+    - Updated the default MariaDB service image from `mariadb:10.11` to `mariadb:11.4` (a MariaDB LTS, supported
       upstream until 2029). This refreshes the base packages flagged by Docker Scout on the aging 10.11 build; the
       `MYSQL_IMAGE` override is unchanged, so a custom image can still be set with `mw docker env set MYSQL_IMAGE ...`.
     - Note: moving a MariaDB major version upgrades the on-disk data format one way. An existing `mysql` data volume is
-      migrated on first start and cannot be downgraded afterwards; destroy and recreate the `mysql` service for a clean
-      reinitialisation if preferred.
+      migrated on first start with `MARIADB_AUTO_UPGRADE=1` on both primary and replica and cannot be downgraded
+      afterwards; destroy and recreate the `mysql` service for a clean reinitialisation if preferred.
 
 ## v0.33.2
 

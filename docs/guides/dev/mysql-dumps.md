@@ -21,6 +21,10 @@ otherwise preserved:
   `10.11` to `11.4`) upgrades the on-disk data format one way, and cannot be
   downgraded afterward.
 
+Both the primary and replica enable `MARIADB_AUTO_UPGRADE=1` so the image
+runs any required system-table upgrade on startup. The image backs up the
+system database before upgrading; this is not a backup of your wiki databases.
+
 Take a dump with [Export a dump](#export-a-dump) first, recreate the service on
 the new image, then reload it with [Import a dump](#import-a-dump). If you do
 not need the existing data, skip the dump and reinstall with
