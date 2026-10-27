@@ -18,6 +18,8 @@ Set Framerate 15
 Set TypingSpeed 25ms
 
 Hide
+Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
+Enter
 Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
@@ -26,22 +28,28 @@ Show
 
 Type '# Start a local MediaWiki environment'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki create >/dev/null 2>&1 && echo "MediaWiki services started"'
+Type 'mw dev mediawiki create'
 Enter
 Hide
 Wait+Line@180s /^> ?$/
 Show
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" mysql create >/dev/null 2>&1 && echo "MySQL is ready"'
+Sleep 2s
+Ctrl+L
+Type 'mw dev mysql create'
 Enter
 Hide
 Wait+Line@180s /^> ?$/
 Show
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki install --dbtype=mysql >/dev/null 2>&1 && echo "Local wiki installed"'
+Sleep 2s
+Ctrl+L
+Type 'mw dev mediawiki install --dbtype=mysql'
 Enter
 Hide
 Wait+Line@240s /^> ?$/
 Show
+Sleep 2s
+Ctrl+L
 
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" compose ps'
+Type 'mw dev compose ps'
 Enter
 Sleep 3s

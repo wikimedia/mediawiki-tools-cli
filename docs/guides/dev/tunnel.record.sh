@@ -19,3 +19,5 @@ trap cleanup EXIT
 
 mise_bin=${MISE:-mise}
 MISE_DATA_DIR=${MISE_DATA_DIR:-$HOME/.local/share/mise} "$mise_bin" exec vhs@0.12.1 ttyd@1.7.7 -- vhs "$script_dir/tunnel.tape"
+
+python3 tools/clean-recording-text.py _recordings/dev-tunnel.txt

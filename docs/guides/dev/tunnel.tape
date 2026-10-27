@@ -16,6 +16,8 @@ Set Framerate 15
 Set TypingSpeed 25ms
 
 Hide
+Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
+Enter
 Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
@@ -24,7 +26,7 @@ Show
 
 Type '# Open a temporary HTTPS tunnel to the local gateway'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" tunnel start'
+Type 'mw dev tunnel start'
 Enter
 Wait+Line@180s /^> ?$/
 Sleep 2s
@@ -32,10 +34,10 @@ Ctrl+L
 
 Type '# Check the tunnel and copy its URL'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" tunnel status'
+Type 'mw dev tunnel status'
 Enter
 Wait+Line@45s /^> ?$/
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" tunnel url'
+Type 'mw dev tunnel url'
 Enter
 Sleep 2s
 Ctrl+L
@@ -44,7 +46,7 @@ Type '# Copy the HTTPS URL and sign in through the gateway'
 Enter
 Type '# Stop the public tunnel when finished'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" tunnel stop'
+Type 'mw dev tunnel stop'
 Enter
 Wait+Line@90s /^> ?$/
 Sleep 3s

@@ -33,3 +33,5 @@ mw dev --context "$context" env set MEDIAWIKI_VOLUMES_CODE "$code_dir"
 
 mkdir -p _recordings
 "${MISE:-mise}" exec vhs@0.12.1 ttyd@1.7.7 -- vhs "$script_dir/setup.tape"
+
+python3 tools/clean-recording-text.py _recordings/dev-setup.txt

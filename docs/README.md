@@ -89,6 +89,8 @@ TOOL=your-tool ./docs/guides/tools/kubernetes-pod-helloworld.record.sh
 
 Install mise and FFmpeg first; mise provides pinned VHS and ttyd versions. Toolforge SSH must work without interactive prompts. If VHS stalls before typing, try a different Chromium executable or launcher named `chrome` at the front of `PATH`.
 
+Keep recording-only setup inside `Hide`/`Show`. Select a disposable context by setting `CONTEXT` in the hidden shell setup, rather than adding recording context flags to visible commands. The recording scripts clean shell harness lines from VHS text exports with `tools/clean-recording-text.py`; run it manually for recordings made directly with VHS.
+
 This recording extracts its manifest from the guide, creates and deletes only `cli-guide-hello`, and forwards localhost port 18080. It refuses to start if that pod exists. After an interrupted recording, stop its port forward and remove only the demo pod before retrying.
 
 For Commons, upload the generated WebM using `A Wikimedia CLI - Guide - <guide-path-with-hyphens> - <language>.webm`, for example `A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm`. Include the source guide/tape, Git revision, recording date and free license in its description. Mark recordings intended for updates with `{{Current}}`; minor corrections can replace the file, while substantially different demonstrations should use a new dated filename, following [Commons’ overwrite guidance](https://commons.wikimedia.org/wiki/Commons:Overwriting_existing_files).

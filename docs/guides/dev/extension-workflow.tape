@@ -16,9 +16,11 @@ Set Framerate 15
 Set TypingSpeed 25ms
 
 Hide
+Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
+Enter
 Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
-Type 'cd "$(mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki where)"'
+Type 'cd "$(mw dev mediawiki where)"'
 Enter
 Type 'clear'
 Enter
@@ -26,7 +28,7 @@ Show
 
 Type '# Get an extension into this checkout'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki get-code --extension Cite --gerrit-interaction-type http --no-commit-hook'
+Type 'mw dev mediawiki get-code --extension Cite --gerrit-interaction-type http --no-commit-hook'
 Enter
 Wait+Line@90s /^> ?$/
 Sleep 2s
@@ -41,7 +43,7 @@ Enter
 Type 'EOF'
 Enter
 Sleep 1s
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki mwscript update'
+Type 'mw dev mediawiki mwscript update'
 Enter
 Wait+Line@90s /^> ?$/
 Sleep 2s
@@ -49,7 +51,7 @@ Ctrl+L
 
 Type '# Run a focused extension test'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki composer phpunit extensions/Cite/tests/phpunit/unit/CiteParserTagHooksTest.php'
+Type 'mw dev mediawiki composer phpunit extensions/Cite/tests/phpunit/unit/CiteParserTagHooksTest.php'
 Enter
 Wait+Line@90s /^> ?$/
 Sleep 3s

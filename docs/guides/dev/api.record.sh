@@ -20,3 +20,5 @@ fi
 
 mkdir -p _recordings
 "${MISE:-mise}" exec vhs@0.12.1 ttyd@1.7.7 -- vhs "$script_dir/api.tape"
+
+python3 tools/clean-recording-text.py _recordings/dev-api.txt

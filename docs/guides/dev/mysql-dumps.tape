@@ -16,6 +16,8 @@ Set Framerate 15
 Set TypingSpeed 25ms
 
 Hide
+Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
+Enter
 Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
@@ -24,10 +26,10 @@ Show
 
 Type '# Export the local wiki database'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" compose exec -- -e MYSQL_PWD="$MWCLI_RECORD_DB_PASSWORD" -T mysql sh -c "mariadb-dump -uroot --single-transaction default > /tmp/mw-default.sql"'
+Type 'mw dev compose exec -- -T mysql sh -c "mariadb-dump -uroot -ptoor --single-transaction default > /tmp/mw-default.sql"'
 Enter
 Wait+Line@60s /^> ?$/
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" compose cp mysql:/tmp/mw-default.sql _recordings/mw-default.sql'
+Type 'mw dev compose cp mysql:/tmp/mw-default.sql _recordings/mw-default.sql'
 Enter
 Wait+Line@30s /^> ?$/
 Type 'ls -lh _recordings/mw-default.sql'
@@ -36,13 +38,13 @@ Sleep 2s
 
 Type '# Restore a copy into a second local database'
 Enter
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" compose exec -- -e MYSQL_PWD="$MWCLI_RECORD_DB_PASSWORD" -T mysql mariadb -uroot -e "CREATE DATABASE recording_restore"'
+Type 'mw dev compose exec -- -T mysql mariadb -uroot -ptoor -e "CREATE DATABASE recording_restore"'
 Enter
 Wait+Line@30s /^> ?$/
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" compose exec -- -e MYSQL_PWD="$MWCLI_RECORD_DB_PASSWORD" -T mysql mariadb -uroot recording_restore < _recordings/mw-default.sql'
+Type 'mw dev compose exec -- -T mysql mariadb -uroot -ptoor recording_restore < _recordings/mw-default.sql'
 Enter
 Wait+Line@60s /^> ?$/
-Type 'mw dev --context "$MWCLI_RECORD_CONTEXT" compose exec -- -e MYSQL_PWD="$MWCLI_RECORD_DB_PASSWORD" -T mysql mariadb -uroot -N -D recording_restore -e "SELECT COUNT(*) AS restored_tables FROM information_schema.tables WHERE table_schema=DATABASE()"'
+Type 'mw dev compose exec -- -T mysql mariadb -uroot -ptoor -N -D recording_restore -e "SELECT COUNT(*) AS restored_tables FROM information_schema.tables WHERE table_schema=DATABASE()"'
 Enter
 Wait+Line@30s /^> ?$/
 Sleep 2s

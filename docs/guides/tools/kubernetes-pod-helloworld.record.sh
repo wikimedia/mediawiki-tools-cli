@@ -25,3 +25,5 @@ awk '/^cat > cli-guide-hello.yaml / { copying=1; next } copying && /^YAML$/ { ex
 test -s _recordings/cli-guide-hello.yaml
 
 "${MISE:-mise}" exec vhs@0.12.1 ttyd@1.7.7 -- vhs "$script_dir/kubernetes-pod-helloworld.tape"
+
+python3 tools/clean-recording-text.py _recordings/kubernetes-pod-helloworld.txt
