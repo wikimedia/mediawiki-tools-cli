@@ -230,10 +230,23 @@ recognizes two narrow categories, defined by
   file. They need no translation because they reference only other messages or
   language-neutral features — for example a message whose value is just
   `{{SITENAME}}`, or one that is purely another message key or a language-neutral
-  token. An ignored message is never shown to translators.
+  token. A message whose English value is an **empty string** is also `ignored`,
+  because there is nothing to translate. An ignored message is never shown to
+  translators.
 - **`optional`** — messages that **may be translated only if they are changed in
   the target language**. They are offered to translators but can be left as the
   English source, so most languages leave them untouched.
+
+Two content patterns reliably indicate `optional`:
+
+- A message whose value is **only a `Special:MyLanguage/...` URL or link** (it
+  usually stays the same, but a language may point it elsewhere).
+- A message whose value is **only variables/parameters** (for example a single
+  `$1`, or several parameters with no surrounding text) — there is nothing to
+  translate unless a language needs to reorder or adjust them.
+
+These should be made `optional` (and ideally carry `{{optional}}` in `qqq.json`),
+not `ignored`, because a language may still legitimately change them.
 
 Everything else is a normal translatable message and needs no entry. Default to
 "normal": only classify a message when there is a clear signal, and prefer
