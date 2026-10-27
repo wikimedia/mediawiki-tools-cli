@@ -22,6 +22,100 @@ Pandoc is pinned in `mise.toml`. The Make targets use `mise exec`, so shell acti
 
 Published pages carry a content fingerprint. If someone edits a page on the wiki, the next publish stops before making any edits. For the initial migration, only reference content verified against the known legacy bot’s publication is adopted automatically (including identical human reverts); imported guides have explicit revision/content baselines in `wiki.json`.
 
+## Review and publish selected pages
+
+```sh
+make docs-review
+```
+
+This generates documentation from your current checkout, reads the managed pages
+and their publication history from MediaWiki.org, then prints the URL of a local
+review interface. Open that URL in your browser. No wiki edits happen when opening or refreshing a review.
+The server listens only on a random loopback port. Keep the printed URL private;
+it grants access to this review session. Press Ctrl+C to stop it.
+
+Search by title or source, filter changed/new/conflicted pages, and select pages
+individually or by command family or guide area. Selection applies to visible
+pages, so you can narrow an area before selecting it. Version-only updates have
+a separate filter to keep them out of content reviews. Existing pages can also
+be filtered to additions only, removals only, or both; unchanged pages have their
+own filter. These groups count wikitext line changes, excluding version notices
+and publication fingerprints. Rewriting a line counts as both an addition and
+a removal. New pages remain a separate group.
+
+Each page has four views:
+
+- **Publication diff:** the current wiki text compared with the exact proposed
+  wikitext, including a version notice if enabled.
+- **Rendered preview:** proposed or current content rendered through MediaWiki.org's
+  read-only parse API. Content styles are loaded from the wiki; site navigation is
+  omitted. Previewing sends the proposed text to MediaWiki.org but does not save it.
+- **Wiki corrections:** changes since the last publication or reviewed import.
+- **Source:** the generated Markdown and its repository source location. Edit the
+  original guide or command help, then refresh to rebuild and review it.
+
+Published wikitext uses internal links for pages on the configured wiki. Links between command reference pages keep their existing relative form, such as `[[../mw_config|mw config]]`. Generated Markdown keeps full URLs for standalone use; links to other sites and URLs with query parameters remain external links.
+
+The `mw_docker*` → `mw_dev*` reference rename is published as native wiki page
+moves when the old page exists and the new title is free. Both `docs-publish`
+(including release CI) and interactive publishing preserve the old history and
+leave redirects before updating the content. No manual move is needed first.
+The publisher account's bot password needs permission to move pages.
+
+Use **Page moves and redirects** to inspect these pairs. The new title's diff
+compares the old page content with the proposal. Selecting either title includes
+both in the confirmation. Wiki corrections at the old title must be reviewed;
+occupied destinations block the move and cannot be overridden by accepting a
+revision. Pages already moved manually are kept in place, and equivalent
+redirects are left unchanged. If publishing stops after a move, refresh or rerun
+to review the preserved content and finish the update.
+
+For a page needing review, incorporate wiki corrections into the source or
+resolve the differences deliberately. **Mark wiki revision reviewed** records
+that exact revision in `docs/wiki.json`, equivalent to `docs-accept`; it does not
+edit the wiki. Include this change in your commit. Translations cannot be accepted
+or published through this interface.
+
+Without credentials the interface supports selection, diffs and previews. To
+publish, start it with `DOCS_UPDATE_USER` and `DOCS_UPDATE_PASS` already set in your
+environment. **Review selection** shows the exact page list and version, including
+warnings about links to new managed pages outside the selection. Confirm
+**Publish selected pages** to publish only those pages. Unselected conflicts do
+not block the selection.
+
+The server keeps the proposed content in memory: publication sends exactly what
+was reviewed, even if local files subsequently change. It rechecks selected wiki
+revisions before any edits and uses revision guards on every edit. A changed wiki
+page blocks publication until refreshed. After an edit attempt, refresh to inspect
+completed edits before another publication; a network error can leave a partial
+publication. Refresh also rebuilds local sources and replaces the review snapshot.
+
+### Documentation version labels
+
+`DOCS_VERSION` overrides the version; `make VERSION=vX.Y.Z ...` still supplies a
+release version for CI. Otherwise the generator uses a CI tag or exact Git tag,
+then the current branch. Non-release checkouts display a label such as
+`main / unreleased · abc1234`; local changes add `modified`. The former automatic
+`latest` label now triggers this detection instead of implying a release.
+
+The version is shown in the review interface and publication summaries. Published
+pages omit version notices by default, so documentation can be reviewed and
+published ahead of a release without rewriting unchanged pages when the release
+is tagged. Pages stay managed: future source changes are still published, and
+wiki corrections still require review. Commit source edits and reviewed wiki
+baselines before the release so CI builds the same content.
+
+To include visible version notices explicitly, use:
+
+```sh
+make docs-review DOCS_VERSION_NOTICE=1
+```
+
+With notices enabled, unreleased pages explain that the installed release may
+differ. Use the same setting for subsequent publications; changing the setting
+adds or removes the notice. Redirects remain plain redirects. Version notices
+are excluded when importing wiki text back into Markdown guides.
+
 ## Find pages left behind
 
 `make docs-audit` lists existing `Cli/` subpages absent from the current build in `_docs/wiki/audit.md`. It separates retirement candidates (`OBSOLETE`, or `OBSOLETE-EDITED` when corrected on the wiki) from retained translations, supported aliases, hidden commands and community pages. Review obsolete pages for redirects, adoption or manual retirement; an absent mapping is not permission to delete a community page.

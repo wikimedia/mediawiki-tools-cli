@@ -37,6 +37,7 @@ require (
 	gitlab.com/gitlab-org/api/client-go v0.130.1
 	gitlab.com/gitlab-org/cli v1.61.0
 	gitlab.com/gitlab-org/cli/mwcli v0.0.0
+	golang.org/x/image v0.20.0
 	golang.org/x/term v0.44.0
 	gopkg.in/ini.v1 v1.67.3
 	gopkg.in/yaml.v2 v2.4.0
@@ -133,7 +134,6 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
-	golang.org/x/image v0.20.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect

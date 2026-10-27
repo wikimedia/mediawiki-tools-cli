@@ -49,6 +49,7 @@ type document struct {
 	Source   string `json:"source"`
 	Markdown string `json:"markdown"`
 	Wikitext string `json:"wikitext"`
+	MoveFrom string `json:"move_from,omitempty"`
 }
 
 func loadConfig() (configuration, error) {
@@ -178,6 +179,11 @@ func convertLinks(input []byte, from, to string, rewrite func(string, string) (s
 					return
 				}
 				target[0], target[1] = raw, title
+				if to == "mediawiki" && title == "wikilink" {
+					attributes := fields[0].([]interface{})
+					attributes[1] = append(attributes[1].([]interface{}), "wikilink")
+					target[1] = ""
+				}
 			}
 			for _, child := range value {
 				walk(child)
@@ -199,24 +205,61 @@ func convertLinks(input []byte, from, to string, rewrite func(string, string) (s
 	return pandoc(ast, "json", to)
 }
 
-func convertMarkdown(input []byte, source string, links map[string]string) ([]byte, error) {
+func convertMarkdown(input []byte, source, page string, links map[string]string, config configuration) ([]byte, error) {
+	wiki, err := url.Parse(config.PageURL)
+	if err != nil {
+		return nil, err
+	}
 	return convertLinks(input, "gfm", "mediawiki", func(raw, title string) (string, string, error) {
 		parsed, err := url.Parse(raw)
 		if err != nil {
 			return "", "", err
 		}
-		if parsed.Scheme != "" || parsed.Host != "" || !strings.HasSuffix(parsed.Path, ".md") {
-			return raw, title, nil
+		if parsed.Scheme == "" && parsed.Host == "" && strings.HasSuffix(parsed.Path, ".md") {
+			key := path.Clean(path.Join(path.Dir(source), parsed.Path))
+			mapped, found := links[key]
+			if !found {
+				return "", "", fmt.Errorf("%s: unmapped documentation link %s", source, raw)
+			}
+			if parsed.Fragment != "" {
+				mapped += "#" + parsed.EscapedFragment()
+			}
+			raw = mapped
+			parsed, err = url.Parse(mapped)
+			if err != nil {
+				return "", "", err
+			}
 		}
-		key := path.Clean(path.Join(path.Dir(source), parsed.Path))
-		mapped, found := links[key]
-		if !found {
-			return "", "", fmt.Errorf("%s: unmapped documentation link %s", source, raw)
+		prefix := strings.TrimRight(wiki.Path, "/") + "/"
+		if wiki.Host != "" && parsed.Scheme == wiki.Scheme && strings.EqualFold(parsed.Host, wiki.Host) && parsed.User == nil && parsed.RawQuery == "" && !parsed.ForceQuery && strings.HasPrefix(parsed.Path, prefix) {
+			target := strings.TrimPrefix(parsed.Path, prefix)
+			if target != "" {
+				// Keep the established sibling-link style in command reference
+				// pages instead of rewriting every SEE ALSO entry on release.
+				referencePrefix := strings.TrimRight(config.ReferenceRoot, "/") + "/"
+				if config.ReferenceRoot != "" && target != page && strings.HasPrefix(page, referencePrefix) && strings.HasPrefix(target, referencePrefix) {
+					relative, err := filepath.Rel(page, target)
+					if err != nil {
+						return "", "", err
+					}
+					target = filepath.ToSlash(relative)
+					if !strings.HasPrefix(target, "../") && !strings.HasPrefix(target, "./") {
+						target = "./" + target
+					}
+				}
+				// Category and file links must remain navigation, not add a
+				// category or embed a file in the generated page.
+				namespace, _, _ := strings.Cut(target, ":")
+				if strings.EqualFold(namespace, "Category") || strings.EqualFold(namespace, "File") || strings.EqualFold(namespace, "Image") {
+					target = ":" + target
+				}
+				if parsed.Fragment != "" {
+					target += "#" + parsed.Fragment
+				}
+				return target, "wikilink", nil
+			}
 		}
-		if parsed.Fragment != "" {
-			mapped += "#" + parsed.EscapedFragment()
-		}
-		return mapped, title, nil
+		return raw, title, nil
 	})
 }
 
@@ -278,10 +321,10 @@ func generate(config configuration) error {
 	links := map[string]string{}
 	for _, file := range files {
 		title := config.ReferenceRoot + "/" + strings.TrimSuffix(filepath.Base(file), ".md")
-		documents = append(documents, document{title, "commands/", file, strings.TrimSuffix(file, ".md") + ".wiki"})
+		documents = append(documents, document{Title: title, Source: "commands/", Markdown: file, Wikitext: strings.TrimSuffix(file, ".md") + ".wiki"})
 	}
 	// Keep the stable reference entry point following the default executable name.
-	index := document{config.ReferenceRoot, "commands/", filepath.Join(refDir, "index.md"), filepath.Join(refDir, "index.wiki")}
+	index := document{Title: config.ReferenceRoot, Source: "commands/", Markdown: filepath.Join(refDir, "index.md"), Wikitext: filepath.Join(refDir, "index.wiki")}
 	if err := os.WriteFile(index.Markdown, []byte("[Command reference]("+wikiURL(config, config.ReferenceRoot+"/"+root.Name())+")\n"), 0o644); err != nil {
 		return err
 	}
@@ -290,7 +333,7 @@ func generate(config configuration) error {
 		source, _ := guidePath(guide.Source)
 		links[guide.Source] = wikiURL(config, guide.Title)
 		file := filepath.Join(outputDir, guide.Source)
-		documents = append(documents, document{guide.Title, source, file, strings.TrimSuffix(file, ".md") + ".wiki"})
+		documents = append(documents, document{Title: guide.Title, Source: source, Markdown: file, Wikitext: strings.TrimSuffix(file, ".md") + ".wiki"})
 		data, err := os.ReadFile(source)
 		if err != nil {
 			return err
@@ -302,13 +345,17 @@ func generate(config configuration) error {
 			return err
 		}
 	}
+	version := currentDocumentationVersion()
+	if err := writeJSON(filepath.Join(outputDir, "version.json"), version); err != nil {
+		return err
+	}
 	for _, document := range documents {
 		data, err := os.ReadFile(document.Markdown)
 		if err != nil {
 			return err
 		}
 		source := strings.TrimPrefix(filepath.ToSlash(document.Source), "docs/")
-		converted, err := convertMarkdown(data, source, links)
+		converted, err := convertMarkdown(data, source, document.Title, links, config)
 		if err != nil {
 			return fmt.Errorf("%s: %w", document.Title, err)
 		}
@@ -317,21 +364,22 @@ func generate(config configuration) error {
 			body = "#REDIRECT [[" + config.ReferenceRoot + "/" + root.Name() + "]]\n"
 		}
 		if strings.HasPrefix(document.Title, config.ReferenceRoot+"/") {
-			body += "\n__NOTOC__\n"
+			body = strings.TrimRight(body, "\r\n") + "\n__NOTOC__\n"
 		}
-		if err := os.WriteFile(document.Wikitext, []byte(marked(body)), 0o644); err != nil {
+		if err := os.WriteFile(document.Wikitext, []byte(marked(versionedDocumentation(body, version))), 0o644); err != nil {
 			return err
 		}
 	}
 	// Preserve links to the published docker command reference after making dev canonical.
 	prefix := config.ReferenceRoot + "/" + root.Name() + "_dev"
-	for _, item := range documents {
+	for index, item := range documents {
 		if item.Title != prefix && !strings.HasPrefix(item.Title, prefix+"_") {
 			continue
 		}
 		title := config.ReferenceRoot + "/" + root.Name() + "_docker" + strings.TrimPrefix(item.Title, prefix)
+		documents[index].MoveFrom = title
 		file := filepath.Join(refDir, strings.TrimPrefix(title, config.ReferenceRoot+"/")+".md")
-		redirect := document{title, "commands/", file, strings.TrimSuffix(file, ".md") + ".wiki"}
+		redirect := document{Title: title, Source: "commands/", Markdown: file, Wikitext: strings.TrimSuffix(file, ".md") + ".wiki"}
 		if err := os.WriteFile(redirect.Markdown, []byte("[Command reference]("+wikiURL(config, item.Title)+")\n"), 0o644); err != nil {
 			return err
 		}

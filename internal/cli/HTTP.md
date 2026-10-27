@@ -13,6 +13,7 @@ redirected requests without changing global HTTP defaults.
 | Gerrit commands, auth and change lookup | All `gerrit.NewClient` calls receive the shared HTTP client |
 | Cloud VPS authentication, reauthentication and service APIs | `commands/cloudvps/client.go`: prepend CLI identity to Gophercloud UA before authentication |
 | Cloud VPS discovery, wiki APIs/uploads, Toolhub, codesearch, REST APIs, EventStreams, quips and telemetry | Explicit standard header or SDK UA |
+| Wiki file downloads and rendered previews, including redirects | `commands/wiki/file_download.go`: shared HTTP client |
 | Recipe downloads/readiness, doctor, gateway requests | Shared client or explicit standard header |
 | MediaWiki clone/submodule, source updates and Gerrit fetch subprocesses | Versioned CLI identity through `GIT_HTTP_USER_AGENT`; explicit user overrides preserved |
 | Gerrit documentation scraper, docs publishing and image-update registry clients | Shared client or explicit standard header |

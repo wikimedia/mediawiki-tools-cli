@@ -8,5 +8,6 @@ func NewWikiFileCmd() *cobra.Command {
 		Short: "Manage files uploaded to a wiki",
 	}
 	cmd.AddCommand(NewWikiFileUploadCmd())
+	cmd.AddCommand(NewWikiFileDownloadCmd())
 	return cmd
 }
