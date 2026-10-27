@@ -2,10 +2,12 @@
 #
 # This test installs all of the availible databases side by side
 # making sure that all of the sites work on initial setup
+# and replication catches up and survives an environment stop/start.
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/mysql-replication.sh"
 source $SCRIPT_DIR/pretest-mediawiki.sh
 
 export MWCLI_CONTEXT_TEST=1
@@ -147,9 +149,10 @@ test_command_success ./bin/mw dev postgres stop
 test_command_success ./bin/mw dev postgres start
 sleep 1
 test_command_success ./bin/mw dev postgres exec echo foo
-test_command_success ./bin/mw dev mysql-replica stop
-test_command_success ./bin/mw dev mysql-replica start
-sleep 1
+test_mysql_replication_lifecycle ./bin/mw
+test_wget_eventually_contains http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed" 60 1
+test_wget_eventually_contains http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed" 60 1
+test_wget_eventually_contains http://sqlitewiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed" 60 1
 test_command_success ./bin/mw dev mysql-replica exec echo foo
 # TODO test the mysql and replica "mysql" commands (cli)
 test_command_success ./bin/mw dev mysql exec echo foo

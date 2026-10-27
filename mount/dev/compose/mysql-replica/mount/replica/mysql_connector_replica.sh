@@ -12,6 +12,23 @@ sleep 1
 /wait-for-it.sh  mysql:3306
 /wait-for-it.sh  mysql-replica:3306
 
+echo "Increase the max_connections to 1000"
+mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
+mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
+
+# Restarting the service also reruns this helper. Keep the durable replication
+# position: resetting it to the initial coordinates replays old SQL against
+# existing users and tables, stopping the replica with duplicate-object errors.
+if ! replica_status=$(mariadb --host mysql-replica -uroot -p"$MYSQL_REPLICA_PASSWORD" --batch --skip-column-names -e 'SHOW SLAVE STATUS'); then
+    echo "Could not read existing replica configuration"
+    exit 1
+fi
+if [ -n "$replica_status" ]; then
+    echo "Replica already configured; resuming from its saved position"
+    mariadb --host mysql-replica -uroot -p"$MYSQL_REPLICA_PASSWORD" -e 'START SLAVE;'
+    exit $?
+fi
+
 # The master setup container and this container are started independently by
 # Compose. The master position files may not exist yet even though both MySQL
 # servers are accepting connections.
@@ -65,10 +82,6 @@ mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "CHANGE MASTER TO mast
 
 echo "* Start Replica on both Servers"
 mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e "start slave;"
-
-echo "Increase the max_connections to 1000"
-mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
-mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
 
 mariadb --host mysql-replica -uroot -p$MYSQL_MAIN_PASSWORD -e "show slave status \G"
 

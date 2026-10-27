@@ -14,6 +14,8 @@ notes will be missed.
     - Note: moving a MariaDB major version upgrades the on-disk data format one way. An existing `mysql` data volume is
       migrated on first start with `MARIADB_AUTO_UPGRADE=1` on both primary and replica and cannot be downgraded
       afterwards; destroy and recreate the `mysql` service for a clean reinitialisation if preferred.
+    - Preserve the replica's saved replication position when restarting `mysql-replica`, so it catches up without
+      replaying the initial setup against existing users and tables.
 
 ## v0.33.2
 
