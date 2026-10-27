@@ -49,6 +49,7 @@ type document struct {
 	Source   string `json:"source"`
 	Markdown string `json:"markdown"`
 	Wikitext string `json:"wikitext"`
+	MoveFrom string `json:"move_from,omitempty"`
 }
 
 func loadConfig() (configuration, error) {
@@ -320,10 +321,10 @@ func generate(config configuration) error {
 	links := map[string]string{}
 	for _, file := range files {
 		title := config.ReferenceRoot + "/" + strings.TrimSuffix(filepath.Base(file), ".md")
-		documents = append(documents, document{title, "commands/", file, strings.TrimSuffix(file, ".md") + ".wiki"})
+		documents = append(documents, document{Title: title, Source: "commands/", Markdown: file, Wikitext: strings.TrimSuffix(file, ".md") + ".wiki"})
 	}
 	// Keep the stable reference entry point following the default executable name.
-	index := document{config.ReferenceRoot, "commands/", filepath.Join(refDir, "index.md"), filepath.Join(refDir, "index.wiki")}
+	index := document{Title: config.ReferenceRoot, Source: "commands/", Markdown: filepath.Join(refDir, "index.md"), Wikitext: filepath.Join(refDir, "index.wiki")}
 	if err := os.WriteFile(index.Markdown, []byte("[Command reference]("+wikiURL(config, config.ReferenceRoot+"/"+root.Name())+")\n"), 0o644); err != nil {
 		return err
 	}
@@ -332,7 +333,7 @@ func generate(config configuration) error {
 		source, _ := guidePath(guide.Source)
 		links[guide.Source] = wikiURL(config, guide.Title)
 		file := filepath.Join(outputDir, guide.Source)
-		documents = append(documents, document{guide.Title, source, file, strings.TrimSuffix(file, ".md") + ".wiki"})
+		documents = append(documents, document{Title: guide.Title, Source: source, Markdown: file, Wikitext: strings.TrimSuffix(file, ".md") + ".wiki"})
 		data, err := os.ReadFile(source)
 		if err != nil {
 			return err
@@ -371,13 +372,14 @@ func generate(config configuration) error {
 	}
 	// Preserve links to the published docker command reference after making dev canonical.
 	prefix := config.ReferenceRoot + "/" + root.Name() + "_dev"
-	for _, item := range documents {
+	for index, item := range documents {
 		if item.Title != prefix && !strings.HasPrefix(item.Title, prefix+"_") {
 			continue
 		}
 		title := config.ReferenceRoot + "/" + root.Name() + "_docker" + strings.TrimPrefix(item.Title, prefix)
+		documents[index].MoveFrom = title
 		file := filepath.Join(refDir, strings.TrimPrefix(title, config.ReferenceRoot+"/")+".md")
-		redirect := document{title, "commands/", file, strings.TrimSuffix(file, ".md") + ".wiki"}
+		redirect := document{Title: title, Source: "commands/", Markdown: file, Wikitext: strings.TrimSuffix(file, ".md") + ".wiki"}
 		if err := os.WriteFile(redirect.Markdown, []byte("[Command reference]("+wikiURL(config, item.Title)+")\n"), 0o644); err != nil {
 			return err
 		}

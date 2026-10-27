@@ -32,21 +32,33 @@ import (
 var reviewHTML []byte
 
 type reviewItem struct {
-	ID        int         `json:"id"`
-	Title     string      `json:"title"`
-	Source    string      `json:"source"`
-	Area      string      `json:"area"`
-	URL       string      `json:"url"`
-	Status    string      `json:"status"`
-	Safe      bool        `json:"safe"`
-	WikiEdits bool        `json:"wikiEdits"`
-	Revision  int64       `json:"revision"`
-	Changed   bool        `json:"changed"`
-	Changes   lineChanges `json:"changes"`
-	Current   snapshot    `json:"-"`
-	Baseline  *snapshot   `json:"-"`
-	Proposed  string      `json:"-"`
-	Markdown  string      `json:"-"`
+	ID          int         `json:"id"`
+	Title       string      `json:"title"`
+	Source      string      `json:"source"`
+	Area        string      `json:"area"`
+	URL         string      `json:"url"`
+	Status      string      `json:"status"`
+	Safe        bool        `json:"safe"`
+	WikiEdits   bool        `json:"wikiEdits"`
+	Revision    int64       `json:"revision"`
+	Changed     bool        `json:"changed"`
+	Changes     lineChanges `json:"changes"`
+	Current     snapshot    `json:"-"`
+	Baseline    *snapshot   `json:"-"`
+	Proposed    string      `json:"-"`
+	Markdown    string      `json:"-"`
+	MoveFrom    string      `json:"moveFrom,omitempty"`
+	MoveTo      string      `json:"moveTo,omitempty"`
+	MoveIssue   string      `json:"moveIssue,omitempty"`
+	MoveSource  snapshot    `json:"-"`
+	MoveFromURL string      `json:"moveFromURL,omitempty"`
+}
+
+func (item reviewItem) comparison() snapshot {
+	if item.MoveFrom != "" {
+		return item.MoveSource
+	}
+	return item.Current
 }
 
 type lineChanges struct {
@@ -61,6 +73,7 @@ type reviewSession struct {
 	Timestamp  string               `json:"timestamp"`
 	CanPublish bool                 `json:"canPublish"`
 	Stale      bool                 `json:"stale"`
+	Moves      []documentationMove  `json:"moves,omitempty"`
 }
 
 type reviewServer struct {
@@ -77,11 +90,12 @@ type selectedPages struct {
 }
 
 type publicationPlan struct {
-	Session  string   `json:"session"`
-	IDs      []int    `json:"ids"`
-	Titles   []string `json:"titles"`
-	Version  string   `json:"version"`
-	Warnings []string `json:"warnings"`
+	Session  string              `json:"session"`
+	IDs      []int               `json:"ids"`
+	Titles   []string            `json:"titles"`
+	Version  string              `json:"version"`
+	Warnings []string            `json:"warnings"`
+	Moves    []documentationMove `json:"moves"`
 }
 
 func randomReviewToken() (string, error) {
@@ -127,6 +141,10 @@ func loadReviewSession(config configuration) (*reviewSession, error) {
 	if err := readJSON(filepath.Join(outputDir, "pages.json"), &documents); err != nil {
 		return nil, err
 	}
+	proposals, err := readProposals(documents)
+	if err != nil {
+		return nil, err
+	}
 	var version documentationVersion
 	if err := readJSON(filepath.Join(outputDir, "version.json"), &version); err != nil {
 		return nil, fmt.Errorf("run make docs to generate version information: %w", err)
@@ -135,7 +153,7 @@ func loadReviewSession(config configuration) (*reviewSession, error) {
 	if err != nil {
 		return nil, err
 	}
-	session := &reviewSession{ID: id, Version: version, Timestamp: state.Timestamp, CanPublish: os.Getenv("DOCS_UPDATE_USER") != "" && os.Getenv("DOCS_UPDATE_PASS") != ""}
+	session := &reviewSession{ID: id, Version: version, Timestamp: state.Timestamp, Moves: state.Moves, CanPublish: os.Getenv("DOCS_UPDATE_USER") != "" && os.Getenv("DOCS_UPDATE_PASS") != ""}
 	for index, doc := range documents {
 		proposed, err := os.ReadFile(doc.Wikitext)
 		if err != nil {
@@ -150,19 +168,36 @@ func loadReviewSession(config configuration) (*reviewSession, error) {
 			return nil, fmt.Errorf("missing reviewed snapshot for %s", doc.Title)
 		}
 		item := reviewItem{ID: index, Title: doc.Title, Source: doc.Source, Area: documentationArea(config, doc), URL: wikiURL(config, doc.Title), Current: current, Proposed: string(proposed), Markdown: string(markdown), Revision: current.Revision}
-		if baseline, ok := state.Baselines[doc.Title]; ok {
-			item.Baseline = &baseline
-			item.WikiEdits = documentationBody(baseline.Text) != documentationBody(current.Text)
+		baselineTitle := doc.Title
+		if move := documentationMoveFor(state.Moves, doc.Title); move != nil {
+			item.MoveIssue = move.Blocked
+			if move.To == doc.Title {
+				item.MoveFrom, item.MoveSource = move.From, state.Pages[move.From]
+				item.MoveFromURL = wikiURL(config, move.From)
+				baselineTitle = move.From
+			} else {
+				item.MoveTo = move.To
+			}
 		}
-		item.Safe = !current.Translation && safeToPublish(config, doc.Title, current, item.Proposed, item.Baseline)
-		item.Changed = current.Missing || normalize(current.Text) != normalize(item.Proposed)
-		item.Changes, err = publicationLineChanges(current, item.Proposed)
+		before := item.comparison()
+		item.Revision = before.Revision
+		if baseline, ok := state.Baselines[baselineTitle]; ok {
+			item.Baseline = &baseline
+			item.WikiEdits = documentationBody(baseline.Text) != documentationBody(before.Text)
+		}
+		item.Safe = publicationSafe(config, doc.Title, proposals, state)
+		item.Changed = item.MoveFrom != "" || item.MoveTo != "" || current.Missing || !samePublicationText(current.Text, item.Proposed)
+		item.Changes, err = publicationLineChanges(before, item.Proposed)
 		if err != nil {
 			return nil, fmt.Errorf("classify changes for %s: %w", doc.Title, err)
 		}
 		switch {
 		case !item.Safe:
 			item.Status = "Needs review"
+		case item.MoveFrom != "":
+			item.Status = "Move"
+		case item.MoveTo != "":
+			item.Status = "Redirect after move"
 		case current.Missing:
 			item.Status = "New"
 		case !item.Changed:
@@ -266,6 +301,35 @@ func (s *reviewServer) selectPlan(request selectedPages) (publicationPlan, error
 		plan.IDs = append(plan.IDs, id)
 		plan.Titles = append(plan.Titles, item.Title)
 	}
+	for _, move := range s.session.Moves {
+		if !selected[move.From] && !selected[move.To] {
+			continue
+		}
+		if move.Blocked != "" {
+			return plan, fmt.Errorf("move %s → %s blocked: %s", move.From, move.To, move.Blocked)
+		}
+		for _, title := range []string{move.From, move.To} {
+			if selected[title] {
+				continue
+			}
+			found := false
+			for id, item := range s.session.Pages {
+				if item.Title != title {
+					continue
+				}
+				if !item.Safe || !item.Changed {
+					return plan, fmt.Errorf("move partner %s is not publishable; refresh and review both pages", title)
+				}
+				plan.IDs, plan.Titles = append(plan.IDs, id), append(plan.Titles, title)
+				selected[title], found = true, true
+				break
+			}
+			if !found {
+				return plan, fmt.Errorf("missing move partner %s", title)
+			}
+		}
+		plan.Moves = append(plan.Moves, move)
+	}
 	missing := map[string]bool{}
 	for _, item := range s.session.Pages {
 		if item.Current.Missing && !selected[item.Title] {
@@ -309,7 +373,7 @@ func (s *reviewServer) publish(plan publicationPlan) ([]string, error) {
 	for _, id := range plan.IDs {
 		item := s.session.Pages[id]
 		latest := state.Pages[item.Title]
-		if latest.Missing != item.Current.Missing || latest.Revision != item.Revision || latest.Text != item.Current.Text {
+		if !sameWikiSnapshot(item.Current, latest) {
 			return nil, fmt.Errorf("%s changed on the wiki; refresh and review it again", item.Title)
 		}
 	}
@@ -324,9 +388,17 @@ func (s *reviewServer) publish(plan publicationPlan) ([]string, error) {
 	// After an attempted edit, require a fresh review even if the outcome is uncertain.
 	s.session.Stale = true
 	published := []string{}
+	if err := applyDocumentationMoves(client, &state, plan.Moves, publicationSummary+" move ("+plan.Version+")"); err != nil {
+		return published, err
+	}
 	for _, id := range plan.IDs {
 		item := s.session.Pages[id]
-		err := client.Edit(editParameters(item.Title, item.Proposed, publicationSummary+" ("+plan.Version+")", state.Timestamp, item.Current))
+		current := state.Pages[item.Title]
+		if !current.Missing && samePublicationText(current.Text, item.Proposed) {
+			published = append(published, item.Title)
+			continue
+		}
+		err := client.Edit(editParameters(item.Title, item.Proposed, publicationSummary+" ("+plan.Version+")", state.Timestamp, current))
 		if err != nil && !errors.Is(err, mwclient.ErrEditNoChange) {
 			return published, fmt.Errorf("publishing %s: %w; refresh to inspect any completed edits", item.Title, err)
 		}
@@ -411,21 +483,22 @@ func (s *reviewServer) handleAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		item := s.session.Pages[id]
-		diff, diffErr := unifiedReviewDiff(documentationBody(item.Current.Text), documentationBody(item.Proposed))
+		before := item.comparison()
+		diff, diffErr := unifiedReviewDiff(documentationBody(before.Text), documentationBody(item.Proposed))
 		if diffErr != nil {
 			err = diffErr
 			break
 		}
 		wikiDiff := "No wiki corrections since the recorded baseline."
 		if item.Baseline != nil {
-			wikiDiff, err = unifiedReviewDiff(documentationBody(item.Baseline.Text), documentationBody(item.Current.Text))
+			wikiDiff, err = unifiedReviewDiff(documentationBody(item.Baseline.Text), documentationBody(before.Text))
 			if err != nil {
 				break
 			}
-		} else if !item.Current.Missing {
+		} else if !before.Missing {
 			wikiDiff = "No automatic publication baseline was found. Review the current wiki text against the proposal before recording acceptance."
 		}
-		reviewJSON(w, map[string]interface{}{"page": item, "diff": diff, "wikiDiff": wikiDiff, "source": item.Markdown, "current": documentationBody(item.Current.Text), "proposed": documentationBody(item.Proposed)})
+		reviewJSON(w, map[string]interface{}{"page": item, "diff": diff, "wikiDiff": wikiDiff, "source": item.Markdown, "current": documentationBody(before.Text), "proposed": documentationBody(item.Proposed)})
 		return
 	case "/api/preview":
 		if r.Method != http.MethodPost {
@@ -446,10 +519,14 @@ func (s *reviewServer) handleAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		item := s.session.Pages[request.ID]
 		body := item.Proposed
+		title := item.Title
 		if request.Current {
-			body = item.Current.Text
+			body = item.comparison().Text
+			if item.MoveFrom != "" {
+				title = item.MoveFrom
+			}
 		}
-		rendered, renderErr := renderWikiPreview(s.config, item.Title, documentationBody(body))
+		rendered, renderErr := renderWikiPreview(s.config, title, documentationBody(body))
 		if renderErr != nil {
 			err = renderErr
 			break
@@ -495,7 +572,15 @@ func (s *reviewServer) handleAPI(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		item := &s.session.Pages[request.IDs[0]]
-		if item.Current.Missing || item.Current.Translation {
+		if item.MoveIssue != "" {
+			err = fmt.Errorf("move blocked: %s", item.MoveIssue)
+			break
+		}
+		reviewTitle, reviewed := item.Title, item.comparison()
+		if item.MoveFrom != "" {
+			reviewTitle = item.MoveFrom
+		}
+		if reviewed.Missing || reviewed.Translation {
 			err = fmt.Errorf("only an existing source page can be marked reviewed")
 			break
 		}
@@ -504,12 +589,12 @@ func (s *reviewServer) handleAPI(w http.ResponseWriter, r *http.Request) {
 			err = clientErr
 			break
 		}
-		latest, fetchErr := fetchPages(client, []string{item.Title})
+		latest, fetchErr := fetchPages(client, []string{reviewTitle})
 		if fetchErr != nil {
 			err = fetchErr
 			break
 		}
-		if latest.Pages[item.Title].Revision != item.Revision {
+		if !sameWikiSnapshot(reviewed, latest.Pages[reviewTitle]) {
 			err = fmt.Errorf("page changed on the wiki; refresh first")
 			break
 		}
@@ -521,11 +606,24 @@ func (s *reviewServer) handleAPI(w http.ResponseWriter, r *http.Request) {
 		if config.Reviewed == nil {
 			config.Reviewed = map[string]baseline{}
 		}
-		config.Reviewed[item.Title] = baseline{item.Revision, digest(normalize(item.Current.Text))}
+		config.Reviewed[reviewTitle] = baseline{reviewed.Revision, digest(normalize(reviewed.Text))}
 		if err = writeJSON(configPath, config); err != nil {
 			break
 		}
 		s.config = config
+		if item.MoveFrom != "" || item.MoveTo != "" {
+			for index := range s.session.Pages {
+				partner := &s.session.Pages[index]
+				if partner.Title == reviewTitle && partner.MoveTo != "" {
+					partner.Safe, partner.Status = true, "Redirect after move"
+				}
+				if partner.MoveFrom == reviewTitle {
+					partner.Safe, partner.Status = true, "Move"
+				}
+			}
+			reviewJSON(w, s.session)
+			return
+		}
 		item.Safe = true
 		if item.Changed {
 			item.Status = "Updated"

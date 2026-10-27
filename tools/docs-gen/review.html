@@ -467,6 +467,7 @@
               <option value="all">All pages</option>
               <option value="review">Needs review</option>
               <option value="new">New pages</option>
+              <option value="moves">Page moves and redirects</option>
               <option value="additions">Existing pages: additions only</option>
               <option value="removals">Existing pages: removals only</option>
               <option value="mixed">Existing pages: additions and removals</option>
@@ -507,7 +508,8 @@
     <dialog id="confirm">
       <h2>Publish selected documentation</h2>
       <p id="confirm-version"></p>
-      <p>The following pages on MediaWiki.org will be created or updated:</p>
+      <div id="confirm-moves"></div>
+      <p>The following pages on MediaWiki.org will be moved, created or updated:</p>
       <ul id="confirm-pages"></ul>
       <div id="confirm-warnings"></div>
       <div id="confirm-result" role="status"></div>
@@ -577,7 +579,7 @@
       }
       function matches(p) {
         const q = $("search").value.trim().toLowerCase();
-        if (q && !`${p.title} ${p.area} ${p.source}`.toLowerCase().includes(q)) return false;
+        if (q && !`${p.title} ${p.area} ${p.source} ${p.moveFrom || ""} ${p.moveTo || ""}`.toLowerCase().includes(q)) return false;
         switch ($("status").value) {
           case "changes":
             return p.changed && p.status !== "Version only";
@@ -587,6 +589,8 @@
             return !p.safe;
           case "new":
             return p.status === "New";
+          case "moves":
+            return !!(p.moveFrom || p.moveTo);
           case "additions":
             return p.changes.added > 0 && p.changes.removed === 0;
           case "removals":
@@ -663,6 +667,8 @@
             const cls =
               p.status === "New" ? "new" : !p.safe ? "review" : p.status === "Updated" ? "updated" : "";
             info.append(el("span", p.status, "badge " + cls));
+            if (p.moveFrom || p.moveTo)
+              info.append(el("div", p.moveFrom ? `Move from ${p.moveFrom}` : `Leave redirect to ${p.moveTo}`, "muted"));
             if (p.changes.added || p.changes.removed)
               info.append(document.createTextNode(" "), el("span", `+${p.changes.added} −${p.changes.removed} lines`, "badge"));
             if (p.wikiEdits)
@@ -708,8 +714,8 @@
         renderList();
         const p = session.pages[id];
         $("title").textContent = p.title;
-        const link = el("a", "Open wiki page ↗");
-        link.href = p.url;
+        const link = el("a", p.moveFrom ? "Open existing wiki page ↗" : "Open wiki page ↗");
+        link.href = p.moveFromURL || p.url;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         $("meta").replaceChildren(
@@ -717,6 +723,8 @@
           el("span", p.revision ? `Wiki revision ${p.revision}` : "New page"),
           link,
         );
+        if (p.moveFrom || p.moveTo)
+          $("meta").append(el("span", p.moveFrom ? `History moves from ${p.moveFrom}` : `History moves to ${p.moveTo}`));
         await renderContent();
       }
       function renderDiff(text) {
@@ -753,6 +761,12 @@
           if (active !== id || tab !== view || session.id !== currentSession) return;
           content.replaceChildren();
           if (view === "diff") {
+            if (detail.page.moveFrom)
+              content.append(el("p", `Move ${detail.page.moveFrom} → ${detail.page.title}, preserving history and leaving a redirect. The diff below compares the old page with the proposed content. Publishing either page includes the linked move and redirect.`, "explain"));
+            else if (detail.page.moveTo)
+              content.append(el("p", `Move this page's history to ${detail.page.moveTo}, then leave this redirect. Publishing either page includes both titles.`, "explain"));
+            if (detail.page.moveIssue)
+              content.append(el("p", detail.page.moveIssue, "warning"));
             content.append(
               el("p", "Changes that would be published: current wiki → proposed documentation.", "explain"),
               renderDiff(detail.diff),
@@ -766,11 +780,13 @@
               ),
               renderDiff(detail.wikiDiff),
             );
-            if (!detail.page.safe) {
+            if (detail.page.moveIssue) {
+              content.append(el("p", detail.page.moveIssue, "warning"));
+            } else if (!detail.page.safe) {
               const button = el("button", "Mark wiki revision reviewed");
               button.addEventListener("click", () => {
                 acceptID = id;
-                $("accept-page").textContent = `${detail.page.title} · revision ${detail.page.revision}`;
+                $("accept-page").textContent = `${detail.page.moveFrom || detail.page.title} · revision ${detail.page.revision}`;
                 $("accept-dialog").showModal();
               });
               content.append(
@@ -884,6 +900,9 @@
           plan = await api("plan", { session: session.id, ids: [...selected].sort((a, b) => a - b) });
           $("confirm-version").textContent = "Documentation version: " + plan.version;
           $("confirm-pages").replaceChildren(...plan.titles.map((t) => el("li", t)));
+          $("confirm-moves").replaceChildren();
+          for (const move of plan.moves || [])
+            $("confirm-moves").append(el("p", `Move ${move.from} → ${move.to}. Preserve history and leave a redirect at ${move.from}.`, "explain"));
           $("confirm-warnings").replaceChildren();
           for (const warning of plan.warnings) $("confirm-warnings").append(el("p", warning, "warning"));
           if (!session.canPublish)

@@ -56,6 +56,20 @@ Each page has four views:
 
 Published wikitext uses internal links for pages on the configured wiki. Links between command reference pages keep their existing relative form, such as `[[../mw_config|mw config]]`. Generated Markdown keeps full URLs for standalone use; links to other sites and URLs with query parameters remain external links.
 
+The `mw_docker*` → `mw_dev*` reference rename is published as native wiki page
+moves when the old page exists and the new title is free. Both `docs-publish`
+(including release CI) and interactive publishing preserve the old history and
+leave redirects before updating the content. No manual move is needed first.
+The publisher account's bot password needs permission to move pages.
+
+Use **Page moves and redirects** to inspect these pairs. The new title's diff
+compares the old page content with the proposal. Selecting either title includes
+both in the confirmation. Wiki corrections at the old title must be reviewed;
+occupied destinations block the move and cannot be overridden by accepting a
+revision. Pages already moved manually are kept in place, and equivalent
+redirects are left unchanged. If publishing stops after a move, refresh or rerun
+to review the preserved content and finish the update.
+
 For a page needing review, incorporate wiki corrections into the source or
 resolve the differences deliberately. **Mark wiki revision reviewed** records
 that exact revision in `docs/wiki.json`, equivalent to `docs-accept`; it does not
