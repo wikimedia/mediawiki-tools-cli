@@ -15,7 +15,7 @@ services:
       - "traefik.http.routers.grafana-local-path.service=grafana"
       - "traefik.http.routers.grafana.rule=Path(`/proxy/${GRAFANA_PROXY_PATH:-grafana}`) || PathPrefix(`/proxy/${GRAFANA_PROXY_PATH:-grafana}/`)"
       - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.routers.grafana.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.grafana.middlewares=forwarded-https@file"
       - "traefik.http.services.grafana.loadbalancer.server.port=${GRAFANA_VIRTUAL_PORT:-3000}"
     volumes:
       - grafana-storage:/var/lib/grafana

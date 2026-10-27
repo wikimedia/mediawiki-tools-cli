@@ -5,13 +5,17 @@ services:
     profiles:
       - gateway
     init: true
-    restart: unless-stopped
+    restart: "no"
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    command: ["--live", "${PORT}", "--host", "traefik"]
+    command: ["--live", "8080", "--host", "gateway-auth"]
     depends_on:
-      - traefik
+      traefik:
+        condition: service_started
+      gateway-auth:
+        condition: service_healthy
     networks:
       - dps
+      - gateway-access

@@ -16,7 +16,7 @@ services:
       - "traefik.http.routers.keycloak-local-path.service=keycloak"
       - "traefik.http.routers.keycloak.rule=Path(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}`) || PathPrefix(`/proxy/${KEYCLOAK_PROXY_PATH:-keycloak}/`)"
       - "traefik.http.routers.keycloak.entrypoints=web"
-      - "traefik.http.routers.keycloak.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.keycloak.middlewares=forwarded-https@file"
       - "traefik.http.services.keycloak.loadbalancer.server.port=${KEYCLOAK_VIRTUAL_PORT:-8080}"
     security_opt:
       - label:disable

@@ -198,3 +198,64 @@ func TestResumeAfterFailedStopEndsPendingSuspension(t *testing.T) {
 		t.Fatalf("resume left an old suspension pending: %v %v", wanted, err)
 	}
 }
+
+func TestStopThenStartDoesNotReopenTunnel(t *testing.T) {
+	m := lifecycleTestEnvironment(t)
+	p := &fakeLifecycleProject{running: []string{"traefik", "mysql", "gateway-auth", "cloudflared", "holesail"}}
+	if err := suspendDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.stopped, p.running) {
+		t.Fatalf("stop left containers running: %v", p.stopped)
+	}
+	p.exited = append([]string(nil), p.running...)
+	p.running = nil
+	if err := resumeDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.started, []string{"mysql", "traefik"}) {
+		t.Fatalf("unexpected resume targets: %v", p.started)
+	}
+}
+
+func TestLegacyResumeWithoutSnapshotExcludesTunnels(t *testing.T) {
+	m := lifecycleTestEnvironment(t)
+	p := &fakeLifecycleProject{exited: []string{"traefik", "gateway-auth", "cloudflared"}, created: []string{"holesail", "mysql"}}
+	if err := resumeDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.started, []string{"mysql", "traefik"}) {
+		t.Fatalf("legacy resume reopens tunnel access: %v", p.started)
+	}
+}
+
+func TestRestartDropsTunnelAccess(t *testing.T) {
+	p := &fakeLifecycleProject{running: []string{"traefik", "gateway-auth", "holesail", "mysql"}}
+	if err := restartDevelopmentServices(p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.stopped, []string{"gateway-auth", "holesail"}) {
+		t.Fatalf("wrong stop selection: %v", p.stopped)
+	}
+	if !reflect.DeepEqual(p.restarted, []string{"traefik", "mysql"}) {
+		t.Fatalf("restart reopens tunnel access: %v", p.restarted)
+	}
+	p = &fakeLifecycleProject{running: []string{"gateway-auth", "cloudflared"}}
+	if err := restartDevelopmentServices(p); err != nil {
+		t.Fatal(err)
+	}
+	if len(p.restarted) != 0 {
+		t.Fatalf("restarted temporary services: %v", p.restarted)
+	}
+}
+
+func TestRestartStopsOnTunnelShutdownFailure(t *testing.T) {
+	failure := errors.New("tunnel stop failed")
+	p := &fakeLifecycleProject{running: []string{"traefik", "gateway-auth", "cloudflared"}, stopFailure: failure}
+	if err := restartDevelopmentServices(p); err == nil {
+		t.Fatal("restart ignored tunnel stop failure")
+	}
+	if len(p.restarted) != 0 {
+		t.Fatal("restarted services after failed tunnel shutdown")
+	}
+}

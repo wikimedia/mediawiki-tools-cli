@@ -26,6 +26,8 @@ func NewDevDestroyCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			// Remove the provider preference written by older CLI versions.
+			m.Env().Delete("TUNNEL_PROVIDER")
 			if err := m.ClearResumeServices(); err != nil {
 				return err
 			}

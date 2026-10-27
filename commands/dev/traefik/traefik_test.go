@@ -65,8 +65,7 @@ func TestRunningTunnelURLOnlyReturnsAnActiveQuickTunnel(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				username, password, ok := r.BasicAuth()
-				if r.Method != http.MethodGet || r.URL.Path != "/proxy/dashboard/api/status" || !ok || username != "alice" || password != "secret" {
+				if r.Method != http.MethodGet || r.URL.Path != "/proxy/dashboard/api/status" || r.Header.Get("Authorization") != "" {
 					t.Error("unexpected dashboard request")
 				}
 				if tc.status == http.StatusTemporaryRedirect {

@@ -20,7 +20,7 @@ services:
       - "traefik.http.routers.dashboard.rule=Path(`/proxy/dashboard`) || PathPrefix(`/proxy/dashboard/`)"
       - "traefik.http.routers.dashboard.priority=100"
       - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.routers.dashboard.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},dashboard-prefix@file"
+      - "traefik.http.routers.dashboard.middlewares=forwarded-https@file,dashboard-prefix@file"
       - "traefik.http.services.dashboard.loadbalancer.server.port=${DASHBOARD_VIRTUAL_PORT:-8080}"
     security_opt:
       - label:disable

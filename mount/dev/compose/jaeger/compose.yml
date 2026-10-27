@@ -16,7 +16,7 @@ services:
       - "traefik.http.routers.jaeger-local-path.service=jaeger"
       - "traefik.http.routers.jaeger.rule=Path(`/proxy/${JAEGER_PROXY_PATH:-jaeger}`) || PathPrefix(`/proxy/${JAEGER_PROXY_PATH:-jaeger}/`)"
       - "traefik.http.routers.jaeger.entrypoints=web"
-      - "traefik.http.routers.jaeger.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.jaeger.middlewares=forwarded-https@file"
       - "traefik.http.services.jaeger.loadbalancer.server.port=${JAEGER_VIRTUAL_PORT:-16686}"
     restart: unless-stopped
     depends_on:

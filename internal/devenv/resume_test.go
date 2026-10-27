@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -99,5 +100,49 @@ func TestPendingSuspendSurvivesReloadAndExplicitServiceChanges(t *testing.T) {
 	wanted, _, err = m.ResumeServices()
 	if err != nil || !reflect.DeepEqual(wanted, []string{"redis"}) {
 		t.Fatalf("fresh suspension retained the completed operation: %v %v", wanted, err)
+	}
+}
+
+func TestResumeStateNeverRecordsTunnelServices(t *testing.T) {
+	original := Context
+	Context = "test"
+	t.Cleanup(func() { Context = original })
+	m := Environment{BaseDir: t.TempDir()}
+	if err := m.BeginSuspendServices([]string{"cloudflared", "holesail", "gateway-auth", "traefik", "mysql"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.UpdateResumeServices([]string{"gateway-auth", "holesail", "cloudflared"}, true); err != nil {
+		t.Fatal(err)
+	}
+	saved, _, err := m.ResumeServices()
+	if err != nil || !reflect.DeepEqual(saved, []string{"mysql", "traefik"}) {
+		t.Fatalf("saved=%v error=%v", saved, err)
+	}
+	data, err := os.ReadFile(m.resumeStatePath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"cloudflared", "holesail", "gateway-auth"} {
+		if strings.Contains(string(data), name) {
+			t.Fatalf("temporary service %s persisted on disk: %s", name, data)
+		}
+	}
+}
+
+func TestLegacyResumeStateIgnoresTunnels(t *testing.T) {
+	original := Context
+	Context = "test"
+	t.Cleanup(func() { Context = original })
+	m := Environment{BaseDir: t.TempDir()}
+	if err := os.MkdirAll(m.Directory(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	data := `{"version":1,"services":["cloudflared","holesail","gateway-auth","mysql","traefik"]}`
+	if err := os.WriteFile(m.resumeStatePath(), []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	saved, exists, err := m.ResumeServices()
+	if err != nil || !exists || !reflect.DeepEqual(saved, []string{"mysql", "traefik"}) {
+		t.Fatalf("legacy resume=%v, %v, %v", saved, exists, err)
 	}
 }

@@ -9,7 +9,7 @@ services:
       - "traefik.http.routers.mailhog-host.service=mailhog"
       - "traefik.http.routers.mailhog.rule=Path(`/proxy/${MAILHOG_PROXY_PATH:-mailhog}`) || PathPrefix(`/proxy/${MAILHOG_PROXY_PATH:-mailhog}/`)"
       - "traefik.http.routers.mailhog.entrypoints=web"
-      - "traefik.http.routers.mailhog.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-mailhog@docker,forwarded-https@file"
+      - "traefik.http.routers.mailhog.middlewares=forwarded-https@file,strip-mailhog@docker,forwarded-https@file"
       - "traefik.http.middlewares.strip-mailhog.stripprefix.prefixes=/proxy/${MAILHOG_PROXY_PATH:-mailhog}"
       - "traefik.http.services.mailhog.loadbalancer.server.port=${MAILHOG_VIRTUAL_PORT:-8025}"
     restart: unless-stopped

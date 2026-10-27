@@ -16,6 +16,12 @@ echo "*****************************************"
 echo
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# CI reaches a sibling Docker daemon through its network address. Local runs
+# keep the unauthenticated listener bound to loopback by default.
+if [[ -n "${GITLAB_CI:-}" ]]; then
+  export TRAEFIK_BIND_ADDR="${TRAEFIK_BIND_ADDR:-0.0.0.0}"
+fi
+
 # CI extracts the preparation job's snapshot before running this script. Keep it
 # unchanged even if the week rolls over while the pipeline is running.
 if [[ -z "${GITLAB_CI:-}" && "${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-}" != "1" ]]; then

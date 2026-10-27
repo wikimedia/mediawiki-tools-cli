@@ -9,7 +9,7 @@ services:
       - "traefik.http.routers.phpmyadmin-host.service=phpmyadmin"
       - "traefik.http.routers.phpmyadmin.rule=Path(`/proxy/${PHPMYADMIN_PROXY_PATH:-phpmyadmin}`) || PathPrefix(`/proxy/${PHPMYADMIN_PROXY_PATH:-phpmyadmin}/`)"
       - "traefik.http.routers.phpmyadmin.entrypoints=web"
-      - "traefik.http.routers.phpmyadmin.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-phpmyadmin@docker,forwarded-https@file"
+      - "traefik.http.routers.phpmyadmin.middlewares=forwarded-https@file,strip-phpmyadmin@docker,forwarded-https@file"
       - "traefik.http.middlewares.strip-phpmyadmin.stripprefix.prefixes=/proxy/${PHPMYADMIN_PROXY_PATH:-phpmyadmin}"
       - "traefik.http.services.phpmyadmin.loadbalancer.server.port=${PHPMYADMIN_VIRTUAL_PORT:-80}"
     security_opt:

@@ -145,8 +145,11 @@ func (p Project) ServicesWithStatus(statusFilter string) ([]string, error) {
 	stdout, stderr, err := p.Command([]string{"ps", "--services", "--filter", "status=" + statusFilter}).RunAndCollect()
 
 	serviceList := stringsutil.SplitMultiline(strings.Trim(stdout.String(), "\n"))
-	if stderr.String() != "" || err != nil {
-		return nil, fmt.Errorf("%s", stderr.String())
+	if err != nil {
+		if message := strings.TrimSpace(stderr.String()); message != "" {
+			return nil, fmt.Errorf("docker compose ps: %w: %s", err, message)
+		}
+		return nil, fmt.Errorf("docker compose ps: %w", err)
 	}
 	return serviceList, nil
 }

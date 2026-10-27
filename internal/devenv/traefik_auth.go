@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -58,7 +59,7 @@ func (m Environment) migrateLegacyProxy(docker, compose gatewayCommand) error {
 	}
 	// Prepare proxy containers and missing images without interrupting the working
 	// listener. Creating a container does not bind its published port.
-	if _, err := compose([]string{"create", "--no-recreate", "traefik", "gateway-auth", "docker-socket-proxy"}); err != nil {
+	if _, err := compose([]string{"create", "--no-recreate", "traefik", "docker-socket-proxy"}); err != nil {
 		return fmt.Errorf("prepare proxy migration containers: %w", err)
 	}
 	if _, err := docker(append([]string{"stop"}, containers...)); err != nil {
@@ -97,7 +98,7 @@ func (m Environment) PrepareGateway() error {
 	if err := m.ensureTraefikAuth(); err != nil {
 		return err
 	}
-	return m.migrateLegacyProxy(func(args []string) (string, error) {
+	if err := m.migrateLegacyProxy(func(args []string) (string, error) {
 		output, err := exec.Command("docker", args...).CombinedOutput()
 		if err != nil {
 			return "", fmt.Errorf("%w: %s", err, output)
@@ -109,7 +110,57 @@ func (m Environment) PrepareGateway() error {
 			return "", fmt.Errorf("%w: %s%s", err, stdout.String(), stderr.String())
 		}
 		return stdout.String(), nil
-	})
+	}); err != nil {
+		return err
+	}
+	// Preparing another service must not stop a manually started gateway or
+	// change suspend/resume intent. Explicit tunnel stop owns auth cleanup.
+	return nil
+}
+
+// StopGatewayAuthIfNoTunnel keeps the auth process scoped to active public
+// tunnel access. Local Traefik routes are independent of this process.
+func (m Environment) StopGatewayAuthIfNoTunnel() error {
+	return m.stopGatewayAuthIfNoTunnel(m.DockerCompose())
+}
+
+type gatewayServices interface {
+	ServicesWithStatus(string) ([]string, error)
+	Stop([]string) error
+}
+
+func hasTunnelService(services []string) bool {
+	return slices.Contains(services, "cloudflared") || slices.Contains(services, "holesail")
+}
+
+func (m Environment) stopGatewayAuthIfNoTunnel(project gatewayServices) error {
+	running, err := project.ServicesWithStatus("running")
+	if err != nil {
+		return fmt.Errorf("list running gateway services: %w", err)
+	}
+	if hasTunnelService(running) {
+		return nil
+	}
+	// A provider can recover automatically from a restart, or be unpaused by
+	// Docker. Stopping its auth backend would leave that tunnel unusable.
+	for _, status := range []string{"restarting", "paused"} {
+		services, err := project.ServicesWithStatus(status)
+		if err != nil {
+			return fmt.Errorf("list %s gateway services: %w", status, err)
+		}
+		if hasTunnelService(services) {
+			return nil
+		}
+	}
+	for _, name := range running {
+		if name == "gateway-auth" {
+			if err := project.Stop([]string{"gateway-auth"}); err != nil {
+				return fmt.Errorf("stop unused gateway authentication service: %w", err)
+			}
+			break
+		}
+	}
+	return nil
 }
 
 func (m Environment) ensureTraefikAuth() error {

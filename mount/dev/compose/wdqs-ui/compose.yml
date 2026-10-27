@@ -10,7 +10,7 @@ services:
       - "traefik.http.routers.wdqs-ui-host.service=wdqs-ui"
       - "traefik.http.routers.wdqs-ui.rule=Path(`/proxy/${WDQS_UI_PROXY_PATH:-wdqs-ui}`) || PathPrefix(`/proxy/${WDQS_UI_PROXY_PATH:-wdqs-ui}/`)"
       - "traefik.http.routers.wdqs-ui.entrypoints=web"
-      - "traefik.http.routers.wdqs-ui.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-wdqs-ui@docker"
+      - "traefik.http.routers.wdqs-ui.middlewares=forwarded-https@file,strip-wdqs-ui@docker"
       - "traefik.http.middlewares.strip-wdqs-ui.stripprefix.prefixes=/proxy/${WDQS_UI_PROXY_PATH:-wdqs-ui}"
       - "traefik.http.services.wdqs-ui.loadbalancer.server.port=${WDQS_UI_VIRTUAL_PORT:-80}"
     restart: unless-stopped

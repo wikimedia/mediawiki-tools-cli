@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -33,6 +34,7 @@ const (
 )
 
 type gateway struct {
+	proxy         *httputil.ReverseProxy
 	credentials   [32]byte
 	key           []byte
 	now           func() time.Time
@@ -273,7 +275,23 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case loginPath, logoutPath, legacyLoginPath, legacyLogoutPath:
 		g.form(w, r, origin)
 	default:
-		http.NotFound(w, r)
+		if g.proxy == nil {
+			http.NotFound(w, r)
+			return
+		}
+		allowed, gatewayBasic := g.authenticate(w, r, origin, r.Method, r.URL.RequestURI())
+		if !allowed {
+			return
+		}
+		if gatewayBasic {
+			r = r.Clone(r.Context())
+			r.Header.Del("Authorization")
+		}
+		// Long uploads, streams and WebSockets must outlive login deadlines.
+		controller := http.NewResponseController(w)
+		_ = controller.SetReadDeadline(time.Time{})
+		_ = controller.SetWriteDeadline(time.Time{})
+		g.proxy.ServeHTTP(w, r)
 	}
 }
 
@@ -300,27 +318,52 @@ func uiAssetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *gateway) check(w http.ResponseWriter, r *http.Request, origin string) {
+	allowed, gatewayBasic := g.authenticate(w, r, origin, r.Header.Get("X-Forwarded-Method"), r.Header.Get("X-Forwarded-Uri"))
+	if !allowed {
+		return
+	}
+	if !gatewayBasic && r.Header.Get("Authorization") != "" {
+		w.Header().Set("Authorization", r.Header.Get("Authorization"))
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Authenticate the real request at tunnel ingress. Forwarded host/path headers
+// cannot choose an unauthenticated local router behind this boundary.
+func (g *gateway) authenticate(w http.ResponseWriter, r *http.Request, origin, method, uri string) (bool, bool) {
 	username, password, basic := r.BasicAuth()
 	gatewayBasic := basic && g.credentialsMatch(username, password)
 	sessionValid := g.hasValidCookie(r, origin, "session", "")
-	navigation := r.Header.Get("X-Forwarded-Method") == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")
+	navigation := method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")
 	// Browsers need a cookie even if they cached Basic credentials before upgrade:
 	// their applications can replace Authorization with a Bearer token later.
 	if sessionValid || (gatewayBasic && !navigation) {
-		// Traefik replaces Authorization with this response header. Remove only our
-		// credentials; retain Bearer tokens and application-specific Basic credentials.
-		if !gatewayBasic && r.Header.Get("Authorization") != "" {
-			w.Header().Set("Authorization", r.Header.Get("Authorization"))
-		}
-		w.WriteHeader(http.StatusNoContent)
-		return
+		return true, gatewayBasic
 	}
 	if navigation {
-		target := safeReturn(r.Header.Get("X-Forwarded-Uri"))
+		target := safeReturn(uri)
 		http.Redirect(w, r, loginPath+"?return="+url.QueryEscape(target), http.StatusSeeOther)
-		return
+		return false, false
 	}
 	http.Error(w, "Gateway login required: "+loginPath, http.StatusUnauthorized)
+	return false, false
+}
+
+func (g *gateway) setUpstream(address string) error {
+	upstream, err := url.Parse(address)
+	if err != nil || upstream.Hostname() == "" || (upstream.Scheme != "http" && upstream.Scheme != "https") || upstream.User != nil || upstream.RawQuery != "" || upstream.Fragment != "" {
+		return fmt.Errorf("invalid gateway upstream %q", address)
+	}
+	g.proxy = &httputil.ReverseProxy{Rewrite: func(r *httputil.ProxyRequest) {
+		r.SetURL(upstream)
+		r.Out.Host = r.In.Host
+		r.SetXForwarded()
+		if origin, ok := requestOrigin(r.In); ok {
+			parsed, _ := url.Parse(origin)
+			r.Out.Header.Set("X-Forwarded-Proto", parsed.Scheme)
+		}
+	}}
+	return nil
 }
 
 // Only a CLI authenticated with the gateway credentials can issue links. Codes are held in memory,
@@ -535,6 +578,12 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+	if upstream := os.Getenv("GATEWAY_UPSTREAM"); upstream != "" {
+		if err := g.setUpstream(upstream); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 	server := &http.Server{Addr: ":8080", Handler: g, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: time.Minute, MaxHeaderBytes: 32768}
 	if err := server.ListenAndServe(); err != nil {

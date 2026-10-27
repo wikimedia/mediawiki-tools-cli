@@ -17,6 +17,23 @@ type resumeState struct {
 
 var resumeServiceName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]*$`)
 
+// WithoutTunnelServices excludes temporary external access from normal
+// environment lifecycle operations. A tunnel always needs an explicit start.
+func WithoutTunnelServices(services []string) []string {
+	var result []string
+	for _, name := range services {
+		if !IsTunnelRuntimeService(name) {
+			result = append(result, name)
+		}
+	}
+	return result
+}
+
+// IsTunnelRuntimeService identifies the optional ingress and its auth process.
+func IsTunnelRuntimeService(name string) bool {
+	return name == "cloudflared" || name == "holesail" || name == "gateway-auth"
+}
+
 func (m Environment) resumeStatePath() string {
 	return filepath.Join(m.Directory(), "state-suspended-services.json")
 }
@@ -47,6 +64,9 @@ func (m Environment) readResumeState() (resumeState, bool, error) {
 			return resumeState{}, true, fmt.Errorf("invalid service name in resume state %q", name)
 		}
 	}
+	// Older snapshots could contain tunnel containers. Do not restore those
+	// entries even before a later save rewrites the file.
+	state.Services = WithoutTunnelServices(state.Services)
 	return state, true, nil
 }
 
@@ -88,7 +108,7 @@ func (m Environment) CompleteSuspendServices() error {
 
 func (m Environment) saveResumeState(state resumeState) error {
 	unique := map[string]bool{}
-	for _, name := range state.Services {
+	for _, name := range WithoutTunnelServices(state.Services) {
 		if !resumeServiceName.MatchString(name) {
 			return fmt.Errorf("invalid resume service name %q", name)
 		}
