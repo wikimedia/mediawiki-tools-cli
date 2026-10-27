@@ -386,3 +386,14 @@ release-docs:
     artifacts:
       when: always
       paths: [_docs/]
+
+# Publish documentation corrections without creating another binary release.
+docs-publish:
+    extends: release-docs
+    rules:
+      - if: '$CI_PROJECT_ID == "16" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+        when: manual
+        allow_failure: true
+    needs: []
+    script:
+      - make docs-publish

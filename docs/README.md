@@ -165,7 +165,9 @@ Set `DOCS_UPDATE_USER` and `DOCS_UPDATE_PASS` to the wiki publishing account and
 make VERSION=vX.Y.Z docs-publish
 ```
 
-The release job uses the existing CI secrets. Credentials are read from the environment. Publishing repeats the drift check and sends the inspected revision ID with every edit; a concurrent wiki edit, deletion or creation causes an API conflict instead of an overwrite. There is no force-publish bypass. A conflict during publishing can leave earlier pages updated; correct it and rerun to finish.
+The release job uses the existing CI secrets. To publish between releases, push the reviewed changes to `main`, open its pipeline and click **Play** on the manual `docs-publish` job. You can also start a new pipeline for `main` from **Build → Pipelines → New pipeline**. This publishes the selected commit's documentation using the same credentials and review checks, independently of the binary release jobs.
+
+Credentials are read from the environment. Publishing repeats the drift check and sends the inspected revision ID with every edit; a concurrent wiki edit, deletion or creation causes an API conflict instead of an overwrite. There is no force-publish bypass. A conflict during publishing can leave earlier pages updated; correct it and rerun to finish.
 
 The guides are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Imported pages retain revision links for attribution to their wiki contributors. Generated reference remains derived from the command source under the repository license.
 
