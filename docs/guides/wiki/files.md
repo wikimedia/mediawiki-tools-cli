@@ -1,8 +1,39 @@
-# Upload files and new versions
+# Download, convert and upload files
+
+## Download an original or converted image
+
+Pass a file-description URL to download from its wiki, or a wiki filename with
+`--wiki`. Public downloads do not need credentials. The default format,
+`original`, saves the uploaded bytes unchanged:
+
+```sh
+mw wiki file download 'https://commons.wikimedia.org/wiki/File:Logo_of_a-wikimedia-cli.svg'
+```
+
+For a genuine PNG, choose a format and optionally a width:
+
+```sh
+mw wiki file download 'https://commons.wikimedia.org/wiki/File:Logo_of_a-wikimedia-cli.svg' --format png --width 1024 --output logo.png
+```
+
+MediaWiki renders SVGs and supplies a preview; the CLI decodes the returned image
+and encodes PNG or JPEG locally. This also handles servers returning WebP despite
+a `.png` thumbnail URL. No external image-conversion program is needed. PNG keeps
+transparency; JPEG uses a white background. Conversion produces a single still
+image, not an animation or video conversion.
+
+`--width` gives the exact output width and preserves the aspect ratio. Without
+it, converted images use the source width (1024 pixels if unknown). Large images
+may need a smaller width. Without `--output`, the wiki filename gets the selected
+extension. Existing files require `--overwrite`; `--output -` writes binary bytes
+to standard output. Private wikis can use the same authentication flags as
+uploads below.
+
+## Upload files and new versions
 
 Use `mw wiki file upload` with a local image, recording or other file accepted by the destination wiki. For Commons, use WebM for video and include a description, author, source and free license. Uploads are manual; generating documentation or recordings does not publish them.
 
-## Authenticate
+### Authenticate
 
 Create a bot password at the destination wiki's `Special:BotPasswords`. Enable **Edit existing pages**, **Create, edit, and move pages**, **Upload new files**, and **Upload, replace, and move files**. Uploading also needs the page-editing permissions because it creates a file description page. The bot password can only exercise rights your account already has.
 
@@ -18,7 +49,7 @@ unset wiki_password
 
 Pass the bot login name (for example `YourName@upload`) with `--user` and the file with `--password-file`. The CLI logs in for each invocation; it does not remember wiki credentials. When finished, remove it with `rm -- "$password_file"` and `unset password_file`. Existing wiki commands also accept `--password-file`.
 
-## Upload a file
+### Upload a file
 
 Write the initial description and license as wikitext in `description.wiki`. For Commons, use its Information template and the license template appropriate to your media. Choose a descriptive, stable wiki filename:
 
@@ -28,7 +59,7 @@ mw wiki file upload demo.webm --wiki commons.wikimedia.org --user 'YourName@uplo
 
 Without `--filename`, the local basename is used. `--text` accepts inline wikitext instead of `--text-file`. `--dry-run` shows the source and destination without logging in or contacting the wiki. Check new upload commands against `--wiki test.wikipedia.org` first; this is a separate destination, not a preview of an upload to Commons.
 
-## Upload a new version
+### Upload a new version
 
 Use the same wiki filename with `--replace`:
 

@@ -380,7 +380,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	// (waits at most the HTTP client timeout of the check)
 	if updateMessageChan != nil {
 		if updateMessage := <-updateMessageChan; updateMessage != "" {
-			fmt.Print(updateMessage)
+			fmt.Fprint(os.Stderr, updateMessage)
 		}
 	}
 
