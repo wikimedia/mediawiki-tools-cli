@@ -12,6 +12,23 @@ sleep 1
 /wait-for-it.sh  mysql:3306
 /wait-for-it.sh  mysql-replica:3306
 
+echo "Increase the max_connections to 1000"
+mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
+mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
+
+# Restarting the service also reruns this helper. Keep the durable replication
+# position: resetting it to the initial coordinates replays old SQL against
+# existing users and tables, stopping the replica with duplicate-object errors.
+if ! replica_status=$(mariadb --host mysql-replica -uroot -p"$MYSQL_REPLICA_PASSWORD" --batch --skip-column-names -e 'SHOW SLAVE STATUS'); then
+    echo "Could not read existing replica configuration"
+    exit 1
+fi
+if [ -n "$replica_status" ]; then
+    echo "Replica already configured; resuming from its saved position"
+    mariadb --host mysql-replica -uroot -p"$MYSQL_REPLICA_PASSWORD" -e 'START SLAVE;'
+    exit $?
+fi
+
 # The master setup container and this container are started independently by
 # Compose. The master position files may not exist yet even though both MySQL
 # servers are accepting connections.
@@ -34,12 +51,12 @@ fi
 
 echo "* Create replication user"
 
-mysql --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e 'STOP SLAVE;';
-mysql --host mysql-replica -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'RESET SLAVE ALL;';
+mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e 'STOP SLAVE;';
+mariadb --host mysql-replica -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'RESET SLAVE ALL;';
 
-mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "CREATE USER '$MYSQL_REPLICATION_USER'@'%';"
-mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "GRANT REPLICATION SLAVE ON *.* TO '$MYSQL_REPLICATION_USER'@'%' IDENTIFIED BY '$MYSQL_REPLICATION_PASSWORD';"
-mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'flush privileges;'
+mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "CREATE USER '$MYSQL_REPLICATION_USER'@'%';"
+mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "GRANT REPLICATION SLAVE ON *.* TO '$MYSQL_REPLICATION_USER'@'%' IDENTIFIED BY '$MYSQL_REPLICATION_PASSWORD';"
+mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'flush privileges;'
 
 
 echo "* Set MySQL01 as master on MySQL02"
@@ -48,29 +65,25 @@ echo "* Set MySQL01 as master on MySQL02"
 
 MAIN_IP=$(eval "getent hosts mysql|awk '{print \$1}'")
 echo $MAIN_IP
-mysql --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e "CHANGE MASTER TO master_host='mysql', master_port=3306, \
+mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e "CHANGE MASTER TO master_host='mysql', master_port=3306, \
         master_user='$MYSQL_REPLICATION_USER', master_password='$MYSQL_REPLICATION_PASSWORD', master_log_file='$MYSQL01_File', \
         master_log_pos=$MYSQL01_Position;"
 
 echo "* Set MySQL02 as master on MySQL01"
 
-MYSQL02_Position=$(eval "mysql --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -e 'show master status \G' | grep Position | sed -n -e 's/^.*: //p'")
-MYSQL02_File=$(eval "mysql --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -e 'show master status \G'     | grep File     | sed -n -e 's/^.*: //p'")
+MYSQL02_Position=$(eval "mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -e 'show master status \G' | grep Position | sed -n -e 's/^.*: //p'")
+MYSQL02_File=$(eval "mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -e 'show master status \G'     | grep File     | sed -n -e 's/^.*: //p'")
 
 REPLICA_IP=$(eval "getent hosts mysql-replica|awk '{print \$1}'")
 echo $REPLICA_IP
-mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "CHANGE MASTER TO master_host='mysql-replica', master_port=3306, \
+mariadb --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e "CHANGE MASTER TO master_host='mysql-replica', master_port=3306, \
         master_user='$MYSQL_REPLICATION_USER', master_password='$MYSQL_REPLICATION_PASSWORD', master_log_file='$MYSQL02_File', \
         master_log_pos=$MYSQL02_Position;"
 
 echo "* Start Replica on both Servers"
-mysql --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e "start slave;"
+mariadb --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e "start slave;"
 
-echo "Increase the max_connections to 1000"
-mysql --host mysql -uroot -p$MYSQL_MAIN_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
-mysql --host mysql-replica -uroot -p$MYSQL_REPLICA_PASSWORD -AN -e 'set GLOBAL max_connections=1000';
-
-mysql --host mysql-replica -uroot -p$MYSQL_MAIN_PASSWORD -e "show slave status \G"
+mariadb --host mysql-replica -uroot -p$MYSQL_MAIN_PASSWORD -e "show slave status \G"
 
 echo "MySQL servers created!"
 echo "--------------------"

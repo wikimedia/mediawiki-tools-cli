@@ -1,4 +1,4 @@
-images: 
+images:
   # docker dev env: Base services
   - image: defreitas/dns-proxy-server:5.9.0
     requireRegex: ^5\.\d+\.\d+$
@@ -17,8 +17,8 @@ images:
     noCheck: true
   - image: postgres:13.23
     requireRegex: 13\.\d+$
-  - image: mariadb:10.11
-    requireRegex: 10\.\d+$
+  - image: mariadb:11.4
+    requireRegex: 11\.\d+$
   - image: phpmyadmin:5
     noCheck: true
   - image: adminer:6.1.2

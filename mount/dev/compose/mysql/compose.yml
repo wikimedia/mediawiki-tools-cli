@@ -1,12 +1,12 @@
-
 services:
   mysql:
-    image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    image: "${MYSQL_IMAGE:-mariadb:11.4}"
     security_opt:
       - label:disable
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=toor
+      - MARIADB_AUTO_UPGRADE=1
       - DEFAULT_EXPOSE_PORT=3306
     depends_on:
       - mysql-configure-replication
@@ -20,10 +20,10 @@ services:
       - mysql-data:/var/lib/mysql
       - ./compose/mysql/mount/main:/mwdd-custom
     entrypoint: "/mwdd-custom/entrypoint.sh"
-    command: "mysqld"
+    command: "mariadbd"
 
   mysql-configure-replication:
-    image: "${MYSQL_IMAGE:-mariadb:10.11}"
+    image: "${MYSQL_IMAGE:-mariadb:11.4}"
     security_opt:
       - label:disable
     environment:
