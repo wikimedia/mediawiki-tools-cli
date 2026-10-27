@@ -5,25 +5,82 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release
 notes will be missed.
 
-## Unreleased
+## v0.34.0
 
-- Development environment (`mw docker`):
-    - Updated the default MariaDB service image from `mariadb:10.11` to `mariadb:11.4` (a MariaDB LTS, supported
-      upstream until 2029). This refreshes the base packages flagged by Docker Scout on the aging 10.11 build; the
-      `MYSQL_IMAGE` override is unchanged, so a custom image can still be set with `mw docker env set MYSQL_IMAGE ...`.
-    - Note: moving a MariaDB major version upgrades the on-disk data format one way. An existing `mysql` data volume is
-      migrated on first start with `MARIADB_AUTO_UPGRADE=1` on both primary and replica and cannot be downgraded
-      afterwards; destroy and recreate the `mysql` service for a clean reinitialisation if preferred.
-    - Preserve the replica's saved replication position when restarting `mysql-replica`, so it catches up without
-      replaying the initial setup against existing users and tables.
+A bumper release with significant updates across branding, Wikimedia data commands, Toolforge and Cloud VPS integration, GitLab commands, Wiki commands, and the development environment.
+
+- Name and branding:
+    - Renamed the project to **a Wikimedia CLI**, reflecting its wider Wikimedia scope.
+    - `mw` is being kept as the default executable name, with support for invoking the same binary as `wm`.
+    - Further migration will come with time (default binary name, GitLab repo etc)
+    - See the new logo: https://commons.wikimedia.org/wiki/File:Logo_of_a-wikimedia-cli.svg
+
+- Wikimedia data:
+    - Added `analytics` commands for pageviews, most-viewed pages, edits, most-edited pages, editors, new pages,
+      unique devices and media requests, with terminal graphs, CSV output.
+    - Added `api` for direct Wikimedia REST requests, including custom headers, JSON fields and raw responses.
+    - Added `events list`, `events info` and `events tail` for discovering and following Wikimedia EventStreams feeds.
+
+- Toolforge and Cloud VPS:
+    - Embedded the a version of the Toolforge CLI under `mw tools`, including jobs, builds, deployments, shells and Kubernetes commands, direct from your local machine.
+    - Added Cloud VPS project and instance discovery, SSH sessions and remote command execution.
+    - Added instance creation, image/flavor/network discovery, and volume creation and attachment.
+    - Added interactive application-credential setup with hidden secret input.
+
+- GitLab commands:
+    - Added `gitlab ci artifacts list` and `gitlab ci artifacts prune`, with filters for age, size and ref prefix.
+    - Added token-backed HTTPS pushes when creating merge requests.
+    - Recognise Wikimedia GitLab's web, API and SSH hostnames as the same instance.
+
+- Wiki commands:
+    - Added `wiki file upload`, including descriptions, authentication through password files, and explicit support
+      for uploading new versions.
+    - Added `wiki file download` for original uploads or PNG/JPEG conversions of rendered previews.
+      Conversion handles WebP responses, preserves PNG transparency and supports exact output widths.
+    - Added `wiki page move` for individual pages and prefix renames, preserving histories and leaving redirects.
+    - Added move previews, batch limits, pacing and bot-right checks. Repeated batches skip pages already redirecting
+      to their intended destinations, while other destination conflicts remain protected.
+
+- Development environment (`mw dev`):
+    - Made `mw dev` the canonical development command, keeping `mw docker` as an alias.
+    - Made Traefik the default proxy while preserving compatibility with existing development contexts and mounts.
+    - Added Cloudflare Quick Tunnel and Holesail providers with authenticated gateway access.
+    - Preserve the set of running services across suspend and resume.
+    - Added custom-service entries to the dashboard and refreshed the dashboard and gateway interfaces.
+    - Added optional OpenSearch Dashboards log browsing for MediaWiki logs and container output.
+    - Added `mediawiki update-code` with fast-forward, stash and mop modes, dry runs and recovery references.
+    - Added parallel extension/skin cloning with `get-code --jobs`, clearer Git failure reporting and automatic
+      Gerrit commit-msg hook installation.
+    - Allow source checkout and Git-only update workflows without Docker.
+    - Improved MediaWiki installation output with named stages, clearer Composer diagnostics and retries for transient
+      network failures during automated setup.
+    - Improved SQLite database permissions and concurrent access.
+    - Added `mediawiki fresh record` shortcut for recording Selenium test runs.
+    - Honour Docker contexts for SDK operations and preserve container command output.
+    - Preserve recipe runtime state when synchronising embedded files, and accept paths and compound values in
+      container environment arguments.
+    - Updated MariaDB from 10.11 to 11.4 LTS, with automatic system-table upgrades on primary and replica.
+    - Preserve the replica's saved replication position across service restarts.
+    - Refreshed MediaWiki, jobrunner, Shellbox, Quibble, Adminer, phpMyAdmin and supporting service images,
+      including PHP security updates (also in previous minor releases).
+
+- Updates and HTTP requests:
+    - Use the standard a-wikimedia-cli User-Agent across HTTP clients, embedded tools and Git requests.
+    - Reject unsuccessful HTTP responses when downloading self-updates.
+    - Avoid changing user configuration ownership when updating through sudo.
+    - Send update notices to stderr so they do not corrupt redirected command output.
+    - Fixed missing command telemetry.
+
+This testing for this CLI now also runs on Windows, Mac and ARM architectures.
+If you want more coverage of specific areas or configurations, let us know on Phabricator.
+
+If you have issues with any of the long list of changes in this release, please report them on Phabricator.
+And if you want a downgrade, v0.33.1 would be the version to revert to.
 
 ## v0.33.2
 
 Fix UA used for update requests to Wikimedia GitLab API.
-
-## v0.33.2
-
-Fix UA used for update requests to Wikimedia GitLab API.
+(And accidentally merge in main so basically 0.34.0...)
 
 ## v0.33.1
 
