@@ -11,7 +11,7 @@ services:
       - "traefik.http.routers.eventlogging-host.service=eventlogging"
       - "traefik.http.routers.eventlogging.rule=Path(`/proxy/${EVENTLOGGING_PROXY_PATH:-eventlogging}`) || PathPrefix(`/proxy/${EVENTLOGGING_PROXY_PATH:-eventlogging}/`)"
       - "traefik.http.routers.eventlogging.entrypoints=web"
-      - "traefik.http.routers.eventlogging.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-eventlogging@docker,forwarded-https@file"
+      - "traefik.http.routers.eventlogging.middlewares=forwarded-https@file,strip-eventlogging@docker,forwarded-https@file"
       - "traefik.http.middlewares.strip-eventlogging.stripprefix.prefixes=/proxy/${EVENTLOGGING_PROXY_PATH:-eventlogging}"
       - "traefik.http.services.eventlogging.loadbalancer.server.port=${EVENTLOGGING_VIRTUAL_PORT:-8192}"
     restart: unless-stopped

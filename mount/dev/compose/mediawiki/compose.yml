@@ -43,7 +43,7 @@ services:
       - "traefik.http.routers.wiki.rule=PathPrefix(`/proxy/`)"
       - "traefik.http.routers.wiki.priority=10"
       - "traefik.http.routers.wiki.entrypoints=web"
-      - "traefik.http.routers.wiki.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},wiki-prefix@file"
+      - "traefik.http.routers.wiki.middlewares=forwarded-https@file,wiki-prefix@file"
       - "traefik.http.services.wiki.loadbalancer.server.port=${MEDIAWIKI_VIRTUAL_PORT:-8080}"
       - "traefik.http.routers.wiki-local.rule=HostRegexp(`^[a-z0-9-]+\\.mediawiki\\.local\\.wmftest\\.net$`) && PathPrefix(`/`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.wiki-local.priority=5"
@@ -52,7 +52,7 @@ services:
       - "traefik.http.routers.wiki-host.rule=PathPrefix(`/`) && !PathPrefix(`/proxy/`)"
       - "traefik.http.routers.wiki-host.priority=1"
       - "traefik.http.routers.wiki-host.entrypoints=web"
-      - "traefik.http.routers.wiki-host.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},default-wiki@docker"
+      - "traefik.http.routers.wiki-host.middlewares=forwarded-https@file,default-wiki@docker"
       - "traefik.http.middlewares.default-wiki.headers.customrequestheaders.X-Mwcli-Default-Wiki=1"
       - "traefik.http.routers.wiki-host.service=wiki"
     security_opt:

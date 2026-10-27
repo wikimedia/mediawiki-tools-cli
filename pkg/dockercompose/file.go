@@ -17,6 +17,7 @@ type Contents struct {
 }
 
 type ServiceContents struct {
+	Profiles    []string `yaml:"profiles"`
 	Image       string   `yaml:"image"`
 	Entrypoint  string   `yaml:"entrypoint"`
 	Volumes     []string `yaml:"volumes"`
@@ -76,6 +77,18 @@ func (c Contents) ServiceNames() []string {
 		serviceNames = append(serviceNames, serviceName)
 	}
 	return serviceNames
+}
+
+// StartServiceNames keeps optional services opt-in, matching Compose's profile
+// behaviour, while allowing the explicitly requested service to use a profile.
+func (c Contents) StartServiceNames(primary string) []string {
+	var names []string
+	for name, service := range c.Services {
+		if len(service.Profiles) == 0 || name == primary {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func (c Contents) VolumeNames() []string {

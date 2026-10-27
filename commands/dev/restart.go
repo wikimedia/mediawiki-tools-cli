@@ -11,7 +11,7 @@ func NewDevRestartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "restart",
 		GroupID: "core",
-		Short:   "Restart the running containers",
+		Short:   "Restart local containers and stop temporary tunnel access",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return restartDevelopmentServices(devenv.DefaultForUser().DockerCompose())
 		},

@@ -24,17 +24,12 @@ for service in cloudflared holesail; do
         exit 1
     fi
 done
-previous_provider=$(mw env get TUNNEL_PROVIDER 2>/dev/null || true)
 cleanup() {
     docker rm -f "$client_name" >/dev/null 2>&1 || true
     mw tunnel stop --provider holesail >/dev/null 2>&1 || true
     if [ "$ci_bootstrap" = "1" ]; then
         mw destroy >/dev/null 2>&1 || true
         mw env clear >/dev/null 2>&1 || true
-    elif [ -n "$previous_provider" ]; then
-        mw env set TUNNEL_PROVIDER "$previous_provider" >/dev/null
-    else
-        mw env delete TUNNEL_PROVIDER >/dev/null
     fi
     rm -rf "$work"
 }

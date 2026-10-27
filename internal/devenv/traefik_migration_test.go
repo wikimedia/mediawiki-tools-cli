@@ -20,7 +20,7 @@ func TestLegacyProxyMigration(t *testing.T) {
 			"docker rm legacy-proxy",
 		}},
 		{name: "preparation failure preserves nginx", legacy: true, fail: "compose create", wantSuffix: []string{
-			"compose create --no-recreate traefik gateway-auth docker-socket-proxy",
+			"compose create --no-recreate traefik docker-socket-proxy",
 		}},
 		{name: "startup failure restores nginx", legacy: true, fail: "compose up", wantSuffix: []string{
 			"compose up -d traefik mediawiki mediawiki-web adminer memcached", "compose stop traefik", "docker start legacy-proxy",

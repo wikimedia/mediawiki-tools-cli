@@ -23,10 +23,12 @@ func NewDevUpdateCmd() *cobra.Command {
 			if runningServicesErr != nil {
 				logrus.Panic(runningServicesErr)
 			}
+			runningServices = devenv.WithoutTunnelServices(runningServices)
 			stoppedServices, stoppedServicesErr := devenv.DefaultForUser().DockerCompose().ServicesWithStatus("stopped")
 			if stoppedServicesErr != nil {
 				logrus.Panic(stoppedServicesErr)
 			}
+			stoppedServices = devenv.WithoutTunnelServices(stoppedServices)
 			existingServices := append(runningServices, stoppedServices...)
 			if len(existingServices) == 0 {
 				logrus.Info("No services to update")

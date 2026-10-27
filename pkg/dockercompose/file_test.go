@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -23,5 +24,23 @@ func TestContentsAcceptsBothDependencyFormats(t *testing.T) {
 				t.Fatalf("incorrect Compose metadata: %+v", parsed)
 			}
 		})
+	}
+}
+
+func TestStartServiceNamesRespectsProfiles(t *testing.T) {
+	contents := Contents{Services: map[string]ServiceContents{
+		"traefik": {}, "docker-socket-proxy": {}, "gateway-auth": {Profiles: []string{"gateway", "tunnel"}},
+	}}
+	got := contents.StartServiceNames("traefik")
+	sort.Strings(got)
+	if want := []string{"docker-socket-proxy", "traefik"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	contents = Contents{Services: map[string]ServiceContents{"holesail": {Profiles: []string{"gateway"}}}}
+	if got := contents.StartServiceNames("holesail"); !reflect.DeepEqual(got, []string{"holesail"}) {
+		t.Fatalf("explicit profiled service missing: %v", got)
+	}
+	if got := contents.StartServiceNames("unrelated"); len(got) != 0 {
+		t.Fatalf("unrequested optional services selected: %v", got)
 	}
 }

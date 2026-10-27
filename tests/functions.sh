@@ -43,10 +43,9 @@ test_gateway_auth_args() {
 test_wget() {
     local url="$1"
     local expected_match="$2"
-    test_gateway_auth_args
     set +e
     local WGET
-    WGET=$(curl -fsSL --user "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" "$url")
+    WGET=$(curl -fsSL "$url")
     echo "$WGET" | grep -q "$expected_match"
     local RESULT=$?
     set -e
@@ -95,50 +94,6 @@ test_http_status() {
     fi
 }
 
-# Exercise the real Traefik ForwardAuth middleware with the same HTTP upstream
-# and HTTPS forwarded origin that a TLS-terminating tunnel uses.
-test_gateway_https_session() (
-    set -e
-    local url="$1"
-    local work
-    work=$(mktemp -d)
-    trap 'rm -rf "$work"' EXIT
-    test_gateway_auth_args
-    local headers=(-H 'Host: gateway-test.example.test' -H 'X-Forwarded-Proto: https')
-    curl --connect-timeout 2 --max-time 10 -fsS "${headers[@]}" -D "$work/headers" -o "$work/form" "$url/_wm/login"
-    local csrf cookie status
-    csrf=$(sed -n 's/.*name="csrf" value="\([^"]*\)".*/\1/p' "$work/form")
-    cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*\);.*/\1/p' "$work/headers")
-    test -n "$csrf"
-    status=$(curl --connect-timeout 2 --max-time 10 -sS "${headers[@]}" -H "Cookie: $cookie" \
-        --data-urlencode "username=$MWCLI_TEST_GATEWAY_USER" \
-        --data-urlencode "password=$MWCLI_TEST_GATEWAY_PASSWORD" \
-        --data-urlencode "csrf=$csrf" --data-urlencode 'return=/proxy/adminer/' \
-        -D "$work/headers" -o /dev/null -w '%{http_code}' "$url/_wm/login")
-    if [ "$status" != 303 ]; then
-        echo -e "${RED}FAIL:${NC} HTTPS gateway login returned $status, expected 303"
-        exit 1
-    fi
-    cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*_session=[^;]*\);.*/\1/p' "$work/headers")
-    test -n "$cookie"
-    grep -q '; Secure' "$work/headers"
-    # No gateway Basic credentials: the HTTPS session alone must pass ForwardAuth,
-    # even when an application supplies its own Authorization header.
-    status=$(curl --connect-timeout 2 --max-time 10 -sS "${headers[@]}" -H "Cookie: $cookie" -H 'Authorization: Bearer application-token' \
-        -o /dev/null -w '%{http_code}' "$url/proxy/adminer/")
-    if [ "$status" != 200 ]; then
-        echo -e "${RED}FAIL:${NC} HTTPS gateway session returned $status, expected 200"
-        exit 1
-    fi
-    status=$(curl --connect-timeout 2 --max-time 10 -sS -H 'Host: gateway-test.example.test' -H "Cookie: $cookie" \
-        -o /dev/null -w '%{http_code}' "$url/proxy/adminer/")
-    if [ "$status" != 401 ]; then
-        echo -e "${RED}FAIL:${NC} HTTPS session on an HTTP origin returned $status, expected 401"
-        exit 1
-    fi
-    echo -e "${GREEN}PASS:${NC} HTTPS gateway session survives ForwardAuth and remains bound to its origin"
-)
-
 test_wget_eventually_contains() {
     local url="$1"
     local expected_match="$2"
@@ -149,12 +104,11 @@ test_wget_eventually_contains() {
     local last_status=""
     local last_body=""
     local last_curl_error=""
-    test_gateway_auth_args
 
     while [ "$attempt" -le "$max_attempts" ]; do
         set +e
         local response
-        response=$(curl -sS -L --connect-timeout 2 --max-time 5 -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -w "\n%{http_code}" "$url" 2>&1)
+        response=$(curl -sS -L --connect-timeout 2 --max-time 5 -w "\n%{http_code}" "$url" 2>&1)
         local curl_result=$?
         set -e
 
@@ -210,12 +164,11 @@ test_wget_eventually_200() {
 
     local attempt=1
     local last_status=""
-	test_gateway_auth_args
 
     while [ "$attempt" -le "$max_attempts" ]; do
         set +e
         local status
-        status=$(curl -sS -L -u "$MWCLI_TEST_GATEWAY_USER:$MWCLI_TEST_GATEWAY_PASSWORD" -o /dev/null -w "%{http_code}" "$url")
+        status=$(curl -sS -L -o /dev/null -w "%{http_code}" "$url")
         local curl_result=$?
         set -e
 

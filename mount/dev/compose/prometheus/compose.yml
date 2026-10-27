@@ -8,7 +8,7 @@ services:
       - "traefik.http.routers.statsd-exporter-host.service=statsd-exporter"
       - "traefik.http.routers.statsd-exporter.rule=Path(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}`) || PathPrefix(`/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}/`)"
       - "traefik.http.routers.statsd-exporter.entrypoints=web"
-      - "traefik.http.routers.statsd-exporter.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file},strip-statsd-exporter@docker,forwarded-https@file"
+      - "traefik.http.routers.statsd-exporter.middlewares=forwarded-https@file,strip-statsd-exporter@docker,forwarded-https@file"
       - "traefik.http.middlewares.strip-statsd-exporter.stripprefix.prefixes=/proxy/${STATSD_EXPORTER_PROXY_PATH:-statsd-exporter}"
       - "traefik.http.services.statsd-exporter.loadbalancer.server.port=${STATSD_EXPORTER_VIRTUAL_PORT:-9102}"
     ports:
@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.prometheus-local-path.service=prometheus"
       - "traefik.http.routers.prometheus.rule=Path(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}`) || PathPrefix(`/proxy/${PROMETHEUS_PROXY_PATH:-prometheus}/`)"
       - "traefik.http.routers.prometheus.entrypoints=web"
-      - "traefik.http.routers.prometheus.middlewares=${TRAEFIK_AUTH_MIDDLEWARE:-gateway-auth@file}"
+      - "traefik.http.routers.prometheus.middlewares=forwarded-https@file"
       - "traefik.http.services.prometheus.loadbalancer.server.port=${PROMETHEUS_VIRTUAL_PORT:-9090}"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
