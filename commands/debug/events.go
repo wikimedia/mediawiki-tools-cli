@@ -13,5 +13,7 @@ func DebugEventsCmd() *cobra.Command {
 	}
 	cmd.AddCommand(DebugEventsEmitCmd())
 	cmd.AddCommand(DebugEventsCatCmd())
+	cmd.AddCommand(DebugEventsWhereCmd())
+	cmd.AddCommand(DebugEventsPingCmd())
 	return cmd
 }

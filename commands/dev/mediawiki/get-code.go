@@ -184,12 +184,12 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code", cli.VersionDetails.Version)
+			cli.NewEvents(cli.EventFilePath()).AddFeatureUsageEvent("mw_docker_mediawiki_get-code", cli.VersionDetails.Version)
 			if cloneOpts.UseGithub {
-				cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-github", cli.VersionDetails.Version)
+				cli.NewEvents(cli.EventFilePath()).AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-github", cli.VersionDetails.Version)
 			}
 			if cloneOpts.UseShallow {
-				cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-shallow", cli.VersionDetails.Version)
+				cli.NewEvents(cli.EventFilePath()).AddFeatureUsageEvent("mw_docker_mediawiki_get-code:use-shallow", cli.VersionDetails.Version)
 			}
 			return thisMw.CloneSetup(cloneOpts)
 		},

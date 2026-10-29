@@ -38,7 +38,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/timers"
 )
 
-var events = cli.NewEvents(cli.UserDirectoryPath() + string(os.PathSeparator) + ".events")
+var events = cli.NewEvents(cli.EventFilePath())
 
 // NewMwCliCmd builds the canonical command tree for documentation and tooling.
 func NewMwCliCmd() *cobra.Command {
@@ -54,6 +54,16 @@ func NewRootCmd(name string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if cmd.Annotations[cli.TelemetrySkipAnnotation] == "true" {
+				root := cmd.Root()
+				if root.Annotations == nil {
+					root.Annotations = make(map[string]string)
+				}
+				root.Annotations[cli.TelemetrySkipAnnotation] = "true"
+				cli.Opts.Telemetry = false
+				return
+			}
+
 			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
 			logrus.Trace("CLI: Top level PersistentPreRun")
 
@@ -75,7 +85,6 @@ func NewRootCmd(name string) *cobra.Command {
 					cli.Opts.Telemetry = t == "yes"
 				}
 			}
-
 			// All commands will call the RootCmd.PersistentPreRun, so that their commands are logged
 			// If PersistentPreRun is changed in any sub commands, the RootCmd.PersistentPreRun will have to be explicitly called
 			// Remove the "mw" command prefix to simplify the telemetry
@@ -206,31 +215,6 @@ func wizardTelemetry() string {
 		return "yes"
 	}
 	return "no"
-}
-
-func tryToEmitEvents() {
-	c := config.State()
-
-	shouldTryToEmitEvents := false
-
-	if c.OnDisk.TimerLastEmittedEvent == "" {
-		config.PutKeyValueOnDisk("timer_last_emitted_event", c.Effective.TimerLastEmittedEvent)
-		shouldTryToEmitEvents = true
-	} else {
-		// Try to emit events every 1 hour
-		lastEmittedEventTime, parseError := timers.Parse(c.Effective.TimerLastEmittedEvent)
-		if parseError != nil {
-			logrus.Warn("Failed to parse last emitted event time")
-		}
-		if parseError == nil && timers.IsHoursAgo(lastEmittedEventTime, 1) {
-			shouldTryToEmitEvents = true
-		}
-	}
-
-	if shouldTryToEmitEvents {
-		config.PutKeyValueOnDisk("timer_last_emitted_event", timers.String(timers.NowUTC()))
-		events.EmitEvents()
-	}
 }
 
 /*Execute the root command.*/
@@ -386,8 +370,8 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 
 	// Try and emit events after main command execution
 	// TODO perhaps moved this to a POST command run thing
-	if cli.Opts.Telemetry {
-		tryToEmitEvents()
+	if cli.Opts.Telemetry && rootCmd.Annotations[cli.TelemetrySkipAnnotation] != "true" {
+		events.MaybeEmitEvents()
 	}
 
 	if exitCode, ok := rootCmd.Annotations["exitCode"]; ok {
