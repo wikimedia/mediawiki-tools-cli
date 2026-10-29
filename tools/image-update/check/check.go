@@ -212,6 +212,9 @@ func main() {
 }
 
 func (i ImageData) nameAndTagFromTaggedName() (string, string) {
+	if imageName, _, ok := strings.Cut(i.Image, "@sha256:"); ok {
+		return imageName, ""
+	}
 	r := regexp.MustCompile(`(\$\{.*:\-)?([\w\/\-\.]+):([\w\-\_\.]+)(\})?`)
 	regexSplit := r.FindStringSubmatch(i.Image)
 	imageName := regexSplit[2]
@@ -221,6 +224,9 @@ func (i ImageData) nameAndTagFromTaggedName() (string, string) {
 
 func (i ImageData) humanURLForImageName() string {
 	imageName, _ := i.nameAndTagFromTaggedName()
+	if strings.HasPrefix(imageName, "ghcr.io/") || strings.HasPrefix(imageName, "registry.gitlab.com/") {
+		return "https://" + imageName
+	}
 	if stringStartsWith(imageName, "docker-registry.wikimedia.org") {
 		return "https://" + imageName + "/tags"
 	}

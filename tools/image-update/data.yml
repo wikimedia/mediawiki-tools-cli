@@ -9,6 +9,10 @@ images:
   # Quibble image for MediaWiki test runs.
   - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s5
 
+  # Citoid service image; its SHA tag is intentionally not version-checked.
+  - image: docker-registry.wikimedia.org/wikimedia/mediawiki-services-citoid:fcc15c59d18eccc9a0d04f88be64975804233608
+    noCheck: true
+
   # PHP-FPM image for the local MediaWiki service.
   - image: docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0-s9
 
@@ -59,6 +63,10 @@ images:
   - image: quay.io/keycloak/keycloak:18.0.2
     requireRegex: 18\.\d+\.\d+
 
+  # Cloudflare tunnel client for local development.
+  - image: cloudflare/cloudflared:2026.10.0
+    requireRegex: ^\d{4}\.\d+\.\d+$
+
   # Graphite metrics and monitoring service.
   - image: graphiteapp/graphite-statsd:1.1.10-5
     requireRegex: 1\.\d+\.\d+(\-\d+)
@@ -77,8 +85,79 @@ images:
   - image: ubuntu:latest
     noCheck: true
 
+  # OpenSearch image used by the local logs stack.
+  - image: opensearchproject/opensearch:2.19.4
+    requireRegex: ^2\.19\.\d+$
+
+  # CirrusSearch OpenSearch image used by the local search stack.
+  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-12
+
+  # OpenSearch Dashboards UI for the local logs stack.
+  - image: opensearchproject/opensearch-dashboards:2.19.4
+    requireRegex: ^2\.19\.\d+$
+
+  # Vector log collector for the local logs stack.
+  - image: timberio/vector:0.59.0-debian
+    requireRegex: ^0\.59\.\d+-debian$
+
+  # Jaeger all-in-one tracing service.
+  - image: jaegertracing/all-in-one:1.57
+    requireRegex: ^1\.\d+$
+
+  # Traefik reverse proxy for local development services.
+  - image: traefik:v3.6.16
+    requireRegex: ^v3\.\d+\.\d+$
+
+  # Go gateway-auth service image used by the local Traefik stack.
+  - image: golang:1.26-alpine
+    noCheck: true
+
+  # Docker socket proxy used by the local DNS proxy.
+  - image: tecnativa/docker-socket-proxy:0.3.0
+    requireRegex: ^0\.3\.\d+$
+
+  # Prometheus StatsD exporter for local metrics.
+  - image: prom/statsd-exporter:v0.28.0
+    requireRegex: ^v0\.\d+\.\d+$
+
+  # Prometheus server for local metrics.
+  - image: prom/prometheus:v3.9.1
+    requireRegex: ^v3\.\d+\.\d+$
+
+  # Grafana dashboards for local metrics.
+  - image: grafana/grafana:11.4.0
+    requireRegex: ^11\.\d+\.\d+$
+
+  # Node base image for the locally built Holesail tunnel client.
+  - image: node:24-bookworm-slim
+    noCheck: true
+
+  # Pinned noVNC image used by the local desktop service.
+  - image: ghcr.io/montehurd/mediawiki-docker-images/novnc@sha256:57358bd7ab04bf4b39405369cc8e896bb5571251edd97671d8d6227b639bd2e1
+    noCheck: true
+
   # GitLab release command used by the release pipeline.
   - image: registry.gitlab.com/gitlab-org/release-cli:latest
+    noCheck: true
+
+  # Go image used by build, test, and weekly CI jobs.
+  - image: golang:1.26.1
+    requireRegex: ^1\.26\.\d+$
+
+  # Browser, PHP, and Composer image used by integration CI.
+  - image: docker-registry.wikimedia.org/releng/node20-test-browser-php83-composer:20.20.2-s2
+    requireRegex: ^20\.20\.\d+-s\d+$
+
+  # Python image used by GitLab integration dispatch and polling jobs.
+  - image: python:3.13-alpine
+    noCheck: true
+
+  # Python image used by the security report job.
+  - image: python:3.13-bookworm
+    noCheck: true
+
+  # Dependabot updater image is hosted on GHCR and is pinned here.
+  - image: ghcr.io/dependabot-gitlab/dependabot-gitlab-gomod:7.12.0-alpha.1
     noCheck: true
 
   # FastCGI web server paired with the Shellbox services.
@@ -87,10 +166,6 @@ images:
 
   # Go image used to run the local development dashboard.
   - image: golang:1.23-alpine
-    noCheck: true
-
-  # Go image retained for CI use; not version-checked here.
-  - image: golang:1.23
     noCheck: true
 
 imageGroups:
