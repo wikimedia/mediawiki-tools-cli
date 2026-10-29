@@ -360,6 +360,56 @@ func (c *conduitClient) getUsers(phids []string) (map[string][2]string, error) {
 	return out, nil
 }
 
+// resolveUser looks up a Phabricator user by exact username, or resolves "me"
+// to the authenticated account.
+func (c *conduitClient) resolveUser(username string) (*phabUser, error) {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return nil, fmt.Errorf("username is required (use a Phabricator username or me)")
+	}
+	if strings.EqualFold(username, "me") {
+		result, err := c.post("user.whoami", map[string]interface{}{})
+		if err != nil {
+			return nil, err
+		}
+		var whoami struct {
+			Username string `json:"userName"`
+		}
+		if err := json.Unmarshal(result, &whoami); err != nil {
+			return nil, err
+		}
+		username = strings.TrimSpace(whoami.Username)
+		if username == "" {
+			return nil, fmt.Errorf("user.whoami returned an empty username")
+		}
+	}
+
+	result, err := c.post("user.search", map[string]interface{}{
+		"constraints": map[string]interface{}{
+			"usernames": []string{username},
+		},
+		"limit": 2,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var sr searchResult
+	if err := json.Unmarshal(result, &sr); err != nil {
+		return nil, err
+	}
+	var users []phabUser
+	if err := json.Unmarshal(sr.Data, &users); err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, fmt.Errorf("Phabricator user %q not found", username)
+	}
+	if len(users) > 1 {
+		return nil, fmt.Errorf("multiple Phabricator users matched %q", username)
+	}
+	return &users[0], nil
+}
+
 // ---- Project name resolution ----
 
 // getProjects fetches project names for a list of project PHIDs.
@@ -632,6 +682,13 @@ func (c *conduitClient) setTaskPriority(taskPHID, priority string) error {
 func (c *conduitClient) setTaskStatus(taskPHID, status string) error {
 	return c.editTask(taskPHID, []map[string]interface{}{
 		{"type": "status", "value": status},
+	})
+}
+
+// assignTask assigns the task to the user identified by PHID.
+func (c *conduitClient) assignTask(taskPHID, userPHID string) error {
+	return c.editTask(taskPHID, []map[string]interface{}{
+		{"type": "owner", "value": userPHID},
 	})
 }
 

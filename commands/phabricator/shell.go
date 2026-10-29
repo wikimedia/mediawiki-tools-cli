@@ -147,6 +147,9 @@ func handleShellLine(s *shellState, line string) error {
 	case "mv":
 		return shellMV(s, args)
 
+	case "assign", "a":
+		return shellAssign(s, args)
+
 	case "rmtag", "rm":
 		return shellRMTag(s, args)
 
@@ -157,7 +160,7 @@ func handleShellLine(s *shellState, line string) error {
 		return shellSetStatus(s, args)
 
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\nCommands: ls, cd, view, comments, read, mv, rmtag, setprio, setstatus, exit\n", cmd)
+		fmt.Fprintf(os.Stderr, "unknown command: %s\nCommands: ls, cd, view, comments, read, mv, assign, rmtag, setprio, setstatus, exit\n", cmd)
 	}
 	return nil
 }
@@ -345,6 +348,30 @@ func shellMV(s *shellState, args []string) error {
 		return err
 	}
 	fmt.Printf("Moved %s to %s\n", taskRef, colName)
+	return nil
+}
+
+// shellAssign assigns the current or named task to a Phabricator username.
+func shellAssign(s *shellState, args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: assign <username|me> [task]")
+	}
+	user, err := s.client.resolveUser(args[0])
+	if err != nil {
+		return err
+	}
+	taskRef := resolveTaskArg(s, args[1:])
+	if taskRef == "" {
+		return fmt.Errorf("no task selected")
+	}
+	taskPHID, err := s.client.lookupTaskPHID(taskRef)
+	if err != nil {
+		return err
+	}
+	if err := s.client.assignTask(taskPHID, user.PHID); err != nil {
+		return err
+	}
+	fmt.Printf("Assigned %s to %s\n", taskRef, user.Fields.Username)
 	return nil
 }
 

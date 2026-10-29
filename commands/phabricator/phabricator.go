@@ -70,6 +70,7 @@ Tip: run "mw config where" to see your CLI config.json path.`,
 	addViewCmd(cmd, &site)
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)
+	addAssignCmd(cmd, &site)
 	addShellCmd(cmd, &site)
 	addMVCmd(cmd, &site)
 	addRMTagCmd(cmd, &site)
@@ -183,6 +184,38 @@ func addReadCmd(parent *cobra.Command, site *string) {
 				return err
 			}
 			renderComments(task, txs, client)
+			client.cache.flush()
+			return nil
+		},
+	})
+}
+
+func addAssignCmd(parent *cobra.Command, site *string) {
+	parent.AddCommand(&cobra.Command{
+		Use:   "assign <T12345> <username|me>",
+		Short: "Assign a task to a Phabricator user",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, _, err := clientFromSite(*site)
+			if err != nil {
+				return err
+			}
+			taskRef, err := requireTaskArg(args[:1])
+			if err != nil {
+				return err
+			}
+			user, err := client.resolveUser(args[1])
+			if err != nil {
+				return err
+			}
+			taskPHID, err := client.lookupTaskPHID(taskRef)
+			if err != nil {
+				return err
+			}
+			if err := client.assignTask(taskPHID, user.PHID); err != nil {
+				return err
+			}
+			fmt.Fprintf(os.Stdout, "Assigned %s to %s\n", taskRef, user.Fields.Username)
 			client.cache.flush()
 			return nil
 		},
