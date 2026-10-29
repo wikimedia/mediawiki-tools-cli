@@ -36,7 +36,7 @@ images:
     requireRegex: 13\.\d+$
 
   # MariaDB database used for local MySQL services.
-  - image: mariadb:11.4
+  - image: mariadb:11.8
     requireRegex: 11\.\d+$
 
   # Web interface for managing the local MySQL database.

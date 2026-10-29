@@ -1,6 +1,6 @@
 services:
   mysql-replica:
-    image: "${MYSQL_IMAGE:-mariadb:11.4}"
+    image: "${MYSQL_IMAGE:-mariadb:11.8}"
     security_opt:
       - label:disable
     restart: unless-stopped
@@ -22,7 +22,7 @@ services:
     command: "mariadbd"
 
   mysql-replica-configure-replication:
-    image: "${MYSQL_IMAGE:-mariadb:11.4}"
+    image: "${MYSQL_IMAGE:-mariadb:11.8}"
     security_opt:
       - label:disable
     environment:
