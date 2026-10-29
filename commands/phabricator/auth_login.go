@@ -2,6 +2,7 @@ package phabricator
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -31,7 +32,7 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 			}
 
 			if strings.TrimSpace(token) == "" {
-				cmd.Println("Create a token at https://phabricator.wikimedia.org/settings/user/<username>/page/apitokens/")
+				cmd.Printf("Create a token at https://phabricator.wikimedia.org/settings/user/%s/page/apitokens/\n", url.PathEscape(username))
 				prompt := &survey.Password{Message: "Phabricator API token:"}
 				if err := survey.AskOne(prompt, &token); err != nil {
 					return err
