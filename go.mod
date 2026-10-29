@@ -7,7 +7,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/adrg/xdg v0.5.3
 	github.com/alecthomas/assert v1.0.0
-	github.com/andygrunwald/go-gerrit v1.1.1
+	github.com/andygrunwald/go-gerrit v1.2.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4

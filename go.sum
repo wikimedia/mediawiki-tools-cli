@@ -48,8 +48,8 @@ github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwTo
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/andybalholm/cascadia v1.3.3 h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM=
 github.com/andybalholm/cascadia v1.3.3/go.mod h1:xNd9bqTn98Ln4DwST8/nG+H0yuB8Hmgu1YHNnWw0GeA=
-github.com/andygrunwald/go-gerrit v1.1.1 h1:U1Aw5WrwWIVc8PK+jMFmMGzGTYZFI8re8JS6DEGNYfA=
-github.com/andygrunwald/go-gerrit v1.1.1/go.mod h1:SeP12EkHZxEVjuJ2HZET304NBtHGG2X6w2Gzd0QXAZw=
+github.com/andygrunwald/go-gerrit v1.2.0 h1:ROwHhewdU9p76xBh6Lp6lCOG9RemCCt1/d0/7r4zYrU=
+github.com/andygrunwald/go-gerrit v1.2.0/go.mod h1:QUQK039Nwq5Eh8nExu3JXgmjOy7oGFl9wV7O03p0HOI=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antonholmquist/jason v1.0.0 h1:Ytg94Bcf1Bfi965K2q0s22mig/n4eGqEij/atENBhA0=
 github.com/antonholmquist/jason v1.0.0/go.mod h1:+GxMEKI0Va2U8h3os6oiUAetHAlGMvxjdpAH/9uvUMA=
@@ -266,7 +266,6 @@ github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMyw
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.4/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.6/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
@@ -274,7 +273,6 @@ github.com/google/go-cmp v0.5.7/go.mod h1:n+brtR0CgQNWTVd5ZUFpTBC8YFBDLK/h/bpaJ8
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
-github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
 github.com/google/go-querystring v1.2.0 h1:yhqkPbu2/OH+V9BfpCVPZkNmUXhb2gBxJArfhIxNtP0=
 github.com/google/go-querystring v1.2.0/go.mod h1:8IFJqpSRITyJ8QhQ13bmbeMBDfmeEJZD5A0egEOmkqU=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
@@ -627,8 +625,6 @@ gitlab.com/gitlab-org/api/client-go v0.130.1 h1:1xF5C5Zq3sFeNg3PzS2z63oqrxifne3n
 gitlab.com/gitlab-org/api/client-go v0.130.1/go.mod h1:ZhSxLAWadqP6J9lMh40IAZOlOxBLPRh7yFOXR/bMJWM=
 gitlab.com/gitlab-org/cli v1.61.0 h1:1UNsipCs11i0qhyeft/KOG3qVb6t5zo2EXjgbBGB35Y=
 gitlab.com/gitlab-org/cli v1.61.0/go.mod h1:0GPtswhAV6c/rf1wo3kCChyOh96EJc1pg5wWvAwgWtw=
-gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a h1:ZzVrgYTEYpSx9XJRDM/xutMosfvehnUGxdcD7+7Nm1g=
-gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a/go.mod h1:oF9k4j4vqJ4Esz7vwE3oIF3aIwSruZh5jRnz33ypmMA=
 gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261024151630-d98cb6b1b438 h1:fjbm2IiBGCWmIEU9JwvjtDR42VkTCIB55potegd8wb0=
 gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261024151630-d98cb6b1b438/go.mod h1:oF9k4j4vqJ4Esz7vwE3oIF3aIwSruZh5jRnz33ypmMA=
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
