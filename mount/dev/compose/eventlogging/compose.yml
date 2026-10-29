@@ -3,7 +3,7 @@
 services:
   eventlogging:
     # https://docker-registry.wikimedia.org/wikimedia/eventgate-wikimedia/tags/
-    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.33.0}"
+    image: "${EVENTLOGGING_IMAGE:-docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.35.0}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.eventlogging-host.rule=Host(`${EVENTLOGGING_VIRTUAL_HOST:-eventlogging.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
