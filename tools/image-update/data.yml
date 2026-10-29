@@ -7,7 +7,7 @@ images:
   - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.20.2
 
   # Quibble image for MediaWiki test runs.
-  - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s5
+  - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s7
 
   # Citoid service image; its SHA tag is intentionally not version-checked.
   - image: docker-registry.wikimedia.org/wikimedia/mediawiki-services-citoid:fcc15c59d18eccc9a0d04f88be64975804233608
