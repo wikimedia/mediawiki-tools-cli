@@ -24,7 +24,7 @@ require (
 	github.com/itchyny/gojq v0.12.19
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf v1.5.0
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.24
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muesli/termenv v0.16.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c

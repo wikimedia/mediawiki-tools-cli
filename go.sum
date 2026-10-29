@@ -419,8 +419,8 @@ github.com/mattn/go-isatty v0.0.8/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hd
 github.com/mattn/go-isatty v0.0.10/go.mod h1:qgIWMr58cqv1PHHyhnkY9lrL7etaEgOFcMEpPG5Rm84=
 github.com/mattn/go-isatty v0.0.11/go.mod h1:PhnuNfih5lzO57/f3n+odYbM4JtupLOxQOAqxQCu2WE=
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
-github.com/mattn/go-isatty v0.0.22 h1:j8l17JJ9i6VGPUFUYoTUKPSgKe/83EYU2zBC7YNKMw4=
-github.com/mattn/go-isatty v0.0.22/go.mod h1:ZXfXG4SQHsB/w3ZeOYbR0PrPwLy+n6xiMrJlRFqopa4=
+github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=
+github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
 github.com/mattn/go-localereader v0.0.1 h1:ygSAOl7ZXTx4RdPYinUpg6W99U8jWvWi9Ye2JC/oIi4=
 github.com/mattn/go-localereader v0.0.1/go.mod h1:8fBrzywKY7BI3czFoHkuzRoWE9C+EiG4R1k4Cjx5p88=
 github.com/mattn/go-runewidth v0.0.12/go.mod h1:RAqKPSqVFrSLVXbA8x7dzmKdmGzieGRCM46jaSJTDAk=
@@ -627,8 +627,6 @@ gitlab.com/gitlab-org/api/client-go v0.130.1 h1:1xF5C5Zq3sFeNg3PzS2z63oqrxifne3n
 gitlab.com/gitlab-org/api/client-go v0.130.1/go.mod h1:ZhSxLAWadqP6J9lMh40IAZOlOxBLPRh7yFOXR/bMJWM=
 gitlab.com/gitlab-org/cli v1.61.0 h1:1UNsipCs11i0qhyeft/KOG3qVb6t5zo2EXjgbBGB35Y=
 gitlab.com/gitlab-org/cli v1.61.0/go.mod h1:0GPtswhAV6c/rf1wo3kCChyOh96EJc1pg5wWvAwgWtw=
-gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a h1:ZzVrgYTEYpSx9XJRDM/xutMosfvehnUGxdcD7+7Nm1g=
-gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a/go.mod h1:oF9k4j4vqJ4Esz7vwE3oIF3aIwSruZh5jRnz33ypmMA=
 gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261024151630-d98cb6b1b438 h1:fjbm2IiBGCWmIEU9JwvjtDR42VkTCIB55potegd8wb0=
 gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261024151630-d98cb6b1b438/go.mod h1:oF9k4j4vqJ4Esz7vwE3oIF3aIwSruZh5jRnz33ypmMA=
 go.etcd.io/etcd/api/v3 v3.5.4/go.mod h1:5GB2vv4A4AOn3yk7MftYGHkUfGtDHnEraIjym4dYz5A=
