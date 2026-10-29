@@ -12,6 +12,9 @@ gomod:
   variables:
     GIT_STRATEGY: none
     SETTINGS__GITLAB_URL: "$CI_SERVER_URL"
+    # The schedule runs on the isolated `scheduled` ref, but updates always
+    # read configuration and create merge requests against the current main.
+    SETTINGS__CONFIG_BRANCH: "$CI_DEFAULT_BRANCH"
     SETTINGS__STANDALONE_CACHE_PATH: "$CI_PROJECT_DIR/.dependabot/cache"
   rules:
     - if: '$DEPENDENCY_UPDATES_DISABLED'

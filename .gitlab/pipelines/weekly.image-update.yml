@@ -5,6 +5,10 @@ image-update:
     before_script:
       - apt update
       - apt -y install git
+      # The child pipeline inherits the `scheduled` ref. Base updates on the
+      # latest default-branch commit so their merge requests target current code.
+      - git fetch origin "$CI_DEFAULT_BRANCH"
+      - git checkout --detach FETCH_HEAD
     script:
       - echo ${COMMAND}
       - set -x

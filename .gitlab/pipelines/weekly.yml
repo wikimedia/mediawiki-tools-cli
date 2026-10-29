@@ -2,7 +2,13 @@ image-update-build:
     stage: build
     cache: {}
     image: golang:1.26.1
+    variables:
+      GIT_DEPTH: "0"
     script:
+       # Schedule pipelines run on the isolated `scheduled` ref. Always run
+       # image discovery against the latest default-branch source instead.
+       - git fetch origin "$CI_DEFAULT_BRANCH"
+       - git checkout --detach FETCH_HEAD
        - go run ./tools/image-update/check/check.go
        - cp .gitlab/pipelines/weekly.image-update.yml .gitlab/pipelines/weekly.image-update.generated.yml
        - |+

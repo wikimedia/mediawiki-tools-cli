@@ -18,10 +18,12 @@ workflow:
         on_new_commit: none
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api")'
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "weekly"'
+    # Keep scheduled maintenance statuses off main. Configure both schedules
+    # to target the `scheduled` branch; their jobs fetch current main as input.
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "scheduled" && $GITLAB_SCHEDULE == "weekly"'
       auto_cancel:
         on_new_commit: none
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "dependabot"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "scheduled" && $GITLAB_SCHEDULE == "dependabot"'
       auto_cancel:
         on_new_commit: none
     - when: never
