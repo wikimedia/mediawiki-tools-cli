@@ -1,7 +1,7 @@
 
 services:
   redis:
-    image: "${REDIS_IMAGE:-redis:8.6.7}"
+    image: "${REDIS_IMAGE:-redis:8.6.8}"
     restart: unless-stopped
     environment:
       - DEFAULT_EXPOSE_PORT=6379
