@@ -79,7 +79,7 @@ images:
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
 
   # EventGate service for local event logging.
-  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.33.0
+  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.35.0
 
   # Ubuntu image reference; latest is intentionally not version-checked.
   - image: ubuntu:latest
