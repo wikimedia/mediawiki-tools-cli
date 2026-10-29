@@ -3,7 +3,9 @@ package phabricator
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -33,6 +35,8 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 
 			if strings.TrimSpace(token) == "" {
 				cmd.Printf("Create a token at https://phabricator.wikimedia.org/settings/user/%s/page/apitokens/\n", url.PathEscape(username))
+				hostname, _ := os.Hostname()
+				cmd.Printf("Suggested token name (paste into Phabricator): %s\n", suggestedTokenName(time.Now(), hostname))
 				prompt := &survey.Password{Message: "Phabricator API token:"}
 				if err := survey.AskOne(prompt, &token); err != nil {
 					return err
@@ -99,4 +103,12 @@ func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 	cmd.Flags().StringVarP(&token, "token", "t", "", "Phabricator API token")
 
 	return cmd
+}
+
+func suggestedTokenName(now time.Time, hostname string) string {
+	hostname = strings.TrimSpace(hostname)
+	if hostname == "" {
+		hostname = "local"
+	}
+	return fmt.Sprintf("mwcli %s %s", now.Format("2006-01-02"), hostname)
 }
