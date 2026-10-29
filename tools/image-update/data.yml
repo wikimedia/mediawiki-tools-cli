@@ -1,73 +1,124 @@
 images:
-  # docker dev env: Base services
+  # Local DNS proxy for the development Docker network.
   - image: defreitas/dns-proxy-server:5.9.0
     requireRegex: ^5\.\d+\.\d+$
-  # docker dev env: MediaWiki related services
+
+  # Node, browser, and Composer image for integration tests.
   - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.20.2
+
+  # Quibble image for MediaWiki test runs.
   - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s5
+
+  # PHP-FPM image for the local MediaWiki service.
   - image: docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0-s9
+
+  # Apache frontend for the local MediaWiki service.
   - image: docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1
-  # docker dev env: Misc services
-  # TODO: make wdqs images work with semver
+
+  # Wikibase Query Service frontend.
   - image: wikibase/wdqs-frontend:wmde.11
     noCheck: true
+
+  # Wikibase Query Service engine and updater.
   - image: wikibase/wdqs:0.3.121-wmde.11
     noCheck: true
+
+  # Proxy in front of the Wikibase Query Service.
   - image: wikibase/wdqs-proxy:wmde.11
     noCheck: true
+
+  # PostgreSQL database for local development.
   - image: postgres:13.23
     requireRegex: 13\.\d+$
+
+  # MariaDB database used for local MySQL services.
   - image: mariadb:11.4
     requireRegex: 11\.\d+$
+
+  # Web interface for managing the local MySQL database.
   - image: phpmyadmin:5
     noCheck: true
+
+  # Web interface for managing local databases.
   - image: adminer:6.1.2
     noCheck: true
+
+  # Local email catcher for development and tests.
   - image: mailhog/mailhog:v1.0.1
     requireRegex: v1\.\d+(\.\d+)?
+
+  # Memcached cache used by local MediaWiki.
   - image: memcached:1.6
     requireRegex: 1\.\d+$
+
+  # Redis cache used by local development services.
   - image: redis:8.6.8
     requireRegex: ^8\.6\.\d+$
+
+  # Keycloak identity provider for local development.
   - image: quay.io/keycloak/keycloak:18.0.2
     requireRegex: 18\.\d+\.\d+
+
+  # Graphite metrics and monitoring service.
   - image: graphiteapp/graphite-statsd:1.1.10-5
     requireRegex: 1\.\d+\.\d+(\-\d+)
+
+  # Elasticsearch image used by CirrusSearch.
   - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-elasticsearch-image:v7.10.2-12
-  # docker dev env: Other stuff
+
+  # TCP relay used by the devenv port-exposure command.
   - image: alpine/socat:1.8.1.3
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
-  # docker dev env: Regularly released WMF production images
+
+  # EventGate service for local event logging.
   - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.33.0
-  # Latest images...
+
+  # Ubuntu image reference; latest is intentionally not version-checked.
   - image: ubuntu:latest
     noCheck: true
+
+  # GitLab release command used by the release pipeline.
   - image: registry.gitlab.com/gitlab-org/release-cli:latest
     noCheck: true
+
+  # FastCGI web server paired with the Shellbox services.
   - image: docker-registry.wikimedia.org/httpd-fcgi:latest
     noCheck: true
-  # Golang images
+
+  # Go image used to run the local development dashboard.
   - image: golang:1.23-alpine
     noCheck: true
-  # Golang CI images
+
+  # Go image retained for CI use; not version-checked here.
   - image: golang:1.23
     noCheck: true
+
 imageGroups:
-  # docker dev env: Regularly released WMF production images
+  # Keep Shellbox variants on one build timestamp.
   - name: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
+      # Shellbox image for media processing.
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-media83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-media83$
+
+      # Shellbox image for PHP RPC.
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-php-rpc83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc83$
+
+      # Shellbox image for score processing.
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-score83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-score83$
+
+      # Shellbox image for SyntaxHighlight.
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-syntaxhighlight83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight83$
+
+      # Shellbox image for Timeline rendering.
       - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-timeline83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline83$
-# Files and directories to check
+
+# Files and directories scanned for image references.
 directories:
   - mount/dev
   - .gitlab/pipelines
