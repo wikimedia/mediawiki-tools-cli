@@ -10,13 +10,17 @@ import (
 
 func NewMigrateSecretsCmd() *cobra.Command {
 	var dryRun bool
+	var replace bool
 	var provider string
 	cmd := &cobra.Command{
 		Use:     "migrate [KEY...]",
 		Short:   "Move plaintext credentials to their selected provider",
-		Long:    "Move Gerrit, Cloud VPS and Phabricator credentials from config.json to their selected provider. Supply credential keys to migrate only those entries. Plaintext entries use the configured default or --provider; secure links retain their provider. Each secret is read back before its plaintext value is removed. This does not import external phab.cfg files or change GitLab's separate credential store.",
+		Long:    "Move Gerrit, Cloud VPS, Phabricator and saved wiki credentials from config.json to their selected provider. Supply credential keys to migrate only those entries. Plaintext entries use the configured default or --provider; secure links retain their provider. Each secret is read back before its plaintext value is removed. This does not import external phab.cfg files or change GitLab's separate credential store.",
 		Example: "migrate --dry-run\nmigrate\nmigrate gerrit.password --provider keyring",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if replace && len(args) != 1 {
+				return fmt.Errorf("--replace requires exactly one explicit credential key")
+			}
 			if provider != "" {
 				if err := config.ValidateCredentialProvider(provider); err != nil {
 					return err
@@ -54,15 +58,29 @@ func NewMigrateSecretsCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+				if replace && target != "keyring" && target != "keepassxc" {
+					return fmt.Errorf("--replace requires a secure destination; select --provider keyring or keepassxc")
+				}
 				label := migrationProviderLabel(target)
 				if dryRun {
+					if replace {
+						cmd.Printf("Would replace %s in %s using its plaintext config value, then remove plaintext after verification\n", key, label)
+						count++
+						continue
+					}
 					if target == "" {
 						cmd.Printf("Would select storage for %s (no default configured)\n", key)
 					} else {
 						cmd.Printf("Would migrate %s to %s\n", key, label)
 					}
 				} else {
-					if err := credential.MigrateTo(target); err != nil {
+					var err error
+					if replace {
+						err = credential.ReplaceFromPlaintext(target)
+					} else {
+						err = credential.MigrateTo(target)
+					}
+					if err != nil {
 						return fmt.Errorf("migrate %s: %w", key, err)
 					}
 					actual, err := credential.CredentialProvider("")
@@ -80,6 +98,7 @@ func NewMigrateSecretsCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show credential keys and destinations without opening providers or moving secrets")
+	cmd.Flags().BoolVar(&replace, "replace", false, "Use the plaintext value to replace one named credential in its secure provider, verifying before removing plaintext")
 	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
 	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
