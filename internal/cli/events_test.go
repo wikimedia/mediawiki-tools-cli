@@ -57,8 +57,8 @@ func TestTelemetryConsentAndTestContext(t *testing.T) {
 				}
 				return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header)}, nil
 			})
-			if got := events.EmitEvents(); got != allowed {
-				t.Errorf("EmitEvents = %v, want %v", got, allowed)
+			if got := events.MaybeEmitEvents(); got != allowed {
+				t.Errorf("MaybeEmitEvents = %v, want %v", got, allowed)
 			}
 			if (calls == 1) != allowed {
 				t.Errorf("unexpected HTTP request count: %d", calls)

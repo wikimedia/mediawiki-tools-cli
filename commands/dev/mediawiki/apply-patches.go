@@ -44,7 +44,7 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 			devenv.EnsureReady()
 			thisMw, _ := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 
-			cli.NewEvents(cli.UserDirectoryPath()+string(os.PathSeparator)+".events").AddFeatureUsageEvent("mw_docker_mediawiki_apply-patches", cli.VersionDetails.Version)
+			cli.NewEvents(cli.EventFilePath()).AddFeatureUsageEvent("mw_docker_mediawiki_apply-patches", cli.VersionDetails.Version)
 
 			opts := mediawiki.ApplyPatchOpts{
 				ChangeIDs:        changes,
