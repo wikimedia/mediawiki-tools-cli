@@ -227,12 +227,12 @@ require (
 	github.com/yuin/goldmark v1.7.13 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli v0.0.0-20261018193831-a3d81a55621a
-	golang.org/x/crypto v0.52.0
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 )
