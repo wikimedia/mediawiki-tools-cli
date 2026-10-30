@@ -52,7 +52,11 @@ type review struct {
 }
 
 func newWiki(config configuration) (*mwclient.Client, error) {
-	return mwclient.New(config.API, cli.HTTPUserAgent)
+	client, err := mwclient.New(config.API, cli.HTTPUserAgent)
+	if err == nil {
+		client.SetHTTPClient(documentationHTTPClient())
+	}
+	return client, err
 }
 
 func fetchPages(client *mwclient.Client, titles []string) (review, error) {
@@ -278,15 +282,21 @@ func synchronize(config configuration, mode string) error {
 		return err
 	}
 	client.Assert = mwclient.AssertUser
-	summary := publicationSummary
 	version := currentDocumentationVersion()
 	if _, err := os.Stat(filepath.Join(outputDir, "version.json")); err == nil {
 		if err := readJSON(filepath.Join(outputDir, "version.json"), &version); err != nil {
 			return err
 		}
 	}
-	summary += " (" + version.Label + ")"
-	if err := applyDocumentationMoves(client, &state, state.Moves, publicationSummary+" move ("+version.Label+")"); err != nil {
+	summary, err := documentationEditSummary(version.Label, false)
+	if err != nil {
+		return err
+	}
+	moveSummary, err := documentationEditSummary(version.Label, true)
+	if err != nil {
+		return err
+	}
+	if err := applyDocumentationMoves(client, &state, state.Moves, moveSummary); err != nil {
 		return err
 	}
 	for _, document := range documents {
@@ -295,7 +305,7 @@ func synchronize(config configuration, mode string) error {
 		if !current.Missing && samePublicationText(current.Text, desired) {
 			continue
 		}
-		if err := client.Edit(editParameters(document.Title, desired, summary, state.Timestamp, current)); err != nil && !errors.Is(err, mwclient.ErrEditNoChange) {
+		if err := publishDocumentationEdit(client, document.Title, desired, summary, state.Timestamp, current); err != nil {
 			return fmt.Errorf("publishing %s: %w", document.Title, err)
 		}
 		fmt.Println("Published", document.Title)

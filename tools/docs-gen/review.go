@@ -385,10 +385,18 @@ func (s *reviewServer) publish(plan publicationPlan) ([]string, error) {
 		return nil, err
 	}
 	client.Assert = mwclient.AssertUser
+	summary, err := documentationEditSummary(plan.Version, false)
+	if err != nil {
+		return nil, err
+	}
+	moveSummary, err := documentationEditSummary(plan.Version, true)
+	if err != nil {
+		return nil, err
+	}
 	// After an attempted edit, require a fresh review even if the outcome is uncertain.
 	s.session.Stale = true
 	published := []string{}
-	if err := applyDocumentationMoves(client, &state, plan.Moves, publicationSummary+" move ("+plan.Version+")"); err != nil {
+	if err := applyDocumentationMoves(client, &state, plan.Moves, moveSummary); err != nil {
 		return published, err
 	}
 	for _, id := range plan.IDs {
@@ -398,8 +406,8 @@ func (s *reviewServer) publish(plan publicationPlan) ([]string, error) {
 			published = append(published, item.Title)
 			continue
 		}
-		err := client.Edit(editParameters(item.Title, item.Proposed, publicationSummary+" ("+plan.Version+")", state.Timestamp, current))
-		if err != nil && !errors.Is(err, mwclient.ErrEditNoChange) {
+		err := publishDocumentationEdit(client, item.Title, item.Proposed, summary, state.Timestamp, current)
+		if err != nil {
 			return published, fmt.Errorf("publishing %s: %w; refresh to inspect any completed edits", item.Title, err)
 		}
 		published = append(published, item.Title)

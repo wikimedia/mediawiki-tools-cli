@@ -37,7 +37,9 @@ func currentDocumentationVersion() documentationVersion {
 		}
 	}
 	release := regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][a-zA-Z0-9.-]+)?$`)
-	version.Modified = gitOutput("status", "--porcelain", "--untracked-files=normal") != ""
+	// CLI initialization under CI_PROJECT_DIR can create these runtime files;
+	// they are not documentation source modifications.
+	version.Modified = gitOutput("status", "--porcelain", "--untracked-files=normal", "--", ".", ":(exclude)config.json", ":(exclude).events") != ""
 	version.Unreleased = !release.MatchString(ref) || version.Modified
 	if ref == "" || ref == "latest" {
 		ref = gitOutput("branch", "--show-current")

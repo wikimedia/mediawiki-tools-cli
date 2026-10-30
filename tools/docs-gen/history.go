@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"unicode"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
@@ -12,8 +14,44 @@ import (
 
 const publicationSummary = "Publish a Wikimedia CLI documentation"
 
+const publicationSummarySuffix = " [a-wikimedia-cli docs]"
+
+func documentationEditSummary(version string, move bool) (string, error) {
+	custom := strings.TrimSpace(os.Getenv("DOCS_SUMMARY"))
+	summary := custom
+	if custom == "" {
+		label := strings.TrimSpace(os.Getenv("DOCS_VERSION"))
+		if label == "" || label == "latest" {
+			label = strings.TrimSpace(os.Getenv("CI_COMMIT_TAG"))
+		}
+		if label != "" {
+			version = label
+		}
+		summary = publicationSummary
+		if move {
+			summary += " move"
+		}
+		summary += " (" + version + ")"
+	} else {
+		if move {
+			summary += " (page move)"
+		}
+		// Keep publications discoverable in revision history even when the
+		// operator replaces the human-readable summary completely.
+		summary += publicationSummarySuffix
+	}
+	if len(summary) > 500 || strings.ContainsFunc(summary, unicode.IsControl) {
+		return "", fmt.Errorf("documentation edit summary must be one line and at most 500 UTF-8 bytes including its publication marker")
+	}
+	return summary, nil
+}
+
+func publicationComment(comment string) bool {
+	return comment == publicationSummary || strings.HasPrefix(comment, publicationSummary+" (") || strings.HasSuffix(comment, publicationSummarySuffix)
+}
+
 func automaticPublication(config configuration, title string, page snapshot) bool {
-	if page.Comment == publicationSummary || strings.HasPrefix(page.Comment, publicationSummary+" (") {
+	if publicationComment(page.Comment) {
 		_, valid := unmark(page.Text)
 		return valid
 	}
@@ -65,7 +103,7 @@ func lastPublication(client *mwclient.Client, config configuration, title string
 		for _, revision := range reply.Query.Pages[0].Revisions {
 			// Read content only for potential automatic publications, not every
 			// intervening typo fix, revert or suppressed vandalism revision.
-			modern := revision.Comment == publicationSummary || strings.HasPrefix(revision.Comment, publicationSummary+" (")
+			modern := publicationComment(revision.Comment)
 			legacy := config.LegacyPublisher != "" && config.LegacySummary != "" && strings.HasPrefix(title, config.ReferenceRoot+"/") && revision.User == config.LegacyPublisher && revision.Comment == config.LegacySummary
 			if !modern && !legacy {
 				continue

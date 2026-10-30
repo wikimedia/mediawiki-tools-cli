@@ -97,6 +97,7 @@ export DOCS_UPDATE_USER ?= $(user)
 export DOCS_UPDATE_PASS ?= $(password)
 export DOCS_VERSION ?= $(if $(filter latest,$(VERSION)),,$(VERSION))
 export DOCS_VERSION_NOTICE ?= 0
+export DOCS_SUMMARY
 
 .PHONY: docs docs-review docs-check docs-audit docs-pull docs-publish docs-import docs-accept
 docs:
