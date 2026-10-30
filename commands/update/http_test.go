@@ -50,20 +50,21 @@ func TestUpdateCommandDownloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	replacement := []byte("replacement executable fixture\n")
-	var archive bytes.Buffer
-	writer := zip.NewWriter(&archive)
-	header := &zip.FileHeader{Name: "bin/mw", Method: zip.Deflate}
-	header.SetMode(0o755)
-	entry, err := writer.CreateHeader(header)
-	if err != nil {
-		t.Fatal(err)
+	nativeFilename := "bin/mw"
+	if runtime.GOOS == "windows" {
+		nativeFilename += ".exe"
 	}
-	if _, err := entry.Write(replacement); err != nil {
-		t.Fatal(err)
+	archive := updateArchiveFixture(t, map[string][]byte{nativeFilename: replacement})
+	filename := "wm_nightly_" + runtime.GOOS + "_" + runtime.GOARCH
+	if runtime.GOOS == "windows" {
+		filename += ".exe"
 	}
-	if err := writer.Close(); err != nil {
-		t.Fatal(err)
-	}
+	releaseArchive := updateArchiveFixture(t, map[string][]byte{
+		"_release/nightly/" + filename:               replacement,
+		"_release/nightly/" + filename + ".sha256":   []byte("checksum fixture"),
+		"_release/nightly/wm_nightly_other_platform": []byte("wrong platform"),
+	})
+	wrongArchive := updateArchiveFixture(t, map[string][]byte{"_release/nightly/mw_nightly_other_platform": replacement})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/404":
@@ -75,7 +76,11 @@ func TestUpdateCommandDownloads(t *testing.T) {
 		case "/redirect":
 			http.Redirect(w, r, "/release", http.StatusFound)
 		case "/archive":
-			_, _ = w.Write(archive.Bytes())
+			_, _ = w.Write(archive)
+		case "/release-archive":
+			_, _ = w.Write(releaseArchive)
+		case "/wrong-archive":
+			_, _ = w.Write(wrongArchive)
 		default:
 			_, _ = w.Write(replacement)
 		}
@@ -97,6 +102,8 @@ func TestUpdateCommandDownloads(t *testing.T) {
 		{"release", server.URL + "/release", ""},
 		{"redirect", server.URL + "/redirect", ""},
 		{"archive", server.URL + "/archive", ""},
+		{"release-archive", server.URL + "/release-archive", ""},
+		{"wrong-archive", server.URL + "/wrong-archive", "no supported executable"},
 		{"local", local, ""},
 		{"file-url", fileURL, ""},
 	} {
@@ -154,4 +161,25 @@ func TestUpdateCommandDownloads(t *testing.T) {
 			}
 		})
 	}
+}
+
+func updateArchiveFixture(t *testing.T, files map[string][]byte) []byte {
+	t.Helper()
+	var archive bytes.Buffer
+	writer := zip.NewWriter(&archive)
+	for name, content := range files {
+		header := &zip.FileHeader{Name: name, Method: zip.Deflate}
+		header.SetMode(0o755)
+		entry, err := writer.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := entry.Write(content); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return archive.Bytes()
 }

@@ -2,6 +2,7 @@ package update
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,6 +34,7 @@ func Cmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample(`update
 update --version=v0.10.0 --no-interaction
 update --force
+update --version=nightly
 update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/artifacts/download`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			currDetails := cli.VersionDetails
@@ -70,6 +72,14 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 				cmd.Println("Release URL: " + targetVersion.ReleasePage())
 				cmd.Println("Artifact URL: " + targetArtifact)
 				targetArtifact = targetReleaseLink.DirectAssetURL
+			} else if versionInput == "nightly" {
+				var err error
+				targetArtifact, err = gitlabb.RelengCliNightlyBinaryURL()
+				if err != nil {
+					return err
+				}
+				cmd.Println("Updating to the latest successful nightly build")
+				cmd.Println("Artifact URL: " + targetArtifact)
 			} else {
 				// Manual version is URL or local file path?
 				isURL := len(versionInput) >= 4 && (versionInput[:4] == "http" || (len(versionInput) >= 7 && versionInput[:7] == "file://"))
@@ -197,10 +207,9 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 						logrus.Error("could not unzip the downloaded file: "+tempDownloadFilePath, err)
 						os.Exit(1)
 					}
-					newMwFileLocation, err = archiveBinaryPath(tempDir, runtime.GOOS)
+					newMwFileLocation, err = archiveBinaryPath(tempDir, runtime.GOOS, runtime.GOARCH)
 					if err != nil {
-						logrus.Error(err)
-						os.Exit(1)
+						return fmt.Errorf("select executable from update archive: %w", err)
 					}
 				} else {
 					newMwFileLocation = tempDownloadFilePath
@@ -316,7 +325,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Specific version to \"update\" to, or rollback to.")
+	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Release version, nightly, artifact URL, or local executable path")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
 	cmd.Flags().BoolVarP(&force, "force", "", false, "Force force and reinstall even if already on the latest version.")
 	return cmd
@@ -464,7 +473,7 @@ func describeVersionTransition(from, to cli.Version) string {
 }
 
 // CI archives may contain either command name, independently of the local name.
-func archiveBinaryPath(directory, platform string) (string, error) {
+func archiveBinaryPath(directory, platform, architecture string) (string, error) {
 	for _, name := range cli.BinaryNames() {
 		if platform == "windows" {
 			name += ".exe"
@@ -474,5 +483,57 @@ func archiveBinaryPath(directory, platform string) (string, error) {
 			return path, nil
 		}
 	}
-	return "", fmt.Errorf("archive contains no supported executable in bin/ for %s", platform)
+	root := filepath.Join(directory, "_release")
+	suffix := "_" + platform + "_" + architecture
+	if platform == "windows" {
+		suffix += ".exe"
+	}
+	// Release archives can include branch names containing slashes, e.g.
+	// _release/fix/example/mw_fix/example_linux_amd64. Match the complete
+	// version directory and filename, rather than guessing from a basename.
+	versions := map[string]map[string]string{}
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), suffix) {
+			return nil
+		}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		parts := strings.Split(filepath.ToSlash(relative), "/")
+		for i, part := range parts {
+			for _, name := range cli.BinaryNames() {
+				if !strings.HasPrefix(part, name+"_") {
+					continue
+				}
+				version := strings.TrimSuffix(strings.TrimPrefix(strings.Join(parts[i:], "/"), name+"_"), suffix)
+				// Match Makefile's SEMVER directory transformation exactly.
+				if version == "" || strings.Join(parts[:i], "/") != strings.ReplaceAll(version, "v", "") {
+					continue
+				}
+				if versions[version] == nil {
+					versions[version] = map[string]string{}
+				}
+				versions[version][name] = path
+			}
+		}
+		return nil
+	})
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+	if len(versions) > 1 {
+		return "", fmt.Errorf("archive contains multiple releases for %s/%s; select a single binary URL", platform, architecture)
+	}
+	for _, candidates := range versions {
+		for _, name := range cli.BinaryNames() {
+			if path := candidates[name]; path != "" {
+				return path, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("archive contains no supported executable in bin/ or _release/ for %s/%s", platform, architecture)
 }

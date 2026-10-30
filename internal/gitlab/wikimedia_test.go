@@ -1,15 +1,75 @@
 package gitlab
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
+
+func TestNightlyDiscoverySelectsOnlyItsSuccessfulScheduledPipeline(t *testing.T) {
+	previousURL, previousOS, previousArch := wikimediav4ApiURL, outOs, arch
+	t.Cleanup(func() { wikimediav4ApiURL, outOs, arch = previousURL, previousOS, previousArch })
+	for _, scenario := range []string{"linux", "windows", "no nightly", "wrong pipeline", "expired", "missing artifact"} {
+		t.Run(scenario, func(t *testing.T) {
+			outOs, arch = "linux", "amd64"
+			if scenario == "windows" {
+				outOs = "windows"
+			}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api/v4/projects/16/pipelines":
+					for key, want := range map[string]string{"ref": "scheduled", "source": "schedule", "status": "success", "name": "Nightly CLI build", "per_page": "1", "sort": "desc"} {
+						if got := r.URL.Query().Get(key); got != want {
+							t.Errorf("%s=%q; want %q", key, got, want)
+						}
+					}
+					pipelines := []map[string]any{{"id": 42, "name": "Nightly CLI build", "ref": "scheduled", "status": "success"}}
+					if scenario == "no nightly" {
+						pipelines = nil
+					} else if scenario == "wrong pipeline" {
+						pipelines[0]["name"] = "Dependabot"
+					}
+					_ = json.NewEncoder(w).Encode(pipelines)
+				case "/api/v4/projects/16/pipelines/42/jobs":
+					size := 123
+					if scenario == "missing artifact" {
+						size = 0
+					}
+					expiry := time.Now().Add(time.Hour)
+					if scenario == "expired" {
+						expiry = time.Now().Add(-time.Hour)
+					}
+					_ = json.NewEncoder(w).Encode([]map[string]any{{"id": 99, "name": "build-release", "status": "success", "ref": "scheduled", "artifacts_file": map[string]any{"size": size}, "artifacts_expire_at": expiry}})
+				default:
+					t.Errorf("unexpected API path %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+			wikimediav4ApiURL = server.URL + "/api/v4/"
+			got, err := RelengCliNightlyBinaryURL()
+			if scenario != "linux" && scenario != "windows" {
+				if err == nil {
+					t.Fatalf("unexpected nightly selected: %s", got)
+				}
+				return
+			}
+			want := server.URL + "/api/v4/projects/16/jobs/99/artifacts/_release/nightly/" + releaseBinaryName(cli.BinaryNames()[0], "nightly", outOs, arch)
+			if err != nil || got != want {
+				t.Fatalf("nightly URL=%q, %v; want %q", got, err, want)
+			}
+		})
+	}
+}
 
 func TestLatestReleaseBinary(t *testing.T) {
 	// Start a local HTTP server

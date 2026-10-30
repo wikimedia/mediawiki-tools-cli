@@ -123,7 +123,7 @@ build:
     extends: .go-job
     stage: build
     artifacts:
-      expire_in: 1 week
+      expire_in: 2 days
       paths:
         - bin/
     script:
@@ -262,7 +262,7 @@ build-release:
     needs: [*merged-source-need,checks,test,build]
     # Exposed so that non-tag pipelines can be used to hand out per-OS/arch builds for testing
     artifacts:
-      expire_in: 1 week
+      expire_in: 2 days
       paths:
         - _release/
     script:

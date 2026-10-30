@@ -143,6 +143,45 @@ func RelengCliReleaseBinary(tagName string) (*gitlab.ReleaseLink, error) {
 	return releaseBinary(release)
 }
 
+// RelengCliNightlyBinaryURL finds a successful nightly rather than whichever
+// weekly/Dependabot pipeline most recently ran on the shared scheduled ref.
+func RelengCliNightlyBinaryURL() (string, error) {
+	client := wikimediaClient()
+	pipelines, _, err := client.Pipelines.ListProjectPipelines(projectID, &gitlab.ListProjectPipelinesOptions{
+		ListOptions: gitlab.ListOptions{PerPage: 1},
+		Ref:         gitlab.Ptr("scheduled"), Source: gitlab.Ptr("schedule"),
+		Name: gitlab.Ptr("Nightly CLI build"), Status: gitlab.Ptr(gitlab.Success),
+		OrderBy: gitlab.Ptr("id"), Sort: gitlab.Ptr("desc"),
+	})
+	if err != nil {
+		return "", fmt.Errorf("find nightly pipeline: %w", err)
+	}
+	if len(pipelines) == 0 {
+		return "", fmt.Errorf("no successful nightly build is available yet")
+	}
+	pipeline := pipelines[0]
+	if pipeline.Ref != "scheduled" || pipeline.Status != "success" || pipeline.Name != "Nightly CLI build" {
+		return "", fmt.Errorf("GitLab returned an unexpected pipeline for the nightly query")
+	}
+	jobs, _, err := client.Jobs.ListPipelineJobs(projectID, pipeline.ID, &gitlab.ListJobsOptions{
+		ListOptions: gitlab.ListOptions{PerPage: 100}, Scope: gitlab.Ptr([]gitlab.BuildStateValue{gitlab.Success}),
+	})
+	if err != nil {
+		return "", fmt.Errorf("find nightly artifact: %w", err)
+	}
+	for _, job := range jobs {
+		if job.Name != "build-release" || job.Status != "success" || job.Ref != "scheduled" || job.ArtifactsFile.Size <= 0 {
+			continue
+		}
+		if job.ArtifactsExpireAt != nil && job.ArtifactsExpireAt.Before(time.Now()) {
+			return "", fmt.Errorf("the latest successful nightly artifact has expired; wait for the next nightly build")
+		}
+		filename := releaseBinaryName(cli.BinaryNames()[0], "nightly", outOs, arch)
+		return fmt.Sprintf("%sprojects/%d/jobs/%d/artifacts/_release/nightly/%s", wikimediav4ApiURL, projectID, job.ID, filename), nil
+	}
+	return "", fmt.Errorf("the latest successful nightly pipeline has no downloadable build-release artifact")
+}
+
 func releaseBinary(release *gitlab.Release) (*gitlab.ReleaseLink, error) {
 	var expected []string
 	for _, name := range cli.BinaryNames() {

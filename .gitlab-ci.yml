@@ -18,12 +18,15 @@ workflow:
         on_new_commit: none
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api")'
-    # Keep scheduled maintenance statuses off main. Configure both schedules
+    # Keep scheduled maintenance statuses off main. Configure these schedules
     # to target the `scheduled` branch; their jobs fetch current main as input.
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "scheduled" && $GITLAB_SCHEDULE == "weekly"'
       auto_cancel:
         on_new_commit: none
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "scheduled" && $GITLAB_SCHEDULE == "dependabot"'
+      auto_cancel:
+        on_new_commit: none
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "scheduled" && $GITLAB_SCHEDULE == "nightly"'
       auto_cancel:
         on_new_commit: none
     - when: never
@@ -45,6 +48,9 @@ include:
 - local: ".gitlab/pipelines/dependabot.yml"
   rules:
   - if: "$CI_PIPELINE_SOURCE == 'schedule' && $GITLAB_SCHEDULE == 'dependabot'"
+- local: ".gitlab/pipelines/nightly.yml"
+  rules:
+  - if: '$CI_PIPELINE_SOURCE == "schedule" && $GITLAB_SCHEDULE == "nightly"'
 # - project: 'repos/security/gitlab-ci-security-templates'
 #   ref: 0.1.3
 #   file: 'golang-gosec/golang-gosec-ci.yml'

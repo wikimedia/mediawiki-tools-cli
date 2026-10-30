@@ -27,6 +27,50 @@ The updater asks before replacing the executable. Use `sudo mw update` only if t
 
 To install a specific published version, use `mw update --version VERSION` with a version shown on the [releases page](https://gitlab.wikimedia.org/repos/releng/cli/-/releases).
 
+## Nightly and CI builds
+
+Once nightly builds are configured, preview or install the latest successful
+nightly built from `main`:
+
+```sh
+mw update --version nightly --dry-run
+mw update --version nightly
+```
+
+This finds the newest successful **Nightly CLI build** pipeline on the existing
+`scheduled` ref, then downloads only the executable for your OS and architecture.
+Weekly and Dependabot pipelines on that same ref are ignored. If no successful
+nightly exists, or its artifact has expired, the command stops without replacing
+your executable. Nightlies are development builds; ordinary `mw update` continues
+to select published releases.
+
+`--version` also accepts an HTTP(S) executable URL, a local executable path, or a
+GitLab artifact ZIP URL. Archive support covers:
+
+| Job output | Archive layout | Compatibility |
+| --- | --- | --- |
+| `build` | `bin/mw`, `bin/wm`, or their Windows `.exe` names | Runner-native binary only |
+| `build-release` | `_release/VERSION/mw_VERSION_OS_ARCH` (or `wm_...`) | Selects your OS and architecture |
+| `release-build` | Same layout, with a tagged version | Selects your OS and architecture |
+| Nightly `build-release` | `_release/nightly/mw_nightly_OS_ARCH` (or `wm_...`) | Selects your OS and architecture |
+
+For example, replace `JOB_ID` with the chosen job's ID to install its ZIP:
+
+```sh
+mw update --version 'https://gitlab.wikimedia.org/api/v4/projects/16/jobs/JOB_ID/artifacts'
+```
+
+For an older CLI that cannot select a binary from a multi-platform ZIP, use a
+direct executable URL instead. For a Linux AMD64 nightly, that URL is:
+
+```sh
+mw update --version 'https://gitlab.wikimedia.org/api/v4/projects/16/jobs/JOB_ID/artifacts/_release/nightly/mw_nightly_linux_amd64'
+```
+
+Native and preview build artifacts expire after two days; tagged build artifacts
+keep their separate release retention. GitLab's keep-latest setting can override
+these expiry times. Published release packages are separate from CI artifacts.
+
 Updates preserve the executable's installed name and location. A binary called `wm` stays `wm`; configuration and credentials stay in their existing directories.
 
 See the [installation guide](installation.md) for a fresh installation, and the [command reference](https://www.mediawiki.org/wiki/Cli/ref/mw_update) for all update options.

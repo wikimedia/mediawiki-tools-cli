@@ -1,0 +1,35 @@
+# Reuse the protected scheduled ref. Its commit is the CI controller; the
+# executable source is always current main, just like other maintenance jobs.
+# Schedule on scheduled with GITLAB_SCHEDULE=nightly (e.g. 0 2 * * *).
+# The scheduled ref must carry this CI configuration before activation.
+workflow:
+  name: "Nightly CLI build"
+
+stages: [build]
+
+build-release:
+  image: golang:1.26.1
+  tags: [wmcs]
+  stage: build
+  interruptible: false
+  resource_group: nightly-release
+  variables:
+    GIT_DEPTH: "0"
+    GOCACHE: "$CI_PROJECT_DIR/.cache/go-build"
+    GOMODCACHE: "$CI_PROJECT_DIR/.cache/go-mod"
+    CACHE_COMPRESSION_FORMAT: tarzstd
+    CACHE_COMPRESSION_LEVEL: fastest
+  rules:
+    - if: '$CI_PROJECT_ID == "16" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "scheduled" && $GITLAB_SCHEDULE == "nightly"'
+  cache:
+    key: go1.26.1-nightly-release
+    paths:
+      - .cache/go-build/
+      - .cache/go-mod/
+  script:
+    - git fetch --no-tags origin "$CI_DEFAULT_BRANCH"
+    - git checkout --detach FETCH_HEAD
+    - bash tools/ci/release-build.sh VERSION=nightly
+  artifacts:
+    expire_in: 2 days
+    paths: [_release/]
