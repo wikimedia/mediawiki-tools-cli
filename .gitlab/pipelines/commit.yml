@@ -266,7 +266,7 @@ build-release:
       paths:
         - _release/
     script:
-      - make release VERSION=${CI_COMMIT_TAG:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}}
+      - bash tools/ci/release-build.sh "VERSION=${CI_COMMIT_TAG:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}}"
 
 # Use the same pinned documentation tools locally and in release jobs.
 .docs-tools:
@@ -315,7 +315,7 @@ release-build:
       paths:
         - _release/
     script:
-      - make release VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}
+      - bash tools/ci/release-build.sh "VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_BRANCH}"
 
 release-upload:
   interruptible: false

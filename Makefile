@@ -5,6 +5,7 @@ GOEXE := $(shell go env GOEXE)
 SHELL := /bin/bash
 RELEASE_DIR ?= ./_release
 TARGETS ?= darwin/amd64 darwin/arm64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le windows/amd64
+RELEASE_PARALLEL ?= 4
 
 PACKAGE := gitlab.wikimedia.org/repos/releng/cli
 VERSION := latest
@@ -35,7 +36,7 @@ dev:
 
 .PHONY: release
 release: $(GOX) $(GOVVV) generate
-	$(GOX) -output="$(RELEASE_DIR)/$(SEMVER)/$(BINARY_NAME)_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
+	$(GOX) -parallel=$(RELEASE_PARALLEL) -output="$(RELEASE_DIR)/$(SEMVER)/$(BINARY_NAME)_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
 	rm -f ./_release/latest/*.sha256
 	for f in "$(RELEASE_DIR)"/$(SEMVER)/$(BINARY_NAME)_*; do \
