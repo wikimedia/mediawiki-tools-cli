@@ -25,6 +25,8 @@ Migration verifies each saved value before removing its plaintext copy from conf
 
 Choosing plaintext displays a warning that credentials are stored unencrypted. You can also select it with `--provider plaintext` or use `--insecure-storage` for a single save. A selected provider failing never silently switches storage. On Unix, the CLI restricts its config directory to the current user and writes the file atomically with mode `0600`. Windows file permissions depend on its ACLs; prefer Credential Manager there.
 
+The CLI's secure storage uses the reusable `pkg/secretstore` package. Provider access is separate from service authentication; migration from existing plaintext configuration remains an explicit operation.
+
 GitLab commands use the embedded GitLab CLI's separate authentication store. Use `mw gl auth login --use-keyring --stdin` for a new keyring login. This does not migrate or remove an existing token from GitLab's configuration file.
 
 ## Choosing storage
