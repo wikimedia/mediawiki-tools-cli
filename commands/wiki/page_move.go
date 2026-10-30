@@ -67,10 +67,10 @@ move --prefix 'Cli/ref/mw_docker' 'Cli/ref/mw_dev' --wiki www.mediawiki.org --dr
 					return fmt.Errorf("FROM and TO must be nonempty page titles without fragments or separators")
 				}
 			}
-			if !dryRun && (wikiAnon || wikiUser == "" || (wikiPassword == "" && wikiPasswordFile == "")) {
+			if !dryRun && (wikiAnon || !hasWikiCredentials()) {
 				return fmt.Errorf("moving pages requires --user and either --password or --password-file; omit --anon")
 			}
-			if bot && (wikiAnon || wikiUser == "" || (wikiPassword == "" && wikiPasswordFile == "")) {
+			if bot && (wikiAnon || !hasWikiCredentials()) {
 				return fmt.Errorf("--bot requires --user and either --password or --password-file, including with --dry-run; omit --anon")
 			}
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)

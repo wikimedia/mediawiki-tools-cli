@@ -1,6 +1,6 @@
 # Credentials and password managers
 
-On the first interactive Gerrit, Cloud VPS or Phabricator credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
+On the first interactive Gerrit, Cloud VPS, Phabricator or wiki credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
 
 ```sh
 mw gerrit auth login
@@ -28,6 +28,63 @@ Choosing plaintext displays a warning that credentials are stored unencrypted. Y
 The CLI's secure storage uses the reusable `pkg/secretstore` package. Provider access is separate from service authentication; migration from existing plaintext configuration remains an explicit operation.
 
 GitLab commands use the embedded GitLab CLI's separate authentication store. Use `mw gl auth login --use-keyring --stdin` for a new keyring login. This does not migrate or remove an existing token from GitLab's configuration file.
+
+## Saved wiki accounts
+
+Save an account once, then use it across wikis sharing the same login. Accounts belong to a realm: Wikimedia is built in, while independent wikis and other farms use separate realms. Identical usernames on different realms never share credentials automatically.
+
+```sh
+mw wiki auth login --realm wikimedia --account addshore --provider keyring
+mw wiki auth status --account wikimedia/addshore
+mw wiki page list --wiki commons.wikimedia.org --limit 5
+```
+
+OAuth opens a browser for authorization and uses PKCE without an embedded client secret. Access and refresh tokens are stored together in the selected credential provider. Configuration stores the account identity, default wiki, public client settings and credential reference. Expired access tokens refresh automatically; a locked provider or failed refresh stops the command. Authorization may eventually need renewing if it expires or is revoked.
+
+The current default is Addshore's approved **basic-access development client**, not a production registration for a-wikimedia-cli. It is suitable for testing login, refresh, identity and reads, but not edits or uploads. Its exact callback is `http://localhost/auth/login` on port 80. If the port is occupied or unavailable, use manual mode:
+
+```sh
+mw wiki auth login --realm wikimedia --account addshore --provider keyring --manual --no-browser
+```
+
+Open the printed authorization URL, approve the application, then paste the complete resulting localhost URL into the terminal. An error page at localhost is expected if another service owns the port. The CLI validates the callback and state before exchanging the code with its private PKCE verifier. Callback input is hidden on terminals. Do not put callback URLs or tokens in command arguments or logs.
+
+To test another public client, supply both its client ID and its exact registered callback, for example `--client-id CLIENT_ID --redirect-uri http://localhost:3000/auth/mediawiki/callback`. Refresh can be checked explicitly without displaying tokens:
+
+```sh
+mw wiki auth status --account wikimedia/addshore --refresh
+```
+
+For bots or wikis without OAuth, save a bot password using the same providers:
+
+```sh
+mw wiki auth login --realm wikimedia --account addbot --method bot-password --user 'Addbot@cli' --password-stdin --provider keyring
+mw wiki auth login --realm wikibase-world --account addshore --wiki https://wikibase.world/w/api.php --method bot-password --user 'Addshore@cli' --password-stdin --provider keyring
+```
+
+Each successful login makes that account its realm's default, and makes that realm the default when no wiki is supplied. The stored wiki is used when `--wiki` is omitted. Use `--account REALM/NAME` to select another account explicitly. Account names are stable configuration identifiers containing letters, digits, underscores or hyphens. List identities without unlocking any credential provider, or change a default:
+
+```sh
+mw wiki auth list
+mw wiki auth default --account wikimedia/addbot
+mw wiki auth logout --account wikimedia/addshore
+```
+
+Logout removes the local account and keyring credential, or forgets its KeePassXC reference. It does not revoke server-side OAuth authorization or delete external KeePassXC entries.
+
+Wikimedia realm membership comes from a bundled list of exact CentralAuth API endpoints, so normal use needs no domain configuration or discovery request. An unknown custom realm initially trusts only the endpoint used at login. For a shared-login farm, explicitly define its trusted endpoints before saving an account:
+
+```sh
+mw wiki realm add example-farm --endpoint https://one.example/w/api.php --endpoint https://two.example/w/api.php
+```
+
+Credentials never cross realm boundaries based on matching usernames, similar hostnames, or redirects. Saved accounts cannot be combined with explicit `--user`, password flags, or `--anon`; omit the account selection to use those one-off options. `--anon` bypasses saved accounts.
+
+Wiki credentials participate in provider transfers and plaintext migration. Their keys are `wiki.accounts.REALM.NAME.token` for the OAuth token bundle and `wiki.accounts.REALM.NAME.password` for bot passwords. For example:
+
+```sh
+mw config secrets transfer wiki.accounts.wikimedia.addshore.token --provider keepassxc
+```
 
 ## Choosing storage
 
