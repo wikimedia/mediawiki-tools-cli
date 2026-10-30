@@ -1,4 +1,4 @@
-package secrets
+package keepassxc
 
 import (
 	"context"
@@ -31,6 +31,10 @@ func TestMain(m *testing.M) {
 }
 
 func runBrowserHelper(mode string) {
+	groupName := os.Getenv("SECRETSTORE_TEST_GROUP")
+	if groupName == "" {
+		groupName = "wm"
+	}
 	pub, priv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		os.Exit(20)
@@ -130,7 +134,7 @@ func runBrowserHelper(mode string) {
 		case "get-logins":
 			var url string
 			json.Unmarshal(fields["url"], &url)
-			if url != "keepassxc://by-path/wm/gerrit.wikimedia.org" && url != "keepassxc://by-path/wm/gerrit.password" && url != "keepassxc://by-uuid/"+testBrowserUUID && url != "keepassxc://by-path/wm/gerrit.password/gerrit.wikimedia.org" {
+			if url != "keepassxc://by-path/"+groupName+"/gerrit.wikimedia.org" && url != "keepassxc://by-path/"+groupName+"/gerrit.password" && url != "keepassxc://by-uuid/"+testBrowserUUID && url != "keepassxc://by-path/"+groupName+"/gerrit.password/gerrit.wikimedia.org" {
 				os.Exit(31)
 			}
 			if mode == "legacy-recovery" && url == "keepassxc://by-path/wm/gerrit.wikimedia.org" {
@@ -175,7 +179,7 @@ func runBrowserHelper(mode string) {
 		case "create-new-group":
 			var name string
 			json.Unmarshal(fields["groupName"], &name)
-			if name != "wm" {
+			if name != groupName {
 				os.Exit(33)
 			}
 			if mode == "create-denied" {
@@ -226,7 +230,9 @@ func runBrowserHelper(mode string) {
 func browserFixture(t *testing.T, mode string) browserPairing {
 	t.Helper()
 	t.Setenv("GITLAB_CI", "true")
-	t.Setenv("CI_PROJECT_DIR", t.TempDir())
+	directory := t.TempDir()
+	t.Setenv("CI_PROJECT_DIR", directory)
+	testClient = &Client{PairingFile: filepath.Join(directory, "secrets", "pairing.json"), Group: "wm"}
 	t.Setenv("MWCLI_KEEPASSXC_BROWSER_TEST_HELPER", mode)
 	executable, err := os.Executable()
 	if err != nil {
@@ -253,7 +259,7 @@ func TestBrowserPairLookupAndRead(t *testing.T) {
 	if err != nil || password != "fixture-service-secret" || ref.EntryID != testBrowserUUID {
 		t.Fatalf("GUI lookup failed: %v", err)
 	}
-	value, err := ref.Read()
+	value, err := testClient.Read(context.Background(), ref)
 	if err != nil || value != password {
 		t.Fatalf("fresh-session read failed: %v", err)
 	}
@@ -270,7 +276,7 @@ func TestBrowserPairLookupAndRead(t *testing.T) {
 	if err := ForgetKeePassXCBrowser(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ref.Read(); err == nil {
+	if _, err := testClient.Read(context.Background(), ref); err == nil {
 		t.Fatal("read succeeded after forgetting pairing")
 	}
 }
@@ -284,7 +290,7 @@ func TestBrowserFailureNeverReturnsCredential(t *testing.T) {
 			}
 			log := filepath.Join(t.TempDir(), "actions")
 			t.Setenv("WM_BROWSER_ACTION_LOG", log)
-			value, err := (KeePassXCBrowser{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"}).Read()
+			value, err := testClient.Read(context.Background(), Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"})
 			if err == nil || value != "" {
 				t.Fatal("failed GUI access returned a credential")
 			}
@@ -360,9 +366,9 @@ func TestBrowserWritesAreVerified(t *testing.T) {
 			if err := saveBrowserPairing(p); err != nil {
 				t.Fatal(err)
 			}
-			var existing *KeePassXCBrowser
+			var existing *Reference
 			if !strings.HasPrefix(mode, "create") {
-				existing = &KeePassXCBrowser{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"}
+				existing = &Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"}
 			}
 			ref, err := WriteKeePassXCBrowser(context.Background(), existing, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
 			if mode == "create" || mode == "create-other-account" || mode == "update" {

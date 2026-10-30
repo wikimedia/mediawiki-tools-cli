@@ -30,6 +30,11 @@ func TestProjectCredentialsResolveKeyringAndBindCredentialID(t *testing.T) {
 	if err != nil || got.ID != "credential-id" || got.Secret != "fixture-secret" {
 		t.Fatalf("cannot resolve stored credential: %v", err)
 	}
+	projects["fixture"] = config.CloudVPSProject{Credential: config.CloudVPSProjectCredential{ID: "credential-id", Secret: "leftover-plaintext"}}
+	got, err = projectCredentials("fixture", projects)
+	if err != nil || got.Secret != "fixture-secret" {
+		t.Fatal("leftover plaintext bypassed the saved provider")
+	}
 	projects["fixture"] = config.CloudVPSProject{Credential: config.CloudVPSProjectCredential{ID: "another-id"}}
 	if _, err := projectCredentials("fixture", projects); err == nil {
 		t.Fatal("reused secret with a different application credential ID")

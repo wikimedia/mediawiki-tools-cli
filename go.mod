@@ -18,6 +18,7 @@ require (
 	github.com/docker/cli v29.5.3+incompatible
 	github.com/fatih/color v1.19.0
 	github.com/google/go-cmp v0.7.0
+	github.com/gofrs/flock v0.13.0
 	github.com/gophercloud/gophercloud/v2 v2.15.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/itchyny/gojq v0.12.19

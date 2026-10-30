@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore"
 )
 
 var (
@@ -84,7 +85,13 @@ func (c Credential) Read() (string, error) {
 		if stored.Browser == nil || stored.Browser.Login != c.Account {
 			return "", fmt.Errorf("invalid KeePassXC GUI account reference")
 		}
-		return readKeePassXCBrowser(*stored.Browser)
+		reference := coreReference(stored)
+		store, err := c.packageStore("keepassxc", &reference, nil)
+		if err != nil {
+			return "", err
+		}
+		value, err := store.Get(context.Background(), c.Key)
+		return string(value), err
 	}
 	if stored.Provider == "keepassxc" {
 		return "", fmt.Errorf("link this entry through KeePassXC with config secrets use-keepassxc %s", c.Key)
@@ -93,11 +100,16 @@ func (c Credential) Read() (string, error) {
 	if stored.Provider != "" && stored.Provider != "keyring" {
 		return "", fmt.Errorf("unknown credential provider")
 	}
-	value, err := credentialStore.Get(stored.Service, stored.Account)
+	reference := coreReference(stored)
+	store, err := c.packageStore("keyring", &reference, nil)
+	if err != nil {
+		return "", err
+	}
+	value, err := store.Get(context.Background(), c.Key)
 	if err != nil {
 		return "", fmt.Errorf("read keyring credential for %s: %w", c.Service, err)
 	}
-	return value, nil
+	return string(value), nil
 }
 
 func (c Credential) Save(value string, insecure bool) error {
@@ -160,19 +172,18 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 		}
 		return PutDiskConfig(disk)
 	}
-	if err := credentialStore.Set(ref.Service, ref.Account, value); err != nil {
-		return fmt.Errorf("keyring storage failed; no plaintext fallback was used (choose --provider plaintext or --insecure-storage explicitly to use the config file): %w", err)
-	}
-	saved, err := credentialStore.Get(ref.Service, ref.Account)
-	if err != nil || saved != value {
-		return fmt.Errorf("could not verify the saved keyring credential; plaintext configuration was not removed")
-	}
-	disk.Delete(c.Key)
-	if err := disk.Set(key, map[string]interface{}{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity}); err != nil {
+	reference := coreReference(ref)
+	store, err := c.packageStore("keyring", &reference, func(secretstore.Entry) error {
+		disk.Delete(c.Key)
+		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity}); err != nil {
+			return err
+		}
+		return PutDiskConfig(disk)
+	})
+	if err != nil {
 		return err
 	}
-	// Only this successful atomic write removes a legacy plaintext value.
-	return PutDiskConfig(disk)
+	return store.Set(context.Background(), c.Key, []byte(value))
 }
 
 func (c Credential) Delete() error {

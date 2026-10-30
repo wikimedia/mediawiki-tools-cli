@@ -30,13 +30,11 @@ func projectCredentials(project string, projects map[string]config.CloudVPSProje
 	if !exists || entry.Credential.ID == "" {
 		return config.CloudVPSProjectCredential{}, fmt.Errorf("no application credentials configured for project %q; configure them with cloudvps auth add --project %s --id <application-credential-id> --secret-stdin", project, project)
 	}
-	if entry.Credential.Secret == "" {
-		var err error
-		entry.Credential.Secret, err = (config.Credential{Key: "cloud_vps.projects." + project + ".credential.secret", Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: project + ":" + entry.Credential.ID}).Read()
-		if err != nil {
-			return entry.Credential, err
-		}
+	secret, err := (config.Credential{Key: "cloud_vps.projects." + project + ".credential.secret", Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: project + ":" + entry.Credential.ID}).Read()
+	if err != nil {
+		return entry.Credential, err
 	}
+	entry.Credential.Secret = secret
 	if entry.Credential.Secret == "" {
 		return entry.Credential, fmt.Errorf("no application secret configured for project %q; use cloudvps auth add", project)
 	}

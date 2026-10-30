@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore"
 )
 
 func ValidateCredentialProvider(provider string) error {
@@ -129,19 +130,24 @@ func (c Credential) SaveWithProvider(value string, insecure bool, metadata map[s
 			return err
 		}
 	}
-	browser, err := writeKeePassXCBrowser(context.Background(), existing, c.Key, c.Account, ref.Endpoint, value)
+	var previous *secretstore.Reference
+	if existing != nil {
+		converted := coreReference(credentialReference{Provider: "keepassxc-browser", Browser: existing})
+		previous = &converted
+	}
+	store, err := c.packageStore("keepassxc", previous, func(entry secretstore.Entry) error {
+		fields := entry.Reference.Fields
+		disk.Delete(c.Key)
+		disk.Delete(key)
+		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc-browser", "browser": map[string]any{"database_hash": fields["database_hash"], "entry_id": fields["entry_id"], "login": fields["login"]}}); err != nil {
+			return err
+		}
+		return PutDiskConfig(disk)
+	})
 	if err != nil {
 		return err
 	}
-	if browser.Login != c.Account {
-		return fmt.Errorf("saved KeePassXC account did not match; configuration was not changed")
-	}
-	disk.Delete(c.Key)
-	disk.Delete(key)
-	if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc-browser", "browser": map[string]any{"database_hash": browser.DatabaseHash, "entry_id": browser.EntryID, "login": browser.Login}}); err != nil {
-		return err
-	}
-	return PutDiskConfig(disk)
+	return store.SetWithMetadata(context.Background(), c.Key, []byte(value), map[string]string{"account": c.Account, "endpoint": ref.Endpoint})
 }
 
 // MigrationProvider allows an explicitly requested migration to upgrade a
