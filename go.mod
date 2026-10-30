@@ -4,7 +4,7 @@ require (
 	cgt.name/pkg/go-mwclient v1.3.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/PuerkitoBio/goquery v1.12.0
+	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/adrg/xdg v0.5.3
 	github.com/alecthomas/assert v1.0.0
 	github.com/andygrunwald/go-gerrit v1.2.0
@@ -170,7 +170,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/alecthomas/colour v0.1.0 // indirect
 	github.com/alecthomas/repr v0.5.1 // indirect
-	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
