@@ -9,7 +9,7 @@ require (
 	github.com/alecthomas/assert v1.0.0
 	github.com/andygrunwald/go-gerrit v1.2.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/charmbracelet/bubbles v0.20.0
+	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
