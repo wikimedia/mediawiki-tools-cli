@@ -12,6 +12,24 @@ Use hidden prompts or `--password-stdin`, `--secret-stdin` and `--token-stdin` r
 
 ## Existing credentials
 
+Inspect saved credential metadata and storage locations without unlocking providers or revealing values:
+
+```sh
+mw config secrets list
+mw config secrets list --json
+mw config secrets list --check
+mw config secrets list --verify
+mw config secrets list phabricator.sites.wikimedia.key --check --verify
+```
+
+The inventory includes known credential references, plaintext config secrets, and the local KeePassXC pairing file. The compact table shows key, provider, comparison and authentication results. Add `--details` to show service, account, endpoint, status and storage location below the table. Account mismatches and missing references remain visible in the summary. A credential with both a vault link and a retained plaintext value has a separate row for each copy; their values are not compared. JSON rows include a `source` field distinguishing credential references, plaintext configuration, and the pairing file. Linked external entries are not verified; orphaned references are shown explicitly. It does not enumerate unrelated vault entries, GitLab's separate authentication store, or external `phab.cfg` files.
+
+Add `--check` to read linked provider values only where a plaintext copy also exists. The comparison column reports `match`, `different`, or `unavailable`, without revealing either value, hashes or lengths. KeePassXC may request access approval. An unavailable vault leaves the comparison inconclusive. No values are changed, and matching values do not prove that the remote service still accepts the credential. `--check --json` includes the same results for scripts. Interactive tables use the CLI's shared colour styling; redirected output and JSON stay plain, and `NO_COLOR` disables table colours.
+
+Add `--verify` to authenticate each stored copy separately. The `AUTH` column reports `valid`, `invalid`, `wrong-account`, `denied`, or an inconclusive `unavailable` result. For example, a current plaintext Phabricator token can show `valid` while the older linked token shows `invalid`. Checks support Gerrit, Phabricator, Cloud VPS, and saved wiki accounts. Pairing files are not applicable; unknown credential types are unsupported. These are authenticated identity or token requests, not edits or an exhaustive permission check. Expired OAuth access tokens show `expired` without refreshing or rotating anything. No secrets are overwritten or removed. Supply keys to inspect only those credentials; `--check --verify` shares vault reads so each copy is retrieved once. JSON includes per-copy validation and the authenticated identity where available.
+
+After `--check` or `--verify`, text output suggests commands when the results support a repair: remove an identical plaintext copy, replace an invalid vault copy with a valid plaintext copy, or log in again to Gerrit. Unverified differences get a verification command instead. Different account or endpoint bindings do not get replacement suggestions. Suggestions never run automatically; JSON remains the inventory array without command suggestions.
+
 Existing plaintext credentials continue to work. Review and migrate supported entries explicitly:
 
 ```sh
@@ -20,6 +38,15 @@ mw config secrets migrate
 ```
 
 Migration verifies each saved value before removing its plaintext copy from configuration. It does not import `phab.cfg` or migrate GitLab credentials. Existing backups may still contain the old values.
+
+When a plaintext value and a vault link both exist, ordinary migration refuses to change differing values. If you know the plaintext value is the one to keep, explicitly replace one named vault credential:
+
+```sh
+mw config secrets migrate phabricator.sites.wikimedia.key --replace --dry-run
+mw config secrets migrate phabricator.sites.wikimedia.key --replace
+```
+
+This replaces the linked provider's value using plaintext from config, verifies the destination, then removes the plaintext copy. It does not verify that the token is accepted by the remote service. The saved account and endpoint must still match. `--replace` requires exactly one explicit key and a secure destination; it cannot replace multiple entries in a bulk migration.
 
 `config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential’s account or endpoint. Use `config secrets transfer` to change its storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator logout also disables legacy `phab.cfg` authentication for that site until the next login.
 

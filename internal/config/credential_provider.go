@@ -207,3 +207,33 @@ func (c Credential) MigrateTo(provider string) error {
 	}
 	return c.SaveWithProvider(value, false, nil, target)
 }
+
+// ReplaceFromPlaintext is an explicit choice of the local plaintext value as
+// authoritative. The normal provider write verifies its destination before
+// removing plaintext, and preserves the existing account/endpoint binding.
+func (c Credential) ReplaceFromPlaintext(provider string) error {
+	value := State().OnDiskKoanf.String(c.Key)
+	if value == "" {
+		return fmt.Errorf("no plaintext credential to migrate")
+	}
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	target, err := c.MigrationProvider(provider)
+	if err != nil {
+		return err
+	}
+	if target != "keyring" && target != "keepassxc" {
+		return fmt.Errorf("replacement requires a secure destination provider; select keyring or keepassxc")
+	}
+	if State().OnDiskKoanf.Exists(credentialReferenceKey(c.Key)) {
+		current, err := c.CredentialProvider("")
+		if err != nil {
+			return err
+		}
+		if current == "plaintext" {
+			return c.MigrateTo(target)
+		}
+	}
+	return c.SaveWithProvider(value, false, nil, target)
+}
