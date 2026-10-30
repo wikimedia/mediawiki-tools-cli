@@ -12,6 +12,7 @@ coverage.xml
 junit.xml
 .mediawiki
 /.cache/
+__pycache__/
 code-gen
 
 /_recordings/

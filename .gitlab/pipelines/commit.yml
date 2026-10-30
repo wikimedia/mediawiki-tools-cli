@@ -271,11 +271,7 @@ build-release:
 # Use the same pinned documentation tools locally and in release jobs.
 .docs-tools:
     before_script: &setup-docs-tools
-      - curl -fsSL https://mise.run -o /tmp/install-mise.sh
-      - MISE_VERSION=2026.10.12 sh /tmp/install-mise.sh
-      - export PATH="$HOME/.local/bin:$PATH"
-      - mise trust mise.toml
-      - mise install
+      - source .gitlab/scripts/setup-docs.sh
 
 build-docs:
     extends: .go-job
@@ -294,6 +290,7 @@ build-docs:
       - *setup-docs-tools
     script:
       - mise exec -- go test ./tools/docs-gen
+      - python3 -m unittest discover -s tests -p 'test_docs_publish.py'
       - make docs
     artifacts:
       expire_in: 1 week
@@ -371,6 +368,7 @@ release-publish:
 
 release-docs:
     interruptible: false
+    resource_group: docs-publish
     rules:
       - if: '$CI_COMMIT_TAG'
     stage: release
@@ -386,14 +384,3 @@ release-docs:
     artifacts:
       when: always
       paths: [_docs/]
-
-# Publish documentation corrections without creating another binary release.
-docs-publish:
-    extends: release-docs
-    rules:
-      - if: '$CI_PROJECT_ID == "16" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-        when: manual
-        allow_failure: true
-    needs: []
-    script:
-      - make docs-publish

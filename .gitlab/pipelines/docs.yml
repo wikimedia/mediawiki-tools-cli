@@ -1,0 +1,26 @@
+# The schedule can be inactive and run with Play on demand. Normal push/MR
+# pipelines keep build-docs validation but never include this publishing job.
+stages: [publish]
+
+docs-publish:
+  stage: publish
+  image: golang:1.26.1
+  tags: [wmcs]
+  interruptible: false
+  resource_group: docs-publish
+  timeout: 2h
+  variables:
+    GIT_DEPTH: "0"
+    GOFLAGS: "-mod=readonly"
+  rules:
+    - if: '$CI_PROJECT_ID == "16" && $GITLAB_SCHEDULE == "docs" && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api")'
+  script:
+    # Use current publishing fixes even when generating an older release.
+    - git fetch --no-tags origin "$CI_DEFAULT_BRANCH"
+    - git checkout --detach FETCH_HEAD
+    - source .gitlab/scripts/setup-docs.sh
+    - python3 tools/docs-publish.py
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths: [_docs/]

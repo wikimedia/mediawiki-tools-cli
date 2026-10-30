@@ -105,6 +105,14 @@ is tagged. Pages stay managed: future source changes are still published, and
 wiki corrections still require review. Commit source edits and reviewed wiki
 baselines before the release so CI builds the same content.
 
+When `DOCS_VERSION` is explicitly set, edit summaries use that label without the
+checkout's commit or dirty-state suffix. Set `DOCS_SUMMARY` to replace the summary
+text, for example `Refresh documentation for v0.34.0`. Custom summaries receive a
+short `[a-wikimedia-cli docs]` suffix so later drift checks can still locate the
+publication in revision history and validate its content fingerprint. Moves use
+the same custom text with `(page move)` added. Summaries must fit MediaWiki's
+500-byte limit including these suffixes.
+
 To include visible version notices explicitly, use:
 
 ```sh
@@ -165,9 +173,38 @@ Set `DOCS_UPDATE_USER` and `DOCS_UPDATE_PASS` to the wiki publishing account and
 make VERSION=vX.Y.Z docs-publish
 ```
 
-The release job uses the existing CI secrets. To publish between releases, push the reviewed changes to `main`, open its pipeline and click **Play** on the manual `docs-publish` job. You can also start a new pipeline for `main` from **Build → Pipelines → New pipeline**. This publishes the selected commit's documentation using the same credentials and review checks, independently of the binary release jobs.
+Tag pipelines still publish release documentation using the existing CI secrets.
+Normal pushes and merge requests only validate documentation with `build-docs`;
+they no longer offer a manual publish job on every commit.
 
-Credentials are read from the environment. Publishing repeats the drift check and sends the inspected revision ID with every edit; a concurrent wiki edit, deletion or creation causes an API conflict instead of an overwrite. There is no force-publish bypass. A conflict during publishing can leave earlier pages updated; correct it and rerun to finish.
+For a manually triggerable publication, create a pipeline schedule targeting
+`main`, leave its **Active** checkbox disabled, and save these variables. Use the
+schedule's **Run** / **Play** action when ready; it creates a dedicated docs
+pipeline rather than a full build/release pipeline. Edit its saved variables
+before each run to choose the source and summary.
+
+| Variable | Purpose | Example |
+| --- | --- | --- |
+| `GITLAB_SCHEDULE` | Select the docs-only pipeline | `docs` |
+| `DOCS_REF` | Branch, tag or commit to generate; required | `v0.34.0` |
+| `DOCS_VERSION` | Release label, independently of the source ref | `v0.34.0` |
+| `DOCS_SUMMARY` | Custom edit summary; optional | `Refresh documentation for v0.34.0` |
+| `DOCS_MODE` | `check` for a read-only report; `publish` to apply changes | `check` |
+
+For corrections to an existing release using newer reviewed sources, use
+`DOCS_REF=main` (or an exact correction commit) and `DOCS_VERSION=v0.34.0`.
+For the exact release's command reference, use `DOCS_REF=v0.34.0`. The selected ref
+must contain `tools/docs-gen` and `mise.toml`. An invalid ref fails before any
+publication. The pipeline records the resolved source commit in
+`_docs/source.json`, generates using that ref's CLI code, and uses the current
+default-branch publisher so an older tag still benefits from HTTP and safety
+fixes. The generating process does not receive the wiki publishing credentials.
+
+Alternatively, **Build → Pipelines → New pipeline** on `main` exposes these same
+variables: set `GITLAB_SCHEDULE=docs` and a `DOCS_REF` to request only this job.
+The publication resource group serializes it with automatic tag publication.
+
+Credentials are read from the environment. Publishing repeats the drift check and sends the inspected revision ID with every edit; a concurrent wiki edit, deletion or creation causes an API conflict instead of an overwrite. There is no force-publish bypass. Transient gateway errors on reads get bounded retries. An uncertain edit response is rechecked against the wiki: an already-applied edit is accepted, an unchanged revision can be retried, and a concurrent change stops publication. HTTP failures report the status and content type instead of an unhelpful JSON decoding error. A conflict or persistent error can leave earlier pages updated; correct it and rerun to finish. Reports remain in the job's `_docs` artifacts on failure.
 
 The guides are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Imported pages retain revision links for attribution to their wiki contributors. Generated reference remains derived from the command source under the repository license.
 
