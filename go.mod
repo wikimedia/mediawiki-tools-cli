@@ -37,7 +37,7 @@ require (
 	gitlab.com/gitlab-org/api/client-go v0.130.1
 	gitlab.com/gitlab-org/cli v1.61.0
 	gitlab.com/gitlab-org/cli/mwcli v0.0.0
-	golang.org/x/image v0.20.0
+	golang.org/x/image v0.41.0
 	golang.org/x/term v0.47.0
 	gopkg.in/ini.v1 v1.67.3
 	gopkg.in/yaml.v2 v2.4.0
