@@ -14,6 +14,19 @@ MR pipelines test a temporary merge with the target branch. If the target advanc
 
 Preview release builds run alongside integration. Documentation builds and tagged releases wait for integration to pass.
 
+Release builds compile at most four platform targets concurrently, instead of
+letting `gox` choose from the runner's reported CPU count. Go can still compile
+packages in parallel within each target. Override the limit with
+`RELEASE_PARALLEL=2 make release` or a CI variable of the same name. More parallel
+targets use more temporary space and memory; lowering the limit reduces peak
+usage but does not bound the final build cache size.
+
+Preview and tagged release jobs report free disk space and inodes before
+building. On failure they repeat those reports and show the configured Go cache
+and release-output sizes, preserving the original build exit code. They do not
+delete caches or other jobs' files. A shared runner that is already full still
+needs runner-side capacity or cache-retention maintenance.
+
 ## Dependabot Go updates
 
 The **Dependabot, gomod, /** schedule uses `.gitlab/dependabot.yml`.
