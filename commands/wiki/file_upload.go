@@ -73,7 +73,7 @@ upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file 
 			if wikiAnon {
 				return fmt.Errorf("file uploads require an authenticated account; omit --anon")
 			}
-			if wikiUser == "" || (wikiPassword == "" && wikiPasswordFile == "") {
+			if !hasWikiCredentials() {
 				return fmt.Errorf("file uploads require --user and either --password or --password-file")
 			}
 			w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
@@ -84,7 +84,7 @@ upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file 
 			// multipart uploads then share the same authenticated session.
 			httpClient := &http.Client{Timeout: 10 * time.Minute}
 			w.SetHTTPClient(httpClient)
-			if err := loginIfCredentialsProvided(w); err != nil {
+			if err := loginIfCredentialsProvided(w, httpClient); err != nil {
 				return err
 			}
 			w.Assert = mwclient.AssertUser

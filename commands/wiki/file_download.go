@@ -118,7 +118,7 @@ download 'Logo_of_a-wikimedia-cli.svg' --wiki commons.wikimedia.org
 				return err
 			}
 			w.SetHTTPClient(httpClient)
-			if err := loginIfCredentialsProvided(w); err != nil {
+			if err := loginIfCredentialsProvided(w, httpClient); err != nil {
 				return err
 			}
 			if !wikiAnon && wikiUser != "" {

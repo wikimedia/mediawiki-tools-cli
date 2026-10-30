@@ -220,6 +220,20 @@ func (c Credential) Delete() error {
 func CredentialForKey(key string) (Credential, error) {
 	state := State().OnDiskKoanf
 	switch {
+	case strings.HasPrefix(key, "wiki.accounts."):
+		parts := strings.Split(key, ".")
+		if len(parts) != 5 || (parts[4] != "password" && parts[4] != "token") {
+			break
+		}
+		account, err := LoadWikiAccount(parts[2], parts[3])
+		if err != nil {
+			return Credential{}, err
+		}
+		credential := account.Credential()
+		if credential.Key != key {
+			return Credential{}, fmt.Errorf("credential key does not match the wiki account authentication method")
+		}
+		return credential, nil
 	case key == "gerrit.password":
 		return Credential{Key: key, Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: state.String("gerrit.username")}, nil
 	case strings.HasPrefix(key, "cloud_vps.projects.") && strings.HasSuffix(key, ".credential.secret"):
