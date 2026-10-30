@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 )
@@ -78,6 +79,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 				"mwcli-lint-skip",
 				"mwcli-lint-skip-children",
 				"mwcli-docs-skip-children",
+				cli.TelemetrySkipAnnotation,
 			}
 			// TODO check all annotaitons and issue for each
 			for key := range theCmd.Annotations {
