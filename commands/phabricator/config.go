@@ -1,6 +1,8 @@
 package phabricator
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -175,6 +177,10 @@ func applyDefaultCachePath(config *PhabConfig) {
 		home, _ := os.UserHomeDir()
 		config.CachePath = filepath.Join(home, config.CachePath[2:])
 	}
+	// Treat configured paths as cache roots too: two profiles must never share
+	// cached authorization-sensitive data, even when their roots are identical.
+	identity, _ := json.Marshal([]string{config.URL, config.SiteName, config.Username, config.DefaultProject})
+	config.CachePath = filepath.Join(config.CachePath, "profiles", fmt.Sprintf("%x", sha256.Sum256(identity)))
 }
 
 func configSearchPaths() []string {

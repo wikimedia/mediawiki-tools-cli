@@ -29,6 +29,9 @@ func newPhabricatorAuthStatusCmd(site *string) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("not authenticated: %w", err)
 			}
+			if !strings.EqualFold(cfg.Username, whoami) {
+				return fmt.Errorf("authenticated as %s, expected %s", whoami, cfg.Username)
+			}
 
 			cmd.Printf("Authenticated as %s\n", whoami)
 			return nil
