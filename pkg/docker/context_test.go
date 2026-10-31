@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	dockerconfig "github.com/docker/cli/cli/config"
 	contextdocker "github.com/docker/cli/cli/context/docker"
 	"github.com/docker/cli/cli/context/store"
+	"github.com/moby/moby/client"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
@@ -38,12 +40,12 @@ func TestDockerUserAgent(t *testing.T) {
 			} else {
 				t.Setenv("DOCKER_HOST", host)
 			}
-			client, err := NewClientFromEnv()
+			dockerClient, err := NewClientFromEnv()
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer client.Close()
-			if _, err := client.Ping(context.Background()); err != nil {
+			defer dockerClient.Close()
+			if _, err := dockerClient.Ping(context.Background(), client.PingOptions{}); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -153,5 +155,69 @@ func TestDockerContextSSHHelper(t *testing.T) {
 	// Creating the SSH transport should not dial the remote or use the local socket.
 	if strings.HasPrefix(cli.DaemonHost(), "unix:") {
 		t.Fatal(cli.DaemonHost())
+	}
+}
+
+// Exercise negotiation and a versioned operation for environment and named contexts.
+func TestDockerAPIVersionNegotiation(t *testing.T) {
+	for _, namedContext := range []bool{false, true} {
+		for _, version := range []string{"1.40", "1.45", "1.39"} {
+			t.Run(fmt.Sprintf("context_%t/api_%s", namedContext, version), func(t *testing.T) {
+				dir := dockerTestConfig(t)
+				listed := false
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.UserAgent() != cli.HTTPUserAgent {
+						t.Errorf("User-Agent = %q", r.UserAgent())
+					}
+					if r.URL.Path == "/_ping" {
+						w.Header().Set("API-Version", version)
+						return
+					}
+					if r.URL.Path != "/v"+version+"/containers/json" {
+						t.Errorf("unexpected path: %s", r.URL.Path)
+						http.NotFound(w, r)
+						return
+					}
+					listed = true
+					w.Header().Set("Content-Type", "application/json")
+					fmt.Fprint(w, "[]")
+				}))
+				defer server.Close()
+				host := "tcp://" + strings.TrimPrefix(server.URL, "http://")
+				if namedContext {
+					contexts := store.New(filepath.Join(dir, "contexts"), dockerContextStoreConfig())
+					if err := contexts.CreateOrUpdate(store.Metadata{Name: "version-test", Endpoints: map[string]interface{}{"docker": contextdocker.EndpointMeta{Host: host}}}); err != nil {
+						t.Fatal(err)
+					}
+					t.Setenv("DOCKER_CONTEXT", "version-test")
+				} else {
+					t.Setenv("DOCKER_HOST", host)
+				}
+				dockerClient, err := NewClientFromEnv()
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer dockerClient.Close()
+				_, err = dockerClient.Ping(context.Background(), client.PingOptions{NegotiateAPIVersion: true})
+				if version == "1.39" {
+					if err == nil || !strings.Contains(err.Error(), "minimum supported API version is 1.40") {
+						t.Fatalf("old API error = %v", err)
+					}
+					if listed {
+						t.Fatal("sent container request to unsupported API")
+					}
+				} else if err != nil {
+					t.Fatal(err)
+				} else {
+					_, err = dockerClient.ContainerList(context.Background(), client.ContainerListOptions{})
+					if err != nil {
+						t.Fatal(err)
+					}
+					if !listed {
+						t.Fatal("container request was not sent")
+					}
+				}
+			})
+		}
 	}
 }

@@ -10,7 +10,7 @@ import (
 	dockerconfig "github.com/docker/cli/cli/config"
 	contextdocker "github.com/docker/cli/cli/context/docker"
 	"github.com/docker/cli/cli/context/store"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
@@ -22,7 +22,7 @@ func NewClientFromEnv() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load Docker configuration: %w", err)
 	}
-	// Match Docker CLI v27's resolver: DOCKER_HOST takes precedence over
+	// Match Docker CLI's resolver: DOCKER_HOST takes precedence over
 	// DOCKER_CONTEXT and the saved current context.
 	name := "default"
 	if os.Getenv("DOCKER_HOST") == "" {
@@ -32,7 +32,7 @@ func NewClientFromEnv() (*client.Client, error) {
 		}
 	}
 	if name == "" || name == "default" {
-		return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation(), client.WithUserAgent(cli.HTTPUserAgent))
+		return client.New(client.FromEnv, client.WithUserAgent(cli.HTTPUserAgent))
 	}
 	contexts := store.New(dockerconfig.ContextStoreDir(), dockerContextStoreConfig())
 	metadata, err := contexts.GetMetadata(name)
@@ -51,7 +51,7 @@ func NewClientFromEnv() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Docker context %q client: %w", name, err)
 	}
-	return client.NewClientWithOpts(append(opts, client.WithUserAgent(cli.HTTPUserAgent))...)
+	return client.New(append(opts, client.WithUserAgent(cli.HTTPUserAgent))...)
 }
 
 func dockerContextStoreConfig() store.Config {
@@ -76,7 +76,7 @@ func CheckDockerDaemon() error {
 	defer cli.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if _, err := cli.Ping(ctx); err != nil {
+	if _, err := cli.Ping(ctx, client.PingOptions{NegotiateAPIVersion: true}); err != nil {
 		return fmt.Errorf("cannot connect to Docker at %s: %w", cli.DaemonHost(), err)
 	}
 	return nil
