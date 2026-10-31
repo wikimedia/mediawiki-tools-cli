@@ -4,8 +4,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -19,6 +21,71 @@ import (
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
+
+type updateAPITransport func(*http.Request) (*http.Response, error)
+
+func (f updateAPITransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestDatedReleaseSelectionInUpdateCommand(t *testing.T) {
+	previousTransport, previousDetails := http.DefaultTransport, cli.VersionDetails
+	t.Cleanup(func() { http.DefaultTransport, cli.VersionDetails = previousTransport, previousDetails })
+	const latest = "v2026.11.15.0"
+	const backport = "v2026.10.31.2"
+	for _, tc := range []struct {
+		name, current, explicit, want string
+		wantAsset                     bool
+	}{
+		{"migration", "0.34.0", "", "Upgraded from 0.34.0 to 2026.11.15.0", true},
+		{"maintenance", "2026.10.31.0", backport, "Upgraded from 2026.10.31.0 to 2026.10.31.2", true},
+		{"no automatic downgrade", "2026.12.01.0", "", "already at or above", false},
+		{"explicit downgrade", "2026.11.15.0", backport, "Downgraded from 2026.11.15.0 to 2026.10.31.2", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			selected := latest
+			if tc.explicit != "" {
+				selected = tc.explicit
+			}
+			assetRequested := false
+			http.DefaultTransport = updateAPITransport(func(r *http.Request) (*http.Response, error) {
+				var payload any
+				switch r.URL.Path {
+				case "/api/v4/projects/16/releases":
+					payload = []map[string]any{{"tag_name": backport}, {"tag_name": latest}, {"tag_name": "v2026.10.31.0"}, {"tag_name": "v0.34.0"}}
+				case "/api/v4/projects/16/releases/" + selected:
+					assetRequested = true
+					filename := "mw_" + selected + "_" + runtime.GOOS + "_" + runtime.GOARCH
+					if runtime.GOOS == "windows" {
+						filename += ".exe"
+					}
+					payload = map[string]any{"tag_name": selected, "assets": map[string]any{"links": []map[string]any{{"name": filename, "direct_asset_url": "https://example.test/dated-binary"}}}}
+				default:
+					t.Errorf("unexpected request %s", r.URL)
+				}
+				body, err := json.Marshal(payload)
+				if err != nil {
+					return nil, err
+				}
+				return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(bytes.NewReader(body))}, nil
+			})
+			cli.VersionDetails.Version = cli.Version(tc.current)
+			command := Cmd()
+			var output bytes.Buffer
+			command.SetOut(&output)
+			command.SetErr(&output)
+			args := []string{"--dry-run"}
+			if tc.explicit != "" {
+				args = append(args, "--version", tc.explicit)
+			}
+			command.SetArgs(args)
+			if err := command.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(output.String(), tc.want) || assetRequested != tc.wantAsset {
+				t.Fatalf("asset requested=%t; output: %s", assetRequested, output.String())
+			}
+		})
+	}
+}
 
 // This helper only runs inside a disposable copy of the test executable. Never
 // run the self-update command in the parent test runner or an installed mw.
@@ -64,6 +131,13 @@ func TestUpdateCommandDownloads(t *testing.T) {
 		"_release/nightly/" + filename + ".sha256":   []byte("checksum fixture"),
 		"_release/nightly/wm_nightly_other_platform": []byte("wrong platform"),
 	})
+	datedFilename := "mw_v2027.01.02.1_" + runtime.GOOS + "_" + runtime.GOARCH
+	if runtime.GOOS == "windows" {
+		datedFilename += ".exe"
+	}
+	datedArchive := updateArchiveFixture(t, map[string][]byte{
+		"_release/2027.01.02.1/" + datedFilename: replacement,
+	})
 	wrongArchive := updateArchiveFixture(t, map[string][]byte{"_release/nightly/mw_nightly_other_platform": replacement})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -79,6 +153,8 @@ func TestUpdateCommandDownloads(t *testing.T) {
 			_, _ = w.Write(archive)
 		case "/release-archive":
 			_, _ = w.Write(releaseArchive)
+		case "/dated-archive":
+			_, _ = w.Write(datedArchive)
 		case "/wrong-archive":
 			_, _ = w.Write(wrongArchive)
 		default:
@@ -103,6 +179,7 @@ func TestUpdateCommandDownloads(t *testing.T) {
 		{"redirect", server.URL + "/redirect", ""},
 		{"archive", server.URL + "/archive", ""},
 		{"release-archive", server.URL + "/release-archive", ""},
+		{"dated-archive", server.URL + "/dated-archive", ""},
 		{"wrong-archive", server.URL + "/wrong-archive", "no supported executable"},
 		{"local", local, ""},
 		{"file-url", fileURL, ""},

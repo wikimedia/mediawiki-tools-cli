@@ -1,6 +1,6 @@
 package cli
 
-// Version string such as "0.10.0". Could also be "latest".
+// Version string such as "0.10.0" or "2026.10.31.0". Could also be "latest".
 type Version string
 
 type VersionAttributes struct {

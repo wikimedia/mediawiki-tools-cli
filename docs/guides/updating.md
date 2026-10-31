@@ -27,6 +27,33 @@ The updater asks before replacing the executable. Use `sudo mw update` only if t
 
 To install a specific published version, use `mw update --version VERSION` with a version shown on the [releases page](https://gitlab.wikimedia.org/repos/releng/cli/-/releases).
 
+## Release versions
+
+The updater supports existing `v0.x.y` releases and future date-based tags in
+`vYYYY.MM.DD.REVISION` format. For example, `v2026.10.31.0` identifies an initial
+release and `v2026.10.31.1` a maintenance update to that release series, even if
+the maintenance update is published later. Dates must be valid calendar dates;
+months and days can have leading zeroes. The revision starts at zero and increases
+numerically. Dated prereleases are not currently supported.
+
+Ordinary `mw update` selects the highest stable version, rather than the most
+recently published release. An older series receiving a backport will not replace
+a newer installed series. Dated versions sort above existing semantic versions.
+Prerelease tags, unrecognised versions, and releases with a future publication
+date are excluded from automatic selection. Nightly selection remains separate.
+
+`--force` allows reinstalling the selected version; it does not enable automatic
+downgrades. To deliberately install an older release, select it explicitly:
+
+```sh
+mw update --version v2026.10.31.1
+```
+
+Support for dated versions can ship in any number of `v0.x.y` releases before
+the project switches formats. Older binaries without this support cannot compare
+four-part versions in update notifications; upgrade to a version with this support
+before relying on automatic dated-version checks.
+
 ## Nightly and CI builds
 
 Once nightly builds are configured, preview or install the latest successful

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/blang/semver"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sirupsen/logrus"
@@ -19,6 +18,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	gitlabb "gitlab.wikimedia.org/repos/releng/cli/internal/gitlab"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/releaseversion"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"golang.org/x/term"
@@ -52,14 +52,11 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				targetVersion = cli.VersionFromUserInput(targetRelease.TagName)
 
-				// Make sure we are not already on the latest version (unless --force is set)
-				if !force && currDetails.Version == targetVersion {
-					cmd.Println("You are already on the latest version: " + targetVersion.String())
-					os.Exit(0)
+				// Reinstall only with --force; automatic selection never downgrades.
+				if !automaticUpdateNeeded(currDetails.Version, targetVersion, force) {
+					cmd.Printf("Installed version %s is already at or above the latest stable release %s.\n", currDetails.Version, targetVersion)
+					return nil
 				}
-
-				// TODO actually do semver comparison
-				// But this probably doesn't matter right now, as we generally only have 1 stream of released going at a time...
 
 				targetReleaseLink, err := gitlabb.RelengCliReleaseBinary(targetVersion.Tag())
 				if err != nil {
@@ -70,8 +67,8 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 
 				cmd.Println("New update found: " + targetVersion.String())
 				cmd.Println("Release URL: " + targetVersion.ReleasePage())
-				cmd.Println("Artifact URL: " + targetArtifact)
 				targetArtifact = targetReleaseLink.DirectAssetURL
+				cmd.Println("Artifact URL: " + targetArtifact)
 			} else if versionInput == "nightly" {
 				var err error
 				targetArtifact, err = gitlabb.RelengCliNightlyBinaryURL()
@@ -327,7 +324,7 @@ update --version=https://gitlab.wikimedia.org/repos/releng/cli/-/jobs/252738/art
 	}
 	cmd.Flags().StringVarP(&versionInput, "version", "", "", "Release version, nightly, artifact URL, or local executable path")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "Show what would be updated, but don't actually update.")
-	cmd.Flags().BoolVarP(&force, "force", "", false, "Force force and reinstall even if already on the latest version.")
+	cmd.Flags().BoolVarP(&force, "force", "", false, "Reinstall even if already on the latest version")
 	return cmd
 }
 
@@ -452,13 +449,29 @@ func replaceExecutableNonWindows(newPath, destPath string) error {
 	return nil
 }
 
+// Explicit --version selection bypasses this guard and may downgrade. --force
+// permits reinstalling the current release, but never an automatic downgrade.
+func automaticUpdateNeeded(current, target cli.Version, force bool) bool {
+	if current == target {
+		return force
+	}
+	from, fromErr := releaseversion.Parse(current.String())
+	to, toErr := releaseversion.Parse(target.String())
+	if fromErr != nil || toErr != nil {
+		// Development builds have no release ordering; allow moving to stable.
+		return true
+	}
+	comparison := from.Compare(to)
+	return comparison < 0 || (comparison == 0 && force)
+}
+
 func describeVersionTransition(from, to cli.Version) string {
 	if from == to {
 		return "Version unchanged: " + from.String()
 	}
 
-	fromSemver, fromErr := semver.Parse(from.String())
-	toSemver, toErr := semver.Parse(to.String())
+	fromSemver, fromErr := releaseversion.Parse(from.String())
+	toSemver, toErr := releaseversion.Parse(to.String())
 	if fromErr == nil && toErr == nil {
 		cmp := fromSemver.Compare(toSemver)
 		if cmp < 0 {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -71,6 +72,87 @@ func TestNightlyDiscoverySelectsOnlyItsSuccessfulScheduledPipeline(t *testing.T)
 	}
 }
 
+func TestLatestStableReleaseUsesVersionOrderAcrossPages(t *testing.T) {
+	previousURL := wikimediav4ApiURL
+	t.Cleanup(func() { wikimediav4ApiURL = previousURL })
+	var pages []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		page := r.URL.Query().Get("page")
+		pages = append(pages, page)
+		if page != "2" {
+			w.Header().Set("X-Next-Page", "2")
+			_, _ = w.Write([]byte(`[{"tag_name":"v2026.10.31.2"},{"tag_name":"v0.99.0-rc.1"},{"tag_name":"nightly"},{"tag_name":"v2026.02.30.0"}]`))
+			return
+		}
+		_, _ = w.Write([]byte(`[{"tag_name":"v2026.11.15.0"},{"tag_name":"v0.99.0"},{"tag_name":"v2027.01.01.0","released_at":"2999-01-01T00:00:00Z"}]`))
+	}))
+	defer server.Close()
+	wikimediav4ApiURL = server.URL + "/api/v4/"
+	release, err := RelengCliLatestRelease()
+	if err != nil || release.TagName != "v2026.11.15.0" {
+		t.Fatalf("latest=%v, %v", release, err)
+	}
+	if len(pages) != 2 || pages[1] != "2" {
+		t.Fatalf("requested pages %v, want both pages", pages)
+	}
+}
+
+func TestReleaseOrderingAndBackportNotes(t *testing.T) {
+	releases := []*gitlab.Release{
+		{TagName: "v2026.10.31.2"}, // More recently published than November.
+		{TagName: "v2026.11.15.0"},
+		{TagName: "v0.40.0-rc.1"},
+		{TagName: "v2026.10.31.0"},
+		{TagName: "v0.34.0"},
+		{TagName: "v2026.10.31.1"},
+	}
+	for _, tc := range []struct {
+		from, to string
+		want     []string
+	}{
+		{"v2026.10.31.0", "v2026.10.31.2", []string{"v2026.10.31.2", "v2026.10.31.1"}},
+		{"v2026.10.31.2", "v2026.11.15.0", []string{"v2026.11.15.0"}},
+		{"v2026.11.15.0", "v2026.10.31.1", []string{"v2026.10.31.2", "v2026.10.31.1"}},
+		{"v0.34.0", "v2026.10.31.0", []string{"v2026.10.31.0"}},
+	} {
+		got, err := releasesBetweenTags(releases, tc.from, tc.to)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var tags []string
+		for _, release := range got {
+			tags = append(tags, release.TagName)
+		}
+		if !reflect.DeepEqual(tags, tc.want) {
+			t.Errorf("%s -> %s: %v, want %v", tc.from, tc.to, tags, tc.want)
+		}
+	}
+}
+
+func TestStableReleaseFiltering(t *testing.T) {
+	for _, tc := range []struct {
+		tags []string
+		want []string
+	}{
+		{[]string{"v0.9.0", "v0.10.0", "v0.11.0-rc.1"}, []string{"v0.10.0", "v0.9.0"}},
+		{[]string{"v2026.10.31.9", "v2026.10.31.10", "v2026.10.31.11-rc.1"}, []string{"v2026.10.31.10", "v2026.10.31.9"}},
+		{[]string{"nightly", "v2026.02.30.0", "v0.35.0-beta.1"}, nil},
+	} {
+		var releases []*gitlab.Release
+		for _, tag := range tc.tags {
+			releases = append(releases, &gitlab.Release{TagName: tag})
+		}
+		var got []string
+		for _, release := range orderedStableReleases(releases) {
+			got = append(got, release.TagName)
+		}
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("ordered %v, want %v", got, tc.want)
+		}
+	}
+}
+
 func TestLatestReleaseBinary(t *testing.T) {
 	// Start a local HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -105,7 +187,7 @@ func TestLatestReleaseBinary(t *testing.T) {
 			fakeOS: "firstOS",
 			want: &gitlab.ReleaseLink{
 				ID:             1,
-				Name:           "mw_REL_TAG_NAME_firstOS_fakeArch",
+				Name:           "mw_v0.34.0_firstOS_fakeArch",
 				URL:            "someUrl1",
 				DirectAssetURL: "someDirectUrl1",
 				External:       true,
@@ -117,7 +199,7 @@ func TestLatestReleaseBinary(t *testing.T) {
 			fakeOS: "secondOS",
 			want: &gitlab.ReleaseLink{
 				ID:             2,
-				Name:           "mw_REL_TAG_NAME_secondOS_fakeArch",
+				Name:           "mw_v0.34.0_secondOS_fakeArch",
 				URL:            "someUrl2",
 				DirectAssetURL: "someDirectUrl2",
 				External:       true,

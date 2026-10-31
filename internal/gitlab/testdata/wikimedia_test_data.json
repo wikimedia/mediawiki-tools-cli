@@ -1,7 +1,7 @@
 [
     {
       "name": "Some Release Name",
-      "tag_name": "REL_TAG_NAME",
+      "tag_name": "v0.34.0",
       "assets": {
         "count": 3,
         "sources": [
@@ -13,7 +13,7 @@
         "links": [
           {
             "id": 1,
-            "name": "mw_REL_TAG_NAME_firstOS_fakeArch",
+            "name": "mw_v0.34.0_firstOS_fakeArch",
             "url": "someUrl1",
             "direct_asset_url": "someDirectUrl1",
             "external": true,
@@ -21,7 +21,7 @@
           },
           {
             "id": 2,
-            "name": "mw_REL_TAG_NAME_secondOS_fakeArch",
+            "name": "mw_v0.34.0_secondOS_fakeArch",
             "url": "someUrl2",
             "direct_asset_url": "someDirectUrl2",
             "external": true,
@@ -32,6 +32,6 @@
     },
     {
       "name": "Fake second release we don't care about",
-      "description": "We don't care about this as the API default return has the latest release at the top"
+      "description": "An unversioned release is ignored during automatic selection"
     }
   ]

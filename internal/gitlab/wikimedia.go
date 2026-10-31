@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/releaseversion"
 )
 
 var (
@@ -63,10 +65,9 @@ func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error)
 }
 
 func releasesBetweenTags(releases []*gitlab.Release, from, to string) ([]*gitlab.Release, error) {
-	// Assume they are in release order.
-	// Remove everything from the start, up until the value of to
-	// Then remove everything from the end, after the value of from
-	// This will leave us with the releases between the two tags
+	releases = orderedStableReleases(releases)
+	// Find the endpoints in version order. Publication order would put
+	// backports in the wrong transition range.
 	start := -1
 	end := -1
 	for i, release := range releases {
@@ -100,10 +101,49 @@ func RelengCliGetReleases() ([]*gitlab.Release, error) {
 	// Ask for the largest supported page. The default page is needlessly small
 	// for release history, and the unqualified endpoint can be very slow on
 	// Wikimedia GitLab.
-	releases, _, err := wikimediaClient().Releases.ListReleases(projectID, &gitlab.ListReleasesOptions{
+	client := wikimediaClient()
+	options := &gitlab.ListReleasesOptions{
 		ListOptions: gitlab.ListOptions{PerPage: wikimediaReleasesPerPage},
+	}
+	var releases []*gitlab.Release
+	for {
+		page, response, err := client.Releases.ListReleases(projectID, options)
+		if err != nil {
+			return nil, err
+		}
+		releases = append(releases, page...)
+		if response.NextPage == 0 {
+			break
+		}
+		options.Page = response.NextPage
+	}
+	return orderedStableReleases(releases), nil
+}
+
+// Publication order can put a backport ahead of a newer release series.
+func orderedStableReleases(releases []*gitlab.Release) []*gitlab.Release {
+	type candidate struct {
+		release *gitlab.Release
+		version releaseversion.Version
+	}
+	var candidates []candidate
+	for _, release := range releases {
+		if release == nil || (release.ReleasedAt != nil && release.ReleasedAt.After(time.Now())) {
+			continue
+		}
+		version, err := releaseversion.Parse(release.TagName)
+		if err == nil && version.Stable() {
+			candidates = append(candidates, candidate{release, version})
+		}
+	}
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return candidates[i].version.Compare(candidates[j].version) > 0
 	})
-	return releases, err
+	ordered := make([]*gitlab.Release, 0, len(candidates))
+	for _, candidate := range candidates {
+		ordered = append(ordered, candidate.release)
+	}
+	return ordered
 }
 
 /*RelengCliLatestRelease from gitlab.*/
@@ -114,7 +154,7 @@ func RelengCliLatestRelease() (*gitlab.Release, error) {
 	}
 
 	if len(releases) < 1 {
-		return nil, errors.New("this gitlab project has no releases")
+		return nil, errors.New("this gitlab project has no supported stable releases")
 	}
 	return releases[0], nil
 }
