@@ -54,7 +54,10 @@ func NewRootCmd(name string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if cmd.Annotations[cli.TelemetrySkipAnnotation] == "true" {
+			if cmd.Annotations[cli.TelemetrySkipAnnotation] == "true" || isCompletionRequest([]string{cmd.Name()}) {
+				if isCompletionRequest([]string{cmd.Name()}) {
+					cli.Opts.NoInteraction = true
+				}
 				root := cmd.Root()
 				if root.Annotations == nil {
 					root.Annotations = make(map[string]string)
@@ -227,6 +230,18 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
+	// Shell completion reads local metadata only. Bypass migrations, timers
+	// and background update checks before constructing the command tree.
+	if isCompletionRequest(os.Args[1:]) {
+		cli.Opts.NoInteraction = true
+		root := NewRootCmd(cli.InvocationName(os.Args[0]))
+		if err := root.Execute(); err != nil {
+			logrus.Error(err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Self-update may need root to replace the installed executable. Keep this
 	// operation out of config migration, timers, telemetry and command defaults:
 	// they can create root-owned files in the invoking user's config directory.
@@ -384,6 +399,10 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		logrus.Errorf("%s", err)
 		os.Exit(1)
 	}
+}
+
+func isCompletionRequest(args []string) bool {
+	return len(args) > 0 && (args[0] == "__complete" || args[0] == "__completeNoDesc")
 }
 
 func logLevelForVerbosity(verbosity int) logrus.Level {
