@@ -115,6 +115,9 @@ func TestListSecretsCheckJSONReportsDifferencesWithoutValues(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
+	if strings.Contains(diagnostics.String(), "KeePassXC") || !strings.Contains(diagnostics.String(), "OS keyring") {
+		t.Fatalf("incorrect provider guidance: %s", diagnostics.String())
+	}
 	var entries []mwconfig.SecretInfo
 	if err := json.Unmarshal(output.Bytes(), &entries); err != nil {
 		t.Fatal(err)

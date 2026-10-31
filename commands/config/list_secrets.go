@@ -20,7 +20,7 @@ func NewListSecretsCmd() *cobra.Command {
 	var details bool
 	cmd := &cobra.Command{
 		Use: "list [KEY...]", Aliases: []string{"ls"}, Short: "List stored credential metadata without revealing secrets",
-		Long: "List credentials and provider references managed by this CLI, including plaintext config values and the local KeePassXC pairing file. Supply keys to inspect only those entries. Displays identities and locations, never secret values. By default external entries are not contacted or unlocked. Use --check to compare plaintext and vault values, and --verify to authenticate each copy separately against its service. Both may prompt in KeePassXC. Neither changes saved credentials. GitLab's separate credential store, external phab.cfg files, and unrelated vault entries are not enumerated.",
+		Long: "List credentials and provider references managed by this CLI, including plaintext config values and the local KeePassXC pairing file. Supply keys to inspect only those entries. Displays identities and locations, never secret values. By default external entries are not contacted or unlocked. Use --check to compare plaintext and vault values, and --verify to authenticate each copy separately against its service. Credential stores may request unlocking or access approval. Neither changes saved credentials. GitLab's separate credential store, external phab.cfg files, and unrelated vault entries are not enumerated.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entries := config.SecretInventory()
 			if len(args) > 0 {
@@ -43,7 +43,22 @@ func NewListSecretsCmd() *cobra.Command {
 				entries = filtered
 			}
 			if check || verify {
-				if _, err := fmt.Fprintln(cmd.ErrOrStderr(), "Reading requested credentials; KeePassXC may request access approval."); err != nil {
+				message := "Checking requested credentials."
+				var keepass, keyring bool
+				for _, entry := range entries {
+					if entry.Source != "credential-reference" || (!verify && entry.Comparison != "not-checked") {
+						continue
+					}
+					keepass = keepass || entry.Provider == "keepassxc"
+					keyring = keyring || entry.Provider == "keyring"
+				}
+				if keepass {
+					message += " KeePassXC may request access approval."
+				}
+				if keyring {
+					message += " Unlock your OS keyring if prompted."
+				}
+				if _, err := fmt.Fprintln(cmd.ErrOrStderr(), message); err != nil {
 					return err
 				}
 				config.InspectSecretInventory(cmd.Context(), entries, check, verify)
