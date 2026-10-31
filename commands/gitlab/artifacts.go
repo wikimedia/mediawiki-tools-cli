@@ -61,6 +61,7 @@ func newCIArtifactsCommand(factory mwcli.Factory) *cobra.Command {
 	}
 	cmd.AddCommand(newCIArtifactsListCommand(factory))
 	cmd.AddCommand(newCIArtifactsPruneCommand(factory))
+	cmd.AddCommand(newCIArtifactsSummaryCommand(factory))
 	return cmd
 }
 
@@ -151,8 +152,7 @@ func newCIArtifactsFilterCommand(use, short string, factory mwcli.Factory, prune
 			if len(response.Data.BulkDestroy.Errors) > 0 {
 				return fmt.Errorf("delete artifacts: %s", strings.Join(response.Data.BulkDestroy.Errors, "; "))
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Deleted %d of %d selected artifacts.\n", response.Data.BulkDestroy.DestroyedCount, len(ids))
-			return err
+			return outputCIArtifactsPruneSummary(cmd.OutOrStdout(), artifacts, response.Data.BulkDestroy.DestroyedCount, response.Data.BulkDestroy.DestroyedIDs)
 		},
 	}
 	cmd.Flags().StringVar(&sinceText, "since", "48h", "Include artifacts from jobs created within this duration (for example, 48h)")
@@ -167,37 +167,55 @@ func newCIArtifactsFilterCommand(use, short string, factory mwcli.Factory, prune
 }
 
 func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int64, cutoff time.Time, minSize int64, refPrefix string) ([]ciArtifact, error) {
+	var result []ciArtifact
+	err := scanCIArtifacts(cmd, client, projectID, cutoff, minSize, refPrefix, maxArtifactJobs, func(artifact ciArtifact) error {
+		result = append(result, artifact)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func scanCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int64, cutoff time.Time, minSize int64, refPrefix string, maxJobs int, visit func(ciArtifact) error) error {
 	options := &gitlab.ListJobsOptions{ListOptions: gitlab.ListOptions{
 		PerPage: 100,
 		Page:    1,
 	}}
-	var result []ciArtifact
+	label := "Scanning recent CI jobs for artifacts"
+	if maxJobs == 0 {
+		options.ListOptions = gitlab.ListOptions{PerPage: 100, Pagination: "keyset", OrderBy: "id", Sort: "desc"}
+		options.IncludeRetried = gitlab.Ptr(true)
+		label = "Scanning CI jobs for artifact storage"
+	}
 	scanned := 0
-	progress := startArtifactProgress(cmd.ErrOrStderr(), "Scanning recent CI jobs for artifacts")
+	matched := int64(0)
+	progress := startArtifactProgress(cmd.ErrOrStderr(), label)
 	if progress != nil {
 		defer progress.finish()
 	}
 	for job, err := range gitlab.Scan2(func(page gitlab.PaginationOptionFunc) ([]*gitlab.Job, *gitlab.Response, error) {
-		return client.Jobs.ListProjectJobs(projectID, options, page)
+		return client.Jobs.ListProjectJobs(projectID, options, page, gitlab.WithContext(cmd.Context()))
 	}) {
 		if err != nil {
-			return nil, fmt.Errorf("list project jobs: %w", err)
+			return fmt.Errorf("list project jobs: %w", err)
 		}
 		scanned++
-		if scanned > maxArtifactJobs {
-			return nil, fmt.Errorf("reached the %d-job safety limit; narrow the time window", maxArtifactJobs)
+		if maxJobs > 0 && scanned > maxJobs {
+			return fmt.Errorf("reached the %d-job safety limit; narrow the time window", maxJobs)
 		}
-		if job.CreatedAt == nil {
-			return nil, fmt.Errorf("job %d has no creation timestamp; cannot safely apply --since", job.ID)
+		if !cutoff.IsZero() && job.CreatedAt == nil {
+			return fmt.Errorf("job %d has no creation timestamp; cannot safely apply --since", job.ID)
 		}
 		// The REST Jobs API documents descending ID order. Job IDs increase
 		// over time, so no later page can contain a job within the age window.
-		if job.CreatedAt.Before(cutoff) {
+		if !cutoff.IsZero() && job.CreatedAt.Before(cutoff) {
 			break
 		}
 		if refPrefix != "" && !strings.HasPrefix(job.Ref, refPrefix) {
 			if progress != nil {
-				progress.update(int64(scanned), int64(len(result)))
+				progress.update(int64(scanned), matched)
 			}
 			continue
 		}
@@ -205,18 +223,20 @@ func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int64,
 			if strings.EqualFold(artifact.FileType, "trace") || artifact.Size < minSize {
 				continue
 			}
-			createdAt := *job.CreatedAt
-			result = append(result, ciArtifact{
+			if err := visit(ciArtifact{
 				Name: artifact.Filename, Type: artifact.FileType, Size: artifact.Size,
 				JobID: strconv.FormatInt(job.ID, 10), JobName: job.Name, Ref: job.Ref,
-				CreatedAt: &createdAt, ExpiresAt: job.ArtifactsExpireAt,
-			})
+				CreatedAt: job.CreatedAt, ExpiresAt: job.ArtifactsExpireAt,
+			}); err != nil {
+				return err
+			}
+			matched++
 		}
 		if progress != nil {
-			progress.update(int64(scanned), int64(len(result)))
+			progress.update(int64(scanned), matched)
 		}
 	}
-	return result, nil
+	return nil
 }
 
 type artifactProgress struct {
@@ -432,4 +452,35 @@ func outputCIArtifacts(cmd *cobra.Command, output string, artifacts []ciArtifact
 	}
 	table.Print(cmd.OutOrStdout())
 	return nil
+}
+
+// Count only artifacts GitLab confirmed were deleted, using their reported sizes.
+func outputCIArtifactsPruneSummary(writer io.Writer, artifacts []ciArtifact, destroyedCount int, destroyedIDs []string) error {
+	deleted := make(map[string]bool, len(destroyedIDs))
+	for _, id := range destroyedIDs {
+		deleted[id] = true
+	}
+	var size int64
+	for _, artifact := range artifacts {
+		if deleted[artifact.ID] {
+			size += artifact.Size
+			delete(deleted, artifact.ID)
+		}
+	}
+	_, err := fmt.Fprintf(writer, "Deleted %d of %d selected artifacts (%s).\n", destroyedCount, len(artifacts), formatArtifactSize(size))
+	return err
+}
+
+func formatArtifactSize(size int64) string {
+	if size < 1024 {
+		return fmt.Sprintf("%d B", size)
+	}
+	units := []string{"KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
+	value := float64(size) / 1024
+	unit := 0
+	for value >= 1024 && unit < len(units)-1 {
+		value /= 1024
+		unit++
+	}
+	return fmt.Sprintf("%.1f %s", value, units[unit])
 }

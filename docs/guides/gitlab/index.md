@@ -43,6 +43,39 @@ included. GitLab marks bulk artifact deletion as experimental.
 The [artifact recording](artifacts.tape) demonstrates listing merge request
 artifacts from the last 24 hours and previewing the same set for pruning.
 
+### Artifact storage overview
+
+Use a compact summary to find the largest artifact consumers before choosing
+prune filters:
+
+```sh
+mw gitlab ci artifacts summary
+mw gitlab ci artifacts summary -R releng/cli
+mw gitlab ci artifacts summary --since 7d --ref-prefix refs/merge-requests/
+mw gitlab ci artifacts summary --output json
+```
+
+The summary is read-only and defaults to the entire project job history
+(`--since all`), following all pages including retried jobs. Large projects can
+take time to scan; `--since`, `--ref-prefix`, and `--min-size` narrow the overview.
+Totals reflect only matching artifacts visible to your account at scan time,
+not a transactional snapshot or the project's total disk usage.
+
+Text output shows total bytes, artifact count, and distinct job count, followed
+by separate job-name and artifact-type tables sorted by decreasing storage size.
+Repeated runs of the same job name are combined. Job counts in the type table
+can overlap because a job can have multiple types. JSON returns `total`,
+`by_job`, and `by_type`, with `jobs`, `artifacts`, and exact `size_bytes` fields
+for each entry; grouped entries also have a `name`.
+
+GitLab's Jobs API reports sizes for stored artifact files such as `archive`,
+`metadata`, and `junit`. The summary counts each entry in the `artifacts` array
+once, not the duplicate archive total in `artifacts_file`. Archive metadata is a
+separate stored file, not a second measurement of the archive. Job logs (`trace`)
+are excluded, just as in list/prune. Types describe GitLab storage categories,
+not file extensions or uncompressed archive contents; the API does not expose
+per-file sizes inside an archive here. A missing type is shown as `unknown`.
+
 ## Find repositories
 
 ```sh
