@@ -147,8 +147,7 @@ integration-cli:
     script:
       - ./tests/$TEST_SCRIPT
 
-# Prepare once per pipeline. Cache one archive locally between pipelines and use
-# an artifact to distribute the same clean snapshot across the Docker workers.
+# Share one weekly snapshot across pipelines; artifacts contain only a reference.
 prepare-mediawiki:
     extends: .commit-job
     image:
@@ -162,20 +161,15 @@ prepare-mediawiki:
     variables:
       MWCLI_CI_NATIVE_DEPS: "1"
       COMPOSER_ALLOW_SUPERUSER: "1"
-    cache:
-      key:
-        prefix: mediawiki-snapshot-v1
-        files:
-          - tests/cache-mediawiki.sh
-          - tests/prepare-mediawiki.sh
-      paths:
-        - .cache/mediawiki.tar.gz
+    # Serialize cache misses across pipelines, including MR pipelines.
+    resource_group: mediawiki-ci-snapshot
+    cache: []
     artifacts:
-      expire_in: 30 minutes
+      expire_in: 1 week
       paths:
-        - .cache/mediawiki.tar.gz
+        - .cache/mediawiki-snapshot.txt
     script:
-      - bash tests/prepare-mediawiki.sh
+      - bash tests/share-mediawiki.sh
 
 # Cloning code uses Git and local environment files, not a Docker daemon.
 integration-get-code:

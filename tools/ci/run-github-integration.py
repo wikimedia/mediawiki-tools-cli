@@ -47,8 +47,7 @@ def main():
     if sys.platform == "linux" and platform.machine().lower() in {"amd64", "x86_64"}:
         shutil.copyfile(inputs / "mw", source / "bin/mw")
         (source / "bin/mw").chmod(0o755)
-        if (inputs / "mediawiki-snapshot.txt").exists():
-            download_snapshot(GitLab(), inputs)
+        download_snapshot(GitLab(), inputs)
         subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
         env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
         compose = source / "bin/docker-compose"
