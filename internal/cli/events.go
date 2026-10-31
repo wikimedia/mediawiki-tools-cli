@@ -129,11 +129,18 @@ func (e *Events) addEventToStore(event map[string]interface{}) {
 func (e *Events) appendEvent(event string) error {
 	unlock, err := acquireEventsLock(filepath.Join(e.FallbackDir, "queue.lock"), time.Second)
 	if err != nil {
-		if !errors.Is(err, errEventsLockTimeout) {
-			if primaryErr := appendEventLine(e.EventFile, event); primaryErr == nil {
-				logrus.Warnf("Could not lock the temporary telemetry queue; saved the event to %s without queue locking", e.EventFile)
-				return nil
+		if errors.Is(err, errEventsLockTimeout) {
+			// Avoid racing queue rotation or losing the event when another
+			// writer is slow. A private, immutable batch needs no queue lock.
+			if fallbackErr := e.appendPendingEvent(event); fallbackErr != nil {
+				return fmt.Errorf("could not lock telemetry queue: %v; pending event: %w", err, fallbackErr)
 			}
+			e.usedFallback.Store(true)
+			return nil
+		}
+		if primaryErr := appendEventLine(e.EventFile, event); primaryErr == nil {
+			logrus.Warnf("Could not lock the temporary telemetry queue; saved the event to %s without queue locking", e.EventFile)
+			return nil
 		}
 		return fmt.Errorf("could not lock telemetry queue: %w", err)
 	}
@@ -150,6 +157,28 @@ func (e *Events) appendEvent(event string) error {
 		logrus.Warnf("Could not write telemetry to %s; queued it in the temporary fallback file %s", e.EventFile, e.FallbackEventFile())
 		return nil
 	}
+}
+
+func (e *Events) appendPendingEvent(event string) error {
+	file, err := os.CreateTemp(e.FallbackDir, ".event-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	if _, err := file.WriteString(event + "\n"); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	// Publish only the complete file. Senders discover it through the same
+	// pending-batch scan used to retry unsuccessful uploads.
+	return os.Rename(file.Name(), e.FallbackEventFile()+".pending-"+filepath.Base(file.Name()))
 }
 
 func appendEventLine(path, line string) error {

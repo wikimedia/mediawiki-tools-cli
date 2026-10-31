@@ -309,3 +309,35 @@ func TestConcurrentTelemetryQueue(t *testing.T) {
 		t.Fatalf("sent plus queued = %d, want 20", total)
 	}
 }
+
+func TestTelemetryQueueLockTimeoutPreservesEvent(t *testing.T) {
+	previousOptions, previousTransport := Opts, http.DefaultTransport
+	t.Cleanup(func() { Opts, http.DefaultTransport = previousOptions, previousTransport })
+	t.Setenv("MWCLI_CONTEXT_TEST", "")
+	Opts.Telemetry = true
+	e := NewEvents(filepath.Join(t.TempDir(), ".events"))
+	e.FallbackDir = filepath.Join(filepath.Dir(e.EventFile), "fallback")
+	unlock, err := acquireEventsLock(filepath.Join(e.FallbackDir, "queue.lock"), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Hold the lock past the writer's deadline, as a slow concurrent process
+	// can do. The event must survive without appending to a locked queue.
+	func() {
+		defer unlock()
+		e.AddFeatureUsageEvent("lock-timeout", "test")
+	}()
+	if events := e.RawEvents(); len(events) != 1 {
+		t.Fatalf("queued %d events after lock timeout, want 1", len(events))
+	}
+	var sent []json.RawMessage
+	http.DefaultTransport = eventTransport(func(r *http.Request) (*http.Response, error) {
+		if err := json.NewDecoder(r.Body).Decode(&sent); err != nil {
+			return nil, err
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header)}, nil
+	})
+	if !e.EmitEvents() || len(sent) != 1 || len(e.RawEvents()) != 0 {
+		t.Fatalf("expected one sent event and an empty queue; sent %d, queued %d", len(sent), len(e.RawEvents()))
+	}
+}
