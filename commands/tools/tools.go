@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	toolforge "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/cli"
 	toolforgeua "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/useragent"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
@@ -132,6 +133,6 @@ func Cleanup() {
 // NewToolsCmd groups public tool discovery and usage statistics.
 func NewToolsCmd() *cobra.Command {
 	command := &cobra.Command{Use: "tools", GroupID: "service", Short: "Explore Wikimedia tools and usage statistics"}
-	command.AddCommand(newToolviewsCmd())
+	command.AddCommand(newToolviewsCmd(), quip.NewQuipCmd())
 	return command
 }

@@ -178,7 +178,7 @@ func NewRootCmd(name string) *cobra.Command {
 		cloudvps.NewCloudVPSCmd(),
 		dev.NewCmd(),
 		wiki.NewWikiCmd(),
-		quip.NewQuipCmd(),
+		quip.NewLegacyCmd(),
 		phabricatorcmd.NewPhabricatorCmd(),
 		help.NewOutputTopicCmd(),
 	}...)
