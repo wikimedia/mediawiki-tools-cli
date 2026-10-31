@@ -13,7 +13,7 @@ func runReview(g *Game, actors Actors) int {
 		actors[x].Output(g, ColorTypes["normal"])
 	}
 
-	for {
+	for !g.stopped {
 		g.Output(ColorTypes["normal"], "\nCode Review patchset ", round, " begins...")
 		for x := 0; x < actors.Len(); x++ {
 			if actors[x].Morale <= 0 {
@@ -24,8 +24,11 @@ func runReview(g *Game, actors Actors) int {
 				for option := 0; option < len(actors[x].Actions); option++ {
 					g.Output(ColorTypes["prompt"], "\t", option+1, " - ", Actions[actors[x].Actions[option]].Name)
 				}
-				UserInput(&action)
-				action--
+				var ok bool
+				action, ok = g.readAction(len(actors[x].Actions))
+				if !ok {
+					return playerMoraleEffect
+				}
 			} else {
 				action = rand.Intn(len(actors[x].Actions)) // #nosec G404
 			}
@@ -64,7 +67,9 @@ func runReview(g *Game, actors Actors) int {
 		} else {
 			round++
 		}
-		UserInputContinue()
+		if _, ok := g.readLine("\n Press return to proceed to the next patchset"); !ok {
+			return playerMoraleEffect
+		}
 	}
 
 	g.Output(ColorTypes["normal"], "Code Review is over.\n")

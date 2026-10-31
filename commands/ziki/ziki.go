@@ -1,6 +1,7 @@
 package ziki
 
 import (
+	"bufio"
 	_ "embed"
 
 	"github.com/spf13/cobra"
@@ -15,9 +16,10 @@ func Cmd() *cobra.Command {
 		Use:   "ziki",
 		Short: "Text-based game",
 		Long:  cli.RenderMarkdown(zikiReadme),
-		Run: func(cmd *cobra.Command, args []string) {
-			game := *new(Game)
-			game.Play()
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			game := Game{input: bufio.NewScanner(cmd.InOrStdin()), writer: cmd.OutOrStdout()}
+			return game.Play()
 		},
 		Hidden: true,
 	}

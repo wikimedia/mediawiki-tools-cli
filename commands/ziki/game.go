@@ -3,7 +3,11 @@ package ziki
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -12,19 +16,17 @@ import (
 type Game struct {
 	Player      Actor
 	ColorScheme string
+	input       *bufio.Scanner
+	writer      io.Writer
+	stopped     bool
+	inputErr    error
+	intn        func(int) int
 }
 
-var (
-	Out *os.File
-	In  *os.File
-)
-
-func init() {
-	Out = os.Stdout
-	In = os.Stdin
-}
-
-func (g *Game) Play() {
+func (g *Game) Play() error {
+	if g.input == nil {
+		g.input = bufio.NewScanner(os.Stdin)
+	}
 	g.ColorScheme = "dark"
 
 	// Should we prompt people for their name instead?
@@ -37,7 +39,7 @@ func (g *Game) Play() {
 	lastLocation := Start
 
 	g.Output(ColorTypes["alert"], Messages["welcome"])
-	for {
+	for !g.stopped {
 		g.Output(ColorTypes["normal"], LocationMap[g.Player.CurrentLocation].Description)
 		if g.Player.CurrentLocation == lastLocation {
 			g.Output(ColorTypes["error"], "You haven't gone anywhere. Type 'help' for available commands.")
@@ -49,9 +51,12 @@ func (g *Game) Play() {
 			// And you can also get a Story event immediately after a CodeReview event without entering
 			// a command, which is a little confusing.
 			g.ProcessEvents(LocationMap[g.Player.CurrentLocation].Events)
+			if g.stopped {
+				break
+			}
 			if g.Player.Morale <= 0 {
 				g.Output(ColorTypes["alert"], "\nYou have given up hope on your change. Game over.")
-				return
+				return nil
 			}
 			g.Output(ColorTypes["normal"], "\tYou are still working on your change.")
 			g.Output(ColorTypes["normal"], "\tMorale: ", g.Player.Morale)
@@ -61,13 +66,20 @@ func (g *Game) Play() {
 		for _, loc := range LocationMap[g.Player.CurrentLocation].Transitions {
 			g.Outputf(ColorTypes["prompt"], "\t%s", loc)
 		}
-		cmd := UserInputln()
-		ProcessCommands(g, cmd)
+		text, ok := g.readLine("\n >>> ")
+		if !ok {
+			break
+		}
+		ProcessCommands(g, text)
 	}
+	return g.inputErr
 }
 
 func (g *Game) ProcessEvents(events []string) {
 	for _, evtName := range events {
+		if g.stopped {
+			break
+		}
 		g.Player.Morale += Events[evtName].ProcessEvent(g)
 	}
 }
@@ -81,7 +93,7 @@ func (g *Game) Output(c string, args ...interface{}) {
 	s := fmt.Sprint(args...)
 
 	if g.ColorScheme == "none" {
-		_, _ = fmt.Fprintln(Out, s)
+		_, _ = fmt.Fprintln(g.outputWriter(), s)
 	} else {
 		col := color.BlackString
 
@@ -106,26 +118,58 @@ func (g *Game) Output(c string, args ...interface{}) {
 		case "yellow":
 			col = color.YellowString
 		}
-		_, _ = fmt.Fprintln(Out, col(s))
+		_, _ = fmt.Fprintln(g.outputWriter(), col(s))
 	}
 }
 
-func UserInput(i *int) {
-	_, _ = fmt.Fscan(In, i)
+func (g *Game) outputWriter() io.Writer {
+	if g.writer == nil {
+		return os.Stdout
+	}
+	return g.writer
 }
 
-func UserInputln() string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("\n >>> ")
-	text, _ := reader.ReadString('\n')
-	return text
+// All prompts share one scanner so buffered input is never discarded.
+func (g *Game) readLine(prompt string) (string, bool) {
+	if g.stopped {
+		return "", false
+	}
+	if g.input == nil {
+		g.input = bufio.NewScanner(os.Stdin)
+	}
+	fmt.Fprint(g.outputWriter(), prompt)
+	if !g.input.Scan() {
+		g.inputErr = g.input.Err()
+		g.stopped = true
+		return "", false
+	}
+	text := g.input.Text()
+	if strings.EqualFold(strings.TrimSpace(text), "quit") {
+		ProcessCommands(g, "quit")
+		return "", false
+	}
+	return text, true
 }
 
-func UserInputContinue() string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("\n Press return to proceed to the next patchset")
-	text, _ := reader.ReadString('\n')
-	return text
+func (g *Game) readAction(count int) (int, bool) {
+	for {
+		text, ok := g.readLine("\n >>> ")
+		if !ok {
+			return 0, false
+		}
+		choice, err := strconv.Atoi(strings.TrimSpace(text))
+		if err == nil && choice >= 1 && choice <= count {
+			return choice - 1, true
+		}
+		g.Output(ColorTypes["error"], fmt.Sprintf("Choose an action from 1 to %d.", count))
+	}
+}
+
+func (g *Game) randomIntn(n int) int {
+	if g.intn != nil {
+		return g.intn(n)
+	}
+	return rand.Intn(n) // #nosec G404 -- randomness is only used for game events.
 }
 
 func (g *Game) setColorScheme(color string) {

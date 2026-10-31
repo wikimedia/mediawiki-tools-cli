@@ -1,7 +1,6 @@
 package ziki
 
 import (
-	"os"
 	"strings"
 )
 
@@ -39,7 +38,7 @@ func ProcessCommands(g *Game, input string) {
 		g.Output(ColorTypes["alert"], "\n\n")
 	case "quit":
 		g.Output(ColorTypes["alert"], "You have abandoned your change. Goodbye...")
-		os.Exit(0)
+		g.stopped = true
 	default:
 	}
 }
