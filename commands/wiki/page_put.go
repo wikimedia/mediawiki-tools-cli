@@ -2,9 +2,9 @@ package wiki
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
@@ -27,39 +27,41 @@ func NewWikiPagePutCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "put",
-		Short: "MediaWiki Wiki Page Put",
-		RunE:  nil,
+		Short: "Create or replace a page using source from stdin",
+		Long:  "Read page source from standard input and save it as the complete page content. Existing content is replaced. Use --createonly to refuse existing pages or --nocreate to require an existing page.",
 		Example: cobrautil.NormalizeExample(`
-# Put "foo" on the "mwcli-test" page on test.wikipedia.org
-put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test" <<< "foo"
+# Write source to a page using a saved profile
+put --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --title "User:Addshore/CLI test" < page.wikitext
 `),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRun {
 				fmt.Println("Dry run mode: Putting page with the following parameters:")
 				fmt.Printf("wiki: %s, user: %s, title: %s, summary: %s, minor: %t, bot: %t, recreate: %t, nocreate: %t, createonly: %t\n",
 					wiki, wikiUser, wikiPageTitle, summary, minor, bot, recreate, nocreate, createonly)
-				return
+				return nil
 			}
 
 			if wiki == "" {
-				logrus.Fatal("wiki is not set")
+				return fmt.Errorf("wiki is not set")
 			}
 			if wikiPageTitle == "" {
-				logrus.Fatal("title is not set")
+				return fmt.Errorf("title is not set")
 			}
 
-			bytes, err := io.ReadAll(os.Stdin)
+			bytes, err := io.ReadAll(cmd.InOrStdin())
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("could not read page text: %w", err)
 			}
 			text := string(bytes)
 
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
-			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
+			if err := loginIfCredentialsProvided(w); err != nil {
+				return fmt.Errorf("wiki authentication failed: %w", err)
+			}
 
 			// https://www.mediawiki.org/wiki/API:Edit#Parameters
 			editParams := params.Values{
@@ -86,26 +88,29 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 				editParams["createonly"] = "1"
 			}
 
-			editErrorHandling := defaultErrorHandling()
-			editErrorHandling.HandleUnknown = func(err error) bool {
-				if err.Error() == "edit successful, but did not change page" {
-					logrus.Info("edit successful, but did not change page")
-					return true
-				}
-				return false
+			err = w.Edit(editParams)
+			if errors.Is(err, mwclient.ErrEditNoChange) {
+				logrus.Info("edit successful, but did not change page")
+				return nil
 			}
-
-			editErrorHandling.handle(w.Edit(editParams))
+			if warnings, ok := err.(mwclient.APIWarnings); ok {
+				for _, warning := range warnings {
+					logrus.Warn(warning)
+				}
+				return nil
+			}
+			return err
 		},
 	}
 
+	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to create or replace")
 	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+" edit", "Summary of the edit")
-	cmd.Flags().BoolVar(&minor, "minor", false, "Minor edit")
-	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")
-	cmd.Flags().BoolVar(&recreate, "recreate", false, "Override any errors about the page having been deleted in the meantime.")
-	cmd.Flags().BoolVar(&nocreate, "nocreate", false, "Throw an error if the page doesn't exist.")
-	cmd.Flags().BoolVar(&createonly, "createonly", false, "Don't edit the page if it exists already.")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
+	cmd.Flags().BoolVar(&minor, "minor", false, "Mark the edit as minor")
+	cmd.Flags().BoolVar(&bot, "bot", false, "Mark the edit as a bot edit")
+	cmd.Flags().BoolVar(&recreate, "recreate", false, "Allow recreating a page deleted since editing began")
+	cmd.Flags().BoolVar(&nocreate, "nocreate", false, "Require the page to already exist")
+	cmd.Flags().BoolVar(&createonly, "createonly", false, "Create the page only if it does not exist")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the edit parameters without reading stdin or editing the page")
 
 	return cmd
 }

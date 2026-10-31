@@ -26,7 +26,7 @@ if [[ "${ORIGINAL_HASH%% *}" == "$EXPECTED_HASH" ]]; then
     exit 1
 fi
 
-"$INSTALLED" --no-interaction config set gerrit.username before-update
+"$INSTALLED" --no-interaction config set gerrit.profiles.update-test.username before-update
 "$INSTALLED" update --version "$(cygpath -m "$REPLACEMENT")" --no-interaction
 
 for attempt in {1..30}; do
@@ -43,7 +43,7 @@ fi
 
 # Start the replaced executable and check existing config remains readable/writable.
 "$INSTALLED" --no-interaction config show
-[[ "$("$INSTALLED" --no-interaction config get gerrit.username)" == before-update ]]
-"$INSTALLED" --no-interaction config set gerrit.username after-update
-[[ "$("$INSTALLED" --no-interaction config get gerrit.username)" == after-update ]]
+[[ "$("$INSTALLED" --no-interaction config get gerrit.profiles.update-test.username)" == before-update ]]
+"$INSTALLED" --no-interaction config set gerrit.profiles.update-test.username after-update
+[[ "$("$INSTALLED" --no-interaction config get gerrit.profiles.update-test.username)" == after-update ]]
 echo "PASS: updated Windows binary starts and preserves writable user config"

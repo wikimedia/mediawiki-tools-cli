@@ -31,13 +31,13 @@ func NewWikiFileUploadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upload FILE",
 		Short: "Upload a local file or a new version of an existing file",
-		Long:  "Upload a local file with bot-password authentication. Use --text-file for the initial file description and license wikitext. New versions preserve the existing description. Replacing a file requires --replace; other upload warnings require --ignore-warnings.\n\nGuide: mw help guides wiki files",
+		Long:  "Upload a local file using a saved profile or explicit wiki credentials. Use --text-file for the initial file description and license wikitext. New versions preserve the existing description. Replacing a file requires --replace; other upload warnings require --ignore-warnings.\n\nGuide: mw help guides wiki files",
 		Args:  cobra.ExactArgs(1),
 		Example: cobrautil.NormalizeExample(`
 # Upload a video with a description and license
-upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file password.txt --text-file description.wiki
+upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/addshore --text-file description.wiki
 # Upload a new version under the same wiki filename
-upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file password.txt --filename 'Demo.webm' --replace --comment 'Refresh walkthrough'
+upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/addshore --filename 'Demo.webm' --replace --comment 'Refresh walkthrough'
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file, err := os.Open(args[0])
@@ -73,8 +73,8 @@ upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file 
 			if wikiAnon {
 				return fmt.Errorf("file uploads require an authenticated account; omit --anon")
 			}
-			if wikiUser == "" || (wikiPassword == "" && wikiPasswordFile == "") {
-				return fmt.Errorf("file uploads require --user and either --password or --password-file")
+			if !hasWikiCredentials() {
+				return fmt.Errorf("file uploads require a saved profile or --username with --password or --password-file")
 			}
 			w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
 			if err != nil {
@@ -84,7 +84,7 @@ upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file 
 			// multipart uploads then share the same authenticated session.
 			httpClient := &http.Client{Timeout: 10 * time.Minute}
 			w.SetHTTPClient(httpClient)
-			if err := loginIfCredentialsProvided(w); err != nil {
+			if err := loginIfCredentialsProvided(w, httpClient); err != nil {
 				return err
 			}
 			w.Assert = mwclient.AssertUser

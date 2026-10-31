@@ -32,11 +32,11 @@ func NewWikiPageListCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "MediaWiki Wiki Page List",
+		Short: "List and filter wiki page titles",
 		RunE:  nil,
 		Example: cobrautil.NormalizeExample(`
 # List pages on test.wikipedia.org
-list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --prefix ${prefix} --namespace ${namespace} --limit ${limit}
+list --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --prefix "CLI" --limit 20
 `),
 		Run: func(cmd *cobra.Command, args []string) {
 			if dryRun {
@@ -171,20 +171,20 @@ list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pas
 
 	cmd.Flags().StringVar(&prefix, "prefix", "", "Prefix for filtering page titles")
 	cmd.Flags().IntVar(&namespace, "namespace", 0, "Namespace ID for filtering page titles")
-	cmd.Flags().IntVar(&limit, "limit", 0, "Limit the number of pages returned")
-	cmd.Flags().StringVar(&from, "from", "", "The page title to start enumerating from")
-	cmd.Flags().StringVar(&to, "to", "", "The page title to stop enumerating at")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of matching page titles (0 means unlimited)")
+	cmd.Flags().StringVar(&from, "from", "", "Start listing at this page title")
+	cmd.Flags().StringVar(&to, "to", "", "Stop listing at this page title")
 	cmd.Flags().StringVar(&filterredir, "filterredir", "all", "Which pages to list (all, nonredirects, redirects)")
-	cmd.Flags().StringVar(&filterlanglinks, "filterlanglinks", "all", "Filter based on whether a page has langlinks (all, withlanglinks, withoutlanglinks)")
+	cmd.Flags().StringVar(&filterlanglinks, "filterlanglinks", "all", "Filter by language links (all, withlanglinks, withoutlanglinks)")
 	cmd.Flags().IntVar(&minsize, "minsize", 0, "Limit to pages with at least this many bytes")
 	cmd.Flags().IntVar(&maxsize, "maxsize", 0, "Limit to pages with at most this many bytes")
 	cmd.Flags().StringVar(&prtype, "prtype", "", "Limit to protected pages only (edit, move, upload)")
 	cmd.Flags().StringVar(&prlevel, "prlevel", "", "Filter protections based on protection level (autoconfirmed, sysop)")
-	cmd.Flags().StringVar(&prfiltercascade, "prfiltercascade", "all", "Filter protections based on cascadingness (all, cascading, noncascading)")
-	cmd.Flags().StringVar(&prexpiry, "prexpiry", "all", "Which protection expiry to filter the page on (all, definite, indefinite)")
+	cmd.Flags().StringVar(&prfiltercascade, "prfiltercascade", "all", "Filter by cascading protection (all, cascading, noncascading)")
+	cmd.Flags().StringVar(&prexpiry, "prexpiry", "all", "Filter by protection expiry (all, definite, indefinite)")
 	cmd.Flags().StringVar(&dir, "dir", "ascending", "The direction in which to list (ascending, descending)")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
-	cmd.Flags().StringVar(&grep, "grep", "", "Filter the resulting list to only include titles that contain this string")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the listing parameters without requesting pages")
+	cmd.Flags().StringVar(&grep, "grep", "", "Only include titles containing this literal string")
 
 	return cmd
 }

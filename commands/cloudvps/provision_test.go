@@ -20,7 +20,6 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 func testProvider(t *testing.T, handler http.HandlerFunc) providerFactory {
@@ -250,8 +249,10 @@ func TestWaitForResource(t *testing.T) {
 }
 
 func TestMissingProjectCredentials(t *testing.T) {
-	_, err := projectCredentials("mwcli", map[string]config.CloudVPSProject{})
-	if err == nil || !strings.Contains(err.Error(), "auth add --project mwcli") {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("project", "mwcli", "")
+	_, _, err := selectedCloudProfile(cmd)
+	if err == nil || !strings.Contains(err.Error(), "auth login --project mwcli") {
 		t.Fatalf("expected setup instructions, got %v", err)
 	}
 }

@@ -95,7 +95,7 @@ func runCloudVPSSSH(cmd *cobra.Command, args []string, opts sshOptions) error {
 	state := config.State()
 	defaults := state.Effective.CloudVPS
 	if opts.project == "" {
-		opts.project = defaults.DefaultProject
+		opts.project, _ = projectName(cmd)
 	}
 	if opts.region == "" {
 		opts.region = defaults.SSH.Region
@@ -113,7 +113,7 @@ func runCloudVPSSSH(cmd *cobra.Command, args []string, opts sshOptions) error {
 		}
 	}
 	if opts.id != "" {
-		name, err := instanceNameByID(cmd.Context(), opts.project, opts.id, defaults)
+		name, err := instanceNameByID(cmd, opts.project, opts.id)
 		if err != nil {
 			return err
 		}
@@ -335,19 +335,17 @@ func projectInstances(ctx context.Context, client *http.Client, baseURL, project
 	return hosts, nil
 }
 
-func instanceNameByID(ctx context.Context, project, id string, cfg config.CloudVPSConfig) (string, error) {
-	entry, ok := cfg.Projects[project]
-	if !ok || entry.Credential.ID == "" || entry.Credential.Secret == "" {
-		return "", fmt.Errorf("--id needs OpenStack credentials for project %s; use a VM name to connect without API credentials", project)
-	}
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+func instanceNameByID(cmd *cobra.Command, project, id string) (string, error) {
+	ctx, cancel := context.WithTimeout(cmd.Context(), 20*time.Second)
 	defer cancel()
-	provider, err := authenticatedCloudClient(ctx, gophercloud.AuthOptions{
-		IdentityEndpoint: authUrl, ApplicationCredentialID: entry.Credential.ID,
-		ApplicationCredentialSecret: entry.Credential.Secret, DomainID: "default",
-	})
+	selected, _ := cmd.Flags().GetString("profile")
+	name, project, err := resolveCloudProfile(selected, project)
 	if err != nil {
 		return "", err
+	}
+	provider, err := authenticatedProfileProvider(ctx, name, project)
+	if err != nil {
+		return "", fmt.Errorf("--id needs OpenStack credentials; use a VM name to connect without API credentials: %w", err)
 	}
 	compute, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
 	if err != nil {

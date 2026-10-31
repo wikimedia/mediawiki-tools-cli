@@ -82,7 +82,7 @@ func TestCredentialAddNoninteractiveRequiresMissingFlags(t *testing.T) {
 	t.Cleanup(func() { cli.Opts = previous })
 	cli.Opts.NoInteraction = true
 	for _, args := range [][]string{nil, {"--project", "mwcli"}, {"--project", "mwcli", "--id", "example-id"}} {
-		_, err := executeTestCommand(NewAuthAddCmd(), args...)
+		_, err := executeTestCommand(NewAuthLoginCmd(), args...)
 		if err == nil || !strings.Contains(err.Error(), "--secret") || !strings.Contains(err.Error(), "https://horizon.wikimedia.org/") {
 			t.Fatalf("missing guidance: %v", err)
 		}

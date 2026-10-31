@@ -14,6 +14,7 @@ SecurityCheckPlugin                  tests/integration/redos/test.php
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -30,6 +31,30 @@ type Table struct {
 	TrimSpace bool
 	// ColumnMaxWidths holds the maximum character width for each column (0 = unlimited).
 	ColumnMaxWidths []int
+}
+
+// StyledCell adds a semantic colour to a table cell while retaining its plain
+// string representation for width calculations and redirected output.
+type StyledCell struct {
+	Text  string
+	Color color.Attribute
+}
+
+func (c StyledCell) String() string { return c.Text }
+
+func tableColorEnabled(writer io.Writer) bool {
+	file, ok := writer.(*os.File)
+	return ok && isTerminal(file) && os.Getenv("NO_COLOR") == "" && os.Getenv("CLICOLOR") != "0" && os.Getenv("TERM") != "dumb"
+}
+
+// StyledText uses the same terminal and colour preferences as table cells.
+func StyledText(writer io.Writer, text string, attributes ...color.Attribute) string {
+	if !tableColorEnabled(writer) {
+		return text
+	}
+	style := color.New(attributes...)
+	style.EnableColor()
+	return style.Sprint(text)
 }
 
 func NewTable(headings []interface{}, rows [][]interface{}) *Table {
@@ -66,9 +91,14 @@ func (t *Table) AddRowS(rowValues ...string) {
 func (t *Table) Print(writer io.Writer) {
 	var headerFmt table.Formatter
 	var columnFmt table.Formatter
-	if shouldColor() {
-		headerFmt = color.New(color.FgGreen, color.Underline).SprintfFunc()
-		columnFmt = color.New(color.FgYellow).SprintfFunc()
+	colors := tableColorEnabled(writer)
+	if colors {
+		headerColor := color.New(color.FgGreen, color.Underline)
+		columnColor := color.New(color.FgYellow)
+		headerColor.EnableColor()
+		columnColor.EnableColor()
+		headerFmt = headerColor.SprintfFunc()
+		columnFmt = columnColor.SprintfFunc()
 	} else {
 		headerFmt = fmt.Sprintf
 		columnFmt = fmt.Sprintf
@@ -94,12 +124,17 @@ func (t *Table) Print(writer io.Writer) {
 				hasLinks = hasLinks || linked != s
 				s = linked
 			}
+			if styled, ok := cell.(StyledCell); ok && colors {
+				style := color.New(styled.Color)
+				style.EnableColor()
+				s = style.Sprint(s)
+			}
 			processed[i] = s
 		}
 		tbl.AddRow(processed...)
 	}
 
-	if hasLinks {
+	if hasLinks || colors {
 		tbl.WithWidthFunc(func(s string) int { return runewidth.StringWidth(ansi.Strip(s)) })
 	}
 	tbl.WithWriter(writer)

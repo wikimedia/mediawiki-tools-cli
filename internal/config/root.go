@@ -1,8 +1,8 @@
 package config
 
 import (
-	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -24,27 +24,15 @@ func Path() string {
 }
 
 func ensureExists() {
-	logrus.Trace("ensuring config exists")
-	if _, err := os.Stat(Path()); err != nil {
-		logrus.Trace("config does not exist. Creating...")
-		err := os.MkdirAll(strings.Replace(Path(), "config.json", "", -1), 0o700)
-		if err != nil {
+	if err := secureConfigPath(); err != nil {
+		logrus.Fatal(err)
+	}
+	if _, err := os.Lstat(Path()); os.IsNotExist(err) {
+		if err := writePrivateConfig([]byte("{}")); err != nil {
 			logrus.Fatal(err)
 		}
-		file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		defer file.Close()
-		w := bufio.NewWriter(file)
-		_, err = w.WriteString("{}")
-		if err != nil {
-			panic(err)
-		}
-		flushErr := w.Flush()
-		if flushErr != nil {
-			logrus.Error(flushErr)
-		}
+	} else if err != nil {
+		logrus.Fatal(err)
 	}
 }
 
@@ -140,22 +128,59 @@ func load() *koanf.Koanf {
 	if kLoaded {
 		return k
 	}
+	if !isConfigCompletion() {
+		unlock, err := lockConfigFile(context.Background())
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		defer unlock()
+	}
 	ensureExists()
 
 	preload()
 
 	logrus.Trace("loading config")
-	logrus.Trace(PrettyPrint(k))
 	logrus.Trace("loading defaults")
 	loadDefaults()
-	logrus.Trace(PrettyPrint(k))
 	logrus.Trace("loading json")
 	f := file.Provider(Path())
 	loadJson(k, f)
 	loadJson(kOnDisk, f)
-	logrus.Trace(PrettyPrint(k))
+	migrated, changed, err := migratePhabricatorProfiles(kOnDisk)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	gerritMigrated, gerritChanged, err := migrateGerritProfiles(migrated)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	migrated = gerritMigrated
+	changed = changed || gerritChanged
+	wikiMigrated, wikiChanged, err := migrateWikiProfiles(migrated)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	migrated = wikiMigrated
+	changed = changed || wikiChanged
+	cloudMigrated, cloudChanged, err := migrateCloudVPSProfiles(migrated)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	migrated = cloudMigrated
+	changed = changed || cloudChanged
+	if changed {
+		// Completion may translate metadata in memory, but must not write config.
+		if !isConfigCompletion() {
+			if err := putDiskConfig(migrated); err != nil {
+				logrus.Fatalf("could not migrate account profiles: %v", err)
+			}
+		}
+		kOnDisk = migrated
+		k = koanf.New(".")
+		loadDefaults()
+		_ = k.Merge(kOnDisk)
+	}
 	logrus.Trace("loading env")
-	PrettyPrint(k)
 	loadEnv()
 	c = koanfToConfig(k)
 	cOnDisk = koanfToConfig(kOnDisk)
@@ -177,6 +202,14 @@ func koanfToConfig(k *koanf.Koanf) Config {
 	if err != nil {
 		logrus.Fatalf("error unmarshalling config: %v", err)
 	}
+	// Other commands use the default Gerrit identity for cloning/SSH. Project
+	// that public username into the legacy struct without recreating disk keys.
+	if c.Gerrit.Username == "" {
+		name := k.String("gerrit.default_profile")
+		if name != "" {
+			c.Gerrit.Username = k.String("gerrit.profiles." + name + ".username")
+		}
+	}
 	return c
 }
 
@@ -197,52 +230,58 @@ func PrettyPrint(k *koanf.Koanf) string {
 	return indented.String()
 }
 
+// PutDiskConfig explicitly replaces configuration. Ordinary mutations must use
+// UpdateDiskConfig so they apply to the latest file rather than a cached copy.
 func PutDiskConfig(kToPut *koanf.Koanf) error {
+	unlock, err := lockConfigFile(context.Background())
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return commitDiskConfig(kToPut)
+}
+
+// UpdateDiskConfig serializes a read-modify-write with credential operations.
+// The callback receives current on-disk data and must not start another mutation.
+func UpdateDiskConfig(update func(*koanf.Koanf) error) error {
+	unlock, err := lockCredentials(context.Background())
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	disk := State().OnDiskKoanf.Copy()
+	if err := update(disk); err != nil {
+		return err
+	}
+	return commitDiskConfig(disk)
+}
+
+// commitDiskConfig requires the configuration mutation lock to be held.
+func commitDiskConfig(kToPut *koanf.Koanf) error {
 	err := putDiskConfig(kToPut)
 	if err != nil {
 		return err
 	}
-	// XXX: TODO validate, and check, this probably doesn't apply deletes correctly
 	ReApplyKoanfConf(kToPut)
 	return nil
 }
 
 func putDiskConfig(kToPut *koanf.Koanf) error {
-	logrus.Tracef("putting config on disk: %s", PrettyPrint(kToPut))
-	bytes, err := Marshal(kToPut)
+	logrus.Trace("persisting configuration")
+	data, err := Marshal(kToPut)
 	if err != nil {
 		return err
 	}
-
-	file, err := os.OpenFile(Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	w := bufio.NewWriter(file)
-	_, err = w.WriteString(string(bytes))
-	if err != nil {
-		return err
-	}
-	flushErr := w.Flush()
-	if flushErr != nil {
-		return flushErr
-	}
-	return nil
+	return writePrivateConfig(data)
 }
 
 func PutKeyValueOnDisk(key string, value string) error {
-	logrus.Tracef("setting %s to %s", key, value)
-	odk := State().OnDiskKoanf
-	odk.Set(key, value)
-	return PutDiskConfig(odk)
+	logrus.Trace("updating a configuration setting")
+	return UpdateDiskConfig(func(disk *koanf.Koanf) error { return disk.Set(key, value) })
 }
 
 func DeleteKeyValueFromDisk(key string) error {
-	odk := State().OnDiskKoanf
-	odk.Delete(key)
-	return PutDiskConfig(odk)
+	return UpdateDiskConfig(func(disk *koanf.Koanf) error { disk.Delete(key); return nil })
 }
 
 // Can be called before whole config is actually loaded..
@@ -256,10 +295,13 @@ func soloPutKeyValueOnDisk(key string, value string) error {
 }
 
 func ReApplyKoanfConf(override *koanf.Koanf) {
-	k.Merge(override)
-	kOnDisk.Merge(override)
-	c = koanfToConfig(k)
+	kOnDisk = override.Copy()
 	cOnDisk = koanfToConfig(kOnDisk)
+	k = koanf.New(".")
+	loadDefaults()
+	_ = k.Merge(kOnDisk)
+	loadEnv()
+	c = koanfToConfig(k)
 }
 
 func loadDefaults() {

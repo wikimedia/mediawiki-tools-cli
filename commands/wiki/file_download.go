@@ -51,7 +51,7 @@ func NewWikiFileDownloadCmd() *cobra.Command {
 		Long:  "Download a wiki filename (with or without File:) or a file-description URL. File-description URLs infer --wiki when it is omitted. The default format, original, preserves the uploaded bytes.\n\n--format png or jpeg downloads MediaWiki's rendered preview and encodes the requested format locally. SVG rendering happens on the wiki; local conversion accepts PNG, JPEG, GIF and WebP previews. Conversion exports a single still image. PNG preserves transparency; JPEG uses a white background.\n\n--width sets the exact converted width in pixels and preserves the aspect ratio, even when the wiki returns a larger thumbnail. The default is the source width, or 1024 pixels when unknown. Large images may require a smaller width.\n\nThe default output filename is based on the wiki filename with the converted extension. Existing files require --overwrite. Use --output - to write file bytes to standard output.\n\nGuide: mw help guides wiki files",
 		Args:  cobra.ExactArgs(1),
 		Example: cobrautil.NormalizeExample(`
-# Save a genuine PNG from an SVG file on Commons
+# Convert a Commons SVG preview to PNG
 download 'https://commons.wikimedia.org/wiki/File:Logo_of_a-wikimedia-cli.svg' --format png --width 1024 --output logo.png
 # Download the original uploaded file
 download 'Logo_of_a-wikimedia-cli.svg' --wiki commons.wikimedia.org
@@ -118,7 +118,7 @@ download 'Logo_of_a-wikimedia-cli.svg' --wiki commons.wikimedia.org
 				return err
 			}
 			w.SetHTTPClient(httpClient)
-			if err := loginIfCredentialsProvided(w); err != nil {
+			if err := loginIfCredentialsProvided(w, httpClient); err != nil {
 				return err
 			}
 			if !wikiAnon && wikiUser != "" {

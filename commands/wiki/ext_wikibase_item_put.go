@@ -22,8 +22,10 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "put",
-		Short: "Create a Wikibase item with one string claim",
+		Use:     "put",
+		Short:   "Create a Wikibase item with one string claim",
+		Long:    "Create a new item with an English label and one string-valued claim. This command always creates an item; it does not update an existing one.",
+		Example: "  put --profile wikibase-world/addshore --label 'Example' --property P1 --value 'Example value' --dry-run",
 		Run: func(cmd *cobra.Command, args []string) {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
@@ -96,11 +98,11 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+": Wikibase item update", "Summary of the edit")
 	cmd.Flags().StringVar(&label, "label", "first", "English label for the item")
-	cmd.Flags().StringVar(&property, "property", "P1", "Property id used for the claim")
+	cmd.Flags().StringVar(&property, "property", "P1", "Property ID for the string-valued claim")
 	cmd.Flags().StringVar(&value, "value", "hello", "String value for the claim")
-	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")
-	cmd.Flags().StringVar(&expectID, "expect-id", "", "If set, fail unless created item id matches this value")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
+	cmd.Flags().BoolVar(&bot, "bot", false, "Mark the edit as a bot edit")
+	cmd.Flags().StringVar(&expectID, "expect-id", "", "Fail unless the created item ID matches this value")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the proposed item without creating it")
 
 	return cmd
 }

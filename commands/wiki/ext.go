@@ -5,7 +5,7 @@ import "github.com/spf13/cobra"
 func NewWikiExtCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ext",
-		Short: "Interact with MediaWiki extensions via API",
+		Short: "Use extension-specific wiki commands",
 		RunE:  nil,
 	}
 
