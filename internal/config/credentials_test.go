@@ -359,7 +359,7 @@ func TestGUIProviderMigrationRemovesPlaintextOnlyAfterVerification(t *testing.T)
 	old := findKeePassXCBrowser
 	t.Cleanup(func() { findKeePassXCBrowser = old })
 	findKeePassXCBrowser = func(_ context.Context, path string) (secrets.KeePassXCBrowser, string, error) {
-		if path != "wm/gerrit.password" {
+		if path != "a-wikimedia-cli/gerrit.password" {
 			t.Fatal("unexpected default path")
 		}
 		return secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("a", 64), EntryID: strings.Repeat("b", 32), Login: "fixture"}, "legacy-secret", nil

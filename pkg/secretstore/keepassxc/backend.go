@@ -23,6 +23,7 @@ func (*Backend) Name() string           { return "keepassxc" }
 func (*Backend) Capabilities() secretstore.Capabilities {
 	return secretstore.Capabilities{MayPrompt: true, VerifiesWrites: true}
 }
+
 func (b *Backend) Get(ctx context.Context, reference secretstore.Reference) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -53,6 +54,7 @@ func (b *Backend) Get(ctx context.Context, reference secretstore.Reference) ([]b
 	}
 	return []byte(value), nil
 }
+
 func (b *Backend) Set(ctx context.Context, request secretstore.WriteRequest, value []byte) (secretstore.Reference, error) {
 	if b.Client == nil {
 		return secretstore.Reference{}, secretstore.ErrInvalid
@@ -95,9 +97,11 @@ func (b *Backend) Set(ctx context.Context, request secretstore.WriteRequest, val
 	}
 	return secretstore.Reference{Provider: b.Name(), Owned: owned, Fields: map[string]string{"database_hash": reference.DatabaseHash, "entry_id": reference.EntryID, "login": reference.Login, "encoding": encoding}}, nil
 }
+
 func (*Backend) Delete(context.Context, secretstore.Reference) error {
 	return secretstore.ErrUnsupported
 }
+
 func decodeReference(reference secretstore.Reference) (Reference, error) {
 	r := Reference{DatabaseHash: reference.Fields["database_hash"], EntryID: reference.Fields["entry_id"], Login: reference.Fields["login"]}
 	if reference.Provider != "keepassxc" || !validBrowserID(r.DatabaseHash, 32) || !validBrowserID(r.EntryID, 16) || r.Login == "" {
@@ -105,6 +109,7 @@ func decodeReference(reference secretstore.Reference) (Reference, error) {
 	}
 	return r, nil
 }
+
 func safeError(operation string, err error) error {
 	if err == nil {
 		return nil

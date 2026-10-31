@@ -19,6 +19,7 @@ func (b *fakeBrowser) Read(context.Context, Reference) (string, error) {
 	b.reads++
 	return b.value, nil
 }
+
 func (b *fakeBrowser) Write(_ context.Context, existing *Reference, key, account, endpoint, value string) (Reference, error) {
 	if !utf8.ValidString(value) {
 		return Reference{}, errors.New("invalid protocol string")

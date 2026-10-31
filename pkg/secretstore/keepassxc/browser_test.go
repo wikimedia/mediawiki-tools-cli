@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/nacl/box"
 )
@@ -41,6 +42,7 @@ func runBrowserHelper(mode string) {
 	}
 	var peer [32]byte
 	created := false
+	lockedReplies := 0
 	password := "fixture-service-secret"
 	for {
 		var header [4]byte
@@ -86,6 +88,15 @@ func runBrowserHelper(mode string) {
 		copy(nonce[:], nbytes)
 		responseNonce := nextBrowserNonce(nonce)
 		if req.Action == "change-public-keys" {
+			if mode == "create-late-start" || mode == "never-start" {
+				marker := os.Getenv("SECRETSTORE_TEST_START_MARKER")
+				_, err := os.Stat(marker)
+				if mode == "never-start" || os.IsNotExist(err) {
+					_ = os.WriteFile(marker, []byte("started"), 0o600)
+					time.Sleep(30 * time.Second)
+					return
+				}
+			}
 			key, err := base64.StdEncoding.DecodeString(req.PublicKey)
 			if err != nil || len(key) != 32 {
 				os.Exit(26)
@@ -105,6 +116,16 @@ func runBrowserHelper(mode string) {
 		var fields map[string]json.RawMessage
 		if json.Unmarshal(data, &fields) != nil {
 			os.Exit(29)
+		}
+		if mode == "unlock" || mode == "create-unlock" {
+			if req.TriggerUnlock != "true" {
+				os.Exit(40)
+			}
+			if lockedReplies < 2 {
+				lockedReplies++
+				send(map[string]any{"action": req.Action, "errorCode": "1"})
+				continue
+			}
 		}
 		if req.Action == "get-databasehash" && mode == "locked" {
 			send(map[string]any{"action": req.Action, "errorCode": "1", "error": "sensitive-error-text"})
@@ -134,7 +155,10 @@ func runBrowserHelper(mode string) {
 		case "get-logins":
 			var url string
 			json.Unmarshal(fields["url"], &url)
-			if url != "keepassxc://by-path/"+groupName+"/gerrit.wikimedia.org" && url != "keepassxc://by-path/"+groupName+"/gerrit.password" && url != "keepassxc://by-uuid/"+testBrowserUUID && url != "keepassxc://by-path/"+groupName+"/gerrit.password/gerrit.wikimedia.org" {
+			if mode == "create-custom-url" && url == "keepassxc://by-path/wm/gerrit.password/gerrit.password" {
+				os.Exit(41) // Custom URLs must not recover another layout's entry.
+			}
+			if url != "keepassxc://by-path/"+groupName+"/gerrit.password/gerrit.password" && url != "keepassxc://by-path/"+groupName+"/gerrit.wikimedia.org" && url != "keepassxc://by-path/"+groupName+"/gerrit.password" && url != "keepassxc://by-uuid/"+testBrowserUUID && url != "keepassxc://by-path/"+groupName+"/gerrit.password/gerrit.wikimedia.org" {
 				os.Exit(31)
 			}
 			if mode == "legacy-recovery" && url == "keepassxc://by-path/wm/gerrit.wikimedia.org" {
@@ -188,6 +212,9 @@ func runBrowserHelper(mode string) {
 			}
 			payload["uuid"] = strings.Repeat("e", 32)
 		case "set-login":
+			if mode == "create-write-disconnect" {
+				return
+			}
 			// BrowserAction passes QJsonValue::Null through QVariant. KeePassXC
 			// versions can serialize the enum as 0 rather than a JSON array/null.
 			payload["entries"] = 0
@@ -199,7 +226,11 @@ func runBrowserHelper(mode string) {
 			json.Unmarshal(fields["url"], &endpoint)
 			json.Unmarshal(fields["uuid"], &uuid)
 			json.Unmarshal(fields["groupUuid"], &group)
-			if login != "fixture" || value != "updated-fixture-secret" || endpoint != "https://gerrit.wikimedia.org" {
+			expectedEndpoint := "https://gerrit.wikimedia.org"
+			if mode == "create-custom-url" {
+				expectedEndpoint = "example-app://gerrit.password"
+			}
+			if login != "fixture" || value != "updated-fixture-secret" || endpoint != expectedEndpoint {
 				os.Exit(34)
 			}
 			if strings.HasPrefix(mode, "create") && (uuid != "" || group != strings.Repeat("e", 32)) {
@@ -290,7 +321,13 @@ func TestBrowserFailureNeverReturnsCredential(t *testing.T) {
 			}
 			log := filepath.Join(t.TempDir(), "actions")
 			t.Setenv("WM_BROWSER_ACTION_LOG", log)
-			value, err := testClient.Read(context.Background(), Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"})
+			wait := 5 * time.Second
+			if mode == "locked" {
+				wait = 50 * time.Millisecond
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), wait)
+			defer cancel()
+			value, err := testClient.Read(ctx, Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"})
 			if err == nil || value != "" {
 				t.Fatal("failed GUI access returned a credential")
 			}
@@ -300,6 +337,30 @@ func TestBrowserFailureNeverReturnsCredential(t *testing.T) {
 			data, _ := os.ReadFile(log)
 			if (mode == "locked" || mode == "revoked" || mode == "wrong-database") && strings.Contains(string(data), "get-logins") {
 				t.Fatal("looked up credential before verifying database and pairing")
+			}
+		})
+	}
+}
+
+func TestBrowserReadAndWriteWaitForUnlock(t *testing.T) {
+	for _, mode := range []string{"unlock", "create-unlock"} {
+		t.Run(mode, func(t *testing.T) {
+			p := browserFixture(t, mode)
+			if err := saveBrowserPairing(p); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if mode == "unlock" {
+				value, err := testClient.Read(ctx, Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"})
+				if err != nil || value != "fixture-service-secret" {
+					t.Fatalf("read after unlock failed: %v", err)
+				}
+			} else {
+				ref, err := WriteKeePassXCBrowser(ctx, nil, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
+				if err != nil || ref.EntryID != testBrowserUUID {
+					t.Fatalf("write after unlock failed: %v", err)
+				}
 			}
 		})
 	}
@@ -370,7 +431,13 @@ func TestBrowserWritesAreVerified(t *testing.T) {
 			if !strings.HasPrefix(mode, "create") {
 				existing = &Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"}
 			}
-			ref, err := WriteKeePassXCBrowser(context.Background(), existing, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
+			wait := 5 * time.Second
+			if mode == "locked" {
+				wait = 50 * time.Millisecond
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), wait)
+			defer cancel()
+			ref, err := WriteKeePassXCBrowser(ctx, existing, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
 			if mode == "create" || mode == "create-other-account" || mode == "update" {
 				if err != nil || ref.Login != "fixture" || ref.EntryID != testBrowserUUID {
 					t.Fatalf("save failed: %v", err)
@@ -425,5 +492,123 @@ func TestBrowserFlatGroupReusesMatchingAccount(t *testing.T) {
 				t.Fatal("created a duplicate or overwrote an existing entry")
 			}
 		})
+	}
+}
+
+func TestBrowserReconnectsBeforeWritingWhenGUIStartsLate(t *testing.T) {
+	p := browserFixture(t, "create-late-start")
+	t.Setenv("SECRETSTORE_TEST_START_MARKER", filepath.Join(t.TempDir(), "started"))
+	log := filepath.Join(t.TempDir(), "actions")
+	t.Setenv("WM_BROWSER_ACTION_LOG", log)
+	if err := saveBrowserPairing(p); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ref, err := WriteKeePassXCBrowser(ctx, nil, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
+	if err != nil || ref.EntryID != testBrowserUUID {
+		t.Fatalf("write after GUI startup failed: %v", err)
+	}
+	data, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(data), "change-public-keys") != 2 || strings.Count(string(data), "set-login") != 1 {
+		t.Fatalf("expected reconnection and exactly one write: %s", data)
+	}
+}
+
+func TestBrowserUnavailableRespectsCancellation(t *testing.T) {
+	p := browserFixture(t, "never-start")
+	t.Setenv("SECRETSTORE_TEST_START_MARKER", filepath.Join(t.TempDir(), "started"))
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	started := time.Now()
+	s, err := openBrowser(ctx, p.Proxy)
+	if s != nil || err == nil || !strings.Contains(err.Error(), "open KeePassXC") {
+		t.Fatalf("unexpected unavailable result: %v", err)
+	}
+	if time.Since(started) > 2*time.Second {
+		t.Fatal("connection ignored cancellation")
+	}
+}
+
+func TestLaunchBrowserGUIUsesPairedProxySibling(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell fixture")
+	}
+	for _, proxyName := range []string{"keepassxc-proxy", "keepassxc-proxy.exe"} {
+		t.Run(proxyName, func(t *testing.T) {
+			directory := t.TempDir()
+			marker := filepath.Join(directory, "launched")
+			t.Setenv("SECRETSTORE_GUI_LAUNCH_MARKER", marker)
+			name := "keepassxc"
+			if strings.HasSuffix(proxyName, ".exe") {
+				name += ".exe"
+			}
+			script := "#!/bin/sh\nprintf launched > \"$SECRETSTORE_GUI_LAUNCH_MARKER\"\n"
+			if err := os.WriteFile(filepath.Join(directory, name), []byte(script), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			launchBrowserGUI(filepath.Join(directory, proxyName))
+			deadline := time.Now().Add(2 * time.Second)
+			for {
+				if _, err := os.Stat(marker); err == nil {
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("GUI sibling was not launched")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+		})
+	}
+}
+
+func TestBrowserDoesNotRetryDisconnectedWrite(t *testing.T) {
+	p := browserFixture(t, "create-write-disconnect")
+	log := filepath.Join(t.TempDir(), "actions")
+	t.Setenv("WM_BROWSER_ACTION_LOG", log)
+	if err := saveBrowserPairing(p); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := WriteKeePassXCBrowser(ctx, nil, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
+	if err == nil {
+		t.Fatal("disconnected write unexpectedly succeeded")
+	}
+	data, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(data), "change-public-keys") != 1 || strings.Count(string(data), "set-login") != 1 {
+		t.Fatalf("write was retried: %s", data)
+	}
+}
+
+func TestBrowserCustomStorageURL(t *testing.T) {
+	p := browserFixture(t, "create-custom-url")
+	if err := saveBrowserPairing(p); err != nil {
+		t.Fatal(err)
+	}
+	testClient.EntryURL = "example-app://gerrit.password"
+	ref, err := testClient.Write(t.Context(), nil, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
+	if err != nil || ref.EntryID != testBrowserUUID {
+		t.Fatalf("custom URL entry was not verified: %v", err)
+	}
+}
+
+func TestBrowserCustomStorageURLPreservesExistingReference(t *testing.T) {
+	p := browserFixture(t, "update")
+	if err := saveBrowserPairing(p); err != nil {
+		t.Fatal(err)
+	}
+	testClient.Group = "new-flat-group"
+	testClient.EntryURL = "example-app://gerrit.password"
+	existing := &Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"}
+	ref, err := testClient.Write(t.Context(), existing, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
+	if err != nil || ref != *existing {
+		t.Fatalf("existing entry reference changed: %v", err)
 	}
 }

@@ -309,7 +309,7 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 		}
 	}
 	if entry == "" {
-		entry = "wm/" + c.Key
+		entry = secrets.KeePassXCGroup + "/" + c.Key
 	}
 	browser, value, err := findKeePassXCBrowser(ctx, entry)
 	if err != nil {

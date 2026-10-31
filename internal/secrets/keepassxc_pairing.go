@@ -1,8 +1,9 @@
 package secrets
 
 import (
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"path/filepath"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func KeePassXCPairingPath() string {

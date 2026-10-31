@@ -13,7 +13,12 @@ import (
 
 // Client has no global app paths. Pairing keys are kept separately from registry
 // metadata in a caller-selected private file. Group selects app-owned entries.
-type Client struct{ PairingFile, Group string }
+type Client struct {
+	PairingFile, Group string
+	// EntryURL optionally gives a new entry an application-specific URL and
+	// hostname title. Existing entries remain pinned to their saved UUIDs.
+	EntryURL string
+}
 
 func NewClient(pairingFile, group string) (*Client, error) {
 	if !filepath.IsAbs(pairingFile) || !validEntry(group) {

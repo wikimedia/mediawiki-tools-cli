@@ -116,6 +116,13 @@ it grants access while the paired database is unlocked and permissions allow.
 `Detect` does not access credentials or launch the GUI. WSL can select Windows
 `keepassxc-proxy.exe` using its absolute `/mnt/c/...` path.
 
+Credential operations request KeePassXC's unlock dialog and wait up to two
+minutes (or the caller's shorter deadline). KeePassXC must be running, and its
+Browser Integration settings must allow unlock requests for the dialog to open.
+Callers can also unlock manually while waiting. Only explicit database-locked
+rejections during database verification are retried; writes are never replayed,
+and denied access or other failures are returned immediately.
+
 Reads use pinned database and entry IDs. Writes read back the exact saved value
 before reporting success. The browser protocol does not support deleting an
 entry, so `Delete` on an app-owned KeePassXC reference returns `ErrUnsupported`;
@@ -172,3 +179,5 @@ Tests use fake native stores and encrypted, framed KeePassXC proxy fixtures.
 They cover provider routing, byte preservation, private/atomic registries,
 concurrent writers, cancellation, source retention, ownership, and protocol
 failures without touching a user's real keyring or vault.
+
+When the KeePassXC GUI is unavailable, connection setup retries with fresh proxy processes for up to two minutes (or the caller’s earlier deadline). The client attempts to launch the known KeePassXC GUI executable beside the paired proxy once, including Windows installations used from WSL. The user must unlock the paired database and approve any requests. Only connection setup and explicit locked-database checks are retried; credential writes are never replayed after a connection failure.

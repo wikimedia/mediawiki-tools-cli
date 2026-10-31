@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -42,25 +43,28 @@ type browserPairing struct {
 }
 
 type browserMessage struct {
-	Action    string          `json:"action"`
-	Success   string          `json:"success"`
-	Nonce     string          `json:"nonce"`
-	PublicKey string          `json:"publicKey"`
-	Message   string          `json:"message"`
-	ErrorCode json.RawMessage `json:"errorCode"`
-	Hash      string          `json:"hash"`
-	ID        string          `json:"id"`
-	UUID      string          `json:"uuid"`
-	Name      string          `json:"name"`
-	Entries   json.RawMessage `json:"entries"`
+	Action        string          `json:"action"`
+	Success       string          `json:"success"`
+	Nonce         string          `json:"nonce"`
+	PublicKey     string          `json:"publicKey"`
+	Message       string          `json:"message"`
+	ErrorCode     json.RawMessage `json:"errorCode"`
+	Hash          string          `json:"hash"`
+	ID            string          `json:"id"`
+	UUID          string          `json:"uuid"`
+	Name          string          `json:"name"`
+	Entries       json.RawMessage `json:"entries"`
+	TriggerUnlock string          `json:"triggerUnlock"`
 }
 
 type browserSession struct {
+	ctx                     context.Context
 	cmd                     *exec.Cmd
 	input                   io.WriteCloser
 	output                  io.ReadCloser
 	public, private, server *[32]byte
 	clientID                string
+	stopIO                  func() bool
 }
 
 const browserTimeout = 2 * time.Minute
@@ -79,11 +83,59 @@ func browserProxy(name string) (string, error) {
 	return filepath.Abs(path)
 }
 
+// Only connection setup is retried. No credential reads or writes have been
+// issued yet, so reconnecting cannot duplicate a save or an approval request.
 func openBrowser(ctx context.Context, proxy string) (*browserSession, error) {
+	launched := false
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("KeePassXC did not become available; open KeePassXC, enable Browser Integration and unlock the paired database: %w", err)
+		}
+		session, err := openBrowserOnce(ctx, proxy)
+		if !errors.Is(err, errBrowserUnavailable) {
+			return session, err
+		}
+		if !launched {
+			launchBrowserGUI(proxy)
+			launched = true
+		}
+		timer := time.NewTimer(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+		case <-timer.C:
+		}
+	}
+}
+
+// Use only the known GUI executable next to the explicitly paired proxy.
+// In WSL this also handles a Windows installation reached through /mnt/c/.
+func launchBrowserGUI(proxy string) {
+	name := filepath.Base(proxy)
+	gui := "keepassxc"
+	switch strings.ToLower(name) {
+	case "keepassxc-proxy":
+	case "keepassxc-proxy.exe":
+		gui += ".exe"
+	default:
+		return
+	}
+	path := filepath.Join(filepath.Dir(proxy), gui)
+	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+		return
+	}
+	cmd := exec.Command(path) // #nosec G204 -- fixed sibling GUI of the explicitly paired proxy, no shell or secret arguments.
+	cmd.Stdout, cmd.Stderr = io.Discard, io.Discard
+	if cmd.Start() == nil {
+		go func() { _ = cmd.Wait() }()
+	}
+}
+
+func openBrowserOnce(ctx context.Context, proxy string) (*browserSession, error) {
 	if !filepath.IsAbs(proxy) {
 		return nil, errors.New("invalid KeePassXC proxy path; pair again")
 	}
-	s := &browserSession{}
+	s := &browserSession{ctx: ctx}
 	var err error
 	s.public, s.private, err = box.GenerateKey(rand.Reader)
 	if err != nil {
@@ -109,8 +161,19 @@ func openBrowser(ctx context.Context, proxy string) (*browserSession, error) {
 	if err = s.cmd.Start(); err != nil {
 		s.input.Close()
 		s.output.Close()
-		return nil, errors.New("could not start KeePassXC proxy")
+		return nil, errors.New("could not start KeePassXC proxy; check its configured executable path")
 	}
+	// A proxy started while the GUI was closed can remain disconnected even
+	// after the GUI opens. Bound that handshake and create a fresh proxy.
+	interrupt := func() {
+		_ = s.input.Close()
+		_ = s.output.Close()
+		_ = s.cmd.Process.Kill()
+	}
+	s.stopIO = context.AfterFunc(ctx, interrupt)
+	handshakeTimer := time.AfterFunc(3*time.Second, interrupt)
+	defer handshakeTimer.Stop()
+
 	nonce, err := browserNonce()
 	if err != nil {
 		s.close()
@@ -133,6 +196,9 @@ func openBrowser(ctx context.Context, proxy string) (*browserSession, error) {
 }
 
 func (s *browserSession) close() {
+	if s.stopIO != nil {
+		s.stopIO()
+	}
 	s.input.Close()
 	s.output.Close()
 	if s.cmd.Process != nil {
@@ -165,11 +231,11 @@ func (s *browserSession) exchange(request map[string]string) (browserMessage, er
 	var header [4]byte
 	binary.LittleEndian.PutUint32(header[:], uint32(len(data)))
 	if _, err = io.Copy(s.input, bytes.NewReader(append(header[:], data...))); err != nil {
-		return browserMessage{}, errors.New("could not send KeePassXC request")
+		return browserMessage{}, fmt.Errorf("%w: could not send request", errBrowserUnavailable)
 	}
 	for notifications := 0; notifications < 16; notifications++ {
 		if _, err = io.ReadFull(s.output, header[:]); err != nil {
-			return browserMessage{}, errors.New("KeePassXC did not respond; open its GUI, enable Browser Integration, and approve the request before the timeout")
+			return browserMessage{}, fmt.Errorf("%w: proxy did not respond", errBrowserUnavailable)
 		}
 		size := binary.LittleEndian.Uint32(header[:])
 		if size == 0 || size > 1024*1024 {
@@ -203,12 +269,16 @@ func (s *browserSession) exchange(request map[string]string) (browserMessage, er
 	return browserMessage{}, errors.New("too many KeePassXC notifications")
 }
 
-var errBrowserEntryMissing = errors.New("no KeePassXC entry found")
+var (
+	errBrowserUnavailable  = errors.New("KeePassXC is not available")
+	errBrowserEntryMissing = errors.New("no KeePassXC entry found")
+	errBrowserLocked       = errors.New("KeePassXC database is locked or closed; unlock the paired database in KeePassXC and retry")
+)
 
 func browserError(raw json.RawMessage) error {
 	switch strings.Trim(string(raw), "\"") {
 	case "1":
-		return errors.New("KeePassXC database is locked or closed; unlock the paired database in KeePassXC and retry")
+		return errBrowserLocked
 	case "6":
 		return errors.New("KeePassXC access was cancelled or denied")
 	case "8":
@@ -223,6 +293,25 @@ func browserError(raw json.RawMessage) error {
 }
 
 func (s *browserSession) request(action string, fields map[string]any) (browserMessage, error) {
+	for {
+		reply, err := s.requestOnce(action, fields)
+		if !errors.Is(err, errBrowserLocked) || action != "get-databasehash" {
+			return reply, err
+		}
+		// KeePassXC raises its unlock dialog but returns a locked response
+		// immediately. Wait during database verification, so identity and
+		// pairing are checked after unlocking. Never replay a credential write.
+		timer := time.NewTimer(250 * time.Millisecond)
+		select {
+		case <-s.ctx.Done():
+			timer.Stop()
+			return browserMessage{}, fmt.Errorf("%w; timed out or cancelled waiting for unlock", errBrowserLocked)
+		case <-timer.C:
+		}
+	}
+}
+
+func (s *browserSession) requestOnce(action string, fields map[string]any) (browserMessage, error) {
 	nonce, err := browserNonce()
 	if err != nil {
 		return browserMessage{}, err
@@ -233,7 +322,7 @@ func (s *browserSession) request(action string, fields map[string]any) (browserM
 		return browserMessage{}, err
 	}
 	cipher := box.Seal(nil, data, &nonce, s.server, s.private)
-	reply, err := s.exchange(map[string]string{"action": action, "message": base64.StdEncoding.EncodeToString(cipher), "nonce": base64.StdEncoding.EncodeToString(nonce[:]), "clientID": s.clientID, "triggerUnlock": "false"})
+	reply, err := s.exchange(map[string]string{"action": action, "message": base64.StdEncoding.EncodeToString(cipher), "nonce": base64.StdEncoding.EncodeToString(nonce[:]), "clientID": s.clientID, "triggerUnlock": "true"})
 	if err != nil {
 		return browserMessage{}, err
 	}
@@ -447,14 +536,18 @@ func (c *Client) Write(ctx context.Context, existing *Reference, key, account, e
 	if err != nil {
 		return Reference{}, err
 	}
-	parsed, err := url.Parse(endpoint)
-	if err != nil {
+	entryURL := endpoint
+	if existing == nil && c.EntryURL != "" {
+		entryURL = c.EntryURL
+	}
+	parsed, err := url.Parse(entryURL)
+	if err != nil || parsed.Hostname() == "" || parsed.Scheme == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || len(entryURL) > 256 {
 		return Reference{}, errors.New("invalid credential endpoint")
 	}
 	group := c.Group
 	path := group + "/" + parsed.Hostname()
 	legacyPath := group + "/" + key + "/" + parsed.Hostname()
-	if !validEntry(legacyPath) || len("keepassxc://by-path/"+legacyPath) > 256 {
+	if !validEntry(path) || len("keepassxc://by-path/"+path) > 256 || (c.EntryURL == "" && (!validEntry(legacyPath) || len("keepassxc://by-path/"+legacyPath) > 256)) {
 		return Reference{}, errors.New("credential key is too long or invalid for KeePassXC")
 	}
 	expectedHash := ""
@@ -489,7 +582,7 @@ func (c *Client) Write(ctx context.Context, existing *Reference, key, account, e
 		entry, err = browserLookupAccount(s, p, "keepassxc://by-path/"+path, account)
 		// Recover an interrupted migration made with the previous nested layout.
 		// Existing UUID links continue to use their original entry in any location.
-		if errors.Is(err, errBrowserEntryMissing) {
+		if c.EntryURL == "" && errors.Is(err, errBrowserEntryMissing) {
 			legacy, legacyErr := browserLookupAccount(s, p, "keepassxc://by-path/"+legacyPath, account)
 			if legacyErr == nil {
 				entry, err = legacy, nil
@@ -519,7 +612,7 @@ func (c *Client) Write(ctx context.Context, existing *Reference, key, account, e
 			if current.Hash != p.DatabaseHash {
 				return Reference{}, errors.New("KeePassXC database changed before saving")
 			}
-			if _, err = s.request("set-login", map[string]any{"id": p.ID, "url": endpoint, "login": account, "password": value, "group": group, "groupUuid": groupReply.UUID, "downloadFavicon": "false"}); err != nil {
+			if _, err = s.request("set-login", map[string]any{"id": p.ID, "url": entryURL, "login": account, "password": value, "group": group, "groupUuid": groupReply.UUID, "downloadFavicon": "false"}); err != nil {
 				return Reference{}, err
 			}
 			entry, err = browserLookupAccount(s, p, "keepassxc://by-path/"+path, account)

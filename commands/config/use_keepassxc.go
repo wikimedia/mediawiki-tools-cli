@@ -25,6 +25,6 @@ func NewUseKeePassXCCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&entry, "entry", "", "Full entry path (default: wm/KEY, or the previously linked entry)")
+	cmd.Flags().StringVar(&entry, "entry", "", "Full entry path (default: a-wikimedia-cli/KEY, or the previously linked entry)")
 	return cmd
 }

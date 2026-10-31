@@ -2,17 +2,22 @@ package secrets
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"strings"
 
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore/keepassxc"
 )
 
+// KeePassXCGroup names the CLI-owned top-level group for new entries.
+// Existing references use UUIDs, so they remain valid in older or renamed groups.
+const KeePassXCGroup = "a-wikimedia-cli"
+
 // App paths stay here; the reusable provider has no CLI dependencies.
 type KeePassXCBrowser keepassxc.Reference
 
 func browserClient() *keepassxc.Client {
-	return &keepassxc.Client{PairingFile: KeePassXCPairingPath(), Group: "wm"}
+	return &keepassxc.Client{PairingFile: KeePassXCPairingPath(), Group: KeePassXCGroup}
 }
 
 func PairKeePassXCBrowser(ctx context.Context, proxy string) error {
@@ -44,11 +49,13 @@ func WriteKeePassXCBrowser(ctx context.Context, existing *KeePassXCBrowser, key,
 
 func browserClientForCredential(key string) *keepassxc.Client {
 	client := browserClient()
-	if strings.HasPrefix(key, "phabricator.profiles.") || strings.HasPrefix(key, "gerrit.profiles.") {
-		// Different profiles can use the same username with different
-		// credentials or permissions. Never reuse their tokens by username.
-		// Existing references remain pinned to their original UUID and location.
-		client.Group += "/" + key
+	// KeePassXC derives the title from the URL hostname. A credential-specific
+	// URL keeps profiles distinct in one flat group, even with equal usernames.
+	host := strings.ToLower(key)
+	if host != key {
+		// Hostnames are case insensitive; preserve case-sensitive key identity.
+		host += fmt.Sprintf("-%x", sha256.Sum256([]byte(key)))
 	}
+	client.EntryURL = "a-wikimedia-cli://" + host
 	return client
 }
