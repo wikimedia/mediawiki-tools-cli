@@ -1,7 +1,7 @@
 # Optional log browsing stack. No application service depends on these containers.
 services:
   logs-opensearch:
-    image: "${LOGS_OPENSEARCH_IMAGE:-opensearchproject/opensearch:2.19.4}"
+    image: "${LOGS_OPENSEARCH_IMAGE:-opensearchproject/opensearch:2.19.7}"
     restart: unless-stopped
     environment:
       - discovery.type=single-node
