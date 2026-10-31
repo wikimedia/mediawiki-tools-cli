@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:11.6.16
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana-host.rule=Host(`${GRAFANA_VIRTUAL_HOST:-grafana.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
