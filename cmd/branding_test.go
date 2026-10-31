@@ -17,7 +17,7 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 	t.Cleanup(func() { cli.Opts = previous })
 	cli.Opts.NoInteraction = true
 	for _, name := range []string{"mw", "wm", "wiki-tool"} {
-		for _, args := range [][]string{{"--help"}, {"cloudvps", "ssh", "--help"}, {"cloudvps", "auth", "add", "--help"}, {"analytics", "pageviews", "--help"}} {
+		for _, args := range [][]string{{"--help"}, {"cloudvps", "ssh", "--help"}, {"cloudvps", "auth", "login", "--help"}, {"cloudvps", "auth", "add", "--help"}, {"analytics", "pageviews", "--help"}} {
 			root := NewRootCmd(name)
 			var out bytes.Buffer
 			root.SetOut(&out)
@@ -34,8 +34,15 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 				if !strings.Contains(text, cli.DisplayName) || strings.Contains(text, "+----+") {
 					t.Fatal("plain root help lost brand or contains terminal banner")
 				}
-			} else if !strings.Contains(text, "  "+name+" "+strings.Join(args[:len(args)-1], " ")+" ") {
-				t.Fatalf("example is not copyable: %s", text)
+			} else {
+				command, _, err := root.Find(args[:len(args)-1])
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Aliases remain callable, while examples use the canonical name.
+				if !strings.Contains(text, "  "+command.CommandPath()+" ") {
+					t.Fatalf("example is not copyable: %s", text)
+				}
 			}
 		}
 	}

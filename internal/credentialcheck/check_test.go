@@ -93,7 +93,7 @@ func TestServiceChecksAuthenticateAndReportOnlyStatus(t *testing.T) {
 	}
 }
 
-func TestUsernameCaseComparisonIsServiceSpecific(t *testing.T) {
+func TestUsernameCaseComparison(t *testing.T) {
 	for _, service := range []string{"phabricator", "gerrit", "gitlab"} {
 		t.Run(service, func(t *testing.T) {
 			for _, actual := range []string{"Addshore", "Addbot"} {
@@ -107,7 +107,7 @@ func TestUsernameCaseComparisonIsServiceSpecific(t *testing.T) {
 				result := Check(t.Context(), Request{Service: service, Endpoint: server.URL, Account: "addshore", Value: "private-fixture"})
 				server.Close()
 				want := "wrong-account"
-				if service != "gerrit" && actual == "Addshore" {
+				if actual == "Addshore" {
 					want = "valid"
 				}
 				if result.Status != want || result.Identity != actual {

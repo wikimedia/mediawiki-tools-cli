@@ -103,7 +103,11 @@ func Check(ctx context.Context, input Request) Result {
 		if json.Unmarshal([]byte(strings.TrimPrefix(string(body), ")]}'\n")), &reply) != nil {
 			return Result{Status: "unavailable"}
 		}
-		return identityResult(input.Account, reply.Username)
+		expected := input.Account
+		if strings.EqualFold(expected, reply.Username) {
+			expected = reply.Username
+		}
+		return identityResult(expected, reply.Username)
 	case "cloudvps":
 		project, id, ok := strings.Cut(input.Account, ":")
 		if !ok || id == "" {

@@ -1,6 +1,8 @@
 # Credentials and password managers
 
-On the first interactive Gerrit, Cloud VPS, Phabricator or wiki credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
+On the first interactive Gerrit, Cloud VPS, Phabricator, GitLab or wiki credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
+
+On native Windows, the storage picker shows Windows Credential Manager once. In WSL, OS keyring means Linux Secret Service and Windows Credential Manager means the Windows store, so both remain available when detected.
 
 ```sh
 mw gerrit auth login
@@ -26,7 +28,7 @@ The inventory includes known credential references, plaintext config secrets, an
 
 Add `--check` to read linked provider values only where a plaintext copy also exists. The comparison column reports `match`, `different`, or `unavailable`, without revealing either value, hashes or lengths. KeePassXC may request access approval. An unavailable vault leaves the comparison inconclusive. No values are changed, and matching values do not prove that the remote service still accepts the credential. `--check --json` includes the same results for scripts. Interactive tables use the CLI's shared colour styling; redirected output and JSON stay plain, and `NO_COLOR` disables table colours.
 
-Add `--verify` to authenticate each stored copy separately. The `AUTH` column reports `valid`, `invalid`, `wrong-account`, `denied`, or an inconclusive `unavailable` result. For example, a current plaintext Phabricator token can show `valid` while the older linked token shows `invalid`. Checks support Gerrit, Phabricator, Cloud VPS, and saved wiki accounts. Pairing files are not applicable; unknown credential types are unsupported. These are authenticated identity or token requests, not edits or an exhaustive permission check. Expired OAuth access tokens show `expired` without refreshing or rotating anything. No secrets are overwritten or removed. Supply keys to inspect only those credentials; `--check --verify` shares vault reads so each copy is retrieved once. JSON includes per-copy validation and the authenticated identity where available.
+Add `--verify` to authenticate each stored copy separately. The `AUTH` column reports `valid`, `invalid`, `wrong-account`, `denied`, or an inconclusive `unavailable` result. For example, a current plaintext Phabricator token can show `valid` while the older linked token shows `invalid`. Checks support Gerrit, Phabricator, GitLab, Cloud VPS, and saved wiki accounts. Pairing files are not applicable; unknown credential types are unsupported. These are authenticated identity or token requests, not edits or an exhaustive permission check. Expired OAuth access tokens show `expired` without refreshing or rotating anything. No secrets are overwritten or removed. Supply keys to inspect only those credentials; `--check --verify` shares vault reads so each copy is retrieved once. JSON includes per-copy validation and the authenticated identity where available.
 
 After `--check` or `--verify`, text output suggests commands when the results support a repair: remove an identical plaintext copy, replace an invalid vault copy with a valid plaintext copy, or log in again to Gerrit. Unverified differences get a verification command instead. Different account or endpoint bindings do not get replacement suggestions. Suggestions never run automatically; JSON remains the inventory array without command suggestions.
 
@@ -37,7 +39,7 @@ mw config secrets migrate --dry-run
 mw config secrets migrate
 ```
 
-Migration verifies each saved value before removing its plaintext copy from configuration. It does not import `phab.cfg` or migrate GitLab credentials. Existing backups may still contain the old values.
+Migration verifies each saved value before removing its plaintext copy from configuration. This includes tokens already saved in CLI GitLab profiles. It does not import external `phab.cfg` files or upstream glab credentials; use the service login import options for those. Existing backups may still contain the old values.
 
 When a plaintext value and a vault link both exist, ordinary migration refuses to change differing values. If you know the plaintext value is the one to keep, explicitly replace one named vault credential:
 
@@ -86,6 +88,12 @@ Use `--method token` to paste an existing API token without opening the browser.
 
 Profiles are independent saved account slots: personal and bot accounts can use the same server. Without `--profile`, login uses the verified username in lowercase (for example `addshore`); other commands use your saved default profile. The first login becomes the default. Later logins to another profile ask whether to change the default, with “no” selected initially. Non-interactive logins keep the existing default. Use `login --default` to switch explicitly, or `--default=false` to suppress the question and keep the current default. Use `--profile` on any Phabricator command to select another account. Set `phabricator.default_profile` to change the default independently; old CLI `sites` and `default_site` configuration is migrated automatically on upgrade, retaining profile names and saved credential references. The deprecated `--site` alias is hidden during the migration window. Profile names have shell completion; listing profiles does not retrieve tokens. `auth remove --profile NAME` removes the selected profile and its local credentials or reference, without revoking its server-side token. Revoke unwanted tokens in Phabricator's Conduit API Tokens settings.
 
+Phabricator caches are isolated by server, profile, username and project, including
+when profiles specify the same `cache_path`. A configured `cache_path` is treated
+as a root for these separate caches. Older shared cache files are left in place
+but are no longer read. `auth status` checks that the token belongs to the saved
+username, allowing differences in letter case.
+
 To copy credentials from the Python `phab` tool, explicitly import its configuration:
 
 ```sh
@@ -95,9 +103,13 @@ mw phab auth login --method phab-cfg --config-file ~/.config/phab/phab.cfg --con
 
 The importer uses the specified section or the file's `[main] default`, verifies the configured identity on that section's HTTPS server, and saves its token in your chosen credential provider. It also copies `default_project`. The source file is left unchanged, including its plaintext token; the saved profile no longer depends on it. Normal commands never use credentials directly from `phab.cfg`. Detection in standard locations only suggests importing; it does not retrieve or test the token. Browser and existing-token login never take their destination from a detected file.
 
-`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential’s account or endpoint. Use `config secrets transfer` to change its storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator profile removal also deletes its local metadata; importing again requires an explicit login.
+`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Use a separate profile when changing accounts or endpoints, or remove the old profile with the service’s `auth remove --profile NAME` command before logging in again. Use `config secrets transfer` to change its storage backend. Profile removal deletes saved keyring credentials or KeePassXC references and local profile metadata; environment overrides are unchanged. Importing again requires an explicit login.
 
 Choosing plaintext displays a warning that credentials are stored unencrypted. You can also select it with `--provider plaintext` or use `--insecure-storage` for a single save. A selected provider failing never silently switches storage. On Unix, the CLI restricts its config directory to the current user and writes the file atomically with mode `0600`. Windows file permissions depend on its ACLs; prefer Credential Manager there.
+
+Configuration mutations share an interprocess lock and reload the current file before writing. OAuth refresh holds the same lock from reading the saved bundle through persisting rotated tokens, so concurrent commands reuse the new bundle instead of refreshing the same old token. Profile removal commits its credential and metadata changes together.
+
+Plaintext migration also reads the source under the mutation lock. New native-keyring saves refuse to overwrite a different value in a slot not already linked by this configuration; an equal value can be linked safely.
 
 The CLI's secure storage uses the reusable `pkg/secretstore` package. Provider access is separate from service authentication; migration from existing plaintext configuration remains an explicit operation.
 
@@ -267,13 +279,13 @@ mw config set gerrit.profiles.addshore.password --stdin --provider keyring
 mw config secrets migrate gerrit.profiles.addshore.password --provider keyring
 ```
 
-To change an already linked credential’s provider without logging out, transfer it explicitly:
+To change an already linked credential’s provider, transfer it explicitly:
 
 ```sh
 mw config secrets transfer gerrit.profiles.addshore.password --provider keyring
 ```
 
-Transfer verifies and persists the destination before switching the reference, then removes the source if no current reference still uses it. KeePassXC requests GUI deletion approval. Use `--keep-source` to retain and track a backup copy; failed source cleanup keeps its record and leaves the verified destination active. A plaintext config copy is removed after verified secure storage. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
+Transfer verifies and persists the destination before switching the reference, then removes the source if no current reference still uses it. KeePassXC requests GUI deletion approval. Use `--keep-source` to retain and track a backup copy; failed source cleanup keeps its record and leaves the verified destination active. A plaintext source is removed after verified secure storage unless `--keep-source` is set. Retained plaintext stays in config.json and is shown by `config secrets list`; it is not an external detached entry. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
 
 For scripts and `--no-interaction`, set a default first or pass `--provider`. With no selection, noninteractive saves try the OS keyring and fail with guidance if it is unavailable; they never automatically choose plaintext.
 
@@ -396,7 +408,7 @@ mw config secrets keepassxc status
 mw config secrets keepassxc disconnect
 ```
 
-`status` shows the pairing location and public metadata without contacting the GUI. `disconnect` removes the local pairing; also revoke its stored key in KeePassXC under **Database Settings → Browser Integration**. Logout forgets an individual entry reference while retaining the shared pairing.
+`status` shows the pairing location and public metadata without contacting the GUI. `disconnect` removes the local pairing; also revoke its stored key in KeePassXC under **Database Settings → Browser Integration**. `auth remove --profile NAME` forgets an individual profile and its entry reference while retaining the shared pairing.
 
 ### Discovering saved accounts
 
@@ -412,6 +424,21 @@ mw config profiles --json
 The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `mw config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. External glab storage is managed separately.
 
 Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS, Gerrit and Phabricator share the same profile commands and default-selection behavior.
+
+To rotate a Cloud VPS application credential while keeping the same profile, run:
+
+```sh
+mw cloudvps auth login --profile mwcli --id NEW_APPLICATION_CREDENTIAL_ID --secret-stdin --replace
+```
+
+The CLI checks that the replacement authenticates to the profile's existing
+project. It keeps the profile's provider and default selection, verifies and
+persists the new credential, then removes the unused old local entry. KeePassXC
+asks for deletion approval; if cleanup fails, the new credential remains active
+and the old entry is tracked by `config secrets detached`. Failed validation or
+storage leaves the old profile usable. OpenStack credentials are not revoked;
+revoke the old application credential separately in Horizon. Use a separate
+profile for a different project, and `config secrets transfer` to change providers.
 
 Cloud VPS profiles each hold one application credential and its project. Login defaults the profile name to the project; use `--profile` to keep multiple credentials with different permissions for the same project:
 

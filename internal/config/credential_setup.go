@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -31,23 +32,8 @@ func promptCredentialProvider() (string, error) {
 	keyring := detectKeyring(ctx)
 	keepass := detectKeePassXC()
 	fmt.Fprintf(os.Stderr, "Choose where to store credentials. This becomes the default for new credentials.\nOS keyring: %s\nKeePassXC: %s\n", keyring.Detail, keepass.Detail)
-	providers := []string{}
-	labels := []string{}
-	if keyring.Available {
-		providers = append(providers, "keyring")
-		labels = append(labels, "OS keyring")
-	}
-	if keepass.Available {
-		providers = append(providers, "keepassxc")
-		labels = append(labels, "KeePassXC ("+keepass.Detail+")")
-	}
 	windows := detectWindowsCredentials(ctx, State().EffectiveKoanf.String("secrets.windows_helper"))
-	if windows.Available {
-		providers = append(providers, secrets.WindowsProvider)
-		labels = append(labels, "Windows Credential Manager")
-	}
-	providers = append(providers, "plaintext")
-	labels = append(labels, "Plaintext configuration (unencrypted)")
+	providers, labels := credentialStorageChoices(runtime.GOOS, keyring, keepass, windows)
 	selected, err := askCredentialStorage(labels)
 	if err != nil {
 		return "", err
@@ -71,4 +57,26 @@ var askCredentialStorage = func(labels []string) (int, error) {
 	var selected int
 	err := survey.AskOne(&survey.Select{Message: "Credential storage:", Options: labels}, &selected)
 	return selected, err
+}
+
+// Native Windows keyring and Credential Manager use the same store. In WSL,
+// Linux Secret Service and Windows Credential Manager are distinct choices.
+func credentialStorageChoices(platform string, keyring, keepass, windows secrets.Availability) ([]string, []string) {
+	providers := []string{}
+	labels := []string{}
+	if keyring.Available && !(platform == "windows" && windows.Available) {
+		providers = append(providers, "keyring")
+		labels = append(labels, "OS keyring")
+	}
+	if keepass.Available {
+		providers = append(providers, "keepassxc")
+		labels = append(labels, "KeePassXC ("+keepass.Detail+")")
+	}
+	if windows.Available {
+		providers = append(providers, secrets.WindowsProvider)
+		labels = append(labels, "Windows Credential Manager")
+	}
+	providers = append(providers, "plaintext")
+	labels = append(labels, "Plaintext configuration (unencrypted)")
+	return providers, labels
 }

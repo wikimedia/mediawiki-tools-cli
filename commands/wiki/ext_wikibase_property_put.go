@@ -24,7 +24,7 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 		Use:     "put",
 		Short:   "Create a Wikibase property",
 		Long:    "Create a new property with an English label and the selected datatype. This command always creates a property; it does not update an existing one.",
-		Example: "  mw wiki ext wikibase property put --profile wikibase-world/addshore --label 'Example property' --datatype string --dry-run",
+		Example: "  put --profile wikibase-world/addshore --label 'Example property' --datatype string --dry-run",
 		Run: func(cmd *cobra.Command, args []string) {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -238,5 +239,29 @@ func TestPlaintextMigrationCanUpgradeItsBinding(t *testing.T) {
 				t.Fatal("upgraded credential is not readable")
 			}
 		})
+	}
+}
+
+func TestNativeWindowsStorageChoicesAreNotDuplicated(t *testing.T) {
+	ready := secrets.Availability{Available: true}
+	for _, platform := range []string{"windows", "linux", "darwin"} {
+		t.Run(platform, func(t *testing.T) {
+			providers, labels := credentialStorageChoices(platform, ready, ready, ready)
+			want := []string{"keyring", "keepassxc", secrets.WindowsProvider, "plaintext"}
+			if platform == "windows" {
+				want = []string{"keepassxc", secrets.WindowsProvider, "plaintext"}
+			}
+			if !reflect.DeepEqual(providers, want) {
+				t.Fatalf("providers=%v, want %v", providers, want)
+			}
+			if len(labels) != len(providers) {
+				t.Fatal("storage labels do not match providers")
+			}
+		})
+	}
+	// An unavailable Windows bridge must not hide a usable native keyring.
+	providers, _ := credentialStorageChoices("linux", ready, secrets.Availability{}, secrets.Availability{})
+	if !reflect.DeepEqual(providers, []string{"keyring", "plaintext"}) {
+		t.Fatal("native keyring fallback was hidden")
 	}
 }

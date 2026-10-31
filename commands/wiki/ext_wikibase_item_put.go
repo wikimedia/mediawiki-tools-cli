@@ -25,7 +25,7 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 		Use:     "put",
 		Short:   "Create a Wikibase item with one string claim",
 		Long:    "Create a new item with an English label and one string-valued claim. This command always creates an item; it does not update an existing one.",
-		Example: "  mw wiki ext wikibase item put --profile wikibase-world/addshore --label 'Example' --property P1 --value 'Example value' --dry-run",
+		Example: "  put --profile wikibase-world/addshore --label 'Example' --property P1 --value 'Example value' --dry-run",
 		Run: func(cmd *cobra.Command, args []string) {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")

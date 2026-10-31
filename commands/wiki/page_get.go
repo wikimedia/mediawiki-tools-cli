@@ -14,8 +14,8 @@ func NewWikiPageGetCmd() *cobra.Command {
 		Use:   "get [TITLE]",
 		Short: "Print a page's source (defaults to the wiki's main page)",
 		Args:  cobra.MaximumNArgs(1),
-		Example: "  mw wiki page get --profile wikibase-world/addshore\n" +
-			"  mw wiki page get --profile wikimedia/addshore --title 'User:Addshore'",
+		Example: "  get --profile wikibase-world/addshore\n" +
+			"  get --profile wikimedia/addshore --title 'User:Addshore'",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			title := wikiPageTitle
 			if len(args) != 0 {

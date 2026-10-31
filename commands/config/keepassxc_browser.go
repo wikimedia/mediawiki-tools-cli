@@ -17,7 +17,7 @@ func NewKeePassXCConnectCmd() *cobra.Command {
 			if !cli.CanAskForInput() {
 				return fmt.Errorf("pairing needs an interactive terminal; unlock KeePassXC and run this command yourself")
 			}
-			cmd.PrintErrln("In KeePassXC, unlock the intended database and approve the connection request. Give it a name such as wm-cli.")
+			cmd.PrintErrln("In KeePassXC, unlock the intended database and approve the connection request. Give it a name such as a-wikimedia-cli.")
 			if err := secrets.PairKeePassXCBrowser(cmd.Context(), proxy); err != nil {
 				return err
 			}
