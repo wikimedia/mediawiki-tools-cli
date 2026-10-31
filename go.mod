@@ -33,7 +33,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
-	github.com/txn2/txeh v1.5.4
+	github.com/txn2/txeh v1.8.1
 	gitlab.com/gitlab-org/api/client-go v0.130.1
 	gitlab.com/gitlab-org/cli v1.61.0
 	gitlab.com/gitlab-org/cli/mwcli v0.0.0
