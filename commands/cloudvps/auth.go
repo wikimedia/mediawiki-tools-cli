@@ -77,12 +77,14 @@ func NewAuthAddCmd() *cobra.Command {
 				ApplicationCredentialSecret: secret,
 				DomainID:                    "default",
 			}
-			_, err := authenticatedCloudClient(cmd.Context(), auth)
+			cloudClient, err := authenticatedCloudClient(cmd.Context(), auth)
 			if err != nil {
 				return err
 			}
 
-			// TODO check the creds are for the right project before saving?
+			if err := checkProviderProject(cloudClient, project); err != nil {
+				return err
+			}
 
 			key := "cloud_vps.projects." + project + ".credential."
 			credential := config.Credential{Key: key + "secret", Service: "cloudvps", Endpoint: authUrl, Account: project + ":" + id}

@@ -6,9 +6,11 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/tokens"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/credentialcheck"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
@@ -60,6 +62,9 @@ func authenticatedProvider(cmd *cobra.Command) (*gophercloud.ProviderClient, err
 	if err != nil {
 		return nil, fmt.Errorf("authenticate to Cloud VPS project %q: %w", project, err)
 	}
+	if err := checkProviderProject(provider, project); err != nil {
+		return nil, err
+	}
 	return provider, nil
 }
 
@@ -79,4 +84,24 @@ func authenticatedCloudClient(ctx context.Context, options gophercloud.AuthOptio
 		return nil, err
 	}
 	return provider, nil
+}
+
+func checkProviderProject(provider *gophercloud.ProviderClient, expected string) error {
+	result, ok := provider.GetAuthResult().(tokens.CreateResult)
+	if !ok {
+		return fmt.Errorf("could not verify the authenticated Cloud VPS project")
+	}
+	project, err := result.ExtractProject()
+	if err != nil || project == nil {
+		return fmt.Errorf("could not read the authenticated Cloud VPS project")
+	}
+	username := ""
+	if user, err := result.ExtractUser(); err == nil && user != nil {
+		username = user.Name
+	}
+	checked := credentialcheck.CloudProjectResult(expected, project.ID, project.Name, username)
+	if checked.Status != "valid" {
+		return fmt.Errorf("Cloud VPS project verification failed: %s", checked.Detail)
+	}
+	return nil
 }

@@ -255,7 +255,9 @@ func InspectSecretInventory(ctx context.Context, entries []SecretInfo, compare, 
 		entry.Status = strings.Replace(entry.Status, "linked (not checked)", "linked; value read", 1)
 		result := checkServiceCredential(ctx, input)
 		entry.Validation, entry.AuthenticatedAs = result.Status, result.Identity
-		if result.Status == "wrong-account" && result.Identity != "" {
+		if result.Detail != "" {
+			entry.Status += "; " + result.Detail
+		} else if result.Status == "wrong-account" && result.Identity != "" {
 			entry.Status += fmt.Sprintf("; authenticated as %s; expected %s", result.Identity, input.Account)
 		}
 	}

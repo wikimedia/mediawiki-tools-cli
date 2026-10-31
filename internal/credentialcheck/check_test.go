@@ -213,3 +213,26 @@ func TestWikiBotPasswordChecksLoginAndPreservesSession(t *testing.T) {
 		})
 	}
 }
+
+func TestCloudProjectScopeAcceptsIDOrName(t *testing.T) {
+	for _, tc := range []struct {
+		expected, id, name, want string
+	}{
+		{"mwcli", "mwcli", "Wikimedia CLI", "valid"},
+		{"mwcli", "project-uuid", "mwcli", "valid"},
+		{"mwcli", "other-id", "other-name", "wrong-account"},
+		{"mwcli", "", "", "unavailable"},
+	} {
+		result := CloudProjectResult(tc.expected, tc.id, tc.name, "Addshore")
+		if result.Status != tc.want {
+			t.Fatalf("scope ID=%q name=%q: got %+v, want %s", tc.id, tc.name, result, tc.want)
+		}
+		if tc.want == "wrong-account" {
+			for _, value := range []string{tc.expected, tc.id, tc.name, "Addshore"} {
+				if !strings.Contains(result.Detail, value) {
+					t.Fatalf("diagnostic omits %q: %s", value, result.Detail)
+				}
+			}
+		}
+	}
+}

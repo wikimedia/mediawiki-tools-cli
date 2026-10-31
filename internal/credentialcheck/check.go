@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -26,6 +27,7 @@ type Request struct {
 type Result struct {
 	Status   string
 	Identity string
+	Detail   string
 }
 
 // Check proves service acceptance, not permission to perform every operation.
@@ -113,17 +115,15 @@ func Check(ctx context.Context, input Request) Result {
 					Name string `json:"name"`
 				} `json:"user"`
 				Project struct {
+					ID   string `json:"id"`
 					Name string `json:"name"`
 				} `json:"project"`
 			} `json:"token"`
 		}
-		if json.Unmarshal(body, &reply) != nil || reply.Token.Project.Name == "" {
+		if json.Unmarshal(body, &reply) != nil {
 			return Result{Status: "unavailable"}
 		}
-		if reply.Token.Project.Name != project {
-			return Result{Status: "wrong-account", Identity: reply.Token.User.Name}
-		}
-		return Result{Status: "valid", Identity: reply.Token.User.Name}
+		return CloudProjectResult(project, reply.Token.Project.ID, reply.Token.Project.Name, reply.Token.User.Name)
 	case "wiki":
 		return checkWiki(ctx, client, input)
 	default:
@@ -231,4 +231,16 @@ func checkWiki(ctx context.Context, client *http.Client, input Request) Result {
 		}
 	}
 	return identityResult(expected, reply.Query.Userinfo.Name)
+}
+
+// CloudProjectResult checks the token's project scope, accepting either a project
+// ID or name. Display names can differ from the project ID used in configuration.
+func CloudProjectResult(expected, id, name, username string) Result {
+	if id == "" && name == "" {
+		return Result{Status: "unavailable", Identity: username, Detail: "authenticated token has no project scope"}
+	}
+	if expected == id || expected == name {
+		return Result{Status: "valid", Identity: username}
+	}
+	return Result{Status: "wrong-account", Identity: username, Detail: fmt.Sprintf("authenticated as %s; token project name %q, ID %q; expected project %q", username, name, id, expected)}
 }
