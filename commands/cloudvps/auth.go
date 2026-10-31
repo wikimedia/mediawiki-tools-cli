@@ -29,11 +29,12 @@ func NewAuthCmd(selected *string) *cobra.Command {
 }
 
 func NewAuthLoginCmd() *cobra.Command {
+	var replace bool
 	cmd := &cobra.Command{
 		Use:     "login",
 		Aliases: []string{"add"},
 		Short:   "Add a new application credential",
-		Long:    "Validate and save OpenStack application credentials. Missing values are prompted for in a terminal, with the secret hidden. Create credentials for the selected project at https://horizon.wikimedia.org/identity/application_credentials/.",
+		Long:    "Validate and save OpenStack application credentials. Missing values are prompted for in a terminal, with the secret hidden. Create credentials for the selected project at https://horizon.wikimedia.org/identity/application_credentials/. Use --replace to rotate an existing profile to a new credential for the same project. The destination is verified and saved before the old local entry is cleaned up; server-side credentials are not revoked.",
 		Example: "login --project mwcli\nlogin --project mwcli --profile mwcli-readonly --id APPLICATION_CREDENTIAL_ID --secret-stdin",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -102,18 +103,38 @@ func NewAuthLoginCmd() *cobra.Command {
 			if !authprofile.ValidName(name) {
 				return fmt.Errorf("profile must contain only letters, digits, underscores or hyphens")
 			}
-			changeDefault, err := authprofile.ChooseLoginDefault(cmd, name, cloudProfiles.Default())
-			if err != nil {
-				return err
+			changeDefault := false
+			if !replace || cmd.Flags().Changed("default") {
+				changeDefault, err = authprofile.ChooseLoginDefault(cmd, name, cloudProfiles.Default())
+				if err != nil {
+					return err
+				}
 			}
 			key := cloudProfiles.Prefix(name) + "."
 			metadata := map[string]string{key + "id": id, key + "project": project}
 			if changeDefault {
 				metadata["cloud_vps.default_profile"] = name
 			}
-			cmd.Println("Saving account credentials; unlock your password manager and approve access if prompted.")
 			credential := config.Credential{Key: key + "secret", Service: "cloudvps", Endpoint: authUrl, Account: project + ":" + id}
-			if err := credential.SaveWithProvider(secret, insecureStorage, metadata, provider); err != nil {
+			previousID := config.State().EffectiveKoanf.String(key + "id")
+			previousProject := config.State().EffectiveKoanf.String(key + "project")
+			if previousProject != "" && previousProject != project {
+				return fmt.Errorf("profile %q belongs to project %q; use a separate profile for %q", name, previousProject, project)
+			}
+			if replace && previousID == "" {
+				return fmt.Errorf("profile %q does not exist; omit --replace to create it", name)
+			}
+			if previousID != "" && previousID != id && !replace {
+				return fmt.Errorf("profile %q already has another application credential; use --replace to rotate it", name)
+			}
+			cmd.Println("Saving account credentials; unlock your password manager and approve access if prompted.")
+			if replace {
+				previous := credential
+				previous.Account = previousProject + ":" + previousID
+				if err := credential.Replace(previous, secret, insecureStorage, metadata, provider); err != nil {
+					return err
+				}
+			} else if err := credential.SaveWithProvider(secret, insecureStorage, metadata, provider); err != nil {
 				return err
 			}
 
@@ -125,6 +146,7 @@ func NewAuthLoginCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolVar(&replace, "replace", false, "Replace the existing profile's application credential for the same project")
 	cmd.Flags().String("project", "", "Project name (uses cloud_vps.default_project, otherwise prompts)")
 	cmd.Flags().String("id", "", "Application credential ID (prompts if omitted)")
 	cmd.Flags().String("secret", "", "Application credential secret (prompts with hidden input if omitted)")
