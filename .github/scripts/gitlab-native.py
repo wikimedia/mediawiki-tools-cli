@@ -117,12 +117,17 @@ def prepare(api, job_id, directory):
         if jobs.get(name, {}).get("status") != "success":
             raise ValueError(f"{name} has not succeeded")
     directory.mkdir(parents=True, exist_ok=True)
-    for job_name, artifact, filename in (
-        ("build", "bin/mw", "mw"),
-        ("prepare-mediawiki", ".cache/mediawiki.tar.gz", "mediawiki.tar.gz"),
-    ):
-        api.request(f"/projects/{PROJECT}/jobs/{jobs[job_name]['id']}/artifacts/{artifact}",
-                    destination=directory / filename)
+    api.request(f"/projects/{PROJECT}/jobs/{jobs['build']['id']}/artifacts/bin/mw",
+                destination=directory / "mw")
+    try:
+        api.request(f"/projects/{PROJECT}/jobs/{jobs['prepare-mediawiki']['id']}/artifacts/.cache/mediawiki-snapshot.txt",
+                    destination=directory / "mediawiki-snapshot.txt")
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+        (directory / "mediawiki-snapshot.txt").unlink(missing_ok=True)
+        api.request(f"/projects/{PROJECT}/jobs/{jobs['prepare-mediawiki']['id']}/artifacts/.cache/mediawiki.tar.gz",
+                    destination=directory / "mediawiki.tar.gz")
     prepare_source(api, plan, jobs, directory)
     plan["tests"] = test_plan(api, plan, jobs)
     output("test_matrix", json.dumps({"include": plan["tests"]}, separators=(",", ":")))
