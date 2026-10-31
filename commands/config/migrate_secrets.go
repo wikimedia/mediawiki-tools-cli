@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 func NewMigrateSecretsCmd() *cobra.Command {
@@ -58,8 +59,8 @@ func NewMigrateSecretsCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				if replace && target != "keyring" && target != "keepassxc" {
-					return fmt.Errorf("--replace requires a secure destination; select --provider keyring or keepassxc")
+				if replace && target != "keyring" && target != "keepassxc" && target != secrets.WindowsProvider {
+					return fmt.Errorf("--replace requires a secure destination; select --provider keyring, windows-credential-manager or keepassxc")
 				}
 				label := migrationProviderLabel(target)
 				if dryRun {
@@ -76,9 +77,9 @@ func NewMigrateSecretsCmd() *cobra.Command {
 				} else {
 					var err error
 					if replace {
-						err = credential.ReplaceFromPlaintext(target)
+						err = credential.ReplaceFromPlaintext(provider)
 					} else {
-						err = credential.MigrateTo(target)
+						err = credential.MigrateTo(provider)
 					}
 					if err != nil {
 						return fmt.Errorf("migrate %s: %w", key, err)

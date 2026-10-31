@@ -54,7 +54,7 @@ func (c Credential) saveWindowsCredential(value string, metadata map[string]any)
 		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "storage_account": ref.StorageAccount, "provider": ref.Provider}); err != nil {
 			return err
 		}
-		return PutDiskConfig(disk)
+		return commitDiskConfig(disk)
 	})
 	if err != nil {
 		return err

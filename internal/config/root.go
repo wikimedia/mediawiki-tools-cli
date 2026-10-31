@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -127,6 +128,13 @@ func load() *koanf.Koanf {
 	if kLoaded {
 		return k
 	}
+	if !isConfigCompletion() {
+		unlock, err := lockConfigFile(context.Background())
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		defer unlock()
+	}
 	ensureExists()
 
 	preload()
@@ -222,7 +230,34 @@ func PrettyPrint(k *koanf.Koanf) string {
 	return indented.String()
 }
 
+// PutDiskConfig explicitly replaces configuration. Ordinary mutations must use
+// UpdateDiskConfig so they apply to the latest file rather than a cached copy.
 func PutDiskConfig(kToPut *koanf.Koanf) error {
+	unlock, err := lockConfigFile(context.Background())
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return commitDiskConfig(kToPut)
+}
+
+// UpdateDiskConfig serializes a read-modify-write with credential operations.
+// The callback receives current on-disk data and must not start another mutation.
+func UpdateDiskConfig(update func(*koanf.Koanf) error) error {
+	unlock, err := lockCredentials(context.Background())
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	disk := State().OnDiskKoanf.Copy()
+	if err := update(disk); err != nil {
+		return err
+	}
+	return commitDiskConfig(disk)
+}
+
+// commitDiskConfig requires the configuration mutation lock to be held.
+func commitDiskConfig(kToPut *koanf.Koanf) error {
 	err := putDiskConfig(kToPut)
 	if err != nil {
 		return err
@@ -242,15 +277,11 @@ func putDiskConfig(kToPut *koanf.Koanf) error {
 
 func PutKeyValueOnDisk(key string, value string) error {
 	logrus.Trace("updating a configuration setting")
-	odk := State().OnDiskKoanf.Copy()
-	odk.Set(key, value)
-	return PutDiskConfig(odk)
+	return UpdateDiskConfig(func(disk *koanf.Koanf) error { return disk.Set(key, value) })
 }
 
 func DeleteKeyValueFromDisk(key string) error {
-	odk := State().OnDiskKoanf.Copy()
-	odk.Delete(key)
-	return PutDiskConfig(odk)
+	return UpdateDiskConfig(func(disk *koanf.Koanf) error { disk.Delete(key); return nil })
 }
 
 // Can be called before whole config is actually loaded..

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/knadh/koanf"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore"
 )
@@ -150,7 +151,7 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 			return fmt.Errorf("invalid stored credential reference")
 		}
 		if previous.Provider == "keepassxc" || previous.Provider == "keepassxc-browser" {
-			return fmt.Errorf("credential is managed by KeePassXC; update its entry there, or log out before changing providers")
+			return fmt.Errorf("credential is managed by KeePassXC; use config secrets transfer %s --provider PROVIDER to change providers", c.Key)
 		}
 		plaintextLinked = previous.Provider == "plaintext"
 		if plaintextLinked && !insecure {
@@ -160,13 +161,13 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 			previous.Provider = ""
 		}
 		if previous != ref {
-			return fmt.Errorf("log out before changing the account, endpoint or provider of a saved credential")
+			return fmt.Errorf("credential is bound to another account, endpoint or provider; use a separate profile or auth remove --profile NAME before logging in again; use config secrets transfer %s --provider PROVIDER to change providers", c.Key)
 		}
 	}
 	if insecure {
 		// Do not leave an unreachable copy behind when switching backends.
 		if disk.Exists(key) && !plaintextLinked {
-			return fmt.Errorf("log out before switching an existing keyring credential to plaintext storage")
+			return fmt.Errorf("use config secrets transfer %s --provider plaintext to switch an existing keyring credential to plaintext storage", c.Key)
 		}
 		if err := disk.Set(c.Key, value); err != nil {
 			return err
@@ -174,15 +175,24 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "plaintext"}); err != nil {
 			return err
 		}
-		return PutDiskConfig(disk)
+		return commitDiskConfig(disk)
 	}
 	reference := coreReference(ref)
+	if !disk.Exists(key) {
+		previous, err := credentialStore.Get(ref.Service, reference.Fields["account"])
+		if err == nil && previous != value {
+			return secretstore.ErrConflict
+		}
+		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
+			return secretstore.SafeError("get", "keyring", err)
+		}
+	}
 	store, err := c.packageStore("keyring", &reference, func(secretstore.Entry) error {
 		disk.Delete(c.Key)
 		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "storage_account": ref.StorageAccount}); err != nil {
 			return err
 		}
-		return PutDiskConfig(disk)
+		return commitDiskConfig(disk)
 	})
 	if err != nil {
 		return err
@@ -191,13 +201,27 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 }
 
 func (c Credential) Delete() error {
-	unlock, lockErr := lockCredentials(context.Background())
-	if lockErr != nil {
-		return lockErr
-	}
-	defer unlock()
+	return UpdateDiskConfig(c.deleteFromDisk)
+}
 
-	disk := State().OnDiskKoanf.Copy()
+// RemoveCredentialProfile removes a credential and its profile metadata in one
+// locked transaction, so a concurrent login cannot leave an orphaned reference.
+func RemoveCredentialProfile(key string, update func(*koanf.Koanf) error) error {
+	return UpdateDiskConfig(func(disk *koanf.Koanf) error {
+		if HasCredential(key) {
+			credential, err := CredentialForKey(key)
+			if err != nil {
+				return err
+			}
+			if err := credential.deleteFromDisk(disk); err != nil {
+				return err
+			}
+		}
+		return update(disk)
+	})
+}
+
+func (c Credential) deleteFromDisk(disk *koanf.Koanf) error {
 	key := credentialReferenceKey(c.Key)
 	if disk.Exists(key) {
 		var ref credentialReference
@@ -235,7 +259,36 @@ func (c Credential) Delete() error {
 	}
 	disk.Delete(c.Key)
 	disk.Delete(key)
-	return PutDiskConfig(disk)
+	return nil
+}
+
+// Update serializes reading, transforming and saving an existing credential.
+// The callback must not perform another configuration mutation.
+func (c Credential) Update(ctx context.Context, update func(string) (string, error)) (string, error) {
+	unlock, err := lockCredentials(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
+	if !HasCredential(c.Key) {
+		return "", fmt.Errorf("saved credential was removed; log in again")
+	}
+	previous, err := c.Read()
+	if err != nil {
+		return "", err
+	}
+	value, err := update(previous)
+	if err != nil {
+		return "", err
+	}
+	// A successful transformation may already have rotated a server-side token.
+	// Persist it even if cancellation arrived just after the response.
+	if value != previous {
+		if err := c.saveWithProviderMetadata(value, false, nil, ""); err != nil {
+			return "", fmt.Errorf("could not save updated credential: %w", err)
+		}
+	}
+	return value, nil
 }
 
 // CredentialForKey covers the credentials historically kept in config.json.
@@ -340,10 +393,10 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 					return fmt.Errorf("KeePassXC entry does not match the saved credential; plaintext was not removed")
 				}
 				disk.Delete(c.Key)
-				return PutDiskConfig(disk)
+				return commitDiskConfig(disk)
 			}
 		default:
-			return fmt.Errorf("log out before replacing a different credential provider")
+			return fmt.Errorf("use config secrets transfer %s --provider keepassxc to change providers", c.Key)
 		}
 	}
 	if entry == "" {
@@ -376,5 +429,5 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 	if err := disk.Set(key, values); err != nil {
 		return err
 	}
-	return PutDiskConfig(disk)
+	return commitDiskConfig(disk)
 }

@@ -14,8 +14,7 @@ import (
 
 // Serialize external credential mutations and refresh the registry after taking
 // the lock, so cleanup cannot race a transfer or save in another CLI process.
-func lockCredentials(ctx context.Context) (func(), error) {
-	State()
+func lockConfigFile(ctx context.Context) (func(), error) {
 	if err := secureConfigPath(); err != nil {
 		return nil, err
 	}
@@ -30,11 +29,22 @@ func lockCredentials(ctx context.Context) (func(), error) {
 	if err != nil || !ok {
 		return nil, fmt.Errorf("could not acquire credential mutation lock")
 	}
+	return func() { _ = lock.Unlock() }, nil
+}
+
+// lockCredentials reloads configuration only after all competing writers have
+// finished. Startup uses lockConfigFile directly to avoid recursive loading.
+func lockCredentials(ctx context.Context) (func(), error) {
+	State()
+	unlock, err := lockConfigFile(ctx)
+	if err != nil {
+		return nil, err
+	}
 	disk := koanf.New(".")
 	if err := disk.Load(file.Provider(Path()), koanfjson.Parser()); err != nil {
-		_ = lock.Unlock()
+		unlock()
 		return nil, fmt.Errorf("could not reload credential registry")
 	}
 	ReApplyKoanfConf(disk)
-	return func() { _ = lock.Unlock() }, nil
+	return unlock, nil
 }

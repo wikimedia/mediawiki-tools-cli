@@ -344,5 +344,5 @@ func removeDetachedEntry(ctx context.Context, entry DetachedSecret) error {
 	}
 	disk := State().OnDiskKoanf.Copy()
 	disk.Delete("credential_retired." + match.ID)
-	return PutDiskConfig(disk)
+	return commitDiskConfig(disk)
 }

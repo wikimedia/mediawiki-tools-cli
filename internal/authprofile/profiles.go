@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/knadh/koanf"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
@@ -150,28 +151,26 @@ func (m Manager) Profiles() ([]Profile, error) {
 }
 
 func (m Manager) SetDefault(name string) error {
-	return config.PutKeyValueOnDisk(m.Service+".default_profile", name)
+	return config.UpdateDiskConfig(func(disk *koanf.Koanf) error {
+		if _, err := m.Selected(name); err != nil {
+			return err
+		}
+		return disk.Set(m.Service+".default_profile", name)
+	})
 }
 
 func (m Manager) Remove(name string) (bool, error) {
 	prefix := m.Prefix(name)
-	key := prefix + "." + m.SecretField
-	if config.HasCredential(key) {
-		credential, err := config.CredentialForKey(key)
-		if err != nil {
-			return false, err
+	removedDefault := false
+	err := config.RemoveCredentialProfile(prefix+"."+m.SecretField, func(disk *koanf.Koanf) error {
+		disk.Delete(prefix)
+		removedDefault = disk.String(m.Service+".default_profile") == name
+		if removedDefault {
+			disk.Delete(m.Service + ".default_profile")
 		}
-		if err := credential.Delete(); err != nil {
-			return false, err
-		}
-	}
-	disk := config.State().OnDiskKoanf.Copy()
-	disk.Delete(prefix)
-	removedDefault := disk.String(m.Service+".default_profile") == name
-	if removedDefault {
-		disk.Delete(m.Service + ".default_profile")
-	}
-	return removedDefault, config.PutDiskConfig(disk)
+		return nil
+	})
+	return removedDefault, err
 }
 
 func (c Commands) ProfilesCmd() *cobra.Command {

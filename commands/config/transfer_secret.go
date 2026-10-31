@@ -21,12 +21,19 @@ func NewTransferSecretCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			source, err := credential.CredentialProvider("")
+			if err != nil {
+				return err
+			}
 			if err := credential.TransferTo(provider, config.TransferOptions{KeepSource: keepSource}); err != nil {
 				return err
 			}
 			message := "Source cleanup completed; entries still linked elsewhere were retained."
 			if keepSource {
 				message = "Source retained; use config secrets detached to review it."
+				if source == "plaintext" {
+					message = "Plaintext source retained in configuration; use config secrets list to review it."
+				}
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Transferred %s to %s.\n%s\n", args[0], provider, message)
 			return err

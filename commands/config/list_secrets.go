@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -189,7 +190,7 @@ func secretSuggestions(entries []config.SecretInfo, executable string) []secretS
 	}
 	var suggestions []secretSuggestion
 	for _, entry := range entries {
-		if entry.Source != "credential-reference" || (entry.Provider != "keyring" && entry.Provider != "keepassxc") {
+		if entry.Source != "credential-reference" || (entry.Provider != "keyring" && entry.Provider != "keepassxc" && entry.Provider != secrets.WindowsProvider) {
 			continue
 		}
 		plain, hasPlain := plaintext[entry.Key]

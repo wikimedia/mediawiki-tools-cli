@@ -23,6 +23,11 @@ func (c Credential) TransferTo(provider string, options ...TransferOptions) erro
 	}
 	defer unlock()
 
+	return c.transferTo(provider, keepSource)
+}
+
+// transferTo requires the configuration mutation lock.
+func (c Credential) transferTo(provider string, keepSource bool) error {
 	if err := ValidateCredentialProvider(provider); err != nil {
 		return err
 	}
@@ -116,7 +121,7 @@ func (c Credential) TransferTo(provider string, options ...TransferOptions) erro
 		if err := disk.Set(c.Key, value); err != nil {
 			return err
 		}
-	} else {
+	} else if !keepSource || source.Provider != "plaintext" {
 		disk.Delete(c.Key)
 	}
 	if err := retainCredential(disk, c.Key, "transferred to "+provider, source); err != nil {
@@ -126,7 +131,7 @@ func (c Credential) TransferTo(provider string, options ...TransferOptions) erro
 	if err := disk.Set(key, saved); err != nil {
 		return err
 	}
-	if err := PutDiskConfig(disk); err != nil {
+	if err := commitDiskConfig(disk); err != nil {
 		return fmt.Errorf("destination was saved but reference update failed; source entry retained: %w", err)
 	}
 	if !keepSource && source.Provider != "plaintext" {

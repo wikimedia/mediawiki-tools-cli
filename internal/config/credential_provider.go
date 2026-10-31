@@ -77,7 +77,11 @@ func (c Credential) SaveWithProviderMetadata(value string, insecure bool, metada
 		return lockErr
 	}
 	defer unlock()
+	return c.saveWithProviderMetadata(value, insecure, metadata, provider)
+}
 
+// Called only while holding the configuration mutation lock.
+func (c Credential) saveWithProviderMetadata(value string, insecure bool, metadata map[string]any, provider string) error {
 	for key, value := range metadata {
 		if SensitiveKey(key) {
 			return fmt.Errorf("secret values cannot be passed as metadata")
@@ -171,7 +175,7 @@ func (c Credential) SaveWithProviderMetadata(value string, insecure bool, metada
 		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc-browser", "browser": map[string]any{"database_hash": fields["database_hash"], "entry_id": fields["entry_id"], "login": fields["login"]}}); err != nil {
 			return err
 		}
-		return PutDiskConfig(disk)
+		return commitDiskConfig(disk)
 	})
 	if err != nil {
 		return err
@@ -204,43 +208,20 @@ func (c Credential) MigrationProvider(override string) (string, error) {
 
 // MigrateTo never overwrites a provider's value with a stale plaintext copy.
 func (c Credential) MigrateTo(provider string) error {
-	target, err := c.MigrationProvider(provider)
+	return c.migratePlaintext(provider, false)
+}
+
+// ReplaceFromPlaintext explicitly selects the current on-disk plaintext value.
+func (c Credential) ReplaceFromPlaintext(provider string) error {
+	return c.migratePlaintext(provider, true)
+}
+
+func (c Credential) migratePlaintext(provider string, replace bool) error {
+	unlock, err := lockCredentials(context.Background())
 	if err != nil {
 		return err
 	}
-	value := State().OnDiskKoanf.String(c.Key)
-	if value == "" {
-		return fmt.Errorf("no plaintext credential to migrate")
-	}
-	if target == "plaintext" {
-		return c.SaveWithProvider(value, false, nil, target)
-	}
-	if State().OnDiskKoanf.Exists(credentialReferenceKey(c.Key)) {
-		current, err := c.CredentialProvider("")
-		if err != nil {
-			return err
-		}
-		if current == "plaintext" && target != "plaintext" {
-			return c.TransferTo(target)
-		}
-		saved, err := c.Read()
-		if err != nil {
-			return err
-		}
-		if saved != value {
-			return fmt.Errorf("saved provider credential does not match plaintext; neither copy was changed")
-		}
-		disk := State().OnDiskKoanf.Copy()
-		disk.Delete(c.Key)
-		return PutDiskConfig(disk)
-	}
-	return c.SaveWithProvider(value, false, nil, target)
-}
-
-// ReplaceFromPlaintext is an explicit choice of the local plaintext value as
-// authoritative. The normal provider write verifies its destination before
-// removing plaintext, and preserves the existing account/endpoint binding.
-func (c Credential) ReplaceFromPlaintext(provider string) error {
+	defer unlock()
 	value := State().OnDiskKoanf.String(c.Key)
 	if value == "" {
 		return fmt.Errorf("no plaintext credential to migrate")
@@ -252,7 +233,7 @@ func (c Credential) ReplaceFromPlaintext(provider string) error {
 	if err != nil {
 		return err
 	}
-	if target != "keyring" && target != "keepassxc" && target != secrets.WindowsProvider {
+	if replace && target != "keyring" && target != "keepassxc" && target != secrets.WindowsProvider {
 		return fmt.Errorf("replacement requires a secure destination provider; select keyring, windows-credential-manager or keepassxc")
 	}
 	if State().OnDiskKoanf.Exists(credentialReferenceKey(c.Key)) {
@@ -260,9 +241,21 @@ func (c Credential) ReplaceFromPlaintext(provider string) error {
 		if err != nil {
 			return err
 		}
-		if current == "plaintext" {
-			return c.MigrateTo(target)
+		if current == "plaintext" && target != "plaintext" {
+			return c.transferTo(target, false)
+		}
+		if !replace && target != "plaintext" {
+			saved, err := c.Read()
+			if err != nil {
+				return err
+			}
+			if saved != value {
+				return fmt.Errorf("saved provider credential does not match plaintext; neither copy was changed")
+			}
+			disk := State().OnDiskKoanf.Copy()
+			disk.Delete(c.Key)
+			return commitDiskConfig(disk)
 		}
 	}
-	return c.SaveWithProvider(value, false, nil, target)
+	return c.saveWithProviderMetadata(value, false, nil, target)
 }

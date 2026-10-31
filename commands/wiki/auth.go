@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/knadh/koanf"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -422,30 +424,34 @@ func accountTokensWithProgress(ctx context.Context, a config.WikiProfile, force 
 		}
 	}
 	report("Reading saved OAuth credentials; unlock your password manager and approve access if prompted.")
-	value, err := a.Credential().Read()
-	if err != nil {
-		return wikiauth.Tokens{}, err
-	}
 	var tokens wikiauth.Tokens
-	if json.Unmarshal([]byte(value), &tokens) != nil || tokens.AccessToken == "" || !strings.EqualFold(tokens.TokenType, "Bearer") {
-		return tokens, fmt.Errorf("invalid saved wiki tokens; log in again")
-	}
-	if force || time.Now().Add(time.Minute).After(tokens.ExpiresAt) {
+	_, err := a.Credential().Update(ctx, func(value string) (string, error) {
+		latest, err := config.LoadWikiProfile(a.Realm, a.Name)
+		if err != nil {
+			return "", err
+		}
+		if latest.Username != a.Username || latest.Method != a.Method || latest.Endpoint != a.Endpoint || latest.ClientID != a.ClientID || latest.RequestedScope != a.RequestedScope || !slices.Equal(latest.Sites, a.Sites) {
+			return "", fmt.Errorf("wiki profile changed while waiting; retry the command")
+		}
+		if json.Unmarshal([]byte(value), &tokens) != nil || tokens.AccessToken == "" || !strings.EqualFold(tokens.TokenType, "Bearer") {
+			return "", fmt.Errorf("invalid saved wiki tokens; log in again")
+		}
+		if !force && time.Now().Add(time.Minute).Before(tokens.ExpiresAt) {
+			return value, nil
+		}
 		report("Refreshing the OAuth token with " + a.Endpoint + "...")
 		tokens, err = wikiauth.RefreshAt(ctx, wikiauth.HTTPClient(), a.Endpoint, a.ClientID, tokens)
 		if err != nil {
-			return tokens, fmt.Errorf("could not refresh OAuth tokens: %w; older MediaWiki versions may not support public-client refresh. Reauthorize with wiki auth login --profile %s/%s --wiki %s --replace", err, a.Realm, a.Name, a.Wiki)
+			return "", fmt.Errorf("could not refresh OAuth tokens: %w; older MediaWiki versions may not support public-client refresh. Reauthorize with wiki auth login --profile %s/%s --wiki %s --replace", err, a.Realm, a.Name, a.Wiki)
 		}
 		encoded, err := json.Marshal(tokens)
 		if err != nil {
-			return tokens, err
+			return "", err
 		}
 		report("Saving refreshed OAuth credentials; approve the entry update in your password manager if prompted.")
-		if err := a.Credential().SaveWithProvider(string(encoded), false, nil, ""); err != nil {
-			return tokens, fmt.Errorf("could not save refreshed wiki tokens: %w", err)
-		}
-	}
-	return tokens, nil
+		return string(encoded), nil
+	})
+	return tokens, err
 }
 
 func newWikiStatusCmd() *cobra.Command {
@@ -537,11 +543,12 @@ func newWikiRealmCmd() *cobra.Command {
 			}
 			endpoints[i] = endpoint
 		}
-		disk := config.State().OnDiskKoanf.Copy()
-		if err := disk.Set("wiki.realms."+name+".endpoints", endpoints); err != nil {
-			return err
-		}
-		return config.PutDiskConfig(disk)
+		return config.UpdateDiskConfig(func(disk *koanf.Koanf) error {
+			if len(config.WikiRealmEndpoints(name)) > 0 {
+				return fmt.Errorf("realm already exists; choose a new realm name")
+			}
+			return disk.Set("wiki.realms."+name+".endpoints", endpoints)
+		})
 	}}
 	add.Flags().StringSliceVar(&endpoints, "endpoint", nil, "Trusted wiki API endpoint (repeat or comma-separate for a shared-login farm)")
 	cmd.AddCommand(add)

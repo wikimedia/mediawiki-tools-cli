@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/knadh/koanf"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiauth"
@@ -91,18 +92,16 @@ func (wikiProfiles) Profiles() ([]authprofile.Profile, error) {
 }
 
 func (wikiProfiles) SetDefault(selector string) error {
-	a, err := selectedWikiProfile(selector)
-	if err != nil {
-		return err
-	}
-	disk := config.State().OnDiskKoanf.Copy()
-	if err := disk.Set("wiki.realms."+a.Realm+".default_profile", a.Name); err != nil {
-		return err
-	}
-	if err := disk.Set("wiki.default_profile", a.Realm+"/"+a.Name); err != nil {
-		return err
-	}
-	return config.PutDiskConfig(disk)
+	return config.UpdateDiskConfig(func(disk *koanf.Koanf) error {
+		a, err := selectedWikiProfile(selector)
+		if err != nil {
+			return err
+		}
+		if err := disk.Set("wiki.realms."+a.Realm+".default_profile", a.Name); err != nil {
+			return err
+		}
+		return disk.Set("wiki.default_profile", a.Realm+"/"+a.Name)
+	})
 }
 
 func (wikiProfiles) Remove(selector string) (bool, error) {
@@ -110,23 +109,22 @@ func (wikiProfiles) Remove(selector string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := a.Credential().Delete(); err != nil {
-		return false, err
-	}
 	prefix, _ := config.WikiProfilePrefix(a.Realm, a.Name)
-	disk := config.State().OnDiskKoanf.Copy()
-	disk.Delete(strings.TrimSuffix(prefix, "."))
 	removedDefault := false
-	key := "wiki.realms." + a.Realm + ".default_profile"
-	if disk.String(key) == a.Name {
-		disk.Delete(key)
-		removedDefault = true
-	}
-	if disk.String("wiki.default_profile") == a.Realm+"/"+a.Name {
-		disk.Delete("wiki.default_profile")
-		removedDefault = true
-	}
-	return removedDefault, config.PutDiskConfig(disk)
+	err = config.RemoveCredentialProfile(a.Credential().Key, func(disk *koanf.Koanf) error {
+		disk.Delete(strings.TrimSuffix(prefix, "."))
+		key := "wiki.realms." + a.Realm + ".default_profile"
+		if disk.String(key) == a.Name {
+			disk.Delete(key)
+			removedDefault = true
+		}
+		if disk.String("wiki.default_profile") == a.Realm+"/"+a.Name {
+			disk.Delete("wiki.default_profile")
+			removedDefault = true
+		}
+		return nil
+	})
+	return removedDefault, err
 }
 
 func checkWikiProfileReplacement(realm, name, method string, replace bool) (*config.WikiProfile, error) {
