@@ -14,7 +14,7 @@ require (
 	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/x/ansi v0.11.9
-	github.com/cli/cli/v2 v2.69.0
+	github.com/cli/cli/v2 v2.97.0
 	github.com/docker/cli v27.5.1+incompatible
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/fatih/color v1.19.0
@@ -231,7 +231,7 @@ require (
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.49.0
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
@@ -242,3 +242,7 @@ go 1.26.1
 replace gitlab.com/gitlab-org/cli/mwcli => ./internal/glab
 
 replace gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli => gitlab.wikimedia.org/addshore/toolforge-gen-cli v0.0.0-20261024151630-d98cb6b1b438
+
+// Only jsoncolor is used by mw and the generated Toolforge CLI.
+// Keep its formatter without the full GitHub CLI dependency graph.
+replace github.com/cli/cli/v2 => ./third_party/github-cli

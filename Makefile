@@ -57,6 +57,7 @@ clean:
 
 .PHONY: test
 test: $(GOVVV) generate
+	cd third_party/github-cli && go test ./...
 	go test -ldflags "$(shell $(GOVVV) -flags)" $(GO_PACKAGES)/...
 	@echo '<testsuites></testsuites>' > junit.xml
 
