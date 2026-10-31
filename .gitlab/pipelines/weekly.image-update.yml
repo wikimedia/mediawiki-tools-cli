@@ -7,25 +7,18 @@ image-update:
       - apt -y install git
       # The child pipeline inherits the `scheduled` ref. Base updates on the
       # latest default-branch commit so their merge requests target current code.
-      - git fetch origin "$CI_DEFAULT_BRANCH"
+      - |
+        if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+          git fetch --unshallow origin "$CI_DEFAULT_BRANCH"
+        else
+          git fetch origin "$CI_DEFAULT_BRANCH"
+        fi
       - git checkout --detach FETCH_HEAD
     script:
       - echo ${COMMAND}
-      - set -x
       - ${COMMAND}
       - git diff
-      # https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html#bot-users-for-projects
-      - git config --global user.email "project16_bot@noreply.gitlab.wikimedia.org"
-      - git config --global user.name "image-update-ci"
-      - NEW_MSG=$DESCRIPTION
-      - NEW_BRANCH=$(echo $DESCRIPTION | sed -r "s/ [^:]+:/ to /g")
-      - NEW_BRANCH="${NEW_BRANCH// /_}"
-      - NEW_BRANCH="${NEW_BRANCH//:/_}"
-      # Gitlab CI seems to keep branches between runs, so delete any previous branches?
-      - git branch -D $NEW_BRANCH &>/dev/null || true
-      - git checkout -b $NEW_BRANCH
-      - git commit -a -m "${NEW_MSG}"
-      - git push -o merge_request.title="${NEW_MSG}" -o merge_request.label="dependencies" -o merge_request.label="docker" -o merge_request.create "https://project_16_bot:${TOKEN_IMAGE_UPDATE_CI}@gitlab.wikimedia.org/repos/releng/cli.git" $NEW_BRANCH
+      - bash tools/image-update/push.sh "https://project_16_bot:${TOKEN_IMAGE_UPDATE_CI}@gitlab.wikimedia.org/repos/releng/cli.git"
     parallel:
       matrix:
 # This MUST remain the end of the file and MUST have a newline below it.

@@ -35,3 +35,9 @@ tools/image-update/.update.sh
 ```
 
 The weekly GitLab pipeline uses the generated matrix to open image update MRs.
+Updates are regenerated from the latest default branch. The description determines
+the branch name, so reruns refresh the existing MR using `--force-with-lease` when
+all commits outside the default branch were authored and committed by the image
+update bot. Branches containing other people's commits, or changed concurrently,
+are left untouched with a successful `Skipped` message. Other push failures still
+fail the job.
