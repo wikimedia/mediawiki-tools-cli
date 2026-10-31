@@ -105,7 +105,7 @@ images:
     requireRegex: ^1\.\d+$
 
   # Traefik reverse proxy for local development services.
-  - image: traefik:v3.6.16
+  - image: traefik:v3.7.17
     requireRegex: ^v3\.\d+\.\d+$
 
   # Go gateway-auth service image used by the local Traefik stack.
