@@ -61,6 +61,7 @@ func newCIArtifactsCommand(factory cmdutils.Factory) *cobra.Command {
 	}
 	cmd.AddCommand(newCIArtifactsListCommand(factory))
 	cmd.AddCommand(newCIArtifactsPruneCommand(factory))
+	cmd.AddCommand(newCIArtifactsSummaryCommand(factory))
 	return cmd
 }
 
@@ -166,37 +167,55 @@ func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, pr
 }
 
 func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int, cutoff time.Time, minSize int64, refPrefix string) ([]ciArtifact, error) {
+	var result []ciArtifact
+	err := scanCIArtifacts(cmd, client, projectID, cutoff, minSize, refPrefix, maxArtifactJobs, func(artifact ciArtifact) error {
+		result = append(result, artifact)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func scanCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int, cutoff time.Time, minSize int64, refPrefix string, maxJobs int, visit func(ciArtifact) error) error {
 	options := &gitlab.ListJobsOptions{ListOptions: gitlab.ListOptions{
 		PerPage: 100,
 		Page:    1,
 	}}
-	var result []ciArtifact
+	label := "Scanning recent CI jobs for artifacts"
+	if maxJobs == 0 {
+		options.ListOptions = gitlab.ListOptions{PerPage: 100, Pagination: "keyset", OrderBy: "id", Sort: "desc"}
+		options.IncludeRetried = gitlab.Ptr(true)
+		label = "Scanning CI jobs for artifact storage"
+	}
 	scanned := 0
-	progress := startArtifactProgress(cmd.ErrOrStderr(), "Scanning recent CI jobs for artifacts")
+	matched := int64(0)
+	progress := startArtifactProgress(cmd.ErrOrStderr(), label)
 	if progress != nil {
 		defer progress.finish()
 	}
 	for job, err := range gitlab.Scan2(func(page gitlab.PaginationOptionFunc) ([]*gitlab.Job, *gitlab.Response, error) {
-		return client.Jobs.ListProjectJobs(projectID, options, page)
+		return client.Jobs.ListProjectJobs(projectID, options, page, gitlab.WithContext(cmd.Context()))
 	}) {
 		if err != nil {
-			return nil, fmt.Errorf("list project jobs: %w", err)
+			return fmt.Errorf("list project jobs: %w", err)
 		}
 		scanned++
-		if scanned > maxArtifactJobs {
-			return nil, fmt.Errorf("reached the %d-job safety limit; narrow the time window", maxArtifactJobs)
+		if maxJobs > 0 && scanned > maxJobs {
+			return fmt.Errorf("reached the %d-job safety limit; narrow the time window", maxJobs)
 		}
-		if job.CreatedAt == nil {
-			return nil, fmt.Errorf("job %d has no creation timestamp; cannot safely apply --since", job.ID)
+		if !cutoff.IsZero() && job.CreatedAt == nil {
+			return fmt.Errorf("job %d has no creation timestamp; cannot safely apply --since", job.ID)
 		}
 		// The REST Jobs API documents descending ID order. Job IDs increase
 		// over time, so no later page can contain a job within the age window.
-		if job.CreatedAt.Before(cutoff) {
+		if !cutoff.IsZero() && job.CreatedAt.Before(cutoff) {
 			break
 		}
 		if refPrefix != "" && !strings.HasPrefix(job.Ref, refPrefix) {
 			if progress != nil {
-				progress.update(int64(scanned), int64(len(result)))
+				progress.update(int64(scanned), matched)
 			}
 			continue
 		}
@@ -204,18 +223,20 @@ func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int, c
 			if strings.EqualFold(artifact.FileType, "trace") || int64(artifact.Size) < minSize {
 				continue
 			}
-			createdAt := *job.CreatedAt
-			result = append(result, ciArtifact{
+			if err := visit(ciArtifact{
 				Name: artifact.Filename, Type: artifact.FileType, Size: int64(artifact.Size),
 				JobID: strconv.Itoa(job.ID), JobName: job.Name, Ref: job.Ref,
-				CreatedAt: &createdAt, ExpiresAt: job.ArtifactsExpireAt,
-			})
+				CreatedAt: job.CreatedAt, ExpiresAt: job.ArtifactsExpireAt,
+			}); err != nil {
+				return err
+			}
+			matched++
 		}
 		if progress != nil {
-			progress.update(int64(scanned), int64(len(result)))
+			progress.update(int64(scanned), matched)
 		}
 	}
-	return result, nil
+	return nil
 }
 
 type artifactProgress struct {
