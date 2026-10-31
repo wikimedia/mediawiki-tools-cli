@@ -27,7 +27,7 @@ services:
       - dps
 
   prometheus:
-    image: prom/prometheus:v3.9.1
+    image: prom/prometheus:v3.15.1
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus-host.rule=Host(`${PROMETHEUS_VIRTUAL_HOST:-prometheus.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
