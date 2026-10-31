@@ -20,7 +20,7 @@ func NewListSecretsCmd() *cobra.Command {
 	var details bool
 	cmd := &cobra.Command{
 		Use: "list [KEY...]", Aliases: []string{"ls"}, Short: "List stored credential metadata without revealing secrets",
-		Long: "List credentials and provider references managed by this CLI, including plaintext config values and the local KeePassXC pairing file. Supply keys to inspect only those entries. Displays identities and locations, never secret values. By default external entries are not contacted or unlocked. Use --check to compare plaintext and vault values, and --verify to authenticate each copy separately against its service. Credential stores may request unlocking or access approval. Neither changes saved credentials. GitLab's separate credential store, external phab.cfg files, and unrelated vault entries are not enumerated.",
+		Long: "List credentials and provider references managed by this CLI, including plaintext config values and the local KeePassXC pairing file. Supply keys to inspect only those entries. Displays identities and locations, never secret values. By default external entries are not contacted or unlocked. Use --check to compare plaintext and vault values, and --verify to authenticate each copy separately against its service. Credential stores may request unlocking or access approval. Neither changes saved credentials. the external glab credential store, external phab.cfg files, and unrelated vault entries are not enumerated.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entries := config.SecretInventory()
 			if len(args) > 0 {
@@ -145,7 +145,7 @@ func NewListSecretsCmd() *cobra.Command {
 			if verify {
 				footer = "AUTH checks each stored copy against its service. Unavailable means inconclusive; expired OAuth tokens are not refreshed. Credentials were not changed."
 			}
-			if _, err := fmt.Fprintln(cmd.OutOrStdout(), "\n"+footer+" GitLab and external phab.cfg stores are managed separately."); err != nil {
+			if _, err := fmt.Fprintln(cmd.OutOrStdout(), "\n"+footer+" External glab and phab.cfg stores are managed separately."); err != nil {
 				return err
 			}
 			if check || verify {

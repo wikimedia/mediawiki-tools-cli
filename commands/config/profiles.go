@@ -18,8 +18,8 @@ func NewProfilesCmd() *cobra.Command {
 		if selected == "phab" {
 			selected = "phabricator"
 		}
-		if selected != "" && selected != "wiki" && selected != "gerrit" && selected != "phabricator" && selected != "cloudvps" {
-			return fmt.Errorf("--service must be wiki, gerrit, phabricator or cloudvps")
+		if selected != "" && selected != "wiki" && selected != "gerrit" && selected != "phabricator" && selected != "cloudvps" && selected != "gitlab" {
+			return fmt.Errorf("--service must be wiki, gerrit, phabricator, gitlab or cloudvps")
 		}
 		profiles := config.ProfileInventory()
 		if selected != "" {
@@ -73,9 +73,9 @@ func NewProfilesCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "profiles", Short: "List saved profiles across all services without retrieving credentials", Args: cobra.NoArgs, RunE: run}
 	cmd.PersistentFlags().BoolVar(&asJSON, "json", false, "Output profile metadata as JSON")
 	cmd.PersistentFlags().BoolVar(&details, "details", false, "Show authentication methods, site scopes and secret keys")
-	cmd.PersistentFlags().StringVar(&service, "service", "", "Filter by service: wiki, gerrit, phabricator or cloudvps")
+	cmd.PersistentFlags().StringVar(&service, "service", "", "Filter by service: wiki, gerrit, phabricator, gitlab or cloudvps")
 	_ = cmd.RegisterFlagCompletionFunc("service", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"wiki", "gerrit", "phabricator", "cloudvps"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"wiki", "gerrit", "phabricator", "gitlab", "cloudvps"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	cmd.AddCommand(&cobra.Command{Use: "list", Aliases: []string{"ls"}, Short: cmd.Short, Args: cobra.NoArgs, RunE: run})
 	return cmd

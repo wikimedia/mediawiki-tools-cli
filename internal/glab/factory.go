@@ -4,6 +4,7 @@ package mwcli
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -45,13 +46,38 @@ func Hostname(host string) string {
 
 type factory struct {
 	*cmdutils.DefaultFactory
-	mu        sync.Mutex
-	override  string
-	userAgent string
+	mu         sync.Mutex
+	override   string
+	apiHost    string
+	userAgent  string
+	resolve    CredentialResolver
+	httpClient *http.Client
+	streams    *IOStreams
+}
+
+type IOStreams = iostreams.IOStreams
+
+type FactoryOption func(*factory)
+
+func WithIOStreams(streams *IOStreams) FactoryOption {
+	return func(f *factory) { f.streams = streams }
+}
+
+func WithHTTPClient(client *http.Client) FactoryOption {
+	return func(f *factory) { f.httpClient = client }
 }
 
 // NewFactory preserves Git transport URLs while using the canonical API identity.
-func NewFactory(version, userAgent string) (Factory, error) {
+func NewFactory(version, userAgent string, options ...FactoryOption) (Factory, error) {
+	return newFactory(version, userAgent, nil, options...)
+}
+
+func newFactory(version, userAgent string, resolve CredentialResolver, options ...FactoryOption) (Factory, error) {
+	f := &factory{userAgent: userAgent, resolve: resolve}
+	for _, option := range options {
+		option(f)
+	}
+
 	if err := os.MkdirAll(config.ConfigDir(), 0o750); err != nil {
 		return nil, fmt.Errorf("create GitLab config directory: %w", err)
 	}
@@ -68,34 +94,38 @@ func NewFactory(version, userAgent string) (Factory, error) {
 			return nil, err
 		}
 	}
-	io := iostreams.New(
-		iostreams.WithStdin(os.Stdin, iostreams.IsTerminal(os.Stdin)),
-		iostreams.WithStdout(iostreams.NewColorable(os.Stdout), iostreams.IsTerminal(os.Stdout)),
-		iostreams.WithStderr(iostreams.NewColorable(os.Stderr), iostreams.IsTerminal(os.Stderr)),
-		iostreams.WithPagerCommand(iostreams.PagerCommandFromEnv()),
-	)
+	if resolve != nil {
+		cfg = &profileConfig{Config: cfg, resolve: resolve}
+	}
+	streams := f.streams
+	if streams == nil {
+		streams = iostreams.New(
+			iostreams.WithStdin(os.Stdin, iostreams.IsTerminal(os.Stdin)),
+			iostreams.WithStdout(iostreams.NewColorable(os.Stdout), iostreams.IsTerminal(os.Stdout)),
+			iostreams.WithStderr(iostreams.NewColorable(os.Stderr), iostreams.IsTerminal(os.Stderr)),
+			iostreams.WithPagerCommand(iostreams.PagerCommandFromEnv()),
+		)
+	}
 	if pager, _ := cfg.Get("", "glab_pager"); pager != "" {
-		io.SetPager(pager)
+		streams.SetPager(pager)
 	}
 	if noPrompt, _ := cfg.Get("", "no_prompt"); noPrompt != "" {
-		io.SetPrompt(noPrompt)
+		streams.SetPrompt(noPrompt)
 	}
 	if hyperlinks, _ := cfg.Get("", "display_hyperlinks"); hyperlinks == "true" {
-		io.SetDisplayHyperlinks("auto")
+		streams.SetDisplayHyperlinks("auto")
 	}
 	if enabled, found := utils.IsEnvVarEnabled("FORCE_HYPERLINKS"); found {
 		if enabled {
-			io.SetDisplayHyperlinks("always")
+			streams.SetDisplayHyperlinks("always")
 		} else {
-			io.SetDisplayHyperlinks("never")
+			streams.SetDisplayHyperlinks("never")
 		}
 	}
-	return &factory{
-		DefaultFactory: cmdutils.NewFactory(io, false, cfg, api.BuildInfo{
-			Version: version, Platform: runtime.GOOS, Architecture: runtime.GOARCH,
-		}),
-		userAgent: userAgent,
-	}, nil
+	f.DefaultFactory = cmdutils.NewFactory(streams, false, cfg, api.BuildInfo{
+		Version: version, Platform: runtime.GOOS, Architecture: runtime.GOARCH,
+	})
+	return f, nil
 }
 
 func (f *factory) RepoOverride(repo string) error {
@@ -123,9 +153,9 @@ func (f *factory) Remotes() (glrepo.Remotes, error) {
 	translated := glrepo.TranslateRemotes(remotes, func(u *url.URL) *url.URL {
 		u = translateSSH(u)
 		if Hostname(u.Hostname()) == canonicalHost {
-			copy := *u
-			copy.Host = canonicalHost
-			return &copy
+			translatedURL := *u
+			translatedURL.Host = canonicalHost
+			return &translatedURL
 		}
 		return u
 	}, canonicalHost)
@@ -160,15 +190,82 @@ func (f *factory) ApiClient(repoHost string) (*api.Client, error) {
 	if repoHost == "" {
 		repoHost = f.DefaultHostname()
 	}
+	repoHost = Hostname(repoHost)
+	var profile *ProfileCredentials
+	if f.resolve != nil {
+		var err error
+		profile, err = f.resolve()
+		if err != nil {
+			return nil, err
+		}
+		if profile != nil {
+			if !strings.EqualFold(repoHost, profile.Host) {
+				return nil, fmt.Errorf("selected GitLab profile belongs to %s, not %s", profile.Host, repoHost)
+			}
+			if _, err := profile.Token(); err != nil {
+				return nil, err
+			}
+		}
+	}
 	userAgent := strings.TrimSpace(f.userAgent + " " + f.BuildInfo().UserAgent())
-	return api.NewClientFromConfig(Hostname(repoHost), f.Config(), false, userAgent)
+	cfg := f.Config()
+	if wrapped, ok := cfg.(*profileConfig); ok {
+		cfg = wrapped.Config
+	}
+	var client *api.Client
+	var err error
+	if profile == nil {
+		client, err = api.NewClientFromConfig(repoHost, cfg, false, userAgent)
+	} else {
+		client, err = newProfileAPIClient(profile, cfg, userAgent)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if f.httpClient != nil {
+		*client.HTTPClient() = *f.httpClient
+	}
+	if profile != nil {
+		protectProfileClient(client.HTTPClient(), profile.Host)
+	}
+	return client, nil
 }
 
 func (f *factory) GitLabClient() (*gitlab.Client, error) {
-	repo, err := f.BaseRepo()
+	repo, repoErr := f.BaseRepo()
 	host := f.DefaultHostname()
-	if err == nil {
+	if repoErr == nil {
 		host = repo.RepoHost()
+	}
+	f.mu.Lock()
+	if f.apiHost != "" {
+		host = f.apiHost
+	}
+	f.mu.Unlock()
+	if f.resolve != nil {
+		profile, err := f.resolve()
+		if err != nil {
+			return nil, err
+		}
+		if profile != nil {
+			f.mu.Lock()
+			apiHost := f.apiHost
+			f.mu.Unlock()
+			if apiHost != "" {
+				host = apiHost
+			} else {
+				host, err = f.profileRepositoryHost(profile.Host)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if !strings.EqualFold(host, profile.Host) {
+				return nil, fmt.Errorf("selected GitLab profile belongs to %s, not %s", profile.Host, host)
+			}
+			if _, err := profile.Token(); err != nil {
+				return nil, err
+			}
+		}
 	}
 	client, err := f.ApiClient(host)
 	if err != nil {

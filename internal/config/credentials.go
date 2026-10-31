@@ -256,6 +256,13 @@ func CredentialForKey(key string) (Credential, error) {
 			return Credential{}, fmt.Errorf("credential key does not match the wiki profile authentication method")
 		}
 		return credential, nil
+	case strings.HasPrefix(key, "gitlab.profiles.") && strings.HasSuffix(key, ".token"):
+		prefix := strings.TrimSuffix(key, "token")
+		endpoint := state.String(prefix + "url")
+		if endpoint == "" {
+			endpoint = "https://gitlab.wikimedia.org"
+		}
+		return Credential{Key: key, Service: "gitlab", Endpoint: endpoint, Account: state.String(prefix + "username")}, nil
 	case strings.HasPrefix(key, "gerrit.profiles.") && strings.HasSuffix(key, ".password"):
 		return Credential{Key: key, Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: state.String(strings.TrimSuffix(key, "password") + "username")}, nil
 	case key == "gerrit.password":

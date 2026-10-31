@@ -77,6 +77,16 @@ func Check(ctx context.Context, input Request) Result {
 			expected = reply.Result.Username
 		}
 		return identityResult(expected, reply.Result.Username)
+	case "gitlab":
+		result := GitLabIdentity(ctx, endpoint, input.Value)
+		if result.Status != "valid" {
+			return result
+		}
+		expected := input.Account
+		if strings.EqualFold(expected, result.Identity) {
+			expected = result.Identity
+		}
+		return identityResult(expected, result.Identity)
 	case "gerrit":
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"/a/accounts/self/detail", nil)
 		if err != nil {

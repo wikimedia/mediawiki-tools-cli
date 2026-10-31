@@ -15,7 +15,7 @@ import (
 )
 
 func TestServiceChecksAuthenticateAndReportOnlyStatus(t *testing.T) {
-	for _, service := range []string{"phabricator", "gerrit", "cloudvps"} {
+	for _, service := range []string{"phabricator", "gerrit", "cloudvps", "gitlab"} {
 		for _, scenario := range []string{"valid", "invalid", "denied", "unavailable", "wrong-account"} {
 			t.Run(service+"/"+scenario, func(t *testing.T) {
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +51,11 @@ func TestServiceChecksAuthenticateAndReportOnlyStatus(t *testing.T) {
 							t.Error("token missing")
 						}
 						fmt.Fprintf(w, `{"result":{"userName":%q},"error_code":null}`, actual)
+					case "gitlab":
+						if r.Header.Get("PRIVATE-TOKEN") != "private-fixture" || r.URL.Path != "/api/v4/user" {
+							t.Error("incorrect GitLab credential request")
+						}
+						fmt.Fprintf(w, `{"username":%q}`, actual)
 					case "gerrit":
 						user, password, ok := r.BasicAuth()
 						if !ok || user != "Fixture" || password != "private-fixture" || r.URL.Path != "/a/accounts/self/detail" {
@@ -89,7 +94,7 @@ func TestServiceChecksAuthenticateAndReportOnlyStatus(t *testing.T) {
 }
 
 func TestUsernameCaseComparisonIsServiceSpecific(t *testing.T) {
-	for _, service := range []string{"phabricator", "gerrit"} {
+	for _, service := range []string{"phabricator", "gerrit", "gitlab"} {
 		t.Run(service, func(t *testing.T) {
 			for _, actual := range []string{"Addshore", "Addbot"} {
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +107,7 @@ func TestUsernameCaseComparisonIsServiceSpecific(t *testing.T) {
 				result := Check(t.Context(), Request{Service: service, Endpoint: server.URL, Account: "addshore", Value: "private-fixture"})
 				server.Close()
 				want := "wrong-account"
-				if service == "phabricator" && actual == "Addshore" {
+				if service != "gerrit" && actual == "Addshore" {
 					want = "valid"
 				}
 				if result.Status != want || result.Identity != actual {

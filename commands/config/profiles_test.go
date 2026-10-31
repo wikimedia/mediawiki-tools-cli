@@ -34,6 +34,7 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 	}
 	disk := mwconfig.State().OnDiskKoanf.Copy()
 	for key, value := range map[string]string{
+		"gitlab.profiles.bot.username": "Addbot", "gitlab.profiles.bot.token": "gitlab-private-fixture", "gitlab.default_profile": "bot",
 		"phabricator.profiles.bot.username": "Addbot", "phabricator.profiles.bot.key": "phab-private-fixture",
 		"wiki.profiles.wikimedia.personal.username": "Addshore", "wiki.profiles.wikimedia.personal.method": "oauth", "wiki.profiles.wikimedia.personal.token": "oauth-private-fixture",
 		"wiki.default_profile": "wikimedia/personal", "wiki.realms.wikimedia.default_profile": "personal",
@@ -64,7 +65,7 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 			if err := cmd.Execute(); err != nil {
 				t.Fatal(err)
 			}
-			for _, value := range []string{"gerrit-private-fixture", "phab-private-fixture", "oauth-private-fixture", "wiki-private-fixture", "cloud-private-fixture"} {
+			for _, value := range []string{"gerrit-private-fixture", "phab-private-fixture", "oauth-private-fixture", "wiki-private-fixture", "cloud-private-fixture", "gitlab-private-fixture"} {
 				if strings.Contains(out.String(), value) {
 					t.Fatal("secret leaked")
 				}
@@ -74,14 +75,14 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 				if err := json.Unmarshal(out.Bytes(), &profiles); err != nil {
 					t.Fatal(err)
 				}
-				want := 5
+				want := 6
 				if strings.Contains(strings.Join(args, " "), "phab") {
 					want = 1
 				}
 				if len(profiles) != want {
 					t.Fatalf("got %d profiles, want %d", len(profiles), want)
 				}
-				if want == 5 {
+				if want == 6 {
 					defaults := 0
 					for _, profile := range profiles {
 						if profile.Default {
@@ -91,12 +92,12 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 							t.Fatal("keyring profile was not listed")
 						}
 					}
-					if defaults != 3 {
+					if defaults != 4 {
 						t.Fatal("service defaults not represented", defaults)
 					}
 				}
 			} else {
-				for _, service := range []string{"gerrit", "phabricator", "wiki", "cloudvps"} {
+				for _, service := range []string{"gerrit", "phabricator", "wiki", "cloudvps", "gitlab"} {
 					if !strings.Contains(out.String(), service) {
 						t.Fatal("missing service", service)
 					}

@@ -16,8 +16,12 @@ import (
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
-func Cmd() *cobra.Command {
-	cmdFactory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent)
+func Cmd() *cobra.Command { return newCommand() }
+
+func newCommand(options ...mwcli.FactoryOption) *cobra.Command {
+	var profile string
+	session := &profileSession{selected: &profile}
+	cmdFactory, err := mwcli.NewProfileFactory(glabVersion(), cli.HTTPUserAgent, session.credentials, options...)
 	if err != nil {
 		return &cobra.Command{
 			Use: "gitlab", Aliases: []string{"glab", "gl"}, GroupID: "service",
@@ -28,6 +32,7 @@ func Cmd() *cobra.Command {
 	glabCommand := mwcli.NewCmdRoot(cmdFactory)
 	glabCommand.Version = cli.DisplayName + " " + glabVersion()
 	glabCommand.Short = "Work with Wikimedia GitLab"
+	glabCommand.Long = "Work with GitLab using named account profiles. A selected profile overrides environment tokens and legacy glab credentials. Use auth login --from-glab to import an existing personal access token."
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.GroupID = "service"
 	glabCommand.Aliases = []string{"glab", "gl"}
@@ -92,6 +97,11 @@ func Cmd() *cobra.Command {
 	addPushViaAPIFlag(glabCommand)
 	addCIArtifactsCommand(glabCommand, cmdFactory)
 
+	gitlabProfiles.AddFlag(glabCommand, &profile)
+	if inherited := os.Getenv(profileEnvironment); inherited != "" {
+		_ = glabCommand.PersistentFlags().Lookup("profile").Value.Set(inherited)
+	}
+	installProfileCommands(glabCommand, cmdFactory, session)
 	return glabCommand
 }
 
@@ -217,7 +227,7 @@ func setDefaultHostname(glabCommand *cobra.Command) {
 			if !cmd.Flags().Changed("hostname") {
 				hostname = "gitlab.wikimedia.org"
 			}
-			_ = cmd.Flags().Set("hostname", mwcli.Hostname(hostname))
+			_ = hostnameFlag.Value.Set(mwcli.Hostname(hostname))
 		}
 
 		if originalPersistentPreRunE != nil {

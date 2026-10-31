@@ -22,7 +22,7 @@ mw config secrets list --verify
 mw config secrets list phabricator.profiles.wikimedia.key --check --verify
 ```
 
-The inventory includes known credential references, plaintext config secrets, and the local KeePassXC pairing file. The compact table shows key, provider, comparison and authentication results. Add `--details` to show service, account, endpoint, status and storage location below the table. Account mismatches and missing references remain visible in the summary. A credential with both a vault link and a retained plaintext value has a separate row for each copy; their values are not compared. JSON rows include a `source` field distinguishing credential references, plaintext configuration, and the pairing file. Linked external entries are not verified; orphaned references are shown explicitly. It does not enumerate unrelated vault entries, GitLab's separate authentication store, or external `phab.cfg` files.
+The inventory includes known credential references, plaintext config secrets, and the local KeePassXC pairing file. The compact table shows key, provider, comparison and authentication results. Add `--details` to show service, account, endpoint, status and storage location below the table. Account mismatches and missing references remain visible in the summary. A credential with both a vault link and a retained plaintext value has a separate row for each copy; their values are not compared. JSON rows include a `source` field distinguishing credential references, plaintext configuration, and the pairing file. Linked external entries are not verified; orphaned references are shown explicitly. It does not enumerate unrelated vault entries, the external glab authentication store, or external `phab.cfg` files.
 
 Add `--check` to read linked provider values only where a plaintext copy also exists. The comparison column reports `match`, `different`, or `unavailable`, without revealing either value, hashes or lengths. KeePassXC may request access approval. An unavailable vault leaves the comparison inconclusive. No values are changed, and matching values do not prove that the remote service still accepts the credential. `--check --json` includes the same results for scripts. Interactive tables use the CLI's shared colour styling; redirected output and JSON stay plain, and `NO_COLOR` disables table colours.
 
@@ -101,7 +101,31 @@ Choosing plaintext displays a warning that credentials are stored unencrypted. Y
 
 The CLI's secure storage uses the reusable `pkg/secretstore` package. Provider access is separate from service authentication; migration from existing plaintext configuration remains an explicit operation.
 
-GitLab commands use the embedded GitLab CLI's separate authentication store. Use `mw gl auth login --use-keyring --stdin` for a new keyring login. This does not migrate or remove an existing token from GitLab's configuration file.
+GitLab supports the shared profile commands and secret providers:
+
+```sh
+mw gitlab auth login --profile addshore
+mw gitlab auth login --profile addbot
+mw gitlab auth profiles
+mw gitlab auth default --profile addshore
+mw gitlab auth status --profile addbot
+mw gitlab mr list --profile addbot
+mw gitlab auth remove --profile addbot
+```
+
+Login validates a personal access token with `/api/v4/user` before saving it. Without `--profile`, the verified username becomes the profile name. `--hostname` defaults to `gitlab.wikimedia.org`; HTTPS hosts without a subpath are supported. Choose the permissions you need when creating the token: `read_api` for read-only API operations, or `api` for API writes; Git over HTTPS also requires suitable repository access. Tokens keep their server-defined expiry; this implementation does not refresh OAuth sessions.
+
+Use `--token-stdin` for piped input, or the hidden interactive prompt. `--provider` and `--insecure-storage` work as for other services. Profile tokens are stored under `gitlab.profiles.<name>.token` and appear in `config profiles` and `config secrets list --verify`.
+
+To explicitly import an existing glab personal access token:
+
+```sh
+mw gitlab auth login --from-glab --profile addshore
+```
+
+Import validates and copies the saved token from glab configuration or its keyring. Environment tokens and OAuth sessions are not imported. The original glab credential is retained. Without a selected or default profile, existing GitLab operations retain upstream glab authentication. Once a profile is selected, it takes precedence over environment tokens and upstream credentials; a missing or locked profile never falls back to another account.
+
+The embedded CLI receives the selected token in memory, without saving it in glab configuration. HTTP requests, redirects and pagination are restricted to the profile's HTTPS host. Git subprocesses receive a temporary host-scoped credential helper and the profile name, rather than the token in arguments or environment. An existing Git config file is not modified. The helper supplies the selected profile for HTTPS Git operations; SSH Git operations continue to use your SSH configuration and agent. `auth remove` removes local credentials or references without revoking the server token. External glab credentials remain managed separately.
 
 ## Saved wiki profiles
 
@@ -367,7 +391,7 @@ mw config profiles --service wiki
 mw config profiles --json
 ```
 
-The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `mw config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. GitLab's external storage is managed separately.
+The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `mw config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. External glab storage is managed separately.
 
 Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS, Gerrit and Phabricator share the same profile commands and default-selection behavior.
 

@@ -8,13 +8,14 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/cloudvps"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
 )
 
 // Keep the service-independent auth surface stable even as login protocols differ.
 func TestServiceProfileCommandContract(t *testing.T) {
-	for _, parent := range []*cobra.Command{gerrit.NewGerritCmd(), phabricator.NewPhabricatorCmd(), wiki.NewWikiCmd(), cloudvps.NewCloudVPSCmd()} {
+	for _, parent := range []*cobra.Command{gerrit.NewGerritCmd(), phabricator.NewPhabricatorCmd(), wiki.NewWikiCmd(), cloudvps.NewCloudVPSCmd(), gitlab.Cmd()} {
 		t.Run(parent.Name(), func(t *testing.T) {
 			flag := parent.PersistentFlags().Lookup("profile")
 			if flag == nil || flag.Value.Type() != "string" {
@@ -29,6 +30,9 @@ func TestServiceProfileCommandContract(t *testing.T) {
 			}
 			var names []string
 			for _, child := range auth.Commands() {
+				if child.Hidden {
+					continue
+				}
 				names = append(names, child.Name())
 				for _, alias := range child.Aliases {
 					if alias == "logout" {

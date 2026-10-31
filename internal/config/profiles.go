@@ -57,12 +57,15 @@ func ProfileInventory() []ProfileInfo {
 		}
 		profiles = append(profiles, p)
 	}
-	for _, service := range []string{"gerrit", "phabricator"} {
+	for _, service := range []string{"gerrit", "phabricator", "gitlab"} {
 		for _, name := range effective.MapKeys(service + ".profiles") {
 			prefix := service + ".profiles." + name + "."
 			method, leaf, endpoint := "password", "password", secrets.GerritEndpoint
 			if service == "phabricator" {
 				method, leaf, endpoint = "api-token", "key", secrets.PhabricatorEndpoint
+			}
+			if service == "gitlab" {
+				method, leaf, endpoint = "api-token", "token", "https://gitlab.wikimedia.org"
 			}
 			if custom := effective.String(prefix + "url"); custom != "" {
 				endpoint = custom
