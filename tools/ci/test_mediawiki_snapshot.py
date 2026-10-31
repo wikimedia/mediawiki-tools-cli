@@ -1,11 +1,13 @@
-"""Checks for shared snapshot downloads."""
+"""Checks for shared snapshot downloads and cleanup."""
 
+from datetime import datetime, timezone
 import hashlib
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock
 
+from cleanup_mediawiki_snapshots import expired_snapshots
 from integration_tests import download_snapshot
 
 
@@ -36,3 +38,14 @@ class DownloadTests(unittest.TestCase):
                 with self.subTest(value=value), self.assertRaises(ValueError):
                     manifest.write_text(value)
                     download_snapshot(Mock(), manifest.parent)
+
+
+class CleanupTests(unittest.TestCase):
+    def test_cleanup_preserves_recent_and_unrelated_packages(self):
+        old = dict(id=1, name='mediawiki-ci-snapshot', package_type='generic',
+                   version='2026-39-' + 'a' * 64, created_at='2026-09-24T00:00:00Z')
+        packages = [old, {**old, 'id': 2, 'created_at': '2026-10-20T00:00:00Z'},
+                    {**old, 'id': 3, 'name': 'mwcli'}, {**old, 'id': 4, 'version': 'release'},
+                    {**old, 'id': 5, 'created_at': '2026-10-03T00:00:00Z'},
+                    {**old, 'id': 6, 'package_type': 'npm'}]
+        self.assertEqual(expired_snapshots(packages, datetime(2026, 10, 31, tzinfo=timezone.utc)), [1])

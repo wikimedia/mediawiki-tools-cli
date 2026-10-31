@@ -36,3 +36,17 @@ image-update-trigger:
       - artifact: .gitlab/pipelines/weekly.image-update.generated.yml
         job: image-update-build
     strategy: depend
+
+# Package snapshots are shared across pipelines, rather than expiring job artifacts.
+# The scheduled pipeline owner must have Maintainer permission to delete packages.
+mediawiki-snapshot-cleanup:
+    stage: build
+    image: python:3.13-bookworm
+    tags: [wmcs]
+    cache: []
+    resource_group: mediawiki-ci-snapshot
+    script:
+      - apt-get update && apt-get install -y --no-install-recommends git
+      - git fetch --no-tags origin "$CI_DEFAULT_BRANCH"
+      - git checkout --detach FETCH_HEAD
+      - python3 tools/ci/cleanup_mediawiki_snapshots.py
