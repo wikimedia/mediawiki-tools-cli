@@ -151,8 +151,7 @@ func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, pr
 			if len(response.Data.BulkDestroy.Errors) > 0 {
 				return fmt.Errorf("delete artifacts: %s", strings.Join(response.Data.BulkDestroy.Errors, "; "))
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Deleted %d of %d selected artifacts.\n", response.Data.BulkDestroy.DestroyedCount, len(ids))
-			return err
+			return outputCIArtifactsPruneSummary(cmd.OutOrStdout(), artifacts, response.Data.BulkDestroy.DestroyedCount, response.Data.BulkDestroy.DestroyedIDs)
 		},
 	}
 	cmd.Flags().StringVar(&sinceText, "since", "48h", "Include artifacts from jobs created within this duration (for example, 48h)")
@@ -432,4 +431,35 @@ func outputCIArtifacts(cmd *cobra.Command, output string, artifacts []ciArtifact
 	}
 	table.Print(cmd.OutOrStdout())
 	return nil
+}
+
+// Count only artifacts GitLab confirmed were deleted, using their reported sizes.
+func outputCIArtifactsPruneSummary(writer io.Writer, artifacts []ciArtifact, destroyedCount int, destroyedIDs []string) error {
+	deleted := make(map[string]bool, len(destroyedIDs))
+	for _, id := range destroyedIDs {
+		deleted[id] = true
+	}
+	var size int64
+	for _, artifact := range artifacts {
+		if deleted[artifact.ID] {
+			size += artifact.Size
+			delete(deleted, artifact.ID)
+		}
+	}
+	_, err := fmt.Fprintf(writer, "Deleted %d of %d selected artifacts (%s).\n", destroyedCount, len(artifacts), formatArtifactSize(size))
+	return err
+}
+
+func formatArtifactSize(size int64) string {
+	if size < 1024 {
+		return fmt.Sprintf("%d B", size)
+	}
+	units := []string{"KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}
+	value := float64(size) / 1024
+	unit := 0
+	for value >= 1024 && unit < len(units)-1 {
+		value /= 1024
+		unit++
+	}
+	return fmt.Sprintf("%.1f %s", value, units[unit])
 }
