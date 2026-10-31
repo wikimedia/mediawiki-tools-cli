@@ -28,7 +28,7 @@ services:
       - dps
 
   logs-setup:
-    image: "${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:2.19.4}"
+    image: "${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:2.19.7}"
     restart: "no"
     entrypoint: /usr/share/opensearch-dashboards/node/bin/node
     command: ["/setup.js"]
@@ -71,7 +71,7 @@ services:
       - gateway-control
 
   opensearch-dashboards:
-    image: "${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:2.19.4}"
+    image: "${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:2.19.7}"
     restart: unless-stopped
     environment:
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
