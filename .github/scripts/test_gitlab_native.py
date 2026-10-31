@@ -1,7 +1,6 @@
 """Exercise callback, retry and snapshot handling without changing either service."""
 
 import importlib.util
-import urllib.error
 import io
 import json
 import os
@@ -31,7 +30,6 @@ class FakeGitLab:
         self.matrix = []
         self.test_plan = None
         self.downloaded = []
-        self.shared_snapshot = True
 
     def get(self, path):
         if path == "/projects/16/jobs/19":
@@ -64,8 +62,6 @@ class FakeGitLab:
     def request(self, path, destination):
         self.downloaded.append(path)
         if path.endswith("mediawiki-snapshot.txt"):
-            if not self.shared_snapshot:
-                raise urllib.error.HTTPError(path, 404, "missing", {}, None)
             checksum = "b" * 64
             Path(destination).write_text(
                 f"/projects/16/packages/generic/mediawiki-ci-snapshot/2026-44-{'a' * 64}/{checksum}.tar.gz {checksum}\n")
@@ -258,21 +254,6 @@ class CallbackTests(unittest.TestCase):
             self.assertEqual(json.loads(values["test_matrix"]), {"include": plan["tests"]})
         self.assertEqual({body["name"] for _, body in api.posted},
                          {"github/windows-amd64/future-test", native.SUMMARY_CONTEXT})
-
-    def test_preparation_still_accepts_existing_archive_handover(self):
-        api = FakeGitLab()
-        api.shared_snapshot = False
-        def source(api, plan, jobs, directory):
-            plan["tested_sha"] = SHA
-        with tempfile.TemporaryDirectory() as temporary, patch.object(
-            native, "prepare_source", side_effect=source
-        ), patch.object(native, "output"), patch.dict(os.environ, {
-            "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1",
-        }):
-            directory = Path(temporary)
-            native.prepare(api, 19, directory)
-            self.assertTrue((directory / "mediawiki.tar.gz").exists())
-            self.assertFalse((directory / "mediawiki-snapshot.txt").exists())
 
     def test_request_plan_selects_new_platforms_and_missing_tests_fail_closed(self):
         api = FakeGitLab()

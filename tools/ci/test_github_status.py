@@ -1,6 +1,8 @@
 """Regression checks for accepting external results and protecting API credentials."""
 
 import io
+import hashlib
+from contextlib import chdir
 import importlib.util
 import json
 import os
@@ -120,7 +122,10 @@ class NativeExecutionTests(unittest.TestCase):
             worker.test_shell()
 
     def test_prepares_snapshot_binary_and_preserves_test_exit_status(self):
-        runner = Path(__file__).with_name("run-github-integration.py").resolve()
+        spec = importlib.util.spec_from_file_location(
+            "worker", Path(__file__).with_name("run-github-integration.py"))
+        worker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(worker)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             repo = root / "repository"
@@ -153,15 +158,21 @@ class NativeExecutionTests(unittest.TestCase):
                         "tested_sha": sha, "pipeline_id": 23, "request_id": 19,
                     }))
                     (inputs / "mw").write_text(f"#!/bin/sh\nexit {code}\n")
-                    with tarfile.open(inputs / "mediawiki.tar.gz", "w:gz") as archive:
+                    snapshot = work / "snapshot.tar.gz"
+                    with tarfile.open(snapshot, "w:gz") as archive:
                         archive.add(media, arcname=".mediawiki")
+                    checksum = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+                    path = f"/projects/16/packages/generic/mediawiki-ci-snapshot/2026-44-{'a' * 64}/{checksum}.tar.gz"
+                    (inputs / "mediawiki-snapshot.txt").write_text(f"{path} {checksum}\n")
                     source = work / "source"
                     subprocess.run(["git", "clone", str(inputs / "source.bundle"), str(source)],
                                    check=True, capture_output=True)
                     env = {key: value for key, value in os.environ.items() if key != "GITLAB_STATUS_TOKEN"}
-                    result = subprocess.run(["python3", str(runner), "docker-general"],
-                                            cwd=source, env=env, capture_output=True, text=True, timeout=15)
-                    self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+                    with chdir(source), patch.dict(os.environ, env, clear=True), patch.object(
+                        worker.sys, "argv", ["worker", "docker-general"]
+                    ), patch.object(worker.GitLab, "request", side_effect=lambda path, destination:
+                                    destination.write_bytes(snapshot.read_bytes())):
+                        self.assertEqual(worker.main(), code)
 
 
 if __name__ == "__main__":
