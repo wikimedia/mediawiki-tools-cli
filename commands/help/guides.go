@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/docs"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 )
 
 // AddGuides extends Cobra's help command without replacing command-reference help.
