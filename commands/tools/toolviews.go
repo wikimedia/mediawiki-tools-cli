@@ -49,16 +49,20 @@ func fetchToolviewsTools(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	if response.Results == nil {
-		response.Results = []string{}
+		return nil, fmt.Errorf("Toolviews response is missing a non-null results list")
 	}
 	sort.Strings(response.Results)
 	return response.Results, nil
 }
 
 func completeToolviewsTools(cmd *cobra.Command, args []string, prefix string) ([]string, cobra.ShellCompDirective) {
-	if len(args) != 0 {
+	if len(args) != 0 || cmd.Flags().Changed("tool") {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
+	return toolviewsToolSuggestions(cmd, prefix)
+}
+
+func toolviewsToolSuggestions(cmd *cobra.Command, prefix string) ([]string, cobra.ShellCompDirective) {
 	ctx, cancel := context.WithTimeout(cmd.Context(), 2*time.Second)
 	defer cancel()
 	tools, err := cachedToolviewsNames(ctx)
@@ -112,6 +116,9 @@ func fetchToolviews(ctx context.Context, tool, start, end string) ([]toolviewRow
 		if err := toolviewsRequest(ctx, path+"day/"+start, &response); err != nil {
 			return nil, err
 		}
+		if response.Results == nil {
+			return nil, fmt.Errorf("Toolviews response is missing a non-null results map")
+		}
 		for name, hits := range response.Results {
 			rows = append(rows, toolviewRow{start, name, hits})
 		}
@@ -121,6 +128,9 @@ func fetchToolviews(ctx context.Context, tool, start, end string) ([]toolviewRow
 		}
 		if err := toolviewsRequest(ctx, path+"daily/"+start+"/"+end, &response); err != nil {
 			return nil, err
+		}
+		if response.Results == nil {
+			return nil, fmt.Errorf("Toolviews response is missing a non-null results map")
 		}
 		for date, tools := range response.Results {
 			for name, hits := range tools {
@@ -141,8 +151,8 @@ func fetchToolviews(ctx context.Context, tool, start, end string) ([]toolviewRow
 }
 
 func newToolviewsCmd() *cobra.Command {
-	var date, start, end string
-	var width int
+	var date, start, end, toolFlag string
+	var width, limit, offset int
 	var timeout time.Duration
 	out := output.Output{TableBinding: &output.TableBinding{
 		Headings: []string{"Date", "Tool", "Hits"},
@@ -155,13 +165,19 @@ func newToolviewsCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use: "toolviews [tool]", Aliases: []string{"views"},
 		Short:             "Get Toolforge web traffic statistics from Toolviews",
-		Long:              "Query public Toolviews webserver statistics without authentication. Omit the tool to query all tools. Dates are inclusive and default to the last 30 completed UTC days. Hits include automated traffic and are not counts of people. Missing observations are omitted, not filled with zeroes. JSON and CSV report counts in the hits field.",
-		Example:           "toolviews toolviews --output graph\ntoolviews --date 2026-10-27 --output graph\ntoolviews toolviews --start 2026-10-01 --end 2026-10-07\ntoolviews list\ntoolviews --date \"$(date -u -d yesterday +%F)\" --output table | head -n 11",
+		Long:              "Query public Toolviews webserver statistics without authentication. Use --tool (-t) or a positional name; use the flag for tools named list or help. Omit the tool to query all tools. Dates are inclusive and default to the last 30 completed UTC days. Hits include automated traffic and are not counts of people. Missing observations are omitted, not filled with zeroes. JSON and CSV report counts in the hits field. Single-day all-tools rankings default to 20 results; --limit 0 returns all and --offset skips results before limiting. Selection happens locally after sorting by hits. Other queries return the complete requested period.",
+		Example:           "toolviews toolviews --output graph\ntoolviews --date 2026-10-27 --output graph\ntoolviews toolviews --start 2026-10-01 --end 2026-10-07\ntoolviews --tool list --date 2026-10-27\ntoolviews -t wikicrowd --output graph\ntoolviews list\ntoolviews --date 2026-10-27 --limit 10 --output table\ntoolviews --date 2026-10-27 --limit 0 --output table\ntoolviews --date 2026-10-27 --offset 20 --limit 20 --output table",
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeToolviewsTools,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if width != 0 && (width < 24 || width > 1000) {
 				return fmt.Errorf("--graph-width must be 0 (automatic), or between 24 and 1000")
+			}
+			if limit < 0 {
+				return fmt.Errorf("--limit must be zero or greater")
+			}
+			if offset < 0 {
+				return fmt.Errorf("--offset must be zero or greater")
 			}
 			if timeout <= 0 {
 				return fmt.Errorf("--timeout must be positive")
@@ -178,13 +194,24 @@ func newToolviewsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			tool := ""
+			if len(args) > 0 && cmd.Flags().Changed("tool") {
+				return fmt.Errorf("specify a tool either positionally or with --tool, not both")
+			}
+			tool := toolFlag
 			if len(args) > 0 {
 				tool = args[0]
+			}
+			if len(args) > 0 || cmd.Flags().Changed("tool") {
 				if strings.TrimSpace(tool) == "" || strings.ContainsAny(tool, "/\\?# \t\r\n") || tool == "." || tool == ".." {
 					return fmt.Errorf("tool must be a Toolforge tool name")
 				}
 			}
+
+			ranking := tool == "" && from == to
+			if !ranking && (cmd.Flags().Changed("limit") || cmd.Flags().Changed("offset")) {
+				return fmt.Errorf("--limit and --offset only apply to single-day all-tools rankings")
+			}
+
 			if out.Type == "graph" && tool == "" && from != to {
 				return fmt.Errorf("a time-series graph requires a tool; use --date for an all-tools bar chart")
 			}
@@ -193,6 +220,12 @@ func newToolviewsCmd() *cobra.Command {
 			rows, err := fetchToolviews(ctx, tool, from, to)
 			if err != nil {
 				return err
+			}
+			if ranking {
+				rows = rows[min(offset, len(rows)):]
+				if limit > 0 && len(rows) > limit {
+					rows = rows[:limit]
+				}
 			}
 			heading := "Hits"
 			out.TableBinding.Headings[2] = heading
@@ -228,9 +261,15 @@ func newToolviewsCmd() *cobra.Command {
 			return nil
 		},
 	}
+	command.Flags().StringVarP(&toolFlag, "tool", "t", "", "Tool name (alternative to a positional name)")
+	_ = command.RegisterFlagCompletionFunc("tool", func(cmd *cobra.Command, _ []string, prefix string) ([]string, cobra.ShellCompDirective) {
+		return toolviewsToolSuggestions(cmd, prefix)
+	})
 	command.Flags().StringVar(&date, "date", "", "Single UTC date (YYYY-MM-DD)")
 	command.Flags().StringVar(&start, "start", "", "First UTC date (YYYY-MM-DD; default: 30 days ago)")
 	command.Flags().StringVar(&end, "end", "", "Last UTC date (YYYY-MM-DD; default: yesterday)")
+	command.Flags().IntVar(&limit, "limit", 20, "Maximum single-day ranking results after offset (0 means all remaining results)")
+	command.Flags().IntVar(&offset, "offset", 0, "Skip this many single-day ranking results before applying --limit")
 	command.Flags().IntVar(&width, "graph-width", 0, "Graph width in columns (0 detects the terminal; otherwise 24–1000)")
 	command.Flags().DurationVar(&timeout, "timeout", 20*time.Second, "HTTP request timeout")
 	out.AddFlagsWithOpts(command, output.WithDefaultTTY(output.TableType), output.WithDefaultPipe(output.JSONType), output.WithAdditionalTypes(output.Type("csv"), output.Type("graph")), output.WithFilterFlagDisabled())

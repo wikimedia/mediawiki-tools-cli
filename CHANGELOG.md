@@ -8,6 +8,7 @@ notes will be missed.
 ## Unreleased
 
 - Added `mw tools toolviews` (`mw tools views`) for public Toolforge hit statistics, with JSON, table, jq, CSV, and terminal graph output, plus tool discovery with `list`.
+- Single-day Toolviews rankings show the top 20 by default; use `--limit 0` for all, or `--offset` and `--limit` to select a range. Tool time series remain unlimited.
 - Split `tools` and `toolforge`: Toolforge management commands now use `mw toolforge`; migrate existing `mw tools job`, `build`, `shell`, and other management invocations to `mw toolforge`.
 
 ## v0.34.0

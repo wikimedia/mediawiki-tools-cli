@@ -5,6 +5,7 @@ package diskcache
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -24,6 +25,8 @@ type Cache[T any] struct {
 type entry[T any] struct {
 	Value        *T        `json:"value"`
 	RefreshAfter time.Time `json:"refresh_after"`
+	HasValue     bool      `json:"has_value"`
+	FetchError   string    `json:"fetch_error,omitempty"`
 }
 
 // New creates a disk cache with the given freshness lifetime. Cache write
@@ -37,27 +40,69 @@ func New[T any](path string, ttl time.Duration) *Cache[T] {
 // startRefresh must return promptly; StartRefresh implements this for CLIs.
 func (c *Cache[T]) Get(ctx context.Context, fetch func(context.Context) (T, error), startRefresh func()) (T, error) {
 	if cached, ok := c.read(); ok {
-		if !time.Now().Before(cached.RefreshAfter) {
-			startRefresh()
+		if cached.HasValue {
+			if !time.Now().Before(cached.RefreshAfter) {
+				startRefresh()
+			}
+			return cached.data(), nil
 		}
-		return *cached.Value, nil
+		if time.Now().Before(cached.RefreshAfter) {
+			var zero T
+			return zero, fmt.Errorf("cache fetch temporarily backed off: %s", cached.FetchError)
+		}
 	}
-	return c.Refresh(ctx, fetch)
+	return c.RefreshIfStale(ctx, fetch)
 }
 
-// Refresh fetches synchronously, replacing the cache only on success. Failed
-// refreshes retain the last good value and delay automatic retries one minute.
-// Explicit callers receive the fetch error even if old data remains available.
+func (e entry[T]) data() T {
+	if e.Value != nil {
+		return *e.Value
+	}
+	var zero T
+	return zero
+}
+
+// Refresh forces a synchronous fetch, serialized with other refreshes. Failed
+// updates retain the last good value and defer automatic retries one minute.
 func (c *Cache[T]) Refresh(ctx context.Context, fetch func(context.Context) (T, error)) (T, error) {
+	return c.refresh(ctx, fetch, true)
+}
+
+// RefreshIfStale serializes with other refreshes and rechecks freshness after
+// acquiring the lock. Redundant background workers therefore do not refetch.
+func (c *Cache[T]) RefreshIfStale(ctx context.Context, fetch func(context.Context) (T, error)) (T, error) {
+	return c.refresh(ctx, fetch, false)
+}
+
+func (c *Cache[T]) refresh(ctx context.Context, fetch func(context.Context) (T, error), force bool) (T, error) {
+	lock, err := c.acquire(ctx, true)
+	if err != nil {
+		if ctx.Err() != nil {
+			var zero T
+			return zero, ctx.Err()
+		}
+		// An unwritable cache must not prevent a successful API request.
+		return fetch(ctx)
+	}
+	defer lock.Close()
+	if !force {
+		if cached, ok := c.read(); ok && time.Now().Before(cached.RefreshAfter) {
+			if cached.HasValue {
+				return cached.data(), nil
+			}
+			var zero T
+			return zero, fmt.Errorf("cache fetch temporarily backed off: %s", cached.FetchError)
+		}
+	}
 	value, err := fetch(ctx)
 	if err != nil {
-		if cached, ok := c.read(); ok {
-			cached.RefreshAfter = time.Now().Add(time.Minute)
-			c.write(cached)
-		}
+		cached, _ := c.read()
+		cached.RefreshAfter = time.Now().Add(time.Minute)
+		cached.FetchError = err.Error()
+		c.write(cached)
 		return value, err
 	}
-	c.write(entry[T]{Value: &value, RefreshAfter: time.Now().Add(c.ttl)})
+	c.write(entry[T]{Value: &value, HasValue: true, RefreshAfter: time.Now().Add(c.ttl)})
 	return value, nil
 }
 
@@ -68,13 +113,15 @@ func (c *Cache[T]) read() (entry[T], bool) {
 	}
 	defer file.Close()
 	var cached entry[T]
-	if json.NewDecoder(io.LimitReader(file, 4*1024*1024)).Decode(&cached) != nil || cached.Value == nil {
+	if json.NewDecoder(io.LimitReader(file, 4*1024*1024)).Decode(&cached) != nil || (!cached.HasValue && cached.Value == nil && cached.FetchError == "") {
 		return entry[T]{}, false
 	}
+	cached.HasValue = cached.HasValue || cached.Value != nil
 	return cached, true
 }
 
 func (c *Cache[T]) write(cached entry[T]) {
+	cached.HasValue = cached.HasValue || cached.Value != nil
 	data, err := json.Marshal(cached)
 	if err != nil || os.MkdirAll(filepath.Dir(c.path), 0o700) != nil {
 		return
@@ -91,33 +138,71 @@ func (c *Cache[T]) write(cached entry[T]) {
 	}
 }
 
-// StartRefresh starts the current executable with args, detached from terminal
-// streams. A per-cache directory lock suppresses duplicate workers. Locks left
-// by a crashed worker expire after a minute. The worker must bound its fetch to
-// less than a minute and defer FinishRefresh, using the same cache path.
+// StartRefresh launches a bounded CLI refresh worker with null terminal streams.
+// Launches are throttled for one minute under the same OS lock used by Refresh.
+// No lock is transferred to the child: worker death cannot leave a held lock.
+// Workers must call RefreshIfStale to skip work already completed by another
+// process. The timestamp only limits launches; the OS lock protects cache writes.
 func (c *Cache[T]) StartRefresh(args ...string) {
-	lock := c.path + ".refresh"
-	if err := os.MkdirAll(filepath.Dir(c.path), 0o700); err != nil {
+	lock, err := c.acquire(context.Background(), false)
+	if err != nil {
 		return
 	}
-	if info, err := os.Stat(lock); err == nil && time.Since(info.ModTime()) > time.Minute {
-		_ = os.Remove(lock)
+	defer lock.Close()
+	var nextLaunch time.Time
+	if data, err := os.ReadFile(c.path + ".launch"); err == nil {
+		_ = nextLaunch.UnmarshalText(data)
 	}
-	if err := os.Mkdir(lock, 0o700); err != nil {
+	if time.Now().Before(nextLaunch) {
 		return
 	}
 	executable, err := os.Executable()
 	if err != nil {
-		_ = os.Remove(lock)
 		return
 	}
 	command := exec.Command(executable, args...)
 	if err := command.Start(); err != nil {
-		_ = os.Remove(lock)
 		return
 	}
-	_ = command.Process.Release()
+	data, _ := time.Now().Add(time.Minute).MarshalText()
+	_ = os.WriteFile(c.path+".launch", data, 0o600)
+	// Reap the child when the parent stays alive; when it exits, the child is
+	// adopted by the OS and continues independently of this goroutine.
+	go func() { _ = command.Wait() }()
 }
 
-// FinishRefresh releases the background worker's lock.
-func (c *Cache[T]) FinishRefresh() { _ = os.Remove(c.path + ".refresh") }
+func (c *Cache[T]) acquire(ctx context.Context, wait bool) (*os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(c.path), 0o700); err != nil {
+		return nil, err
+	}
+	file, err := os.OpenFile(c.path+".lock", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		if err := ctx.Err(); err != nil {
+			file.Close()
+			return nil, err
+		}
+		locked, err := tryLockFile(file)
+		if err != nil {
+			file.Close()
+			return nil, err
+		}
+		if locked {
+			return file, nil
+		}
+		if !wait {
+			file.Close()
+			return nil, fmt.Errorf("cache refresh already in progress")
+		}
+		timer := time.NewTimer(10 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			file.Close()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+}

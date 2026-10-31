@@ -21,10 +21,9 @@ func cachedToolviewsNames(ctx context.Context) ([]string, error) {
 
 func newToolviewsRefreshCmd() *cobra.Command {
 	return &cobra.Command{Use: "_refresh-cache", Short: "Refresh the cached Toolviews tool list", Hidden: true, Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		defer toolviewsNamesCache().FinishRefresh()
 		ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 		defer cancel()
-		_, err := toolviewsNamesCache().Refresh(ctx, fetchToolviewsTools)
+		_, err := toolviewsNamesCache().RefreshIfStale(ctx, fetchToolviewsTools)
 		return err
 	}}
 }
