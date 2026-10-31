@@ -277,4 +277,15 @@ mw config secrets keepassxc disconnect
 
 ### Discovering saved accounts
 
+List profiles across all supported services in one place:
+
+```sh
+mw config profiles
+mw config profiles --details
+mw config profiles --service wiki
+mw config profiles --json
+```
+
+The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `mw config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. GitLab's external storage is managed separately.
+
 Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS lists project credentials. Gerrit and Phabricator share the same profile commands and default-selection behavior.

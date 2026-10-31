@@ -14,6 +14,7 @@ func Cmd() *cobra.Command {
 	cmd.AddCommand(NewConfigGetCmd())
 	cmd.AddCommand(NewConfigSetCmd())
 	cmd.AddCommand(NewSecretsCmd())
+	cmd.AddCommand(NewProfilesCmd())
 	return cmd
 }
 
