@@ -8,8 +8,7 @@ import (
 	ossignal "os/signal"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 	"github.com/moby/sys/signal"
 	"golang.org/x/term"
 )
@@ -28,18 +27,18 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 	cli := NewClientFromEnvOrPanic()
 	defer cli.Close()
 
-	execConfig := container.ExecOptions{
+	execConfig := client.ExecCreateOptions{
 		AttachStderr: true,
 		AttachStdout: true,
 		AttachStdin:  true,
-		Tty:          true,
+		TTY:          true,
 		WorkingDir:   command.WorkingDir,
 		User:         command.User,
 		Cmd:          command.Command,
 		Env:          command.Env,
 	}
 
-	response, err := cli.ContainerExecCreate(ctx, containerID, execConfig)
+	response, err := cli.ExecCreate(ctx, containerID, execConfig)
 	if err != nil {
 		fmt.Println("containerExecCreate failed")
 		fmt.Println(err)
@@ -52,18 +51,18 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 		return 1
 	}
 
-	execStartCheck := container.ExecAttachOptions{
-		Tty: true,
+	execStartCheck := client.ExecAttachOptions{
+		TTY: true,
 	}
 
-	waiter, err := cli.ContainerExecAttach(ctx, execID, execStartCheck)
+	waiter, err := cli.ExecAttach(ctx, execID, execStartCheck)
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
 	defer waiter.Close()
 
-	if execConfig.Tty {
+	if execConfig.TTY {
 		if err := monitorTtySize(ctx, cli, execID, true); err != nil {
 			fmt.Println("Error monitoring TTY size:")
 			fmt.Println(err)
@@ -91,7 +90,7 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 	}
 
 	for {
-		resp, err := cli.ContainerExecInspect(ctx, execID)
+		resp, err := cli.ExecInspect(ctx, execID, client.ExecInspectOptions{})
 		time.Sleep(50 * time.Millisecond)
 		if err != nil {
 			return 1
@@ -110,11 +109,11 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 }
 
 // MonitorTtySize updates the container tty size when the terminal tty changes size.
-func monitorTtySize(ctx context.Context, client client.APIClient, id string, isExec bool) error {
+func monitorTtySize(ctx context.Context, dockerClient client.APIClient, id string, isExec bool) error {
 	// Source: https://github.com/skiffos/skiff-core/blob/82c430e4961453c250883c2e5ebd4bd360fa13a5/shell/tty.go
 	resizeTty := func() {
 		width, height, _ := term.GetSize(0)
-		resizeTtyTo(ctx, client, id, uint(height), uint(width), isExec)
+		resizeTtyTo(ctx, dockerClient, id, uint(height), uint(width), isExec)
 	}
 
 	resizeTty()
@@ -130,22 +129,22 @@ func monitorTtySize(ctx context.Context, client client.APIClient, id string, isE
 	return nil
 }
 
-func resizeTtyTo(ctx context.Context, client client.ContainerAPIClient, id string, height, width uint, isExec bool) {
+func resizeTtyTo(ctx context.Context, dockerClient client.APIClient, id string, height, width uint, isExec bool) {
 	// Source: https://github.com/skiffos/skiff-core/blob/82c430e4961453c250883c2e5ebd4bd360fa13a5/shell/tty.go
 	if height == 0 && width == 0 {
 		return
 	}
 
-	options := container.ResizeOptions{
+	options := client.ContainerResizeOptions{
 		Height: height,
 		Width:  width,
 	}
 
 	var err error
 	if isExec {
-		err = client.ContainerExecResize(ctx, id, options)
+		_, err = dockerClient.ExecResize(ctx, id, client.ExecResizeOptions(options))
 	} else {
-		err = client.ContainerResize(ctx, id, options)
+		_, err = dockerClient.ContainerResize(ctx, id, options)
 	}
 
 	_ = err // Ignore this error for now.

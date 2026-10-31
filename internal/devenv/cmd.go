@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -323,13 +324,13 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 			// Lookup internal port from an env var if not provided
 			if internalPort == "" {
 				logrus.Debug("No internal port provided, looking up from container env")
-				containerJson, err := cli.ContainerInspect(ctx, containerID)
+				containerJson, err := cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 				if err != nil {
 					return fmt.Errorf("unable to inspect container: %w", err)
 				}
 
 				// Get the DEFAULT_EXPOSE_PORT environment variable from the containerJson if set
-				for _, env := range containerJson.Config.Env {
+				for _, env := range containerJson.Container.Config.Env {
 					if strings.HasPrefix(env, "DEFAULT_EXPOSE_PORT=") {
 						internalPort = strings.Split(env, "=")[1]
 					}

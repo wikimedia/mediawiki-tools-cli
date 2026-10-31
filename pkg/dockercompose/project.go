@@ -9,8 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
@@ -132,25 +131,26 @@ func (p Project) NetworkName(name string) string {
 
 func (p Project) ContainerID(service string) (string, error) {
 	cli := docker.NewClientFromEnvOrPanic()
+	defer cli.Close()
 	ctx := context.Background()
 
-	containerFilters := filters.NewArgs()
+	containerFilters := client.Filters{}
 	projectNameLC := strings.ToLower(p.Name)
-	containerFilters.Add("label", "com.docker.compose.project="+projectNameLC)
-	containerFilters.Add("label", "com.docker.compose.service="+strings.ToLower(service))
+	containerFilters = containerFilters.Add("label", "com.docker.compose.project="+projectNameLC)
+	containerFilters = containerFilters.Add("label", "com.docker.compose.service="+strings.ToLower(service))
 	// Only ever retrieve the first container (all mwcli needs)
-	containerFilters.Add("label", "com.docker.compose.container-number=1")
+	containerFilters = containerFilters.Add("label", "com.docker.compose.container-number=1")
 	logrus.Trace("Getting container ID for service: " + service + " using filters filters: project = " + projectNameLC + ", service = " + service)
 
-	containers, err := cli.ContainerList(ctx, container.ListOptions{Filters: containerFilters})
+	containers, err := cli.ContainerList(ctx, client.ContainerListOptions{Filters: containerFilters})
 	if err != nil {
 		return "", err
 	}
-	if len(containers) == 0 {
+	if len(containers.Items) == 0 {
 		return "", fmt.Errorf("unable to execute command, no container found for service: %s", service)
 	}
-	if len(containers) > 1 {
+	if len(containers.Items) > 1 {
 		return "", fmt.Errorf("more than one container found for service: %s", service)
 	}
-	return containers[0].ID, nil
+	return containers.Items[0].ID, nil
 }

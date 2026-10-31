@@ -2,7 +2,7 @@
 
 # Create a development environment
 
-[Install the CLI](../installation.md) and Docker with Docker Compose first. Make sure `docker info` works for your user.
+[Install the CLI](../installation.md) and Docker Engine 19.03 or newer (API 1.40+) with Docker Compose v2 first. Make sure `docker info` works for your user.
 
 ## Create MediaWiki and a database
 
