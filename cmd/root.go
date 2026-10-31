@@ -173,6 +173,7 @@ func NewRootCmd(name string) *cobra.Command {
 		eventscmd.NewCmd(),
 		toolhub.NewToolHubCmd(),
 		tools.NewToolsCmd(),
+		tools.NewToolforgeCmd(),
 		gerrit.NewGerritCmd(),
 		cloudvps.NewCloudVPSCmd(),
 		dev.NewCmd(),

@@ -17,8 +17,8 @@ test_command_success_with_retries 3 2 ./bin/mw toolhub tools get toolforge-bash
 
 # Ignore linting e2e suggestions for some commands that are too involved with online things for now
 # SUGGEST cmd: mw tools: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw tools cp: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw tools exec: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw toolforge cp: (end-to-end-test) End to end tests are suggested, none found
+# SUGGEST cmd: mw toolforge exec: (end-to-end-test) End to end tests are suggested, none found
 # SUGGEST cmd: mw update: (end-to-end-test) End to end tests are suggested, none found
 # SUGGEST cmd: mw wiki: (end-to-end-test) End to end tests are suggested, none found
 # SUGGEST cmd: mw wiki page: (end-to-end-test) End to end tests are suggested, none found

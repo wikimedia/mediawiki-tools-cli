@@ -22,12 +22,12 @@ var cpExample string
 //go:embed exec.long.md
 var execLong string
 
-func NewToolsCmd() *cobra.Command {
+func NewToolforgeCmd() *cobra.Command {
 	toolforgeua.SetApplication(cli.HTTPUserAgent)
 	command := toolforge.NewCommand()
-	command.Use = "tools"
+	command.Use = "toolforge"
 	command.GroupID = "service"
-	command.Aliases = []string{"toolforge"}
+	command.Aliases = nil
 	command.Short = "Manage Toolforge tools, jobs, builds and deployments"
 	for _, child := range command.Commands() {
 		// The generated Toolforge commands are maintained and tested in their
@@ -127,4 +127,11 @@ func preserveExitCode(cmd *cobra.Command, err error) error {
 // Cleanup closes upstream SSH tunnels even when command execution fails.
 func Cleanup() {
 	toolforge.Cleanup()
+}
+
+// NewToolsCmd groups public tool discovery and usage statistics.
+func NewToolsCmd() *cobra.Command {
+	command := &cobra.Command{Use: "tools", GroupID: "service", Short: "Explore Wikimedia tools and usage statistics"}
+	command.AddCommand(newToolviewsCmd())
+	return command
 }
