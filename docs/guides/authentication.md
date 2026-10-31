@@ -167,9 +167,13 @@ This explicitly updates the profile's linked credential entry after successful
 authorization; it does not require logging out first. Changing the authentication
 method requires a separate profile.
 
-Interactive OAuth login opens a permission chooser. Basic identity/read access is always included; additional permissions start unchecked for a new profile. Choose only the editing, upload, bot, patrol, rollback, or watchlist access you need. Reauthorizing a named profile with the same client seeds the chooser from its previous requested permissions.
+Interactive OAuth login uses one shared grant catalogue based on MediaWiki 1.46.2, with OAuth and Echo REL1_46 extension grants. The same list is shown for Wikimedia, wikibase.world and custom clients; it is not filtered by consumer registration. The wiki validates whether selected scopes are available to the registered consumer, so a selection can be rejected there.
 
-`--scope basic` bypasses the chooser for basic-only access. Repeat `--scope` or use a comma-separated list for a specific subset, for example `--scope basic,editpage`. Explicit unsupported permissions are rejected for the bundled client. Non-interactive login defaults to `basic`; it never implicitly requests every registered permission. Use `--all-scopes` to explicitly request all registered permissions. `--scope` and `--all-scopes` cannot be combined. For a custom client, explicit `--scope` values are sent to that server for validation, while `--all-scopes` requests its registered default set.
+The picker groups permissions by their upstream functional categories and labels every row with its risk rating (`low`, `vandalism`, `security`, `internal`, or `unknown`). Colours supplement those labels. Basic access is always included. Up/Down move, Space toggles an individual permission, typing filters the list, Escape clears the filter, and Enter confirms.
+
+Right/Left move through cumulative global presets: Basic only → Low → Low + vandalism → Low + vandalism + security. Presets apply across the entire catalogue even when the list is filtered. Internal and unknown grants are never added or removed by these presets; they require individual selection and remain selected if explicitly chosen. An individual selection that differs from a preset is shown as Custom. Reauthorizing with the same client preserves previous requested scopes, including custom scopes absent from the catalogue, which appear under Unknown grants.
+
+Use `--scope basic` to bypass the picker for basic-only access. Repeat `--scope` or use a comma-separated list such as `--scope basic,editpage`; values outside the bundled catalogue are also sent to the wiki for validation. Non-interactive login defaults to `basic`. `--all-scopes` explicitly requests the entire shared catalogue, including internal and unknown entries, as a saved list of scope names; it never omits the restriction to request an open-ended server default. `--scope` and `--all-scopes` cannot be combined. No dynamic discovery or grant cache is used.
 
 The CLI saves the requested restriction with the profile and secure token bundle and sends it again during refresh. Reauthorize with `--replace` to change it. Use separate profiles to keep different permission levels separate.
 `auth status` labels these as **requested** scopes, rather than claiming they
@@ -178,6 +182,20 @@ a basic-only profile should authenticate successfully but fail an edit with
 `permissiondenied`, including after refreshing its token. Wikimedia's OAuth
 scopes resource lists the client's registered grants, not necessarily the
 restricted token's effective permissions.
+
+The built-in `wikibase-world` realm uses the public a-wikimedia-cli 1.1 client `8546b3108b91bd9ec7292c0aab4bb158`, with the same `http://localhost:8765/auth/login` callback:
+
+```sh
+mw wiki auth login --profile wikibase-world/addshore --scope basic,editpage
+mw wiki auth status --profile wikibase-world/addshore
+mw wiki auth status --profile wikibase-world/addshore --refresh
+```
+
+`--wiki https://wikibase.world/w/api.php` also selects this realm and client automatically. Authorization, exchange and refresh use wikibase.world's own `/w/rest.php/oauth2/` endpoints. The preset trusts only its exact API endpoint and cannot include Wikimedia or other sites. Tokens are stored under `wiki.profiles.wikibase-world.<name>.token` using the configured secret provider; the public client ID is metadata, not part of the secret key. Wikimedia profiles and credentials remain separate. All clients use the same shared permission catalogue; explicit `--scope` values and `--all-scopes` also work.
+
+wikibase.world reported MediaWiki 1.43.11 when this client was added. Public-client refresh without a client secret was fixed in MediaWiki 1.46; older installations need a backport or upgrade. The CLI attempts refresh without a secret and preserves saved credentials if it fails, with instructions to reauthorize using `--replace`. Do not assume persistent login until the real refresh test succeeds.
+
+Other MediaWiki sites can use a registered public client with explicit `--client-id`, `--redirect-uri`, `--wiki` and optionally `--realm`. Their OAuth endpoints are derived from the selected API's script path, including installations outside `/w`. The authority is saved with the profile; later refreshes never fall back to Wikimedia's token server.
 
 For an arbitrary wiki, save its username/password using the same providers. Bot passwords such as `Addshore@cli` are also accepted. Supplying username/password options selects the password method unless `--method` was explicit:
 

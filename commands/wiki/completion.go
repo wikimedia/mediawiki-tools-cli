@@ -71,7 +71,7 @@ func completeWikiProfiles(cmd *cobra.Command, _ []string, prefix string) ([]stri
 }
 
 func completeWikiRealms(_ *cobra.Command, _ []string, prefix string) ([]string, cobra.ShellCompDirective) {
-	values := map[string]bool{"wikimedia": true}
+	values := map[string]bool{"wikimedia": true, wikiauth.WikibaseWorldRealm: true}
 	for _, path := range []string{"wiki.realms", "wiki.profiles"} {
 		for _, realm := range config.State().OnDiskKoanf.MapKeys(path) {
 			if wikiauth.ValidName(realm) {
@@ -90,6 +90,9 @@ func completeWikiSites(cmd *cobra.Command, _ []string, prefix string) ([]string,
 		realm = completionRealm(cmd)
 	}
 	endpoints := make(map[string]bool)
+	if realm == "" || realm == wikiauth.WikibaseWorldRealm {
+		endpoints[wikiauth.WikibaseWorldAPI] = true
+	}
 	if realm == "" || realm == "wikimedia" {
 		for _, endpoint := range wikiauth.WikimediaEndpoints() {
 			endpoints[endpoint] = true

@@ -48,7 +48,7 @@ func TestWikiCompletionsAreLocalAndRespectRealms(t *testing.T) {
 		{"profile", "pers", "", "", []string{"personal"}},
 		{"profile", "", "independent", "", []string{"personal"}},
 		{"profile", "wikimedia/b", "", "", []string{"wikimedia/bot"}},
-		{"realm", "", "", "", []string{"independent", "wikimedia"}},
+		{"realm", "", "", "", []string{"independent", "wikibase-world", "wikimedia"}},
 		{"wiki", "https://en.wikipedia.", "", "", []string{"https://en.wikipedia.org/w/api.php"}},
 		{"wiki", "test.wikipedia.", "", "", []string{"test.wikipedia.org/w/api.php"}},
 		{"wiki", "", "independent", "", []string{custom.Endpoint}},

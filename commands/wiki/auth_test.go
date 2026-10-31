@@ -228,7 +228,7 @@ type oauthCallbackReader struct {
 func (r *oauthCallbackReader) Read(p []byte) (int, error) {
 	if r.reader == nil {
 		for _, line := range strings.Split(r.output.String(), "\n") {
-			if !strings.HasPrefix(line, wikiauth.WikimediaAuthority+"/w/rest.php/oauth2/authorize?") {
+			if !strings.Contains(line, "/rest.php/oauth2/authorize?") {
 				continue
 			}
 			u, err := url.Parse(line)

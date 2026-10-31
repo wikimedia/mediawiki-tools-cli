@@ -39,18 +39,18 @@ func NewWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewWikiExtCmd())
 	cmd.AddCommand(NewWikiFileCmd())
 	cmd.AddCommand(newWikiAuthCmd(), newWikiRealmCmd())
-	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
+	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "Wiki URL or API endpoint")
 	cmd.PersistentFlags().StringVar(&wikiUser, "username", "", "Wiki login username (use Name@bot for a bot password)")
 	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "Deprecated alias for --username")
 	cmd.MarkFlagsMutuallyExclusive("username", "user")
 	_ = cmd.PersistentFlags().MarkHidden("user")
-	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
+	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Wiki login password (or bot password)")
 	cmd.PersistentFlags().StringVar(&wikiPasswordFile, "password-file", "", "Read the login password from a file")
 	cmd.MarkFlagsMutuallyExclusive("password", "password-file")
 	_ = cmd.MarkPersistentFlagFilename("password-file")
-	cmd.PersistentFlags().BoolVar(&wikiAnon, "anon", false, "Perform anonymous edits using the anonymous CSRF token")
-	cmd.PersistentFlags().StringVar(&wikiRealm, "realm", "", "Shared-login realm (Wikimedia is built in)")
-	cmd.PersistentFlags().StringVar(&wikiProfile, "profile", "", "Saved profile name or REALM/NAME (login defaults to the verified username)")
+	cmd.PersistentFlags().BoolVar(&wikiAnon, "anon", false, "Use anonymous access instead of saved credentials")
+	cmd.PersistentFlags().StringVar(&wikiRealm, "realm", "", "Shared-login realm (wikimedia and wikibase-world are built in)")
+	cmd.PersistentFlags().StringVar(&wikiProfile, "profile", "", "Saved profile name or REALM/NAME")
 	cmd.PersistentFlags().StringVar(&wikiProfile, "account", "", "Deprecated alias for --profile")
 	cmd.MarkFlagsMutuallyExclusive("profile", "account")
 	// TODO(early 2027): remove --account and --user compatibility aliases.
@@ -128,7 +128,7 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 		return nil
 	}
 	if wikiUser == "" || password == "" {
-		return fmt.Errorf("--user and either --password or --password-file must be provided together")
+		return fmt.Errorf("--username and either --password or --password-file must be provided together")
 	}
 	return w.Login(wikiUser, password)
 }
@@ -138,8 +138,8 @@ func hasWikiCredentials() bool {
 }
 
 func realmForWiki(endpoint string) (string, error) {
-	if wikiauth.IsWikimedia(endpoint) {
-		return "wikimedia", nil
+	if realm := wikiauth.BuiltinRealm(endpoint); realm != "" {
+		return realm, nil
 	}
 	var matched string
 	for _, realm := range config.State().OnDiskKoanf.MapKeys("wiki.realms") {

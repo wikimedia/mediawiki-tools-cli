@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -157,5 +158,63 @@ func TestWikimediaRealmIsExactAndSharedLoginOnly(t *testing.T) {
 		if _, err := Endpoint(raw); err == nil {
 			t.Fatal("unsafe endpoint accepted")
 		}
+	}
+}
+
+func TestOAuthAuthoritiesUseTheirOwnScriptPaths(t *testing.T) {
+	for _, test := range []struct{ authority, client, rest string }{
+		{WikibaseWorldAPI, WikibaseWorldClientID, "https://wikibase.world/w/rest.php/oauth2/"},
+		{"https://wiki.example/custom/api.php", "custom-client", "https://wiki.example/custom/rest.php/oauth2/"},
+	} {
+		t.Run(test.authority, func(t *testing.T) {
+			a, err := BeginAt(test.authority, test.client, DefaultRedirectURI, "basic", "editpage")
+			if err != nil {
+				t.Fatal(err)
+			}
+			parsed, _ := url.Parse(a.URL)
+			if !strings.HasPrefix(a.URL, test.rest+"authorize?") || parsed.Query().Get("client_id") != test.client {
+				t.Fatal("incorrect authorization authority")
+			}
+			calls := 0
+			client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				calls++
+				if r.URL.String() != test.rest+"access_token" {
+					t.Fatal("token sent to another authority")
+				}
+				_ = r.ParseForm()
+				if r.Form.Get("client_id") != test.client || r.Form.Has("client_secret") || r.Form.Get("scope") != "" && r.Form.Get("scope") != "basic editpage" {
+					t.Fatal("client or scope binding lost")
+				}
+				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"access_token":"access-fixture","refresh_token":"refresh-fixture","token_type":"Bearer","expires_in":3600}`))}, nil
+			})}
+			tokens, err := Exchange(t.Context(), client, test.client, a, "code-fixture")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := RefreshAt(t.Context(), client, test.authority, test.client, tokens); err != nil {
+				t.Fatal(err)
+			}
+			if calls != 2 {
+				t.Fatal("exchange or refresh missing")
+			}
+		})
+	}
+	if Allows(WikibaseWorldRealm, "https://en.wikipedia.org/w/api.php", []string{"https://en.wikipedia.org/w/api.php"}) || Allows(WikibaseWorldRealm, "https://sub.wikibase.world/w/api.php", nil) || !Allows(WikibaseWorldRealm, WikibaseWorldAPI, nil) {
+		t.Fatal("wikibase.world scope is not exact")
+	}
+}
+
+func TestTokenExchangeDoesNotForwardAuthorizationCodes(t *testing.T) {
+	calls := 0
+	target := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+	defer target.Close()
+	issuer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, 307) }))
+	defer issuer.Close()
+	a, err := BeginAt(issuer.URL+"/w/api.php", "fixture-client", DefaultRedirectURI, "basic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Exchange(t.Context(), &http.Client{}, "fixture-client", a, "private-code-fixture"); err == nil || calls != 0 {
+		t.Fatal("redirect received authorization code", err)
 	}
 }

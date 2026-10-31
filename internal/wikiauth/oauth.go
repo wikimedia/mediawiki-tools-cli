@@ -32,9 +32,18 @@ type Tokens struct {
 	RequestedScope string    `json:"requested_scope,omitempty"`
 }
 
-type Authorization struct{ URL, State, Verifier, RedirectURI, Scope string }
+type Authorization struct{ URL, State, Verifier, RedirectURI, Scope, Authority string }
 
 func Begin(clientID, redirectURI string, scopes ...string) (Authorization, error) {
+	return BeginAt(WikimediaAuthority, clientID, redirectURI, scopes...)
+}
+
+// BeginAt uses the selected wiki's script path, never another site's OAuth server.
+func BeginAt(authority, clientID, redirectURI string, scopes ...string) (Authorization, error) {
+	api, err := Endpoint(authority)
+	if err != nil {
+		return Authorization{}, err
+	}
 	u, err := url.Parse(redirectURI)
 	if err != nil || u.Scheme != "http" || (u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" && u.Hostname() != "::1") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return Authorization{}, fmt.Errorf("OAuth callback must be an HTTP loopback URL without query or fragment")
@@ -58,14 +67,14 @@ func Begin(clientID, redirectURI string, scopes ...string) (Authorization, error
 	if _, err := rand.Read(random); err != nil {
 		return Authorization{}, err
 	}
-	a := Authorization{State: base64.RawURLEncoding.EncodeToString(random[:32]), Verifier: base64.RawURLEncoding.EncodeToString(random[32:]), RedirectURI: redirectURI}
+	a := Authorization{State: base64.RawURLEncoding.EncodeToString(random[:32]), Verifier: base64.RawURLEncoding.EncodeToString(random[32:]), RedirectURI: redirectURI, Authority: api}
 	hash := sha256.Sum256([]byte(a.Verifier))
 	q := url.Values{"response_type": {"code"}, "client_id": {clientID}, "redirect_uri": {redirectURI}, "state": {a.State}, "code_challenge": {base64.RawURLEncoding.EncodeToString(hash[:])}, "code_challenge_method": {"S256"}}
 	a.Scope = strings.Join(scopes, " ")
 	if a.Scope != "" {
 		q.Set("scope", a.Scope)
 	}
-	a.URL = WikimediaAuthority + "/w/rest.php/oauth2/authorize?" + q.Encode()
+	a.URL = strings.TrimSuffix(api, "api.php") + "rest.php/oauth2/authorize?" + q.Encode()
 	return a, nil
 }
 
@@ -93,12 +102,20 @@ func HTTPClient() *http.Client {
 }
 
 func Exchange(ctx context.Context, client *http.Client, clientID string, a Authorization, code string) (Tokens, error) {
-	tokens, err := tokenRequest(ctx, client, WikimediaAuthority+"/w/rest.php/oauth2/access_token", url.Values{"grant_type": {"authorization_code"}, "client_id": {clientID}, "redirect_uri": {a.RedirectURI}, "code": {code}, "code_verifier": {a.Verifier}})
+	endpoint, err := oauthTokenEndpoint(a.Authority)
+	if err != nil {
+		return Tokens{}, err
+	}
+	tokens, err := tokenRequest(ctx, client, endpoint, url.Values{"grant_type": {"authorization_code"}, "client_id": {clientID}, "redirect_uri": {a.RedirectURI}, "code": {code}, "code_verifier": {a.Verifier}})
 	tokens.RequestedScope = a.Scope
 	return tokens, err
 }
 
 func Refresh(ctx context.Context, client *http.Client, clientID string, old Tokens) (Tokens, error) {
+	return RefreshAt(ctx, client, WikimediaAuthority, clientID, old)
+}
+
+func RefreshAt(ctx context.Context, client *http.Client, authority, clientID string, old Tokens) (Tokens, error) {
 	if old.RefreshToken == "" {
 		return Tokens{}, fmt.Errorf("no refresh token; log in again")
 	}
@@ -106,7 +123,11 @@ func Refresh(ctx context.Context, client *http.Client, clientID string, old Toke
 	if old.RequestedScope != "" {
 		form.Set("scope", old.RequestedScope)
 	}
-	tokens, err := tokenRequest(ctx, client, WikimediaAuthority+"/w/rest.php/oauth2/access_token", form)
+	endpoint, err := oauthTokenEndpoint(authority)
+	if err != nil {
+		return Tokens{}, err
+	}
+	tokens, err := tokenRequest(ctx, client, endpoint, form)
 	tokens.RequestedScope = old.RequestedScope
 	if tokens.RefreshToken == "" {
 		tokens.RefreshToken = old.RefreshToken
@@ -114,14 +135,24 @@ func Refresh(ctx context.Context, client *http.Client, clientID string, old Toke
 	return tokens, err
 }
 
+func oauthTokenEndpoint(authority string) (string, error) {
+	api, err := Endpoint(authority)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(api, "api.php") + "rest.php/oauth2/access_token", nil
+}
+
 func tokenRequest(ctx context.Context, client *http.Client, endpoint string, form url.Values) (Tokens, error) {
+	scopedClient := *client
+	scopedClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		return Tokens{}, fmt.Errorf("could not construct OAuth request")
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", cli.HTTPUserAgent)
-	response, err := client.Do(req)
+	response, err := scopedClient.Do(req)
 	if err != nil {
 		return Tokens{}, fmt.Errorf("OAuth token request failed")
 	}

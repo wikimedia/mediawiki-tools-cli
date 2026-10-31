@@ -53,13 +53,24 @@ func LoadWikiProfile(realm, name string) (WikiProfile, error) {
 	if realm == "wikimedia" && a.Endpoint != wikiauth.WikimediaAuthority {
 		return a, fmt.Errorf("invalid Wikimedia credential authority")
 	}
-	if a.Method == "oauth" && (realm != "wikimedia" || a.ClientID == "") {
-		return a, fmt.Errorf("OAuth is currently supported only for Wikimedia accounts")
+	if a.Method == "oauth" {
+		if a.ClientID == "" {
+			return a, fmt.Errorf("OAuth profile has no client ID")
+		}
+		if realm != "wikimedia" {
+			authority, err := wikiauth.Endpoint(a.Endpoint)
+			if err != nil || authority != a.Endpoint || !a.Allows(authority) {
+				return a, fmt.Errorf("OAuth authority is outside the profile's site scope")
+			}
+		}
 	}
 	for _, site := range a.Sites {
 		normalized, err := wikiauth.Endpoint(site)
 		if err != nil || normalized != site {
 			return a, fmt.Errorf("invalid wiki profile site scope")
+		}
+		if realm == wikiauth.WikibaseWorldRealm && site != wikiauth.WikibaseWorldAPI {
+			return a, fmt.Errorf("wikibase.world profile includes an unrelated site")
 		}
 		if realm == "wikimedia" && !wikiauth.IsWikimedia(site) {
 			return a, fmt.Errorf("Wikimedia profile includes a non-Wikimedia site")
@@ -92,6 +103,9 @@ func (a WikiProfile) Metadata() map[string]string {
 }
 
 func WikiRealmEndpoints(realm string) []string {
+	if realm == wikiauth.WikibaseWorldRealm {
+		return []string{wikiauth.WikibaseWorldAPI}
+	}
 	endpoints := State().OnDiskKoanf.Strings("wiki.realms." + realm + ".endpoints")
 	if endpoint := State().OnDiskKoanf.String("wiki.realms." + realm + ".endpoint"); endpoint != "" {
 		endpoints = append(endpoints, endpoint)
@@ -104,6 +118,9 @@ func WikiRealmAllows(realm, endpoint string) bool {
 }
 
 func (a WikiProfile) Allows(endpoint string) bool {
+	if a.Realm == wikiauth.WikibaseWorldRealm && endpoint != wikiauth.WikibaseWorldAPI {
+		return false
+	}
 	if len(a.Sites) > 0 {
 		for _, site := range a.Sites {
 			if site == endpoint {

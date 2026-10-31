@@ -70,6 +70,9 @@ func Allows(realm, endpoint string, custom []string) bool {
 	if realm == "wikimedia" {
 		return IsWikimedia(endpoint)
 	}
+	if realm == WikibaseWorldRealm {
+		return endpoint == WikibaseWorldAPI
+	}
 	for _, allowed := range custom {
 		if endpoint == allowed {
 			return true
