@@ -14,7 +14,7 @@ cd "$script_dir/../../.."
 make build BINARY_NAME=mw
 export PATH="$PWD/bin:$PATH"
 
-existing=$(bin/mw tools kubernetes get pod cli-guide-hello --ignore-not-found -o name --tool "$TOOL")
+existing=$(bin/mw toolforge kubernetes get pod cli-guide-hello --ignore-not-found -o name --tool "$TOOL")
 if [[ -n $existing ]]; then
     echo 'cli-guide-hello already exists; choose another tool or finish that demo first.' >&2
     exit 1

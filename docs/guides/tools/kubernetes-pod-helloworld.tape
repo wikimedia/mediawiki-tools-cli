@@ -27,19 +27,19 @@ Enter
 Type 'echo "Tool: $TOOL"'
 Enter
 Sleep 1s
-Type 'mw tools kubernetes get pods --tool "$TOOL"'
+Type 'mw toolforge kubernetes get pods --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes get deployments --tool "$TOOL"'
+Type 'mw toolforge kubernetes get deployments --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes get services --tool "$TOOL"'
+Type 'mw toolforge kubernetes get services --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
@@ -54,37 +54,37 @@ Enter
 Sleep 5s
 
 Ctrl+L
-Type 'mw tools kubernetes create --dry-run=server -f cli-guide-hello.yaml --tool "$TOOL"'
+Type 'mw toolforge kubernetes create --dry-run=server -f cli-guide-hello.yaml --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes create -f cli-guide-hello.yaml --tool "$TOOL"'
+Type 'mw toolforge kubernetes create -f cli-guide-hello.yaml --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes wait --for=condition=Ready pod/cli-guide-hello --timeout=120s --tool "$TOOL"'
+Type 'mw toolforge kubernetes wait --for=condition=Ready pod/cli-guide-hello --timeout=120s --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@150s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes get pod cli-guide-hello --tool "$TOOL"'
+Type 'mw toolforge kubernetes get pod cli-guide-hello --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes logs cli-guide-hello --tail=2 --tool "$TOOL"'
+Type 'mw toolforge kubernetes logs cli-guide-hello --tail=2 --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes exec cli-guide-hello --tool "$TOOL" -- python3 --version'
+Type 'mw toolforge kubernetes exec cli-guide-hello --tool "$TOOL" -- python3 --version'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
@@ -94,7 +94,7 @@ Sleep 2s
 Ctrl+L
 Type '# Forward the app to localhost'
 Enter
-Type 'mw tools kubernetes port-forward pod/cli-guide-hello 18080:8000 --tool "$TOOL" > port-forward.log 2>&1 &'
+Type 'mw toolforge kubernetes port-forward pod/cli-guide-hello 18080:8000 --tool "$TOOL" > port-forward.log 2>&1 &'
 Enter
 Hide
 Type 'forward_pid=$!; for i in {1..30}; do grep -q "Forwarding from" port-forward.log && break; kill -0 "$forward_pid" || exit 1; sleep 1; done; grep -q "Forwarding from" port-forward.log'
@@ -121,13 +121,13 @@ Wait+Line@15s /^> ?$/
 Show
 Type '# Remove only the demo pod'
 Enter
-Type 'mw tools kubernetes delete pod cli-guide-hello --tool "$TOOL"'
+Type 'mw toolforge kubernetes delete pod cli-guide-hello --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
 Show
 Sleep 2s
-Type 'mw tools kubernetes get pods --tool "$TOOL"'
+Type 'mw toolforge kubernetes get pods --tool "$TOOL"'
 Enter
 Hide
 Wait+Line@120s /^> ?$/
