@@ -101,7 +101,7 @@ images:
     requireRegex: ^0\.59\.\d+-debian$
 
   # Jaeger all-in-one tracing service.
-  - image: jaegertracing/all-in-one:1.57
+  - image: jaegertracing/all-in-one:1.60
     requireRegex: ^1\.\d+$
 
   # Traefik reverse proxy for local development services.
