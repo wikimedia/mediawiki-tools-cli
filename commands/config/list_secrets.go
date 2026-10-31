@@ -192,8 +192,12 @@ func secretSuggestions(entries []config.SecretInfo, executable string) []secretS
 			suggestions = append(suggestions, secretSuggestion{"Keep valid plaintext: replace the vault value, then remove plaintext after verification.", migration + " --replace"})
 		case hasPlain && entry.Comparison == "different" && (entry.Validation == "" || plain.Validation == ""):
 			suggestions = append(suggestions, secretSuggestion{"Check which copy authenticates before choosing one.", base + "list " + shellWord(entry.Key) + " --check --verify"})
-		case !hasPlain && entry.Key == "gerrit.password" && entry.Validation == "invalid":
-			suggestions = append(suggestions, secretSuggestion{"Log in again to replace the invalid Gerrit credential.", shellWord(executable) + " gerrit auth login --provider " + entry.Provider})
+		case !hasPlain && (entry.Service == "gerrit" || entry.Key == "gerrit.password") && entry.Validation == "invalid":
+			command := shellWord(executable) + " gerrit auth login --provider " + entry.Provider
+			if strings.HasPrefix(entry.Key, "gerrit.profiles.") {
+				command += " --profile " + shellWord(strings.TrimSuffix(strings.TrimPrefix(entry.Key, "gerrit.profiles."), ".password"))
+			}
+			suggestions = append(suggestions, secretSuggestion{"Log in again to replace the invalid Gerrit credential.", command})
 		}
 	}
 	return suggestions

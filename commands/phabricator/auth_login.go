@@ -6,6 +6,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
@@ -21,13 +22,9 @@ type loginInteraction struct {
 
 func newPhabricatorAuthLoginCmd(site *string) *cobra.Command {
 	return newPhabricatorAuthLoginCmdWithInteraction(site, loginInteraction{
-		openURL: browser.OpenURL,
-		canAsk:  cli.CanAskForInput,
-		confirmDefault: func(profile, current string) (bool, error) {
-			var yes bool
-			err := survey.AskOne(&survey.Confirm{Message: fmt.Sprintf("Make profile %q the default instead of %q?", profile, current), Default: false}, &yes)
-			return yes, err
-		},
+		openURL:        browser.OpenURL,
+		canAsk:         cli.CanAskForInput,
+		confirmDefault: authprofile.ConfirmDefault,
 		readToken: func() (string, error) {
 			var value string
 			err := survey.AskOne(&survey.Password{Message: "Phabricator API token:"}, &value, survey.WithValidator(survey.Required))
@@ -40,7 +37,7 @@ func newPhabricatorAuthLoginCmdWithInteraction(site *string, interaction loginIn
 	var username, token, endpoint string
 	var tokenStdin, insecureStorage bool
 	var provider, method, configFile, configSection string
-	var noBrowser, makeDefault bool
+	var noBrowser bool
 	cmd := &cobra.Command{
 		Use:     "login",
 		Short:   "Login to Phabricator through the browser or an existing API token",
@@ -54,7 +51,7 @@ func newPhabricatorAuthLoginCmdWithInteraction(site *string, interaction loginIn
 				}
 			}
 			siteName := strings.TrimSpace(*site)
-			if siteName != "" && !validProfileName(siteName) {
+			if siteName != "" && !authprofile.ValidName(siteName) {
 				return fmt.Errorf("profile must contain only letters, digits, underscores or hyphens")
 			}
 			if method != "browser" && method != "token" && method != "phab-cfg" {
@@ -145,19 +142,14 @@ func newPhabricatorAuthLoginCmdWithInteraction(site *string, interaction loginIn
 			username = whoami
 			if siteName == "" {
 				siteName = strings.ToLower(whoami)
-				if !validProfileName(siteName) {
+				if !authprofile.ValidName(siteName) {
 					return fmt.Errorf("provide --profile with letters, digits, underscores or hyphens for this account")
 				}
 			}
-			currentDefault := defaultProfile()
-			changeDefault := currentDefault == "" || currentDefault == siteName
-			if cmd.Flags().Changed("default") {
-				changeDefault = makeDefault
-			} else if !changeDefault && interaction.canAsk() {
-				changeDefault, err = interaction.confirmDefault(siteName, currentDefault)
-				if err != nil {
-					return err
-				}
+			currentDefault := phabProfiles.Default()
+			changeDefault, err := authprofile.ChooseDefault(cmd, siteName, currentDefault, interaction.canAsk, interaction.confirmDefault)
+			if err != nil {
+				return err
 			}
 			prefix := "phabricator.profiles." + siteName + "."
 			updates := map[string]string{
@@ -191,7 +183,7 @@ func newPhabricatorAuthLoginCmdWithInteraction(site *string, interaction loginIn
 	cmd.Flags().StringVarP(&token, "token", "t", "", "API token (prefer a hidden prompt or stdin)")
 	cmd.Flags().StringVar(&endpoint, "url", defaultPhabricatorURL, "Explicit Phabricator HTTPS endpoint")
 	cmd.Flags().StringVar(&method, "method", "browser", "Login method: browser, token or phab-cfg (supplied tokens skip browser launch)")
-	cmd.Flags().BoolVar(&makeDefault, "default", false, "Make this profile the default (otherwise ask when changing an existing default)")
+	authprofile.AddDefaultFlag(cmd)
 	cmd.Flags().StringVar(&configFile, "config-file", "", "phab.cfg file to import (otherwise search standard locations)")
 	cmd.Flags().StringVar(&configSection, "config-section", "", "Section to import from phab.cfg (otherwise its [main] default)")
 	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "Print the login URL without opening the browser")

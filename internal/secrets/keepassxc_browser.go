@@ -44,7 +44,7 @@ func WriteKeePassXCBrowser(ctx context.Context, existing *KeePassXCBrowser, key,
 
 func browserClientForCredential(key string) *keepassxc.Client {
 	client := browserClient()
-	if strings.HasPrefix(key, "phabricator.profiles.") {
+	if strings.HasPrefix(key, "phabricator.profiles.") || strings.HasPrefix(key, "gerrit.profiles.") {
 		// Different profiles can use the same username with different
 		// credentials or permissions. Never reuse their tokens by username.
 		// Existing references remain pinned to their original UUID and location.

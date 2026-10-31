@@ -27,6 +27,7 @@ var (
 )
 
 func NewGerritCmd() *cobra.Command {
+	var profile string
 	cmd := &cobra.Command{
 		Use:     "gerrit",
 		GroupID: "service",
@@ -53,9 +54,27 @@ func NewGerritCmd() *cobra.Command {
 					password = value
 				}
 			}
-			if username == "" {
+			selected, _ := cmd.Flags().GetString("profile")
+			if selected == "" {
+				selected = gerritProfiles.Default()
+			}
+			if selected != "" {
+				if _, err := gerritProfiles.Selected(selected); err != nil {
+					return err
+				}
+				if username == "" {
+					username = config.State().EffectiveKoanf.String(gerritProfiles.Prefix(selected) + ".username")
+				}
+			} else if username == "" {
 				username = config.State().Effective.Gerrit.Username
 			}
+			// SSH uses the selected public identity and its SSH agent/config, without
+			// unlocking unrelated HTTP credentials.
+			if cmd.Name() == "ssh" {
+				gerritUsername, gerritPassword = username, ""
+				return nil
+			}
+
 			stdin, _ := cmd.Flags().GetBool("password-stdin")
 			if stdin {
 				if password != "" {
@@ -68,16 +87,24 @@ func NewGerritCmd() *cobra.Command {
 				}
 			}
 			if password == "" {
+				credential := config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: username}
+				if selected != "" {
+					credential = gerritProfileCredential(selected)
+					credential.Account = username
+				}
 				var err error
-				password, err = (config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: username}).Read()
+				password, err = credential.Read()
 				if err != nil {
 					return err
 				}
 			}
+
 			gerritUsername, gerritPassword = username, password
 			return nil
 		},
 	}
+
+	gerritProfiles.AddFlag(cmd, &profile)
 
 	// Add persistent flags for username and password
 	cmd.PersistentFlags().String("username", "", "Gerrit username (overriding config)")
@@ -86,7 +113,7 @@ func NewGerritCmd() *cobra.Command {
 
 	cmd.AddCommand(NewGerritAPICmd())
 	cmd.AddCommand(NewGerritSSHCmd())
-	cmd.AddCommand(NewGerritAuthCmd())
+	cmd.AddCommand(NewGerritAuthCmd(&profile))
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
 
 	// Generated command trees are documented and exercised by their generator's
@@ -112,7 +139,12 @@ func NewGerritCmd() *cobra.Command {
 }
 
 func sshGerritCommand(args []string) *exec.Cmd {
-	return sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
+	ssh := sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
+	if gerritUsername != "" {
+		// Pass usernames as an option value, never as a host/options string.
+		ssh.Args = append(ssh.Args[:1], append([]string{"-l", gerritUsername}, ssh.Args[1:]...)...)
+	}
+	return ssh
 }
 
 // Clone the default client to preserve its settings without changing other services.

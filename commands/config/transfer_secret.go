@@ -13,7 +13,7 @@ func NewTransferSecretCmd() *cobra.Command {
 		Use:     "transfer KEY",
 		Short:   "Copy a linked credential to another provider",
 		Long:    "Copy a saved credential to another provider, verify it, then switch its configuration reference. External source entries are retained; plaintext configuration is removed after verified secure storage. The configured default is unchanged.",
-		Example: "transfer gerrit.password --provider keyring",
+		Example: "transfer gerrit.profiles.addshore.password --provider keyring",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credential, err := config.CredentialForKey(args[0])

@@ -111,7 +111,7 @@ func TestImportPhabConfigRejectsInvalidAccountAndDestination(t *testing.T) {
 			if mwconfig.HasCredential("phabricator.profiles.imported.key") {
 				t.Fatal("invalid import saved credentials")
 			}
-			if defaultProfile() != "" {
+			if phabProfiles.Default() != "" {
 				t.Fatal("invalid import changed default")
 			}
 		})

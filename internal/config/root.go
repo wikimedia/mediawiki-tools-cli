@@ -142,11 +142,17 @@ func load() *koanf.Koanf {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	gerritMigrated, gerritChanged, err := migrateGerritProfiles(migrated)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	migrated = gerritMigrated
+	changed = changed || gerritChanged
 	if changed {
 		// Completion may translate metadata in memory, but must not write config.
 		if !isConfigCompletion() {
 			if err := putDiskConfig(migrated); err != nil {
-				logrus.Fatalf("could not migrate Phabricator profiles: %v", err)
+				logrus.Fatalf("could not migrate account profiles: %v", err)
 			}
 		}
 		kOnDisk = migrated
@@ -175,6 +181,14 @@ func koanfToConfig(k *koanf.Koanf) Config {
 	err = json.Unmarshal(b, &c)
 	if err != nil {
 		logrus.Fatalf("error unmarshalling config: %v", err)
+	}
+	// Other commands use the default Gerrit identity for cloning/SSH. Project
+	// that public username into the legacy struct without recreating disk keys.
+	if c.Gerrit.Username == "" {
+		name := k.String("gerrit.default_profile")
+		if name != "" {
+			c.Gerrit.Username = k.String("gerrit.profiles." + name + ".username")
+		}
 	}
 	return c
 }

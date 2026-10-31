@@ -26,7 +26,7 @@ type PhabConfig struct {
 func loadConfig(profile string) (*PhabConfig, error) {
 	selected := strings.TrimSpace(profile)
 	if selected == "" {
-		selected = defaultProfile()
+		selected = phabProfiles.Default()
 	}
 	if selected != "" && mwconfig.State().EffectiveKoanf.Bool("phabricator.profiles."+selected+".logged_out") {
 		return nil, fmt.Errorf("profile %q is logged out; use phabricator auth login", selected)
@@ -105,7 +105,7 @@ func configFromMWCLI(site string) (*PhabConfig, error) {
 
 	siteName := strings.TrimSpace(site)
 	if siteName == "" {
-		siteName = defaultProfile()
+		siteName = phabProfiles.Default()
 	}
 
 	get := func(key string) string {

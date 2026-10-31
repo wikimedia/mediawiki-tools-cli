@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 )
 
 const (
@@ -14,9 +14,7 @@ const (
 	defaultPhabricatorSite = "wikimedia"
 )
 
-func addAuthCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(newPhabricatorAuthCmd(site))
-}
+var phabProfiles = authprofile.Manager{Service: "phabricator", Label: "Phabricator", SecretField: "key", Endpoint: defaultPhabricatorURL}
 
 func newPhabricatorAuthCmd(site *string) *cobra.Command {
 	cmd := &cobra.Command{
@@ -24,9 +22,10 @@ func newPhabricatorAuthCmd(site *string) *cobra.Command {
 		Short: "Authenticate mw with Wikimedia Phabricator",
 	}
 	cmd.AddCommand(newPhabricatorAuthLoginCmd(site))
-	cmd.AddCommand(newPhabricatorAuthRemoveCmd(site))
+	cmd.AddCommand(phabProfiles.RemoveCmd(site))
 	cmd.AddCommand(newPhabricatorAuthStatusCmd(site))
-	cmd.AddCommand(newPhabricatorAuthListCmd())
+	cmd.AddCommand(phabProfiles.ProfilesCmd())
+	cmd.AddCommand(phabProfiles.DefaultCmd(site))
 	return cmd
 }
 
@@ -34,15 +33,10 @@ func resolveAuthSite(site string) string {
 	if value := strings.TrimSpace(site); value != "" {
 		return value
 	}
-	if value := defaultProfile(); value != "" {
+	if value := phabProfiles.Default(); value != "" {
 		return value
 	}
 	return defaultPhabricatorSite
-}
-
-func defaultProfile() string {
-	cfg := mwconfig.State()
-	return strings.TrimSpace(cfg.EffectiveKoanf.String("phabricator.default_profile"))
 }
 
 func validatePhabricatorCredentials(cmd *cobra.Command, cfg *PhabConfig) (string, error) {

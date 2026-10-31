@@ -16,7 +16,7 @@ func NewMigrateSecretsCmd() *cobra.Command {
 		Use:     "migrate [KEY...]",
 		Short:   "Move plaintext credentials to their selected provider",
 		Long:    "Move Gerrit, Cloud VPS, Phabricator and saved wiki credentials from config.json to their selected provider. Supply credential keys to migrate only those entries. Plaintext entries use the configured default or --provider; secure links retain their provider. Each secret is read back before its plaintext value is removed. This does not import external phab.cfg files or change GitLab's separate credential store.",
-		Example: "migrate --dry-run\nmigrate\nmigrate gerrit.password --provider keyring",
+		Example: "migrate --dry-run\nmigrate\nmigrate gerrit.profiles.addshore.password --provider keyring",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if replace && len(args) != 1 {
 				return fmt.Errorf("--replace requires exactly one explicit credential key")

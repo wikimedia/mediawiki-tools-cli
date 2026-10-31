@@ -238,6 +238,8 @@ func CredentialForKey(key string) (Credential, error) {
 			return Credential{}, fmt.Errorf("credential key does not match the wiki account authentication method")
 		}
 		return credential, nil
+	case strings.HasPrefix(key, "gerrit.profiles.") && strings.HasSuffix(key, ".password"):
+		return Credential{Key: key, Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: state.String(strings.TrimSuffix(key, "password") + "username")}, nil
 	case key == "gerrit.password":
 		return Credential{Key: key, Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: state.String("gerrit.username")}, nil
 	case strings.HasPrefix(key, "cloud_vps.projects.") && strings.HasSuffix(key, ".credential.secret"):

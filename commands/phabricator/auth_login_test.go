@@ -133,7 +133,7 @@ func TestProfileListAndCompletionDoNotReadCredentials(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got, directive := completeProfiles(nil, nil, "p")
+	got, directive := phabProfiles.Complete(nil, nil, "p")
 	if len(got) != 1 || got[0] != "personal" || directive != cobra.ShellCompDirectiveNoFileComp {
 		t.Fatal(got, directive)
 	}
@@ -241,7 +241,7 @@ func TestLoginDefaultProfileSelection(t *testing.T) {
 			if err := cmd.Execute(); err != nil {
 				t.Fatal(err)
 			}
-			if got := defaultProfile(); got != test.want {
+			if got := phabProfiles.Default(); got != test.want {
 				t.Fatalf("default=%q, want %q", got, test.want)
 			}
 			if prompted != test.wantPrompt {
@@ -292,7 +292,7 @@ func TestLoginWithoutProfileUsesVerifiedUsername(t *testing.T) {
 	if err != nil || cfg.Username != "Addbot" {
 		t.Fatalf("username-derived profile: %+v %v", cfg, err)
 	}
-	if defaultProfile() != "personal" {
+	if phabProfiles.Default() != "personal" {
 		t.Fatal("login replaced existing default")
 	}
 }
@@ -324,10 +324,10 @@ func TestRemoveProfileDeletesMetadataAndDefault(t *testing.T) {
 			if !disk.Exists("phabricator.profiles.other") {
 				t.Fatal("another profile was removed")
 			}
-			if !strings.Contains(out.String(), "token remains valid") {
+			if !strings.Contains(out.String(), "credentials are not revoked") {
 				t.Fatal("missing server token explanation")
 			}
-			profiles, _ := completeProfiles(nil, nil, "")
+			profiles, _ := phabProfiles.Complete(nil, nil, "")
 			if len(profiles) != 1 || profiles[0] != "other" {
 				t.Fatal("removed profile still listed", profiles)
 			}

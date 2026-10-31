@@ -45,7 +45,7 @@ func setupAuthTest(t *testing.T) *bytes.Buffer {
 		if r.URL.Host != "gerrit.wikimedia.org" {
 			t.Errorf("unexpected host: %s", r.URL.Host)
 		}
-		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(")]}'\n\"fixture\"")), Request: r}, nil
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(string([]byte{41, 93, 125, 39, 10}) + `{"username":"fixture","name":"Fixture"}`)), Request: r}, nil
 	})
 	t.Cleanup(func() {
 		http.DefaultTransport = oldTransport
@@ -77,7 +77,7 @@ func TestLoginStdinStoresOnlyReferenceAndDoesNotLogPassword(t *testing.T) {
 	if strings.Contains(string(data)+out.String()+log.String(), "fixture-secret") {
 		t.Fatal("credential leaked to disk or output")
 	}
-	cred, err := config.CredentialForKey("gerrit.password")
+	cred, err := config.CredentialForKey("gerrit.profiles.fixture.password")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,13 +85,13 @@ func TestLoginStdinStoresOnlyReferenceAndDoesNotLogPassword(t *testing.T) {
 		t.Fatalf("cannot read saved credential: %v", err)
 	}
 	logout := NewGerritCmd()
-	logout.SetArgs([]string{"auth", "logout"})
+	logout.SetArgs([]string{"auth", "remove"})
 	logout.SetOut(out)
 	if err := logout.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if config.HasCredential("gerrit.password") {
-		t.Fatal("logout left saved credential")
+	if config.HasCredential("gerrit.profiles.fixture.password") {
+		t.Fatal("remove left saved credential")
 	}
 }
 
@@ -134,10 +134,10 @@ func TestLocalGerritCommandDoesNotUnlockKeyring(t *testing.T) {
 
 func TestAuthProfilesDoesNotReadCredentials(t *testing.T) {
 	setupAuthTest(t)
-	if err := config.PutKeyValueOnDisk("gerrit.username", "fixture"); err != nil {
+	if err := config.PutKeyValueOnDisk("gerrit.profiles.fixture.username", "fixture"); err != nil {
 		t.Fatal(err)
 	}
-	credential := config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: "https://gerrit.wikimedia.org/r", Account: "fixture"}
+	credential := config.Credential{Key: "gerrit.profiles.fixture.password", Service: "gerrit", Endpoint: "https://gerrit.wikimedia.org/r", Account: "fixture"}
 	if err := credential.SaveWithProvider("fixture-secret", false, nil, "keyring"); err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestAuthProfilesDoesNotReadCredentials(t *testing.T) {
 		if err := cmd.Execute(); err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(out.String(), "fixture") || !strings.Contains(out.String(), "one saved account") {
+		if !strings.Contains(out.String(), "fixture") || !strings.Contains(out.String(), "Saved Gerrit profiles") {
 			t.Fatal(out.String())
 		}
 	}

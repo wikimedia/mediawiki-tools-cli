@@ -48,6 +48,27 @@ mw config secrets migrate phabricator.profiles.wikimedia.key --replace
 
 This replaces the linked provider's value using plaintext from config, verifies the destination, then removes the plaintext copy. It does not verify that the token is accepted by the remote service. The saved account and endpoint must still match. `--replace` requires exactly one explicit key and a secure destination; it cannot replace multiple entries in a bulk migration.
 
+### Gerrit account profiles
+
+Gerrit and Phabricator expose the same `auth login`, `auth profiles` (`list` alias), `auth status`, `auth remove`, and `auth default` commands. Each accepts the service's persistent `--profile` flag; profile names have shell completion.
+
+```sh
+mw gerrit auth login --username addshore
+mw gerrit auth login --username addbot --profile bot
+mw gerrit auth profiles
+mw gerrit auth status --profile bot
+mw gerrit auth default --profile addshore
+mw gerrit changes list --profile bot
+mw gerrit ssh --profile bot version
+mw gerrit auth remove --profile bot
+```
+
+Login validates the username with Gerrit's authenticated account endpoint. Without `--profile`, it uses that verified username in lowercase. The first login becomes the default; later logins ask before changing an existing default, with “no” selected initially. Non-interactive logins retain the existing default. `login --default` switches explicitly, and `--default=false` keeps the current default without prompting. You can also change it independently with `auth default --profile NAME`; Phabricator uses the same command.
+
+Existing flat `gerrit.username` and `gerrit.password` configuration migrates automatically into a named profile, preserving credential references without retrieving secrets. Conflicting destination profiles abort migration without rewriting the file. The default profile's public username remains available to clone commands. SSH uses the selected profile's username and your SSH agent/config without retrieving its HTTP password.
+
+`auth remove` deletes the selected local profile and credential or reference, and clears the default if that profile was selected. It does not revoke the HTTP password in Gerrit or delete an external KeePassXC entry. There is no Gerrit `auth logout` command. Listings, completion, and default changes do not open password managers or contact Gerrit.
+
 ### Phabricator login and account profiles
 
 Browser login is the default. The CLI opens `/conduit/login/` in your browser (the Windows browser in WSL), where you can sign in with your Wikimedia or developer account. Paste the resulting token into the hidden terminal prompt. An unused command-line token initially expires after one hour; its first authenticated API request makes it permanent until revoked. The CLI verifies your identity before saving it in your selected credential provider.
@@ -152,14 +173,14 @@ Available defaults are `keyring`, `keepassxc` and `plaintext`. Existing credenti
 
 ```sh
 mw gerrit auth login --provider keyring
-mw config set gerrit.password --stdin --provider keyring
-mw config secrets migrate gerrit.password --provider keyring
+mw config set gerrit.profiles.addshore.password --stdin --provider keyring
+mw config secrets migrate gerrit.profiles.addshore.password --provider keyring
 ```
 
 To change an already linked credential’s provider without logging out, transfer it explicitly:
 
 ```sh
-mw config secrets transfer gerrit.password --provider keyring
+mw config secrets transfer gerrit.profiles.addshore.password --provider keyring
 ```
 
 Transfer verifies the destination before switching the reference. External source entries are retained; a plaintext config copy is removed after verified secure storage. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
@@ -189,9 +210,9 @@ mw config secrets keepassxc connect --proxy '/mnt/c/Program Files/KeePassXC/keep
 
 KeePassXC handles database unlocking and entry approvals. Select the paired database before running a command. A locked database, denied request or revoked pairing fails without falling back to plaintext or direct file access. KeePassXC may show entry-access dialogs according to its permissions settings.
 
-New credentials are created directly in the `wm` group, with the service hostname as the entry title and the account as the username. Multiple accounts can share a hostname. KeePassXC’s browser protocol cannot set a custom title; after linking, you can rename entries to labels such as “Gerrit — addshore” or “Cloud VPS — mwcli”, or move them, without breaking their UUID references. Existing linked entries are updated through the GUI. Each write is read back and verified before plaintext is removed. A dry run opens no GUI dialogs.
+New service credentials without named profiles are created directly in the `wm` group, with the service hostname as the entry title and the account as the username. Multiple accounts can share a hostname. KeePassXC’s browser protocol cannot set a custom title; after linking, you can rename entries to labels such as “Gerrit — addshore” or “Cloud VPS — mwcli”, or move them, without breaking their UUID references. Existing linked entries are updated through the GUI. Each write is read back and verified before plaintext is removed. A dry run opens no GUI dialogs.
 
-New Phabricator profile credentials use a subgroup named after their configuration key, such as `wm/phabricator.profiles.personal.key`. Profiles sharing a username keep separate credentials. Existing links remain pinned to their original entry UUID.
+New Gerrit and Phabricator profile credentials use a subgroup named after their configuration key, such as `wm/gerrit.profiles.personal.password` or `wm/phabricator.profiles.personal.key`. Profiles sharing a username keep separate credentials. Existing links remain pinned to their original entry UUID.
 
 To link an entry you created yourself, use `mw config secrets use-keepassxc KEY --entry PATH`. Create it with the same username and password as the configured CLI account. `use-keepassxc KEY` reuses the entry path from an existing direct-access link; otherwise it uses `wm/KEY`. Use `--entry 'Wikimedia/Gerrit'` to select another path. The entry username must match the configured account. Linking verifies any retained plaintext before removing it, then pins the database ID and entry UUID so renaming the entry does not break access. Older direct-access links must be relinked with this command; their saved entry paths are reused.
 
@@ -206,4 +227,4 @@ mw config secrets keepassxc disconnect
 
 ### Discovering saved accounts
 
-Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS lists project credentials. Gerrit currently has one saved account; its listing does not imply support for multiple named profiles.
+Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS lists project credentials. Gerrit and Phabricator share the same profile commands and default-selection behavior.

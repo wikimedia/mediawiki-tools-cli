@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"os"
 	"reflect"
@@ -31,40 +30,11 @@ func migratePhabricatorProfiles(source *koanf.Koanf) (*koanf.Koanf, bool, error)
 		return nil
 	}
 	renameCredential := func(old, destination string) error {
-		oldRef, newRef := credentialReferenceKey(old), credentialReferenceKey(destination)
-		if !disk.Exists(oldRef) {
-			return nil
-		}
-		if disk.Exists(newRef) {
-			return fmt.Errorf("Phabricator profile migration found two credential references for %s; configuration was not changed", destination)
-		}
-		var ref credentialReference
-		if err := disk.Unmarshal(oldRef, &ref); err != nil {
-			return fmt.Errorf("invalid Phabricator credential reference")
-		}
-		expectedOld := fmt.Sprintf("%s:%x", ref.Identity, sha256.Sum256([]byte(old)))
-		if ref.Account != expectedOld {
-			return fmt.Errorf("Phabricator credential identity mismatch; configuration was not changed")
-		}
-		raw, ok := disk.Get(oldRef).(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("invalid Phabricator credential reference")
-		}
-		raw["account"] = fmt.Sprintf("%s:%x", ref.Identity, sha256.Sum256([]byte(destination)))
-		if ref.Provider == "" || ref.Provider == "keyring" {
-			actual := ref.StorageAccount
-			if actual == "" {
-				actual = ref.Account
-			}
-			raw["storage_account"] = actual
-		}
-		if err := disk.Set(newRef, raw); err != nil {
-			return err
-		}
-		disk.Delete(oldRef)
-		changed = true
-		return nil
+		moved, err := migrateCredentialKey(disk, old, destination)
+		changed = changed || moved
+		return err
 	}
+
 	for _, name := range disk.MapKeys("phabricator.sites") {
 		old, destination := "phabricator.sites."+name, "phabricator.profiles."+name
 		if err := move(old, destination); err != nil {

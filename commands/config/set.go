@@ -14,7 +14,7 @@ func NewConfigSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set KEY [VALUE]",
 		Short:   "Set a configuration value",
-		Example: "set telemetry no\nset gerrit.password --stdin",
+		Example: "set telemetry no\nset gerrit.profiles.addshore.password --stdin",
 		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if provider != "" {

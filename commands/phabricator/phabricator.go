@@ -34,13 +34,12 @@ For storage options and password managers, see "mw help guides authentication".`
 	}
 
 	cmd.PersistentFlags().StringVar(&site, "site", "", "Saved site/profile to use (compatible alias for --profile)")
-	cmd.PersistentFlags().StringVar(&site, "profile", "", "Saved account profile to use (overrides the default)")
+	phabProfiles.AddFlag(cmd, &site)
 	cmd.MarkFlagsMutuallyExclusive("site", "profile")
-	cmd.RegisterFlagCompletionFunc("profile", completeProfiles)
 	// TODO(early 2027): remove the legacy --site flag after the profile migration window.
 	_ = cmd.PersistentFlags().MarkHidden("site")
 
-	addAuthCmd(cmd, &site)
+	cmd.AddCommand(newPhabricatorAuthCmd(&site))
 	addViewCmd(cmd, &site)
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)

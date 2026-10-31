@@ -11,7 +11,7 @@ func NewUseKeePassXCCmd() *cobra.Command {
 		Use:     "use-keepassxc KEY",
 		Short:   "Link a credential to a KeePassXC entry",
 		Long:    "Pair first with config secrets keepassxc connect. Select the database and approve access in KeePassXC. Any saved plaintext must match the entry before it is removed. Account metadata must already be configured. See help guides authentication.",
-		Example: "use-keepassxc gerrit.password\nuse-keepassxc gerrit.password --entry Wikimedia/Gerrit",
+		Example: "use-keepassxc gerrit.profiles.addshore.password\nuse-keepassxc gerrit.profiles.addshore.password --entry Wikimedia/Gerrit",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credential, err := config.CredentialForKey(args[0])
