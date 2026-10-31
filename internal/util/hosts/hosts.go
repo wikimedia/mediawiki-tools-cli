@@ -99,7 +99,7 @@ func hosts() *txeh.Hosts {
 func removeHostsWithSuffixFromLines(hostSuffix string, hosts *txeh.Hosts) *txeh.Hosts {
 	lines := hosts.GetHostFileLines()
 
-	for _, line := range *lines {
+	for _, line := range lines {
 		for _, hostname := range line.Hostnames {
 			if strings.HasSuffix(hostname, hostSuffix) {
 				hosts.RemoveHost(hostname)
