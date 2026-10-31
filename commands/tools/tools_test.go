@@ -2,8 +2,8 @@ package tools
 
 import "testing"
 
-func TestNewToolsCmdHasOneEnvvarQuotaCommand(t *testing.T) {
-	command := NewToolsCmd()
+func TestNewToolforgeCmdHasOneEnvvarQuotaCommand(t *testing.T) {
+	command := NewToolforgeCmd()
 	envvar, _, err := command.Find([]string{"envvar"})
 	if err != nil {
 		t.Fatalf("find envvar command: %v", err)

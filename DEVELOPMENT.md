@@ -279,16 +279,18 @@ Use `mw dev` for the development environment (`docker` remains a command alias).
 
 ## Toolforge commands
 
-`mw tools` (also `mw toolforge`) embeds the upstream Toolforge CLI command tree.
+`mw toolforge` embeds the upstream Toolforge CLI command tree.
 Select an account with `--tool`; jobs, builds, environment variables, components,
 and Kubernetes commands use upstream's authentication and SSH tunneling.
 
-`mw tools shell --tool mytool` opens an interactive tool login shell. Its `exec`
+`mw toolforge shell --tool mytool` opens an interactive tool login shell. Its `exec`
 alias preserves the existing command spelling. Put `--` before remote commands
 with flags; use `sh -c` explicitly for remote shell pipelines or redirection.
 Arguments are otherwise passed literally, and SSH failures retain their exit code.
 
-`mw tools cp --tool mytool source... destination` uploads one or more files using
+`mw toolforge cp --tool mytool source... destination` uploads one or more files using
 rsync. Both commands support toolsbeta and lima-kilo through `--beta` and `--lima`.
 File transfer requires local `rsync` and `ssh`; other commands do not require a
 separately installed Toolforge executable.
+
+Public Toolviews usage statistics are available separately under `mw tools toolviews`; `tools` is no longer an alias for `toolforge`. See the README for examples.

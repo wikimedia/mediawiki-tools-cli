@@ -10,9 +10,9 @@ Run these commands on your computer. Set your tool name, then check what is alre
 
 ```sh
 TOOL=your-tool
-mw tools kubernetes get pods --tool "$TOOL"
-mw tools kubernetes get deployments --tool "$TOOL"
-mw tools kubernetes get services --tool "$TOOL"
+mw toolforge kubernetes get pods --tool "$TOOL"
+mw toolforge kubernetes get deployments --tool "$TOOL"
+mw toolforge kubernetes get services --tool "$TOOL"
 ```
 
 `--tool` selects the tool account and its Kubernetes namespace. `kube`, `k` and `kubectl` are aliases for `kubernetes`. Put the tool flag before `--` when passing a command to a container.
@@ -24,8 +24,8 @@ The demo uses one pod named `cli-guide-hello`. It creates no Service or Ingress 
 Check the available quota and images first:
 
 ```sh
-mw tools kubernetes describe resourcequota --tool "$TOOL"
-mw tools job images --tool "$TOOL"
+mw toolforge kubernetes describe resourcequota --tool "$TOOL"
+mw toolforge job images --tool "$TOOL"
 ```
 
 Save this manifest in your current directory. The image is one of the Toolforge Python images; `job images` lists the currently available images. The app writes a greeting into its own temporary directory and serves it with Python’s built-in HTTP server.
@@ -62,9 +62,9 @@ YAML
 Check that the cluster accepts it, then create the pod and wait for readiness:
 
 ```sh
-mw tools kubernetes create --dry-run=server -f cli-guide-hello.yaml --tool "$TOOL"
-mw tools kubernetes create -f cli-guide-hello.yaml --tool "$TOOL"
-mw tools kubernetes wait --for=condition=Ready pod/cli-guide-hello --timeout=120s --tool "$TOOL"
+mw toolforge kubernetes create --dry-run=server -f cli-guide-hello.yaml --tool "$TOOL"
+mw toolforge kubernetes create -f cli-guide-hello.yaml --tool "$TOOL"
+mw toolforge kubernetes wait --for=condition=Ready pod/cli-guide-hello --timeout=120s --tool "$TOOL"
 ```
 
 `create` fails if that name already exists instead of updating another pod. The resource requests and limits keep the demo small. It stops automatically after an hour; delete it when finished to release the pod quota too.
@@ -72,10 +72,10 @@ mw tools kubernetes wait --for=condition=Ready pod/cli-guide-hello --timeout=120
 ## Inspect the pod
 
 ```sh
-mw tools kubernetes get pod cli-guide-hello --tool "$TOOL"
-mw tools kubernetes logs cli-guide-hello --tool "$TOOL"
-mw tools kubernetes describe pod cli-guide-hello --tool "$TOOL"
-mw tools kubernetes exec cli-guide-hello --tool "$TOOL" -- python3 --version
+mw toolforge kubernetes get pod cli-guide-hello --tool "$TOOL"
+mw toolforge kubernetes logs cli-guide-hello --tool "$TOOL"
+mw toolforge kubernetes describe pod cli-guide-hello --tool "$TOOL"
+mw toolforge kubernetes exec cli-guide-hello --tool "$TOOL" -- python3 --version
 ```
 
 The logs should include `Serving HTTP on` and port 8000. If readiness times out, look at the Events section of `describe` for image, quota or scheduling errors.
@@ -85,7 +85,7 @@ The logs should include `Serving HTTP on` and port 8000. If readiness times out,
 In one terminal, forward a localhost port to the demo's HTTP port:
 
 ```sh
-mw tools kubernetes port-forward pod/cli-guide-hello 18080:8000 --tool "$TOOL"
+mw toolforge kubernetes port-forward pod/cli-guide-hello 18080:8000 --tool "$TOOL"
 ```
 
 Leave that command running and open <http://127.0.0.1:18080/> in your browser, or use another terminal:
@@ -101,8 +101,8 @@ You should see `Hello from Toolforge!`. Port forwarding binds to localhost by de
 Stop port forwarding with Ctrl-C, then delete only the demo pod:
 
 ```sh
-mw tools kubernetes delete pod cli-guide-hello --tool "$TOOL"
-mw tools kubernetes get pods --tool "$TOOL"
+mw toolforge kubernetes delete pod cli-guide-hello --tool "$TOOL"
+mw toolforge kubernetes get pods --tool "$TOOL"
 rm cli-guide-hello.yaml
 ```
 

@@ -30,6 +30,21 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 `mw api` accepts REST endpoints relative to `https://wikimedia.org/api/rest_v1/`, an alternative `--base-url`, or an absolute URL. Use `--method` (`-X`), repeatable `--header` (`-H`) and `--field` (`-f`) flags, or `--input FILE` (`-` for stdin). Fields become a JSON POST body by default, or query parameters with `--method GET`. `--include` prints response headers; `--raw` preserves the response body.
 
+### Tool traffic statistics
+
+Query the public [Toolviews API](https://toolviews.toolforge.org/api/) with `mw tools toolviews` (or `mw tools views`). Counts come from Toolforge webserver access logs and include automated traffic. Dates use `YYYY-MM-DD` and are inclusive; the default is the last 30 completed UTC days. Missing observations remain missing.
+
+```sh
+mw tools toolviews toolviews --output graph
+mw tools toolviews toolviews --start 2026-10-01 --end 2026-10-07
+mw tools toolviews --date 2026-10-27 --output table
+mw tools toolviews list
+```
+
+Tables are the default in a terminal and JSON in pipes. Choose `--output json|table|jq|csv|graph`; use `--graph-width` to set graph width. Graphs show a tool's daily series, or a single-day ranking across tools. JSON and CSV contain `date`, `tool`, and `hits`, with `hits` representing webserver hit counts. No Toolforge login is required. Tool names for `list` and shell completion come from the API and share a disk cache under `$XDG_CACHE_HOME/mwcli/toolviews-tools.json` (normally `~/.cache/mwcli/toolviews-tools.json`). The first lookup fetches and caches names; subsequent lookups return locally. After 24 hours, cached names are returned immediately while a background process refreshes them. Failed refreshes retain the last good list and defer retries for one minute. Use `mw tools toolviews list --refresh` to force a synchronous update. With shell completion loaded (for Bash: `source <(mw completion bash)`), type `mw tools views ` and press Tab. Completion lookups have a two-second timeout.
+
+Toolforge management commands now live under `mw toolforge` (for example, `mw toolforge job list --tool mytool`). `tools` and `toolforge` are separate command groups.
+
 ### Installation
 
 Follow the [installation guide](https://www.mediawiki.org/wiki/Cli/guide/Installation) on MediaWiki.org.
