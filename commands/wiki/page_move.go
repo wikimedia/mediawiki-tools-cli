@@ -68,10 +68,10 @@ move --prefix 'Cli/ref/mw_docker' 'Cli/ref/mw_dev' --wiki www.mediawiki.org --dr
 				}
 			}
 			if !dryRun && (wikiAnon || !hasWikiCredentials()) {
-				return fmt.Errorf("moving pages requires --user and either --password or --password-file; omit --anon")
+				return fmt.Errorf("moving pages requires a saved profile or --username with --password or --password-file; omit --anon")
 			}
 			if bot && (wikiAnon || !hasWikiCredentials()) {
-				return fmt.Errorf("--bot requires --user and either --password or --password-file, including with --dry-run; omit --anon")
+				return fmt.Errorf("--bot requires a saved profile or --username with --password or --password-file, including with --dry-run; omit --anon")
 			}
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {

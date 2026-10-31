@@ -5,7 +5,7 @@ import "github.com/spf13/cobra"
 func NewWikiExtWikibaseCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wikibase",
-		Short: "Wikibase extension API operations",
+		Short: "Manage Wikibase items and properties",
 		RunE:  nil,
 	}
 
@@ -17,7 +17,7 @@ func NewWikiExtWikibaseCmd() *cobra.Command {
 func NewWikiExtWikibasePropertyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "property",
-		Short: "Wikibase property operations",
+		Short: "Manage Wikibase properties",
 		RunE:  nil,
 	}
 
@@ -28,7 +28,7 @@ func NewWikiExtWikibasePropertyCmd() *cobra.Command {
 func NewWikiExtWikibaseItemCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "item",
-		Short: "Wikibase item operations",
+		Short: "Manage Wikibase items",
 		RunE:  nil,
 	}
 

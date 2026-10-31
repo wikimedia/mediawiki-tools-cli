@@ -201,7 +201,7 @@ func (c Commands) ProfilesCmd() *cobra.Command {
 }
 
 func (c Commands) DefaultCmd() *cobra.Command {
-	return &cobra.Command{Use: "default", Short: "Select the default saved account with --profile", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	return &cobra.Command{Use: "default", Short: "Select the default saved profile with --profile", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if strings.TrimSpace(*c.Selected) == "" {
 			return fmt.Errorf("provide --profile")
 		}

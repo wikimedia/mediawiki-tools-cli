@@ -21,8 +21,10 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "put",
-		Short: "Create a Wikibase property",
+		Use:     "put",
+		Short:   "Create a Wikibase property",
+		Long:    "Create a new property with an English label and the selected datatype. This command always creates a property; it does not update an existing one.",
+		Example: "  mw wiki ext wikibase property put --profile wikibase-world/addshore --label 'Example property' --datatype string --dry-run",
 		Run: func(cmd *cobra.Command, args []string) {
 			if wiki == "" {
 				logrus.Fatal("wiki is not set")
@@ -80,9 +82,9 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+": Wikibase property update", "Summary of the edit")
 	cmd.Flags().StringVar(&label, "label", "text", "English label for the property")
 	cmd.Flags().StringVar(&datatype, "datatype", "string", "Property datatype")
-	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")
-	cmd.Flags().StringVar(&expectID, "expect-id", "", "If set, fail unless created property id matches this value")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
+	cmd.Flags().BoolVar(&bot, "bot", false, "Mark the edit as a bot edit")
+	cmd.Flags().StringVar(&expectID, "expect-id", "", "Fail unless the created property ID matches this value")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the proposed property without creating it")
 
 	return cmd
 }

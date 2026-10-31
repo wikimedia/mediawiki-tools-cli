@@ -37,7 +37,7 @@ func newWikiLoginCmd() *cobra.Command {
 	var manual, noBrowser, passwordStdin, insecure, replace, allScopes bool
 	cmd := &cobra.Command{
 		Use: "login", Short: "Authorize and save a wiki profile",
-		Long: "Save a scoped wiki profile using a built-in or explicitly configured public MediaWiki OAuth client, or a wiki username/password. OAuth uses the registered public a-wikimedia-cli client with PKCE and http://localhost:8765/auth/login. Basic access is the default; the shared MediaWiki permission picker groups grants by function and risk. The wiki validates which scopes the consumer can request. Use --manual when the callback port is occupied. No client secret is required.\n\nWhen --profile is omitted, the profile name defaults to the verified username.",
+		Long: "Save a wiki profile using OAuth or a username and password. When --profile is omitted, the profile name defaults to the verified username.\n\nWikimedia and wikibase.world have built-in public a-wikimedia-cli clients. OAuth uses authorization code with PKCE and defaults to the callback http://localhost:8765/auth/login. No client secret is required. Use --client-id and --redirect-uri for another registered public client, or --method password for a password login.\n\nBasic access is the default. Interactive login offers a permission picker grouped by function and risk; --scope selects permissions explicitly. The wiki validates which scopes the client can request.\n\nUse --manual when the callback port is occupied. You can also paste the callback URL during normal browser login if the redirect fails.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if passwordStdin && (wikiPassword != "" || wikiPasswordFile != "") {
@@ -306,8 +306,10 @@ func newWikiLoginCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&sites, "site", nil, "Explicitly allowed wiki API endpoints (repeat or comma-separate; includes --wiki)")
 	cmd.Flags().StringVar(&method, "method", "oauth", "Authentication method: oauth (public client) or password")
 	cmd.Flags().BoolVar(&passwordStdin, "password-stdin", false, "Read a wiki password from stdin")
-	cmd.Flags().BoolVar(&replace, "replace", false, "Explicitly reauthorize an existing account profile using its linked credential entry")
-	cmd.Flags().StringVar(&clientID, "client-id", wikiauth.DefaultClientID, "OAuth public client ID (uses the selected realm's built-in a-wikimedia-cli client by default)")
+	cmd.Flags().BoolVar(&replace, "replace", false, "Reauthorize an existing profile using its linked credential entry")
+	cmd.Flags().StringVar(&clientID, "client-id", wikiauth.DefaultClientID, "Override the selected realm's built-in OAuth public client ID")
+	// The actual default depends on the selected realm, not this flag's initializer.
+	cmd.Flags().Lookup("client-id").DefValue = ""
 	cmd.Flags().StringVar(&redirectURI, "redirect-uri", wikiauth.DefaultRedirectURI, "Exact callback URI registered for this OAuth client")
 	cmd.Flags().StringSliceVar(&scopes, "scope", nil, "Explicit OAuth scope names, comma-separated or repeated (basic by default)")
 	cmd.Flags().BoolVar(&allScopes, "all-scopes", false, "Explicitly request every grant in the shared MediaWiki catalogue, including internal/unknown grants (the wiki validates availability)")
@@ -448,7 +450,7 @@ func accountTokensWithProgress(ctx context.Context, a config.WikiProfile, force 
 
 func newWikiStatusCmd() *cobra.Command {
 	var refresh bool
-	cmd := &cobra.Command{Use: "status", Short: "Verify the saved wiki account without displaying secrets", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	cmd := &cobra.Command{Use: "status", Short: "Check the selected profile against the wiki without displaying secrets", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		a, err := selectedWikiProfile(wikiProfile)
 		if err != nil {
 			return err
@@ -511,9 +513,9 @@ func newWikiStatusCmd() *cobra.Command {
 }
 
 func newWikiRealmCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "realm", Short: "Configure custom groups of wikis sharing credentials"}
+	cmd := &cobra.Command{Use: "realm", Short: "Configure groups of wikis that share a login"}
 	var endpoints []string
-	add := &cobra.Command{Use: "add NAME", Short: "Explicitly authorize exact wiki endpoints to share a login", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	add := &cobra.Command{Use: "add NAME", Short: "Add a custom realm of trusted wiki API endpoints", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		_, builtin := wikiauth.BuiltinPreset(name)
 		if !wikiauth.ValidName(name) || builtin {
@@ -541,7 +543,7 @@ func newWikiRealmCmd() *cobra.Command {
 		}
 		return config.PutDiskConfig(disk)
 	}}
-	add.Flags().StringSliceVar(&endpoints, "endpoint", nil, "Exact trusted API endpoint (repeat for a shared-login farm)")
+	add.Flags().StringSliceVar(&endpoints, "endpoint", nil, "Trusted wiki API endpoint (repeat or comma-separate for a shared-login farm)")
 	cmd.AddCommand(add)
 	return cmd
 }

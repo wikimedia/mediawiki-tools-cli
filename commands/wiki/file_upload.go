@@ -35,9 +35,9 @@ func NewWikiFileUploadCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Example: cobrautil.NormalizeExample(`
 # Upload a video with a description and license
-upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file password.txt --text-file description.wiki
+upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/addshore --text-file description.wiki
 # Upload a new version under the same wiki filename
-upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file password.txt --filename 'Demo.webm' --replace --comment 'Refresh walkthrough'
+upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/addshore --filename 'Demo.webm' --replace --comment 'Refresh walkthrough'
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file, err := os.Open(args[0])
@@ -74,7 +74,7 @@ upload demo.webm --wiki commons.wikimedia.org --user 'Name@bot' --password-file 
 				return fmt.Errorf("file uploads require an authenticated account; omit --anon")
 			}
 			if !hasWikiCredentials() {
-				return fmt.Errorf("file uploads require --user and either --password or --password-file")
+				return fmt.Errorf("file uploads require a saved profile or --username with --password or --password-file")
 			}
 			w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
 			if err != nil {

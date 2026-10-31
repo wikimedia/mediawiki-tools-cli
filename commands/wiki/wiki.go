@@ -32,6 +32,7 @@ func NewWikiCmd() *cobra.Command {
 		Use:     "wiki",
 		GroupID: "service",
 		Short:   "Interact with any MediaWiki wiki",
+		Long:    "Read and manage pages, files and extension data on MediaWiki wikis. Use wiki auth login to save a profile, then select it with --profile. A saved default profile is used when no profile is specified. Use --wiki to choose a site within the profile's scope.\n\nFor one-off access, supply --username with --password or --password-file. Use --anon to bypass saved credentials.",
 		RunE:    nil,
 	}
 
@@ -188,7 +189,7 @@ func prepareWikiProfile(cmd *cobra.Command) error {
 	explicitCredentials := wikiUser != "" || wikiPassword != "" || wikiPasswordFile != ""
 	if wikiAnon || explicitCredentials {
 		if wikiProfile != "" || wikiRealm != "" {
-			return fmt.Errorf("saved account selection cannot be combined with --anon or explicit credentials")
+			return fmt.Errorf("saved profile selection cannot be combined with --anon or explicit credentials")
 		}
 		if wiki == "" {
 			return fmt.Errorf("provide --wiki")
@@ -197,7 +198,7 @@ func prepareWikiProfile(cmd *cobra.Command) error {
 	}
 	// Resolve defaults only from the CLI's own configuration, never from wiki responses.
 	if wiki == "" && wikiProfile == "" && wikiRealm == "" && wikiDefaultRealm() == "" {
-		return fmt.Errorf("provide --wiki or save a default account with wiki auth login")
+		return fmt.Errorf("provide --wiki or save a default profile with wiki auth login")
 	}
 	var endpoint string
 	if wiki != "" {

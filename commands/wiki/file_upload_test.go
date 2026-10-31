@@ -217,7 +217,7 @@ func TestWikiFileUploadValidation(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"credentials required", nil, "require --user"},
+		{"credentials required", nil, "require a saved profile or --username"},
 		{"anonymous upload refused", []string{"--anon"}, "omit --anon"},
 		{"namespace prefix refused", []string{"--filename", "File:Demo.webm"}, "namespace prefix"},
 		{"password options exclusive", []string{"--user", "User@bot", "--password", "fixture", "--password-file", "unused"}, "none of the others can be"},

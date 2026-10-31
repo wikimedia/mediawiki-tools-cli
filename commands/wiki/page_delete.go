@@ -27,6 +27,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "Delete pages by title or from stdin",
+		Long:    "Delete the page selected by --title, the titles supplied as arguments, or newline-separated titles from standard input. Use --dry-run to inspect the selected titles without deleting pages.",
 		RunE:    nil,
 		Example: cobrautil.NormalizeExample(pageDeleteExample),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -86,8 +87,8 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&wikiPageDeleteReason, "reason", cli.DisplayName+" deletion", "Reason for the deletion")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
-	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to delete. You can also pipe the titles to delete to stdin.")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the selected titles without deleting pages")
+	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to delete (alternatively, supply arguments or pipe titles to stdin)")
 
 	return cmd
 }

@@ -28,6 +28,7 @@ func NewWikiPagePutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "put",
 		Short: "Create or replace a page using source from stdin",
+		Long:  "Read page source from standard input and save it as the complete page content. Existing content is replaced. Use --createonly to refuse existing pages or --nocreate to require an existing page.",
 		Example: cobrautil.NormalizeExample(`
 # Write source to a page using a saved profile
 put --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --title "User:Addshore/CLI test" < page.wikitext
@@ -104,12 +105,12 @@ put --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --t
 
 	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to create or replace")
 	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+" edit", "Summary of the edit")
-	cmd.Flags().BoolVar(&minor, "minor", false, "Minor edit")
-	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")
-	cmd.Flags().BoolVar(&recreate, "recreate", false, "Override any errors about the page having been deleted in the meantime.")
-	cmd.Flags().BoolVar(&nocreate, "nocreate", false, "Throw an error if the page doesn't exist.")
-	cmd.Flags().BoolVar(&createonly, "createonly", false, "Don't edit the page if it exists already.")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "If set, only print the action that would be performed")
+	cmd.Flags().BoolVar(&minor, "minor", false, "Mark the edit as minor")
+	cmd.Flags().BoolVar(&bot, "bot", false, "Mark the edit as a bot edit")
+	cmd.Flags().BoolVar(&recreate, "recreate", false, "Allow recreating a page deleted since editing began")
+	cmd.Flags().BoolVar(&nocreate, "nocreate", false, "Require the page to already exist")
+	cmd.Flags().BoolVar(&createonly, "createonly", false, "Create the page only if it does not exist")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the edit parameters without reading stdin or editing the page")
 
 	return cmd
 }

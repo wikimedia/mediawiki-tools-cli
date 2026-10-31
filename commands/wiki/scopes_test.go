@@ -94,7 +94,8 @@ func TestOAuthScopeOptionsAreExplicit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if login.Flags().Lookup("client-id").DefValue != wikiauth.DefaultClientID || login.Flags().Lookup("redirect-uri").DefValue != "http://localhost:8765/auth/login" {
+	client := login.Flags().Lookup("client-id")
+	if client.Value.String() != wikiauth.DefaultClientID || client.DefValue != "" || login.Flags().Lookup("redirect-uri").DefValue != "http://localhost:8765/auth/login" {
 		t.Fatal("new client defaults not wired")
 	}
 	values, _ := completeOAuthScopes(nil, nil, "editp")
