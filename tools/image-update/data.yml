@@ -86,7 +86,7 @@ images:
     noCheck: true
 
   # OpenSearch image used by the local logs stack.
-  - image: opensearchproject/opensearch:2.19.4
+  - image: opensearchproject/opensearch:2.19.7
     requireRegex: ^2\.19\.\d+$
 
   # CirrusSearch OpenSearch image used by the local search stack.
