@@ -62,6 +62,26 @@ func (c Credential) CredentialProvider(override string) (string, error) {
 var writeKeePassXCBrowser = secrets.WriteKeePassXCBrowser
 
 func (c Credential) SaveWithProvider(value string, insecure bool, metadata map[string]string, provider string) error {
+	typed := make(map[string]any, len(metadata))
+	for key, value := range metadata {
+		typed[key] = value
+	}
+	return c.SaveWithProviderMetadata(value, insecure, typed, provider)
+}
+
+// SaveWithProviderMetadata commits public scalar/list metadata with a verified
+// credential reference in the same atomic config write.
+func (c Credential) SaveWithProviderMetadata(value string, insecure bool, metadata map[string]any, provider string) error {
+	for key, value := range metadata {
+		if SensitiveKey(key) {
+			return fmt.Errorf("secret values cannot be passed as metadata")
+		}
+		switch value.(type) {
+		case string, []string:
+		default:
+			return fmt.Errorf("credential metadata must contain strings or string lists")
+		}
+	}
 	if insecure {
 		if provider != "" {
 			return fmt.Errorf("a provider cannot be combined with insecure storage")
@@ -82,7 +102,7 @@ func (c Credential) SaveWithProvider(value string, insecure bool, metadata map[s
 			if err := ValidateCredentialProvider(target); err != nil {
 				return err
 			}
-			selectedMetadata := make(map[string]string, len(metadata)+1)
+			selectedMetadata := make(map[string]any, len(metadata)+1)
 			for key, value := range metadata {
 				selectedMetadata[key] = value
 			}

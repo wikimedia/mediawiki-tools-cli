@@ -8,11 +8,12 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
 )
 
 // Keep the service-independent auth surface stable even as login protocols differ.
 func TestServiceProfileCommandContract(t *testing.T) {
-	for _, parent := range []*cobra.Command{gerrit.NewGerritCmd(), phabricator.NewPhabricatorCmd()} {
+	for _, parent := range []*cobra.Command{gerrit.NewGerritCmd(), phabricator.NewPhabricatorCmd(), wiki.NewWikiCmd()} {
 		t.Run(parent.Name(), func(t *testing.T) {
 			flag := parent.PersistentFlags().Lookup("profile")
 			if flag == nil || flag.Value.Type() != "string" {
@@ -46,6 +47,12 @@ func TestServiceProfileCommandContract(t *testing.T) {
 			defaultFlag := login.Flags().Lookup("default")
 			if defaultFlag == nil || defaultFlag.Value.Type() != "bool" || defaultFlag.DefValue != "false" {
 				t.Fatal("inconsistent login --default flag")
+			}
+			if _, ok := login.GetFlagCompletionFunc("provider"); !ok {
+				t.Fatal("missing provider completion")
+			}
+			if login.Flags().Lookup("insecure-storage") == nil {
+				t.Fatal("missing plaintext storage flag")
 			}
 			profiles, _, err := parent.Find([]string{"auth", "list"})
 			if err != nil || profiles.Name() != "profiles" {

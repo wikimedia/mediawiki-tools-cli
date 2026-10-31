@@ -113,12 +113,7 @@ func NewGerritAuthLoginCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&username, "username", "u", "", "Gerrit username")
 	cmd.Flags().StringVarP(&password, "password", "p", "", "Gerrit HTTP password (prefer a hidden prompt or stdin)")
 	cmd.Flags().BoolVar(&passwordStdin, "password-stdin", false, "Read the password from stdin")
-	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Store the password in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("password", "password-stdin")
-	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
-	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
-	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
-	})
+	authprofile.AddStorageFlags(cmd, &provider, &insecureStorage)
 	return cmd
 }

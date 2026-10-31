@@ -53,6 +53,18 @@ func IsWikimedia(endpoint string) bool {
 	return false
 }
 
+// WikimediaEndpoints returns the bundled shared-login allowlist for completion.
+// It does not discover sites or contact any wiki.
+func WikimediaEndpoints() []string {
+	var endpoints []string
+	for _, line := range strings.Split(wikimediaSites, "\n") {
+		if strings.HasPrefix(line, "https://") {
+			endpoints = append(endpoints, line)
+		}
+	}
+	return endpoints
+}
+
 // Exact endpoints, never domain suffixes, determine credential destinations.
 func Allows(realm, endpoint string, custom []string) bool {
 	if realm == "wikimedia" {

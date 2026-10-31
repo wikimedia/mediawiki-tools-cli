@@ -199,7 +199,7 @@ func TestWikiBotPasswordChecksLoginAndPreservesSession(t *testing.T) {
 				}
 			}))
 			defer server.Close()
-			result := Check(t.Context(), Request{Service: "wiki", Endpoint: server.URL, Account: "Fixture@cli", Value: "private-fixture", WikiMethod: "bot-password", WikiEndpoint: server.URL + "/w/api.php"})
+			result := Check(t.Context(), Request{Service: "wiki", Endpoint: server.URL, Account: "Fixture@cli", Value: "private-fixture", WikiMethod: "password", WikiEndpoint: server.URL + "/w/api.php"})
 			want := "valid"
 			if !valid {
 				want = "invalid"

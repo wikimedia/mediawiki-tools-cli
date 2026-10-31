@@ -112,41 +112,104 @@ func AddDefaultFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool("default", false, "Make this profile the default (otherwise ask before switching an existing default)")
 }
 
-func (m Manager) ProfilesCmd() *cobra.Command {
-	return &cobra.Command{Use: "profiles", Aliases: []string{"list"}, Short: "List saved " + m.Label + " profiles without retrieving credentials", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		names := m.Names()
-		if len(names) == 0 {
-			cmd.Println("No saved " + m.Label + " profiles. Use auth login.")
+// Profile describes public account metadata; listing never retrieves credentials.
+type Profile struct {
+	Name, Username, Endpoint, Details string
+	Default                           bool
+}
+
+// Backend keeps service-specific storage and realm selection out of the CLI layout.
+// Manager implements this for flat service profiles; wiki supplies a realm adapter.
+type Backend interface {
+	Profiles() ([]Profile, error)
+	Selected(string) (string, error)
+	SetDefault(string) error
+	Remove(string) (bool, error)
+}
+
+var _ Backend = Manager{}
+
+type Commands struct {
+	Label    string
+	Selected *string
+	Backend  Backend
+}
+
+func (m Manager) Profiles() ([]Profile, error) {
+	var result []Profile
+	state := config.State().EffectiveKoanf
+	for _, name := range m.Names() {
+		prefix := m.Prefix(name) + "."
+		endpoint := state.String(prefix + "url")
+		if endpoint == "" {
+			endpoint = m.Endpoint
+		}
+		result = append(result, Profile{Name: name, Username: state.String(prefix + "username"), Endpoint: endpoint, Default: name == m.Default()})
+	}
+	return result, nil
+}
+
+func (m Manager) SetDefault(name string) error {
+	return config.PutKeyValueOnDisk(m.Service+".default_profile", name)
+}
+
+func (m Manager) Remove(name string) (bool, error) {
+	prefix := m.Prefix(name)
+	key := prefix + "." + m.SecretField
+	if config.HasCredential(key) {
+		credential, err := config.CredentialForKey(key)
+		if err != nil {
+			return false, err
+		}
+		if err := credential.Delete(); err != nil {
+			return false, err
+		}
+	}
+	disk := config.State().OnDiskKoanf.Copy()
+	disk.Delete(prefix)
+	removedDefault := disk.String(m.Service+".default_profile") == name
+	if removedDefault {
+		disk.Delete(m.Service + ".default_profile")
+	}
+	return removedDefault, config.PutDiskConfig(disk)
+}
+
+func (c Commands) ProfilesCmd() *cobra.Command {
+	return &cobra.Command{Use: "profiles", Aliases: []string{"list"}, Short: "List saved " + c.Label + " profiles without retrieving credentials", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		profiles, err := c.Backend.Profiles()
+		if err != nil {
+			return err
+		}
+		if len(profiles) == 0 {
+			cmd.Println("No saved " + c.Label + " profiles. Use auth login.")
 			return nil
 		}
-		cmd.Println("Saved " + m.Label + " profiles:")
-		state := config.State().EffectiveKoanf
-		for _, name := range names {
-			prefix := m.Prefix(name) + "."
-			endpoint := state.String(prefix + "url")
-			if endpoint == "" {
-				endpoint = m.Endpoint
-			}
+		cmd.Println("Saved " + c.Label + " profiles:")
+		for _, profile := range profiles {
 			marker := ""
-			if name == m.Default() {
+			if profile.Default {
 				marker = " (default)"
 			}
-			cmd.Printf("  %s%s — %s — %s\n", name, marker, state.String(prefix+"username"), endpoint)
+			details := ""
+			if profile.Details != "" {
+				details = " — " + profile.Details
+			}
+			cmd.Printf("  %s%s — %s — %s%s\n", profile.Name, marker, profile.Username, profile.Endpoint, details)
 		}
 		return nil
 	}}
 }
 
-func (m Manager) DefaultCmd(selected *string) *cobra.Command {
+func (c Commands) DefaultCmd() *cobra.Command {
 	return &cobra.Command{Use: "default", Short: "Select the default saved account with --profile", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		if strings.TrimSpace(*selected) == "" {
+		if strings.TrimSpace(*c.Selected) == "" {
 			return fmt.Errorf("provide --profile")
 		}
-		name, err := m.Selected(*selected)
+		name, err := c.Backend.Selected(*c.Selected)
 		if err != nil {
 			return err
 		}
-		if err := config.PutKeyValueOnDisk(m.Service+".default_profile", name); err != nil {
+		if err := c.Backend.SetDefault(name); err != nil {
 			return err
 		}
 		cmd.Printf("Default profile: %s\n", name)
@@ -154,36 +217,30 @@ func (m Manager) DefaultCmd(selected *string) *cobra.Command {
 	}}
 }
 
-func (m Manager) RemoveCmd(selected *string) *cobra.Command {
-	return &cobra.Command{Use: "remove", Short: "Remove a saved " + m.Label + " profile locally", Long: "Remove the selected profile and its local credential or reference. Server-side credentials and external KeePassXC entries are retained.", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		name, err := m.Selected(*selected)
+func (c Commands) RemoveCmd() *cobra.Command {
+	return &cobra.Command{Use: "remove", Short: "Remove a saved " + c.Label + " profile locally", Long: "Remove the selected profile and its local credential or reference. Server-side credentials and external KeePassXC entries are retained.", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		name, err := c.Backend.Selected(*c.Selected)
 		if err != nil {
 			return err
 		}
-		prefix := m.Prefix(name)
-		key := prefix + "." + m.SecretField
-		if config.HasCredential(key) {
-			credential, err := config.CredentialForKey(key)
-			if err != nil {
-				return err
-			}
-			if err := credential.Delete(); err != nil {
-				return err
-			}
-		}
-		disk := config.State().OnDiskKoanf.Copy()
-		disk.Delete(prefix)
-		removedDefault := disk.String(m.Service+".default_profile") == name
-		if removedDefault {
-			disk.Delete(m.Service + ".default_profile")
-		}
-		if err := config.PutDiskConfig(disk); err != nil {
+		removedDefault, err := c.Backend.Remove(name)
+		if err != nil {
 			return err
 		}
 		cmd.Printf("Removed local profile %q. Server-side credentials are not revoked; external KeePassXC entries are retained.\n", name)
 		if removedDefault {
-			cmd.Printf("The default profile was removed; use auth default --profile NAME to choose another.\n")
+			cmd.Println("The default profile was removed; use auth default --profile NAME to choose another.")
 		}
 		return nil
 	}}
+}
+
+// AddStorageFlags keeps credential provider selection identical across services.
+func AddStorageFlags(cmd *cobra.Command, provider *string, insecure *bool) {
+	cmd.Flags().StringVar(provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
+	cmd.Flags().BoolVar(insecure, "insecure-storage", false, "Store credentials in the private plaintext configuration")
+	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
+	_ = cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
+	})
 }

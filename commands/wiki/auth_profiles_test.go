@@ -10,7 +10,7 @@ import (
 )
 
 func TestAuthProfilesListsAccountsWithoutUnlocking(t *testing.T) {
-	isolateWikiAccounts(t)
+	isolateWikiProfiles(t)
 	seedWikiOAuth(t, "personal")
 	keyring.MockInitWithError(errors.New("locked"))
 	for _, name := range []string{"profiles", "list"} {

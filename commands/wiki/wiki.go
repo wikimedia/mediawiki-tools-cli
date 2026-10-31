@@ -20,13 +20,13 @@ var (
 	wikiPasswordFile string
 	wikiAnon         bool
 	wikiRealm        string
-	wikiAccount      string
-	savedWikiAccount *config.WikiAccount
+	wikiProfile      string
+	savedWikiProfile *config.WikiProfile
 	wikiContext      context.Context
 )
 
 func NewWikiCmd() *cobra.Command {
-	savedWikiAccount = nil
+	savedWikiProfile = nil
 	wikiContext = context.Background()
 	cmd := &cobra.Command{
 		Use:     "wiki",
@@ -40,14 +40,22 @@ func NewWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewWikiFileCmd())
 	cmd.AddCommand(newWikiAuthCmd(), newWikiRealmCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "URL of wikis api.php")
-	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "A user to interact using")
+	cmd.PersistentFlags().StringVar(&wikiUser, "username", "", "Wiki login username (use Name@bot for a bot password)")
+	cmd.PersistentFlags().StringVar(&wikiUser, "user", "", "Deprecated alias for --username")
+	cmd.MarkFlagsMutuallyExclusive("username", "user")
+	_ = cmd.PersistentFlags().MarkHidden("user")
 	cmd.PersistentFlags().StringVar(&wikiPassword, "password", "", "Password of the user to interact with")
 	cmd.PersistentFlags().StringVar(&wikiPasswordFile, "password-file", "", "Read the login password from a file")
 	cmd.MarkFlagsMutuallyExclusive("password", "password-file")
 	_ = cmd.MarkPersistentFlagFilename("password-file")
 	cmd.PersistentFlags().BoolVar(&wikiAnon, "anon", false, "Perform anonymous edits using the anonymous CSRF token")
 	cmd.PersistentFlags().StringVar(&wikiRealm, "realm", "", "Shared-login realm (Wikimedia is built in)")
-	cmd.PersistentFlags().StringVar(&wikiAccount, "account", "", "Saved account name or REALM/NAME")
+	cmd.PersistentFlags().StringVar(&wikiProfile, "profile", "", "Saved profile name or REALM/NAME (login defaults to the verified username)")
+	cmd.PersistentFlags().StringVar(&wikiProfile, "account", "", "Deprecated alias for --profile")
+	cmd.MarkFlagsMutuallyExclusive("profile", "account")
+	// TODO(early 2027): remove --account and --user compatibility aliases.
+	_ = cmd.PersistentFlags().MarkHidden("account")
+	registerWikiCompletions(cmd)
 	prepareWikiCommands(cmd)
 
 	return cmd
@@ -79,14 +87,14 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 		httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	}
 	w.SetHTTPClient(httpClient)
-	if savedWikiAccount != nil {
-		a := *savedWikiAccount
+	if savedWikiProfile != nil {
+		a := *savedWikiProfile
 		endpoint, err := wikiauth.Endpoint(wiki)
 		if err != nil {
 			return err
 		}
-		if !config.WikiRealmAllows(a.Realm, endpoint) {
-			return fmt.Errorf("wiki is not a member of the saved account's realm")
+		if !a.Allows(endpoint) {
+			return fmt.Errorf("wiki is outside the saved profile's site scope")
 		}
 		if a.Method == "oauth" {
 			tokens, err := accountTokens(wikiContext, a, false)
@@ -126,7 +134,7 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 }
 
 func hasWikiCredentials() bool {
-	return savedWikiAccount != nil || (wikiUser != "" && (wikiPassword != "" || wikiPasswordFile != ""))
+	return savedWikiProfile != nil || (wikiUser != "" && (wikiPassword != "" || wikiPasswordFile != ""))
 }
 
 func realmForWiki(endpoint string) (string, error) {
@@ -169,17 +177,17 @@ func prepareWikiCommands(parent *cobra.Command) {
 			} else if old != nil {
 				old(cmd, args)
 			}
-			return prepareWikiAccount(cmd)
+			return prepareWikiProfile(cmd)
 		}
 	}
 }
 
-func prepareWikiAccount(cmd *cobra.Command) error {
-	savedWikiAccount = nil
+func prepareWikiProfile(cmd *cobra.Command) error {
+	savedWikiProfile = nil
 	wikiContext = cmd.Context()
 	explicitCredentials := wikiUser != "" || wikiPassword != "" || wikiPasswordFile != ""
 	if wikiAnon || explicitCredentials {
-		if wikiAccount != "" || wikiRealm != "" {
+		if wikiProfile != "" || wikiRealm != "" {
 			return fmt.Errorf("saved account selection cannot be combined with --anon or explicit credentials")
 		}
 		if wiki == "" {
@@ -188,7 +196,7 @@ func prepareWikiAccount(cmd *cobra.Command) error {
 		return nil
 	}
 	// Resolve defaults only from the CLI's own configuration, never from wiki responses.
-	if wiki == "" && wikiAccount == "" && wikiRealm == "" && config.State().OnDiskKoanf.String("wiki.default_realm") == "" {
+	if wiki == "" && wikiProfile == "" && wikiRealm == "" && wikiDefaultRealm() == "" {
 		return fmt.Errorf("provide --wiki or save a default account with wiki auth login")
 	}
 	var endpoint string
@@ -199,16 +207,16 @@ func prepareWikiAccount(cmd *cobra.Command) error {
 			return err
 		}
 	}
-	if wikiRealm == "" && wikiAccount == "" && endpoint != "" {
+	if wikiRealm == "" && wikiProfile == "" && endpoint != "" {
 		realm, err := realmForWiki(endpoint)
 		if err != nil {
 			return err
 		}
-		if realm == "" || config.State().OnDiskKoanf.String("wiki.realms."+realm+".default_account") == "" {
+		if realm == "" || config.State().OnDiskKoanf.String("wiki.realms."+realm+".default_profile") == "" {
 			return nil
 		}
 	}
-	a, err := selectedWikiAccount()
+	a, err := selectedWikiProfile(wikiProfile)
 	if err != nil {
 		return err
 	}
@@ -216,10 +224,10 @@ func prepareWikiAccount(cmd *cobra.Command) error {
 		endpoint = a.Wiki
 		wiki = a.Wiki
 	}
-	if !config.WikiRealmAllows(a.Realm, endpoint) {
-		return fmt.Errorf("wiki is not a member of account realm %s; credentials were not opened", a.Realm)
+	if !a.Allows(endpoint) {
+		return fmt.Errorf("wiki is outside profile realm/scope %s; credentials were not opened", a.Realm)
 	}
-	savedWikiAccount = &a
+	savedWikiProfile = &a
 	wikiUser = a.Username
 	return nil
 }

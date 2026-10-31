@@ -17,8 +17,8 @@ require (
 	github.com/cli/cli/v2 v2.97.0
 	github.com/docker/cli v29.5.3+incompatible
 	github.com/fatih/color v1.19.0
-	github.com/google/go-cmp v0.7.0
 	github.com/gofrs/flock v0.13.0
+	github.com/google/go-cmp v0.7.0
 	github.com/gophercloud/gophercloud/v2 v2.15.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/itchyny/gojq v0.12.19
@@ -128,7 +128,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
-	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/muesli/cancelreader v0.2.2
 	github.com/muesli/mango v0.1.0 // indirect
 	github.com/muesli/mango-cobra v1.2.0 // indirect
 	github.com/muesli/mango-pflag v0.1.0 // indirect
@@ -194,6 +194,7 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/creack/pty v1.1.24
 	github.com/dave/jennifer v1.7.1
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect

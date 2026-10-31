@@ -72,8 +72,8 @@ func TestSecretInventoryIncludesLinkedPlaintextOrphanAndPairingWithoutReads(t *t
 	var plaintextGerrit *SecretInfo
 	for _, entry := range entries {
 		if entry.Key == "gerrit.password" && entry.Source == "plaintext-config" {
-			copy := entry
-			plaintextGerrit = &copy
+			plaintextEntry := entry
+			plaintextGerrit = &plaintextEntry
 			continue
 		}
 		byKey[entry.Key] = entry
@@ -112,7 +112,7 @@ func TestSecretInventoryIncludesLinkedPlaintextOrphanAndPairingWithoutReads(t *t
 
 func TestSecretInventoryFindsWikiTokensAfterPlaintextRemoved(t *testing.T) {
 	isolatedConfig(t)
-	a := WikiAccount{Realm: "wikimedia", Name: "personal", Username: "Fixture", Method: "oauth", Endpoint: "https://meta.wikimedia.org", Wiki: "https://meta.wikimedia.org/w/api.php", ClientID: "public-client"}
+	a := WikiProfile{Realm: "wikimedia", Name: "personal", Username: "Fixture", Method: "oauth", Endpoint: "https://meta.wikimedia.org", Wiki: "https://meta.wikimedia.org/w/api.php", ClientID: "public-client"}
 	if err := a.Credential().SaveWithProvider("oauth-token-fixture", false, a.Metadata(), "keyring"); err != nil {
 		t.Fatal(err)
 	}

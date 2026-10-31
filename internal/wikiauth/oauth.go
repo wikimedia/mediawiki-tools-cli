@@ -17,27 +17,42 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
-// Temporary, approved basic-access public client supplied for development.
-const TestClientID = "50f06966290c605f175ec7ea7a4caabc"
-const TestRedirectURI = "http://localhost/auth/login"
+// Registered public a-wikimedia-cli OAuth 2 client (authorization code + PKCE).
+const (
+	DefaultClientID    = "b54c7ed6be6d2dc967a2d5101436f4a1"
+	DefaultRedirectURI = "http://localhost:8765/auth/login"
+)
 
 type Tokens struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	TokenType    string    `json:"token_type"`
-	ExpiresIn    int64     `json:"expires_in"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	AccessToken    string    `json:"access_token"`
+	RefreshToken   string    `json:"refresh_token,omitempty"`
+	TokenType      string    `json:"token_type"`
+	ExpiresIn      int64     `json:"expires_in"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	RequestedScope string    `json:"requested_scope,omitempty"`
 }
 
-type Authorization struct{ URL, State, Verifier, RedirectURI string }
+type Authorization struct{ URL, State, Verifier, RedirectURI, Scope string }
 
-func Begin(clientID, redirectURI string) (Authorization, error) {
+func Begin(clientID, redirectURI string, scopes ...string) (Authorization, error) {
 	u, err := url.Parse(redirectURI)
 	if err != nil || u.Scheme != "http" || (u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" && u.Hostname() != "::1") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return Authorization{}, fmt.Errorf("OAuth callback must be an HTTP loopback URL without query or fragment")
 	}
 	if clientID == "" {
 		return Authorization{}, fmt.Errorf("OAuth client ID is required")
+	}
+	for _, scope := range scopes {
+		if scope == "" || scope == "#default" {
+			return Authorization{}, fmt.Errorf("provide an explicit OAuth scope name")
+		}
+		for _, ch := range scope {
+			// RFC 6749 scope-token excludes quotes, backslashes and whitespace.
+			// #default has special broadening semantics.
+			if ch < 0x21 || ch > 0x7e || ch == '"' || ch == '\\' {
+				return Authorization{}, fmt.Errorf("invalid OAuth scope name")
+			}
+		}
 	}
 	random := make([]byte, 64)
 	if _, err := rand.Read(random); err != nil {
@@ -46,6 +61,10 @@ func Begin(clientID, redirectURI string) (Authorization, error) {
 	a := Authorization{State: base64.RawURLEncoding.EncodeToString(random[:32]), Verifier: base64.RawURLEncoding.EncodeToString(random[32:]), RedirectURI: redirectURI}
 	hash := sha256.Sum256([]byte(a.Verifier))
 	q := url.Values{"response_type": {"code"}, "client_id": {clientID}, "redirect_uri": {redirectURI}, "state": {a.State}, "code_challenge": {base64.RawURLEncoding.EncodeToString(hash[:])}, "code_challenge_method": {"S256"}}
+	a.Scope = strings.Join(scopes, " ")
+	if a.Scope != "" {
+		q.Set("scope", a.Scope)
+	}
 	a.URL = WikimediaAuthority + "/w/rest.php/oauth2/authorize?" + q.Encode()
 	return a, nil
 }
@@ -74,14 +93,21 @@ func HTTPClient() *http.Client {
 }
 
 func Exchange(ctx context.Context, client *http.Client, clientID string, a Authorization, code string) (Tokens, error) {
-	return tokenRequest(ctx, client, WikimediaAuthority+"/w/rest.php/oauth2/access_token", url.Values{"grant_type": {"authorization_code"}, "client_id": {clientID}, "redirect_uri": {a.RedirectURI}, "code": {code}, "code_verifier": {a.Verifier}})
+	tokens, err := tokenRequest(ctx, client, WikimediaAuthority+"/w/rest.php/oauth2/access_token", url.Values{"grant_type": {"authorization_code"}, "client_id": {clientID}, "redirect_uri": {a.RedirectURI}, "code": {code}, "code_verifier": {a.Verifier}})
+	tokens.RequestedScope = a.Scope
+	return tokens, err
 }
 
 func Refresh(ctx context.Context, client *http.Client, clientID string, old Tokens) (Tokens, error) {
 	if old.RefreshToken == "" {
 		return Tokens{}, fmt.Errorf("no refresh token; log in again")
 	}
-	tokens, err := tokenRequest(ctx, client, WikimediaAuthority+"/w/rest.php/oauth2/access_token", url.Values{"grant_type": {"refresh_token"}, "client_id": {clientID}, "refresh_token": {old.RefreshToken}})
+	form := url.Values{"grant_type": {"refresh_token"}, "client_id": {clientID}, "refresh_token": {old.RefreshToken}}
+	if old.RequestedScope != "" {
+		form.Set("scope", old.RequestedScope)
+	}
+	tokens, err := tokenRequest(ctx, client, WikimediaAuthority+"/w/rest.php/oauth2/access_token", form)
+	tokens.RequestedScope = old.RequestedScope
 	if tokens.RefreshToken == "" {
 		tokens.RefreshToken = old.RefreshToken
 	}
@@ -122,18 +148,18 @@ type BearerTransport struct {
 }
 
 func (t BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	copy := req.Clone(req.Context())
-	copy.Header.Del("Authorization")
+	request := req.Clone(req.Context())
+	request.Header.Del("Authorization")
 	u := *req.URL
 	u.RawQuery, u.Fragment = "", ""
 	if u.String() == t.Endpoint {
-		copy.Header.Set("Authorization", "Bearer "+t.Token)
+		request.Header.Set("Authorization", "Bearer "+t.Token)
 	}
 	base := t.Base
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	return base.RoundTrip(copy)
+	return base.RoundTrip(request)
 }
 
 func Identity(ctx context.Context, client *http.Client, endpoint string) (string, error) {

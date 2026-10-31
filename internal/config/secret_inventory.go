@@ -47,9 +47,9 @@ func SecretInventory() []SecretInfo {
 	for _, site := range disk.MapKeys("phabricator.profiles") {
 		candidates["phabricator.profiles."+site+".key"] = true
 	}
-	for _, realm := range disk.MapKeys("wiki.accounts") {
-		for _, account := range disk.MapKeys("wiki.accounts." + realm) {
-			prefix := "wiki.accounts." + realm + "." + account + "."
+	for _, realm := range disk.MapKeys("wiki.profiles") {
+		for _, account := range disk.MapKeys("wiki.profiles." + realm) {
+			prefix := "wiki.profiles." + realm + "." + account + "."
 			candidates[prefix+"password"], candidates[prefix+"token"] = true, true
 		}
 	}
@@ -240,12 +240,12 @@ func InspectSecretInventory(ctx context.Context, entries []SecretInfo, compare, 
 				entry.Validation = "unsupported"
 				continue
 			}
-			account, err := LoadWikiAccount(parts[2], parts[3])
-			if err != nil || !WikiRealmAllows(account.Realm, account.Wiki) {
+			account, err := LoadWikiProfile(parts[2], parts[3])
+			if err != nil || !account.Allows(account.Wiki) {
 				entry.Validation = "unavailable"
 				continue
 			}
-			input.WikiMethod, input.WikiEndpoint = account.Method, account.Wiki
+			input.WikiMethod, input.WikiEndpoint, input.WikiIdentity = account.Method, account.Wiki, account.Identity
 		}
 		input.Value, err = read(*entry)
 		if err != nil || input.Value == "" {

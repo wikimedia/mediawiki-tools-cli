@@ -201,10 +201,10 @@ func TestSecretSuggestionsOfferGerritLoginAndQuoteShellArguments(t *testing.T) {
 		t.Fatalf("missing login suggestion: %+v", got)
 	}
 	got = secretSuggestions([]mwconfig.SecretInfo{
-		{Key: "wiki.accounts.example.$(id).password", Source: "credential-reference", Provider: "keyring", Comparison: "match"},
-		{Key: "wiki.accounts.example.$(id).password", Source: "plaintext-config"},
+		{Key: "wiki.profiles.example.$(id).password", Source: "credential-reference", Provider: "keyring", Comparison: "match"},
+		{Key: "wiki.profiles.example.$(id).password", Source: "plaintext-config"},
 	}, "my cli")
-	if len(got) != 1 || got[0].command != "'my cli' config secrets migrate 'wiki.accounts.example.$(id).password' --provider keyring" {
+	if len(got) != 1 || got[0].command != "'my cli' config secrets migrate 'wiki.profiles.example.$(id).password' --provider keyring" {
 		t.Fatalf("shell metadata not quoted: %+v", got)
 	}
 }

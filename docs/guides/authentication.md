@@ -71,7 +71,7 @@ Existing flat `gerrit.username` and `gerrit.password` configuration migrates aut
 
 ### Phabricator login and account profiles
 
-Browser login is the default. The CLI opens `/conduit/login/` in your browser (the Windows browser in WSL), where you can sign in with your Wikimedia or developer account. Paste the resulting token into the hidden terminal prompt. An unused command-line token initially expires after one hour; its first authenticated API request makes it permanent until revoked. The CLI verifies your identity before saving it in your selected credential provider.
+Browser login is the default. The CLI opens `/conduit/login/` in your browser (the Windows browser in WSL), where you can sign in with your Wikimedia or developer account. Paste the resulting token into the hidden terminal prompt. If KeePassXC is closed, the CLI attempts to launch it beside its configured proxy and waits up to two minutes for you to open and unlock it; connection attempts resume automatically. An unused command-line token initially expires after one hour; its first authenticated API request makes it permanent until revoked. The CLI verifies your identity before saving it in your selected credential provider.
 
 ```sh
 mw phabricator auth login --profile personal
@@ -103,61 +103,109 @@ The CLI's secure storage uses the reusable `pkg/secretstore` package. Provider a
 
 GitLab commands use the embedded GitLab CLI's separate authentication store. Use `mw gl auth login --use-keyring --stdin` for a new keyring login. This does not migrate or remove an existing token from GitLab's configuration file.
 
-## Saved wiki accounts
+## Saved wiki profiles
 
-Save an account once, then use it across wikis sharing the same login. Accounts belong to a realm: Wikimedia is built in, while independent wikis and other farms use separate realms. Identical usernames on different realms never share credentials automatically.
+A wiki profile combines an identity, an authentication method, and one or more trusted sites. It belongs to a realm: Wikimedia is built in, while independent wikis and other farms use separate realms. The same username on different farms never shares credentials automatically. Wiki auth uses the same `login`, `profiles` (`list` alias), `status`, `default`, and `remove` command builders as Gerrit and Phabricator.
+
+Use `--profile REALM/NAME`, or a short name with `--realm` or an explicitly selected wiki. Login without a name uses the verified username in lowercase (spaces become hyphens); supply a name explicitly for identities that need another spelling. For Wikimedia, the bundled CentralAuth site list supplies the full farm scope without configuring individual domains. This is a built-in allowlist, not runtime discovery from arbitrary wiki responses.
 
 ```sh
-mw wiki auth login --realm wikimedia --account addshore --provider keyring
-mw wiki auth status --account wikimedia/addshore
+mw wiki auth login --realm wikimedia --profile addshore --provider keyring
+mw wiki auth status --profile wikimedia/addshore
 mw wiki page list --wiki commons.wikimedia.org --limit 5
 ```
 
-OAuth opens a browser for authorization and uses PKCE without an embedded client secret. Access and refresh tokens are stored together in the selected credential provider. Configuration stores the account identity, default wiki, public client settings and credential reference. Expired access tokens refresh automatically; a locked provider or failed refresh stops the command. Authorization may eventually need renewing if it expires or is revoked.
+OAuth opens a browser for authorization and uses PKCE without an embedded client secret. In WSL, links open in the Windows browser using `wslview` or PowerShell. Use `--no-browser` to open the displayed URL yourself. Access and refresh tokens are stored together in the selected credential provider. Configuration stores the account identity, default wiki, public client settings and credential reference. Expired access tokens refresh automatically; unavailable credentials or a failed refresh stop the command. Authorization may eventually need renewing if it expires or is revoked.
 
-The current default is Addshore's approved **basic-access development client**, not a production registration for a-wikimedia-cli. It is suitable for testing login, refresh, identity and reads, but not edits or uploads. Its exact callback is `http://localhost/auth/login` on port 80. If the port is occupied or unavailable, use manual mode:
+The default is the public **a-wikimedia-cli** OAuth 2 client, `b54c7ed6be6d2dc967a2d5101436f4a1`, registered with the exact `http://localhost:8765/auth/login` callback. Its registration is currently proposed: the proposer can test it while review is pending. Once approved, other users can authorize it too. No client secret is embedded or needed. Normal login listens for the browser callback and also accepts the complete callback URL through a hidden terminal prompt. If the Windows browser cannot reach the WSL listener, copy the URL from the browser address bar and paste it into the waiting terminal without restarting login. If port 8765 is occupied, the command automatically continues in paste-only mode.
 
+To skip the listener from the start, use manual mode:
 ```sh
-mw wiki auth login --realm wikimedia --account addshore --provider keyring --manual --no-browser
+mw wiki auth login --realm wikimedia --profile addshore --provider keyring --manual --no-browser
 ```
 
-Open the printed authorization URL, approve the application, then paste the complete resulting localhost URL into the terminal. An error page at localhost is expected if another service owns the port. The CLI validates the callback and state before exchanging the code with its private PKCE verifier. Callback input is hidden on terminals. Do not put callback URLs or tokens in command arguments or logs.
+Open the printed authorization URL, approve the application, then paste the complete resulting localhost URL into the terminal. An error page at localhost is expected if another service owns the port. The CLI validates the callback and state before exchanging the code with its private PKCE verifier. Callback input is hidden on terminals, and a pasted URL must match the state and redirect of the current login. The waiting input reader is cancelled when the browser callback succeeds. Do not put callback URLs or tokens in command arguments or logs.
 
 To test another public client, supply both its client ID and its exact registered callback, for example `--client-id CLIENT_ID --redirect-uri http://localhost:3000/auth/mediawiki/callback`. Refresh can be checked explicitly without displaying tokens:
 
 ```sh
-mw wiki auth status --account wikimedia/addshore --refresh
+mw wiki auth status --profile wikimedia/addshore --refresh
 ```
 
-For bots or wikis without OAuth, save a bot password using the same providers:
+Status reports each stage: reading the saved credential, refreshing with
+Wikimedia, saving rotated tokens, and checking identity. An entry-update approval
+in KeePassXC can keep the command waiting at the save stage. Wait for that
+operation to finish before starting another forced refresh.
+
+To recover an expired or invalid authorization, rerun `wiki auth login` with
+`--replace`, the same `--profile`, and the intended client and scope options.
+This explicitly updates the profile's linked credential entry after successful
+authorization; it does not require logging out first. Changing the authentication
+method requires a separate profile.
+
+Interactive OAuth login opens a permission chooser. Basic identity/read access is always included; additional permissions start unchecked for a new profile. Choose only the editing, upload, bot, patrol, rollback, or watchlist access you need. Reauthorizing a named profile with the same client seeds the chooser from its previous requested permissions.
+
+`--scope basic` bypasses the chooser for basic-only access. Repeat `--scope` or use a comma-separated list for a specific subset, for example `--scope basic,editpage`. Explicit unsupported permissions are rejected for the bundled client. Non-interactive login defaults to `basic`; it never implicitly requests every registered permission. Use `--all-scopes` to explicitly request all registered permissions. `--scope` and `--all-scopes` cannot be combined. For a custom client, explicit `--scope` values are sent to that server for validation, while `--all-scopes` requests its registered default set.
+
+The CLI saves the requested restriction with the profile and secure token bundle and sends it again during refresh. Reauthorize with `--replace` to change it. Use separate profiles to keep different permission levels separate.
+`auth status` labels these as **requested** scopes, rather than claiming they
+are server-verified grants. Verify restrictions through actual API operations:
+a basic-only profile should authenticate successfully but fail an edit with
+`permissiondenied`, including after refreshing its token. Wikimedia's OAuth
+scopes resource lists the client's registered grants, not necessarily the
+restricted token's effective permissions.
+
+For an arbitrary wiki, save its username/password using the same providers. Bot passwords such as `Addshore@cli` are also accepted. Supplying username/password options selects the password method unless `--method` was explicit:
 
 ```sh
-mw wiki auth login --realm wikimedia --account addbot --method bot-password --user 'Addbot@cli' --password-stdin --provider keyring
-mw wiki auth login --realm wikibase-world --account addshore --wiki https://wikibase.world/w/api.php --method bot-password --user 'Addshore@cli' --password-stdin --provider keyring
+mw wiki auth login --wiki https://wikibase.world/w/api.php --username Addshore --password-stdin
 ```
 
-Each successful login makes that account its realm's default, and makes that realm the default when no wiki is supplied. The stored wiki is used when `--wiki` is omitted. Use `--account REALM/NAME` to select another account explicitly. Account names are stable configuration identifiers containing letters, digits, underscores or hyphens. List identities without unlocking any credential provider, or change a default:
+The realm is inferred from the endpoint (for example `wikibase-world`), and a new independent profile initially trusts only that endpoint. You can explicitly name the realm/profile:
 
+```sh
+mw wiki auth login --realm wikimedia --profile addbot --method password --username 'Addbot@cli' --password-stdin --provider keyring
+mw wiki auth login --realm wikibase-world --profile addshore --wiki https://wikibase.world/w/api.php --method password --username 'Addshore@cli' --password-stdin --provider keyring
+```
+
+The first profile becomes the default. Later logins ask before switching the global default, with “no” selected initially; non-interactive logins preserve it. `--default` explicitly switches it, while `--default=false` avoids assigning either a global or realm default. Each realm also remembers a default profile for commands that explicitly select a wiki in that farm. `auth default --profile REALM/NAME` selects both that realm's default and the global default. The global setting is `wiki.default_profile`, and per-realm settings are `wiki.realms.REALM.default_profile`.
+
+List profiles without unlocking a credential provider, select a default, or remove a local profile:
 ```sh
 mw wiki auth profiles
-mw wiki auth default --account wikimedia/addbot
-mw wiki auth logout --account wikimedia/addshore
+mw wiki auth default --profile wikimedia/addbot
+mw wiki auth remove --profile wikimedia/addshore
 ```
 
-Logout removes the local account and keyring credential, or forgets its KeePassXC reference. It does not revoke server-side OAuth authorization or delete external KeePassXC entries.
+Shell completion suggests saved `--profile` names, `--realm` names, and
+`--wiki` API endpoints. Account suggestions show public usernames and login
+methods. Site suggestions use the bundled Wikimedia list and configured custom
+realms; selecting a realm or account restricts the suggested sites accordingly.
+Completion does not open credential stores or contact a wiki. For Bash, enable
+completion in the current terminal with `source <(mw completion bash)`.
 
-Wikimedia realm membership comes from a bundled list of exact CentralAuth API endpoints, so normal use needs no domain configuration or discovery request. An unknown custom realm initially trusts only the endpoint used at login. For a shared-login farm, explicitly define its trusted endpoints before saving an account:
+`auth remove` deletes the local profile and keyring credential or KeePassXC reference, clearing matching defaults. It does not revoke server-side OAuth authorization, change wiki passwords, or delete external KeePassXC entries. There is no wiki `auth logout` command.
+
+Existing `wiki.accounts` and `default_account` settings migrate automatically to `wiki.profiles` and `default_profile`, preserving keyring locations and KeePassXC entry UUIDs without retrieving secrets. `--account` and `--user` remain hidden compatibility aliases for `--profile` and `--username`, with removal planned for early 2027.
+
+Use repeated `--site API_URL` options at login to authorize an explicit set of sites for a profile. The login's `--wiki` endpoint is included. On Wikimedia this restricts the profile to the specified Wikimedia sites; it never authorizes unrelated sites. Reauthorization with `--replace` preserves an existing site restriction unless you explicitly supply new `--site` values.
+
+```sh
+mw wiki auth login --realm example-farm --profile personal --wiki https://one.example/w/api.php --site https://two.example/w/api.php --method password --username Example --password-stdin
+```
+
+Sites must actually accept the same credentials; adding an endpoint grants permission to use them there, it does not synchronize accounts. For a farm-wide shared scope, define the realm before login and omit `--site`:
 
 ```sh
 mw wiki realm add example-farm --endpoint https://one.example/w/api.php --endpoint https://two.example/w/api.php
 ```
 
-Credentials never cross realm boundaries based on matching usernames, similar hostnames, or redirects. Saved accounts cannot be combined with explicit `--user`, password flags, or `--anon`; omit the account selection to use those one-off options. `--anon` bypasses saved accounts.
+Credentials never cross realm boundaries based on matching usernames, similar hostnames, or redirects. On normal wiki commands, saved profiles cannot be combined with explicit `--username`, password flags, or `--anon`; omit the profile selection to use those one-off options. `--anon` bypasses saved accounts.
 
-Wiki credentials participate in provider transfers and plaintext migration. Their keys are `wiki.accounts.REALM.NAME.token` for the OAuth token bundle and `wiki.accounts.REALM.NAME.password` for bot passwords. For example:
+Wiki credentials participate in provider transfers and plaintext migration. Their keys are `wiki.profiles.REALM.NAME.token` for the OAuth token bundle and `wiki.profiles.REALM.NAME.password` for wiki passwords. For example:
 
 ```sh
-mw config secrets transfer wiki.accounts.wikimedia.addshore.token --provider keepassxc
+mw config secrets transfer wiki.profiles.wikimedia.addshore.token --provider keepassxc
 ```
 
 ## Choosing storage
@@ -189,7 +237,7 @@ For scripts and `--no-interaction`, set a default first or pass `--provider`. Wi
 
 The OS keyring is the simplest choice for credentials used on one computer: it integrates with that OS and needs no separate KeePassXC pairing. Availability and unlock policy depend on the desktop; WSL uses its Linux Secret Service, not Windows Credential Manager.
 
-KeePassXC GUI access suits an existing shared vault, including Windows KeePassXC used from WSL. You control the database, backups and synchronization. It requires KeePassXC to be running with the paired database unlocked, and adds a sensitive local pairing file. The CLI retrieves approved entries without handling the master password.
+KeePassXC GUI access suits an existing shared vault, including Windows KeePassXC used from WSL. You control the database, backups and synchronization. It requires KeePassXC to be running, and adds a sensitive local pairing file. The CLI retrieves approved entries without handling the master password.
 
 ## KeePassXC
 

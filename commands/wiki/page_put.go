@@ -2,9 +2,9 @@ package wiki
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
@@ -28,38 +28,39 @@ func NewWikiPagePutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "put",
 		Short: "MediaWiki Wiki Page Put",
-		RunE:  nil,
 		Example: cobrautil.NormalizeExample(`
 # Put "foo" on the "mwcli-test" page on test.wikipedia.org
 put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test" <<< "foo"
 `),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRun {
 				fmt.Println("Dry run mode: Putting page with the following parameters:")
 				fmt.Printf("wiki: %s, user: %s, title: %s, summary: %s, minor: %t, bot: %t, recreate: %t, nocreate: %t, createonly: %t\n",
 					wiki, wikiUser, wikiPageTitle, summary, minor, bot, recreate, nocreate, createonly)
-				return
+				return nil
 			}
 
 			if wiki == "" {
-				logrus.Fatal("wiki is not set")
+				return fmt.Errorf("wiki is not set")
 			}
 			if wikiPageTitle == "" {
-				logrus.Fatal("title is not set")
+				return fmt.Errorf("title is not set")
 			}
 
-			bytes, err := io.ReadAll(os.Stdin)
+			bytes, err := io.ReadAll(cmd.InOrStdin())
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("could not read page text: %w", err)
 			}
 			text := string(bytes)
 
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
-			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
+			if err := loginIfCredentialsProvided(w); err != nil {
+				return fmt.Errorf("wiki authentication failed: %w", err)
+			}
 
 			// https://www.mediawiki.org/wiki/API:Edit#Parameters
 			editParams := params.Values{
@@ -86,16 +87,18 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 				editParams["createonly"] = "1"
 			}
 
-			editErrorHandling := defaultErrorHandling()
-			editErrorHandling.HandleUnknown = func(err error) bool {
-				if err.Error() == "edit successful, but did not change page" {
-					logrus.Info("edit successful, but did not change page")
-					return true
-				}
-				return false
+			err = w.Edit(editParams)
+			if errors.Is(err, mwclient.ErrEditNoChange) {
+				logrus.Info("edit successful, but did not change page")
+				return nil
 			}
-
-			editErrorHandling.handle(w.Edit(editParams))
+			if warnings, ok := err.(mwclient.APIWarnings); ok {
+				for _, warning := range warnings {
+					logrus.Warn(warning)
+				}
+				return nil
+			}
+			return err
 		},
 	}
 

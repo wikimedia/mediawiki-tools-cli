@@ -19,8 +19,8 @@ import (
 )
 
 type Request struct {
-	Service, Endpoint, Account, Value string
-	WikiMethod, WikiEndpoint          string
+	Service, Endpoint, Account, Value      string
+	WikiMethod, WikiEndpoint, WikiIdentity string
 }
 
 type Result struct {
@@ -184,7 +184,7 @@ func checkWiki(ctx context.Context, client *http.Client, input Request) Result {
 			return Result{Status: "expired"}
 		}
 		client.Transport = wikiauth.BearerTransport{Endpoint: endpoint, Token: tokens.AccessToken}
-	} else if input.WikiMethod == "bot-password" {
+	} else if input.WikiMethod == "password" || input.WikiMethod == "bot-password" {
 		w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
 		if err != nil {
 			return Result{Status: "unavailable"}
@@ -223,9 +223,12 @@ func checkWiki(ctx context.Context, client *http.Client, input Request) Result {
 	if reply.Query.Userinfo.ID == 0 {
 		return Result{Status: "invalid"}
 	}
-	expected := input.Account
-	if input.WikiMethod == "bot-password" {
-		expected = strings.SplitN(expected, "@", 2)[0]
+	expected := input.WikiIdentity
+	if expected == "" {
+		expected = input.Account
+		if input.WikiMethod == "password" || input.WikiMethod == "bot-password" {
+			expected = strings.SplitN(expected, "@", 2)[0]
+		}
 	}
 	return identityResult(expected, reply.Query.Userinfo.Name)
 }

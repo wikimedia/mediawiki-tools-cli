@@ -18,7 +18,7 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 func TestPKCEAndCallbackValidation(t *testing.T) {
-	a, err := Begin(TestClientID, TestRedirectURI)
+	a, err := Begin(DefaultClientID, DefaultRedirectURI)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,11 +28,11 @@ func TestPKCEAndCallbackValidation(t *testing.T) {
 	if q.Get("code_challenge") != base64.RawURLEncoding.EncodeToString(hash[:]) || q.Get("code_challenge_method") != "S256" || q.Has("client_secret") {
 		t.Fatal("invalid public-client PKCE request")
 	}
-	other, _ := Begin(TestClientID, TestRedirectURI)
+	other, _ := Begin(DefaultClientID, DefaultRedirectURI)
 	if other.State == a.State || other.Verifier == a.Verifier {
 		t.Fatal("login attempts reused randomness")
 	}
-	valid := TestRedirectURI + "?" + url.Values{"code": {"test-code"}, "state": {a.State}}.Encode()
+	valid := DefaultRedirectURI + "?" + url.Values{"code": {"test-code"}, "state": {a.State}}.Encode()
 	if code, err := a.Code(valid); err != nil || code != "test-code" {
 		t.Fatal("valid callback rejected")
 	}
@@ -44,7 +44,7 @@ func TestPKCEAndCallbackValidation(t *testing.T) {
 }
 
 func TestExchangeAndRefreshWithoutClientSecret(t *testing.T) {
-	a, _ := Begin(TestClientID, TestRedirectURI)
+	a, _ := Begin(DefaultClientID, DefaultRedirectURI, "basic")
 	calls := 0
 	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		calls++
@@ -52,29 +52,57 @@ func TestExchangeAndRefreshWithoutClientSecret(t *testing.T) {
 		if r.Form.Has("client_secret") || r.Header.Get("Authorization") != "" {
 			t.Error("public client sent client authentication")
 		}
-		if r.Form.Get("client_id") != TestClientID {
+		if r.Form.Get("client_id") != DefaultClientID {
 			t.Error("missing client identity")
 		}
-		if calls == 1 && (r.Form.Get("code_verifier") != a.Verifier || r.Form.Get("redirect_uri") != TestRedirectURI) {
+		if calls == 1 && (r.Form.Get("code_verifier") != a.Verifier || r.Form.Get("redirect_uri") != DefaultRedirectURI) {
 			t.Error("missing PKCE binding")
 		}
 		if calls == 2 && r.Form.Get("refresh_token") != "refresh-fixture" {
 			t.Error("refresh token missing")
 		}
+		if calls == 2 && r.Form.Get("scope") != "basic" {
+			t.Error("refresh did not preserve the requested scope restriction")
+		}
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"access_token":"access-fixture","refresh_token":"refresh-fixture","token_type":"Bearer","expires_in":14400}`)), Header: make(http.Header)}, nil
 	})}
-	tokens, err := Exchange(context.Background(), client, TestClientID, a, "code-fixture")
+	tokens, err := Exchange(context.Background(), client, DefaultClientID, a, "code-fixture")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if time.Until(tokens.ExpiresAt) < 3*time.Hour {
 		t.Fatal("expiry not recorded")
 	}
-	if _, err := Refresh(context.Background(), client, TestClientID, tokens); err != nil {
+	refreshed, err := Refresh(context.Background(), client, DefaultClientID, tokens)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if tokens.RequestedScope != "basic" || refreshed.RequestedScope != "basic" {
+		t.Fatal("scope restriction was lost during exchange or refresh")
 	}
 	if calls != 2 {
 		t.Fatal("exchange or refresh missing")
+	}
+}
+
+func TestAuthorizationScopesAreExplicitAndEncoded(t *testing.T) {
+	for _, scopes := range [][]string{nil, {"basic"}, {"basic", "editpage"}} {
+		a, err := Begin(DefaultClientID, DefaultRedirectURI, scopes...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		u, _ := url.Parse(a.URL)
+		if got := u.Query().Get("scope"); got != strings.Join(scopes, " ") || a.Scope != got {
+			t.Fatalf("scope=%q, want %v", got, scopes)
+		}
+		if len(scopes) == 0 && u.Query().Has("scope") {
+			t.Fatal("default login unexpectedly requested explicit scopes")
+		}
+	}
+	for _, scope := range []string{"", "#default", "basic editpage", "basic\neditpage", "basic\x00", `basic"`, `basic\`} {
+		if _, err := Begin(DefaultClientID, DefaultRedirectURI, scope); err == nil {
+			t.Errorf("invalid or broadening scope %q accepted", scope)
+		}
 	}
 }
 

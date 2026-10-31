@@ -31,7 +31,7 @@ func NewWikiFileUploadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upload FILE",
 		Short: "Upload a local file or a new version of an existing file",
-		Long:  "Upload a local file with bot-password authentication. Use --text-file for the initial file description and license wikitext. New versions preserve the existing description. Replacing a file requires --replace; other upload warnings require --ignore-warnings.\n\nGuide: mw help guides wiki files",
+		Long:  "Upload a local file using a saved profile or explicit wiki credentials. Use --text-file for the initial file description and license wikitext. New versions preserve the existing description. Replacing a file requires --replace; other upload warnings require --ignore-warnings.\n\nGuide: mw help guides wiki files",
 		Args:  cobra.ExactArgs(1),
 		Example: cobrautil.NormalizeExample(`
 # Upload a video with a description and license

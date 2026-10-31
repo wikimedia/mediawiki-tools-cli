@@ -21,11 +21,12 @@ func newPhabricatorAuthCmd(site *string) *cobra.Command {
 		Use:   "auth",
 		Short: "Authenticate mw with Wikimedia Phabricator",
 	}
+	profiles := authprofile.Commands{Label: "Phabricator", Selected: site, Backend: phabProfiles}
 	cmd.AddCommand(newPhabricatorAuthLoginCmd(site))
-	cmd.AddCommand(phabProfiles.RemoveCmd(site))
+	cmd.AddCommand(profiles.RemoveCmd())
 	cmd.AddCommand(newPhabricatorAuthStatusCmd(site))
-	cmd.AddCommand(phabProfiles.ProfilesCmd())
-	cmd.AddCommand(phabProfiles.DefaultCmd(site))
+	cmd.AddCommand(profiles.ProfilesCmd())
+	cmd.AddCommand(profiles.DefaultCmd())
 	return cmd
 }
 

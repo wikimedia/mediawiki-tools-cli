@@ -125,7 +125,7 @@ func (c Credential) SaveWithMetadata(value string, insecure bool, metadata map[s
 	return c.SaveWithProvider(value, insecure, metadata, "")
 }
 
-func (c Credential) saveKeyring(value string, insecure bool, metadata map[string]string) error {
+func (c Credential) saveKeyring(value string, insecure bool, metadata map[string]any) error {
 	if value == "" {
 		return fmt.Errorf("refusing to save an empty credential")
 	}
@@ -224,18 +224,18 @@ func (c Credential) Delete() error {
 func CredentialForKey(key string) (Credential, error) {
 	state := State().OnDiskKoanf
 	switch {
-	case strings.HasPrefix(key, "wiki.accounts."):
+	case strings.HasPrefix(key, "wiki.profiles."):
 		parts := strings.Split(key, ".")
 		if len(parts) != 5 || (parts[4] != "password" && parts[4] != "token") {
 			break
 		}
-		account, err := LoadWikiAccount(parts[2], parts[3])
+		account, err := LoadWikiProfile(parts[2], parts[3])
 		if err != nil {
 			return Credential{}, err
 		}
 		credential := account.Credential()
 		if credential.Key != key {
-			return Credential{}, fmt.Errorf("credential key does not match the wiki account authentication method")
+			return Credential{}, fmt.Errorf("credential key does not match the wiki profile authentication method")
 		}
 		return credential, nil
 	case strings.HasPrefix(key, "gerrit.profiles.") && strings.HasSuffix(key, ".password"):

@@ -1,70 +1,43 @@
 package wiki
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiauth"
-	"golang.org/x/term"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore"
 )
 
 func newWikiAuthCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "auth", Short: "Save and manage wiki accounts"}
-	cmd.AddCommand(newWikiLoginCmd(), newWikiStatusCmd(), newWikiLogoutCmd(), newWikiAccountsCmd(), newWikiDefaultCmd())
+	cmd := &cobra.Command{Use: "auth", Short: "Save and manage wiki profiles"}
+	profiles := authprofile.Commands{Label: "wiki", Selected: &wikiProfile, Backend: wikiProfiles{}}
+	cmd.AddCommand(newWikiLoginCmd(), newWikiStatusCmd(), profiles.RemoveCmd(), profiles.ProfilesCmd(), profiles.DefaultCmd())
 	return cmd
-}
-
-func selectedWikiAccount() (config.WikiAccount, error) {
-	realm, name := wikiRealm, wikiAccount
-	if strings.Contains(name, "/") {
-		parts := strings.SplitN(name, "/", 2)
-		if realm != "" && realm != parts[0] {
-			return config.WikiAccount{}, fmt.Errorf("--realm and --account disagree")
-		}
-		realm, name = parts[0], parts[1]
-	}
-	if realm == "" && wiki != "" {
-		endpoint, err := wikiauth.Endpoint(wiki)
-		if err != nil {
-			return config.WikiAccount{}, err
-		}
-		realm, err = realmForWiki(endpoint)
-		if err != nil {
-			return config.WikiAccount{}, err
-		}
-	}
-	if realm == "" {
-		realm = config.State().OnDiskKoanf.String("wiki.default_realm")
-	}
-	if name == "" {
-		name = config.State().OnDiskKoanf.String("wiki.realms." + realm + ".default_account")
-	}
-	return config.LoadWikiAccount(realm, name)
 }
 
 func newWikiLoginCmd() *cobra.Command {
 	var method, provider, clientID, redirectURI string
-	var manual, noBrowser, passwordStdin, insecure bool
+	var scopes, sites []string
+	var manual, noBrowser, passwordStdin, insecure, replace, allScopes bool
 	cmd := &cobra.Command{
-		Use: "login", Short: "Authorize and save a wiki account",
-		Long: "Save a wiki account using OAuth or a bot password. OAuth currently uses an approved basic-access development client, not a production a-wikimedia-cli registration. Its default callback is http://localhost/auth/login; use --manual when port 80 is occupied. No client secret is required.",
+		Use: "login", Short: "Authorize and save a wiki profile",
+		Long: "Save a scoped wiki profile using Wikimedia OAuth or a wiki username/password. OAuth uses the registered public a-wikimedia-cli client with PKCE and http://localhost:8765/auth/login. Basic access is the default; interactive logins can select additional permissions. Use --manual when the callback port is occupied. No client secret is required.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if passwordStdin && (wikiPassword != "" || wikiPasswordFile != "") {
@@ -73,64 +46,113 @@ func newWikiLoginCmd() *cobra.Command {
 			if err := config.ValidateCredentialProvider(provider); provider != "" && err != nil {
 				return err
 			}
-			if method != "oauth" && method != "bot-password" {
-				return fmt.Errorf("--method must be oauth or bot-password")
+			if !cmd.Flags().Changed("method") && (wikiUser != "" || wikiPassword != "" || wikiPasswordFile != "" || passwordStdin) {
+				method = "password"
 			}
-			realm, name := wikiRealm, wikiAccount
-			if strings.Contains(name, "/") {
-				parts := strings.SplitN(name, "/", 2)
-				if realm != "" && realm != parts[0] {
-					return fmt.Errorf("--realm and --account disagree")
-				}
-				realm, name = parts[0], parts[1]
+			if method == "bot-password" {
+				method = "password"
 			}
-			if realm == "" {
-				realm = "wikimedia"
+			if method != "oauth" && method != "password" {
+				return fmt.Errorf("--method must be oauth or password")
 			}
-			if name == "" {
-				name = "default"
+			if (cmd.Flags().Changed("scope") || allScopes) && (method != "oauth" || cmd.Flags().Changed("scope") && len(scopes) == 0) {
+				return fmt.Errorf("OAuth scope options require OAuth; --scope needs at least one explicit scope name")
 			}
-			prefix, err := config.WikiAccountPrefix(realm, name)
+			realm, name, err := splitWikiProfile(wikiProfile)
 			if err != nil {
 				return err
 			}
-			if config.State().OnDiskKoanf.Exists(strings.TrimSuffix(prefix, ".")) {
-				return fmt.Errorf("account already exists; log out before replacing it")
-			}
 			target := wiki
-			if target == "" && realm == "wikimedia" {
+			if target == "" && len(sites) > 0 {
+				target = sites[0]
+			}
+			if target == "" && (realm == "" || realm == "wikimedia") {
 				target = wikiauth.WikimediaAuthority + "/w/api.php"
 			}
 			endpoint, err := wikiauth.Endpoint(target)
 			if err != nil {
 				return err
 			}
-			custom := config.WikiRealmEndpoints(realm)
-			if realm != "wikimedia" && len(custom) == 0 {
-				custom = []string{endpoint}
+			if realm == "" {
+				realm, err = realmForWiki(endpoint)
+				if err != nil {
+					return err
+				}
+				if realm == "" {
+					u, _ := url.Parse(endpoint)
+					realm = strings.NewReplacer(".", "-", ":", "-").Replace(strings.ToLower(u.Hostname()))
+				}
 			}
-			if !wikiauth.Allows(realm, endpoint, custom) {
-				return fmt.Errorf("wiki is not a member of realm %s", realm)
+			if !wikiauth.ValidName(realm) {
+				return fmt.Errorf("provide a valid --realm name")
 			}
-			a := config.WikiAccount{Realm: realm, Name: name, Method: method, Wiki: endpoint, Endpoint: endpoint}
+			if name != "" && !wikiauth.ValidName(name) {
+				return fmt.Errorf("provide a valid --profile name")
+			}
+			var previous *config.WikiProfile
+			if name != "" {
+				previous, err = checkWikiProfileReplacement(realm, name, method, replace)
+				if err != nil {
+					return err
+				}
+			}
+			trusted := config.WikiRealmEndpoints(realm)
+			if realm != "wikimedia" && len(trusted) == 0 {
+				trusted = []string{endpoint}
+			}
+			explicitSites := cmd.Flags().Changed("site")
+			allowedSites, err := normalizeProfileSites(sites, endpoint)
+			if err != nil {
+				return err
+			}
+			if explicitSites {
+				if realm == "wikimedia" {
+					for _, site := range allowedSites {
+						if !wikiauth.IsWikimedia(site) {
+							return fmt.Errorf("Wikimedia profiles can only include Wikimedia sites")
+						}
+					}
+				}
+			} else if !wikiauth.Allows(realm, endpoint, trusted) {
+				return fmt.Errorf("wiki is not a member of realm %s; explicitly authorize additional endpoints with --site", realm)
+			}
+			a := config.WikiProfile{Realm: realm, Name: name, Method: method, Wiki: endpoint, Endpoint: endpoint}
+			if explicitSites || realm != "wikimedia" && len(config.WikiRealmEndpoints(realm)) == 0 {
+				a.Sites = allowedSites
+			}
+			if previous != nil && !explicitSites {
+				a.Sites = previous.Sites
+				if !a.Allows(endpoint) {
+					return fmt.Errorf("wiki is outside the saved profile's site scope; use --site to explicitly change it")
+				}
+			}
 			if realm == "wikimedia" {
 				a.Endpoint = wikiauth.WikimediaAuthority
 			}
+
 			var secret string
 			if method == "oauth" {
 				if realm != "wikimedia" {
-					return fmt.Errorf("OAuth is currently supported only for Wikimedia; use --method bot-password for custom wikis")
+					return fmt.Errorf("OAuth is currently supported only for Wikimedia; use --method password for custom wikis")
 				}
 				if wikiUser != "" || wikiPassword != "" || wikiPasswordFile != "" || passwordStdin {
 					return fmt.Errorf("OAuth uses browser authorization; omit password and user options")
 				}
 				a.ClientID, a.RedirectURI = clientID, redirectURI
-				if clientID == wikiauth.TestClientID {
-					cmd.PrintErrln("Using the basic-access development OAuth client; edits and uploads are not authorized.")
-				}
-				authorization, err := wikiauth.Begin(clientID, redirectURI)
+				requested, err := requestedOAuthScopes(cmd, clientID, scopes, allScopes, cli.CanAskForInput(), previous, chooseOAuthScopes)
 				if err != nil {
 					return err
+				}
+				if len(requested) == 0 {
+					cmd.PrintErrln("Requesting all permissions registered for the selected OAuth client.")
+				}
+				authorization, err := wikiauth.Begin(clientID, redirectURI, requested...)
+				if err != nil {
+					return err
+				}
+				a.RequestedScope = authorization.Scope
+				if a.RequestedScope != "" {
+					cmd.PrintErrln("Requesting OAuth scopes: " + a.RequestedScope)
 				}
 				ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
 				defer cancel()
@@ -160,7 +182,7 @@ func newWikiLoginCmd() *cobra.Command {
 			} else {
 				a.Username = wikiUser
 				if a.Username == "" {
-					return fmt.Errorf("provide --user (use the bot-password username, such as Name@cli)")
+					return fmt.Errorf("provide --username (use Name@cli for a bot password)")
 				}
 				secret = wikiPassword
 				if passwordStdin {
@@ -173,50 +195,119 @@ func newWikiLoginCmd() *cobra.Command {
 					if !cli.CanAskForInput() {
 						return fmt.Errorf("provide --password-stdin or --password-file")
 					}
-					err = survey.AskOne(&survey.Password{Message: "Wiki bot password:"}, &secret, survey.WithValidator(survey.Required))
+					err = survey.AskOne(&survey.Password{Message: "Wiki password:"}, &secret, survey.WithValidator(survey.Required))
 				}
 				if err != nil {
-					return fmt.Errorf("could not read bot password")
+					return fmt.Errorf("could not read wiki password")
 				}
 				if secret == "" {
-					return fmt.Errorf("bot password is empty")
+					return fmt.Errorf("wiki password is empty")
 				}
 				w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
 				if err != nil {
 					return err
 				}
-				w.SetHTTPClient(wikiauth.HTTPClient())
+				httpClient := wikiauth.HTTPClient()
+				w.SetHTTPClient(httpClient)
 				if err := w.Login(a.Username, secret); err != nil {
 					return fmt.Errorf("wiki credentials were not validated or saved")
 				}
+				a.Identity, err = wikiauth.Identity(cmd.Context(), httpClient, endpoint)
+				if err != nil {
+					return fmt.Errorf("could not verify the authenticated wiki identity: %w", err)
+				}
 			}
-			metadata := a.Metadata()
-			// A new custom realm initially trusts only this exact endpoint.
-			if realm != "wikimedia" && len(config.WikiRealmEndpoints(realm)) == 0 {
-				// Store realm membership only alongside the verified account below.
-				metadata["wiki.realms."+realm+".endpoint"] = endpoint
+			if a.Identity == "" {
+				a.Identity = a.Username
 			}
-			if err := a.Credential().SaveWithProvider(secret, insecure, metadata, provider); err != nil {
+			if name == "" {
+				name = strings.ToLower(strings.ReplaceAll(a.Identity, " ", "-"))
+				if !wikiauth.ValidName(name) {
+					return fmt.Errorf("provide an explicit --profile name containing letters, digits, underscores or hyphens for this identity")
+				}
+				a.Name = name
+				previous, err = checkWikiProfileReplacement(realm, name, method, replace)
+				if err != nil {
+					return err
+				}
+				if previous != nil && !explicitSites {
+					a.Sites = previous.Sites
+					if !a.Allows(endpoint) {
+						return fmt.Errorf("wiki is outside the saved profile's site scope")
+					}
+				}
+			}
+			metadata := make(map[string]any)
+			for key, value := range a.Metadata() {
+				metadata[key] = value
+			}
+			qualified := realm + "/" + name
+			current := config.State().OnDiskKoanf.String("wiki.default_profile")
+			changeDefault, err := authprofile.ChooseLoginDefault(cmd, qualified, current)
+			if err != nil {
 				return err
 			}
-			cmd.Printf("Saved %s/%s as %s (%s).\n", realm, name, a.Username, method)
+			realmDefault := "wiki.realms." + realm + ".default_profile"
+			if changeDefault || !cmd.Flags().Changed("default") && config.State().OnDiskKoanf.String(realmDefault) == "" {
+				metadata[realmDefault] = name
+			}
+			if changeDefault {
+				metadata["wiki.default_profile"] = qualified
+			}
+			if realm != "wikimedia" {
+				// Explicitly authorized sites extend the realm catalog; each profile still
+				// enforces its own narrower site scope before opening any credential.
+				known := append(config.WikiRealmEndpoints(realm), allowedSites...)
+				seen := map[string]bool{}
+				var endpoints []string
+				for _, site := range known {
+					if !seen[site] {
+						endpoints = append(endpoints, site)
+						seen[site] = true
+					}
+				}
+				metadata["wiki.realms."+realm+".endpoints"] = endpoints
+			}
+			metadata["wiki.profiles."+realm+"."+name+".sites"] = a.Sites
+
+			cmd.PrintErrln("Saving account credentials; unlock your password manager and approve access if prompted.")
+			if err := a.Credential().SaveWithProviderMetadata(secret, insecure, metadata, provider); err != nil {
+				if errors.Is(err, secretstore.ErrConflict) {
+					return fmt.Errorf("a different credential already exists in the password manager location for %s/%s; nothing was overwritten. Choose another --profile name or review that entry before retrying", realm, name)
+				}
+				return err
+			}
+			cmd.Printf("Saved %s/%s as %s (%s).\n", realm, name, a.Identity, method)
+			if changeDefault {
+				cmd.Printf("Default profile: %s\n", qualified)
+			} else if current != "" {
+				cmd.Printf("Default profile remains: %s\n", current)
+			}
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&method, "method", "oauth", "Authentication method: oauth or bot-password")
-	cmd.Flags().StringVar(&provider, "provider", "", "Credential provider: keyring, keepassxc or plaintext")
-	cmd.Flags().BoolVar(&insecure, "insecure-storage", false, "Explicitly store credentials in plaintext configuration")
-	cmd.Flags().BoolVar(&passwordStdin, "password-stdin", false, "Read a bot password from stdin")
-	cmd.Flags().StringVar(&clientID, "client-id", wikiauth.TestClientID, "OAuth public client ID (development client by default)")
-	cmd.Flags().StringVar(&redirectURI, "redirect-uri", wikiauth.TestRedirectURI, "Exact callback URI registered for this OAuth client")
-	cmd.Flags().BoolVar(&manual, "manual", false, "Paste the callback URL instead of starting a local listener")
+	authprofile.AddDefaultFlag(cmd)
+	authprofile.AddStorageFlags(cmd, &provider, &insecure)
+	cmd.Flags().StringSliceVar(&sites, "site", nil, "Explicitly allowed wiki API endpoints (repeat or comma-separate; includes --wiki)")
+	cmd.Flags().StringVar(&method, "method", "oauth", "Authentication method: oauth (Wikimedia) or password")
+	cmd.Flags().BoolVar(&passwordStdin, "password-stdin", false, "Read a wiki password from stdin")
+	cmd.Flags().BoolVar(&replace, "replace", false, "Explicitly reauthorize an existing account profile using its linked credential entry")
+	cmd.Flags().StringVar(&clientID, "client-id", wikiauth.DefaultClientID, "OAuth public client ID (a-wikimedia-cli by default)")
+	cmd.Flags().StringVar(&redirectURI, "redirect-uri", wikiauth.DefaultRedirectURI, "Exact callback URI registered for this OAuth client")
+	cmd.Flags().StringSliceVar(&scopes, "scope", nil, "Explicit OAuth scope names, comma-separated or repeated (basic by default)")
+	cmd.Flags().BoolVar(&allScopes, "all-scopes", false, "Explicitly request every permission registered for the OAuth client")
+	cmd.MarkFlagsMutuallyExclusive("scope", "all-scopes")
+	_ = cmd.RegisterFlagCompletionFunc("scope", completeOAuthScopes)
+	cmd.Flags().BoolVar(&manual, "manual", false, "Paste the callback URL without starting a local listener (pasting is also available alongside normal browser login)")
 	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "Print the authorization URL without opening a browser")
-	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
 	return cmd
 }
 
 func authorizeWiki(ctx context.Context, cmd *cobra.Command, a wikiauth.Authorization, manual, noBrowser bool) (string, error) {
 	var listener net.Listener
+	var server *http.Server
+	callbacks := make(chan string, 1)
+	failed := make(chan error, 1)
 	if !manual {
 		u, _ := url.Parse(a.RedirectURI)
 		address := u.Host
@@ -226,69 +317,94 @@ func authorizeWiki(ctx context.Context, cmd *cobra.Command, a wikiauth.Authoriza
 		var err error
 		listener, err = net.Listen("tcp", address)
 		if err != nil {
-			return "", fmt.Errorf("could not listen on OAuth callback port; use --manual or a client registered for another port")
+			cmd.PrintErrln("Could not listen on the OAuth callback port. Continue authorization in the browser, then paste its callback URL here.")
+			manual = true
+		} else {
+			defer listener.Close()
+			server = &http.Server{ReadHeaderTimeout: 5 * time.Second}
+			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "no-store")
+				w.Header().Set("Referrer-Policy", "no-referrer")
+				if r.Method != http.MethodGet || r.Host != u.Host || r.URL.Path != u.Path {
+					http.NotFound(w, r)
+					return
+				}
+				callback := a.RedirectURI + "?" + r.URL.RawQuery
+				if _, err := a.Code(callback); err != nil {
+					http.Error(w, "Authorization callback invalid or declined.", http.StatusBadRequest)
+					return
+				}
+				select {
+				case callbacks <- callback:
+					fmt.Fprintln(w, "Authorization received. Return to the terminal.")
+				default:
+					http.Error(w, "Callback already received.", http.StatusConflict)
+				}
+			})
+			defer func() {
+				shutdown, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+				if err := server.Shutdown(shutdown); err != nil {
+					_ = server.Close()
+				}
+			}()
+			// Start serving before launching the browser: a quick redirect must not
+			// reach a listening socket whose HTTP handler is not running yet.
+			go func() { failed <- server.Serve(listener) }()
 		}
-		defer listener.Close()
 	}
 	cmd.PrintErrln("Open this URL to authorize the wiki account:\n" + a.URL)
 	if !noBrowser {
-		_ = browser.OpenURL(a.URL)
+		if err := browser.OpenURL(a.URL); err != nil {
+			cmd.PrintErrln("Could not open a browser automatically; open the authorization URL above manually.")
+		}
 	}
-	if manual {
-		cmd.PrintErr("Paste the full callback URL (input hidden on terminals): ")
-		if file, ok := cmd.InOrStdin().(*os.File); ok && term.IsTerminal(int(file.Fd())) {
-			data, err := term.ReadPassword(int(file.Fd()))
-			cmd.PrintErrln()
-			return string(data), err
+	paste, err := startCallbackInput(cmd, a)
+	if err != nil {
+		if manual {
+			return "", err
 		}
-		line, err := bufio.NewReader(io.LimitReader(cmd.InOrStdin(), 16<<10)).ReadString('\n')
-		if err != nil && !(err == io.EOF && strings.TrimSpace(line) != "") {
-			return "", fmt.Errorf("could not read callback URL")
-		}
-		return strings.TrimSpace(line), nil
+		cmd.PrintErrln("Could not enable hidden callback pasting; browser callbacks are still enabled. Use --manual on a new login if needed.")
 	}
-	callbacks := make(chan string, 1)
-	server := &http.Server{ReadHeaderTimeout: 5 * time.Second}
-	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, _ := url.Parse(a.RedirectURI)
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Referrer-Policy", "no-referrer")
-		if r.Method != http.MethodGet || r.Host != u.Host || r.URL.Path != u.Path {
-			http.NotFound(w, r)
-			return
-		}
-		callback := a.RedirectURI + "?" + r.URL.RawQuery
-		if _, err := a.Code(callback); err != nil {
-			http.Error(w, "Authorization callback invalid or declined.", http.StatusBadRequest)
-			return
-		}
+	var pasted <-chan callbackInputResult
+	if paste != nil {
+		defer paste.stop()
+		pasted = paste.results
+	}
+	if manual && paste == nil {
+		return readManualCallback(cmd, a)
+	}
+	if !manual && paste == nil {
+		cmd.PrintErrln("Waiting for the browser callback. For pasted input from a non-terminal, use --manual.")
+	}
+	for {
 		select {
-		case callbacks <- callback:
-			fmt.Fprintln(w, "Authorization received. Return to the terminal.")
-		default:
-			http.Error(w, "Callback already received.", http.StatusConflict)
+		case callback := <-callbacks:
+			return callback, nil
+		case result := <-pasted:
+			return result.URL, result.Err
+		case <-ctx.Done():
+			return "", fmt.Errorf("OAuth login timed out or was cancelled")
+		case <-failed:
+			if paste == nil {
+				return "", fmt.Errorf("OAuth callback listener stopped; retry login with --manual")
+			}
+			cmd.PrintErrln("The callback listener stopped. Paste the browser callback URL into the hidden prompt to finish this login.")
 		}
-	})
-	defer func() {
-		shutdownContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		if err := server.Shutdown(shutdownContext); err != nil {
-			_ = server.Close()
-		}
-	}()
-	failed := make(chan error, 1)
-	go func() { failed <- server.Serve(listener) }()
-	select {
-	case callback := <-callbacks:
-		return callback, nil
-	case <-ctx.Done():
-		return "", fmt.Errorf("OAuth login timed out or was cancelled")
-	case <-failed:
-		return "", fmt.Errorf("OAuth callback listener stopped")
 	}
 }
 
-func accountTokens(ctx context.Context, a config.WikiAccount, force bool) (wikiauth.Tokens, error) {
+func accountTokens(ctx context.Context, a config.WikiProfile, force bool) (wikiauth.Tokens, error) {
+	return accountTokensWithProgress(ctx, a, force, nil)
+}
+
+func accountTokensWithProgress(ctx context.Context, a config.WikiProfile, force bool, progress func(string)) (wikiauth.Tokens, error) {
+	report := func(message string) {
+		if progress != nil {
+			progress(message)
+		}
+	}
+	report("Reading saved OAuth credentials; unlock your password manager and approve access if prompted.")
 	value, err := a.Credential().Read()
 	if err != nil {
 		return wikiauth.Tokens{}, err
@@ -298,6 +414,7 @@ func accountTokens(ctx context.Context, a config.WikiAccount, force bool) (wikia
 		return tokens, fmt.Errorf("invalid saved wiki tokens; log in again")
 	}
 	if force || time.Now().Add(time.Minute).After(tokens.ExpiresAt) {
+		report("Refreshing the OAuth token with Wikimedia...")
 		tokens, err = wikiauth.Refresh(ctx, wikiauth.HTTPClient(), a.ClientID, tokens)
 		if err != nil {
 			return tokens, err
@@ -306,6 +423,7 @@ func accountTokens(ctx context.Context, a config.WikiAccount, force bool) (wikia
 		if err != nil {
 			return tokens, err
 		}
+		report("Saving refreshed OAuth credentials; approve the entry update in your password manager if prompted.")
 		if err := a.Credential().SaveWithProvider(string(encoded), false, nil, ""); err != nil {
 			return tokens, fmt.Errorf("could not save refreshed wiki tokens: %w", err)
 		}
@@ -316,7 +434,7 @@ func accountTokens(ctx context.Context, a config.WikiAccount, force bool) (wikia
 func newWikiStatusCmd() *cobra.Command {
 	var refresh bool
 	cmd := &cobra.Command{Use: "status", Short: "Verify the saved wiki account without displaying secrets", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
-		a, err := selectedWikiAccount()
+		a, err := selectedWikiProfile(wikiProfile)
 		if err != nil {
 			return err
 		}
@@ -327,12 +445,12 @@ func newWikiStatusCmd() *cobra.Command {
 				return err
 			}
 		}
-		if !config.WikiRealmAllows(a.Realm, endpoint) {
-			return fmt.Errorf("wiki is not a member of the account's realm")
+		if !a.Allows(endpoint) {
+			return fmt.Errorf("wiki is outside the selected profile's site scope")
 		}
 		httpClient := wikiauth.HTTPClient()
 		if a.Method == "oauth" {
-			tokens, err := accountTokens(cmd.Context(), a, refresh)
+			tokens, err := accountTokensWithProgress(cmd.Context(), a, refresh, func(message string) { cmd.PrintErrln(message) })
 			if err != nil {
 				return err
 			}
@@ -354,14 +472,12 @@ func newWikiStatusCmd() *cobra.Command {
 				return fmt.Errorf("wiki authentication failed")
 			}
 		}
+		cmd.PrintErrln("Checking the authenticated wiki identity...")
 		identity, err := wikiauth.Identity(cmd.Context(), httpClient, endpoint)
 		if err != nil {
 			return err
 		}
-		expected := a.Username
-		if a.Method == "bot-password" {
-			expected = strings.SplitN(expected, "@", 2)[0]
-		}
+		expected := a.Identity
 		if identity != expected {
 			return fmt.Errorf("authenticated wiki identity does not match the saved account")
 		}
@@ -370,70 +486,13 @@ func newWikiStatusCmd() *cobra.Command {
 			return err
 		}
 		cmd.Printf("Authenticated as %s on %s using %s/%s (%s, %s).\n", identity, endpoint, a.Realm, a.Name, a.Method, provider)
+		if a.Method == "oauth" && a.RequestedScope != "" {
+			cmd.Println("Requested OAuth scopes: " + a.RequestedScope)
+		}
 		return nil
 	}}
 	cmd.Flags().BoolVar(&refresh, "refresh", false, "Refresh OAuth tokens now and save the replacement securely")
 	return cmd
-}
-
-func newWikiLogoutCmd() *cobra.Command {
-	return &cobra.Command{Use: "logout", Short: "Remove a saved account and its locally managed credential", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
-		a, err := selectedWikiAccount()
-		if err != nil {
-			return err
-		}
-		if err := a.Credential().Delete(); err != nil {
-			return err
-		}
-		prefix, _ := config.WikiAccountPrefix(a.Realm, a.Name)
-		disk := config.State().OnDiskKoanf.Copy()
-		disk.Delete(strings.TrimSuffix(prefix, "."))
-		key := "wiki.realms." + a.Realm + ".default_account"
-		if disk.String(key) == a.Name {
-			disk.Delete(key)
-		}
-		if err := config.PutDiskConfig(disk); err != nil {
-			return err
-		}
-		cmd.Printf("Removed %s/%s locally. OAuth authorization and external KeePassXC entries are retained.\n", a.Realm, a.Name)
-		return nil
-	}}
-}
-
-func newWikiAccountsCmd() *cobra.Command {
-	return &cobra.Command{Use: "profiles", Aliases: []string{"list"}, Short: "List saved wiki account identities without opening credential stores", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
-		keys := config.State().OnDiskKoanf.Keys()
-		sort.Strings(keys)
-		for _, key := range keys {
-			parts := strings.Split(key, ".")
-			if len(parts) != 5 || parts[0] != "wiki" || parts[1] != "accounts" || parts[4] != "username" {
-				continue
-			}
-			a, err := config.LoadWikiAccount(parts[2], parts[3])
-			if err != nil {
-				return err
-			}
-			marker := ""
-			if config.State().OnDiskKoanf.String("wiki.realms."+a.Realm+".default_account") == a.Name {
-				marker = " (default)"
-			}
-			cmd.Printf("%s/%s\t%s\t%s%s\n", a.Realm, a.Name, a.Username, a.Method, marker)
-		}
-		return nil
-	}}
-}
-
-func newWikiDefaultCmd() *cobra.Command {
-	return &cobra.Command{Use: "default", Short: "Make --account the default for its realm", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
-		a, err := selectedWikiAccount()
-		if err != nil {
-			return err
-		}
-		disk := config.State().OnDiskKoanf.Copy()
-		_ = disk.Set("wiki.realms."+a.Realm+".default_account", a.Name)
-		_ = disk.Set("wiki.default_realm", a.Realm)
-		return config.PutDiskConfig(disk)
-	}}
 }
 
 func newWikiRealmCmd() *cobra.Command {

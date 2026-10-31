@@ -148,6 +148,12 @@ func load() *koanf.Koanf {
 	}
 	migrated = gerritMigrated
 	changed = changed || gerritChanged
+	wikiMigrated, wikiChanged, err := migrateWikiProfiles(migrated)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	migrated = wikiMigrated
+	changed = changed || wikiChanged
 	if changed {
 		// Completion may translate metadata in memory, but must not write config.
 		if !isConfigCompletion() {
