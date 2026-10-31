@@ -32,7 +32,7 @@ func promptCredentialProvider() (string, error) {
 	keyring := detectKeyring(ctx)
 	keepass := detectKeePassXC()
 	fmt.Fprintf(os.Stderr, "Choose where to store credentials. This becomes the default for new credentials.\nOS keyring: %s\nKeePassXC: %s\n", keyring.Detail, keepass.Detail)
-	windows := detectWindowsCredentials(ctx, State().EffectiveKoanf.String("secrets.windows_helper"))
+	windows := detectWindowsCredentials(ctx)
 	providers, labels := credentialStorageChoices(runtime.GOOS, keyring, keepass, windows)
 	selected, err := askCredentialStorage(labels)
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
@@ -42,7 +41,6 @@ func NewSecretStatusCmd() *cobra.Command {
 			}
 			ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
 			defer cancel()
-			helper := config.State().EffectiveKoanf.String("secrets.windows_helper")
 			providers := []string{"keyring", secrets.WindowsProvider, "keepassxc"}
 			for _, provider := range providers {
 				if selected != "" && selected != provider {
@@ -53,7 +51,7 @@ func NewSecretStatusCmd() *cobra.Command {
 				case "keyring":
 					available = statusKeyring(ctx)
 				case secrets.WindowsProvider:
-					available = statusWindows(ctx, helper)
+					available = statusWindows(ctx)
 				case "keepassxc":
 					available = secrets.DetectKeePassXC()
 				}
@@ -72,7 +70,7 @@ func NewSecretStatusCmd() *cobra.Command {
 					client := statusNativeStore()
 					if provider == secrets.WindowsProvider {
 						var err error
-						client, err = statusWindowsStore(helper)
+						client, err = statusWindowsStore()
 						if err != nil {
 							return err
 						}

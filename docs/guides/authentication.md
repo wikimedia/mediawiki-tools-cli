@@ -312,7 +312,7 @@ mw config secrets detached --provider windows-credential-manager --details
 mw config secrets detached --provider keepassxc --details
 ```
 
-The Windows helper restricts the native enumeration to `a-wikimedia-cli:` and the CLI's encoded `a-wikimedia-cli` secretstore namespace. Only metadata is returned across the WSL bridge. Known current profiles are matched to their older Windows slots where possible; others are marked unmapped. This scan does not modify the configuration or retrieve secret values into the Linux CLI.
+The Windows bridge restricts the native enumeration to `a-wikimedia-cli:` and the CLI's encoded `a-wikimedia-cli` secretstore namespace. Only metadata is returned across the WSL bridge. Known current profiles are matched to their older Windows slots where possible; others are marked unmapped. This scan does not modify the configuration or retrieve secret values into the Linux CLI.
 
 Review the list, then explicitly select one ID to delete:
 
@@ -331,7 +331,7 @@ Without `--provider`, listing uses only the metadata retention record. Selecting
 
 Native credentials use the `a-wikimedia-cli` namespace. For example, Gerrit uses service `a-wikimedia-cli:gerrit:https://gerrit.wikimedia.org/r` and an account identifier combining the username and the credential-key hash. The configuration directory remains separate. Development entries in the abandoned `mwcli` credential namespace are not migrated or used as a fallback.
 
-`keyring` uses the platform running the CLI: Linux Secret Service (also in WSL), macOS Keychain, or Windows Credential Manager. `windows-credential-manager` explicitly uses Windows storage, either natively or through a Windows `mw.exe` helper launched from WSL. These providers never silently fall back to each other. Native storage follows the OS access rules; Windows generic credentials and Linux Secret Service do not provide KeePassXC-style per-entry application approvals.
+`keyring` uses the platform running the CLI: Linux Secret Service (also in WSL), macOS Keychain, or Windows Credential Manager. `windows-credential-manager` explicitly uses Windows storage, either natively or through Windows PowerShell launched from WSL. These providers never silently fall back to each other. Native storage follows the OS access rules; Windows generic credentials and Linux Secret Service do not provide KeePassXC-style per-entry application approvals.
 
 ```sh
 mw config secrets status
@@ -358,17 +358,16 @@ unset mwcli_keyring_password
 
 The clean Bash shell prevents startup scripts from restoring stale session variables. This is a temporary D-Bus session, not a permanent WSL desktop-service setup. For persistent user-session infrastructure, see [Microsoft's WSL systemd setup](https://learn.microsoft.com/en-us/windows/wsl/systemd); GNOME Keyring still needs to be installed and unlocked. Stored credentials remain encrypted on disk, but accessing them later requires a running Secret Service and unlocking the same keyring.
 
-For Windows storage from WSL, place a Windows build of this CLI named `mw.exe` beside the Linux binary, or set its absolute WSL path. Development checkouts can build the helper with `make build-windows-helper`. A helper is also discovered through `PATH`. Use a current build supporting the private credential-helper protocol; no separate Windows CLI configuration or login is needed.
+For Windows storage from WSL, the CLI automatically launches the system `powershell.exe` with an embedded bridge script. No Windows CLI installation or additional PowerShell module is required. WSL interoperability must be enabled and Windows PowerShell must be available. Native Windows builds access Credential Manager directly.
 
 ```sh
-mw config set secrets.windows_helper '/mnt/c/path/to/mw.exe'
 mw config secrets status windows-credential-manager
 mw config secrets status windows-credential-manager --check
 mw config secrets transfer gerrit.profiles.addshore.password --provider windows-credential-manager
 mw config secrets list gerrit.profiles.addshore.password --check --verify --details
 ```
 
-The helper uses bounded JSON over stdin/stdout, with secret bytes encoded in the pipe payload and no secrets in command arguments, logs, or temporary files. It accepts explicit Get/Set/Delete operations on CLI-owned service namespaces and a metadata-list operation restricted to CLI-owned target prefixes. Windows may supply credential blobs internally with enumeration; the helper discards them and returns only names and account identifiers. These restrictions describe the helper protocol; Windows Credential Manager itself follows the current user's logon-session permissions. The helper bypasses configuration loading, migration, telemetry, and timers.
+The bridge uses bounded JSON over stdin/stdout, with secret bytes encoded in the pipe payload and no secrets in command arguments, logs, or temporary files. It accepts explicit Get/Set/Delete operations on CLI-owned service namespaces and a metadata-list operation restricted to CLI-owned target prefixes. Windows may supply credential blobs internally with enumeration; the bridge discards them and returns only names and account identifiers. These restrictions describe the bridge protocol; Windows Credential Manager itself follows the current user's logon-session permissions. PowerShell runs without loading user profiles or prompting. Credential requests are data passed through stdin, never executed as PowerShell code. Windows PowerShell policy and logon-session permissions still apply.
 
 Transfer back with `--provider keyring` or `--provider keepassxc`. Every transfer reads back and verifies the destination before changing the reference, removes the unused source unless `--keep-source` is set, refuses a conflicting destination value, and leaves the default provider unchanged. `secrets list --verify` then checks service authentication using the newly active provider. Existing `keyring` references keep their original platform-specific meaning; use an explicit transfer to change stores.
 

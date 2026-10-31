@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"os/exec"
-	"strings"
 	"time"
 
 	oskeyring "github.com/zalando/go-keyring"
@@ -21,8 +19,8 @@ const (
 	bridgeOutputLimit = 1024 * 1024
 )
 
-// BridgeClient calls an explicitly selected native helper. Secrets travel only
-// through anonymous pipes; the helper must implement ServeBridge's protocol.
+// BridgeClient calls a credential bridge with fixed arguments and bounded JSON
+// over anonymous pipes. Credential values never enter the command line.
 type BridgeClient struct {
 	Executable   string
 	Args         []string
@@ -132,67 +130,4 @@ func (c *BridgeClient) invoke(ctx context.Context, request bridgeRequest) (bridg
 	default:
 		return bridgeResponse{}, secretstore.ErrUnavailable
 	}
-}
-
-// ServeBridge handles one bounded request, returning sanitized errors only.
-// allowService restricts the helper to application-owned namespaces.
-func ServeBridge(input io.Reader, output io.Writer, client Client, allowService func(string) bool) error {
-	reply := bridgeResponse{Version: 1}
-	data, err := io.ReadAll(io.LimitReader(input, bridgeLimit+1))
-	var request bridgeRequest
-	if err != nil || len(data) > bridgeLimit || json.Unmarshal(data, &request) != nil || request.Version != 1 || client == nil {
-		reply.Error = "invalid"
-	} else if request.Action == "list" {
-		if lister, ok := client.(MetadataLister); ok && allowService != nil {
-			var entries []CredentialMetadata
-			entries, err = lister.ListMetadata()
-			for _, entry := range entries {
-				if allowService(entry.Service) && entry.Account != "" && !strings.ContainsAny(entry.Service+entry.Account, "\x00\r\n") && entry.Target == entry.Service+":"+entry.Account {
-					reply.Entries = append(reply.Entries, entry)
-				}
-			}
-		} else {
-			reply.Error = "unavailable"
-		}
-	} else if request.Action == "probe" {
-		if allowService == nil || !allowService(request.Service) {
-			reply.Error = "invalid"
-		} else {
-			_, err = client.Get(request.Service, "availability")
-		}
-	} else if allowService == nil || !allowService(request.Service) || request.Account == "" || strings.ContainsAny(request.Service+request.Account, "\x00\r\n") {
-		reply.Error = "invalid"
-	} else {
-		switch request.Action {
-		case "get":
-			var value string
-			value, err = client.Get(request.Service, request.Account)
-			reply.Value = []byte(value)
-		case "set":
-			if len(request.Value) > 2560 {
-				err = oskeyring.ErrSetDataTooBig
-			} else {
-				err = client.Set(request.Service, request.Account, string(request.Value))
-			}
-		case "delete":
-			err = client.Delete(request.Service, request.Account)
-		default:
-			reply.Error = "invalid"
-		}
-	}
-	if err != nil {
-		reply.Value = nil
-		reply.Entries = nil
-		switch {
-		case errors.Is(err, oskeyring.ErrNotFound):
-			if request.Action != "probe" {
-				reply.Error = "not-found"
-			}
-		case errors.Is(err, oskeyring.ErrSetDataTooBig), errors.Is(err, secretstore.ErrTooLarge):
-			reply.Error = "too-large"
-		default:
-			reply.Error = "unavailable"
-		}
-	}
-	return json.NewEncoder(output).Encode(reply)
 }

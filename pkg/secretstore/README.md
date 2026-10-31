@@ -89,15 +89,18 @@ but an in-flight native call may not itself support cancellation.
 
 Applications can explicitly register Windows Credential Manager as
 `windows-credential-manager` using a `keyring.Backend` with that `Provider`
-and `MaxValueBytes: 2560`. A `keyring.BridgeClient` can supply the client when
-running under WSL: it launches a caller-selected Windows executable with fixed
-arguments and sends one bounded request over stdin/stdout. The corresponding
-Windows helper calls `keyring.ServeBridge` with a native client and a required
-service-namespace allowlist. Secret bytes are base64-encoded in JSON pipe
-payloads, never command arguments. Errors exclude native diagnostics and
-requests time out after 15 seconds. No HTTP listener is exposed. Optional metadata enumeration is restricted
-to the helper's application-owned target prefixes and excludes credential values. The CLI's `mw.exe __credential-helper` implements this protocol
-for CLI-owned namespaces without loading Windows CLI configuration.
+and `MaxValueBytes: 2560`. Under WSL, use
+`keyring.NewPowerShellBridge(powershellPath, applicationNamespace)` as its client.
+The embedded script calls Windows credential APIs without a separately installed
+helper executable or PowerShell module. It runs Windows PowerShell with fixed
+arguments, no user profiles, and no interactive prompts.
+
+The bridge sends one bounded JSON request over stdin/stdout. Secret bytes are
+base64-encoded in pipe payloads, never command arguments. Errors exclude native
+diagnostics, and requests time out after 15 seconds. There is no HTTP listener.
+Reads, writes, deletes and metadata enumeration are restricted to the supplied
+application namespace, including its `secretstore.v1` targets. Metadata responses
+contain names and account identifiers, never credential values.
 
 Windows logon-session permissions still govern access to generic credentials;
 this transport does not provide KeePassXC-style per-entry approval. The

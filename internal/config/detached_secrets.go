@@ -163,11 +163,11 @@ func DetachedSecrets(provider string) ([]DetachedSecret, error) {
 		}
 		lister, ok := client.(native.MetadataLister)
 		if !ok {
-			return nil, fmt.Errorf("Windows helper does not support metadata discovery; rebuild mw.exe")
+			return nil, fmt.Errorf("Windows credential store does not support metadata discovery")
 		}
 		metadata, err := lister.ListMetadata()
 		if err != nil {
-			return nil, fmt.Errorf("Windows credential metadata scan failed; rebuild or check the Windows helper")
+			return nil, fmt.Errorf("Windows credential metadata scan failed; check Windows Credential Manager access")
 		}
 		// Recover readable config keys where a current profile matches an older
 		// Windows slot, even if the transfer happened before retention tracking.

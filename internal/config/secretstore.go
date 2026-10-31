@@ -44,9 +44,7 @@ func (credentialBrowser) Write(ctx context.Context, existing *keepassxc.Referenc
 	return keepassxc.Reference(ref), err
 }
 
-var windowsCredentialStore = func() (secrets.Store, error) {
-	return secrets.WindowsCredentialStore(State().EffectiveKoanf.String("secrets.windows_helper"))
-}
+var windowsCredentialStore = secrets.WindowsCredentialStore
 
 func keyringStore(provider string) (secrets.Store, error) {
 	if provider == secrets.WindowsProvider {
