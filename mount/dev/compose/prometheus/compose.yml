@@ -1,6 +1,6 @@
 services:
   statsd-exporter:
-    image: prom/statsd-exporter:v0.28.0
+    image: prom/statsd-exporter:v0.31.0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.statsd-exporter-host.rule=Host(`${STATSD_EXPORTER_VIRTUAL_HOST:-statsd-exporter.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
