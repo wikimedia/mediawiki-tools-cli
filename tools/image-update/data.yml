@@ -125,7 +125,7 @@ images:
     requireRegex: ^v3\.\d+\.\d+$
 
   # Grafana dashboards for local metrics.
-  - image: grafana/grafana:11.4.0
+  - image: grafana/grafana:11.6.16
     requireRegex: ^11\.\d+\.\d+$
 
   # Node base image for the locally built Holesail tunnel client.
