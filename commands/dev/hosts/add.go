@@ -13,6 +13,9 @@ func NewHostsAddCmd() *cobra.Command {
 		Use:   "add",
 		Short: "Adds development environment hosts into your system hosts fils",
 		Run: func(cmd *cobra.Command, args []string) {
+			if !cmd.Flags().Changed("ip") {
+				IP = hosts.LocalIP()
+			}
 			changeResult := hosts.AddHosts(
 				IP,
 				hostsToAdd(extraHosts),
@@ -21,7 +24,7 @@ func NewHostsAddCmd() *cobra.Command {
 			handleChangeResult(changeResult)
 		},
 	}
-	cmd.Flags().StringVar(&IP, "ip", hosts.LocalIP(), "IP address to interact with hosts for")
+	cmd.Flags().StringVar(&IP, "ip", "", "IP address to use (automatically detected when omitted)")
 	cmd.Flags().StringSliceVar(&extraHosts, "host", []string{}, "Additional hostnames to add to the hosts file")
 	return cmd
 }
