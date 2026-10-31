@@ -3,20 +3,37 @@
 package mwcli
 
 import (
+	"fmt"
 	"net/url"
+	"os"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
-	"gitlab.com/gitlab-org/cli/commands/cmdutils"
+	"gitlab.com/gitlab-org/cli/internal/api"
+	"gitlab.com/gitlab-org/cli/internal/cmdutils"
+	"gitlab.com/gitlab-org/cli/internal/commands"
+	"gitlab.com/gitlab-org/cli/internal/config"
+	"gitlab.com/gitlab-org/cli/internal/git"
 	"gitlab.com/gitlab-org/cli/internal/glrepo"
-	"gitlab.com/gitlab-org/cli/pkg/git"
-	"gitlab.com/gitlab-org/cli/pkg/glinstance"
-	"gitlab.com/gitlab-org/cli/pkg/iostreams"
+	"gitlab.com/gitlab-org/cli/internal/iostreams"
+	"gitlab.com/gitlab-org/cli/internal/utils"
 )
 
 const canonicalHost = "gitlab.wikimedia.org"
+
+type Factory = cmdutils.Factory
+
+func NewCmdRoot(f Factory) *cobra.Command {
+	return commands.NewCmdRoot(f)
+}
+
+func ParseURL(rawURL string) (*url.URL, error) {
+	return git.ParseURL(rawURL)
+}
 
 // Hostname maps Wikimedia's SSH endpoint to the web/API host.
 func Hostname(host string) string {
@@ -34,22 +51,68 @@ type factory struct {
 }
 
 // NewFactory preserves Git transport URLs while using the canonical API identity.
-func NewFactory(io *iostreams.IOStreams, userAgent string) cmdutils.Factory {
-	return &factory{DefaultFactory: cmdutils.NewFactory(io, false), userAgent: userAgent}
+func NewFactory(version, userAgent string) (Factory, error) {
+	if err := os.MkdirAll(config.ConfigDir(), 0o750); err != nil {
+		return nil, fmt.Errorf("create GitLab config directory: %w", err)
+	}
+	cfg, err := config.ParseDefaultConfig()
+	if os.IsNotExist(err) {
+		err = cfg.WriteAll()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read GitLab configuration: %w", err)
+	}
+	host, _ := cfg.Get("", "host")
+	if host == "" {
+		if err := cfg.Set("", "host", canonicalHost); err != nil {
+			return nil, err
+		}
+	}
+	io := iostreams.New(
+		iostreams.WithStdin(os.Stdin, iostreams.IsTerminal(os.Stdin)),
+		iostreams.WithStdout(iostreams.NewColorable(os.Stdout), iostreams.IsTerminal(os.Stdout)),
+		iostreams.WithStderr(iostreams.NewColorable(os.Stderr), iostreams.IsTerminal(os.Stderr)),
+		iostreams.WithPagerCommand(iostreams.PagerCommandFromEnv()),
+	)
+	if pager, _ := cfg.Get("", "glab_pager"); pager != "" {
+		io.SetPager(pager)
+	}
+	if noPrompt, _ := cfg.Get("", "no_prompt"); noPrompt != "" {
+		io.SetPrompt(noPrompt)
+	}
+	if hyperlinks, _ := cfg.Get("", "display_hyperlinks"); hyperlinks == "true" {
+		io.SetDisplayHyperlinks("auto")
+	}
+	if enabled, found := utils.IsEnvVarEnabled("FORCE_HYPERLINKS"); found {
+		if enabled {
+			io.SetDisplayHyperlinks("always")
+		} else {
+			io.SetDisplayHyperlinks("never")
+		}
+	}
+	return &factory{
+		DefaultFactory: cmdutils.NewFactory(io, false, cfg, api.BuildInfo{
+			Version: version, Platform: runtime.GOOS, Architecture: runtime.GOARCH,
+		}),
+		userAgent: userAgent,
+	}, nil
 }
 
-func (f *factory) RepoOverride(repo string) {
-	if parsed, err := glrepo.FromFullName(repo); err == nil && Hostname(parsed.RepoHost()) != parsed.RepoHost() {
+func (f *factory) RepoOverride(repo string) error {
+	if parsed, err := glrepo.FromFullName(repo, f.DefaultHostname()); err == nil && Hostname(parsed.RepoHost()) != parsed.RepoHost() {
 		repo = "https://" + canonicalHost + "/" + parsed.FullName()
+	}
+	if err := f.DefaultFactory.RepoOverride(repo); err != nil {
+		return err
 	}
 	f.mu.Lock()
 	f.override = repo
 	f.mu.Unlock()
-	f.DefaultFactory.RepoOverride(repo)
+	return nil
 }
 
 func (f *factory) Remotes() (glrepo.Remotes, error) {
-	if Hostname(glinstance.OverridableDefault()) != canonicalHost {
+	if Hostname(f.DefaultHostname()) != canonicalHost {
 		return f.DefaultFactory.Remotes()
 	}
 	remotes, err := git.Remotes()
@@ -65,7 +128,7 @@ func (f *factory) Remotes() (glrepo.Remotes, error) {
 			return &copy
 		}
 		return u
-	})
+	}, canonicalHost)
 	matching := glrepo.Remotes{}
 	for _, remote := range translated {
 		if remote.RepoHost() == canonicalHost {
@@ -93,25 +156,23 @@ func (f *factory) BaseRepo() (glrepo.Interface, error) {
 	return remotes[0], nil
 }
 
-func (f *factory) HttpClient() (*gitlab.Client, error) {
-	client, err := f.httpClient()
-	if err == nil && f.userAgent != "" && !strings.HasPrefix(client.UserAgent, f.userAgent) {
-		// The upstream renderer starts with glab/<version>. Put the embedding
-		// application first, removing its fallback occurrence in that renderer.
-		upstream := strings.TrimSpace(strings.ReplaceAll(client.UserAgent, f.userAgent, ""))
-		client.UserAgent = strings.Join(strings.Fields(f.userAgent+" "+upstream), " ")
+func (f *factory) ApiClient(repoHost string) (*api.Client, error) {
+	if repoHost == "" {
+		repoHost = f.DefaultHostname()
 	}
-	return client, err
+	userAgent := strings.TrimSpace(f.userAgent + " " + f.BuildInfo().UserAgent())
+	return api.NewClientFromConfig(Hostname(repoHost), f.Config(), false, userAgent)
 }
 
-func (f *factory) httpClient() (*gitlab.Client, error) {
+func (f *factory) GitLabClient() (*gitlab.Client, error) {
 	repo, err := f.BaseRepo()
-	if err != nil {
-		return f.DefaultFactory.HttpClient()
+	host := f.DefaultHostname()
+	if err == nil {
+		host = repo.RepoHost()
 	}
-	cfg, err := f.Config()
+	client, err := f.ApiClient(host)
 	if err != nil {
 		return nil, err
 	}
-	return cmdutils.LabClientFunc(repo.RepoHost(), cfg, false)
+	return client.Lab(), nil
 }

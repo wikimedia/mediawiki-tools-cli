@@ -3,19 +3,13 @@ package gitlab
 import (
 	"errors"
 	"os"
-	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	glabapi "gitlab.com/gitlab-org/cli/api"
-	"gitlab.com/gitlab-org/cli/commands"
-	"gitlab.com/gitlab-org/cli/commands/cmdutils"
 	"gitlab.com/gitlab-org/cli/mwcli"
-	"gitlab.com/gitlab-org/cli/pkg/glinstance"
-	"gitlab.com/gitlab-org/cli/pkg/iostreams"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -23,15 +17,16 @@ import (
 )
 
 func Cmd() *cobra.Command {
-	glinstance.OverrideDefault("gitlab.wikimedia.org")
-	// The embedded CLI bypasses glab's main(), which normally sets this.
-	glabapi.SetUserAgent(glabVersion()+" "+cli.HTTPUserAgent, runtime.GOOS, runtime.GOARCH)
-
-	io := iostreams.Init()
-	cmdFactory := mwcli.NewFactory(io, cli.HTTPUserAgent)
-
-	// Try to keep this version in line with the addshore fork for now...
-	glabCommand := commands.NewCmdRoot(cmdFactory, cli.DisplayName+" "+glabVersion(), cli.VersionDetails.BuildDate)
+	cmdFactory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent)
+	if err != nil {
+		return &cobra.Command{
+			Use: "gitlab", Aliases: []string{"glab", "gl"}, GroupID: "service",
+			DisableFlagParsing: true,
+			RunE:               func(*cobra.Command, []string) error { return err },
+		}
+	}
+	glabCommand := mwcli.NewCmdRoot(cmdFactory)
+	glabCommand.Version = cli.DisplayName + " " + glabVersion()
 	glabCommand.Short = "Work with Wikimedia GitLab"
 	glabCommand.Use = strings.Replace(glabCommand.Use, "glab", "gitlab", 1)
 	glabCommand.GroupID = "service"
@@ -77,6 +72,7 @@ func Cmd() *cobra.Command {
 	toHide := []string{
 		// glab does not need to be updated itself, instead the CLI would need to be updated
 		"check-update",
+		"update",
 		// issues will not be used on the Wikimedia gitlab instance
 		"issue",
 	}
@@ -99,7 +95,7 @@ func Cmd() *cobra.Command {
 	return glabCommand
 }
 
-func addCIArtifactsCommand(glabCommand *cobra.Command, factory cmdutils.Factory) {
+func addCIArtifactsCommand(glabCommand *cobra.Command, factory mwcli.Factory) {
 	ciCommand, _, err := glabCommand.Find([]string{"ci"})
 	if err != nil || ciCommand == nil {
 		return
@@ -219,7 +215,7 @@ func setDefaultHostname(glabCommand *cobra.Command) {
 		if hostnameFlag := cmd.Flags().Lookup("hostname"); hostnameFlag != nil {
 			hostname := hostnameFlag.Value.String()
 			if !cmd.Flags().Changed("hostname") {
-				hostname = glinstance.OverridableDefault()
+				hostname = "gitlab.wikimedia.org"
 			}
 			_ = cmd.Flags().Set("hostname", mwcli.Hostname(hostname))
 		}
