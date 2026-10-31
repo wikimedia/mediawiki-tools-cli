@@ -119,7 +119,7 @@ images:
     requireRegex: ^0\.3\.\d+$
 
   # Prometheus StatsD exporter for local metrics.
-  - image: prom/statsd-exporter:v0.28.0
+  - image: prom/statsd-exporter:v0.31.0
     requireRegex: ^v0\.\d+\.\d+$
 
   # Prometheus server for local metrics.
