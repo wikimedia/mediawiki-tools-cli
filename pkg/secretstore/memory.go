@@ -16,6 +16,7 @@ type MemoryRegistry struct {
 func NewMemoryRegistry() *MemoryRegistry {
 	return &MemoryRegistry{entries: map[[2]string]Entry{}, locks: map[[2]string]chan struct{}{}}
 }
+
 func (r *MemoryRegistry) Get(ctx context.Context, namespace, key string) (Entry, error) {
 	if err := ctx.Err(); err != nil {
 		return Entry{}, err
@@ -28,6 +29,7 @@ func (r *MemoryRegistry) Get(ctx context.Context, namespace, key string) (Entry,
 	}
 	return cloneEntry(e), nil
 }
+
 func (r *MemoryRegistry) Put(ctx context.Context, entry Entry) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -37,6 +39,7 @@ func (r *MemoryRegistry) Put(ctx context.Context, entry Entry) error {
 	r.entries[[2]string{entry.Namespace, entry.Key}] = cloneEntry(entry)
 	return nil
 }
+
 func (r *MemoryRegistry) Delete(ctx context.Context, namespace, key string) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -46,6 +49,7 @@ func (r *MemoryRegistry) Delete(ctx context.Context, namespace, key string) erro
 	delete(r.entries, [2]string{namespace, key})
 	return nil
 }
+
 func (r *MemoryRegistry) List(ctx context.Context, namespace string) ([]Entry, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -60,6 +64,7 @@ func (r *MemoryRegistry) List(ctx context.Context, namespace string) ([]Entry, e
 	}
 	return entries, nil
 }
+
 func (r *MemoryRegistry) Lock(ctx context.Context, namespace, key string) (func(), error) {
 	r.mu.Lock()
 	id := [2]string{namespace, key}

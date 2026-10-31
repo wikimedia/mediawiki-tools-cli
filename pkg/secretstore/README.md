@@ -87,6 +87,23 @@ platform limits are reported by the provider rather than silently truncating or
 splitting a value. OS calls are checked for cancellation before/after access,
 but an in-flight native call may not itself support cancellation.
 
+Applications can explicitly register Windows Credential Manager as
+`windows-credential-manager` using a `keyring.Backend` with that `Provider`
+and `MaxValueBytes: 2560`. A `keyring.BridgeClient` can supply the client when
+running under WSL: it launches a caller-selected Windows executable with fixed
+arguments and sends one bounded request over stdin/stdout. The corresponding
+Windows helper calls `keyring.ServeBridge` with a native client and a required
+service-namespace allowlist. Secret bytes are base64-encoded in JSON pipe
+payloads, never command arguments. Errors exclude native diagnostics and
+requests time out after 15 seconds. No HTTP listener is exposed. Optional metadata enumeration is restricted
+to the helper's application-owned target prefixes and excludes credential values. The CLI's `mw.exe __credential-helper` implements this protocol
+for CLI-owned namespaces without loading Windows CLI configuration.
+
+Windows logon-session permissions still govern access to generic credentials;
+this transport does not provide KeePassXC-style per-entry approval. The
+application must explicitly choose native Linux storage or Windows storage;
+there is no automatic fallback between them.
+
 ### KeePassXC
 
 ```go
@@ -124,9 +141,10 @@ rejections during database verification are retried; writes are never replayed,
 and denied access or other failures are returned immediately.
 
 Reads use pinned database and entry IDs. Writes read back the exact saved value
-before reporting success. The browser protocol does not support deleting an
-entry, so `Delete` on an app-owned KeePassXC reference returns `ErrUnsupported`;
-use `Unlink` to forget the key while retaining the entry in KeePassXC.
+before reporting success. Generic backend `Delete` returns `ErrUnsupported`;
+use `Unlink` to retain the entry. Explicit application cleanup can call
+`Client.DeleteReference` with a reviewed database/entry UUID. This verifies the
+entry identity and asks KeePassXC to recycle it through its GUI confirmation.
 
 ## Errors and interaction
 

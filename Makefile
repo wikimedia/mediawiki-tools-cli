@@ -21,6 +21,11 @@ build: $(GOVVV) generate
 	@echo "Building $(GOFILES) to ./bin"
 	go build -v -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/$(BINARY_NAME)$(GOEXE) ./
 
+# Native transport helper for WSL access to Windows Credential Manager.
+.PHONY: build-windows-helper
+build-windows-helper: $(GOVVV) generate
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "$(shell $(GOVVV) -flags -version $(SEMVER))" -o bin/mw.exe ./
+
 # Build first; stdout contains only Bash commands for eval or another terminal.
 .PHONY: dev
 dev:

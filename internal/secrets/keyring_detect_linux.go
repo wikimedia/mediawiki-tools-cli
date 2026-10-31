@@ -14,16 +14,16 @@ func DetectKeyring(ctx context.Context) Availability {
 	// No autostart, Unlock, GetSecret or write calls during discovery.
 	conn, err := dbus.SessionBusPrivateNoAutoStartup(dbus.WithContext(ctx))
 	if err != nil {
-		return unavailable
+		return Availability{Detail: "Linux session D-Bus unavailable; run from a desktop session or start a user D-Bus session before starting gnome-keyring-daemon"}
 	}
 	defer conn.Close()
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	if err := conn.Auth(nil); err != nil {
-		return unavailable
+		return Availability{Detail: "could not authenticate to Linux session D-Bus"}
 	}
 	if err := conn.Hello(); err != nil {
-		return unavailable
+		return Availability{Detail: "Linux session D-Bus did not respond"}
 	}
 	service := conn.Object("org.freedesktop.secrets", "/org/freedesktop/secrets")
 	collection := dbus.ObjectPath("/org/freedesktop/secrets/collection/login")

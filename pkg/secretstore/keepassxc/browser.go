@@ -28,6 +28,66 @@ type Reference struct {
 	Login        string `koanf:"login" json:"login"`
 }
 
+// DeleteReference asks KeePassXC to recycle an explicitly selected entry. Its
+// GUI supplies the final approval; a denial or unsupported action is an error.
+func (c *Client) DeleteReference(ctx context.Context, ref Reference) error {
+	if !validBrowserID(ref.DatabaseHash, 32) || !validBrowserID(ref.EntryID, 16) {
+		return errors.New("invalid KeePassXC deletion reference")
+	}
+	ctx, cancel := context.WithTimeout(ctx, browserTimeout)
+	defer cancel()
+	s, p, err := c.pairedBrowser(ctx, ref.DatabaseHash)
+	if err != nil {
+		return err
+	}
+	defer s.close()
+	entries, err := browserEntries(s, p, "keepassxc://by-uuid/"+ref.EntryID)
+	if err != nil {
+		return err
+	}
+	if len(entries) != 1 || entries[0].UUID != ref.EntryID || (ref.Login != "" && entries[0].Login != ref.Login) {
+		return errors.New("KeePassXC entry identity changed; deletion refused")
+	}
+	_, err = s.request("delete-entry", map[string]any{"id": p.ID, "uuid": ref.EntryID})
+	return err
+}
+
+// EntryMetadata is the browser protocol's metadata-only database listing. It
+// has no password field. Enumeration requires an explicit KeePassXC setting.
+type EntryMetadata struct {
+	UUID  string `json:"uuid"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+func (c *Client) ListEntryMetadata(ctx context.Context) (string, []EntryMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, browserTimeout)
+	defer cancel()
+	s, p, err := c.pairedBrowser(ctx, "")
+	if err != nil {
+		return "", nil, err
+	}
+	defer s.close()
+	reply, err := s.request("get-database-entries", map[string]any{"id": p.ID})
+	if err != nil {
+		return "", nil, fmt.Errorf("KeePassXC entry metadata access is unavailable: %w. In KeePassXC Settings > Browser Integration > Advanced, enable \"Allow limited access to all entries in connected database\" (wording may vary by version). This allows integrations to list titles, URLs and UUIDs for all entries in connected databases; this metadata listing does not include passwords. You can enable it temporarily, rerun discovery and cleanup, then turn it off again when finished. If the setting is absent, your KeePassXC version may not support metadata scans", err)
+	}
+	var entries []EntryMetadata
+	if json.Unmarshal(reply.Entries, &entries) != nil {
+		return "", nil, errors.New("invalid KeePassXC metadata response")
+	}
+	current, err := s.request("get-databasehash", map[string]any{})
+	if err != nil || current.Hash != p.DatabaseHash {
+		return "", nil, errors.New("KeePassXC database changed during metadata enumeration")
+	}
+	for _, entry := range entries {
+		if !validBrowserID(entry.UUID, 16) {
+			return "", nil, errors.New("invalid KeePassXC metadata entry identifier")
+		}
+	}
+	return p.DatabaseHash, entries, nil
+}
+
 type BrowserEntry struct {
 	UUID     string `json:"uuid"`
 	Login    string `json:"login"`
@@ -431,23 +491,32 @@ func browserLookup(s *browserSession, p browserPairing, url string) (BrowserEntr
 
 // Multiple accounts may share a hostname and title in an application group.
 // Select only an exact account match, and refuse ambiguous or denied results.
-func browserLookupAccount(s *browserSession, p browserPairing, url, account string) (BrowserEntry, error) {
+func browserEntries(s *browserSession, p browserPairing, url string) ([]BrowserEntry, error) {
 	reply, err := s.request("get-logins", map[string]any{"id": p.ID, "url": url, "keys": []map[string]string{{"id": p.ID, "key": p.Key}}})
 	if err != nil {
-		return BrowserEntry{}, err
+		return nil, err
 	}
 	if reply.Hash != p.DatabaseHash {
-		return BrowserEntry{}, errors.New("KeePassXC database changed during credential lookup")
+		return nil, errors.New("KeePassXC database changed during credential lookup")
 	}
 	// KeePassXC's set-login acknowledgement may encode "entries" as a
 	// numeric placeholder. Only get-logins has an entry-list payload.
 	var entries []BrowserEntry
 	if err := json.Unmarshal(reply.Entries, &entries); err != nil {
-		return BrowserEntry{}, errors.New("invalid KeePassXC entry-list response")
+		return nil, errors.New("invalid KeePassXC entry-list response")
 	}
 	if len(entries) == 0 {
-		return BrowserEntry{}, errors.New("KeePassXC did not permit access to an entry; check its GUI")
+		return nil, errors.New("KeePassXC did not permit access to an entry; check its GUI")
 	}
+	return entries, nil
+}
+
+func browserLookupAccount(s *browserSession, p browserPairing, url, account string) (BrowserEntry, error) {
+	entries, err := browserEntries(s, p, url)
+	if err != nil {
+		return BrowserEntry{}, err
+	}
+
 	if account != "" {
 		matching := make([]BrowserEntry, 0, len(entries))
 		for _, entry := range entries {

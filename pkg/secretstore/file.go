@@ -28,6 +28,7 @@ func NewFileRegistry(path string) (*FileRegistry, error) {
 	}
 	return r, nil
 }
+
 func (r *FileRegistry) check() error {
 	if err := os.MkdirAll(filepath.Dir(r.path), 0o700); err != nil {
 		return err
@@ -51,6 +52,7 @@ func (r *FileRegistry) check() error {
 	}
 	return nil
 }
+
 func (r *FileRegistry) load() (map[[2]string]Entry, error) {
 	if err := r.check(); err != nil {
 		return nil, err
@@ -95,6 +97,7 @@ func (r *FileRegistry) load() (map[[2]string]Entry, error) {
 	}
 	return entries, nil
 }
+
 func (r *FileRegistry) Get(ctx context.Context, namespace, key string) (Entry, error) {
 	if err := ctx.Err(); err != nil {
 		return Entry{}, err
@@ -109,6 +112,7 @@ func (r *FileRegistry) Get(ctx context.Context, namespace, key string) (Entry, e
 	}
 	return entry, nil
 }
+
 func (r *FileRegistry) List(ctx context.Context, namespace string) ([]Entry, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -125,15 +129,18 @@ func (r *FileRegistry) List(ctx context.Context, namespace string) ([]Entry, err
 	}
 	return result, nil
 }
+
 func (r *FileRegistry) Put(ctx context.Context, entry Entry) error {
 	if !valid(entry.Namespace) || !valid(entry.Key) || !valid(entry.Reference.Provider) {
 		return ErrInvalid
 	}
 	return r.mutate(ctx, func(entries map[[2]string]Entry) { entries[[2]string{entry.Namespace, entry.Key}] = entry })
 }
+
 func (r *FileRegistry) Delete(ctx context.Context, namespace, key string) error {
 	return r.mutate(ctx, func(entries map[[2]string]Entry) { delete(entries, [2]string{namespace, key}) })
 }
+
 func (r *FileRegistry) mutate(ctx context.Context, mutate func(map[[2]string]Entry)) error {
 	unlock, err := r.lockFile(ctx, r.path+".lock")
 	if err != nil {
@@ -177,6 +184,7 @@ func (r *FileRegistry) mutate(ctx context.Context, mutate func(map[[2]string]Ent
 	}
 	return SafeError("replace", "registry", os.Rename(file.Name(), r.path))
 }
+
 func (r *FileRegistry) Lock(ctx context.Context, namespace, key string) (func(), error) {
 	if !valid(namespace) || !valid(key) {
 		return nil, ErrInvalid
@@ -184,6 +192,7 @@ func (r *FileRegistry) Lock(ctx context.Context, namespace, key string) (func(),
 	hash := sha256.Sum256([]byte(namespace + "\x00" + key))
 	return r.lockFile(ctx, fmt.Sprintf("%s.%x.lock", r.path, hash))
 }
+
 func (r *FileRegistry) lockFile(ctx context.Context, path string) (func(), error) {
 	if err := r.check(); err != nil {
 		return nil, SafeError("lock", "registry", err)

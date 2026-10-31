@@ -42,6 +42,7 @@ func runBrowserHelper(mode string) {
 	}
 	var peer [32]byte
 	created := false
+	metadataListed := false
 	lockedReplies := 0
 	password := "fixture-service-secret"
 	for {
@@ -136,7 +137,7 @@ func runBrowserHelper(mode string) {
 			continue
 		}
 		hash := testBrowserHash
-		if mode == "wrong-database" {
+		if mode == "wrong-database" || (mode == "metadata-switch" && metadataListed) {
 			hash = strings.Repeat("c", 64)
 		}
 		payload := map[string]any{"action": req.Action, "success": "true", "nonce": base64.StdEncoding.EncodeToString(responseNonce[:]), "hash": hash}
@@ -199,6 +200,22 @@ func runBrowserHelper(mode string) {
 			payload["entries"] = entries
 			if mode == "numeric-entries" {
 				payload["entries"] = 0
+			}
+		case "get-database-entries":
+			if mode == "metadata-denied" {
+				send(map[string]any{"action": req.Action, "errorCode": "19"})
+				continue
+			}
+			metadataListed = true
+			payload["entries"] = []map[string]string{{"uuid": testBrowserUUID, "title": "gerrit.password", "url": "a-wikimedia-cli://gerrit.password", "password": "must-not-be-exposed"}}
+		case "delete-entry":
+			var uuid string
+			json.Unmarshal(fields["uuid"], &uuid)
+			if uuid != testBrowserUUID {
+				os.Exit(42)
+			}
+			if mode == "delete-denied" {
+				payload["success"] = "false"
 			}
 		case "create-new-group":
 			var name string
@@ -610,5 +627,45 @@ func TestBrowserCustomStorageURLPreservesExistingReference(t *testing.T) {
 	ref, err := testClient.Write(t.Context(), existing, "gerrit.password", "fixture", "https://gerrit.wikimedia.org", "updated-fixture-secret")
 	if err != nil || ref != *existing {
 		t.Fatalf("existing entry reference changed: %v", err)
+	}
+}
+
+func TestBrowserExplicitDeletionChecksIdentityAndApproval(t *testing.T) {
+	for _, mode := range []string{"success", "delete-denied", "wrong-entry", "wrong-login", "wrong-database", "expired", "empty"} {
+		t.Run(mode, func(t *testing.T) {
+			p := browserFixture(t, mode)
+			if err := saveBrowserPairing(p); err != nil {
+				t.Fatal(err)
+			}
+			err := testClient.DeleteReference(t.Context(), Reference{DatabaseHash: testBrowserHash, EntryID: testBrowserUUID, Login: "fixture"})
+			if (err == nil) != (mode == "success" || mode == "expired" || mode == "empty") {
+				t.Fatalf("delete approval result: %v", err)
+			}
+		})
+	}
+}
+
+func TestBrowserMetadataEnumerationDoesNotReturnPasswords(t *testing.T) {
+	for _, mode := range []string{"success", "metadata-denied", "metadata-switch"} {
+		t.Run(mode, func(t *testing.T) {
+			p := browserFixture(t, mode)
+			if err := saveBrowserPairing(p); err != nil {
+				t.Fatal(err)
+			}
+			hash, entries, err := testClient.ListEntryMetadata(t.Context())
+			if mode != "success" {
+				if err == nil || len(entries) != 0 {
+					t.Fatal("failed or changed-database scan returned metadata")
+				}
+				return
+			}
+			if err != nil || hash != testBrowserHash || len(entries) != 1 || entries[0].UUID != testBrowserUUID {
+				t.Fatalf("metadata: %+v, %v", entries, err)
+			}
+			data, _ := json.Marshal(entries)
+			if strings.Contains(string(data), "must-not-be-exposed") || strings.Contains(string(data), "password\":") {
+				t.Fatal("password present in metadata")
+			}
+		})
 	}
 }

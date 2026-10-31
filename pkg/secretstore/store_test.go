@@ -23,10 +23,13 @@ type testBackend struct {
 func backend(name string) *testBackend {
 	return &testBackend{name: name, values: map[string][]byte{}, canDelete: true}
 }
+
 func (b *testBackend) Name() string { return b.name }
+
 func (b *testBackend) Capabilities() Capabilities {
 	return Capabilities{CanDelete: b.canDelete, MaxValueBytes: b.limit}
 }
+
 func (b *testBackend) Get(ctx context.Context, ref Reference) ([]byte, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -40,6 +43,7 @@ func (b *testBackend) Get(ctx context.Context, ref Reference) ([]byte, error) {
 	}
 	return append([]byte(nil), v...), nil
 }
+
 func (b *testBackend) Set(ctx context.Context, request WriteRequest, value []byte) (Reference, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -54,6 +58,7 @@ func (b *testBackend) Set(ctx context.Context, request WriteRequest, value []byt
 	b.values[ref.Fields["id"]] = append([]byte(nil), value...)
 	return ref, nil
 }
+
 func (b *testBackend) Delete(ctx context.Context, ref Reference) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -61,6 +66,7 @@ func (b *testBackend) Delete(ctx context.Context, ref Reference) error {
 	delete(b.values, ref.Fields["id"])
 	return nil
 }
+
 func openTest(t *testing.T, namespace, provider string, r Registry, backends ...Backend) *Store {
 	t.Helper()
 	s, err := Open(Config{Namespace: namespace, Provider: provider, Registry: r, Backends: backends})
@@ -210,6 +216,7 @@ func (b promptingBackend) Capabilities() Capabilities {
 	caps.MayPrompt = true
 	return caps
 }
+
 func TestNoInteractionNeverCallsPromptingBackend(t *testing.T) {
 	r := NewMemoryRegistry()
 	base := backend("prompting")

@@ -21,22 +21,36 @@ type nativeClient struct{}
 func (nativeClient) Get(service, account string) (string, error) {
 	return oskeyring.Get(service, account)
 }
+
 func (nativeClient) Set(service, account, value string) error {
 	return oskeyring.Set(service, account, value)
 }
+
 func (nativeClient) Delete(service, account string) error { return oskeyring.Delete(service, account) }
 
-type Backend struct{ Client Client }
+type Backend struct {
+	Client        Client
+	Provider      string
+	MaxValueBytes int
+}
 
-func New() *Backend           { return &Backend{Client: nativeClient{}} }
-func (*Backend) Name() string { return "keyring" }
-func (*Backend) Capabilities() secretstore.Capabilities {
-	limit := 0
+func New() *Backend { return &Backend{Client: nativeClient{}} }
+
+func (b *Backend) Name() string {
+	if b.Provider != "" {
+		return b.Provider
+	}
+	return "keyring"
+}
+
+func (b *Backend) Capabilities() secretstore.Capabilities {
+	limit := b.MaxValueBytes
 	if runtime.GOOS == "windows" {
 		limit = 2560
 	}
 	return secretstore.Capabilities{CanDelete: true, MaxValueBytes: limit, MayPrompt: true}
 }
+
 func (b *Backend) Get(ctx context.Context, reference secretstore.Reference) ([]byte, error) {
 	if b.Client == nil {
 		return nil, secretstore.ErrInvalid
@@ -44,7 +58,7 @@ func (b *Backend) Get(ctx context.Context, reference secretstore.Reference) ([]b
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	service, account, err := identity(reference)
+	service, account, err := b.identity(reference)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +71,7 @@ func (b *Backend) Get(ctx context.Context, reference secretstore.Reference) ([]b
 	}
 	return []byte(value), nil
 }
+
 func (b *Backend) Set(ctx context.Context, request secretstore.WriteRequest, value []byte) (secretstore.Reference, error) {
 	if b.Client == nil {
 		return secretstore.Reference{}, secretstore.ErrInvalid
@@ -70,7 +85,7 @@ func (b *Backend) Set(ctx context.Context, request secretstore.WriteRequest, val
 	if request.Existing != nil {
 		reference = *request.Existing
 	}
-	service, account, err := identity(reference)
+	service, account, err := b.identity(reference)
 	if err != nil {
 		return reference, err
 	}
@@ -91,6 +106,7 @@ func (b *Backend) Set(ctx context.Context, request secretstore.WriteRequest, val
 	}
 	return reference, nil
 }
+
 func (b *Backend) Delete(ctx context.Context, reference secretstore.Reference) error {
 	if b.Client == nil {
 		return secretstore.ErrInvalid
@@ -98,7 +114,7 @@ func (b *Backend) Delete(ctx context.Context, reference secretstore.Reference) e
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	service, account, err := identity(reference)
+	service, account, err := b.identity(reference)
 	if err != nil {
 		return err
 	}
@@ -108,9 +124,10 @@ func (b *Backend) Delete(ctx context.Context, reference secretstore.Reference) e
 	}
 	return secretstore.SafeError("delete", b.Name(), err)
 }
-func identity(reference secretstore.Reference) (string, string, error) {
+
+func (b *Backend) identity(reference secretstore.Reference) (string, string, error) {
 	service, account := reference.Fields["service"], reference.Fields["account"]
-	if reference.Provider != "keyring" || service == "" || account == "" {
+	if reference.Provider != b.Name() || service == "" || account == "" {
 		return "", "", secretstore.ErrInvalid
 	}
 	return service, account, nil

@@ -32,6 +32,7 @@ type Error struct {
 func (e *Error) Error() string {
 	return "secretstore: " + e.Operation + " (" + e.Provider + "): " + e.Kind.Error()
 }
+
 func (e *Error) Unwrap() error { return e.Kind }
 
 func SafeError(operation, provider string, err error) error {
@@ -173,6 +174,7 @@ func (s *Store) Get(ctx context.Context, key string) ([]byte, error) {
 func (s *Store) Set(ctx context.Context, key string, value []byte) error {
 	return s.SetWithMetadata(ctx, key, value, nil)
 }
+
 func (s *Store) SetWithMetadata(ctx context.Context, key string, value []byte, metadata map[string]string) error {
 	if !valid(key) || len(value) == 0 {
 		return ErrInvalid
@@ -363,13 +365,15 @@ func cloneMap(input map[string]string) map[string]string {
 	if input == nil {
 		return nil
 	}
-	copy := make(map[string]string, len(input))
+	cloned := make(map[string]string, len(input))
 	for k, v := range input {
-		copy[k] = v
+		cloned[k] = v
 	}
-	return copy
+	return cloned
 }
+
 func cloneReference(r Reference) Reference { r.Fields = cloneMap(r.Fields); return r }
+
 func cloneEntry(e Entry) Entry {
 	e.Reference = cloneReference(e.Reference)
 	e.Metadata = cloneMap(e.Metadata)

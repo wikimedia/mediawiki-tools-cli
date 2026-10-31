@@ -18,8 +18,8 @@ type Backend struct{ Client BrowserClient }
 func New(client BrowserClient) *Backend { return &Backend{Client: client} }
 func (*Backend) Name() string           { return "keepassxc" }
 
-// The browser protocol cannot delete a database entry. Use Store.Unlink to
-// forget an application reference without claiming the external entry is gone.
+// Generic store deletion deliberately retains external entries. Applications
+// may explicitly recycle a reviewed UUID through Client.DeleteReference.
 func (*Backend) Capabilities() secretstore.Capabilities {
 	return secretstore.Capabilities{MayPrompt: true, VerifiesWrites: true}
 }

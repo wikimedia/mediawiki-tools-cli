@@ -32,6 +32,7 @@ import (
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
@@ -223,6 +224,13 @@ func wizardTelemetry() string {
 
 /*Execute the root command.*/
 func Execute(GitCommit string, GitBranch string, GitState string, GitSummary string, BuildDate string, Version cli.Version) {
+	if len(os.Args) == 2 && os.Args[1] == "__credential-helper" {
+		if err := secrets.ServeWindowsCredentials(os.Stdin, os.Stdout); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+
 	cli.VersionDetails.GitCommit = GitCommit
 	cli.VersionDetails.GitBranch = GitBranch
 	cli.VersionDetails.GitState = GitState

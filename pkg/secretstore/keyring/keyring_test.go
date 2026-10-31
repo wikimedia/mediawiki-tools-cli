@@ -18,10 +18,12 @@ func (c fakeClient) Get(service, account string) (string, error) {
 	}
 	return value, nil
 }
+
 func (c fakeClient) Set(service, account, value string) error {
 	c.values[service+"\x00"+account] = value
 	return nil
 }
+
 func (c fakeClient) Delete(service, account string) error {
 	delete(c.values, service+"\x00"+account)
 	return nil
