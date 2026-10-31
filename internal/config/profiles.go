@@ -92,10 +92,11 @@ func ProfileInventory() []ProfileInfo {
 			appendProfile(ProfileInfo{Service: "wiki", Name: qualified, Account: disk.String(prefix + "username"), Method: method, Default: disk.String("wiki.default_profile") == qualified, RealmDefault: disk.String("wiki.realms."+realm+".default_profile") == name, Endpoint: disk.String(prefix + "wiki"), Sites: sites, SiteScope: scope, SecretKey: prefix + leaf})
 		}
 	}
-	for _, name := range effective.MapKeys("cloud_vps.projects") {
-		prefix := "cloud_vps.projects." + name + ".credential."
-		appendProfile(ProfileInfo{Service: "cloudvps", Name: name, Account: effective.String(prefix + "id"), Method: "application-credential", Default: effective.String("cloud_vps.default_project") == name, Endpoint: secrets.CloudEndpoint, SecretKey: prefix + "secret"})
+	for _, name := range effective.MapKeys("cloud_vps.profiles") {
+		prefix := "cloud_vps.profiles." + name + "."
+		appendProfile(ProfileInfo{Service: "cloudvps", Name: name, Account: effective.String(prefix + "id"), Method: "application-credential", Default: effective.String("cloud_vps.default_profile") == name, Endpoint: secrets.CloudEndpoint, SecretKey: prefix + "secret", SiteScope: effective.String(prefix + "project")})
 	}
+
 	sort.Slice(profiles, func(i, j int) bool {
 		if profiles[i].Service == profiles[j].Service {
 			return strings.Compare(profiles[i].Name, profiles[j].Name) < 0

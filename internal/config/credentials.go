@@ -260,6 +260,13 @@ func CredentialForKey(key string) (Credential, error) {
 		return Credential{Key: key, Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: state.String(strings.TrimSuffix(key, "password") + "username")}, nil
 	case key == "gerrit.password":
 		return Credential{Key: key, Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: state.String("gerrit.username")}, nil
+	case strings.HasPrefix(key, "cloud_vps.profiles.") && strings.HasSuffix(key, ".secret"):
+		prefix := strings.TrimSuffix(key, "secret")
+		project, id := state.String(prefix+"project"), state.String(prefix+"id")
+		if project == "" || id == "" {
+			return Credential{}, fmt.Errorf("Cloud VPS profile needs a project and application credential ID")
+		}
+		return Credential{Key: key, Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: project + ":" + id}, nil
 	case strings.HasPrefix(key, "cloud_vps.projects.") && strings.HasSuffix(key, ".credential.secret"):
 		project := strings.TrimSuffix(strings.TrimPrefix(key, "cloud_vps.projects."), ".credential.secret")
 		if state.String(strings.TrimSuffix(key, "secret")+"id") == "" {

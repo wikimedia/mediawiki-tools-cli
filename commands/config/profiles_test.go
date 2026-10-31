@@ -38,7 +38,7 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 		"wiki.profiles.wikimedia.personal.username": "Addshore", "wiki.profiles.wikimedia.personal.method": "oauth", "wiki.profiles.wikimedia.personal.token": "oauth-private-fixture",
 		"wiki.default_profile": "wikimedia/personal", "wiki.realms.wikimedia.default_profile": "personal",
 		"wiki.profiles.independent.other.username": "Other", "wiki.profiles.independent.other.method": "password", "wiki.profiles.independent.other.password": "wiki-private-fixture",
-		"cloud_vps.projects.demo.credential.id": "public-cloud-id", "cloud_vps.projects.demo.credential.secret": "cloud-private-fixture", "cloud_vps.default_project": "demo",
+		"cloud_vps.profiles.demo.id": "public-cloud-id", "cloud_vps.profiles.demo.secret": "cloud-private-fixture", "cloud_vps.default_profile": "demo", "cloud_vps.profiles.demo.project": "demo",
 	} {
 		if err := disk.Set(key, value); err != nil {
 			t.Fatal(err)

@@ -31,7 +31,7 @@ func migrateCredentialKey(disk *koanf.Koanf, old, destination string) (bool, err
 		return false, fmt.Errorf("invalid credential reference during profile migration")
 	}
 	raw["account"] = fmt.Sprintf("%s:%x", ref.Identity, sha256.Sum256([]byte(destination)))
-	if ref.Provider == "" || ref.Provider == "keyring" {
+	if ref.Provider == "" || ref.Provider == "keyring" || ref.Provider == "windows-credential-manager" {
 		actual := ref.StorageAccount
 		if actual == "" {
 			actual = ref.Account

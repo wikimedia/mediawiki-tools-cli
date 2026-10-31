@@ -13,9 +13,13 @@ func NewCloudVPSCmd() *cobra.Command {
 		RunE:    nil,
 	}
 
+	var profile string
+	cmd.PersistentFlags().StringVar(&profile, "profile", "", "Saved Cloud VPS credential profile (login defaults to the project name)")
+	_ = cmd.RegisterFlagCompletionFunc("profile", cloudProfiles.Complete)
+
 	cmd.AddCommand(NewComputeCmd())
 	cmd.AddCommand(NewSSHCmd())
-	cmd.AddCommand(NewAuthCmd())
+	cmd.AddCommand(NewAuthCmd(&profile))
 	cmd.AddCommand(NewVolumeCmd())
 	for _, resource := range []string{"image", "flavor", "network"} {
 		cmd.AddCommand(newResourceListCmd(resource, authenticatedProvider))

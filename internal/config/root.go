@@ -154,6 +154,12 @@ func load() *koanf.Koanf {
 	}
 	migrated = wikiMigrated
 	changed = changed || wikiChanged
+	cloudMigrated, cloudChanged, err := migrateCloudVPSProfiles(migrated)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	migrated = cloudMigrated
+	changed = changed || cloudChanged
 	if changed {
 		// Completion may translate metadata in memory, but must not write config.
 		if !isConfigCompletion() {

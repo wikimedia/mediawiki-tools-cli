@@ -47,6 +47,9 @@ func projectSuggestions(ctx context.Context, prefix string) []string {
 	names := cachedProjectNames(ctx, http.DefaultClient, cloudBrowserURL, filepath.Join(xdg.CacheHome, "mwcli", "cloudvps-projects.json"))
 	cfg := config.State().Effective.CloudVPS
 	names = append(names, cfg.DefaultProject)
+	for _, name := range config.State().EffectiveKoanf.MapKeys("cloud_vps.profiles") {
+		names = append(names, config.State().EffectiveKoanf.String("cloud_vps.profiles."+name+".project"))
+	}
 	for name := range cfg.Projects {
 		names = append(names, name)
 	}

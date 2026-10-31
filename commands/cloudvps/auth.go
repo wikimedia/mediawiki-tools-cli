@@ -6,38 +6,41 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
 const authUrl = secrets.CloudEndpoint
 
-func NewAuthCmd() *cobra.Command {
+var loginCloudClient = authenticatedCloudClient
+
+func NewAuthCmd(selected *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Authenticate with Cloud VPS",
 	}
 
-	cmd.AddCommand(NewAuthAddCmd())
-	cmd.AddCommand(NewAuthRemoveCmd())
-	cmd.AddCommand(NewAuthCheckCmd())
-	cmd.AddCommand(NewAuthListCmd())
+	profiles := authprofile.Commands{Label: "Cloud VPS", Selected: selected, Backend: cloudProfiles}
+	cmd.AddCommand(NewAuthLoginCmd(), NewAuthStatusCmd(), profiles.RemoveCmd(), profiles.ProfilesCmd(), profiles.DefaultCmd())
 
 	return cmd
 }
 
-func NewAuthAddCmd() *cobra.Command {
+func NewAuthLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "add",
+		Use:     "login",
+		Aliases: []string{"add"},
 		Short:   "Add a new application credential",
 		Long:    "Validate and save OpenStack application credentials. Missing values are prompted for in a terminal, with the secret hidden. Create credentials for the selected project at https://horizon.wikimedia.org/identity/application_credentials/.",
-		Example: "add\nadd --project mwcli\nadd --project mwcli --id APPLICATION_CREDENTIAL_ID --secret-stdin",
+		Example: "login --project mwcli\nlogin --project mwcli --profile mwcli-readonly --id APPLICATION_CREDENTIAL_ID --secret-stdin",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
+			if name, _ := cmd.Flags().GetString("profile"); name != "" && !authprofile.ValidName(name) {
+				return fmt.Errorf("profile must contain only letters, digits, underscores or hyphens")
+			}
 			id, _ := cmd.Flags().GetString("id")
 			secret, _ := cmd.Flags().GetString("secret")
 			secretStdin, _ := cmd.Flags().GetBool("secret-stdin")
@@ -57,7 +60,13 @@ func NewAuthAddCmd() *cobra.Command {
 			}
 
 			if project == "" && !cmd.Flags().Changed("project") {
-				project = config.State().Effective.CloudVPS.DefaultProject
+				name, _ := cmd.Flags().GetString("profile")
+				if name != "" {
+					project = config.State().EffectiveKoanf.String(cloudProfiles.Prefix(name) + ".project")
+				}
+				if project == "" {
+					project = config.State().Effective.CloudVPS.DefaultProject
+				}
 			}
 			if project == "" || id == "" || secret == "" {
 				if !cli.CanAskForInput() {
@@ -77,7 +86,7 @@ func NewAuthAddCmd() *cobra.Command {
 				ApplicationCredentialSecret: secret,
 				DomainID:                    "default",
 			}
-			cloudClient, err := authenticatedCloudClient(cmd.Context(), auth)
+			cloudClient, err := loginCloudClient(cmd.Context(), auth)
 			if err != nil {
 				return err
 			}
@@ -86,13 +95,32 @@ func NewAuthAddCmd() *cobra.Command {
 				return err
 			}
 
-			key := "cloud_vps.projects." + project + ".credential."
+			name, _ := cmd.Flags().GetString("profile")
+			if name == "" {
+				name = project
+			}
+			if !authprofile.ValidName(name) {
+				return fmt.Errorf("profile must contain only letters, digits, underscores or hyphens")
+			}
+			changeDefault, err := authprofile.ChooseLoginDefault(cmd, name, cloudProfiles.Default())
+			if err != nil {
+				return err
+			}
+			key := cloudProfiles.Prefix(name) + "."
+			metadata := map[string]string{key + "id": id, key + "project": project}
+			if changeDefault {
+				metadata["cloud_vps.default_profile"] = name
+			}
+			cmd.Println("Saving account credentials; unlock your password manager and approve access if prompted.")
 			credential := config.Credential{Key: key + "secret", Service: "cloudvps", Endpoint: authUrl, Account: project + ":" + id}
-			if err := credential.SaveWithProvider(secret, insecureStorage, map[string]string{key + "id": id}, provider); err != nil {
+			if err := credential.SaveWithProvider(secret, insecureStorage, metadata, provider); err != nil {
 				return err
 			}
 
-			fmt.Fprint(cmd.OutOrStdout(), cmdgloss.SuccessHeading(fmt.Sprintf("Added new application credential for project: %s", project)))
+			cmd.Printf("Saved Cloud VPS profile %s for project %s.\n", name, project)
+			if changeDefault {
+				cmd.Printf("Default profile: %s\n", name)
+			}
 			return nil
 		},
 	}
@@ -102,13 +130,12 @@ func NewAuthAddCmd() *cobra.Command {
 	cmd.Flags().String("secret", "", "Application credential secret (prompts with hidden input if omitted)")
 
 	cmd.Flags().Bool("secret-stdin", false, "Read the application secret from stdin")
-	cmd.Flags().Bool("insecure-storage", false, "Store the secret in the private plaintext config using insecure storage")
 	cmd.MarkFlagsMutuallyExclusive("secret", "secret-stdin")
-	cmd.Flags().String("provider", "", "Override the credential provider (keyring, windows-credential-manager, keepassxc or plaintext)")
-	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
-	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "windows-credential-manager", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
-	})
+	var provider string
+	var insecure bool
+	authprofile.AddStorageFlags(cmd, &provider, &insecure)
+	authprofile.AddDefaultFlag(cmd)
+
 	return cmd
 }
 
@@ -133,122 +160,23 @@ func promptApplicationCredential(cmd *cobra.Command, project, id, secret *string
 	return nil
 }
 
-func NewAuthRemoveCmd() *cobra.Command {
+func NewAuthStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "remove",
-		Short: "Remove application credential",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			project, _ := cmd.Flags().GetString("project")
-
-			if project == "" {
-				return fmt.Errorf("project is required")
-			}
-
-			c := config.State()
-			// make sure the project exists
-			_, exists := c.Effective.CloudVPS.Projects[project]
-			if !exists {
-				return fmt.Errorf("project not found: %s", project)
-			}
-
-			credential, err := config.CredentialForKey("cloud_vps.projects." + project + ".credential.secret")
-			if err != nil {
-				return err
-			}
-			if err := credential.Delete(); err != nil {
-				return err
-			}
-			if err := config.DeleteKeyValueFromDisk("cloud_vps.projects." + project + ".credential.id"); err != nil {
-				return err
-			}
-
-			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Removed application credential for project: %s", project)))
-			return nil
-		},
-	}
-
-	cmd.Flags().String("project", "", "Project name (required)")
-
-	return cmd
-}
-
-func NewAuthCheckCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "check",
-		Short: "Check if the application credential is valid",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			project, err := projectName(cmd)
+		Use: "status", Aliases: []string{"check"},
+		Short: "Check the selected Cloud VPS application credential and project scope",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			name, project, err := selectedCloudProfile(cmd)
 			if err != nil {
 				return err
 			}
 			if _, err := authenticatedProvider(cmd); err != nil {
 				return err
 			}
-
-			fmt.Print(cmdgloss.SuccessHeading(fmt.Sprintf("Credentials for project %s are valid", project)))
+			cmd.Printf("Cloud VPS profile %s is valid for project %s.\n", name, project)
 			return nil
 		},
 	}
-
-	cmd.Flags().String("project", "", "Project name (required)")
-
-	return cmd
-}
-
-func NewAuthListCmd() *cobra.Command {
-	out := output.Output{
-		TableBinding: &output.TableBinding{
-			Headings: []string{"Project", "Credential ID"},
-			ProcessObjects: func(objects interface{}, table *output.Table) {
-				objMap, ok := objects.(map[string]interface{})
-				if ok {
-					for name, object := range objMap {
-						cred, ok := object.(string)
-						if !ok {
-							cred = "(no credential ID)"
-						}
-						table.AddRowS(name, cred)
-					}
-				}
-			},
-		},
-		PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
-			objMap, ok := objects.(map[string]interface{})
-			if ok {
-				for name, object := range objMap {
-					cred, ok := object.(string)
-					if !ok {
-						cred = "(no credential ID)"
-					}
-					pretty.AddItem("Configured projects", name+": "+cred)
-				}
-			}
-		},
-	}
-
-	cmd := &cobra.Command{
-		Use:     "profiles",
-		Aliases: []string{"list"},
-		Short:   "List configured Cloud VPS projects and their credential IDs",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.State()
-			projects := c.Effective.CloudVPS.Projects
-			if len(projects) == 0 {
-				fmt.Fprintln(cmd.OutOrStdout(), "No Cloud VPS projects configured.")
-				return nil
-			}
-			objects := make(map[string]interface{}, len(projects))
-			for name, proj := range projects {
-				id := proj.Credential.ID
-				if id == "" {
-					id = "(no credential ID)"
-				}
-				objects[name] = id
-			}
-			out.Print(cmd, objects)
-			return nil
-		},
-	}
-	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
+	addProjectFlag(cmd)
 	return cmd
 }

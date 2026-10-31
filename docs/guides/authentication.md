@@ -4,7 +4,7 @@ On the first interactive Gerrit, Cloud VPS, Phabricator or wiki credential save,
 
 ```sh
 mw gerrit auth login
-mw cloudvps auth add
+mw cloudvps auth login
 mw phabricator auth login
 ```
 
@@ -369,4 +369,20 @@ mw config profiles --json
 
 The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `mw config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. GitLab's external storage is managed separately.
 
-Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS lists project credentials. Gerrit and Phabricator share the same profile commands and default-selection behavior.
+Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS, Gerrit and Phabricator share the same profile commands and default-selection behavior.
+
+Cloud VPS profiles each hold one application credential and its project. Login defaults the profile name to the project; use `--profile` to keep multiple credentials with different permissions for the same project:
+
+```sh
+mw cloudvps auth login --project mwcli --profile mwcli-readonly
+mw cloudvps auth login --project mwcli --profile mwcli-admin
+mw cloudvps auth profiles
+mw cloudvps auth default --profile mwcli-readonly
+mw cloudvps auth status --profile mwcli-readonly
+mw cloudvps compute list --project mwcli --profile mwcli-readonly
+mw cloudvps auth remove --profile mwcli-admin
+```
+
+The first saved profile becomes the default. Later logins ask before switching the default in an interactive terminal; use `--default` to select it explicitly. Resource commands use an explicit `--profile`, otherwise a matching default or the project's only saved profile. Multiple profiles without a matching default require `--profile`. An explicit `--profile` supplies its project unless `--project` is also given. Otherwise the project comes from `--project`, `cloud_vps.default_project`, or the default profile. A project/profile mismatch fails before credentials are read. SSH configuration and project selection remain separate from credentials.
+
+Existing project-keyed credentials migrate to profiles named after their projects on startup. Migration preserves plaintext values and external references without opening a password manager. `auth add` and `auth check` remain aliases for `login` and `status`. New secret keys are `cloud_vps.profiles.<name>.secret`.

@@ -18,25 +18,28 @@ func TestProjectCredentialsResolveKeyringAndBindCredentialID(t *testing.T) {
 	}
 	t.Cleanup(func() { config.ReApplyKoanfConf(koanf.New(".")) })
 	keyring.MockInit()
-	credential := config.Credential{Key: "cloud_vps.projects.fixture.credential.secret", Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: "fixture:credential-id"}
-	if err := credential.SaveWithMetadata("fixture-secret", false, map[string]string{"cloud_vps.projects.fixture.credential.id": "credential-id"}); err != nil {
+	credential := config.Credential{Key: "cloud_vps.profiles.fixture.secret", Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: "fixture:credential-id"}
+	if err := credential.SaveWithMetadata("fixture-secret", false, map[string]string{"cloud_vps.profiles.fixture.id": "credential-id", "cloud_vps.profiles.fixture.project": "fixture"}); err != nil {
 		t.Fatal(err)
 	}
-	projects := config.State().Effective.CloudVPS.Projects
-	if projects["fixture"].Credential.Secret != "" {
+	if config.State().EffectiveKoanf.String("cloud_vps.profiles.fixture.secret") != "" {
 		t.Fatal("secret remains in ordinary configuration")
 	}
-	got, err := projectCredentials("fixture", projects)
+	got, err := profileCredentials("fixture")
 	if err != nil || got.ID != "credential-id" || got.Secret != "fixture-secret" {
 		t.Fatalf("cannot resolve stored credential: %v", err)
 	}
-	projects["fixture"] = config.CloudVPSProject{Credential: config.CloudVPSProjectCredential{ID: "credential-id", Secret: "leftover-plaintext"}}
-	got, err = projectCredentials("fixture", projects)
+	if err := config.PutKeyValueOnDisk("cloud_vps.profiles.fixture.secret", "leftover-plaintext"); err != nil {
+		t.Fatal(err)
+	}
+	got, err = profileCredentials("fixture")
 	if err != nil || got.Secret != "fixture-secret" {
 		t.Fatal("leftover plaintext bypassed the saved provider")
 	}
-	projects["fixture"] = config.CloudVPSProject{Credential: config.CloudVPSProjectCredential{ID: "another-id"}}
-	if _, err := projectCredentials("fixture", projects); err == nil {
+	if err := config.PutKeyValueOnDisk("cloud_vps.profiles.fixture.id", "another-id"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := profileCredentials("fixture"); err == nil {
 		t.Fatal("reused secret with a different application credential ID")
 	}
 }

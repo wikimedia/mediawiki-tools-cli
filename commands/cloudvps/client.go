@@ -11,48 +11,40 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/credentialcheck"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
 type providerFactory func(*cobra.Command) (*gophercloud.ProviderClient, error)
 
 func projectName(cmd *cobra.Command) (string, error) {
+	if profile, _ := cmd.Flags().GetString("profile"); profile != "" {
+		_, project, err := selectedCloudProfile(cmd)
+		return project, err
+	}
 	project, _ := cmd.Flags().GetString("project")
 	if project == "" {
 		project = config.State().Effective.CloudVPS.DefaultProject
 	}
 	if project == "" {
-		return "", fmt.Errorf("project is required: use --project <name> or set cloud_vps.default_project")
+		_, selectedProject, err := selectedCloudProfile(cmd)
+		return selectedProject, err
 	}
 	return project, nil
 }
 
-func projectCredentials(project string, projects map[string]config.CloudVPSProject) (config.CloudVPSProjectCredential, error) {
-	entry, exists := projects[project]
-	if !exists || entry.Credential.ID == "" {
-		return config.CloudVPSProjectCredential{}, fmt.Errorf("no application credentials configured for project %q; configure them with cloudvps auth add --project %s --id <application-credential-id> --secret-stdin", project, project)
-	}
-	secret, err := (config.Credential{Key: "cloud_vps.projects." + project + ".credential.secret", Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: project + ":" + entry.Credential.ID}).Read()
+func authenticatedProvider(cmd *cobra.Command) (*gophercloud.ProviderClient, error) {
+	name, project, err := selectedCloudProfile(cmd)
 	if err != nil {
-		return entry.Credential, err
+		return nil, err
 	}
-	entry.Credential.Secret = secret
-	if entry.Credential.Secret == "" {
-		return entry.Credential, fmt.Errorf("no application secret configured for project %q; use cloudvps auth add", project)
-	}
-	return entry.Credential, nil
+	return authenticatedProfileProvider(cmd.Context(), name, project)
 }
 
-func authenticatedProvider(cmd *cobra.Command) (*gophercloud.ProviderClient, error) {
-	project, err := projectName(cmd)
+func authenticatedProfileProvider(ctx context.Context, name, project string) (*gophercloud.ProviderClient, error) {
+	credentials, err := profileCredentials(name)
 	if err != nil {
 		return nil, err
 	}
-	credentials, err := projectCredentials(project, config.State().Effective.CloudVPS.Projects)
-	if err != nil {
-		return nil, err
-	}
-	provider, err := authenticatedCloudClient(cmd.Context(), gophercloud.AuthOptions{
+	provider, err := authenticatedCloudClient(ctx, gophercloud.AuthOptions{
 		IdentityEndpoint:            authUrl,
 		ApplicationCredentialID:     credentials.ID,
 		ApplicationCredentialSecret: credentials.Secret,
@@ -69,7 +61,7 @@ func authenticatedProvider(cmd *cobra.Command) (*gophercloud.ProviderClient, err
 }
 
 func addProjectFlag(cmd *cobra.Command) {
-	cmd.Flags().String("project", "", "Project name (uses cloud_vps.default_project if omitted)")
+	cmd.Flags().String("project", "", "Project name (otherwise uses cloud_vps.default_project or the selected profile)")
 }
 
 // Configure identity before authentication so token requests and reauthentication
