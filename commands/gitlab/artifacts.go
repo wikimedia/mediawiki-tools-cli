@@ -13,7 +13,7 @@ import (
 
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
-	"gitlab.com/gitlab-org/cli/commands/cmdutils"
+	"gitlab.com/gitlab-org/cli/mwcli"
 	mwoutput "gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"golang.org/x/term"
 )
@@ -54,7 +54,7 @@ func (value *graphqlInt64) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func newCIArtifactsCommand(factory cmdutils.Factory) *cobra.Command {
+func newCIArtifactsCommand(factory mwcli.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "artifacts",
 		Short: "List and manage CI job artifacts",
@@ -64,15 +64,15 @@ func newCIArtifactsCommand(factory cmdutils.Factory) *cobra.Command {
 	return cmd
 }
 
-func newCIArtifactsListCommand(factory cmdutils.Factory) *cobra.Command {
+func newCIArtifactsListCommand(factory mwcli.Factory) *cobra.Command {
 	return newCIArtifactsFilterCommand("list", "List individual CI job artifacts", factory, false)
 }
 
-func newCIArtifactsPruneCommand(factory cmdutils.Factory) *cobra.Command {
+func newCIArtifactsPruneCommand(factory mwcli.Factory) *cobra.Command {
 	return newCIArtifactsFilterCommand("prune", "Delete matching CI job artifacts", factory, true)
 }
 
-func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, prune bool) *cobra.Command {
+func newCIArtifactsFilterCommand(use, short string, factory mwcli.Factory, prune bool) *cobra.Command {
 	var sinceText, minSizeText, refPrefix, output string
 	var yes bool
 	cmd := &cobra.Command{
@@ -96,7 +96,7 @@ func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, pr
 			if err != nil {
 				return err
 			}
-			client, err := factory.HttpClient()
+			client, err := factory.GitLabClient()
 			if err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ func newCIArtifactsFilterCommand(use, short string, factory cmdutils.Factory, pr
 	return cmd
 }
 
-func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int, cutoff time.Time, minSize int64, refPrefix string) ([]ciArtifact, error) {
+func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int64, cutoff time.Time, minSize int64, refPrefix string) ([]ciArtifact, error) {
 	options := &gitlab.ListJobsOptions{ListOptions: gitlab.ListOptions{
 		PerPage: 100,
 		Page:    1,
@@ -202,13 +202,13 @@ func listCIArtifacts(cmd *cobra.Command, client *gitlab.Client, projectID int, c
 			continue
 		}
 		for _, artifact := range job.Artifacts {
-			if strings.EqualFold(artifact.FileType, "trace") || int64(artifact.Size) < minSize {
+			if strings.EqualFold(artifact.FileType, "trace") || artifact.Size < minSize {
 				continue
 			}
 			createdAt := *job.CreatedAt
 			result = append(result, ciArtifact{
-				Name: artifact.Filename, Type: artifact.FileType, Size: int64(artifact.Size),
-				JobID: strconv.Itoa(job.ID), JobName: job.Name, Ref: job.Ref,
+				Name: artifact.Filename, Type: artifact.FileType, Size: artifact.Size,
+				JobID: strconv.FormatInt(job.ID, 10), JobName: job.Name, Ref: job.Ref,
 				CreatedAt: &createdAt, ExpiresAt: job.ArtifactsExpireAt,
 			})
 		}
@@ -338,7 +338,7 @@ func artifactMatchKey(name, fileType string, size int64) string {
 	return fmt.Sprintf("%s\x00%s\x00%d", name, strings.ToUpper(fileType), size)
 }
 
-func bulkDestroyQuery(projectID int, ids []string) (string, error) {
+func bulkDestroyQuery(projectID int64, ids []string) (string, error) {
 	projectGID, err := json.Marshal(fmt.Sprintf("gid://gitlab/Project/%d", projectID))
 	if err != nil {
 		return "", err
