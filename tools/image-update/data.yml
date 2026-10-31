@@ -64,7 +64,7 @@ images:
     requireRegex: 18\.\d+\.\d+
 
   # Cloudflare tunnel client for local development.
-  - image: cloudflare/cloudflared:2026.10.0
+  - image: cloudflare/cloudflared:2026.10.7
     requireRegex: ^\d{4}\.\d+\.\d+$
 
   # Graphite metrics and monitoring service.
