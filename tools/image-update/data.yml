@@ -90,7 +90,7 @@ images:
     requireRegex: ^2\.19\.\d+$
 
   # CirrusSearch OpenSearch image used by the local search stack.
-  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-12
+  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v3.8.0-4
 
   # OpenSearch Dashboards UI for the local logs stack.
   - image: opensearchproject/opensearch-dashboards:2.19.4

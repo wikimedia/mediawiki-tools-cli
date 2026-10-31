@@ -1,7 +1,7 @@
 
 services:
   opensearch:
-    image: "${OPENSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-12}"
+    image: "${OPENSEARCH_IMAGE:-docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v3.8.0-4}"
     security_opt:
       - label:disable
     restart: unless-stopped
