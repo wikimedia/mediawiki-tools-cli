@@ -53,7 +53,7 @@ func (c Credential) reference() (credentialReference, error) {
 	}
 	// Separate credential slots without tying references to a config directory.
 	account := fmt.Sprintf("%s:%x", c.Account, sha256.Sum256([]byte(c.Key)))
-	ref := credentialReference{Service: "mwcli:" + c.Service + ":" + endpoint, Endpoint: endpoint, Account: account, Identity: c.Account}
+	ref := credentialReference{Service: secrets.CredentialServicePrefix + c.Service + ":" + endpoint, Endpoint: endpoint, Account: account, Identity: c.Account}
 	// A renamed configuration key does not move the external keyring item.
 	ref.StorageAccount = State().OnDiskKoanf.String(credentialReferenceKey(c.Key) + ".storage_account")
 	return ref, nil
@@ -101,11 +101,11 @@ func (c Credential) Read() (string, error) {
 		return "", fmt.Errorf("link this entry through KeePassXC with config secrets use-keepassxc %s", c.Key)
 	}
 
-	if stored.Provider != "" && stored.Provider != "keyring" {
+	if stored.Provider != "" && stored.Provider != "keyring" && stored.Provider != secrets.WindowsProvider {
 		return "", fmt.Errorf("unknown credential provider")
 	}
 	reference := coreReference(stored)
-	store, err := c.packageStore("keyring", &reference, nil)
+	store, err := c.packageStore(reference.Provider, &reference, nil)
 	if err != nil {
 		return "", err
 	}
@@ -191,6 +191,12 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 }
 
 func (c Credential) Delete() error {
+	unlock, lockErr := lockCredentials(context.Background())
+	if lockErr != nil {
+		return lockErr
+	}
+	defer unlock()
+
 	disk := State().OnDiskKoanf.Copy()
 	key := credentialReferenceKey(c.Key)
 	if disk.Exists(key) {
@@ -207,9 +213,21 @@ func (c Credential) Delete() error {
 		}
 		switch ref.Provider {
 		case "plaintext", "keepassxc", "keepassxc-browser": // Forget the reference; external entries belong to the user.
-		case "", "keyring":
-			if err := credentialStore.Delete(ref.Service, coreReference(ref).Fields["account"]); err != nil && !errors.Is(err, secrets.ErrNotFound) {
+			if ref.Provider == "keepassxc-browser" {
+				if err := retainCredential(disk, c.Key, "profile removed", ref); err != nil {
+					return err
+				}
+			}
+		case "", "keyring", secrets.WindowsProvider:
+			client, err := keyringStore(ref.Provider)
+			if err != nil {
+				return err
+			}
+			if err := client.Delete(ref.Service, coreReference(ref).Fields["account"]); err != nil && !errors.Is(err, secrets.ErrNotFound) {
 				return fmt.Errorf("delete keyring credential: %w", err)
+			}
+			if id, err := physicalCredentialID(ref); err == nil {
+				disk.Delete("credential_retired." + id)
 			}
 		default:
 			return fmt.Errorf("unknown credential provider; refusing to delete")
@@ -269,6 +287,12 @@ func CredentialForKey(key string) (Credential, error) {
 // UseKeePassXC links a credential through the paired KeePassXC application.
 // A direct KeePassXC link can supply the old path without unlocking its file.
 func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
+	unlock, lockErr := lockCredentials(ctx)
+	if lockErr != nil {
+		return lockErr
+	}
+	defer unlock()
+
 	ref, err := c.reference()
 	if err != nil {
 		return err
@@ -320,6 +344,17 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 	}
 	if previous := disk.String(c.Key); previous != "" && previous != value {
 		return fmt.Errorf("KeePassXC entry does not match the saved credential; plaintext was not removed")
+	}
+	if disk.Exists(key) {
+		var old credentialReference
+		if err := disk.Unmarshal(key, &old); err != nil {
+			return err
+		}
+		if old.Provider == "keepassxc-browser" {
+			if err := retainCredential(disk, c.Key, "relinked to another entry", old); err != nil {
+				return err
+			}
+		}
 	}
 	values := map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc-browser", "browser": map[string]any{"database_hash": browser.DatabaseHash, "entry_id": browser.EntryID, "login": browser.Login}}
 	disk.Delete(c.Key)

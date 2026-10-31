@@ -66,10 +66,10 @@ func NewConfigSetCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read the value from stdin instead of command arguments")
 	cmd.Flags().BoolVar(&insecureStorage, "insecure-storage", false, "Explicitly store a secret in the private plaintext config")
-	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
+	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, windows-credential-manager, keepassxc or plaintext)")
 	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
 	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"keyring", "windows-credential-manager", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
 }

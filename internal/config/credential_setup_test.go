@@ -155,6 +155,9 @@ func TestExplicitPlaintextOverrideSkipsFirstUsePrompt(t *testing.T) {
 func TestStorageChooserDiscoveryDoesNotOpenVaults(t *testing.T) {
 	for _, mode := range []string{"none", "keyring", "paired", "unpaired", "pairing-denied"} {
 		t.Run(mode, func(t *testing.T) {
+			oldWindows := detectWindowsCredentials
+			detectWindowsCredentials = func(context.Context, string) secrets.Availability { return secrets.Availability{} }
+			t.Cleanup(func() { detectWindowsCredentials = oldWindows })
 			oldKeyring, oldKeepass, oldAsk, oldPair := detectKeyring, detectKeePassXC, askCredentialStorage, pairCredentialGUI
 			t.Cleanup(func() {
 				detectKeyring, detectKeePassXC, askCredentialStorage, pairCredentialGUI = oldKeyring, oldKeepass, oldAsk, oldPair

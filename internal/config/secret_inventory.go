@@ -250,6 +250,9 @@ func InspectSecretInventory(ctx context.Context, entries []SecretInfo, compare, 
 		input.Value, err = read(*entry)
 		if err != nil || input.Value == "" {
 			entry.Validation = "unavailable"
+			if entry.Provider == "keyring" || entry.Provider == secrets.WindowsProvider {
+				entry.Status += "; credential store could not be read; run config secrets status " + entry.Provider
+			}
 			continue
 		}
 		entry.Status = strings.Replace(entry.Status, "linked (not checked)", "linked; value read", 1)
@@ -275,7 +278,7 @@ func describeCredentialReference(reference string, info SecretInfo) SecretInfo {
 		return info
 	}
 	info.Account, info.Endpoint = ref.Identity, ref.Endpoint
-	info.Service = strings.TrimPrefix(ref.Service, "mwcli:")
+	info.Service = strings.TrimPrefix(ref.Service, secrets.CredentialServicePrefix)
 	if service, _, ok := strings.Cut(info.Service, ":https:"); ok {
 		info.Service = service
 	} else if service, _, ok := strings.Cut(info.Service, ":http:"); ok {
@@ -293,6 +296,9 @@ func describeCredentialReference(reference string, info SecretInfo) SecretInfo {
 		case "windows":
 			info.Location = "Windows Credential Manager"
 		}
+	case secrets.WindowsProvider:
+		info.Provider = secrets.WindowsProvider
+		info.Location = "Windows Credential Manager"
 	case "plaintext":
 		info.Provider = "plaintext"
 		info.Location = Path()

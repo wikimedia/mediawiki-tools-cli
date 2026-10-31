@@ -44,7 +44,7 @@ func TestSecretInventoryIncludesLinkedPlaintextOrphanAndPairingWithoutReads(t *t
 	if err := disk.Set(credentialReferenceKey(phab.Key), map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "provider": "keepassxc-browser", "browser": map[string]any{"database_hash": "database-fixture", "entry_id": "entry-fixture", "login": "Bot"}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := disk.Set("credential_storage.orphan", map[string]string{"service": "mwcli:future:https://example.org", "endpoint": "https://example.org", "identity": "Someone", "provider": "keyring"}); err != nil {
+	if err := disk.Set("credential_storage.orphan", map[string]string{"service": "a-wikimedia-cli:future:https://example.org", "endpoint": "https://example.org", "identity": "Someone", "provider": "keyring"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := disk.Set("credential_storage.malformed", 123); err != nil {

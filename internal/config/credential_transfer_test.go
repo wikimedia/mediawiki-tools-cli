@@ -49,7 +49,7 @@ func TestTransferKeePassXCToKeyring(t *testing.T) {
 	if err := PutKeyValueOnDisk("secrets.provider", "keepassxc"); err != nil {
 		t.Fatal(err)
 	}
-	if err := cred.TransferTo("keyring"); err != nil {
+	if err := cred.TransferTo("keyring", TransferOptions{KeepSource: true}); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := cred.Read(); err != nil || got != "legacy-secret" {
@@ -115,7 +115,7 @@ func TestTransferFailureKeepsSourceReference(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := cred.TransferTo("keyring"); err == nil {
+			if err := cred.TransferTo("keyring", TransferOptions{KeepSource: true}); err == nil {
 				t.Fatal("expected failure")
 			}
 			after, err := os.ReadFile(Path())
@@ -149,7 +149,7 @@ func TestTransferKeyringToKeePassXCRetainsOriginal(t *testing.T) {
 		}
 		return secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("a", 64), EntryID: strings.Repeat("b", 32), Login: account}, nil
 	}
-	if err := cred.TransferTo("keepassxc"); err != nil {
+	if err := cred.TransferTo("keepassxc", TransferOptions{KeepSource: true}); err != nil {
 		t.Fatal(err)
 	}
 	if len(store.values) != 1 {

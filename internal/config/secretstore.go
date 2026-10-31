@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore/keepassxc"
@@ -45,14 +44,33 @@ func (credentialBrowser) Write(ctx context.Context, existing *keepassxc.Referenc
 	return keepassxc.Reference(ref), err
 }
 
+var windowsCredentialStore = func() (secrets.Store, error) {
+	return secrets.WindowsCredentialStore(State().EffectiveKoanf.String("secrets.windows_helper"))
+}
+
+func keyringStore(provider string) (secrets.Store, error) {
+	if provider == secrets.WindowsProvider {
+		return windowsCredentialStore()
+	}
+	return credentialStore, nil
+}
+
 func (c Credential) packageStore(provider string, existing *secretstore.Reference, persist func(secretstore.Entry) error) (*secretstore.Store, error) {
 	r := &credentialRegistry{MemoryRegistry: secretstore.NewMemoryRegistry(), persist: persist}
 	if existing != nil {
-		if err := r.MemoryRegistry.Put(context.Background(), secretstore.Entry{Namespace: cli.APPNAME, Key: c.Key, Reference: *existing}); err != nil {
+		if err := r.MemoryRegistry.Put(context.Background(), secretstore.Entry{Namespace: secrets.CredentialNamespace, Key: c.Key, Reference: *existing}); err != nil {
 			return nil, err
 		}
 	}
-	return secretstore.Open(secretstore.Config{Namespace: cli.APPNAME, Provider: provider, Registry: r, Backends: []secretstore.Backend{&native.Backend{Client: credentialStore}, keepassxc.New(credentialBrowser{})}})
+	backends := []secretstore.Backend{&native.Backend{Client: credentialStore}, keepassxc.New(credentialBrowser{})}
+	if provider == secrets.WindowsProvider {
+		client, err := windowsCredentialStore()
+		if err != nil {
+			return nil, err
+		}
+		backends = append(backends, &native.Backend{Client: client, Provider: secrets.WindowsProvider, MaxValueBytes: 2560})
+	}
+	return secretstore.Open(secretstore.Config{Namespace: secrets.CredentialNamespace, Provider: provider, Registry: r, Backends: backends})
 }
 
 func coreReference(ref credentialReference) secretstore.Reference {
@@ -63,5 +81,9 @@ func coreReference(ref credentialReference) secretstore.Reference {
 	if ref.StorageAccount != "" {
 		account = ref.StorageAccount
 	}
-	return secretstore.Reference{Provider: "keyring", Owned: true, Fields: map[string]string{"service": ref.Service, "account": account}}
+	provider := "keyring"
+	if ref.Provider == secrets.WindowsProvider {
+		provider = secrets.WindowsProvider
+	}
+	return secretstore.Reference{Provider: provider, Owned: true, Fields: map[string]string{"service": ref.Service, "account": account}}
 }

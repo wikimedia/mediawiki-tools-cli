@@ -9,8 +9,8 @@ import (
 )
 
 func ValidateCredentialProvider(provider string) error {
-	if provider != "keyring" && provider != "keepassxc" && provider != "plaintext" {
-		return fmt.Errorf("credential provider must be keyring, keepassxc or plaintext")
+	if provider != "keyring" && provider != "keepassxc" && provider != "plaintext" && provider != secrets.WindowsProvider {
+		return fmt.Errorf("credential provider must be keyring, windows-credential-manager, keepassxc or plaintext")
 	}
 	return nil
 }
@@ -41,15 +41,15 @@ func (c Credential) CredentialProvider(override string) (string, error) {
 		switch provider {
 		case "", "keyring":
 			provider = "keyring"
-		case "plaintext":
-			provider = "plaintext"
+		case "plaintext", secrets.WindowsProvider:
+			provider = stored.Provider
 		case "keepassxc", "keepassxc-browser":
 			provider = "keepassxc"
 		default:
 			return "", fmt.Errorf("unknown credential provider")
 		}
 		if override != "" && override != provider {
-			return "", fmt.Errorf("credential already uses %s; log out before changing providers", provider)
+			return "", fmt.Errorf("credential already uses %s; use config secrets transfer to change providers", provider)
 		}
 		return provider, nil
 	}
@@ -72,6 +72,12 @@ func (c Credential) SaveWithProvider(value string, insecure bool, metadata map[s
 // SaveWithProviderMetadata commits public scalar/list metadata with a verified
 // credential reference in the same atomic config write.
 func (c Credential) SaveWithProviderMetadata(value string, insecure bool, metadata map[string]any, provider string) error {
+	unlock, lockErr := lockCredentials(context.Background())
+	if lockErr != nil {
+		return lockErr
+	}
+	defer unlock()
+
 	for key, value := range metadata {
 		if SensitiveKey(key) {
 			return fmt.Errorf("secret values cannot be passed as metadata")
@@ -118,6 +124,9 @@ func (c Credential) SaveWithProviderMetadata(value string, insecure bool, metada
 	}
 	if target == "keyring" {
 		return c.saveKeyring(value, false, metadata)
+	}
+	if target == secrets.WindowsProvider {
+		return c.saveWindowsCredential(value, metadata)
 	}
 	if value == "" {
 		return fmt.Errorf("refusing to save an empty credential")
@@ -243,8 +252,8 @@ func (c Credential) ReplaceFromPlaintext(provider string) error {
 	if err != nil {
 		return err
 	}
-	if target != "keyring" && target != "keepassxc" {
-		return fmt.Errorf("replacement requires a secure destination provider; select keyring or keepassxc")
+	if target != "keyring" && target != "keepassxc" && target != secrets.WindowsProvider {
+		return fmt.Errorf("replacement requires a secure destination provider; select keyring, windows-credential-manager or keepassxc")
 	}
 	if State().OnDiskKoanf.Exists(credentialReferenceKey(c.Key)) {
 		current, err := c.CredentialProvider("")

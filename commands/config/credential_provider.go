@@ -9,11 +9,11 @@ import (
 
 func NewCredentialProviderCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:       "provider [keyring|keepassxc|plaintext]",
+		Use:       "provider [keyring|windows-credential-manager|keepassxc|plaintext]",
 		Short:     "Show or select the default credential provider",
 		Long:      "The default applies to new credentials. Changing it does not move saved credentials; use migrate or transfer explicitly. Use --provider to override the default for a new credential.",
 		Args:      cobra.MaximumNArgs(1),
-		ValidArgs: []string{"keyring", "keepassxc", "plaintext"},
+		ValidArgs: []string{"keyring", "windows-credential-manager", "keepassxc", "plaintext"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				provider, err := config.DefaultCredentialProvider()

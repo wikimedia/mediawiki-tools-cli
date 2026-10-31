@@ -99,9 +99,9 @@ func NewMigrateSecretsCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show credential keys and destinations without opening providers or moving secrets")
 	cmd.Flags().BoolVar(&replace, "replace", false, "Use the plaintext value to replace one named credential in its secure provider, verifying before removing plaintext")
-	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
+	cmd.Flags().StringVar(&provider, "provider", "", "Override the credential provider (keyring, windows-credential-manager, keepassxc or plaintext)")
 	cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"keyring", "windows-credential-manager", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
 }
@@ -110,6 +110,8 @@ func migrationProviderLabel(provider string) string {
 	switch provider {
 	case "keyring":
 		return "the OS keyring"
+	case "windows-credential-manager":
+		return "Windows Credential Manager"
 	case "keepassxc":
 		return "KeePassXC"
 	case "plaintext":

@@ -227,7 +227,7 @@ func (c Commands) RemoveCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		cmd.Printf("Removed local profile %q. Server-side credentials are not revoked; external KeePassXC entries are retained.\n", name)
+		cmd.Printf("Removed local profile %q. Server-side credentials are not revoked; external KeePassXC entries are retained. Review them with config secrets detached.\n", name)
 		if removedDefault {
 			cmd.Println("The default profile was removed; use auth default --profile NAME to choose another.")
 		}
@@ -237,10 +237,10 @@ func (c Commands) RemoveCmd() *cobra.Command {
 
 // AddStorageFlags keeps credential provider selection identical across services.
 func AddStorageFlags(cmd *cobra.Command, provider *string, insecure *bool) {
-	cmd.Flags().StringVar(provider, "provider", "", "Override the credential provider (keyring, keepassxc or plaintext)")
+	cmd.Flags().StringVar(provider, "provider", "", "Override the credential provider (keyring, windows-credential-manager, keepassxc or plaintext)")
 	cmd.Flags().BoolVar(insecure, "insecure-storage", false, "Store credentials in the private plaintext configuration")
 	cmd.MarkFlagsMutuallyExclusive("provider", "insecure-storage")
 	_ = cmd.RegisterFlagCompletionFunc("provider", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"keyring", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
+		return []string{"keyring", "windows-credential-manager", "keepassxc", "plaintext"}, cobra.ShellCompDirectiveNoFileComp
 	})
 }

@@ -231,13 +231,94 @@ To change an already linked credential’s provider without logging out, transfe
 mw config secrets transfer gerrit.profiles.addshore.password --provider keyring
 ```
 
-Transfer verifies the destination before switching the reference. External source entries are retained; a plaintext config copy is removed after verified secure storage. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
+Transfer verifies and persists the destination before switching the reference, then removes the source if no current reference still uses it. KeePassXC requests GUI deletion approval. Use `--keep-source` to retain and track a backup copy; failed source cleanup keeps its record and leaves the verified destination active. A plaintext config copy is removed after verified secure storage. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
 
 For scripts and `--no-interaction`, set a default first or pass `--provider`. With no selection, noninteractive saves try the OS keyring and fail with guidance if it is unavailable; they never automatically choose plaintext.
 
 The OS keyring is the simplest choice for credentials used on one computer: it integrates with that OS and needs no separate KeePassXC pairing. Availability and unlock policy depend on the desktop; WSL uses its Linux Secret Service, not Windows Credential Manager.
 
 KeePassXC GUI access suits an existing shared vault, including Windows KeePassXC used from WSL. You control the database, backups and synchronization. It requires KeePassXC to be running, and adds a sensitive local pairing file. The CLI retrieves approved entries without handling the master password.
+
+## Finding and cleaning up retained copies
+
+Transfers remove unused source entries after destination verification by default. With `--keep-source`, or when cleanup fails, the original copy is retained. Retained transfers, KeePassXC relinking, and profile removal record the old provider's public identifiers in configuration; no credential values are stored in this record. List those retained entries with:
+
+```sh
+mw config secrets detached
+mw config secrets detached --details
+mw config secrets detached --json
+```
+
+Only entries not referenced by the current configuration are shown. Tracked entries are not checked for existence during listing. `--details` shows native target names or KeePassXC database and entry UUIDs, so they can also be located manually.
+
+Use `--provider` to select a provider and discover older entries as well as its tracked copies:
+
+```sh
+mw config secrets detached --provider windows-credential-manager --details
+mw config secrets detached --provider keepassxc --details
+```
+
+The Windows helper restricts the native enumeration to `a-wikimedia-cli:` and the CLI's encoded `a-wikimedia-cli` secretstore namespace. Only metadata is returned across the WSL bridge. Known current profiles are matched to their older Windows slots where possible; others are marked unmapped. This scan does not modify the configuration or retrieve secret values into the Linux CLI.
+
+Review the list, then explicitly select one ID to delete:
+
+```sh
+mw config secrets cleanup ID --yes
+# Provider selection also rediscovers untracked entries when needed:
+mw config secrets cleanup ID --provider windows-credential-manager --yes
+mw config secrets cleanup ID --provider keepassxc --yes
+```
+
+The ID may be the 12-character value shown in the table or its full value from details/JSON. Cleanup rechecks current references under the credential mutation lock and refuses linked or ambiguous entries. Native deletion is verified before forgetting the retained record. KeePassXC verifies the database and UUID (and username when known), asks for GUI confirmation, and recycles the selected entry. Denial or failure keeps the retained record. No server-side token is revoked. Other configurations and applications may still use an unlinked entry; the scope is this configuration only.
+
+Without `--provider`, listing uses only the metadata retention record. Selecting KeePassXC explicitly requests its newer, permission-gated `get-database-entries` API. This API returns database-wide titles, URLs and UUIDs, not passwords; the CLI filters results to `a-wikimedia-cli://` URLs and excludes active UUIDs. It does not enable the setting itself. In compatible KeePassXC versions, open Settings → Browser Integration → Advanced and enable “Allow limited access to all entries in connected database” (wording varies by version). This permits integrations to list metadata for every entry in connected databases. You can enable it temporarily, rerun discovery and cleanup, then turn it off again when finished. Unsupported versions or denied enumeration return this guidance in the error; ordinary tracked-entry listing and cleanup still work. Older untagged entries cannot be attributed to the CLI by this API and must be reviewed manually. Native Linux keyring discovery currently covers tracked entries only. Discovery never deletes anything.
+
+## Native keyrings and Windows Credential Manager
+
+Native credentials use the `a-wikimedia-cli` namespace. For example, Gerrit uses service `a-wikimedia-cli:gerrit:https://gerrit.wikimedia.org/r` and an account identifier combining the username and the credential-key hash. The configuration directory remains separate. Development entries in the abandoned `mwcli` credential namespace are not migrated or used as a fallback.
+
+`keyring` uses the platform running the CLI: Linux Secret Service (also in WSL), macOS Keychain, or Windows Credential Manager. `windows-credential-manager` explicitly uses Windows storage, either natively or through a Windows `mw.exe` helper launched from WSL. These providers never silently fall back to each other. Native storage follows the OS access rules; Windows generic credentials and Linux Secret Service do not provide KeePassXC-style per-entry application approvals.
+
+```sh
+mw config secrets status
+mw config secrets status keyring
+mw config secrets status keyring --check
+```
+
+Status reports availability without unlocking or retrieving saved credentials. `--check` explicitly writes, reads back, and deletes a uniquely named temporary test item; unlock your Linux keyring in the desktop password manager if prompted. If the default persistent collection is absent, create a default/login keyring using Passwords and Keys (Seahorse) or your desktop's password manager. A WSL Secret Service is independent of the Windows desktop.
+
+For a temporary WSL test session when no session bus exists, use the documented [headless Linux keyring setup](https://keyring.readthedocs.io/en/stable/#using-keyring-on-headless-linux-systems). First supply a private runtime directory: some WSL sessions inherit `XDG_RUNTIME_DIR=/run/user/1000` even when that directory does not exist. Run the following in your own terminal and keep subsequent Linux-keyring commands in the new shell. The password prompt unlocks an existing login keyring, or creates one if missing; choose a password for a new keyring. The password is not echoed or placed in command history.
+
+```sh
+mwcli_keyring_runtime=$(mktemp -d /tmp/mwcli-keyring.XXXXXX)
+env -u GNOME_KEYRING_CONTROL -u GNOME_KEYRING_PID \
+  XDG_RUNTIME_DIR="$mwcli_keyring_runtime" \
+  dbus-run-session -- bash --noprofile --norc
+gnome-keyring-daemon --start --components=secrets
+read -r -s -p 'Linux keyring password: ' mwcli_keyring_password
+printf '\n'
+printf '%s' "$mwcli_keyring_password" | gnome-keyring-daemon --unlock
+unset mwcli_keyring_password
+./bin/mw config secrets status keyring --check
+```
+
+The clean Bash shell prevents startup scripts from restoring stale session variables. This is a temporary D-Bus session, not a permanent WSL desktop-service setup. For persistent user-session infrastructure, see [Microsoft's WSL systemd setup](https://learn.microsoft.com/en-us/windows/wsl/systemd); GNOME Keyring still needs to be installed and unlocked. Stored credentials remain encrypted on disk, but accessing them later requires a running Secret Service and unlocking the same keyring.
+
+For Windows storage from WSL, place a Windows build of this CLI named `mw.exe` beside the Linux binary, or set its absolute WSL path. Development checkouts can build the helper with `make build-windows-helper`. A helper is also discovered through `PATH`. Use a current build supporting the private credential-helper protocol; no separate Windows CLI configuration or login is needed.
+
+```sh
+mw config set secrets.windows_helper '/mnt/c/path/to/mw.exe'
+mw config secrets status windows-credential-manager
+mw config secrets status windows-credential-manager --check
+mw config secrets transfer gerrit.profiles.addshore.password --provider windows-credential-manager
+mw config secrets list gerrit.profiles.addshore.password --check --verify --details
+```
+
+The helper uses bounded JSON over stdin/stdout, with secret bytes encoded in the pipe payload and no secrets in command arguments, logs, or temporary files. It accepts explicit Get/Set/Delete operations on CLI-owned service namespaces and a metadata-list operation restricted to CLI-owned target prefixes. Windows may supply credential blobs internally with enumeration; the helper discards them and returns only names and account identifiers. These restrictions describe the helper protocol; Windows Credential Manager itself follows the current user's logon-session permissions. The helper bypasses configuration loading, migration, telemetry, and timers.
+
+Transfer back with `--provider keyring` or `--provider keepassxc`. Every transfer reads back and verifies the destination before changing the reference, removes the unused source unless `--keep-source` is set, refuses a conflicting destination value, and leaves the default provider unchanged. `secrets list --verify` then checks service authentication using the newly active provider. Existing `keyring` references keep their original platform-specific meaning; use an explicit transfer to change stores.
+
+Windows generic credentials are limited to 2,560 bytes, including UTF-8 encoding. Oversized OAuth token bundles are rejected without switching their reference; use KeePassXC for those credentials. No automatic truncation, splitting, or plaintext fallback is used.
 
 ## KeePassXC
 

@@ -17,6 +17,7 @@ var (
 	chooseCredentialProvider     = promptCredentialProvider
 	detectKeyring                = secrets.DetectKeyring
 	detectKeePassXC              = secrets.DetectKeePassXC
+	detectWindowsCredentials     = secrets.DetectWindowsCredentials
 	pairCredentialGUI            = func() error { return secrets.PairKeePassXCBrowser(context.Background(), "") }
 )
 
@@ -39,6 +40,11 @@ func promptCredentialProvider() (string, error) {
 	if keepass.Available {
 		providers = append(providers, "keepassxc")
 		labels = append(labels, "KeePassXC ("+keepass.Detail+")")
+	}
+	windows := detectWindowsCredentials(ctx, State().EffectiveKoanf.String("secrets.windows_helper"))
+	if windows.Available {
+		providers = append(providers, secrets.WindowsProvider)
+		labels = append(labels, "Windows Credential Manager")
 	}
 	providers = append(providers, "plaintext")
 	labels = append(labels, "Plaintext configuration (unencrypted)")
