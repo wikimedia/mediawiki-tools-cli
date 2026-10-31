@@ -205,7 +205,7 @@ func checkWiki(ctx context.Context, client *http.Client, input Request) Result {
 		}
 		client.Transport = contextTransport{ctx: ctx}
 		w.SetHTTPClient(client)
-		if err := w.Login(input.Account, input.Value); err != nil {
+		if err := wikiauth.LoginPassword(w, input.Account, input.Value); err != nil {
 			var apiError mwclient.APIError
 			if errors.As(err, &apiError) && (apiError.Code == "Failed" || apiError.Code == "WrongPass" || apiError.Code == "NotExists") {
 				return Result{Status: "invalid"}

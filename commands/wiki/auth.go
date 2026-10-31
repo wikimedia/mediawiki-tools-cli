@@ -226,7 +226,7 @@ func newWikiLoginCmd() *cobra.Command {
 				}
 				httpClient := wikiauth.HTTPClient()
 				w.SetHTTPClient(httpClient)
-				if err := w.Login(a.Username, secret); err != nil {
+				if err := wikiauth.LoginPassword(w, a.Username, secret); err != nil {
 					return fmt.Errorf("wiki credentials were not validated or saved")
 				}
 				a.Identity, err = wikiauth.Identity(cmd.Context(), httpClient, endpoint)
@@ -491,7 +491,7 @@ func newWikiStatusCmd() *cobra.Command {
 				return err
 			}
 			w.SetHTTPClient(httpClient)
-			if err := w.Login(a.Username, password); err != nil {
+			if err := wikiauth.LoginPassword(w, a.Username, password); err != nil {
 				return fmt.Errorf("wiki authentication failed")
 			}
 		}

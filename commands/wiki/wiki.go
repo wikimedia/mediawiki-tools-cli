@@ -111,7 +111,7 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 		if err != nil {
 			return err
 		}
-		if err := w.Login(a.Username, password); err != nil {
+		if err := wikiauth.LoginPassword(w, a.Username, password); err != nil {
 			return fmt.Errorf("saved wiki login failed")
 		}
 		w.Assert = mwclient.AssertUser
@@ -131,7 +131,7 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 	if wikiUser == "" || password == "" {
 		return fmt.Errorf("--username and either --password or --password-file must be provided together")
 	}
-	return w.Login(wikiUser, password)
+	return wikiauth.LoginPassword(w, wikiUser, password)
 }
 
 func hasWikiCredentials() bool {

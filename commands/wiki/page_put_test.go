@@ -44,3 +44,45 @@ func TestPagePutReturnsAuthenticationAndPermissionErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestPagePutPasswordLoginWarnings(t *testing.T) {
+	for _, result := range []string{"Success", "Failed"} {
+		t.Run(result, func(t *testing.T) {
+			isolateWikiProfiles(t)
+			var edits atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if err := r.ParseForm(); err != nil {
+					t.Error(err)
+				}
+				switch r.Form.Get("action") {
+				case "login":
+					_, _ = io.WriteString(w, `{"login":{"result":"`+result+`"},"warnings":{"login":{"warnings":"Main-account login deprecated"}}}`)
+				case "edit":
+					edits.Add(1)
+					_, _ = io.WriteString(w, `{"edit":{"result":"Success","oldrevid":1,"newrevid":2}}`)
+				default:
+					if r.Form.Get("type") == "login" {
+						_, _ = io.WriteString(w, `{"query":{"tokens":{"logintoken":"fixture-login"}},"warnings":{"main":{"warnings":"API announcement"}}}`)
+					} else {
+						_, _ = io.WriteString(w, `{"query":{"tokens":{"csrftoken":"fixture-csrf"}}}`)
+					}
+				}
+			}))
+			defer server.Close()
+			cmd := NewWikiCmd()
+			cmd.SetIn(strings.NewReader("Test content"))
+			cmd.SetOut(io.Discard)
+			cmd.SetErr(io.Discard)
+			cmd.SetArgs([]string{"page", "put", "--wiki", server.URL + "/w/api.php", "--user", "admin", "--password", "fixture-password", "--title", "Testpage1"})
+			err := cmd.Execute()
+			if result == "Success" {
+				if err != nil || edits.Load() != 1 {
+					t.Fatalf("successful login with warnings: error = %v, edits = %d", err, edits.Load())
+				}
+			} else if err == nil || edits.Load() != 0 {
+				t.Fatalf("failed login with warnings: error = %v, edits = %d", err, edits.Load())
+			}
+		})
+	}
+}
