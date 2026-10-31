@@ -26,13 +26,13 @@ func TestSecretInventoryIncludesLinkedPlaintextOrphanAndPairingWithoutReads(t *t
 	if err := PutKeyValueOnDisk("custom.empty_password", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := PutKeyValueOnDisk("phabricator.sites.bot.username", "Bot"); err != nil {
+	if err := PutKeyValueOnDisk("phabricator.profiles.bot.username", "Bot"); err != nil {
 		t.Fatal(err)
 	}
-	if err := PutKeyValueOnDisk("phabricator.sites.bot.url", secrets.PhabricatorEndpoint); err != nil {
+	if err := PutKeyValueOnDisk("phabricator.profiles.bot.url", secrets.PhabricatorEndpoint); err != nil {
 		t.Fatal(err)
 	}
-	phab, err := CredentialForKey("phabricator.sites.bot.key")
+	phab, err := CredentialForKey("phabricator.profiles.bot.key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestSecretInventoryIncludesLinkedPlaintextOrphanAndPairingWithoutReads(t *t
 	if plain := byKey["custom.api_token"]; plain.Provider != "plaintext" || !strings.Contains(plain.Status, "no credential provider mapping") {
 		t.Fatal("custom plaintext credential omitted")
 	}
-	if phab := byKey["phabricator.sites.bot.key"]; phab.EntryID != "entry-fixture" || phab.DatabaseID != "database-fixture" || phab.Provider != "keepassxc" {
+	if phab := byKey["phabricator.profiles.bot.key"]; phab.EntryID != "entry-fixture" || phab.DatabaseID != "database-fixture" || phab.Provider != "keepassxc" {
 		t.Fatal("KeePassXC identifiers omitted")
 	}
 	if byKey["credential_storage.orphan"].Status != "unmapped reference (not checked)" {

@@ -19,7 +19,7 @@ mw config secrets list
 mw config secrets list --json
 mw config secrets list --check
 mw config secrets list --verify
-mw config secrets list phabricator.sites.wikimedia.key --check --verify
+mw config secrets list phabricator.profiles.wikimedia.key --check --verify
 ```
 
 The inventory includes known credential references, plaintext config secrets, and the local KeePassXC pairing file. The compact table shows key, provider, comparison and authentication results. Add `--details` to show service, account, endpoint, status and storage location below the table. Account mismatches and missing references remain visible in the summary. A credential with both a vault link and a retained plaintext value has a separate row for each copy; their values are not compared. JSON rows include a `source` field distinguishing credential references, plaintext configuration, and the pairing file. Linked external entries are not verified; orphaned references are shown explicitly. It does not enumerate unrelated vault entries, GitLab's separate authentication store, or external `phab.cfg` files.
@@ -42,13 +42,39 @@ Migration verifies each saved value before removing its plaintext copy from conf
 When a plaintext value and a vault link both exist, ordinary migration refuses to change differing values. If you know the plaintext value is the one to keep, explicitly replace one named vault credential:
 
 ```sh
-mw config secrets migrate phabricator.sites.wikimedia.key --replace --dry-run
-mw config secrets migrate phabricator.sites.wikimedia.key --replace
+mw config secrets migrate phabricator.profiles.wikimedia.key --replace --dry-run
+mw config secrets migrate phabricator.profiles.wikimedia.key --replace
 ```
 
 This replaces the linked provider's value using plaintext from config, verifies the destination, then removes the plaintext copy. It does not verify that the token is accepted by the remote service. The saved account and endpoint must still match. `--replace` requires exactly one explicit key and a secure destination; it cannot replace multiple entries in a bulk migration.
 
-`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential’s account or endpoint. Use `config secrets transfer` to change its storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator logout also disables legacy `phab.cfg` authentication for that site until the next login.
+### Phabricator login and account profiles
+
+Browser login is the default. The CLI opens `/conduit/login/` in your browser (the Windows browser in WSL), where you can sign in with your Wikimedia or developer account. Paste the resulting token into the hidden terminal prompt. An unused command-line token initially expires after one hour; its first authenticated API request makes it permanent until revoked. The CLI verifies your identity before saving it in your selected credential provider.
+
+```sh
+mw phabricator auth login --profile personal
+mw phabricator auth login --profile bot --method token
+mw phabricator auth profiles
+mw phabricator auth status --profile personal
+mw phabricator view T12345 --profile bot
+mw phabricator auth remove --profile bot
+```
+
+Use `--method token` to paste an existing API token without opening the browser. `--token-stdin` also skips browser launch and is suitable for automation. Add `--username Addbot` to reject a token belonging to another account. `--no-browser` prints the browser-login URL for you to open manually. `--url` explicitly selects a different HTTPS server; project-local `phab.cfg` never selects the destination for a newly entered token.
+
+Profiles are independent saved account slots: personal and bot accounts can use the same server. Without `--profile`, login uses the verified username in lowercase (for example `addshore`); other commands use your saved default profile. The first login becomes the default. Later logins to another profile ask whether to change the default, with “no” selected initially. Non-interactive logins keep the existing default. Use `login --default` to switch explicitly, or `--default=false` to suppress the question and keep the current default. Use `--profile` on any Phabricator command to select another account. Set `phabricator.default_profile` to change the default independently; old CLI `sites` and `default_site` configuration is migrated automatically on upgrade, retaining profile names and saved credential references. The deprecated `--site` alias is hidden during the migration window. Profile names have shell completion; listing profiles does not retrieve tokens. `auth remove --profile NAME` removes the selected profile and its local credentials or reference, without revoking its server-side token. Revoke unwanted tokens in Phabricator's Conduit API Tokens settings.
+
+To copy credentials from the Python `phab` tool, explicitly import its configuration:
+
+```sh
+mw phab auth login --method phab-cfg --profile personal
+mw phab auth login --method phab-cfg --config-file ~/.config/phab/phab.cfg --config-section bot --profile bot
+```
+
+The importer uses the specified section or the file's `[main] default`, verifies the configured identity on that section's HTTPS server, and saves its token in your chosen credential provider. It also copies `default_project`. The source file is left unchanged, including its plaintext token; the saved profile no longer depends on it. Normal commands never use credentials directly from `phab.cfg`. Detection in standard locations only suggests importing; it does not retrieve or test the token. Browser and existing-token login never take their destination from a detected file.
+
+`config show` and `config get` redact secret fields by default. `--show-secrets` explicitly reveals plaintext configuration values; it does not retrieve keyring entries. Log out before changing a saved credential’s account or endpoint. Use `config secrets transfer` to change its storage backend. Logout removes saved keyring credentials or KeePassXC references; environment overrides are unchanged. Phabricator profile removal also deletes its local metadata; importing again requires an explicit login.
 
 Choosing plaintext displays a warning that credentials are stored unencrypted. You can also select it with `--provider plaintext` or use `--insecure-storage` for a single save. A selected provider failing never silently switches storage. On Unix, the CLI restricts its config directory to the current user and writes the file atomically with mode `0600`. Windows file permissions depend on its ACLs; prefer Credential Manager there.
 
@@ -92,7 +118,7 @@ mw wiki auth login --realm wikibase-world --account addshore --wiki https://wiki
 Each successful login makes that account its realm's default, and makes that realm the default when no wiki is supplied. The stored wiki is used when `--wiki` is omitted. Use `--account REALM/NAME` to select another account explicitly. Account names are stable configuration identifiers containing letters, digits, underscores or hyphens. List identities without unlocking any credential provider, or change a default:
 
 ```sh
-mw wiki auth list
+mw wiki auth profiles
 mw wiki auth default --account wikimedia/addbot
 mw wiki auth logout --account wikimedia/addshore
 ```
@@ -165,6 +191,8 @@ KeePassXC handles database unlocking and entry approvals. Select the paired data
 
 New credentials are created directly in the `wm` group, with the service hostname as the entry title and the account as the username. Multiple accounts can share a hostname. KeePassXC’s browser protocol cannot set a custom title; after linking, you can rename entries to labels such as “Gerrit — addshore” or “Cloud VPS — mwcli”, or move them, without breaking their UUID references. Existing linked entries are updated through the GUI. Each write is read back and verified before plaintext is removed. A dry run opens no GUI dialogs.
 
+New Phabricator profile credentials use a subgroup named after their configuration key, such as `wm/phabricator.profiles.personal.key`. Profiles sharing a username keep separate credentials. Existing links remain pinned to their original entry UUID.
+
 To link an entry you created yourself, use `mw config secrets use-keepassxc KEY --entry PATH`. Create it with the same username and password as the configured CLI account. `use-keepassxc KEY` reuses the entry path from an existing direct-access link; otherwise it uses `wm/KEY`. Use `--entry 'Wikimedia/Gerrit'` to select another path. The entry username must match the configured account. Linking verifies any retained plaintext before removing it, then pins the database ID and entry UUID so renaming the entry does not break access. Older direct-access links must be relinked with this command; their saved entry paths are reused.
 
 Pairing credentials are stored unencrypted in `secrets/keepassxc-pairing.json` beside `config.json`, separate from normal configuration output. On Linux and WSL, the directory is private (`0700`) and the file is `0600`; Windows relies on the user profile's ACLs. Treat the pairing file as a secret: it grants access through KeePassXC while the database is unlocked, subject to its entry permissions. It contains neither your master password nor saved API passwords. One database pairing is supported at a time.
@@ -175,3 +203,7 @@ mw config secrets keepassxc disconnect
 ```
 
 `status` shows the pairing location and public metadata without contacting the GUI. `disconnect` removes the local pairing; also revoke its stored key in KeePassXC under **Database Settings → Browser Integration**. Logout forgets an individual entry reference while retaining the shared pairing.
+
+### Discovering saved accounts
+
+Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS lists project credentials. Gerrit currently has one saved account; its listing does not imply support for multiple named profiles.

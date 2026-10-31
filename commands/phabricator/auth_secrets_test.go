@@ -30,7 +30,7 @@ func isolatedAuthConfig(t *testing.T) {
 	t.Cleanup(func() { mwconfig.ReApplyKoanfConf(koanf.New(".")) })
 }
 
-func TestLoginIgnoresProjectDestinationAndLogoutDisablesLegacy(t *testing.T) {
+func TestLoginIgnoresProjectDestinationAndRemovalDoesNotUseLegacy(t *testing.T) {
 	isolatedAuthConfig(t)
 	dir := t.TempDir()
 	old, err := os.Getwd()
@@ -82,18 +82,18 @@ func TestLoginIgnoresProjectDestinationAndLogoutDisablesLegacy(t *testing.T) {
 	if cfg.Key != "fixture-secret" || cfg.URL != defaultPhabricatorURL {
 		t.Fatal("legacy project config shadowed secure login")
 	}
-	logout := NewPhabricatorCmd()
-	logout.SetOut(out)
-	logout.SetArgs([]string{"auth", "logout"})
-	if err := logout.Execute(); err != nil {
+	remove := NewPhabricatorCmd()
+	remove.SetOut(out)
+	remove.SetArgs([]string{"auth", "remove"})
+	if err := remove.Execute(); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := loadConfig(""); err == nil {
-		t.Fatal("logout fell back to legacy credential")
+		t.Fatal("remove fell back to legacy credential")
 	}
 	unchanged, _ := os.ReadFile(filepath.Join(dir, "phab.cfg"))
 	if string(unchanged) != legacy {
-		t.Fatal("logout modified external legacy file")
+		t.Fatal("remove modified external legacy file")
 	}
 }
 

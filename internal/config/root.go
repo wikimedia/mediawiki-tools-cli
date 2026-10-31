@@ -138,6 +138,22 @@ func load() *koanf.Koanf {
 	f := file.Provider(Path())
 	loadJson(k, f)
 	loadJson(kOnDisk, f)
+	migrated, changed, err := migratePhabricatorProfiles(kOnDisk)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	if changed {
+		// Completion may translate metadata in memory, but must not write config.
+		if !isConfigCompletion() {
+			if err := putDiskConfig(migrated); err != nil {
+				logrus.Fatalf("could not migrate Phabricator profiles: %v", err)
+			}
+		}
+		kOnDisk = migrated
+		k = koanf.New(".")
+		loadDefaults()
+		_ = k.Merge(kOnDisk)
+	}
 	logrus.Trace("loading env")
 	loadEnv()
 	c = koanfToConfig(k)

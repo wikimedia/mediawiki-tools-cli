@@ -19,8 +19,8 @@ func TestReplaceMigrationRequiresOneKeyAndDryRunDoesNotWrite(t *testing.T) {
 	}
 	t.Cleanup(func() { mwconfig.ReApplyKoanfConf(koanf.New(".")) })
 	keyring.MockInit()
-	credential := mwconfig.Credential{Key: "phabricator.sites.wikimedia.key", Service: "phabricator", Endpoint: "https://phabricator.wikimedia.org", Account: "Fixture"}
-	if err := credential.SaveWithProvider("old-provider-fixture", false, map[string]string{"phabricator.sites.wikimedia.username": "Fixture", "phabricator.sites.wikimedia.url": "https://phabricator.wikimedia.org"}, "keyring"); err != nil {
+	credential := mwconfig.Credential{Key: "phabricator.profiles.wikimedia.key", Service: "phabricator", Endpoint: "https://phabricator.wikimedia.org", Account: "Fixture"}
+	if err := credential.SaveWithProvider("old-provider-fixture", false, map[string]string{"phabricator.profiles.wikimedia.username": "Fixture", "phabricator.profiles.wikimedia.url": "https://phabricator.wikimedia.org"}, "keyring"); err != nil {
 		t.Fatal(err)
 	}
 	if err := mwconfig.PutKeyValueOnDisk(credential.Key, "new-plaintext-fixture"); err != nil {

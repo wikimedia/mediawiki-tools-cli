@@ -21,55 +21,51 @@ type PhabConfig struct {
 	SiteName       string
 }
 
-// loadConfig reads phab.cfg from standard locations and returns config for the given site.
-// If site is empty, uses the [main] default value.
-func loadConfig(site string) (*PhabConfig, error) {
-	state := mwconfig.State()
-	selected := strings.TrimSpace(site)
+// loadConfig reads only credentials saved in CLI profiles. External files must
+// be explicitly imported and validated before commands can use their tokens.
+func loadConfig(profile string) (*PhabConfig, error) {
+	selected := strings.TrimSpace(profile)
 	if selected == "" {
-		selected = state.EffectiveKoanf.String("phabricator.default_site")
+		selected = defaultProfile()
 	}
-	if selected == "" {
-		selected = state.EffectiveKoanf.String("phabricator.site")
+	if selected != "" && mwconfig.State().EffectiveKoanf.Bool("phabricator.profiles."+selected+".logged_out") {
+		return nil, fmt.Errorf("profile %q is logged out; use phabricator auth login", selected)
 	}
-	if selected != "" && state.EffectiveKoanf.Bool("phabricator.sites."+selected+".logged_out") {
-		return nil, fmt.Errorf("site %q is logged out; use phabricator auth login", selected)
-	}
-	if (selected != "" && mwconfig.HasCredential("phabricator.sites."+selected+".key")) || mwconfig.HasCredential("phabricator.key") {
-		return configFromMWCLI(selected)
-	}
-	candidates := configSearchPaths()
-
-	for _, path := range candidates {
-		if _, err := os.Stat(path); err != nil {
-			continue
-		}
-
-		cfg, err := ini.Load(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse %s: %w", path, err)
-		}
-
-		config, err := configFromINI(cfg, selected)
-		if err != nil {
-			return nil, err
-		}
-		if state.EffectiveKoanf.Bool("phabricator.sites." + config.SiteName + ".logged_out") {
-			return nil, fmt.Errorf("site %q is logged out; use phabricator auth login", config.SiteName)
-		}
-		return config, nil
-	}
-
-	config, err := configFromMWCLI(selected)
+	cfg, err := configFromMWCLI(selected)
 	if err == nil {
-		return config, nil
+		return cfg, nil
 	}
+	if (selected != "" && mwconfig.HasCredential("phabricator.profiles."+selected+".key")) || mwconfig.HasCredential("phabricator.key") {
+		return nil, err
+	}
+	if path := detectPhabConfig(); path != "" {
+		return nil, fmt.Errorf("no saved Phabricator credentials; found %s. Import and validate it with: mw phab auth login --method phab-cfg --profile <name>", path)
+	}
+	return nil, fmt.Errorf("no saved Phabricator credentials; use mw phab auth login --profile <name>")
+}
 
-	return nil, fmt.Errorf(
-		"could not find usable Phabricator config. looked for phab.cfg in: %s; and CLI config at: %s",
-		strings.Join(candidates, ", "),
-		mwconfig.Path(),
-	)
+// Detection checks file metadata only; it never retrieves or tests a token.
+func detectPhabConfig() string {
+	for _, path := range configSearchPaths() {
+		if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
+			return path
+		}
+	}
+	return ""
+}
+
+func importPhabConfig(path, section string) (*PhabConfig, error) {
+	if path == "" {
+		path = detectPhabConfig()
+	}
+	if path == "" {
+		return nil, fmt.Errorf("no phab.cfg found; specify --config-file")
+	}
+	parsed, err := ini.Load(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read phab.cfg at %s", path)
+	}
+	return configFromINI(parsed, section)
 }
 
 func configFromINI(cfg *ini.File, site string) (*PhabConfig, error) {
@@ -109,27 +105,22 @@ func configFromMWCLI(site string) (*PhabConfig, error) {
 
 	siteName := strings.TrimSpace(site)
 	if siteName == "" {
-		siteName = strings.TrimSpace(configState.EffectiveKoanf.String("phabricator.default_site"))
-		if siteName == "" {
-			siteName = strings.TrimSpace(configState.OnDiskKoanf.String("phabricator.default_site"))
-		}
-		if siteName == "" {
-			siteName = strings.TrimSpace(configState.EffectiveKoanf.String("phabricator.site"))
-		}
-		if siteName == "" {
-			siteName = strings.TrimSpace(configState.OnDiskKoanf.String("phabricator.site"))
-		}
+		siteName = defaultProfile()
 	}
 
 	get := func(key string) string {
 		if siteName != "" {
-			siteKey := "phabricator.sites." + siteName + "." + key
+			siteKey := "phabricator.profiles." + siteName + "." + key
 			if value := strings.TrimSpace(configState.EffectiveKoanf.String(siteKey)); value != "" {
 				return value
 			}
 			if value := strings.TrimSpace(configState.OnDiskKoanf.String(siteKey)); value != "" {
 				return value
 			}
+		}
+
+		if siteName != "" {
+			return ""
 		}
 
 		flatKey := "phabricator." + key
@@ -156,8 +147,8 @@ func configFromMWCLI(site string) (*PhabConfig, error) {
 	}
 
 	key := "phabricator.key"
-	if siteName != "" && mwconfig.HasCredential("phabricator.sites."+siteName+".key") {
-		key = "phabricator.sites." + siteName + ".key"
+	if siteName != "" {
+		key = "phabricator.profiles." + siteName + ".key"
 	}
 	var err error
 	phabCfg.Key, err = (mwconfig.Credential{Key: key, Service: "phabricator", Endpoint: phabCfg.URL, Account: phabCfg.Username}).Read()

@@ -225,8 +225,9 @@ func NewAuthListCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List configured Cloud VPS projects and their credential IDs",
+		Use:     "profiles",
+		Aliases: []string{"list"},
+		Short:   "List configured Cloud VPS projects and their credential IDs",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.State()
 			projects := c.Effective.CloudVPS.Projects

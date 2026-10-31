@@ -3,6 +3,8 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/secretstore/keepassxc"
 )
 
@@ -12,6 +14,7 @@ type KeePassXCBrowser keepassxc.Reference
 func browserClient() *keepassxc.Client {
 	return &keepassxc.Client{PairingFile: KeePassXCPairingPath(), Group: "wm"}
 }
+
 func PairKeePassXCBrowser(ctx context.Context, proxy string) error {
 	return browserClient().Pair(ctx, proxy)
 }
@@ -24,15 +27,28 @@ func FindKeePassXCBrowserEntry(ctx context.Context, path string) (KeePassXCBrows
 	}
 	return KeePassXCBrowser(ref), value, err
 }
+
 func (k KeePassXCBrowser) Read() (string, error) {
 	return browserClient().Read(context.Background(), keepassxc.Reference(k))
 }
+
 func WriteKeePassXCBrowser(ctx context.Context, existing *KeePassXCBrowser, key, account, endpoint, value string) (KeePassXCBrowser, error) {
 	var ref *keepassxc.Reference
 	if existing != nil {
 		converted := keepassxc.Reference(*existing)
 		ref = &converted
 	}
-	saved, err := browserClient().Write(ctx, ref, key, account, endpoint, value)
+	saved, err := browserClientForCredential(key).Write(ctx, ref, key, account, endpoint, value)
 	return KeePassXCBrowser(saved), err
+}
+
+func browserClientForCredential(key string) *keepassxc.Client {
+	client := browserClient()
+	if strings.HasPrefix(key, "phabricator.profiles.") {
+		// Different profiles can use the same username with different
+		// credentials or permissions. Never reuse their tokens by username.
+		// Existing references remain pinned to their original UUID and location.
+		client.Group += "/" + key
+	}
+	return client
 }

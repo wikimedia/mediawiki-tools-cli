@@ -169,9 +169,9 @@ func TestSecretSuggestionsUseEvidenceBeforeOfferingReplacement(t *testing.T) {
 	for _, scenario := range []struct {
 		name, comparison, vaultAuth, plainAuth, plainAccount, want string
 	}{
-		{"valid plaintext", "different", "invalid", "valid", "addshore", "migrate phabricator.sites.wikimedia.key --provider keepassxc --replace"},
-		{"identical copies", "match", "valid", "valid", "addshore", "migrate phabricator.sites.wikimedia.key --provider keepassxc"},
-		{"unverified difference", "different", "", "", "addshore", "list phabricator.sites.wikimedia.key --check --verify"},
+		{"valid plaintext", "different", "invalid", "valid", "addshore", "migrate phabricator.profiles.wikimedia.key --provider keepassxc --replace"},
+		{"identical copies", "match", "valid", "valid", "addshore", "migrate phabricator.profiles.wikimedia.key --provider keepassxc"},
+		{"unverified difference", "different", "", "", "addshore", "list phabricator.profiles.wikimedia.key --check --verify"},
 		{"both valid", "different", "valid", "valid", "addshore", ""},
 		{"plaintext invalid", "different", "invalid", "invalid", "addshore", ""},
 		{"plaintext wrong account", "different", "invalid", "wrong-account", "addshore", ""},
@@ -180,8 +180,8 @@ func TestSecretSuggestionsUseEvidenceBeforeOfferingReplacement(t *testing.T) {
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			entries := []mwconfig.SecretInfo{
-				{Key: "phabricator.sites.wikimedia.key", Source: "credential-reference", Provider: "keepassxc", Account: "addshore", Endpoint: "https://phabricator.wikimedia.org", Comparison: scenario.comparison, Validation: scenario.vaultAuth},
-				{Key: "phabricator.sites.wikimedia.key", Source: "plaintext-config", Provider: "plaintext", Account: scenario.plainAccount, Endpoint: "https://phabricator.wikimedia.org", Comparison: scenario.comparison, Validation: scenario.plainAuth},
+				{Key: "phabricator.profiles.wikimedia.key", Source: "credential-reference", Provider: "keepassxc", Account: "addshore", Endpoint: "https://phabricator.wikimedia.org", Comparison: scenario.comparison, Validation: scenario.vaultAuth},
+				{Key: "phabricator.profiles.wikimedia.key", Source: "plaintext-config", Provider: "plaintext", Account: scenario.plainAccount, Endpoint: "https://phabricator.wikimedia.org", Comparison: scenario.comparison, Validation: scenario.plainAuth},
 			}
 			got := secretSuggestions(entries, "mw")
 			if scenario.want == "" {

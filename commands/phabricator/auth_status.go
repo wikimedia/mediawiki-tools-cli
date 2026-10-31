@@ -20,7 +20,7 @@ func newPhabricatorAuthStatusCmd(site *string) *cobra.Command {
 				return fmt.Errorf("no credentials found")
 			}
 
-			cmd.Println("Site:", cfg.SiteName)
+			cmd.Println("Profile:", cfg.SiteName)
 			cmd.Println("URL:", cfg.URL)
 			cmd.Println("Username:", cfg.Username)
 			cmd.Println("Token:", tokenMask(cfg.Key))

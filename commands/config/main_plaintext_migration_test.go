@@ -18,7 +18,7 @@ func TestMainPlaintextConfigurationMigratesThroughSecretstore(t *testing.T) {
 	values := map[string]string{
 		"gerrit.username": "fixture", "gerrit.password": "gerrit-private-fixture",
 		"cloud_vps.projects.fixture.credential.id": "application-id", "cloud_vps.projects.fixture.credential.secret": "cloud-private-fixture",
-		"phabricator.sites.wikimedia.url": "https://phabricator.wikimedia.org", "phabricator.sites.wikimedia.username": "fixture", "phabricator.sites.wikimedia.key": "phab-private-fixture",
+		"phabricator.profiles.wikimedia.url": "https://phabricator.wikimedia.org", "phabricator.profiles.wikimedia.username": "fixture", "phabricator.profiles.wikimedia.key": "phab-private-fixture",
 	}
 	for key, value := range values {
 		if err := disk.Set(key, value); err != nil {
@@ -38,7 +38,7 @@ func TestMainPlaintextConfigurationMigratesThroughSecretstore(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"gerrit.password", "cloud_vps.projects.fixture.credential.secret", "phabricator.sites.wikimedia.key"} {
+	for _, key := range []string{"gerrit.password", "cloud_vps.projects.fixture.credential.secret", "phabricator.profiles.wikimedia.key"} {
 		if mwconfig.State().OnDiskKoanf.Exists(key) {
 			t.Fatalf("plaintext retained for %s", key)
 		}

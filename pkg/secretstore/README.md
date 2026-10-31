@@ -156,7 +156,7 @@ If a linked destination already differs, the ordinary command preserves both
 copies. To explicitly replace one linked credential with its plaintext value:
 
 ```sh
-./bin/mw config secrets migrate phabricator.sites.wikimedia.key --replace
+./bin/mw config secrets migrate phabricator.profiles.wikimedia.key --replace
 ```
 
 Plaintext is removed only after a verified save and a successful config write.

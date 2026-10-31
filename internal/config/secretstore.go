@@ -58,5 +58,9 @@ func coreReference(ref credentialReference) secretstore.Reference {
 	if ref.Provider == "keepassxc-browser" && ref.Browser != nil {
 		return secretstore.Reference{Provider: "keepassxc", Fields: map[string]string{"database_hash": ref.Browser.DatabaseHash, "entry_id": ref.Browser.EntryID, "login": ref.Browser.Login}}
 	}
-	return secretstore.Reference{Provider: "keyring", Owned: true, Fields: map[string]string{"service": ref.Service, "account": ref.Account}}
+	account := ref.Account
+	if ref.StorageAccount != "" {
+		account = ref.StorageAccount
+	}
+	return secretstore.Reference{Provider: "keyring", Owned: true, Fields: map[string]string{"service": ref.Service, "account": account}}
 }

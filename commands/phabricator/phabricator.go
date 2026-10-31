@@ -23,14 +23,22 @@ func NewPhabricatorCmd() *cobra.Command {
 		Short:   "Interact with Wikimedia Phabricator",
 		Long: `Interact with Wikimedia Phabricator via the Conduit API.
 
-Run "mw phabricator auth login" to validate and save an API token in the OS keyring.
-Use --site to select another saved site and login --url to explicitly choose its endpoint.
-Legacy phab.cfg files remain supported. A saved CLI login takes precedence.
+Run "mw phabricator auth login --profile personal" to sign in through your browser
+and save credentials in your chosen password manager. Use --method token for an
+existing token. Use --profile on any command to choose a saved account.
+Use login --url to explicitly choose the endpoint.
+Use auth login --method phab-cfg to validate and copy credentials from phab.cfg.
+Commands use saved CLI profiles; external credential files are never used directly.
 
 For storage options and password managers, see "mw help guides authentication".`,
 	}
 
-	cmd.PersistentFlags().StringVar(&site, "site", "", "Config site section to use (overrides [main] default)")
+	cmd.PersistentFlags().StringVar(&site, "site", "", "Saved site/profile to use (compatible alias for --profile)")
+	cmd.PersistentFlags().StringVar(&site, "profile", "", "Saved account profile to use (overrides the default)")
+	cmd.MarkFlagsMutuallyExclusive("site", "profile")
+	cmd.RegisterFlagCompletionFunc("profile", completeProfiles)
+	// TODO(early 2027): remove the legacy --site flag after the profile migration window.
+	_ = cmd.PersistentFlags().MarkHidden("site")
 
 	addAuthCmd(cmd, &site)
 	addViewCmd(cmd, &site)

@@ -401,7 +401,7 @@ func newWikiLogoutCmd() *cobra.Command {
 }
 
 func newWikiAccountsCmd() *cobra.Command {
-	return &cobra.Command{Use: "list", Short: "List saved wiki account identities without opening credential stores", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	return &cobra.Command{Use: "profiles", Aliases: []string{"list"}, Short: "List saved wiki account identities without opening credential stores", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		keys := config.State().OnDiskKoanf.Keys()
 		sort.Strings(keys)
 		for _, key := range keys {

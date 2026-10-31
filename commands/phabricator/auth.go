@@ -24,8 +24,9 @@ func newPhabricatorAuthCmd(site *string) *cobra.Command {
 		Short: "Authenticate mw with Wikimedia Phabricator",
 	}
 	cmd.AddCommand(newPhabricatorAuthLoginCmd(site))
-	cmd.AddCommand(newPhabricatorAuthLogoutCmd(site))
+	cmd.AddCommand(newPhabricatorAuthRemoveCmd(site))
 	cmd.AddCommand(newPhabricatorAuthStatusCmd(site))
+	cmd.AddCommand(newPhabricatorAuthListCmd())
 	return cmd
 }
 
@@ -33,14 +34,15 @@ func resolveAuthSite(site string) string {
 	if value := strings.TrimSpace(site); value != "" {
 		return value
 	}
-	cfg := mwconfig.State()
-	if value := strings.TrimSpace(cfg.EffectiveKoanf.String("phabricator.default_site")); value != "" {
-		return value
-	}
-	if value := strings.TrimSpace(cfg.OnDiskKoanf.String("phabricator.default_site")); value != "" {
+	if value := defaultProfile(); value != "" {
 		return value
 	}
 	return defaultPhabricatorSite
+}
+
+func defaultProfile() string {
+	cfg := mwconfig.State()
+	return strings.TrimSpace(cfg.EffectiveKoanf.String("phabricator.default_profile"))
 }
 
 func validatePhabricatorCredentials(cmd *cobra.Command, cfg *PhabConfig) (string, error) {

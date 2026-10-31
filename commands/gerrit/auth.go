@@ -12,5 +12,6 @@ func NewGerritAuthCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAuthLoginCmd())
 	cmd.AddCommand(NewGerritAuthLogoutCmd())
 	cmd.AddCommand(NewGerritAuthStatusCmd())
+	cmd.AddCommand(newGerritAuthProfilesCmd())
 	return cmd
 }

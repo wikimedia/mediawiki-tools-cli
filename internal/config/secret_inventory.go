@@ -41,8 +41,8 @@ func SecretInventory() []SecretInfo {
 	for _, project := range disk.MapKeys("cloud_vps.projects") {
 		candidates["cloud_vps.projects."+project+".credential.secret"] = true
 	}
-	for _, site := range disk.MapKeys("phabricator.sites") {
-		candidates["phabricator.sites."+site+".key"] = true
+	for _, site := range disk.MapKeys("phabricator.profiles") {
+		candidates["phabricator.profiles."+site+".key"] = true
 	}
 	for _, realm := range disk.MapKeys("wiki.accounts") {
 		for _, account := range disk.MapKeys("wiki.accounts." + realm) {

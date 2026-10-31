@@ -131,3 +131,27 @@ func TestLocalGerritCommandDoesNotUnlockKeyring(t *testing.T) {
 		t.Fatal("local command did not run")
 	}
 }
+
+func TestAuthProfilesDoesNotReadCredentials(t *testing.T) {
+	setupAuthTest(t)
+	if err := config.PutKeyValueOnDisk("gerrit.username", "fixture"); err != nil {
+		t.Fatal(err)
+	}
+	credential := config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: "https://gerrit.wikimedia.org/r", Account: "fixture"}
+	if err := credential.SaveWithProvider("fixture-secret", false, nil, "keyring"); err != nil {
+		t.Fatal(err)
+	}
+	keyring.MockInitWithError(errors.New("locked"))
+	for _, name := range []string{"profiles", "list"} {
+		out := &bytes.Buffer{}
+		cmd := NewGerritCmd()
+		cmd.SetOut(out)
+		cmd.SetArgs([]string{"auth", name})
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out.String(), "fixture") || !strings.Contains(out.String(), "one saved account") {
+			t.Fatal(out.String())
+		}
+	}
+}

@@ -165,7 +165,7 @@ func TestMigrationPreservesPlaintextOnFailure(t *testing.T) {
 func TestRedactionDoesNotMutateConfig(t *testing.T) {
 	isolatedConfig(t)
 	disk := State().OnDiskKoanf.Copy()
-	for _, key := range []string{"gerrit.password", "cloud_vps.projects.demo.credential.secret", "phabricator.sites.demo.key", "service.api_token"} {
+	for _, key := range []string{"gerrit.password", "cloud_vps.projects.demo.credential.secret", "phabricator.profiles.demo.key", "service.api_token"} {
 		if err := disk.Set(key, "test-secret"); err != nil {
 			t.Fatal(err)
 		}

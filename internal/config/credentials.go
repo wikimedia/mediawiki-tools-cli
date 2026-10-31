@@ -22,13 +22,14 @@ type Credential struct {
 }
 
 type credentialReference struct {
-	Service   string                    `koanf:"service"`
-	Endpoint  string                    `koanf:"endpoint"`
-	Account   string                    `koanf:"account"`
-	Identity  string                    `koanf:"identity"`
-	Provider  string                    `koanf:"provider"`
-	KeePassXC *legacyKeePassXCReference `koanf:"keepassxc"`
-	Browser   *secrets.KeePassXCBrowser `koanf:"browser"`
+	Service        string                    `koanf:"service"`
+	Endpoint       string                    `koanf:"endpoint"`
+	Account        string                    `koanf:"account"`
+	StorageAccount string                    `koanf:"storage_account"`
+	Identity       string                    `koanf:"identity"`
+	Provider       string                    `koanf:"provider"`
+	KeePassXC      *legacyKeePassXCReference `koanf:"keepassxc"`
+	Browser        *secrets.KeePassXCBrowser `koanf:"browser"`
 }
 
 // Retain only the old entry path so file-backed links can be switched safely.
@@ -52,7 +53,10 @@ func (c Credential) reference() (credentialReference, error) {
 	}
 	// Separate credential slots without tying references to a config directory.
 	account := fmt.Sprintf("%s:%x", c.Account, sha256.Sum256([]byte(c.Key)))
-	return credentialReference{Service: "mwcli:" + c.Service + ":" + endpoint, Endpoint: endpoint, Account: account, Identity: c.Account}, nil
+	ref := credentialReference{Service: "mwcli:" + c.Service + ":" + endpoint, Endpoint: endpoint, Account: account, Identity: c.Account}
+	// A renamed configuration key does not move the external keyring item.
+	ref.StorageAccount = State().OnDiskKoanf.String(credentialReferenceKey(c.Key) + ".storage_account")
+	return ref, nil
 }
 
 func HasCredential(key string) bool {
@@ -175,7 +179,7 @@ func (c Credential) saveKeyring(value string, insecure bool, metadata map[string
 	reference := coreReference(ref)
 	store, err := c.packageStore("keyring", &reference, func(secretstore.Entry) error {
 		disk.Delete(c.Key)
-		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity}); err != nil {
+		if err := disk.Set(key, map[string]any{"service": ref.Service, "endpoint": ref.Endpoint, "account": ref.Account, "identity": ref.Identity, "storage_account": ref.StorageAccount}); err != nil {
 			return err
 		}
 		return PutDiskConfig(disk)
@@ -204,7 +208,7 @@ func (c Credential) Delete() error {
 		switch ref.Provider {
 		case "plaintext", "keepassxc", "keepassxc-browser": // Forget the reference; external entries belong to the user.
 		case "", "keyring":
-			if err := credentialStore.Delete(ref.Service, ref.Account); err != nil && !errors.Is(err, secrets.ErrNotFound) {
+			if err := credentialStore.Delete(ref.Service, coreReference(ref).Fields["account"]); err != nil && !errors.Is(err, secrets.ErrNotFound) {
 				return fmt.Errorf("delete keyring credential: %w", err)
 			}
 		default:
@@ -242,7 +246,7 @@ func CredentialForKey(key string) (Credential, error) {
 			return Credential{}, fmt.Errorf("application credential ID is missing for project %s", project)
 		}
 		return Credential{Key: key, Service: "cloudvps", Endpoint: secrets.CloudEndpoint, Account: project + ":" + state.String(strings.TrimSuffix(key, "secret")+"id")}, nil
-	case key == "phabricator.key" || (strings.HasPrefix(key, "phabricator.sites.") && strings.HasSuffix(key, ".key")):
+	case key == "phabricator.key" || (strings.HasPrefix(key, "phabricator.profiles.") && strings.HasSuffix(key, ".key")):
 		prefix := strings.TrimSuffix(key, "key")
 		endpoint := state.String(prefix + "url")
 		if endpoint == "" {
