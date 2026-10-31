@@ -8,7 +8,7 @@ workflow:
 stages: [build]
 
 build-release:
-  image: golang:1.26.1
+  image: golang:1.26.10
   tags: [wmcs]
   stage: build
   interruptible: false
