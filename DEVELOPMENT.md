@@ -49,6 +49,14 @@ make build
 
 The resulting binary will be located at `./bin/mw`.
 
+### Embedded GitLab CLI dependencies
+
+Update `gitlab.com/gitlab-org/cli` alongside `gitlab.com/gitlab-org/api/client-go`
+when their APIs change. Keep the requirements in `internal/glab/go.mod` aligned
+with the root module and run `go mod tidy` from the repository root. The nested
+`internal/glab` adapter is the only place that imports glab's internal packages;
+it preserves Wikimedia's separate SSH hostname and the embedding CLI's User-Agent.
+
 ### Using the development environment with external hostnames
 
 The development environment normally selects a wiki database from the first label in the request hostname. To serve the default wiki at an additional hostname, configure these comma-separated context variables:

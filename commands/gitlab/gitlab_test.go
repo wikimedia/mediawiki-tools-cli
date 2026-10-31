@@ -9,18 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/gitlab-org/cli/api"
-	"gitlab.com/gitlab-org/cli/commands/cmdutils"
 	"gitlab.com/gitlab-org/cli/mwcli"
-	glabgit "gitlab.com/gitlab-org/cli/pkg/git"
-	"gitlab.com/gitlab-org/cli/pkg/iostreams"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
-func testFactory(t *testing.T) cmdutils.Factory {
+func testFactory(t *testing.T) mwcli.Factory {
 	t.Helper()
-	// Constructing the command sets mwcli's default GitLab host, as in production.
-	Cmd()
 	t.Chdir(t.TempDir())
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
@@ -35,7 +29,11 @@ func testFactory(t *testing.T) cmdutils.Factory {
 		t.Fatal(err)
 	}
 	runGit(t, "init", "--quiet")
-	return mwcli.NewFactory(iostreams.Init(), cli.HTTPUserAgent)
+	factory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return factory
 }
 
 func runGit(t *testing.T, args ...string) string {
@@ -66,7 +64,7 @@ func TestWikimediaRemoteHosts(t *testing.T) {
 			if len(remotes) != 1 || remotes[0].Name != "origin" || remotes[0].RepoHost() != "gitlab.wikimedia.org" {
 				t.Fatalf("wrong remote selection: %v", remotes)
 			}
-			expectedURL, err := glabgit.ParseURL(remoteURL)
+			expectedURL, err := mwcli.ParseURL(remoteURL)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -77,9 +75,11 @@ func TestWikimediaRemoteHosts(t *testing.T) {
 			if err != nil || repo.RepoHost() != "gitlab.wikimedia.org" || repo.FullName() != "repos/releng/cli" {
 				t.Fatalf("wrong base repo: %v, %v", repo, err)
 			}
-			api.RefreshClient()
-			t.Cleanup(api.RefreshClient)
-			_, err = api.TestClient(&http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			client, err := factory.GitLabClient()
+			if err != nil {
+				t.Fatal(err)
+			}
+			client.HTTPClient().Transport = roundTripFunc(func(request *http.Request) (*http.Response, error) {
 				if !strings.HasPrefix(request.UserAgent(), cli.HTTPUserAgent+" glab/") {
 					t.Errorf("GitLab User-Agent = %q", request.UserAgent())
 				}
@@ -87,14 +87,7 @@ func TestWikimediaRemoteHosts(t *testing.T) {
 					t.Error("API did not use the canonical host and its credentials")
 				}
 				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("{}")), Request: request}, nil
-			})}, "", "gitlab.wikimedia.org", false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			client, err := factory.HttpClient()
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
 			if client.BaseURL().Host != "gitlab.wikimedia.org" {
 				t.Fatalf("wrong API host: %s", client.BaseURL())
 			}
@@ -138,7 +131,9 @@ func TestWikimediaRepoOverride(t *testing.T) {
 		"https://gitlab.wikimedia.org/repos/releng/cli",
 		"gitlab-ssh.wikimedia.org/repos/releng/cli",
 	} {
-		factory.RepoOverride(override)
+		if err := factory.RepoOverride(override); err != nil {
+			t.Fatal(err)
+		}
 		repo, err := factory.BaseRepo()
 		if err != nil || repo.RepoHost() != "gitlab.wikimedia.org" || repo.FullName() != "repos/releng/cli" {
 			t.Fatalf("override %s: %v, %v", override, repo, err)
@@ -151,5 +146,45 @@ func TestUnrelatedRemoteIsRejected(t *testing.T) {
 	runGit(t, "remote", "add", "origin", "git@gitlab-ssh.wikimedia.org.example:repos/releng/cli.git")
 	if _, err := factory.Remotes(); err == nil {
 		t.Fatal("unrelated host was accepted as Wikimedia GitLab")
+	}
+}
+
+func TestWikimediaDefaultHostAndAPIClient(t *testing.T) {
+	testFactory(t)
+	t.Setenv("GITLAB_HOST", "")
+	factory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if factory.DefaultHostname() != "gitlab.wikimedia.org" {
+		t.Fatalf("default hostname = %q", factory.DefaultHostname())
+	}
+	client, err := factory.ApiClient("gitlab-ssh.wikimedia.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Lab().BaseURL().Host != "gitlab.wikimedia.org" {
+		t.Fatalf("API host = %q", client.Lab().BaseURL().Host)
+	}
+	if !strings.HasPrefix(client.Lab().UserAgent, cli.HTTPUserAgent+" glab/") {
+		t.Fatalf("API User-Agent = %q", client.Lab().UserAgent)
+	}
+	root := Cmd()
+	for _, command := range root.Commands() {
+		if command.Name() == "update" || command.Name() == "check-update" {
+			t.Fatal("embedded glab exposes its standalone updater")
+		}
+	}
+}
+
+func TestGitLabConfigurationError(t *testing.T) {
+	testFactory(t)
+	if err := os.WriteFile(filepath.Join(os.Getenv("GLAB_CONFIG_DIR"), "config.yml"), []byte("hosts: ["), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := Cmd()
+	cmd.SetArgs([]string{"api", "version"})
+	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "read GitLab configuration") {
+		t.Fatalf("configuration error = %v", err)
 	}
 }
