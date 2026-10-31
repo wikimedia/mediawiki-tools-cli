@@ -93,7 +93,7 @@ images:
   - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v1.3.20-12
 
   # OpenSearch Dashboards UI for the local logs stack.
-  - image: opensearchproject/opensearch-dashboards:2.19.4
+  - image: opensearchproject/opensearch-dashboards:2.19.7
     requireRegex: ^2\.19\.\d+$
 
   # Vector log collector for the local logs stack.
