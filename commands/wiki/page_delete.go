@@ -26,7 +26,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "delete",
-		Short:   "MediaWiki Wiki Page Delete",
+		Short:   "Delete pages by title or from stdin",
 		RunE:    nil,
 		Example: cobrautil.NormalizeExample(pageDeleteExample),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -48,7 +48,7 @@ func NewWikiPageMoveCmd() *cobra.Command {
 			"\n\nMediaWiki automatically bot-marks move log entries when the authenticated session has the bot right. --bot requires that right on every request after login, including during a dry run, and fails if it is unavailable. Bot-marked entries can still be shown in Recent Changes. Bot passwords must include the high-volume editing grant as well as permission to move pages." +
 			"\n\nBatches stop on the first error; earlier moves remain in place. Inspect the reported results before retrying a partial batch. --move-talk also asks MediaWiki to move associated talk pages; talk-page errors are reported even if the content page moved successfully.",
 		Example: cobrautil.NormalizeExample(`
-move 'Old title' 'New title' --wiki www.mediawiki.org --user 'Name@bot' --password-file password.txt
+move 'Old title' 'New title' --profile wikimedia/addshore --wiki www.mediawiki.org
 move --prefix 'Cli/ref/mw_docker' 'Cli/ref/mw_dev' --wiki www.mediawiki.org --dry-run
 `),
 		Args: cobra.ExactArgs(2),

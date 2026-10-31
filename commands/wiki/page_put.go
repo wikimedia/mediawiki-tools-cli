@@ -27,10 +27,10 @@ func NewWikiPagePutCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "put",
-		Short: "MediaWiki Wiki Page Put",
+		Short: "Create or replace a page using source from stdin",
 		Example: cobrautil.NormalizeExample(`
-# Put "foo" on the "mwcli-test" page on test.wikipedia.org
-put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --title "mwcli-test" <<< "foo"
+# Write source to a page using a saved profile
+put --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --title "User:Addshore/CLI test" < page.wikitext
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRun {
@@ -102,6 +102,7 @@ put --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${pass
 		},
 	}
 
+	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page to create or replace")
 	cmd.Flags().StringVar(&summary, "summary", cli.DisplayName+" edit", "Summary of the edit")
 	cmd.Flags().BoolVar(&minor, "minor", false, "Minor edit")
 	cmd.Flags().BoolVar(&bot, "bot", false, "Bot edit")

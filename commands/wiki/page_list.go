@@ -32,11 +32,11 @@ func NewWikiPageListCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "MediaWiki Wiki Page List",
+		Short: "List and filter wiki page titles",
 		RunE:  nil,
 		Example: cobrautil.NormalizeExample(`
 # List pages on test.wikipedia.org
-list --wiki https://test.wikipedia.org/w/api.php --user ${user} --password ${password} --prefix ${prefix} --namespace ${namespace} --limit ${limit}
+list --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --prefix "CLI" --limit 20
 `),
 		Run: func(cmd *cobra.Command, args []string) {
 			if dryRun {
