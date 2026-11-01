@@ -39,7 +39,7 @@ func NewWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewWikiPageCmd())
 	cmd.AddCommand(NewWikiExtCmd())
 	cmd.AddCommand(NewWikiFileCmd())
-	cmd.AddCommand(newWikiAPICmd(), newWikiRESTCmd())
+	cmd.AddCommand(newWikiAPICmd(), newWikiRESTCmd(), newWikiBulkCmd())
 	cmd.AddCommand(newWikiAuthCmd(), newWikiRealmCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "Wiki URL or API endpoint")
 	cmd.PersistentFlags().StringVar(&wikiUser, "username", "", "Wiki login username (use Name@bot for a bot password)")

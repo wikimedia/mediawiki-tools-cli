@@ -14,7 +14,7 @@ import (
 )
 
 func addWikibaseResources(cmd *cobra.Command, kind string) {
-	cmd.AddCommand(newEntityGetCmd(kind), newEntitySearchCmd(kind), newEntityCreateCmd(kind))
+	cmd.AddCommand(newEntityGetCmd(kind), newEntitySearchCmd(kind), newEntityCreateCmd(kind), newEntityStatementCmd(kind))
 	for _, term := range []string{"label", "description", "alias"} {
 		cmd.AddCommand(newEntityTermCmd(kind, term))
 	}
@@ -295,20 +295,12 @@ func runEntityTermChange(cmd *cobra.Command, out *apiOutput, options *entityEdit
 	if err != nil {
 		return err
 	}
-	entity, err := client.Entity(cmd.Context(), kind, id, nil, "info", false)
-	if err != nil {
-		return err
-	}
-	revision, err := entity.Revision()
+	_, revision, err := client.EntityForEdit(cmd.Context(), kind, id, "info", options.BaseRevision)
 	if err != nil {
 		return err
 	}
 	edit := options.EditOptions
-	if edit.BaseRevision == 0 {
-		edit.BaseRevision = revision
-	} else if edit.BaseRevision != revision {
-		return fmt.Errorf("entity %s is at revision %d, expected %d", id, revision, edit.BaseRevision)
-	}
+	edit.BaseRevision = revision
 	if options.dryRun {
 		return printEntityPlan(cmd, out, map[string]interface{}{"entity": id, "term": term, "operation": operation, "language": language, "values": values, "baserevid": edit.BaseRevision, "summary": edit.Summary, "bot": edit.Bot, "wiki": client.Endpoint})
 	}

@@ -183,7 +183,23 @@ func (c *Client) edit(ctx context.Context, fields url.Values) (json.RawMessage, 
 		return nil, fmt.Errorf("wiki returned no CSRF token")
 	}
 	fields.Set("token", result.Query.Tokens.CSRF)
-	return c.Action(ctx, http.MethodPost, fields)
+	data, err := c.Action(ctx, http.MethodPost, fields)
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasPrefix(fields.Get("action"), "wb") {
+		var response struct {
+			Success json.RawMessage `json:"success"`
+		}
+		if json.Unmarshal(data, &response) != nil || len(response.Success) == 0 {
+			return nil, fmt.Errorf("Wikibase edit returned no success marker; inspect before retrying")
+		}
+		success := string(response.Success)
+		if success != "1" && success != "true" && success != `"1"` {
+			return nil, &APIError{Code: "edit-failed", Info: "Wikibase did not report a successful edit"}
+		}
+	}
+	return data, nil
 }
 
 func ValidateEntityCreate(kind string, data []byte) (Entity, error) {

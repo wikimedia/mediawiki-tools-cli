@@ -19,6 +19,7 @@ type Page struct {
 	Title     string `json:"title"`
 	Missing   bool   `json:"missing,omitempty"`
 	Invalid   bool   `json:"invalid,omitempty"`
+	Redirect  bool   `json:"redirect,omitempty"`
 }
 
 // PageSelection represents exactly one page source. Empty Source selects allpages.
