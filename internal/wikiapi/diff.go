@@ -57,10 +57,15 @@ func (c *Client) PageDiff(ctx context.Context, from, to string, unified bool) (m
 		return nil, err
 	}
 	fields := url.Values{"action": {"compare"}, "prop": {"diff|ids|title|timestamp"}}
-	setDiffSelector(fields, "from", first)
 	if to == "" {
-		fields.Set("torelative", "prev")
+		previous, selected, err := c.diffRevisionPair(ctx, first)
+		if err != nil {
+			return nil, err
+		}
+		fields.Set("fromrev", strconv.FormatInt(previous, 10))
+		fields.Set("torev", strconv.FormatInt(selected, 10))
 	} else {
+		setDiffSelector(fields, "from", first)
 		second, e := ParseDiffSelector(to)
 		if e != nil {
 			return nil, e
@@ -94,6 +99,50 @@ func (c *Client) PageDiff(ctx context.Context, from, to string, unified bool) (m
 		return nil, fmt.Errorf("wiki did not return diff body")
 	}
 	return response.Compare, nil
+}
+
+// diffRevisionPair reads identifiers only. Resolving both IDs before comparing
+// also pins a title's selected revision if another edit arrives between reads.
+func (c *Client) diffRevisionPair(ctx context.Context, selector DiffSelector) (int64, int64, error) {
+	fields := url.Values{"action": {"query"}, "prop": {"revisions"}, "rvprop": {"ids"}}
+	if selector.Revision > 0 {
+		fields.Set("revids", strconv.FormatInt(selector.Revision, 10))
+	} else {
+		fields.Set("titles", apiList([]string{selector.Title}))
+		fields.Set("rvlimit", "1")
+	}
+	data, err := c.Action(ctx, http.MethodGet, fields)
+	if err != nil {
+		return 0, 0, err
+	}
+	var result struct {
+		Query struct {
+			Pages []struct {
+				Missing, Invalid bool
+				Revisions        []struct {
+					ID     int64  `json:"revid"`
+					Parent *int64 `json:"parentid"`
+				}
+			} `json:"pages"`
+		} `json:"query"`
+	}
+	if err = json.Unmarshal(data, &result); err != nil {
+		return 0, 0, err
+	}
+	if len(result.Query.Pages) != 1 || result.Query.Pages[0].Missing || result.Query.Pages[0].Invalid || len(result.Query.Pages[0].Revisions) != 1 {
+		return 0, 0, fmt.Errorf("selected page or revision is missing, deleted, or unavailable")
+	}
+	revision := result.Query.Pages[0].Revisions[0]
+	if revision.ID <= 0 || selector.Revision > 0 && revision.ID != selector.Revision || revision.Parent == nil {
+		return 0, 0, fmt.Errorf("wiki returned incomplete selected revision metadata")
+	}
+	if *revision.Parent == 0 {
+		return 0, 0, fmt.Errorf("revision %d is the first revision and has no predecessor; specify two selectors to compare explicitly", revision.ID)
+	}
+	if *revision.Parent < 0 {
+		return 0, 0, fmt.Errorf("wiki returned an invalid predecessor revision")
+	}
+	return *revision.Parent, revision.ID, nil
 }
 
 // DiffText extracts native unified text when available. Older table diffs are

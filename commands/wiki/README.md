@@ -97,7 +97,9 @@ mw wiki file usage Example.jpg --namespace 0 --limit 20 --output titles
 ```
 
 A single diff selector compares the selected page/revision with its predecessor;
-two selectors compare FROM to TO. Bare positive integers mean revision IDs;
+the parent and selected revision IDs are pinned before comparison. First revisions
+have no predecessor and fail with an explicit message; inaccessible or deleted
+revisions return errors. Two selectors compare FROM to TO. Bare positive integers mean revision IDs;
 `title:` forces a literal title. Default text uses native unified diffs when the
 wiki supports them, otherwise readable +/-/context lines. The older-wiki fallback
 is **not an applyable patch**. JSON/jq expose native comparison metadata and HTML;

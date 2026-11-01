@@ -119,6 +119,10 @@ func TestDiffAndFileCLIOutputs(t *testing.T) {
 		if r.Method != "GET" {
 			t.Error("read command wrote")
 		}
+		if q.Get("prop") == "revisions" {
+			fmt.Fprint(w, `{"query":{"pages":[{"title":"Earth","revisions":[{"revid":2,"parentid":1}]}]}}`)
+			return
+		}
 		if q.Get("action") == "compare" {
 			fmt.Fprint(w, `{"compare":{"fromrevid":1,"torevid":2,"body":"<tr><td><pre>@@ -1 +1 @@\n-old\n+new\n</pre></td></tr>"}}`)
 			return

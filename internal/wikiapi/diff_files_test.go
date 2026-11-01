@@ -48,18 +48,61 @@ func TestDiffSelectorsUnifiedFallbackAndReadableHTML(t *testing.T) {
 	}
 }
 
-func TestSingleDiffUsesRelativeRead(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
-		if q.Get("fromtitle") != "Earth" || q.Get("torelative") != "prev" || q.Has("totitle") {
-			t.Error(q)
+func TestSingleDiffDirectionForTitlesAndRevisionIDs(t *testing.T) {
+	for _, selector := range []string{"Earth", "rev:20", "20"} {
+		t.Run(selector, func(t *testing.T) {
+			requests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				q := r.URL.Query()
+				if q.Get("action") == "query" {
+					if q.Get("rvprop") != "ids" || q.Get("prop") != "revisions" {
+						t.Error(q)
+					}
+					if selector == "Earth" {
+						if q.Get("titles") != "Earth" || q.Get("rvlimit") != "1" {
+							t.Error(q)
+						}
+					} else if q.Get("revids") != "20" || q.Has("rvlimit") {
+						t.Error(q)
+					}
+					fmt.Fprint(w, `{"query":{"pages":[{"title":"Earth","revisions":[{"revid":20,"parentid":19}]}]}}`)
+					return
+				}
+				if q.Get("fromrev") != "19" || q.Get("torev") != "20" || q.Has("torelative") || q.Has("fromtitle") {
+					t.Error(q)
+				}
+				fmt.Fprint(w, `{"compare":{"fromrevid":19,"torevid":20,"body":"<tr><td class='diff-deletedline'><div>removed</div></td><td class='diff-addedline'><div>added</div></td></tr>"}}`)
+			}))
+			defer server.Close()
+			client, _ := New(server.URL+"/w/api.php", server.Client())
+			diff, err := client.PageDiff(context.Background(), selector, "", false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			text, err := DiffText(rawString(diff["body"]))
+			if err != nil || text != "-removed\n+added\n" || requests != 2 {
+				t.Fatalf("%q requests=%d %v", text, requests, err)
+			}
+		})
+	}
+}
+
+func TestSingleDiffUnavailableAndFirstRevision(t *testing.T) {
+	for _, response := range []string{
+		`{"query":{"pages":[{"revisions":[{"revid":1,"parentid":0}]}]}}`,
+		`{"query":{"pages":[{"title":"Missing","missing":true}]}}`,
+		`{"query":{"badrevids":{"20":{"revid":20,"missing":true}}}}`,
+		`{"query":{"pages":[{"revisions":[{"revid":20}]}]}}`,
+	} {
+		calls := 0
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; fmt.Fprint(w, response) }))
+		client, _ := New(server.URL+"/w/api.php", server.Client())
+		_, err := client.PageDiff(context.Background(), "Earth", "", false)
+		server.Close()
+		if err == nil || calls != 1 {
+			t.Fatalf("%s calls=%d %v", response, calls, err)
 		}
-		fmt.Fprint(w, `{"compare":{"fromrevid":1,"torevid":2,"body":""}}`)
-	}))
-	defer server.Close()
-	client, _ := New(server.URL+"/w/api.php", server.Client())
-	if _, err := client.PageDiff(context.Background(), "Earth", "", false); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -109,5 +152,23 @@ func TestFileSharedMetadataAndPaginatedLocalUsage(t *testing.T) {
 	}
 	if title, err := FileTitle("Datei:Example.jpg"); err != nil || title != "Datei:Example.jpg" {
 		t.Fatal(title, err)
+	}
+}
+
+func TestSingleDiffHiddenPredecessorReturnsAPIError(t *testing.T) {
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.URL.Query().Get("action") == "query" {
+			fmt.Fprint(w, `{"query":{"pages":[{"revisions":[{"revid":20,"parentid":19}]}]}}`)
+		} else {
+			fmt.Fprint(w, `{"error":{"code":"missingcontent","info":"Predecessor content is not available"}}`)
+		}
+	}))
+	defer server.Close()
+	client, _ := New(server.URL+"/w/api.php", server.Client())
+	_, err := client.PageDiff(context.Background(), "20", "", false)
+	if err == nil || !strings.Contains(err.Error(), "missingcontent") || calls != 2 {
+		t.Fatal(calls, err)
 	}
 }
