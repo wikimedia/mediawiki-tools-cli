@@ -549,6 +549,10 @@ func (c *Client) PlanStatement(ctx context.Context, kind, id string, change Stat
 		return plan, nil
 	}
 	candidate := cloneStatement(change.Statement)
+	rankOnly := change.Operation == "update" && change.Statement == nil && change.Snak == nil && change.Rank != ""
+	if rankOnly {
+		candidate = cloneStatement(existing)
+	}
 	if change.Snak != nil {
 		if change.Statement != nil {
 			return nil, fmt.Errorf("choose typed value or native statement JSON")
@@ -582,7 +586,7 @@ func (c *Client) PlanStatement(ctx context.Context, kind, id string, change Stat
 		}
 		setJSON(candidate, "id", change.ID)
 	}
-	if err = ValidateStatement(candidate, rawJSON); err != nil {
+	if err = ValidateStatement(candidate, rawJSON || rankOnly); err != nil {
 		return nil, err
 	}
 	plan.Change = candidate

@@ -115,7 +115,7 @@ func newStatementEditCmd(kind, operation string) *cobra.Command {
 	}
 	cmd := &cobra.Command{
 		Use: use, Short: "Apply one revision-guarded statement " + operation, Args: args, ValidArgsFunction: cobra.NoFileCompletions,
-		Long: "Read the entity revision before editing one statement. Scalar edits preserve existing qualifiers/references and rank; --input supplies a complete native statement replacement. Statement IDs are opaque and checked against this entity. Supported typed datatypes are listed under --datatype; --raw-json with --input skips datatype-specific validation for other native types. Property/datatype compatibility is finally checked by the wiki. Dry-run reads state but fetches no CSRF token and writes nothing. Failed writes are never retried automatically.",
+		Long: "Read the entity revision before editing one statement. Use update ID STATEMENT_ID --rank preferred for a rank-only edit preserving all other native fields. Scalar edits preserve existing qualifiers/references and rank; --input supplies a complete native statement replacement. Statement IDs are opaque and checked against this entity. Supported typed datatypes are listed under --datatype; --raw-json with --input skips datatype-specific validation for other native types. Property/datatype compatibility is finally checked by the wiki. Dry-run reads state but fetches no CSRF token and writes nothing. Failed writes are never retried automatically.",
 		Example: "  " + operation + " " + entityExampleID(kind) + func() string {
 			if operation == "remove" {
 				return " STATEMENT_ID --dry-run"
@@ -154,6 +154,10 @@ func newStatementEditCmd(kind, operation string) *cobra.Command {
 					}
 					if err = wikiapi.ValidateStatement(change.Statement, rawJSON); err != nil {
 						return err
+					}
+				} else if operation == "update" && rank != "" && len(args) == 2 {
+					if rawJSON || cmd.Flags().Changed("datatype") || cmd.Flags().Changed("value") || cmd.Flags().Changed("value-json") || cmd.Flags().Changed("snaktype") {
+						return fmt.Errorf("rank-only update cannot include typed value flags")
 					}
 				} else {
 					if len(args) != typedCount {

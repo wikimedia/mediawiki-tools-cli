@@ -175,3 +175,57 @@ The limited syntax adapters are separate from these canonical resources:
 interface documentation, list supported subsets and differences, and describe
 how to remove them. They are original syntax adapters, not copied upstream
 implementations, Python/JavaScript runners, or a separate `wb` executable.
+
+## Sitelinks and statement ranks
+
+```sh
+mw wiki ext wikibase item sitelink list Q42
+mw wiki ext wikibase item sitelink get Q42 enwiki
+mw wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --dry-run
+mw wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --badge Q17437796 --dry-run
+mw wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --clear-badges --dry-run
+mw wiki ext wikibase item sitelink remove Q42 enwiki --dry-run
+mw wiki ext wikibase item statement update Q42 STATEMENT_ID --rank preferred --dry-run
+```
+
+Sitelinks belong to items. `set` preserves badges unless repeated `--badge` replaces
+**all** badges or `--clear-badges` explicitly empties them. The wiki validates its
+site IDs and available badges. Removing an absent sitelink fails before writing.
+Reads retain native fields, including returned URLs. Mutation flags and revision
+preconditions match the other entity commands. Rank-only statement updates accept
+`normal`, `preferred`, or `deprecated` and preserve the mainsnak, qualifiers,
+references, and extension fields, including native datatypes outside the typed
+value subset. These operations are individual edits; the bulk operation whitelist
+is unchanged.
+
+## Composable page selections
+
+```sh
+mw wiki page list --select category:Physics --select search:gravity --combine intersection --depth 1 --namespace 0 --limit 20
+mw wiki page list --select backlinks:Earth --select transclusions:Template:Planet --combine union
+mw wiki page list --select titles:pages.txt --select search:planet --combine intersection
+```
+
+`--select SOURCE:VALUE` is repeatable; supported sources are `search`, `category`,
+`backlinks`, `transclusions`, and `titles` (plain title file, or `-` for stdin).
+It can accompany one existing canonical selector, which is evaluated as the first
+operand regardless of flag order. Union is the default and keeps
+first-seen order; intersection keeps the first operand's order. All operands are
+fully paginated before composition: `--limit` never truncates an operand before an
+intersection. Namespace, literal grep, deduplication, and the distinct-page limit
+apply to the final set. Explicit composition can therefore read considerably more
+pages than its final limit. There is no implicit allpages operand; without explicit
+selectors the existing default allpages behavior remains unchanged.
+
+`--depth N` follows up to N subcategory edges breadth-first; depth 0 includes only
+direct members, and the maximum depth is 20. Category nodes are retained as results
+unless namespace filtering excludes them. Traversal tracks visited categories and
+pages to break cycles and avoid duplicates. `--max-categories` (default 1000 per
+category operand, including the root) aborts with an error instead of returning a
+silently truncated set. Recursion does not follow backlinks or transclusions.
+Pywikibot compatibility remains a separate single-source adapter and cannot be
+combined with `--select`, `--depth`, or `--combine`. Only one title-file operand may consume stdin.
+
+Completion for these resource commands is offline: fixed-value flags suggest
+supported values and unknown entity IDs/titles/hashes do not fall back to filenames.
+Raw API completion continues to use its cached installation discovery.

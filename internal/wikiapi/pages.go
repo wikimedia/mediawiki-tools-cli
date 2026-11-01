@@ -22,13 +22,17 @@ type Page struct {
 	Redirect  bool   `json:"redirect,omitempty"`
 }
 
-// PageSelection represents exactly one page source. Empty Source selects allpages.
+// PageSelection selects one source or composes explicit operands. Empty Source
+// without operands selects allpages. Depth counts subcategory edges.
 type PageSelection struct {
-	Source    string
-	Value     string
-	Namespace *int
-	Limit     int
-	Grep      string
+	Selectors            []PageSelector
+	Combine              string
+	Depth, MaxCategories int
+	Source               string
+	Value                string
+	Namespace            *int
+	Limit                int
+	Grep                 string
 	// AllPages holds the existing allpages-only filters using API parameter names.
 	AllPages url.Values
 	Titles   []string
@@ -56,6 +60,9 @@ func ReadTitles(input io.Reader) ([]string, error) {
 func (c *Client) SelectPages(ctx context.Context, options PageSelection) ([]Page, error) {
 	if options.Limit < 0 {
 		return nil, fmt.Errorf("--limit must be nonnegative")
+	}
+	if len(options.Selectors) > 0 || options.Depth != 0 || options.Combine != "" {
+		return c.selectComposedPages(ctx, options)
 	}
 	pages := []Page{}
 	seen := map[string]bool{}

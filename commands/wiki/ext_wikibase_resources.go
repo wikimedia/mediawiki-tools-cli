@@ -14,6 +14,9 @@ import (
 )
 
 func addWikibaseResources(cmd *cobra.Command, kind string) {
+	if kind == "item" {
+		cmd.AddCommand(newEntitySitelinkCmd())
+	}
 	cmd.AddCommand(newEntityGetCmd(kind), newEntitySearchCmd(kind), newEntityCreateCmd(kind), newEntityStatementCmd(kind))
 	for _, term := range []string{"label", "description", "alias"} {
 		cmd.AddCommand(newEntityTermCmd(kind, term))

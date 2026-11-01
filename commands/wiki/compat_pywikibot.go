@@ -8,7 +8,7 @@
 // markers, namespace names/lists, site flags or prompts. Zero limit follows mw's
 // unlimited convention. Authentication/output come from mw, not Pywikibot.
 // Removal boundary: delete this file and compat_pywikibot_test.go, then remove
-// the compatibility variable, apply call and register call in page_list.go.
+// the compatibility variable, mix guards, apply call and register call in page_list.go.
 // The canonical selectors and internal/wikiapi implementation need no changes.
 package wiki
 

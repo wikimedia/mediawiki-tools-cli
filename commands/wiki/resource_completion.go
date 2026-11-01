@@ -19,6 +19,7 @@ func registerResourceCompletions(root *cobra.Command) {
 			"rank":     {"normal", "preferred", "deprecated"},
 			"snaktype": {"value", "somevalue", "novalue"},
 			"datatype": {"string", "external-id", "url", "commonsMedia", "wikibase-item", "wikibase-property", "monolingualtext", "quantity", "time", "globe-coordinate"},
+			"select":   {"search:", "category:", "backlinks:", "transclusions:", "titles:"},
 			"combine":  {"union", "intersection"},
 		}
 		if flag := cmd.Flags().Lookup("output"); flag != nil {
