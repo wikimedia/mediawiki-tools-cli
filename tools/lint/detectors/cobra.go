@@ -70,31 +70,7 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 			}
 			return nil
 		},
-		// annotations-allowed: Only defined annotations are allowed
-		// Generally to help avoid typos
-		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
-			allowedKeys := []string{
-				"exitCode",
-				"group",
-				"mwcli-lint-skip",
-				"mwcli-lint-skip-children",
-				"mwcli-docs-skip-children",
-				cli.TelemetrySkipAnnotation,
-			}
-			// TODO check all annotaitons and issue for each
-			for key := range theCmd.Annotations {
-				if !stringsutil.StringInSlice(key, allowedKeys) {
-					return &issue.Issue{
-						Target:  "cmd: " + cmdStirng,
-						Level:   issue.ErrorLevel,
-						Code:    "annotations-allowed",
-						Text:    "Annotation keys must come from allowed list",
-						Context: ">>> " + key,
-					}
-				}
-			}
-			return nil
-		},
+		detectAllowedAnnotations,
 		// end-to-end-test: All commands should have an end to end test
 		// Helps ensure test coverage
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
@@ -190,6 +166,34 @@ func detectFlagHelp(cmd *cobra.Command, path string) *issue.Issue {
 				Target: "cmd: " + path, Level: issue.WarningLevel, Code: "flag-help-required",
 				Text:    "Add help text for every flag",
 				Context: strings.Join(undocumented, ", "),
+			}
+		}
+	}
+	return nil
+}
+
+// detectAllowedAnnotations rejects unknown keys while permitting documented metadata.
+func detectAllowedAnnotations(theCmd *cobra.Command, cmdString string) *issue.Issue {
+	allowedKeys := []string{
+		"exitCode",
+		"group",
+		"mwcli-lint-skip",
+		"mwcli-lint-skip-children",
+		"mwcli-docs-skip-children",
+		"service-name",
+		"service-url",
+		"service-logo",
+		cli.TelemetrySkipAnnotation,
+	}
+	// TODO check all annotaitons and issue for each
+	for key := range theCmd.Annotations {
+		if !stringsutil.StringInSlice(key, allowedKeys) {
+			return &issue.Issue{
+				Target:  "cmd: " + cmdString,
+				Level:   issue.ErrorLevel,
+				Code:    "annotations-allowed",
+				Text:    "Annotation keys must come from allowed list",
+				Context: ">>> " + key,
 			}
 		}
 	}

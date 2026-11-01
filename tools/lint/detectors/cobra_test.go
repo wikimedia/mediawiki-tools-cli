@@ -4,8 +4,20 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 )
+
+func TestServiceMetadataAnnotationsAreAllowed(t *testing.T) {
+	cmd := cobrautil.WithServiceInfo(&cobra.Command{Use: "example"}, cobrautil.ServiceInfo{Name: "Example", URL: "https://example.org", Logo: "https://example.org/logo.svg"})
+	if found := detectAllowedAnnotations(cmd, "mw example"); found != nil {
+		t.Fatalf("service metadata rejected: %+v", found)
+	}
+	cmd.Annotations["service-log"] = "typo"
+	if found := detectAllowedAnnotations(cmd, "mw example"); found == nil || found.Code != "annotations-allowed" {
+		t.Fatal("unknown annotation was accepted")
+	}
+}
 
 func TestLongHelpRequiredForExecutableCommandsWithInputs(t *testing.T) {
 	cmd := &cobra.Command{Use: "run", Run: func(*cobra.Command, []string) {}}
