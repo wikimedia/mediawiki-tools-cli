@@ -58,6 +58,13 @@ func (cs *cacheStore) set(key string, value interface{}, ttl time.Duration) {
 	cs.dirty = true
 }
 
+func (cs *cacheStore) remove(key string) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	delete(cs.data, key)
+	cs.dirty = true
+}
+
 func (cs *cacheStore) flush() {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -87,6 +94,9 @@ func newPhabCache(dir string) *PhabCache {
 }
 
 func (pc *PhabCache) flush() {
+	if pc == nil {
+		return
+	}
 	pc.phids.flush()
 	pc.transactions.flush()
 }

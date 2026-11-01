@@ -296,7 +296,7 @@ func shellView(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderTask(task, s.client)
+	renderTask(os.Stdout, task, s.client)
 	return nil
 }
 
@@ -314,7 +314,7 @@ func shellComments(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderComments(task, txs, s.client)
+	renderComments(os.Stdout, task, txs, s.client)
 	return nil
 }
 
@@ -420,6 +420,7 @@ func shellRMTag(s *shellState, args []string) error {
 }
 
 var priorityMap = map[string]string{
+	"unbreak": "unbreak", "triage": "triage", "high": "high", "normal": "normal", "low": "low", "lowest": "lowest",
 	"u":  "unbreak",
 	"t":  "triage",
 	"h":  "high",
@@ -463,6 +464,7 @@ func shellSetPrio(s *shellState, args []string) error {
 }
 
 var statusMap = map[string]string{
+	"open": "open", "resolved": "resolved", "progress": "progress", "stalled": "stalled", "declined": "declined", "duplicate": "duplicate", "invalid": "invalid",
 	"o":   "open",
 	"r":   "resolved",
 	"p":   "progress",

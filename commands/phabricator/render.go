@@ -2,6 +2,7 @@ package phabricator
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -67,34 +68,34 @@ func renderMarkdown(md string) string {
 	return rendered
 }
 
-// renderTask prints the full task view to stdout.
-func renderTask(task *phabTask, client *conduitClient) {
-	fmt.Println()
+// renderTask prints the full task view to the requested output.
+func renderTask(w io.Writer, task *phabTask, client *conduitClient) {
+	fmt.Fprintln(w)
 
 	taskID := fmt.Sprintf("T%d", task.ID)
 	taskURI := fmt.Sprintf("%s/T%d", client.baseURL, task.ID)
-	yellow.Printf("%s", taskID)
-	fmt.Printf(" ")
-	white.Printf("%s", task.Fields.Name)
-	fmt.Printf(" ")
-	blue.Printf("%s", taskURI)
-	fmt.Println()
-	fmt.Println()
+	yellow.Fprintf(w, "%s", taskID)
+	fmt.Fprintf(w, " ")
+	white.Fprintf(w, "%s", task.Fields.Name)
+	fmt.Fprintf(w, " ")
+	blue.Fprintf(w, "%s", taskURI)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w)
 
-	magenta.Printf("Created: ")
-	fmt.Printf("%s", formatDate(task.Fields.DateCreated))
-	fmt.Printf("  ")
-	magenta.Printf("Last Modified: ")
-	fmt.Printf("%s\n", formatDate(task.Fields.DateModified))
+	magenta.Fprintf(w, "Created: ")
+	fmt.Fprintf(w, "%s", formatDate(task.Fields.DateCreated))
+	fmt.Fprintf(w, "  ")
+	magenta.Fprintf(w, "Last Modified: ")
+	fmt.Fprintf(w, "%s\n", formatDate(task.Fields.DateModified))
 
-	yellow.Println(dashes())
+	yellow.Fprintln(w, dashes())
 
 	md := task.Fields.Description.Raw
 	if md != "" {
-		fmt.Print(renderMarkdown(md))
+		fmt.Fprint(w, renderMarkdown(md))
 	}
 
-	yellow.Println(dashes())
+	yellow.Fprintln(w, dashes())
 
 	// Resolve author and assignee
 	phids := []string{}
@@ -121,17 +122,17 @@ func renderTask(task *phabTask, client *conduitClient) {
 		}
 	}
 
-	blue.Printf("Author: ")
-	fmt.Printf("%s", authorName)
-	fmt.Printf(", ")
-	blue.Printf("Assignee: ")
-	fmt.Printf("%s\n", assigneeName)
+	blue.Fprintf(w, "Author: ")
+	fmt.Fprintf(w, "%s", authorName)
+	fmt.Fprintf(w, ", ")
+	blue.Fprintf(w, "Assignee: ")
+	fmt.Fprintf(w, "%s\n", assigneeName)
 
-	magenta.Printf("Status: ")
-	fmt.Printf("%s", task.Fields.Status.Name)
-	fmt.Printf("  ")
-	magenta.Printf("Priority: ")
-	fmt.Printf("%s\n", task.Fields.Priority.Name)
+	magenta.Fprintf(w, "Status: ")
+	fmt.Fprintf(w, "%s", task.Fields.Status.Name)
+	fmt.Fprintf(w, "  ")
+	magenta.Fprintf(w, "Priority: ")
+	fmt.Fprintf(w, "%s\n", task.Fields.Priority.Name)
 
 	// Projects
 	if len(task.Attachments.Projects.ProjectPHIDs) > 0 {
@@ -141,15 +142,15 @@ func renderTask(task *phabTask, client *conduitClient) {
 			names = append(names, n)
 		}
 		sort.Strings(names)
-		green.Printf("Projects: ")
-		fmt.Println(strings.Join(names, ", "))
+		green.Fprintf(w, "Projects: ")
+		fmt.Fprintln(w, strings.Join(names, ", "))
 	}
 
-	fmt.Println()
+	fmt.Fprintln(w)
 }
 
-// renderComments prints the comments for a task to stdout.
-func renderComments(task *phabTask, txs []phabTransaction, client *conduitClient) {
+// renderComments prints the comments for a task to the requested output.
+func renderComments(w io.Writer, task *phabTask, txs []phabTransaction, client *conduitClient) {
 	// Collect author PHIDs (filtering bots)
 	type commentEntry struct {
 		authorPHID string
@@ -202,7 +203,7 @@ func renderComments(task *phabTask, txs []phabTransaction, client *conduitClient
 	}
 
 	if len(comments) == 0 {
-		fmt.Println("(no comments)")
+		fmt.Fprintln(w, "(no comments)")
 		return
 	}
 
@@ -222,11 +223,11 @@ func renderComments(task *phabTask, txs []phabTransaction, client *conduitClient
 		if u, ok := users[c.authorPHID]; ok {
 			authorName = u[0]
 		}
-		fmt.Println()
-		yellow.Printf("On %s, %s wrote:\n", formatDate(c.date), authorName)
-		fmt.Print(renderMarkdown(c.content))
-		whitePlain.Println(strings.Repeat("-", termWidth()))
-		fmt.Println()
+		fmt.Fprintln(w)
+		yellow.Fprintf(w, "On %s, %s wrote:\n", formatDate(c.date), authorName)
+		fmt.Fprint(w, renderMarkdown(c.content))
+		whitePlain.Fprintln(w, strings.Repeat("-", termWidth()))
+		fmt.Fprintln(w)
 	}
 }
 
