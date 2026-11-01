@@ -15,7 +15,7 @@ Set Width 1440
 Set Height 900
 Set Padding 20
 Set Framerate 15
-Set TypingSpeed 25ms
+Set TypingSpeed 30ms
 
 Hide
 Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
@@ -30,26 +30,25 @@ Type '# Start a local MediaWiki environment'
 Enter
 Type 'mw dev mediawiki create'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@180s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Ctrl+L
 Type 'mw dev mysql create'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@180s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Ctrl+L
 Type 'mw dev mediawiki install --dbtype=mysql'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@240s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type 'mw dev compose ps'
 Enter
+Sleep 250ms
+Wait+Line@60s /^> ?$/
 Sleep 3s

@@ -26,12 +26,13 @@ Type '# Check the installed version'
 Enter
 Type 'mw version'
 Enter
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Preview v0.33.0 and its changelog without installing it'
 Enter
 Type 'mw update --dry-run --version v0.33.0'
 Enter
+Sleep 250ms
 Wait+Line@90s /^> ?$/
 Sleep 3s

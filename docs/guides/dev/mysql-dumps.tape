@@ -28,23 +28,28 @@ Type '# Export the local wiki database'
 Enter
 Type 'mw dev compose exec -- -T mysql sh -c "mariadb-dump -uroot -ptoor --single-transaction default > /tmp/mw-default.sql"'
 Enter
+Sleep 250ms
 Wait+Line@60s /^> ?$/
 Type 'mw dev compose cp mysql:/tmp/mw-default.sql _recordings/mw-default.sql'
 Enter
+Sleep 250ms
 Wait+Line@30s /^> ?$/
 Type 'ls -lh _recordings/mw-default.sql'
 Enter
-Sleep 2s
+Sleep 3s
 
 Type '# Restore a copy into a second local database'
 Enter
 Type 'mw dev compose exec -- -T mysql mariadb -uroot -ptoor -e "CREATE DATABASE recording_restore"'
 Enter
+Sleep 250ms
 Wait+Line@30s /^> ?$/
 Type 'mw dev compose exec -- -T mysql mariadb -uroot -ptoor recording_restore < _recordings/mw-default.sql'
 Enter
+Sleep 250ms
 Wait+Line@60s /^> ?$/
 Type 'mw dev compose exec -- -T mysql mariadb -uroot -ptoor -N -D recording_restore -e "SELECT COUNT(*) AS restored_tables FROM information_schema.tables WHERE table_schema=DATABASE()"'
 Enter
+Sleep 250ms
 Wait+Line@30s /^> ?$/
-Sleep 2s
+Sleep 3s

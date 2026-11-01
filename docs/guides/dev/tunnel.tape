@@ -28,18 +28,20 @@ Type '# Open a temporary HTTPS tunnel to the local gateway'
 Enter
 Type 'mw dev tunnel start'
 Enter
+Sleep 250ms
 Wait+Line@180s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Check the tunnel and copy its URL'
 Enter
 Type 'mw dev tunnel status'
 Enter
+Sleep 250ms
 Wait+Line@45s /^> ?$/
 Type 'mw dev tunnel url'
 Enter
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Copy the HTTPS URL and sign in through the gateway'
@@ -48,5 +50,6 @@ Type '# Stop the public tunnel when finished'
 Enter
 Type 'mw dev tunnel stop'
 Enter
+Sleep 250ms
 Wait+Line@90s /^> ?$/
 Sleep 3s

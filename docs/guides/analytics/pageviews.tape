@@ -13,7 +13,7 @@ Set Width 1440
 Set Height 900
 Set Padding 20
 Set Framerate 15
-Set TypingSpeed 25ms
+Set TypingSpeed 31ms
 
 Hide
 Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
@@ -26,21 +26,24 @@ Type '# Graph the same Wikimedia pageview data'
 Enter
 Type 'mw analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output graph'
 Enter
+Sleep 250ms
 Wait+Line@45s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Use JSON in a script or jq'
 Enter
 Type 'mw analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output json'
 Enter
+Sleep 250ms
 Wait+Line@45s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Export rows for a spreadsheet'
 Enter
 Type 'mw analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output csv'
 Enter
+Sleep 250ms
 Wait+Line@45s /^> ?$/
-Sleep 2s
+Sleep 3s
