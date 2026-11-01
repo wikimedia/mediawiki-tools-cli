@@ -35,26 +35,38 @@ Use `mw wiki file upload` with a local image, recording or other file accepted b
 
 ### Authenticate
 
-Create a bot password at the destination wiki's `Special:BotPasswords`. Enable **Edit existing pages**, **Create, edit, and move pages**, **Upload new files**, and **Upload, replace, and move files**. Uploading also needs the page-editing permissions because it creates a file description page. The bot password can only exercise rights your account already has.
-
-Save the password in a private temporary file. In Bash, this keeps it out of shell history and command arguments:
+For Wikimedia sites, authorize a saved profile with the built-in OAuth client:
 
 ```sh
-password_file=$(mktemp)
-read -r -s -p 'Bot password: ' wiki_password
-printf '\n'
-printf '%s' "$wiki_password" > "$password_file"
-unset wiki_password
+mw wiki auth login --profile wikimedia/uploads --scope basic,editpage,createeditmovepage,uploadfile,uploadeditmovefile
 ```
 
-Pass the bot login name (for example `YourName@upload`) with `--user` and the file with `--password-file`. The CLI logs in for each invocation; it does not remember wiki credentials. When finished, remove it with `rm -- "$password_file"` and `unset password_file`. Existing wiki commands also accept `--password-file`.
+Approve access in the browser. The profile works across Wikimedia sites, including
+Commons. Basic-only access cannot upload files; add `--replace` to the login
+command when updating an existing profile's authorization.
+
+For another wiki, create a bot password at its `Special:BotPasswords`. Enable
+**Edit existing pages**, **Create, edit, and move pages**, **Upload new files**,
+and **Upload, replace, and move files**, then save it as a separate profile:
+
+```sh
+mw wiki auth login --profile example/uploads --wiki https://wiki.example/w/api.php --method password --username 'YourName@upload'
+```
+
+Enter the bot password at the hidden prompt. Credentials are saved using your
+selected [credential provider](../authentication.md#saved-wiki-profiles); uploads
+reuse the profile. For that wiki, substitute `--profile example/uploads` and its
+`--wiki` endpoint in the examples below.
+
+Uploads need page-editing permissions to create the file description page. OAuth
+and bot passwords can only exercise rights your account already has.
 
 ### Upload a file
 
 Write the initial description and license as wikitext in `description.wiki`. For Commons, use its Information template and the license template appropriate to your media. Choose a descriptive, stable wiki filename:
 
 ```sh
-mw wiki file upload demo.webm --wiki commons.wikimedia.org --user 'YourName@upload' --password-file "$password_file" --filename 'A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm' --text-file description.wiki --comment 'Record the Toolforge pod guide'
+mw wiki file upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/uploads --filename 'A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm' --text-file description.wiki --comment 'Record the Toolforge pod guide'
 ```
 
 Without `--filename`, the local basename is used. `--text` accepts inline wikitext instead of `--text-file`. `--dry-run` shows the source and destination without logging in or contacting the wiki. Check new upload commands against `--wiki test.wikipedia.org` first; this is a separate destination, not a preview of an upload to Commons.
@@ -64,7 +76,7 @@ Without `--filename`, the local basename is used. `--text` accepts inline wikite
 Use the same wiki filename with `--replace`:
 
 ```sh
-mw wiki file upload demo.webm --wiki commons.wikimedia.org --user 'YourName@upload' --password-file "$password_file" --filename 'A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm' --replace --comment 'Refresh the walkthrough'
+mw wiki file upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/uploads --filename 'A Wikimedia CLI - Guide - tools-kubernetes-pod-helloworld - en.webm' --replace --comment 'Refresh the walkthrough'
 ```
 
 This adds a file revision and preserves the existing description. `--replace` allows a replacement but also permits a new file if that name is not present. Without it, an existing-file warning stops publication. Other warnings, such as duplicate content, still stop the command; review them before explicitly accepting them with `--ignore-warnings`. That option alone does not authorize replacing an existing file.
