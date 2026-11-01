@@ -39,6 +39,7 @@ func NewWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewWikiPageCmd())
 	cmd.AddCommand(NewWikiExtCmd())
 	cmd.AddCommand(NewWikiFileCmd())
+	cmd.AddCommand(newWikiAPICmd(), newWikiRESTCmd())
 	cmd.AddCommand(newWikiAuthCmd(), newWikiRealmCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "Wiki URL or API endpoint")
 	cmd.PersistentFlags().StringVar(&wikiUser, "username", "", "Wiki login username (use Name@bot for a bot password)")
@@ -79,15 +80,18 @@ func normalizeWiki(wiki string) string {
 const anonCSRFToken = `+\`
 
 func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) error {
-	if wikiAnon {
-		return nil
-	}
 	httpClient := wikiauth.HTTPClient()
 	if len(clients) > 0 {
 		httpClient = clients[0]
 		httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	}
 	w.SetHTTPClient(httpClient)
+	if wikiAnon {
+		// SetHTTPClient inherits mwclient's fresh jar; anonymous mode deliberately
+		// disables it so even response-set cookies are not reused across requests.
+		httpClient.Jar = nil
+		return nil
+	}
 	if savedWikiProfile != nil {
 		a := *savedWikiProfile
 		endpoint, err := wikiauth.Endpoint(wiki)
@@ -165,7 +169,7 @@ func prepareWikiCommands(parent *cobra.Command) {
 			continue
 		}
 		prepareWikiCommands(child)
-		if child.HasSubCommands() {
+		if child.RunE == nil && child.Run == nil {
 			continue
 		}
 		oldE, old := child.PreRunE, child.PreRun
@@ -187,7 +191,23 @@ func prepareWikiProfile(cmd *cobra.Command) error {
 	savedWikiProfile = nil
 	wikiContext = cmd.Context()
 	explicitCredentials := wikiUser != "" || wikiPassword != "" || wikiPasswordFile != ""
-	if wikiAnon || explicitCredentials {
+	if wikiAnon {
+		if explicitCredentials {
+			return fmt.Errorf("--anon cannot be combined with explicit credentials")
+		}
+		// Site selection reads public metadata only. Anonymous access may use a
+		// profile's default site but must never open its credentials or enforce its
+		// credential scope on an explicitly selected public wiki.
+		if wiki == "" {
+			a, err := selectedWikiProfile(wikiProfile)
+			if err != nil {
+				return fmt.Errorf("provide --wiki or select a saved profile: %w", err)
+			}
+			wiki = a.Wiki
+		}
+		return nil
+	}
+	if explicitCredentials {
 		if wikiProfile != "" || wikiRealm != "" {
 			return fmt.Errorf("saved profile selection cannot be combined with --anon or explicit credentials")
 		}
