@@ -34,6 +34,7 @@ export default defineConfig({
       TableOfContents: './src/components/TableOfContents.astro',
       MobileTableOfContents: './src/components/MobileTableOfContents.astro',
       SocialIcons: './src/components/SocialIcons.astro',
+      Footer: './src/components/Footer.astro',
       MarkdownContent: './src/components/MarkdownContent.astro',
     },
     sidebar: [

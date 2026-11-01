@@ -1,0 +1,36 @@
+---
+import DefaultFooter from '@astrojs/starlight/components/Footer.astro';
+
+const hostname = Astro.site?.hostname;
+const page = Astro.url.pathname;
+---
+
+<DefaultFooter />
+{import.meta.env.PROD && (
+  <>
+    <p class="page-counter" hidden>
+      <a href="https://toolcounter.toolforge.org/">Page views</a>: <span id="tc-views">—</span>
+      <span aria-hidden="true"> · </span>
+      <span title="Approximate visits to this page per browser tab; not unique people">Sessions</span>: <span id="tc-sessions">—</span>
+    </p>
+    <script define:vars={{ hostname, page }}>
+      if (window.location.hostname === hostname) {
+        const counter = document.querySelector('.page-counter');
+        const script = document.createElement('script');
+        const url = new URL('https://toolcounter.toolforge.org/embed.js.php');
+        url.search = new URLSearchParams({ tool: 'a-wikimedia-cli', page }).toString();
+        script.src = url.href;
+        script.async = true;
+        script.referrerPolicy = 'no-referrer';
+        script.onerror = () => { if (counter) counter.hidden = true; };
+        document.body.append(script);
+        if (counter) counter.hidden = false;
+      }
+    </script>
+  </>
+)}
+
+<style>
+  .page-counter { margin-block-start: 1rem; color: var(--sl-color-gray-3); font-size: var(--sl-text-xs); }
+  .page-counter a { color: inherit; }
+</style>
