@@ -3,6 +3,7 @@ import DefaultMarkdownContent from '@astrojs/starlight/components/MarkdownConten
 import guides from '../content/docs/guides/_meta.json';
 import Recordings from './Recordings.astro';
 import DevOverview from './DevOverview.astro';
+import DocsFeedback from './DocsFeedback.astro';
 import ServiceGrid from './ServiceGrid.astro';
 const guideCandidate = Astro.url.pathname.startsWith('/manual/help/guides/') ? Astro.url.pathname.replace('/manual/help/guides/', '/guides/') : undefined;
 const guide = guides.pages.find((page) => page.url === guideCandidate);
@@ -29,6 +30,7 @@ const isDevelopmentOverview = Astro.url.pathname === '/manual/dev/';
   ) : <slot />}
 </DefaultMarkdownContent>
 {Astro.url.pathname === '/' && <ServiceGrid />}
+<DocsFeedback />
 
 <style>
   .guide-reading { padding: 1rem 1.2rem; margin-block-end: 1.5rem; border-inline-start: 3px solid var(--sl-color-accent); background: var(--sl-color-accent-low); }
