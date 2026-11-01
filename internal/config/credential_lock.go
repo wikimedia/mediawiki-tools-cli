@@ -15,6 +15,9 @@ import (
 // Serialize external credential mutations and refresh the registry after taking
 // the lock, so cleanup cannot race a transfer or save in another CLI process.
 func lockConfigFile(ctx context.Context) (func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if err := secureConfigPath(); err != nil {
 		return nil, err
 	}
@@ -27,6 +30,9 @@ func lockConfigFile(ctx context.Context) (func(), error) {
 	defer cancel()
 	ok, err := lock.TryLockContext(ctx, 50*time.Millisecond)
 	if err != nil || !ok {
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("waiting for credential mutation lock: %w", ctx.Err())
+		}
 		return nil, fmt.Errorf("could not acquire credential mutation lock")
 	}
 	return func() { _ = lock.Unlock() }, nil

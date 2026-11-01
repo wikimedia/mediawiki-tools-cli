@@ -14,8 +14,10 @@ import (
 
 var (
 	credentialStore      secrets.Store = secrets.Keyring{}
-	readKeePassXCBrowser               = func(provider secrets.KeePassXCBrowser) (string, error) { return provider.Read() }
-	findKeePassXCBrowser               = secrets.FindKeePassXCBrowserEntry
+	readKeePassXCBrowser               = func(ctx context.Context, provider secrets.KeePassXCBrowser) (string, error) {
+		return provider.ReadContext(ctx)
+	}
+	findKeePassXCBrowser = secrets.FindKeePassXCBrowserEntry
 )
 
 type Credential struct {
@@ -65,7 +67,13 @@ func HasCredential(key string) bool {
 	return state.EffectiveKoanf.String(key) != "" || state.OnDiskKoanf.Exists(credentialReferenceKey(key))
 }
 
-func (c Credential) Read() (string, error) {
+func (c Credential) Read() (string, error) { return c.ReadContext(context.Background()) }
+
+// ReadContext carries cancellation through password-manager access.
+func (c Credential) ReadContext(ctx context.Context) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	state := State()
 	// A saved provider must never fall back to leftover plaintext, even if locked.
 	key := credentialReferenceKey(c.Key)
@@ -95,7 +103,7 @@ func (c Credential) Read() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		value, err := store.Get(context.Background(), c.Key)
+		value, err := store.Get(ctx, c.Key)
 		return string(value), err
 	}
 	if stored.Provider == "keepassxc" {
@@ -110,7 +118,7 @@ func (c Credential) Read() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	value, err := store.Get(context.Background(), c.Key)
+	value, err := store.Get(ctx, c.Key)
 	if err != nil {
 		return "", fmt.Errorf("read keyring credential for %s: %w", c.Service, err)
 	}
@@ -273,8 +281,11 @@ func (c Credential) Update(ctx context.Context, update func(string) (string, err
 	if !HasCredential(c.Key) {
 		return "", fmt.Errorf("saved credential was removed; log in again")
 	}
-	previous, err := c.Read()
+	previous, err := c.ReadContext(ctx)
 	if err != nil {
+		return "", err
+	}
+	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	value, err := update(previous)
@@ -385,7 +396,7 @@ func (c Credential) UseKeePassXC(ctx context.Context, entry string) error {
 				if old.Browser == nil || old.Browser.Login != c.Account {
 					return fmt.Errorf("invalid KeePassXC GUI account reference")
 				}
-				value, err := readKeePassXCBrowser(*old.Browser)
+				value, err := readKeePassXCBrowser(context.Background(), *old.Browser)
 				if err != nil {
 					return err
 				}

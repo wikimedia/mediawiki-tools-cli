@@ -418,6 +418,8 @@ func accountTokens(ctx context.Context, a config.WikiProfile, force bool) (wikia
 }
 
 func accountTokensWithProgress(ctx context.Context, a config.WikiProfile, force bool, progress func(string)) (wikiauth.Tokens, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
 	report := func(message string) {
 		if progress != nil {
 			progress(message)

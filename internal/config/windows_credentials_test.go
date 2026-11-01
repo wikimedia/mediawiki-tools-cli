@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"strings"
@@ -97,7 +98,9 @@ func TestWindowsTransferFailureRetainsSource(t *testing.T) {
 			case "conflict":
 				store.values[ref.Service+ref.Account] = "other"
 			case "oversized":
-				readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return strings.Repeat("x", 2561), nil }
+				readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) {
+					return strings.Repeat("x", 2561), nil
+				}
 			}
 			before, _ := os.ReadFile(Path())
 			if err := cred.TransferTo(secrets.WindowsProvider, TransferOptions{KeepSource: true}); err == nil {

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -62,7 +63,10 @@ func TestSecretInventoryIncludesLinkedPlaintextOrphanAndPairingWithoutReads(t *t
 	}
 	reads := store.reads
 	previous := readKeePassXCBrowser
-	readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { t.Fatal("inventory read KeePassXC"); return "", nil }
+	readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) {
+		t.Fatal("inventory read KeePassXC")
+		return "", nil
+	}
 	t.Cleanup(func() { readKeePassXCBrowser = previous })
 	entries := SecretInventory()
 	if store.reads != reads {

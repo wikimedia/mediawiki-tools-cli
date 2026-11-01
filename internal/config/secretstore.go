@@ -31,7 +31,7 @@ func (credentialBrowser) Read(ctx context.Context, ref keepassxc.Reference) (str
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	return readKeePassXCBrowser(secrets.KeePassXCBrowser(ref))
+	return readKeePassXCBrowser(ctx, secrets.KeePassXCBrowser(ref))
 }
 
 func (credentialBrowser) Write(ctx context.Context, existing *keepassxc.Reference, key, account, endpoint, value string) (keepassxc.Reference, error) {

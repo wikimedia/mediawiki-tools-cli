@@ -54,7 +54,11 @@ type bridgeResponse struct {
 }
 
 func (c *BridgeClient) Get(service, account string) (string, error) {
-	return c.call(context.Background(), bridgeRequest{Action: "get", Service: service, Account: account})
+	return c.GetContext(context.Background(), service, account)
+}
+
+func (c *BridgeClient) GetContext(ctx context.Context, service, account string) (string, error) {
+	return c.call(ctx, bridgeRequest{Action: "get", Service: service, Account: account})
 }
 
 func (c *BridgeClient) Set(service, account, value string) error {

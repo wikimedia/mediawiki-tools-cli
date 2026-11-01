@@ -19,7 +19,7 @@ func seedGUITransfer(t *testing.T) Credential {
 	findKeePassXCBrowser = func(context.Context, string) (secrets.KeePassXCBrowser, string, error) {
 		return secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("a", 64), EntryID: strings.Repeat("b", 32), Login: "fixture"}, "legacy-secret", nil
 	}
-	readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return "legacy-secret", nil }
+	readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) { return "legacy-secret", nil }
 	if err := cred.UseKeePassXC(context.Background(), "wm/Gerrit"); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestTransferFailureKeepsSourceReference(t *testing.T) {
 				t.Fatal(err)
 			}
 			sourceReads := 0
-			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) {
+			readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) {
 				sourceReads++
 				if mode == "denied" {
 					return "", errors.New("denied")

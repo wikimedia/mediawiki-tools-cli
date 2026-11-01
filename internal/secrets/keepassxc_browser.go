@@ -41,7 +41,11 @@ func FindKeePassXCBrowserEntry(ctx context.Context, path string) (KeePassXCBrows
 }
 
 func (k KeePassXCBrowser) Read() (string, error) {
-	return browserClient().Read(context.Background(), keepassxc.Reference(k))
+	return k.ReadContext(context.Background())
+}
+
+func (k KeePassXCBrowser) ReadContext(ctx context.Context) (string, error) {
+	return browserClient().Read(ctx, keepassxc.Reference(k))
 }
 
 func WriteKeePassXCBrowser(ctx context.Context, existing *KeePassXCBrowser, key, account, endpoint, value string) (KeePassXCBrowser, error) {

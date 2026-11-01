@@ -62,7 +62,35 @@ func (b *Backend) Get(ctx context.Context, reference secretstore.Reference) ([]b
 	if err != nil {
 		return nil, err
 	}
-	value, err := b.Client.Get(service, account)
+	// Native keyring libraries may block in a desktop unlock prompt and have no
+	// cancellation API. Only the read runs in this goroutine: cancellation must
+	// never leave a transformation or credential write running in the background.
+	type result struct {
+		value string
+		err   error
+	}
+	ready := make(chan result, 1)
+	go func() {
+		if client, ok := b.Client.(interface {
+			GetContext(context.Context, string, string) (string, error)
+		}); ok {
+			value, err := client.GetContext(ctx, service, account)
+			ready <- result{value, err}
+			return
+		}
+		value, err := b.Client.Get(service, account)
+		ready <- result{value, err}
+	}()
+	var value string
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case response := <-ready:
+		value, err = response.value, response.err
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	if errors.Is(err, oskeyring.ErrNotFound) {
 		err = secretstore.ErrNotFound
 	}

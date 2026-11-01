@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/spf13/cobra"
@@ -23,11 +24,13 @@ var (
 	wikiProfile      string
 	savedWikiProfile *config.WikiProfile
 	wikiContext      context.Context
+	wikiProgress     func(string)
 )
 
 func NewWikiCmd() *cobra.Command {
 	savedWikiProfile = nil
 	wikiContext = context.Background()
+	wikiProgress = nil
 	cmd := &cobra.Command{
 		Use:     "wiki",
 		GroupID: "service",
@@ -103,7 +106,7 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 			return fmt.Errorf("wiki is outside the saved profile's site scope")
 		}
 		if a.Method == "oauth" {
-			tokens, err := accountTokens(wikiContext, a, false)
+			tokens, err := accountTokensWithProgress(wikiContext, a, false, wikiProgress)
 			if err != nil {
 				return err
 			}
@@ -112,7 +115,12 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 			w.Assert = mwclient.AssertUser
 			return nil
 		}
-		password, err := a.Credential().Read()
+		if wikiProgress != nil {
+			wikiProgress("Reading saved wiki password; unlock your password manager and approve access if prompted.")
+		}
+		credentialContext, cancel := context.WithTimeout(wikiContext, 2*time.Minute)
+		defer cancel()
+		password, err := a.Credential().ReadContext(credentialContext)
 		if err != nil {
 			return err
 		}
@@ -186,6 +194,7 @@ func prepareWikiCommands(parent *cobra.Command) {
 			} else if old != nil {
 				old(cmd, args)
 			}
+			wikiProgress = func(message string) { cmd.PrintErrln(message) }
 			return prepareWikiProfile(cmd)
 		}
 	}

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -43,7 +44,7 @@ func TestPhabricatorMigrationPreservesProviders(t *testing.T) {
 			case "keepassxc-browser":
 				metadata["browser"] = map[string]interface{}{"database_hash": strings.Repeat("a", 64), "entry_id": strings.Repeat("b", 32), "login": "Addshore"}
 				oldRead := readKeePassXCBrowser
-				readKeePassXCBrowser = func(got secrets.KeePassXCBrowser) (string, error) {
+				readKeePassXCBrowser = func(_ context.Context, got secrets.KeePassXCBrowser) (string, error) {
 					if got.EntryID != strings.Repeat("b", 32) {
 						return "", fmt.Errorf("UUID changed")
 					}

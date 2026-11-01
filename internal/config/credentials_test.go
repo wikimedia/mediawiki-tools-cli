@@ -330,7 +330,7 @@ func TestGUIProviderSwitchPreservesIdentityAndNeverUnlocksDatabaseFile(t *testin
 			if strings.Contains(string(data), "legacy-secret") || strings.Contains(string(data), "Passwords.kdbx") {
 				t.Fatal("GUI reference retained direct-access data")
 			}
-			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return "gui-secret", nil }
+			readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) { return "gui-secret", nil }
 			if value, err := cred.Read(); err != nil || value != "gui-secret" {
 				t.Fatalf("GUI read failed: %v", err)
 			}
@@ -339,7 +339,7 @@ func TestGUIProviderSwitchPreservesIdentityAndNeverUnlocksDatabaseFile(t *testin
 			if _, err := changed.Read(); err == nil {
 				t.Fatal("used GUI entry for another account")
 			}
-			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return "", errors.New("locked") }
+			readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) { return "", errors.New("locked") }
 			if err := PutKeyValueOnDisk(cred.Key, "stale-plaintext"); err != nil {
 				t.Fatal(err)
 			}
@@ -408,7 +408,7 @@ func TestKeePassXCRelinkVerifiesBeforeRemovingLeftoverPlaintext(t *testing.T) {
 				t.Fatal(err)
 			}
 			calls := 0
-			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) {
+			readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) {
 				calls++
 				if mode == "locked" {
 					return "", errors.New("locked")

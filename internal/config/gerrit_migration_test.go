@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"os"
 	"reflect"
 	"strings"
@@ -32,7 +33,7 @@ func TestGerritProfileMigrationPreservesProviders(t *testing.T) {
 			case "keepassxc-browser":
 				metadata["browser"] = map[string]interface{}{"database_hash": strings.Repeat("a", 64), "entry_id": strings.Repeat("b", 32), "login": "Addshore"}
 				previous := readKeePassXCBrowser
-				readKeePassXCBrowser = func(ref secrets.KeePassXCBrowser) (string, error) {
+				readKeePassXCBrowser = func(_ context.Context, ref secrets.KeePassXCBrowser) (string, error) {
 					if ref.EntryID != strings.Repeat("b", 32) {
 						t.Fatal("entry UUID changed")
 					}
