@@ -18,6 +18,7 @@ func NewWikiPageCmd() *cobra.Command {
 	cmd.AddCommand(NewWikiPageDeleteCmd())
 	cmd.AddCommand(NewWikiPageListCmd())
 	cmd.AddCommand(NewWikiPageMoveCmd())
+	cmd.AddCommand(newWikiPageInfoCmd(), newWikiPageHistoryCmd(), newWikiPageCategoriesCmd())
 	cmd.PersistentFlags().StringVar(&wikiPageTitle, "title", "", "Title of the page")
 	// Keep accepting --title before a subcommand for existing scripts.
 	_ = cmd.PersistentFlags().MarkHidden("title")

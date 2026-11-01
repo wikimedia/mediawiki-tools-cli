@@ -154,8 +154,7 @@ func (c *Client) SelectPages(ctx context.Context, options PageSelection) ([]Page
 	if options.Namespace != nil {
 		fields.Set(prefix+"namespace", strconv.Itoa(*options.Namespace))
 	}
-	previous := map[string]bool{}
-	previousKeys := []string{}
+	continuation := queryContinuation{}
 	for {
 		data, err := c.Action(ctx, http.MethodGet, fields)
 		if err != nil {
@@ -185,29 +184,12 @@ func (c *Client) SelectPages(ctx context.Context, options PageSelection) ([]Page
 		if err = json.Unmarshal(data, &envelope); err != nil {
 			return nil, err
 		}
-		if len(envelope.Continue) == 0 {
+		more, err := continuation.advance(fields, envelope.Continue)
+		if err != nil {
+			return nil, err
+		}
+		if !more {
 			return pages, nil
-		}
-		continuation := make(url.Values)
-		for key, raw := range envelope.Continue {
-			var value string
-			if json.Unmarshal(raw, &value) != nil {
-				value = string(raw)
-			}
-			continuation.Set(key, value)
-		}
-		marker := continuation.Encode()
-		if previous[marker] {
-			return nil, fmt.Errorf("wiki repeated its continuation cursor")
-		}
-		previous[marker] = true
-		for _, key := range previousKeys {
-			fields.Del(key)
-		}
-		previousKeys = nil
-		for key, values := range continuation {
-			fields[key] = values
-			previousKeys = append(previousKeys, key)
 		}
 	}
 }
