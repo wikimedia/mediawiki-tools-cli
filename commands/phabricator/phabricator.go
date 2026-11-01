@@ -42,7 +42,8 @@ For storage options and password managers, see "mw help guides authentication".`
 	cmd.AddCommand(newPhabricatorAuthCmd(&site))
 	cmd.AddCommand(newPhabricatorCreateCmd(&site))
 	cmd.AddCommand(newTaskCmd(&site), newProjectCmd(&site), newBoardCmd(&site))
-	addViewCmd(cmd, &site)
+	cmd.AddCommand(newPhabricatorPasteCmd(&site))
+	cmd.AddCommand(newPhabricatorObjectViewCmd(&site, ""))
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)
 	addAssignCmd(cmd, &site)
@@ -76,32 +77,6 @@ func requireTaskArg(args []string) (string, error) {
 		return "", fmt.Errorf("invalid task reference %q (expected T12345 format)", ref)
 	}
 	return upper, nil
-}
-
-func addViewCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(&cobra.Command{
-		Use:     "view <T12345>",
-		Aliases: []string{"v"},
-		Short:   "View a Phabricator task",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromCommand(cmd, *site)
-			if err != nil {
-				return err
-			}
-			taskRef, err := requireTaskArg(args)
-			if err != nil {
-				return err
-			}
-			task, err := client.getTask(taskRef)
-			if err != nil {
-				return err
-			}
-			renderTask(task, client)
-			client.cache.flush()
-			return nil
-		},
-	})
 }
 
 func addCommentsCmd(parent *cobra.Command, site *string) {
