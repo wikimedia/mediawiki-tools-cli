@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://a-wikimedia-cli.toolforge.org/sitemap-index.xml

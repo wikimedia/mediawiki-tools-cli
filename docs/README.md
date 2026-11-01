@@ -28,22 +28,32 @@ live reload, service metadata and logo caching.
 
 ## Publish on Toolforge
 
-With Toolforge SSH access configured, upload the built site:
+From a clean checkout of the release tag, with Toolforge SSH access configured:
 
 ```sh
+make manual-install
+make manual-check
+make manual
 ./bin/mw toolforge cp --tool a-wikimedia-cli website/dist/ public_html/
 ```
 
-For initial webservice setup, run the local script as the tool account:
+Check https://a-wikimedia-cli.toolforge.org/ after uploading. No restart is
+needed for content updates; the copy retains stale remote files.
+
+First-time server setup only:
 
 ```sh
 ./bin/mw toolforge shell --tool a-wikimedia-cli -- sh -s < website/scripts/setup-toolforge.sh
 ```
 
-The script downloads the current Linux amd64 Caddy binary and starts it in
-Toolforge's `trixie` image, serving `public_html/`. Toolforge handles HTTPS.
-Subsequent uploads update the site without restarting the webservice. The copy
-command does not remove stale remote files.
+To apply server configuration changes to an existing deployment:
+
+```sh
+./bin/mw toolforge shell --tool a-wikimedia-cli -- sh -s -- restart < website/scripts/setup-toolforge.sh
+```
+
+The script downloads Caddy and runs it in Toolforge's `trixie` image, with a
+custom 404 page. Toolforge handles HTTPS; `robots.txt` allows search indexing.
 
 ## Sources and links
 
