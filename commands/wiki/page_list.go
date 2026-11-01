@@ -17,13 +17,13 @@ func NewWikiPageListCmd() *cobra.Command {
 	var search, category, backlinks, transclusions, titleFile, prefix, grep string
 	var namespace, limit, minsize, maxsize int
 	var dryRun bool
-	var compat []string
+	compatibility := pywikibotSelectorCompatibility{}
 	values := map[string]*string{}
 	out := output.Output{}
 	cmd := &cobra.Command{
 		Use: "list", Short: "Select and list wiki pages",
-		Long:    "List pages from one source: all pages (the default), search, category members, backlinks, transclusions, or a plain title file. Pagination and deduplication are shared across sources. Missing or invalid file titles are skipped. --namespace filters results and --limit counts distinct matching pages (0 is unlimited). The default output remains one title per line. No pages are edited.\n\n--pywikibot accepts only -search:QUERY, -cat:TITLE, -backlinks:TITLE, -transcludes:TITLE, -namespace:ID and -limit:N. This is selector compatibility, not a Pywikibot script runner. Other arguments are rejected.",
-		Example: "  list --search 'solar eclipse' --limit 20\n  list --category Physics --namespace 0 --output json\n  list --title-file - --limit 10\n  list --pywikibot=-backlinks:Earth --pywikibot=-namespace:0",
+		Long:    "List pages from one source: all pages (the default), search, category members, backlinks, transclusions, or a plain title file. Pagination and deduplication are shared across sources. Missing or invalid file titles are skipped. --namespace filters results and --limit counts distinct matching pages (0 is unlimited). The default output remains one title per line. No pages are edited.",
+		Example: "  list --search 'solar eclipse' --limit 20\n  list --category Physics --namespace 0 --output json\n  list --title-file - --limit 10",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateResourceOutput(&out, true); err != nil {
@@ -47,7 +47,7 @@ func NewWikiPageListCmd() *cobra.Command {
 					options.Source, options.Value = key, value
 				}
 			}
-			if err := applyPywikibotSelectors(&options, compat, cmd.Flags().Changed("namespace"), cmd.Flags().Changed("limit")); err != nil {
+			if err := compatibility.apply(cmd, &options); err != nil {
 				return err
 			}
 			if options.Limit < 0 {
@@ -129,7 +129,7 @@ func NewWikiPageListCmd() *cobra.Command {
 	flags.StringVar(&transclusions, "transclusions", "", "Select pages transcluding this title")
 	flags.StringVar(&titleFile, "title-file", "", "Read one plain title per line from a file, or - for stdin")
 	_ = cmd.MarkFlagFilename("title-file")
-	flags.StringArrayVar(&compat, "pywikibot", nil, "Supported Pywikibot selector argument (repeatable; use = before -search:...)")
+	compatibility.register(cmd)
 	flags.StringVar(&grep, "grep", "", "Only include titles containing this literal string")
 	flags.BoolVar(&dryRun, "dry-run", false, "Print the selection parameters without reading files or contacting the wiki")
 	flags.IntVar(&minsize, "minsize", 0, "Minimum allpages content size in bytes")
@@ -147,43 +147,4 @@ func NewWikiPageListCmd() *cobra.Command {
 		}
 	}}))
 	return cmd
-}
-
-func applyPywikibotSelectors(options *wikiapi.PageSelection, args []string, explicitNamespace, explicitLimit bool) error {
-	for _, arg := range args {
-		name, value, ok := strings.Cut(arg, ":")
-		if !ok || value == "" {
-			return fmt.Errorf("unsupported Pywikibot selector %q", arg)
-		}
-		switch name {
-		case "-namespace":
-			if explicitNamespace || options.Namespace != nil {
-				return fmt.Errorf("namespace specified more than once")
-			}
-			n, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("invalid namespace %q", value)
-			}
-			options.Namespace = &n
-		case "-limit":
-			if explicitLimit {
-				return fmt.Errorf("limit specified more than once")
-			}
-			n, err := strconv.Atoi(value)
-			if err != nil || n < 0 {
-				return fmt.Errorf("invalid limit %q", value)
-			}
-			options.Limit = n
-			explicitLimit = true
-		case "-search", "-cat", "-backlinks", "-transcludes":
-			if options.Source != "" {
-				return fmt.Errorf("choose one page source")
-			}
-			options.Source = map[string]string{"-search": "search", "-cat": "category", "-backlinks": "backlinks", "-transcludes": "transclusions"}[name]
-			options.Value = value
-		default:
-			return fmt.Errorf("unsupported Pywikibot selector %q", name)
-		}
-	}
-	return nil
 }

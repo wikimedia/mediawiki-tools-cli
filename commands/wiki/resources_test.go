@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestPageListSourcesOutputsAndLimitedPywikibotAdapter(t *testing.T) {
+func TestPageListSourcesAndOutputs(t *testing.T) {
 	isolateWikiProfiles(t)
 	calls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func TestPageListSourcesOutputsAndLimitedPywikibotAdapter(t *testing.T) {
 	}))
 	defer server.Close()
 	common := []string{"--anon", "--wiki", server.URL + "/w/api.php"}
-	args := append([]string{"page", "list", "--pywikibot=-search:Earth", "--pywikibot=-namespace:0", "--limit", "1"}, common...)
+	args := append([]string{"page", "list", "--search", "Earth", "--namespace", "0", "--limit", "1"}, common...)
 	if out, err := runWikiProfile(t, args, ""); err != nil || out != "Earth\n" {
 		t.Fatalf("%q %v", out, err)
 	}
@@ -49,7 +49,7 @@ func TestPageListSourcesOutputsAndLimitedPywikibotAdapter(t *testing.T) {
 		t.Fatalf("legacy filters: %q %v", out, err)
 	}
 	before := calls
-	for _, extra := range [][]string{{"--pywikibot=-simulate"}, {"--pywikibot=-file:titles.txt"}, {"--search", ""}, {"--category", "Physics", "--prefix", "E"}, {"--search", "Earth", "--backlinks", "Mars"}, {"--limit", "-1"}} {
+	for _, extra := range [][]string{{"--search", ""}, {"--category", "Physics", "--prefix", "E"}, {"--search", "Earth", "--backlinks", "Mars"}, {"--limit", "-1"}} {
 		args = append(append([]string{"page", "list"}, extra...), common...)
 		if _, err := runWikiProfile(t, args, ""); err == nil {
 			t.Errorf("unsupported/conflicting selectors accepted: %v", extra)
@@ -64,10 +64,10 @@ func TestPageListSourcesOutputsAndLimitedPywikibotAdapter(t *testing.T) {
 	}
 }
 
-func TestEntityResourceCommandsShareReadsWritesAndCompatibility(t *testing.T) {
+func TestEntityResourceCommandsShareReadsAndWrites(t *testing.T) {
 	isolateWikiProfiles(t)
 	tokens, writes, reads := 0, 0, 0
-	var lastAction, lastID, lastValue, lastLanguage string
+	var lastAction, lastValue, lastLanguage string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
 		q := r.Form
@@ -104,7 +104,7 @@ func TestEntityResourceCommandsShareReadsWritesAndCompatibility(t *testing.T) {
 			fmt.Fprint(w, `{"entity":{"id":"P99","type":"property","lastrevid":13},"success":1}`)
 		case "wbsetlabel", "wbsetdescription", "wbsetaliases":
 			writes++
-			lastAction, lastID, lastValue, lastLanguage = q.Get("action"), q.Get("id"), q.Get("value"), q.Get("language")
+			lastAction, lastValue, lastLanguage = q.Get("action"), q.Get("value"), q.Get("language")
 			if q.Get("baserevid") != "12" || q.Get("token") != "fixture-csrf" || q.Get("summary") == "" {
 				t.Errorf("edit metadata missing: %v", q)
 			}
@@ -136,12 +136,7 @@ func TestEntityResourceCommandsShareReadsWritesAndCompatibility(t *testing.T) {
 	if lastAction != "wbsetlabel" || lastValue != "New label" || lastLanguage != "en" {
 		t.Fatal(lastAction, lastValue, lastLanguage)
 	}
-	if _, err := run([]string{"set-label", "P31", "de", "Property label"}, ""); err != nil {
-		t.Fatal(err)
-	}
-	if lastID != "P31" || lastLanguage != "de" {
-		t.Fatal("compatibility redirect did not infer property", lastID, lastLanguage)
-	}
+
 	if _, err := run([]string{"item", "description", "remove", "Q42", "--language", "en"}, ""); err != nil {
 		t.Fatal(err)
 	}

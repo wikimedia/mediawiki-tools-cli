@@ -35,17 +35,6 @@ func EntityID(kind, id string) (string, error) {
 	return id, nil
 }
 
-func EntityKind(id string) (string, error) {
-	id, err := EntityID("entity", id)
-	if err != nil {
-		return "", err
-	}
-	if id[0] == 'Q' {
-		return "item", nil
-	}
-	return "property", nil
-}
-
 func ValidateLanguages(languages []string) error {
 	for _, language := range languages {
 		if !languagePattern.MatchString(language) {

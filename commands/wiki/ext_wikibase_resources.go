@@ -318,39 +318,3 @@ func runEntityTermChange(cmd *cobra.Command, out *apiOutput, options *entityEdit
 	}
 	return printEntityResponse(cmd, out, result)
 }
-
-// Compatibility redirects intentionally cover only these individual term edits.
-func newWikibaseTermCompatibility(name, term, operation string) *cobra.Command {
-	options := entityEditFlags{}
-	out := apiOutput{}
-	cmd := &cobra.Command{
-		Use: name + " ID LANGUAGE VALUE", Short: "Compatibility redirect for a Wikibase term edit", Hidden: true, Args: cobra.ExactArgs(3), Example: "  " + name + " Q42 en 'Example' --dry-run",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			kind, err := wikiapi.EntityKind(args[0])
-			if err != nil {
-				return err
-			}
-			return runEntityTermChange(cmd, &out, &options, kind, args[0], term, operation, args[1], args[2:])
-		},
-	}
-	options.flags(cmd)
-	out.flags(cmd)
-	return cmd
-}
-
-func validateResourceOutput(out *output.Output, titles bool) error {
-	switch out.Type {
-	case "json", "table", "auto":
-		return nil
-	case "titles":
-		if titles && out.Format == "" {
-			return nil
-		}
-	case "jq":
-		if out.Format != "" {
-			return nil
-		}
-		return fmt.Errorf("--output jq requires --format")
-	}
-	return fmt.Errorf("unsupported output format %q", out.Type)
-}
