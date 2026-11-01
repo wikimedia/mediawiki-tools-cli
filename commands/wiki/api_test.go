@@ -13,6 +13,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/zalando/go-keyring"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiapi"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiauth"
 )
 
@@ -98,7 +99,7 @@ func TestWikiDiscoveryAndCompletionNeverUseCredentials(t *testing.T) {
 		_ = r.ParseForm()
 		switch r.Form.Get("action") {
 		case "paraminfo":
-			fmt.Fprint(w, `{"paraminfo":{"modules":[{"name":"main","path":"main","parameters":[{"name":"action","type":["query","wbgetentities"]}]},{"name":"query","path":"query","parameters":[{"name":"prop","type":["info","revisions"]}]},{"name":"revisions","path":"query+revisions","prefix":"rv","parameters":[{"name":"prop","description":"Revision fields","type":["ids","content"]}]}]}}`)
+			fmt.Fprint(w, `{"paraminfo":{"modules":[{"name":"main","path":"main","parameters":[{"name":"action","type":["query","wbgetentities"]}]},{"name":"query","path":"query","parameters":[{"name":"prop","type":["info","revisions"]}]},{"name":"revisions","path":"query+revisions","prefix":"rv","parameters":[{"name":"prop","description":"Revision fields","type":["ids","content"]}]},{"name":"readinglists","path":"readinglists","parameters":[{"name":"command","type":["create"],"submodules":{"create":"readinglists+create"}}]},{"name":"create","path":"readinglists+create","prefix":"rl","parameters":[{"name":"name","type":"string"}]}]}}`)
 		case "query":
 			fmt.Fprint(w, `{"query":{"general":{"generator":"MediaWiki"}}}`)
 		default:
@@ -131,6 +132,20 @@ func TestWikiDiscoveryAndCompletionNeverUseCredentials(t *testing.T) {
 	values, _ = completeAPIActions(cmd, nil, "wb")
 	if len(values) != 1 || values[0] != "wbgetentities" {
 		t.Fatalf("wrong action completion: %v", values)
+	}
+	nested := newWikiAPICmd()
+	_ = nested.Flags().Set("field", "command=create")
+	values, _ = completeAPIFields(nested, []string{"readinglists"}, "rlna")
+	if len(values) != 1 || !strings.HasPrefix(values[0], "rlname=") {
+		t.Fatalf("nested extension parameter missing: %v", values)
+	}
+	values, _ = completeAPIModules(nested, nil, "readinglists+")
+	if len(values) != 1 || values[0] != "readinglists+create" {
+		t.Fatalf("nested module absent from describe completion: %v", values)
+	}
+	values, _ = completeAPIFields(cmd, []string{"query"}, "action")
+	if len(values) != 0 {
+		t.Fatalf("invalid action= parameter suggested: %v", values)
 	}
 	if _, err := runWikiProfile(t, []string{"api", "describe", "query+revisions"}, ""); err != nil {
 		t.Fatal(err)
@@ -260,5 +275,48 @@ func TestWikiAnonymousPageRequestsDoNotRetainCookies(t *testing.T) {
 	}
 	if calls != 2 {
 		t.Fatal(calls)
+	}
+}
+
+func TestRepeatedRESTQueryParametersAndActionDuplicateError(t *testing.T) {
+	isolateWikiProfiles(t)
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		values := r.URL.Query()["tag"]
+		if len(values) != 2 || values[0] != "first" || values[1] != "second" {
+			t.Errorf("repeated query values lost: %v", values)
+		}
+		fmt.Fprint(w, `{"ok":true}`)
+	}))
+	defer server.Close()
+	endpoint := server.URL + "/w/api.php"
+	if _, err := runWikiProfile(t, []string{"rest", "get", "/v1/example", "--anon", "--wiki", endpoint, "-f", "tag=first", "-f", "tag=second"}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runWikiProfile(t, []string{"api", "query", "--anon", "--wiki", endpoint, "-f", "prop=info", "-f", "prop=revisions"}, ""); err == nil || !strings.Contains(err.Error(), "duplicate field") {
+		t.Fatalf("Action duplicate was not diagnosed: %v", err)
+	}
+	if requests != 1 {
+		t.Fatal("invalid Action parameters reached server")
+	}
+}
+
+func TestRESTSchemaBasePaths(t *testing.T) {
+	for _, tc := range []struct{ name, module, server, path, want string }{
+		{"modern module", "wikibase/v1", "https://test.wikidata.org/w/rest.php/wikibase/v1", "/entities/items/{item_id}", "/wikibase/v1/entities/items/{item_id}"},
+		{"legacy example origin", "wikibase/v1", "https://wikibase.example/w/rest.php", "/wikibase/v1/entities/items/{item_id}", "/wikibase/v1/entities/items/{item_id}"},
+		{"legacy no server", "wikibase/v1", "", "/wikibase/v1/entities/items/{item_id}", "/wikibase/v1/entities/items/{item_id}"},
+		{"custom script path", "extension/v2", "/custom/rest.php/extension/v2", "/thing", "/extension/v2/thing"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var spec wikiapi.RESTSpec
+			if err := json.Unmarshal([]byte(fmt.Sprintf(`{"servers":[{"url":%q}]}`, tc.server)), &spec); err != nil {
+				t.Fatal(err)
+			}
+			if got := restRoute(wikiapi.Discovery{}, tc.module, spec, tc.path); got != tc.want {
+				t.Fatalf("got %s, want %s", got, tc.want)
+			}
+		})
 	}
 }

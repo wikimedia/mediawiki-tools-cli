@@ -25,6 +25,14 @@ func TestActionEncodingErrorsAndRESTScope(t *testing.T) {
 			return
 		}
 		_ = r.ParseForm()
+		if r.Form.Get("action") == "modernraw" {
+			_, _ = io.WriteString(w, `{"errors":[{"code":"badvalue","message":{"key":"apierror-badvalue","params":["titles"]}}]}`)
+			return
+		}
+		if r.Form.Get("action") == "modern" {
+			_, _ = io.WriteString(w, `{"errors":[{"code":"badvalue","text":"Modern diagnostic detail"}]}`)
+			return
+		}
 		if r.Form.Get("action") == "fail" {
 			_, _ = io.WriteString(w, `{"error":{"code":"permissiondenied","info":"Not allowed"}}`)
 			return
@@ -47,6 +55,14 @@ func TestActionEncodingErrorsAndRESTScope(t *testing.T) {
 	var apiError *APIError
 	if !errors.As(err, &apiError) || apiError.Code != "permissiondenied" {
 		t.Fatalf("API error lost: %v", err)
+	}
+	_, err = client.Action(context.Background(), "GET", url.Values{"action": {"modern"}})
+	if err == nil || !strings.Contains(err.Error(), "Modern diagnostic detail") {
+		t.Fatalf("modern diagnostic lost: %v", err)
+	}
+	_, err = client.Action(context.Background(), "GET", url.Values{"action": {"modernraw"}})
+	if err == nil || !strings.Contains(err.Error(), "apierror-badvalue") {
+		t.Fatalf("raw message diagnostic lost: %v", err)
 	}
 	_, err = client.REST(context.Background(), "GET", "/v1/page/Earth/bare", nil, nil, nil)
 	if err != nil {

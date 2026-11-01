@@ -55,11 +55,31 @@ func (t scopedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // APIError includes Action errors, which may arrive in an HTTP 200 response.
 type APIError struct {
-	Code string `json:"code"`
-	Info string `json:"info"`
+	Code    string          `json:"code"`
+	Info    string          `json:"info"`
+	Text    string          `json:"text"`
+	HTML    string          `json:"html"`
+	Message json.RawMessage `json:"message"`
 }
 
-func (e *APIError) Error() string { return fmt.Sprintf("Action API error %s: %s", e.Code, e.Info) }
+func (e *APIError) Error() string {
+	detail := e.Info
+	if detail == "" {
+		detail = e.Text
+	}
+	if detail == "" {
+		detail = e.HTML
+	}
+	if detail == "" && len(e.Message) > 0 {
+		if json.Unmarshal(e.Message, &detail) != nil {
+			detail = string(e.Message)
+		}
+	}
+	if detail == "" {
+		return "Action API error " + e.Code
+	}
+	return fmt.Sprintf("Action API error %s: %s", e.Code, detail)
+}
 
 func (c *Client) Action(ctx context.Context, method string, fields url.Values) ([]byte, error) {
 	fields = cloneValues(fields)

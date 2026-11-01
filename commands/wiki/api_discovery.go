@@ -15,7 +15,7 @@ import (
 func newActionRefreshCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "refresh [MODULE...]", Short: "Refresh public Action API schemas and site capabilities",
-		Long:              "Refresh cached public parameter schemas and site capabilities without credentials. With no modules, fetch all action and query modules. Tab completion reads this cache offline; raw requests do not require discovery.",
+		Long:              "Refresh cached public parameter schemas and site capabilities without credentials. With no modules, recursively fetch all advertised modules, including extension submodules and formatters. Tab completion reads this cache offline; raw requests do not require discovery.",
 		Example:           "  refresh\n  refresh main query query+revisions wbgetentities",
 		ValidArgsFunction: completeAPIModules,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -65,7 +65,7 @@ func newActionDescribeCmd() *cobra.Command {
 func newRESTRefreshCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "refresh", Short: "Refresh available public REST OpenAPI schemas", Args: cobra.NoArgs,
-		Long: "Discover and cache public OpenAPI schemas served by this wiki. Uses MediaWiki REST discovery, with an older Wikibase OpenAPI fallback. Raw REST calls work even if this wiki does not publish schemas. Never authenticates or follows external specification URLs.",
+		Long: "Discover and cache public OpenAPI schemas served by this wiki. Uses MediaWiki REST discovery and also checks the legacy Wikibase OpenAPI document when not advertised. Raw REST calls work even if this wiki does not publish schemas. Never authenticates or follows external specification URLs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), 2*time.Minute)
 			defer cancel()
@@ -135,4 +135,10 @@ func completionDiscovery() (wikiapi.Discovery, error) {
 }
 
 // Keep schema descriptions on one line for shell completion protocols.
-func completionDescription(value string) string { return strings.Join(strings.Fields(value), " ") }
+func completionDescription(value string) string {
+	text := []rune(strings.Join(strings.Fields(value), " "))
+	if len(text) > 240 {
+		return string(text[:237]) + "..."
+	}
+	return string(text)
+}

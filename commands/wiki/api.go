@@ -98,17 +98,17 @@ func (o *apiOutput) print(cmd *cobra.Command, data []byte) error {
 	return nil
 }
 
-func apiFields(fields []string) (url.Values, error) {
+func apiFields(fields []string, repeat bool) (url.Values, error) {
 	values := make(url.Values)
 	for _, field := range fields {
 		key, value, ok := strings.Cut(field, "=")
 		if !ok || key == "" {
 			return nil, fmt.Errorf("fields must use name=value")
 		}
-		if _, exists := values[key]; exists {
+		if _, exists := values[key]; exists && !repeat {
 			return nil, fmt.Errorf("duplicate field %q; use the API's multi-value syntax", key)
 		}
-		values.Set(key, value)
+		values.Add(key, value)
 	}
 	return values, nil
 }
@@ -120,7 +120,7 @@ func newWikiAPICmd() *cobra.Command {
 	out := apiOutput{}
 	cmd := &cobra.Command{
 		Use: "api ACTION", Aliases: []string{"action"}, Short: "Call the selected wiki's Action API",
-		Long:    "Call an Action API module using the selected wiki and saved login. Requests default to GET, even with fields. Use --method POST for form-encoded writes. API errors return a failing exit status. Discovery is optional; refresh public parameter metadata with api refresh for offline completions.",
+		Long:    "Call an Action API module using the selected wiki and saved login. Requests default to GET, even with fields. Use --method POST for form-encoded writes. API errors return a failing exit status. Each call returns one response; pass continuation parameters explicitly for additional pages. Discovery is optional; refresh public parameter metadata with api refresh for offline completions.",
 		Example: "  api query -f titles=Earth -f prop=info\n  api wbgetentities -f ids=Q42 --wiki www.wikidata.org\n  api edit --method POST --token csrf -f title=Sandbox -f text=Example -f summary=Test",
 		Args:    cobra.ExactArgs(1), ValidArgsFunction: completeAPIActions,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -131,7 +131,7 @@ func newWikiAPICmd() *cobra.Command {
 			if method != "GET" && method != "POST" {
 				return fmt.Errorf("Action API method must be GET or POST")
 			}
-			values, err := apiFields(fields)
+			values, err := apiFields(fields, false)
 			if err != nil {
 				return err
 			}
@@ -204,7 +204,7 @@ func newWikiRESTCmd() *cobra.Command {
 			if !validRESTMethod(method) {
 				return fmt.Errorf("unsupported REST method %q", args[0])
 			}
-			fields, err := apiFields(fields)
+			fields, err := apiFields(fields, true)
 			if err != nil {
 				return err
 			}
@@ -242,7 +242,7 @@ func newWikiRESTCmd() *cobra.Command {
 			return out.print(cmd, data)
 		},
 	}
-	cmd.Flags().StringArrayVarP(&fields, "field", "f", nil, "Query parameter as name=value (repeatable)")
+	cmd.Flags().StringArrayVarP(&fields, "field", "f", nil, "Query parameter as name=value (repeatable; repeated keys are preserved)")
 	cmd.Flags().StringVar(&input, "input", "", "Request body file, or - for stdin")
 	_ = cmd.MarkFlagFilename("input")
 	cmd.Flags().StringVar(&contentType, "content-type", "application/json", "Content type for --input")

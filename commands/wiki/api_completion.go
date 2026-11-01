@@ -31,19 +31,15 @@ func completeAPIActions(_ *cobra.Command, args []string, prefix string) ([]strin
 }
 
 func completeAPIModules(cmd *cobra.Command, _ []string, prefix string) ([]string, cobra.ShellCompDirective) {
+	d, err := completionDiscovery()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if index, ok := d.CachedActionIndex(); ok {
+		return matchAPIValues(index.Modules, prefix), cobra.ShellCompDirectiveNoFileComp
+	}
 	values, _ := completeAPIActions(cmd, nil, "")
 	values = append(values, "main")
-	if d, err := completionDiscovery(); err == nil {
-		if m, ok := d.CachedModule("query"); ok {
-			for _, p := range m.Parameters {
-				if p.Name == "list" || p.Name == "prop" || p.Name == "meta" || p.Name == "generator" {
-					for _, v := range p.Values() {
-						values = append(values, "query+"+v)
-					}
-				}
-			}
-		}
-	}
 	return matchAPIValues(values, prefix), cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -57,24 +53,40 @@ func completeAPIFields(cmd *cobra.Command, args []string, prefix string) ([]stri
 	}
 	names := []string{"main", args[0]}
 	fields, _ := cmd.Flags().GetStringArray("field")
-	if args[0] == "query" {
-		for _, f := range fields {
-			k, v, _ := strings.Cut(f, "=")
-			if k == "list" || k == "prop" || k == "meta" || k == "generator" {
-				for _, part := range strings.Split(v, "|") {
-					names = append(names, "query+"+part)
+	selected := map[string]string{"action": args[0]}
+	for _, field := range fields {
+		key, value, _ := strings.Cut(field, "=")
+		selected[key] = value
+	}
+	parameters := map[string]wikiapi.Parameter{}
+	seen := map[string]bool{}
+	for len(names) > 0 && len(seen) < 10000 {
+		name := names[0]
+		names = names[1:]
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+		if m, ok := d.CachedModule(name); ok {
+			for _, p := range m.Parameters {
+				key := m.Prefix + p.Name
+				parameters[key] = p
+				value, explicit := selected[key]
+				if !explicit {
+					_ = json.Unmarshal(p.Default, &value)
+				}
+				for _, part := range strings.Split(value, "|") {
+					if child, ok := p.Submodules[part]; ok {
+						names = append(names, child)
+					} else if name == "query" && (p.Name == "list" || p.Name == "prop" || p.Name == "meta" || p.Name == "generator") && part != "" {
+						names = append(names, "query+"+part)
+					}
 				}
 			}
 		}
 	}
-	parameters := map[string]wikiapi.Parameter{}
-	for _, name := range names {
-		if m, ok := d.CachedModule(name); ok {
-			for _, p := range m.Parameters {
-				parameters[m.Prefix+p.Name] = p
-			}
-		}
-	}
+	// The action is positional; suggesting action= would produce an invalid CLI call.
+	delete(parameters, "action")
 	// Site namespaces are useful even when the schema reports a numeric type.
 	if site, ok := d.CachedSite(); ok {
 		var namespaces map[string]struct {
@@ -149,21 +161,25 @@ func restSpecs(d wikiapi.Discovery) map[string]wikiapi.RESTSpec {
 	return result
 }
 
-func restRoute(d wikiapi.Discovery, module string, spec wikiapi.RESTSpec, p string) string {
-	base := strings.TrimSuffix(d.Client.Endpoint, "api.php") + "rest.php"
+// Server origins in OpenAPI are descriptive only: never request them. Both
+// module-relative specs and legacy Wikibase specs rooted at rest.php exist.
+func restRoute(_ wikiapi.Discovery, module string, spec wikiapi.RESTSpec, p string) string {
 	if len(spec.Servers) > 0 {
-		server := spec.Servers[0].URL
-		if strings.HasPrefix(server, base) {
-			module = strings.TrimPrefix(server, base)
-		} else if strings.HasPrefix(server, "/") {
-			endpoint, _ := url.Parse(d.Client.Endpoint)
-			script := strings.TrimSuffix(endpoint.Path, "api.php") + "rest.php"
-			if server == script || strings.HasPrefix(server, script+"/") {
-				module = strings.TrimPrefix(server, script)
+		if server, err := url.Parse(spec.Servers[0].URL); err == nil {
+			if at := strings.LastIndex(server.Path, "/rest.php"); at >= 0 {
+				suffix := server.Path[at+len("/rest.php"):]
+				if suffix == "" || strings.HasPrefix(suffix, "/") {
+					module = suffix
+				}
 			}
 		}
 	}
-	return "/" + strings.Trim(strings.Trim(module, "/")+"/"+strings.TrimLeft(p, "/"), "/")
+	module = strings.Trim(module, "/")
+	p = "/" + strings.TrimLeft(p, "/")
+	if module == "" || p == "/"+module || strings.HasPrefix(p, "/"+module+"/") {
+		return p
+	}
+	return "/" + module + p
 }
 
 func completeRESTPaths(_ *cobra.Command, args []string, prefix string) ([]string, cobra.ShellCompDirective) {
