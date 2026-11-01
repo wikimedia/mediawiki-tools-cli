@@ -2,6 +2,7 @@ package ziki
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -14,20 +15,37 @@ import (
 
 // Game top-level structure for the game.
 type Game struct {
-	Player      Actor
-	ColorScheme string
-	input       *bufio.Scanner
-	writer      io.Writer
-	stopped     bool
-	inputErr    error
-	intn        func(int) int
+	Player          Actor
+	ColorScheme     string
+	input           *bufio.Scanner
+	readInteractive func(string) (string, error)
+	writer          io.Writer
+	stopped         bool
+	inputErr        error
+	intn            func(int) int
+	turns           int
+	level           int
+	stage           int
+	levelDone       bool
+	tested          bool
+	reviewed        bool
+	merged          bool
+	clearScreen     bool
+	recording       bool
+	messages        []gameMessage
+	aiCalls         int
+	aiTokens        int64
+	aiCostCents     int64
+	aiModel         string
 }
 
 func (g *Game) Play() error {
 	if g.input == nil {
 		g.input = bufio.NewScanner(os.Stdin)
 	}
-	g.ColorScheme = "dark"
+	if g.ColorScheme == "" {
+		g.ColorScheme = "dark"
+	}
 
 	// Should we prompt people for their name instead?
 	g.Player = *new(Actor)
@@ -36,42 +54,29 @@ func (g *Game) Play() error {
 	g.Player.Actions = []int{1, 2, 3, 4, 5, 6}
 	g.Player.CurrentLocation = "CommandLine"
 
-	lastLocation := Start
-
-	g.Output(ColorTypes["alert"], Messages["welcome"])
+	g.Output(ColorTypes["alert"], "\n  Z I K I   /   THE SEARCH FOR MERGE")
+	g.Output(ColorTypes["separator"], "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	g.Output(ColorTypes["normal"], "  From first patch to incident commander. One assignment at a time.")
+	g.Output(ColorTypes["normal"], "  ", campaign[g.level].Brief)
+	g.Output(ColorTypes["prompt"], "  Type a destination to jump in, or 'help' for the field guide.")
 	for !g.stopped {
-		g.Output(ColorTypes["normal"], LocationMap[g.Player.CurrentLocation].Description)
-		if g.Player.CurrentLocation == lastLocation {
-			g.Output(ColorTypes["error"], "You haven't gone anywhere. Type 'help' for available commands.")
-		} else {
-			lastLocation = g.Player.CurrentLocation
-
-			// We really shouldn't process an event unless location has changed.
-			// Otherwise you can stay in AFK forever and get crazy morale by hitting Return over and over
-			// And you can also get a Story event immediately after a CodeReview event without entering
-			// a command, which is a little confusing.
-			g.ProcessEvents(LocationMap[g.Player.CurrentLocation].Events)
-			if g.stopped {
-				break
-			}
-			if g.Player.Morale <= 0 {
-				g.Output(ColorTypes["alert"], "\nYou have given up hope on your change. Game over.")
-				return nil
-			}
-			g.Output(ColorTypes["normal"], "\tYou are still working on your change.")
-			g.Output(ColorTypes["normal"], "\tMorale: ", g.Player.Morale)
-		}
-
-		g.Output(ColorTypes["prompt"], "You can go to these places:")
-		for _, loc := range LocationMap[g.Player.CurrentLocation].Transitions {
-			g.Outputf(ColorTypes["prompt"], "\t%s", loc)
-		}
-		text, ok := g.readLine("\n >>> ")
+		g.renderFrame()
+		text, ok := g.readLine("\n  ziki › ")
 		if !ok {
 			break
 		}
 		ProcessCommands(g, text)
+		if g.Player.Morale <= 0 && !g.stopped {
+			g.Output(ColorTypes["error"], "\n  OUT OF SPOONS. Your patch can wait. You log off for today.")
+			g.stopped = true
+		}
+		if g.levelDone && g.level == len(campaign)-1 && !g.stopped {
+			g.Output(ColorTypes["alert"], "\n  CAMPAIGN COMPLETE. The wikis are healthy. You have earned a very long tea break.")
+			g.Outputf(ColorTypes["normal"], "  %d turns · %d AI calls · final bill %s", g.turns, g.aiCalls, dollars(g.aiCostCents))
+			g.stopped = true
+		}
 	}
+
 	return g.inputErr
 }
 
@@ -91,6 +96,9 @@ func (g *Game) Outputf(c string, format string, args ...interface{}) {
 
 func (g *Game) Output(c string, args ...interface{}) {
 	s := fmt.Sprint(args...)
+	if g.recording && g.clearScreen {
+		g.messages = append(g.messages, gameMessage{color: c, text: s})
+	}
 
 	if g.ColorScheme == "none" {
 		_, _ = fmt.Fprintln(g.outputWriter(), s)
@@ -134,16 +142,31 @@ func (g *Game) readLine(prompt string) (string, bool) {
 	if g.stopped {
 		return "", false
 	}
-	if g.input == nil {
-		g.input = bufio.NewScanner(os.Stdin)
+
+	var text string
+	if g.readInteractive != nil {
+		var err error
+		text, err = g.readInteractive(prompt)
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				g.inputErr = err
+			}
+			g.stopped = true
+			return "", false
+		}
+	} else {
+		if g.input == nil {
+			g.input = bufio.NewScanner(os.Stdin)
+		}
+		fmt.Fprint(g.outputWriter(), prompt)
+		if !g.input.Scan() {
+			g.inputErr = g.input.Err()
+			g.stopped = true
+			return "", false
+		}
+		text = g.input.Text()
 	}
-	fmt.Fprint(g.outputWriter(), prompt)
-	if !g.input.Scan() {
-		g.inputErr = g.input.Err()
-		g.stopped = true
-		return "", false
-	}
-	text := g.input.Text()
+
 	if strings.EqualFold(strings.TrimSpace(text), "quit") {
 		ProcessCommands(g, "quit")
 		return "", false
@@ -153,7 +176,7 @@ func (g *Game) readLine(prompt string) (string, bool) {
 
 func (g *Game) readAction(count int) (int, bool) {
 	for {
-		text, ok := g.readLine("\n >>> ")
+		text, ok := g.readLine("\n  choice › ")
 		if !ok {
 			return 0, false
 		}
