@@ -220,6 +220,9 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 			return nil
 		},
 	}
+	if !editing {
+		cmd.Long += "\n\nPipe text from another command:\n\n    echo a-wikimedia-cli | mw phab paste create --title \"Example\" --file - --yes"
+	}
 	if editing {
 		cmd.Use = "edit <P123|URL>"
 		cmd.Aliases = nil

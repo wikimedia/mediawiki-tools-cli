@@ -284,3 +284,61 @@ func TestSuccessfulTaskEditInvalidatesPersistedComments(t *testing.T) {
 		t.Fatalf("stale comments: %+v %v", txs, err)
 	}
 }
+
+func TestTaskListDefaultOpenAndStatusOverrides(t *testing.T) {
+	isolatedAuthConfig(t)
+	mockLoginIdentity(t)
+	login := NewPhabricatorCmd()
+	login.SetOut(io.Discard)
+	login.SetIn(strings.NewReader("fixture-secret\n"))
+	login.SetArgs([]string{"auth", "login", "--profile", "task-list-test", "--method", "token", "--token-stdin", "--provider", "keyring"})
+	if err := login.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name  string
+		args  []string
+		want  []interface{}
+		pages int
+	}{
+		{name: "default", want: []interface{}{"open()"}, pages: 1},
+		{name: "all pages stay open", args: []string{"--all"}, want: []interface{}{"open()"}, pages: 2},
+		{name: "closed override", args: []string{"--status", "resolved"}, want: []interface{}{"resolved"}, pages: 1},
+		{name: "all statuses", args: []string{"--status", "all"}, pages: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			http.DefaultTransport = authTransport(func(r *http.Request) (*http.Response, error) {
+				if r.URL.Path != "/api/maniphest.search" {
+					t.Fatalf("unexpected request %s", r.URL)
+				}
+				params := pasteParams(t, r)
+				constraints := params["constraints"].(map[string]interface{})
+				got, exists := constraints["statuses"]
+				if tc.want == nil {
+					if exists {
+						t.Fatalf("all statuses still constrained: %v", got)
+					}
+				} else if !reflect.DeepEqual(got, tc.want) {
+					t.Fatalf("statuses=%v want=%v", got, tc.want)
+				}
+				calls++
+				cursor := "null"
+				if tc.pages == 2 && calls == 1 {
+					cursor = `"next"`
+				}
+				return pasteResponse(`{"result":{"data":[],"cursor":{"after":` + cursor + `}}}`), nil
+			})
+			cmd := NewPhabricatorCmd()
+			cmd.SetOut(io.Discard)
+			cmd.SetErr(io.Discard)
+			cmd.SetArgs(append([]string{"task", "list", "--profile", "task-list-test", "--output", "json"}, tc.args...))
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			if calls != tc.pages {
+				t.Fatalf("requests=%d want=%d", calls, tc.pages)
+			}
+		})
+	}
+}

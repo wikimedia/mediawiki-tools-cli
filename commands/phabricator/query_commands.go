@@ -34,7 +34,7 @@ func newTaskListCmd(site *string) *cobra.Command {
 			table.AddRow(fmt.Sprintf("T%d", task.ID), task.Fields.Name, task.Fields.Status.Name, task.Fields.Priority.Name)
 		}
 	})
-	cmd := &cobra.Command{Use: "list", Short: "Search and page through Phabricator tasks", Long: "List tasks matching project, workboard column, text, assignee and status filters. Each request returns up to --limit tasks, ordered by update time. Use the returned cursor with --after or --before, or --all to fetch every page. Column membership does not imply workboard card ordering. JSON output includes data and cursor fields. Without --status, all statuses are included.", Example: "list --project a_wikimedia_cli\nlist --project a_wikimedia_cli --column Backlog --status open\nlist --assigned-to me --search documentation --output json\nlist --limit 50 --after CURSOR", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	cmd := &cobra.Command{Use: "list", Short: "Search and page through Phabricator tasks", Long: "List tasks matching project, workboard column, text, assignee and status filters. Each request returns up to --limit tasks, ordered by update time. Use the returned cursor with --after or --before, or --all to fetch every page. Column membership does not imply workboard card ordering. JSON output includes data and cursor fields. By default, only open tasks are included (including in-progress and stalled tasks). Use --status all to include closed tasks. --all fetches every matching page without changing the status filter.", Example: "list --project a_wikimedia_cli\nlist --project a_wikimedia_cli --column Backlog\nlist --assigned-to me --search documentation --output json\nlist --limit 50 --after CURSOR\nlist --project a_wikimedia_cli --status all --all", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if _, err := queryParams(opts.Limit, opts.After, opts.Before); err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func newTaskListCmd(site *string) *cobra.Command {
 	cmd.Flags().StringVar(&opts.Column, "column", "", "Exact workboard column name or PHID (requires --project)")
 	cmd.Flags().StringVar(&opts.Search, "search", "", "Full-text task search")
 	cmd.Flags().StringVar(&opts.AssignedTo, "assigned-to", "", "Assignee username or me")
-	cmd.Flags().StringSliceVar(&opts.Statuses, "status", nil, "Task status (repeatable or comma-separated; all includes every status)")
+	cmd.Flags().StringSliceVar(&opts.Statuses, "status", []string{"open()"}, "Task status (default: open tasks; use all to include closed tasks)")
 	addPageFlags(cmd, &opts.Limit, &opts.After, &opts.Before)
 	cmd.Flags().BoolVar(&opts.All, "all", false, "Fetch all matching pages")
 	addPhabOutput(cmd, out)

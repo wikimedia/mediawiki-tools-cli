@@ -177,3 +177,12 @@ func TestPasteCommandsUseProfileAndDispatch(t *testing.T) {
 		t.Fatalf("writes=%d", writes)
 	}
 }
+
+func TestPasteCreateHelpIncludesPipedExample(t *testing.T) {
+	site := "unused"
+	cmd := newPhabricatorPasteWriteCmd(&site, false, func() bool { return false }, func() (bool, error) { return false, nil })
+	want := `echo a-wikimedia-cli | mw phab paste create --title "Example" --file - --yes`
+	if !strings.Contains(cmd.Long, want) {
+		t.Fatalf("missing runnable pipeline in help: %s", cmd.Long)
+	}
+}
