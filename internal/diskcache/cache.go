@@ -35,6 +35,13 @@ func New[T any](path string, ttl time.Duration) *Cache[T] {
 	return &Cache[T]{path: path, ttl: ttl}
 }
 
+// Peek returns the last successful value without fetching, locking or refreshing.
+// It is intended for offline shell completion; stale values remain useful.
+func (c *Cache[T]) Peek() (T, bool) {
+	cached, ok := c.read()
+	return cached.data(), ok && cached.HasValue
+}
+
 // Get fetches synchronously on a missing or invalid cache. For a stale entry,
 // it invokes startRefresh and returns the old value without waiting for I/O.
 // startRefresh must return promptly; StartRefresh implements this for CLIs.

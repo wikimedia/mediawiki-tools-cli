@@ -36,7 +36,7 @@ func mockRotationKeePassXC(t *testing.T, denyCleanup bool) map[string]string {
 		entries[id] = value
 		return secrets.KeePassXCBrowser{DatabaseHash: strings.Repeat("c", 64), EntryID: id, Login: account}, nil
 	}
-	readKeePassXCBrowser = func(ref secrets.KeePassXCBrowser) (string, error) {
+	readKeePassXCBrowser = func(_ context.Context, ref secrets.KeePassXCBrowser) (string, error) {
 		value, ok := entries[ref.EntryID]
 		if !ok {
 			return "", secrets.ErrNotFound

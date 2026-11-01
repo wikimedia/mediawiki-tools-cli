@@ -22,7 +22,7 @@ func TestKeePassXCScanFiltersOwnershipAndProtectsActiveUUIDs(t *testing.T) {
 			{UUID: strings.Repeat("d", 32), Title: "unrelated", URL: "https://example.org"},
 		}, nil
 	}
-	readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) {
+	readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) {
 		t.Fatal("scan retrieved credential value")
 		return "", nil
 	}

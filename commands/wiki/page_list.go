@@ -1,190 +1,219 @@
 package wiki
 
 import (
-	_ "embed"
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"strconv"
 	"strings"
 
-	mwclient "cgt.name/pkg/go-mwclient"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiapi"
 )
 
 func NewWikiPageListCmd() *cobra.Command {
-	var prefix string
-	var namespace int
-	var limit int
-	var from string
-	var to string
-	var filterredir string
-	var filterlanglinks string
-	var minsize int
-	var maxsize int
-	var prtype string
-	var prlevel string
-	var prfiltercascade string
-	var prexpiry string
-	var dir string
+	var search, category, backlinks, transclusions, titleFile, prefix, grep string
+	var namespace, limit, minsize, maxsize int
 	var dryRun bool
-	var grep string
-
+	var selectorArgs []string
+	var combine string
+	var depth, maxCategories int
+	compatibility := pywikibotSelectorCompatibility{}
+	values := map[string]*string{}
+	out := output.Output{}
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List and filter wiki page titles",
-		RunE:  nil,
-		Example: cobrautil.NormalizeExample(`
-# List pages on test.wikipedia.org
-list --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --prefix "CLI" --limit 20
-`),
-		Run: func(cmd *cobra.Command, args []string) {
-			if dryRun {
-				fmt.Println("Dry run mode: Listing pages with the following parameters:")
-				fmt.Printf("wiki: %s, user: %s, prefix: %s, namespace: %d, limit: %d, from: %s, to: %s, filterredir: %s, filterlanglinks: %s, minsize: %d, maxsize: %d, prtype: %s, prlevel: %s, prfiltercascade: %s, prexpiry: %s, dir: %s, grep: %s\n",
-					wiki, wikiUser, prefix, namespace, limit, from, to, filterredir, filterlanglinks, minsize, maxsize, prtype, prlevel, prfiltercascade, prexpiry, dir, grep)
-				return
+		Use: "list", Short: "Select and list wiki pages",
+		Long:    "List pages from one source or compose repeatable --select SOURCE:VALUE operands with --combine union/intersection. Composition reads complete operands before namespace/grep filtering and the final distinct-page limit. --depth follows subcategories breadth-first (0: direct members); --max-categories aborts traversal without partial output. Order is first-seen for union and first-operand order for intersection. Single sources: all pages (the default), search, category members, backlinks, transclusions, or a plain title file. Pagination and deduplication are shared across sources. Missing or invalid file titles are skipped. --namespace filters results and --limit counts distinct matching pages (0 is unlimited). The default output remains one title per line. No pages are edited.",
+		Example: "  list --search 'solar eclipse' --limit 20\n  list --category Physics --namespace 0 --output json\n  list --title-file - --limit 10\n  list --select category:Physics --select search:gravity --combine intersection --depth 1 --limit 20",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateResourceOutput(&out, true); err != nil {
+				return err
 			}
-
-			if wiki == "" {
-				logrus.Fatal("wiki is not set")
+			options := wikiapi.PageSelection{Limit: limit, Grep: grep, Depth: depth, MaxCategories: maxCategories}
+			for _, raw := range selectorArgs {
+				selector, err := wikiapi.ParsePageSelector(raw)
+				if err != nil {
+					return err
+				}
+				options.Selectors = append(options.Selectors, selector)
 			}
-
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
-			if err != nil {
-				panic(err)
+			if cmd.Flags().Changed("combine") || len(selectorArgs) > 0 {
+				options.Combine = combine
 			}
-
-			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
-
-			// List pages with pagination
-			listParams := map[string]string{
-				"action":  "query",
-				"list":    "allpages",
-				"aplimit": "max",
+			if cmd.Flags().Changed("namespace") {
+				options.Namespace = &namespace
 			}
-
+			for name, value := range map[string]string{"search": search, "category": category, "backlinks": backlinks, "transclusions": transclusions, "title-file": titleFile} {
+				if cmd.Flags().Changed(name) && strings.TrimSpace(value) == "" {
+					return fmt.Errorf("--%s cannot be empty", name)
+				}
+			}
+			selectors := map[string]string{"search": search, "category": category, "backlinks": backlinks, "transclusions": transclusions, "titles": titleFile}
+			for key, value := range selectors {
+				if value != "" {
+					if options.Source != "" {
+						return fmt.Errorf("choose one page source")
+					}
+					options.Source, options.Value = key, value
+				}
+			}
+			if (len(selectorArgs) > 0 || cmd.Flags().Changed("depth") || cmd.Flags().Changed("combine")) && len(compatibility.args) > 0 {
+				return fmt.Errorf("Pywikibot compatibility cannot be combined with --select, --depth or --combine")
+			}
+			if err := compatibility.apply(cmd, &options); err != nil {
+				return err
+			}
+			if options.Limit < 0 {
+				return fmt.Errorf("--limit must be nonnegative")
+			}
+			if options.Source != "" || len(options.Selectors) > 0 {
+				for _, name := range []string{"prefix", "from", "to", "filterredir", "filterlanglinks", "minsize", "maxsize", "prtype", "prlevel", "prfiltercascade", "prexpiry", "dir"} {
+					if cmd.Flags().Changed(name) {
+						return fmt.Errorf("--%s applies only to the default allpages source", name)
+					}
+				}
+			}
+			options.AllPages = make(map[string][]string)
 			if prefix != "" {
-				listParams["apprefix"] = prefix
+				options.AllPages.Set("apprefix", prefix)
 			}
-
-			if namespace != 0 {
-				listParams["apnamespace"] = fmt.Sprintf("%d", namespace)
+			for name, value := range values {
+				if *value != "" {
+					options.AllPages.Set("ap"+name, *value)
+				}
 			}
-
-			if limit > 0 && grep == "" {
-				listParams["aplimit"] = fmt.Sprintf("%d", limit)
+			if dir := strings.ToLower(options.AllPages.Get("apdir")); dir == "asc" {
+				options.AllPages.Set("apdir", "ascending")
+			} else if dir == "desc" {
+				options.AllPages.Set("apdir", "descending")
 			}
-
-			if from != "" {
-				listParams["apfrom"] = from
-			}
-
-			if to != "" {
-				listParams["apto"] = to
-			}
-
-			if filterredir != "" {
-				listParams["apfilterredir"] = filterredir
-			}
-
-			if filterlanglinks != "" {
-				listParams["apfilterlanglinks"] = filterlanglinks
-			}
-
 			if minsize > 0 {
-				listParams["apminsize"] = fmt.Sprintf("%d", minsize)
+				options.AllPages.Set("apminsize", strconv.Itoa(minsize))
 			}
-
 			if maxsize > 0 {
-				listParams["apmaxsize"] = fmt.Sprintf("%d", maxsize)
+				options.AllPages.Set("apmaxsize", strconv.Itoa(maxsize))
 			}
-
-			if prtype != "" {
-				listParams["apprtype"] = prtype
+			stdinCount := 0
+			if options.Source == "titles" && titleFile == "-" {
+				stdinCount++
 			}
-
-			if prlevel != "" {
-				listParams["apprlevel"] = prlevel
-			}
-
-			if prfiltercascade != "" {
-				listParams["apprfiltercascade"] = prfiltercascade
-			}
-
-			if prexpiry != "" {
-				listParams["apprexpiry"] = prexpiry
-			}
-
-			switch dir {
-			case "asc", "ASC":
-				dir = "ascending"
-			case "desc", "DESC":
-				dir = "descending"
-			}
-
-			if dir != "" {
-				listParams["apdir"] = dir
-			}
-
-			totalPages := 0
-			for {
-				res, err := w.Get(listParams)
-				if err != nil {
-					panic(err)
+			for _, selector := range options.Selectors {
+				if selector.Source == "titles" && selector.Value == "-" {
+					stdinCount++
 				}
-
-				query, err := res.GetObject("query")
-				if err != nil {
-					panic(err)
+			}
+			if stdinCount > 1 {
+				return fmt.Errorf("stdin can be used by only one title-file selector")
+			}
+			if depth < 0 || depth > 20 || maxCategories < 1 {
+				return fmt.Errorf("--depth must be 0..20 and --max-categories must be positive")
+			}
+			if combine != "union" && combine != "intersection" {
+				return fmt.Errorf("--combine must be union or intersection")
+			}
+			hasCategory := options.Source == "category"
+			for _, selector := range options.Selectors {
+				if selector.Source == "category" {
+					hasCategory = true
 				}
-				allPages, err := query.GetObjectArray("allpages")
-				if err != nil {
-					panic(err)
-				}
-				for _, page := range allPages {
-					title, err := page.GetString("title")
+			}
+			if depth > 0 && !hasCategory {
+				return fmt.Errorf("--depth requires a category selector")
+			}
+			if options.Combine != "" && options.Source == "" && len(options.Selectors) == 0 {
+				return fmt.Errorf("--combine requires an explicit selector")
+			}
+			if dryRun {
+				data, _ := json.Marshal(options)
+				fmt.Fprintln(cmd.OutOrStdout(), string(data))
+				return nil
+			}
+			if options.Source == "titles" {
+				var input io.Reader = cmd.InOrStdin()
+				if titleFile != "-" {
+					file, err := os.Open(titleFile)
 					if err != nil {
-						panic(err)
+						return err
 					}
-					if grep == "" || strings.Contains(title, grep) {
-						fmt.Println(title)
-						totalPages++
-						if limit > 0 && totalPages >= limit {
-							return
-						}
-					}
+					defer file.Close()
+					input = file
 				}
-
-				cont, err := res.GetObject("continue")
+				titles, err := wikiapi.ReadTitles(input)
 				if err != nil {
-					break
+					return err
 				}
-				apcontinue, err := cont.GetString("apcontinue")
-				if err != nil {
-					break
-				}
-				listParams["apcontinue"] = apcontinue
+				options.Titles = titles
 			}
+			for i := range options.Selectors {
+				selector := &options.Selectors[i]
+				if selector.Source != "titles" {
+					continue
+				}
+				var input io.Reader = cmd.InOrStdin()
+				if selector.Value != "-" {
+					file, err := os.Open(selector.Value)
+					if err != nil {
+						return err
+					}
+					defer file.Close()
+					input = file
+				}
+				titles, err := wikiapi.ReadTitles(input)
+				if err != nil {
+					return err
+				}
+				selector.Titles = titles
+			}
+			client, err := wikiAPIClient(false)
+			if err != nil {
+				return err
+			}
+			pages, err := client.SelectPages(cmd.Context(), options)
+			if err != nil {
+				return err
+			}
+			if out.Type == "titles" {
+				for _, page := range pages {
+					fmt.Fprintln(cmd.OutOrStdout(), page.Title)
+				}
+				return nil
+			}
+			return printResourceOutput(cmd, &out, pages)
 		},
 	}
-
-	cmd.Flags().StringVar(&prefix, "prefix", "", "Prefix for filtering page titles")
-	cmd.Flags().IntVar(&namespace, "namespace", 0, "Namespace ID for filtering page titles")
-	cmd.Flags().IntVar(&limit, "limit", 0, "Maximum number of matching page titles (0 means unlimited)")
-	cmd.Flags().StringVar(&from, "from", "", "Start listing at this page title")
-	cmd.Flags().StringVar(&to, "to", "", "Stop listing at this page title")
-	cmd.Flags().StringVar(&filterredir, "filterredir", "all", "Which pages to list (all, nonredirects, redirects)")
-	cmd.Flags().StringVar(&filterlanglinks, "filterlanglinks", "all", "Filter by language links (all, withlanglinks, withoutlanglinks)")
-	cmd.Flags().IntVar(&minsize, "minsize", 0, "Limit to pages with at least this many bytes")
-	cmd.Flags().IntVar(&maxsize, "maxsize", 0, "Limit to pages with at most this many bytes")
-	cmd.Flags().StringVar(&prtype, "prtype", "", "Limit to protected pages only (edit, move, upload)")
-	cmd.Flags().StringVar(&prlevel, "prlevel", "", "Filter protections based on protection level (autoconfirmed, sysop)")
-	cmd.Flags().StringVar(&prfiltercascade, "prfiltercascade", "all", "Filter by cascading protection (all, cascading, noncascading)")
-	cmd.Flags().StringVar(&prexpiry, "prexpiry", "all", "Filter by protection expiry (all, definite, indefinite)")
-	cmd.Flags().StringVar(&dir, "dir", "ascending", "The direction in which to list (ascending, descending)")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show the listing parameters without requesting pages")
-	cmd.Flags().StringVar(&grep, "grep", "", "Only include titles containing this literal string")
-
+	flags := cmd.Flags()
+	flags.StringArrayVar(&selectorArgs, "select", nil, "Compose SOURCE:VALUE (repeatable): search, category, backlinks, transclusions, titles (file or -)")
+	flags.StringVar(&combine, "combine", "union", "Combine explicit selectors: union or intersection")
+	flags.IntVar(&depth, "depth", 0, "Subcategory depth, 0..20 (0: direct category members)")
+	flags.IntVar(&maxCategories, "max-categories", 1000, "Abort recursion if more categories would be visited")
+	flags.StringVar(&prefix, "prefix", "", "Prefix for the default allpages source")
+	flags.IntVar(&namespace, "namespace", 0, "Namespace ID (default: main namespace for allpages, all namespaces for other sources)")
+	flags.IntVar(&limit, "limit", 0, "Maximum distinct matching pages (0 means unlimited)")
+	flags.StringVar(&search, "search", "", "Select pages by wiki search query")
+	flags.StringVar(&category, "category", "", "Select category members (use --depth for bounded subcategories)")
+	flags.StringVar(&backlinks, "backlinks", "", "Select pages linking to this title")
+	flags.StringVar(&transclusions, "transclusions", "", "Select pages transcluding this title")
+	flags.StringVar(&titleFile, "title-file", "", "Read one plain title per line from a file, or - for stdin")
+	_ = cmd.MarkFlagFilename("title-file")
+	compatibility.register(cmd)
+	flags.StringVar(&grep, "grep", "", "Only include titles containing this literal string")
+	flags.BoolVar(&dryRun, "dry-run", false, "Print the selection parameters without reading files or contacting the wiki")
+	flags.IntVar(&minsize, "minsize", 0, "Minimum allpages content size in bytes")
+	flags.IntVar(&maxsize, "maxsize", 0, "Maximum allpages content size in bytes")
+	for _, flag := range []struct{ name, value, help string }{
+		{"from", "", "First allpages title"}, {"to", "", "Last allpages title"}, {"filterredir", "all", "Allpages redirects: all, nonredirects, redirects"}, {"filterlanglinks", "all", "Allpages language links: all, withlanglinks, withoutlanglinks"}, {"prtype", "", "Allpages protection type"}, {"prlevel", "", "Allpages protection level"}, {"prfiltercascade", "all", "Allpages cascading protection filter"}, {"prexpiry", "all", "Allpages protection expiry filter"}, {"dir", "ascending", "Allpages order: ascending or descending"},
+	} {
+		value := new(string)
+		values[flag.name] = value
+		flags.StringVar(value, flag.name, flag.value, flag.help)
+	}
+	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.Type("titles")), output.WithAdditionalTypes(output.Type("titles")), output.WithFilterFlagDisabled(), output.WithTableBinding(&output.TableBinding{Headings: []string{"PAGEID", "NS", "TITLE"}, ProcessObjects: func(objects interface{}, table *output.Table) {
+		for _, page := range objects.([]wikiapi.Page) {
+			table.AddRowS(strconv.FormatInt(page.ID, 10), strconv.Itoa(page.Namespace), page.Title)
+		}
+	}}))
 	return cmd
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/spf13/cobra"
@@ -23,11 +24,13 @@ var (
 	wikiProfile      string
 	savedWikiProfile *config.WikiProfile
 	wikiContext      context.Context
+	wikiProgress     func(string)
 )
 
 func NewWikiCmd() *cobra.Command {
 	savedWikiProfile = nil
 	wikiContext = context.Background()
+	wikiProgress = nil
 	cmd := &cobra.Command{
 		Use:     "wiki",
 		GroupID: "service",
@@ -39,6 +42,7 @@ func NewWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewWikiPageCmd())
 	cmd.AddCommand(NewWikiExtCmd())
 	cmd.AddCommand(NewWikiFileCmd())
+	cmd.AddCommand(newWikiAPICmd(), newWikiRESTCmd(), newWikiBulkCmd())
 	cmd.AddCommand(newWikiAuthCmd(), newWikiRealmCmd())
 	cmd.PersistentFlags().StringVar(&wiki, "wiki", "", "Wiki URL or API endpoint")
 	cmd.PersistentFlags().StringVar(&wikiUser, "username", "", "Wiki login username (use Name@bot for a bot password)")
@@ -57,6 +61,7 @@ func NewWikiCmd() *cobra.Command {
 	// TODO(early 2027): remove --account and --user compatibility aliases.
 	_ = cmd.PersistentFlags().MarkHidden("account")
 	registerWikiCompletions(cmd)
+	registerResourceCompletions(cmd)
 	prepareWikiCommands(cmd)
 
 	return cmd
@@ -79,15 +84,18 @@ func normalizeWiki(wiki string) string {
 const anonCSRFToken = `+\`
 
 func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) error {
-	if wikiAnon {
-		return nil
-	}
 	httpClient := wikiauth.HTTPClient()
 	if len(clients) > 0 {
 		httpClient = clients[0]
 		httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	}
 	w.SetHTTPClient(httpClient)
+	if wikiAnon {
+		// SetHTTPClient inherits mwclient's fresh jar; anonymous mode deliberately
+		// disables it so even response-set cookies are not reused across requests.
+		httpClient.Jar = nil
+		return nil
+	}
 	if savedWikiProfile != nil {
 		a := *savedWikiProfile
 		endpoint, err := wikiauth.Endpoint(wiki)
@@ -98,7 +106,7 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 			return fmt.Errorf("wiki is outside the saved profile's site scope")
 		}
 		if a.Method == "oauth" {
-			tokens, err := accountTokens(wikiContext, a, false)
+			tokens, err := accountTokensWithProgress(wikiContext, a, false, wikiProgress)
 			if err != nil {
 				return err
 			}
@@ -107,7 +115,12 @@ func loginIfCredentialsProvided(w *mwclient.Client, clients ...*http.Client) err
 			w.Assert = mwclient.AssertUser
 			return nil
 		}
-		password, err := a.Credential().Read()
+		if wikiProgress != nil {
+			wikiProgress("Reading saved wiki password; unlock your password manager and approve access if prompted.")
+		}
+		credentialContext, cancel := context.WithTimeout(wikiContext, 2*time.Minute)
+		defer cancel()
+		password, err := a.Credential().ReadContext(credentialContext)
 		if err != nil {
 			return err
 		}
@@ -165,9 +178,12 @@ func prepareWikiCommands(parent *cobra.Command) {
 			continue
 		}
 		prepareWikiCommands(child)
-		if child.HasSubCommands() {
+		if child.RunE == nil && child.Run == nil {
 			continue
 		}
+		// Cobra usage is written to stdout; keep machine-readable resource output
+		// clean on validation, request, and rendering failures. --help remains available.
+		child.SilenceUsage = true
 		oldE, old := child.PreRunE, child.PreRun
 		child.PreRun = nil
 		child.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -178,6 +194,7 @@ func prepareWikiCommands(parent *cobra.Command) {
 			} else if old != nil {
 				old(cmd, args)
 			}
+			wikiProgress = func(message string) { cmd.PrintErrln(message) }
 			return prepareWikiProfile(cmd)
 		}
 	}
@@ -187,7 +204,23 @@ func prepareWikiProfile(cmd *cobra.Command) error {
 	savedWikiProfile = nil
 	wikiContext = cmd.Context()
 	explicitCredentials := wikiUser != "" || wikiPassword != "" || wikiPasswordFile != ""
-	if wikiAnon || explicitCredentials {
+	if wikiAnon {
+		if explicitCredentials {
+			return fmt.Errorf("--anon cannot be combined with explicit credentials")
+		}
+		// Site selection reads public metadata only. Anonymous access may use a
+		// profile's default site but must never open its credentials or enforce its
+		// credential scope on an explicitly selected public wiki.
+		if wiki == "" {
+			a, err := selectedWikiProfile(wikiProfile)
+			if err != nil {
+				return fmt.Errorf("provide --wiki or select a saved profile: %w", err)
+			}
+			wiki = a.Wiki
+		}
+		return nil
+	}
+	if explicitCredentials {
 		if wikiProfile != "" || wikiRealm != "" {
 			return fmt.Errorf("saved profile selection cannot be combined with --anon or explicit credentials")
 		}

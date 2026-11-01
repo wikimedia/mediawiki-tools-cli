@@ -11,6 +11,7 @@ func NewWikiExtWikibaseCmd() *cobra.Command {
 
 	cmd.AddCommand(NewWikiExtWikibasePropertyCmd())
 	cmd.AddCommand(NewWikiExtWikibaseItemCmd())
+	addWikibaseCLICompatibility(cmd)
 	return cmd
 }
 
@@ -22,6 +23,7 @@ func NewWikiExtWikibasePropertyCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewWikiExtWikibasePropertyPutCmd())
+	addWikibaseResources(cmd, "property")
 	return cmd
 }
 
@@ -33,5 +35,6 @@ func NewWikiExtWikibaseItemCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewWikiExtWikibaseItemPutCmd())
+	addWikibaseResources(cmd, "item")
 	return cmd
 }

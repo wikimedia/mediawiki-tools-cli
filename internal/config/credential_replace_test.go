@@ -94,7 +94,7 @@ func TestPlaintextReplacementUpdatesTheLinkedKeePassXCEntry(t *testing.T) {
 				stored = value
 				return entry, nil
 			}
-			readKeePassXCBrowser = func(secrets.KeePassXCBrowser) (string, error) { return stored, nil }
+			readKeePassXCBrowser = func(_ context.Context, _ secrets.KeePassXCBrowser) (string, error) { return stored, nil }
 			if err := credential.SaveWithProvider(stored, false, nil, "keepassxc"); err != nil {
 				t.Fatal(err)
 			}

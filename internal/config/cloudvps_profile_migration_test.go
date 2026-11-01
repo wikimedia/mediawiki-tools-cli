@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -35,7 +36,7 @@ func TestCloudVPSMigrationPreservesCredentialProviders(t *testing.T) {
 				if provider == "keepassxc-browser" {
 					metadata["browser"] = map[string]any{"database_hash": strings.Repeat("a", 64), "entry_id": strings.Repeat("b", 32), "login": "demo:credential-id"}
 					previous := readKeePassXCBrowser
-					readKeePassXCBrowser = func(got secrets.KeePassXCBrowser) (string, error) {
+					readKeePassXCBrowser = func(_ context.Context, got secrets.KeePassXCBrowser) (string, error) {
 						if got.EntryID != strings.Repeat("b", 32) {
 							t.Fatal("entry changed")
 						}
