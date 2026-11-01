@@ -122,7 +122,7 @@ func TestSwitchStopsOnlyOtherTunnel(t *testing.T) {
 	project := fakeDocker(t, `
 printf '%s\n' "$*" >> "$MWCLI_TEST_DOCKER_ARGS"
 case "$*" in
-  *"ps --services"*) printf '%s\n' cloudflared holesail traefik mediawiki mysql ;;
+  *"--services"*) printf '%s\n' cloudflared holesail traefik mediawiki mysql ;;
 esac
 `)
 	p, _ := selectProvider("holesail")
@@ -150,7 +150,7 @@ func TestCommandsDetectActiveProviderInsteadOfSavedPreference(t *testing.T) {
 	key := "hs://s000" + strings.Repeat("a1", 32)
 	fakeDocker(t, `
 case "$*" in
- *"ps --services"*) printf '%s\n' holesail gateway-auth traefik ;;
+ *"--services"*) printf '%s\n' holesail gateway-auth traefik ;;
  *"ps -q holesail"*) echo fixture-container ;;
  *"inspect"*) echo '2026-10-16T12:00:00Z' ;;
  *"logs"*) echo '`+key+`' ;;

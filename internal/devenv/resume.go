@@ -70,6 +70,8 @@ func (m Environment) readResumeState() (resumeState, bool, error) {
 	// Older snapshots could contain tunnel containers. Do not restore those
 	// entries even before a later save rewrites the file.
 	state.Services = WithoutTunnelServices(state.Services)
+	state.Stopped = WithoutTunnelServices(state.Stopped)
+	state.OneShot = WithoutTunnelServices(state.OneShot)
 	return state, true, nil
 }
 
