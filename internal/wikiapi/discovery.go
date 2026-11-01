@@ -20,18 +20,24 @@ import (
 type (
 	Discovery struct{ Client *Client }
 	Parameter struct {
-		Name        string          `json:"name"`
-		Type        json.RawMessage `json:"type"`
-		Required    bool            `json:"required,omitempty"`
-		Description string          `json:"description,omitempty"`
-		Multi       bool            `json:"multi,omitempty"`
-		Default     json.RawMessage `json:"default,omitempty"`
-		Min         json.RawMessage `json:"min,omitempty"`
-		Max         json.RawMessage `json:"max,omitempty"`
+		Submodules  map[string]string `json:"submodules,omitempty"`
+		Name        string            `json:"name"`
+		Type        json.RawMessage   `json:"type"`
+		Required    bool              `json:"required,omitempty"`
+		Description string            `json:"description,omitempty"`
+		Multi       bool              `json:"multi,omitempty"`
+		Default     json.RawMessage   `json:"default,omitempty"`
+		Min         json.RawMessage   `json:"min,omitempty"`
+		Max         json.RawMessage   `json:"max,omitempty"`
 	}
 )
 
+type ActionIndex struct {
+	Modules []string `json:"modules"`
+}
+
 type Module struct {
+	Missing      bool        `json:"missing,omitempty"`
 	ReadRights   bool        `json:"readrights,omitempty"`
 	WriteRights  bool        `json:"writerights,omitempty"`
 	MustBePosted bool        `json:"mustbeposted,omitempty"`
@@ -69,6 +75,10 @@ func schemaCache[T any](endpoint, kind, name string) *diskcache.Cache[T] {
 	return diskcache.New[T](filepath.Join(xdg.CacheHome, "mwcli", "wiki-api", installation, kind+"-"+key+".json"), 24*time.Hour)
 }
 
+func (d Discovery) CachedActionIndex() (ActionIndex, bool) {
+	return schemaCache[ActionIndex](d.Client.Endpoint, "action-index", "").Peek()
+}
+
 func (d Discovery) CachedModule(name string) (Module, bool) {
 	return schemaCache[Module](d.Client.Endpoint, "action", name).Peek()
 }
@@ -85,50 +95,72 @@ func (d Discovery) CachedREST(module string) (RESTSpec, bool) {
 	return schemaCache[RESTSpec](d.Client.Endpoint, "rest", module).Peek()
 }
 
-// RefreshAction fetches paraminfo in bounded batches. An empty list discovers
-// main, query, all top-level actions and all query submodules.
+// RefreshAction fetches paraminfo in bounded batches. With no names it follows
+// all advertised submodule mappings, including nested extension modules.
 func (d Discovery) RefreshAction(ctx context.Context, names []string) ([]Module, error) {
 	all := len(names) == 0
 	if all {
-		names = []string{"main", "query", "query+*"}
+		names = []string{"main", "query"}
 	}
-	modules, err := d.fetchModules(ctx, names)
-	if err != nil {
-		return nil, err
-	}
-	if all {
-		pending := []string{}
-		for _, m := range modules {
-			if m.Name == "main" {
+	pending := append([]string(nil), names...)
+	seen := map[string]bool{}
+	modules := []Module{}
+	for len(pending) > 0 {
+		batch := []string{}
+		for len(pending) > 0 && len(batch) < 50 {
+			name := pending[0]
+			pending = pending[1:]
+			if !seen[name] {
+				seen[name] = true
+				batch = append(batch, name)
+			}
+		}
+		if len(batch) == 0 {
+			continue
+		}
+		if len(seen) > 10000 {
+			return nil, fmt.Errorf("API discovery exceeded 10000 modules")
+		}
+		discovered, err := d.fetchModules(ctx, batch)
+		if err != nil {
+			return nil, err
+		}
+		modules = append(modules, discovered...)
+		if all {
+			for _, m := range discovered {
 				for _, p := range m.Parameters {
-					if p.Name == "action" {
-						for _, name := range p.Values() {
-							if name != "query" {
-								pending = append(pending, name)
-							}
+					for _, child := range p.Submodules {
+						if !seen[child] {
+							pending = append(pending, child)
 						}
 					}
 				}
 			}
 		}
-		for len(pending) > 0 {
-			n := min(50, len(pending))
-			batch, e := d.fetchModules(ctx, pending[:n])
-			if e != nil {
-				return nil, e
-			}
-			modules = append(modules, batch...)
-			pending = pending[n:]
-		}
+	}
+	index := ActionIndex{}
+	if !all {
+		index, _ = d.CachedActionIndex()
+	}
+	indexed := map[string]bool{}
+	for _, name := range index.Modules {
+		indexed[name] = true
 	}
 	for _, m := range modules {
 		key := m.Path
 		if key == "" {
 			key = m.Name
 		}
+		indexed[key] = true
 		_, _ = schemaCache[Module](d.Client.Endpoint, "action", key).Refresh(ctx, func(context.Context) (Module, error) { return m, nil })
 	}
-	_, err = schemaCache[Site](d.Client.Endpoint, "site", "").Refresh(ctx, func(ctx context.Context) (Site, error) {
+	index.Modules = nil
+	for name := range indexed {
+		index.Modules = append(index.Modules, name)
+	}
+	sort.Strings(index.Modules)
+	_, _ = schemaCache[ActionIndex](d.Client.Endpoint, "action-index", "").Refresh(ctx, func(context.Context) (ActionIndex, error) { return index, nil })
+	_, err := schemaCache[Site](d.Client.Endpoint, "site", "").Refresh(ctx, func(ctx context.Context) (Site, error) {
 		data, e := d.Client.Action(ctx, http.MethodGet, url.Values{"action": {"query"}, "meta": {"siteinfo"}, "siprop": {"general|namespaces|extensions"}})
 		var response struct {
 			Query Site `json:"query"`
@@ -157,6 +189,11 @@ func (d Discovery) fetchModules(ctx context.Context, names []string) ([]Module, 
 	if len(result.Paraminfo.Modules) == 0 {
 		return nil, fmt.Errorf("wiki did not return parameter information")
 	}
+	for _, m := range result.Paraminfo.Modules {
+		if m.Missing {
+			return nil, fmt.Errorf("unknown API module %q", m.Path)
+		}
+	}
 	return result.Paraminfo.Modules, nil
 }
 
@@ -177,36 +214,17 @@ func (p Parameter) Values() []string {
 	return result
 }
 
-// RefreshREST consumes same-installation OpenAPI documents only. A wiki without
-// specs remains usable through raw REST requests.
+// RefreshREST consumes advertised same-installation schemas and separately
+// probes the legacy Wikibase spec, which older deployments do not advertise.
+// Only successfully fetched schemas enter the index used by completion.
 func (d Discovery) RefreshREST(ctx context.Context) ([]string, error) {
-	index, err := schemaCache[RESTIndex](d.Client.Endpoint, "rest-index", "").Refresh(ctx, func(ctx context.Context) (RESTIndex, error) {
-		data, e := d.Client.REST(ctx, http.MethodGet, "specs/v0/discovery", nil, nil, nil)
-		var v RESTIndex
-		if e == nil {
-			e = json.Unmarshal(data, &v)
-		}
-		if e == nil && len(v.Modules) == 0 {
-			e = fmt.Errorf("wiki has no REST discovery modules")
-		}
-		return v, e
-	})
-	if err != nil {
-		// Older Wikibase deployments can serve this before generic discovery exists.
-		spec, e := d.fetchRESTSpec(ctx, "wikibase/v1/openapi.json")
-		if e != nil {
-			return nil, fmt.Errorf("REST discovery unavailable; raw REST requests still work: %w", err)
-		}
-		_, e = schemaCache[RESTSpec](d.Client.Endpoint, "rest", "wikibase/v1").Refresh(ctx, func(context.Context) (RESTSpec, error) { return spec, nil })
-		if e != nil {
-			return nil, e
-		}
-		index = RESTIndex{Modules: map[string]RESTModule{"wikibase/v1": {ModuleID: "wikibase/v1", Spec: "wikibase/v1/openapi.json"}}}
-		_, _ = schemaCache[RESTIndex](d.Client.Endpoint, "rest-index", "").Refresh(ctx, func(context.Context) (RESTIndex, error) { return index, nil })
-		return []string{"wikibase/v1"}, nil
+	data, discoveryErr := d.Client.REST(ctx, http.MethodGet, "specs/v0/discovery", nil, nil, nil)
+	advertised := RESTIndex{}
+	if discoveryErr == nil {
+		discoveryErr = json.Unmarshal(data, &advertised)
 	}
-	names := []string{}
-	for key, mod := range index.Modules {
+	successful := RESTIndex{Modules: map[string]RESTModule{}}
+	for key, mod := range advertised.Modules {
 		route := mod.Spec
 		if route == "" {
 			route = "specs/v0/module/" + key
@@ -214,27 +232,62 @@ func (d Discovery) RefreshREST(ctx context.Context) ([]string, error) {
 				route += "-"
 			}
 		}
-		// Discovery may use absolute spec URLs. Accept only this installation;
-		// never follow a server-supplied URL to another origin or script path.
-		if u, e := url.Parse(route); e == nil && u.IsAbs() {
-			prefix := strings.TrimSuffix(d.Client.Endpoint, "api.php") + "rest.php/"
-			if !strings.HasPrefix(route, prefix) {
-				continue
-			}
-			route = strings.TrimPrefix(route, prefix)
-		}
-		spec, e := d.fetchRESTSpec(ctx, route)
-		if e != nil {
+		route, ok := d.specRoute(route)
+		if !ok {
 			continue
 		}
-		_, _ = schemaCache[RESTSpec](d.Client.Endpoint, "rest", key).Refresh(ctx, func(context.Context) (RESTSpec, error) { return spec, nil })
-		names = append(names, key)
+		spec, err := d.fetchRESTSpec(ctx, route)
+		if err != nil {
+			continue
+		}
+		if _, err = schemaCache[RESTSpec](d.Client.Endpoint, "rest", key).Refresh(ctx, func(context.Context) (RESTSpec, error) { return spec, nil }); err != nil {
+			continue
+		}
+		mod.Spec = route
+		successful.Modules[key] = mod
+	}
+	if _, ok := successful.Modules["wikibase/v1"]; !ok && ctx.Err() == nil {
+		route := "wikibase/v1/openapi.json"
+		if spec, err := d.fetchRESTSpec(ctx, route); err == nil {
+			_, _ = schemaCache[RESTSpec](d.Client.Endpoint, "rest", "wikibase/v1").Refresh(ctx, func(context.Context) (RESTSpec, error) { return spec, nil })
+			successful.Modules["wikibase/v1"] = RESTModule{ModuleID: "wikibase/v1", Spec: route}
+		}
+	}
+	names := []string{}
+	for name := range successful.Modules {
+		names = append(names, name)
 	}
 	sort.Strings(names)
 	if len(names) == 0 {
+		if discoveryErr != nil {
+			return nil, fmt.Errorf("REST discovery unavailable; raw REST requests still work: %w", discoveryErr)
+		}
 		return nil, fmt.Errorf("wiki did not provide usable REST schemas; raw REST requests still work")
 	}
+	_, _ = schemaCache[RESTIndex](d.Client.Endpoint, "rest-index", "").Refresh(ctx, func(context.Context) (RESTIndex, error) { return successful, nil })
 	return names, nil
+}
+
+func (d Discovery) specRoute(route string) (string, bool) {
+	u, err := url.Parse(route)
+	if err != nil {
+		return "", false
+	}
+	prefix := strings.TrimSuffix(d.Client.Endpoint, "api.php") + "rest.php/"
+	if u.IsAbs() {
+		if !strings.HasPrefix(route, prefix) {
+			return "", false
+		}
+		route = strings.TrimPrefix(route, prefix)
+	} else if strings.HasPrefix(route, "/") {
+		base, _ := url.Parse(prefix)
+		if !strings.HasPrefix(route, base.Path) {
+			return "", false
+		}
+		route = strings.TrimPrefix(route, base.Path)
+	}
+	_, err = d.Client.RESTPath(route)
+	return route, err == nil
 }
 
 func (d Discovery) fetchRESTSpec(ctx context.Context, route string) (RESTSpec, error) {
