@@ -1,8 +1,12 @@
 package dockercompose
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -82,18 +86,110 @@ func (p Project) Start(services []string) error {
 // StartContainers starts existing containers for the selected services without
 // allowing Compose to start their dependencies.
 func (p Project) StartContainers(services []string) error {
+	return p.StartContainersWithOutput(services, os.Stdout, os.Stderr)
+}
+
+// StartContainersWithOutput reports service names instead of Docker's raw IDs.
+func (p Project) StartContainersWithOutput(services []string, stdout, stderr io.Writer) error {
 	if len(services) == 0 {
 		return nil
 	}
-	stdout, stderr, err := p.Command(append([]string{"ps", "--all", "--quiet"}, services...)).RunAndCollect()
+	listed, listErrors, err := p.Command(append([]string{"ps", "--all", "--quiet"}, services...)).RunAndCollect()
 	if err != nil {
-		return fmt.Errorf("list containers to start: %w: %s", err, strings.TrimSpace(stderr.String()))
+		return fmt.Errorf("list containers to start for %s: %w: %s", strings.Join(services, ", "), err, strings.TrimSpace(listErrors.String()))
 	}
-	ids := strings.Fields(stdout.String())
+	ids := strings.Fields(listed.String())
 	if len(ids) == 0 {
 		return nil
 	}
-	return (Command{Cmd: exec.Command("docker", append([]string{"container", "start"}, ids...)...)}).RunAttached() // #nosec G204
+	// Inspect only the selected containers. Compose start can also resume their
+	// dependencies, so keep using docker container start with these exact IDs.
+	inspectArgs := append([]string{"container", "inspect", "--format", `{{.Id}} {{index .Config.Labels "com.docker.compose.service"}} {{.Name}}`}, ids...)
+	labels, inspectErrors, err := (Command{Cmd: exec.Command("docker", inspectArgs...)}).RunAndCollect() // #nosec G204
+	if err != nil {
+		return fmt.Errorf("identify containers to start for %s: %w: %s", strings.Join(services, ", "), err, strings.TrimSpace(inspectErrors.String()))
+	}
+	containerServices := map[string]string{}
+	containerNames := map[string]string{}
+	for _, line := range strings.Split(labels.String(), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			for _, id := range ids {
+				if strings.HasPrefix(fields[0], id) {
+					containerServices[id] = fields[1]
+					containerNames[id] = fields[1]
+					if len(fields) >= 3 {
+						containerNames[id] = strings.TrimPrefix(fields[2], "/")
+					}
+				}
+			}
+		}
+	}
+	for _, id := range ids {
+		if containerServices[id] == "" {
+			return fmt.Errorf("could not identify the service for a selected container of %s; no containers started", strings.Join(services, ", "))
+		}
+	}
+	names := startedServiceNames(ids, containerServices)
+	progress := newContainerStartProgress(stdout, stderr, ids, containerNames)
+	if progress == nil {
+		fmt.Fprintf(stderr, "Starting: %s\n", strings.Join(names, ", "))
+	}
+	started := containerStartOutput{completed: progress.complete}
+	var startErrors bytes.Buffer
+	err = (Command{Cmd: exec.Command("docker", append([]string{"container", "start"}, ids...)...)}).RunAttachedWithOutput(&started, &startErrors) // #nosec G204
+	started.flush()
+	progress.finish(err)
+	if err == nil {
+		fmt.Fprint(stderr, startErrors.String())
+		if progress == nil {
+			fmt.Fprintf(stdout, "Started: %s\n", strings.Join(names, ", "))
+		}
+		return nil
+	}
+	// Docker prints each successfully started ID even when another start fails.
+	// A service is complete only when all of its selected replicas started.
+	successful := map[string]bool{}
+	for _, id := range strings.Fields(started.output.String()) {
+		successful[id] = true
+	}
+	var failedIDs []string
+	for _, id := range ids {
+		if !successful[id] {
+			failedIDs = append(failedIDs, id)
+		}
+	}
+	failed := startedServiceNames(failedIDs, containerServices)
+	failedServices := map[string]bool{}
+	for _, name := range failed {
+		failedServices[name] = true
+	}
+	var completed []string
+	for _, name := range names {
+		if !failedServices[name] {
+			completed = append(completed, name)
+		}
+	}
+	if progress == nil && len(completed) > 0 {
+		fmt.Fprintf(stdout, "Started: %s\n", strings.Join(completed, ", "))
+	}
+	if len(failed) == 0 {
+		failed = names
+	}
+	return fmt.Errorf("start services %s: %w: %s", strings.Join(failed, ", "), err, strings.TrimSpace(startErrors.String()))
+}
+
+func startedServiceNames(ids []string, services map[string]string) []string {
+	seen := map[string]bool{}
+	for _, id := range ids {
+		seen[services[id]] = true
+	}
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (p Project) Stop(services []string) error {
