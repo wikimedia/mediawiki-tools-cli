@@ -229,3 +229,16 @@ combined with `--select`, `--depth`, or `--combine`. Only one title-file operand
 Completion for these resource commands is offline: fixed-value flags suggest
 supported values and unknown entity IDs/titles/hashes do not fall back to filenames.
 Raw API completion continues to use its cached installation discovery.
+
+JSON and jq filters are checked before requests. Invalid syntax fails without an
+edit; runtime filter or output-write errors also produce a failing exit status.
+If an individual edit succeeded but rendering failed, the error says so: inspect
+the wiki before repeating the command. Bulk output remains fixed NDJSON and has
+no jq formatting stage. Empty valid selections are `[]`; malformed/missing API
+list payloads are errors rather than silently empty selections.
+
+Raw API discovery follows advertised Action submodules and same-installation REST
+specifications, plus the legacy Wikibase specification fallback. It cannot infer
+unadvertised extension routes beyond that fallback. Completion uses the last
+cached public schemas offline; raw requests still work without discovery. A
+canceled REST refresh preserves the previously published module index.

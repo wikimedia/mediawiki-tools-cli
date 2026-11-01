@@ -50,6 +50,9 @@ func (c *Client) fileProperty(ctx context.Context, file string, fields url.Value
 	if _, invalid := page["invalid"]; invalid {
 		return nil, nil, fmt.Errorf("invalid file title")
 	}
+	if rawString(page["title"]) == "" {
+		return nil, nil, fmt.Errorf("wiki returned file metadata without a title")
+	}
 	var info []json.RawMessage
 	if requireInfo && (json.Unmarshal(page["imageinfo"], &info) != nil || len(info) == 0) {
 		return nil, nil, fmt.Errorf("file %q does not exist or has no readable file information", title)

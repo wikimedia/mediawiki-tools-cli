@@ -74,8 +74,7 @@ func newWikiFileUsageCmd() *cobra.Command {
 				}
 				return nil
 			}
-			out.Print(cmd, pages)
-			return nil
+			return printResourceOutput(cmd, &out, pages)
 		},
 	}
 	cmd.Flags().IntVar(&namespace, "namespace", 0, "Restrict usage to this namespace ID (default: all)")

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 // queryContinuation follows the entire opaque Action continuation map, removes
@@ -19,10 +20,25 @@ func (c *queryContinuation) advance(fields url.Values, next map[string]json.RawM
 	}
 	values := make(url.Values)
 	for key, raw := range next {
+		if strings.TrimSpace(string(raw)) == "null" {
+			return false, fmt.Errorf("wiki returned an invalid continuation value for %s", key)
+		}
+		if fields.Has(key) {
+			previous := false
+			for _, cursorKey := range c.keys {
+				if key == cursorKey {
+					previous = true
+					break
+				}
+			}
+			if !previous {
+				return false, fmt.Errorf("wiki continuation would overwrite fixed parameter %s", key)
+			}
+		}
 		var value string
 		if json.Unmarshal(raw, &value) != nil {
 			var number json.Number
-			if json.Unmarshal(raw, &number) != nil || string(raw) == "null" {
+			if json.Unmarshal(raw, &number) != nil || strings.TrimSpace(string(raw)) == "null" {
 				return false, fmt.Errorf("wiki returned an invalid continuation value for %s", key)
 			}
 			value = number.String()

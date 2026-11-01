@@ -120,7 +120,13 @@ func (c *Client) SearchEntities(ctx context.Context, kind, query, language strin
 		if err = json.Unmarshal(data, &result); err != nil {
 			return nil, err
 		}
+		if result.Search == nil {
+			return nil, fmt.Errorf("wiki response is missing its entity search results array")
+		}
 		for _, entity := range result.Search {
+			if _, err := EntityID(kind, entity.ID); err != nil {
+				return nil, fmt.Errorf("wiki returned an invalid search result: %w", err)
+			}
 			if !seen[entity.ID] {
 				seen[entity.ID] = true
 				found = append(found, entity)

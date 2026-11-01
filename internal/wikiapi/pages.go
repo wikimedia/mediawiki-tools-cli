@@ -105,10 +105,16 @@ func (c *Client) SelectPages(ctx context.Context, options PageSelection) ([]Page
 			if err = json.Unmarshal(data, &result); err != nil {
 				return nil, err
 			}
+			if len(result.Query.Pages) == 0 {
+				return nil, fmt.Errorf("wiki response is missing query.pages for requested titles")
+			}
 			// API may reorder pages and normalize titles. Preserve file order where
 			// possible, applying the API's normalization before matching results.
 			byTitle := map[string]Page{}
 			for _, page := range result.Query.Pages {
+				if page.Title == "" {
+					return nil, fmt.Errorf("wiki returned a page without a title")
+				}
 				byTitle[page.Title] = page
 			}
 			normalized := map[string]string{}
@@ -182,6 +188,14 @@ func (c *Client) SelectPages(ctx context.Context, options PageSelection) ([]Page
 		var batch []Page
 		if err = json.Unmarshal(raw, &batch); err != nil {
 			return nil, err
+		}
+		if batch == nil {
+			return nil, fmt.Errorf("wiki response query.%s must be an array", module)
+		}
+		for _, page := range batch {
+			if page.Title == "" {
+				return nil, fmt.Errorf("wiki returned a page without a title")
+			}
 		}
 		if accept(batch) {
 			return pages, nil

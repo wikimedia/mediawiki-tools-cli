@@ -173,6 +173,9 @@ func prepareWikiCommands(parent *cobra.Command) {
 		if child.RunE == nil && child.Run == nil {
 			continue
 		}
+		// Cobra usage is written to stdout; keep machine-readable resource output
+		// clean on validation, request, and rendering failures. --help remains available.
+		child.SilenceUsage = true
 		oldE, old := child.PreRunE, child.PreRun
 		child.PreRun = nil
 		child.PreRunE = func(cmd *cobra.Command, args []string) error {

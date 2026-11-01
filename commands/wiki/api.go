@@ -77,7 +77,7 @@ func (o *apiOutput) validate() error {
 	if o.raw && (o.Type == "jq" || o.Format != "") {
 		return fmt.Errorf("--raw cannot be combined with JSON formatting")
 	}
-	return nil
+	return output.ValidateJSONFormat(o.Format)
 }
 
 func (o *apiOutput) print(cmd *cobra.Command, data []byte) error {
@@ -98,8 +98,7 @@ func (o *apiOutput) print(cmd *cobra.Command, data []byte) error {
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	o.Print(cmd, value)
-	return nil
+	return printResourceOutput(cmd, &o.Output, value)
 }
 
 func apiFields(fields []string, repeat bool) (url.Values, error) {

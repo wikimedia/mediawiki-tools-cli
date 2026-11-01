@@ -91,8 +91,7 @@ func newEntitySearchCmd(kind string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			out.Print(cmd, results)
-			return nil
+			return printResourceOutput(cmd, &out, results)
 		},
 	}
 	cmd.Flags().StringVar(&language, "language", "en", "Language for matching and displaying terms")
@@ -192,7 +191,12 @@ func printEntityPlan(cmd *cobra.Command, out *apiOutput, plan interface{}) error
 	return out.print(cmd, data)
 }
 
-func printEntityResponse(cmd *cobra.Command, out *apiOutput, data []byte) error {
+func printEntityResponse(cmd *cobra.Command, out *apiOutput, data []byte) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("wiki edit succeeded, but output failed: %w", err)
+		}
+	}()
 	var response map[string]json.RawMessage
 	if json.Unmarshal(data, &response) == nil {
 		if entity, ok := response["entity"]; ok {

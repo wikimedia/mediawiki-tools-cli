@@ -70,8 +70,7 @@ func newWikiPageHistoryCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			out.Print(cmd, revisions)
-			return nil
+			return printResourceOutput(cmd, &out, revisions)
 		},
 	}
 	flags := cmd.Flags()
@@ -132,8 +131,7 @@ func newWikiPageCategoriesCmd() *cobra.Command {
 				}
 				return nil
 			}
-			out.Print(cmd, categories)
-			return nil
+			return printResourceOutput(cmd, &out, categories)
 		},
 	}
 	cmd.Flags().StringVar(&hidden, "hidden", "all", "Hidden categories: all, only or exclude")

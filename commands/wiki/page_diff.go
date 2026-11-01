@@ -16,6 +16,9 @@ func newWikiPageDiffCmd() *cobra.Command {
 		Long:    "One selector shows that title/revision's latest change against its predecessor. Two selectors compare FROM to TO. Selectors accept rev:123 or bare positive revision numbers, title:Earth or ordinary nonnumeric page titles. Use title:123 for a numeric page title.\n\nText output requests the wiki's unified diff where available. Older wikis fall back to readable +/-/context lines; fallback text is not a patch file. --output html emits native diff HTML; json/jq expose the native comparison metadata and body. No pages are edited.",
 		Example: "  diff Earth\n  diff rev:123 rev:124\n  diff title:Earth title:Moon --output json",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := output.ValidateJSONFormat(out.Format); err != nil {
+				return err
+			}
 			switch out.Type {
 			case "text", "html":
 				if out.Format != "" {
@@ -47,8 +50,7 @@ func newWikiPageDiffCmd() *cobra.Command {
 				return err
 			}
 			if out.Type == "json" || out.Type == "jq" {
-				out.Print(cmd, diff)
-				return nil
+				return printResourceOutput(cmd, &out, diff)
 			}
 			var body string
 			if json.Unmarshal(diff["body"], &body) != nil {

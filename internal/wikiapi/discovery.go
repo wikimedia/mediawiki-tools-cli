@@ -253,6 +253,9 @@ func (d Discovery) RefreshREST(ctx context.Context) ([]string, error) {
 			successful.Modules["wikibase/v1"] = RESTModule{ModuleID: "wikibase/v1", Spec: route}
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	names := []string{}
 	for name := range successful.Modules {
 		names = append(names, name)

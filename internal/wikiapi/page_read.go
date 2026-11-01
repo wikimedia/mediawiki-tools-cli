@@ -43,6 +43,9 @@ func (c *Client) pageProperty(ctx context.Context, title string, fields url.Valu
 	if _, missing := page["missing"]; missing {
 		return nil, nil, fmt.Errorf("page %q does not exist", title)
 	}
+	if rawString(page["title"]) == "" {
+		return nil, nil, fmt.Errorf("wiki returned page metadata without a title")
+	}
 	return page, result.Continue, nil
 }
 
@@ -184,7 +187,7 @@ func ValidateCategoryFilter(hidden string, limit int) error {
 }
 
 // PageCategories returns categories attached to the given page. This differs
-// from SelectPages' category-members source; neither operation is recursive.
+// from SelectPages' category-members source; attached-category reads are not recursive.
 func (c *Client) PageCategories(ctx context.Context, title, hidden string, limit int) ([]PageCategory, error) {
 	if err := ValidateCategoryFilter(hidden, limit); err != nil {
 		return nil, err

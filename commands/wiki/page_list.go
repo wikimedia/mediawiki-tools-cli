@@ -181,8 +181,7 @@ func NewWikiPageListCmd() *cobra.Command {
 				}
 				return nil
 			}
-			out.Print(cmd, pages)
-			return nil
+			return printResourceOutput(cmd, &out, pages)
 		},
 	}
 	flags := cmd.Flags()
