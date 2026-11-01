@@ -183,10 +183,12 @@ func (p *containerStartProgress) draw() {
 		case "Error":
 			icon, code = "✘", "31"
 		}
+		status := fmt.Sprintf("%-8s", row.state)
 		if p.colour {
 			icon = "\x1b[" + code + "m" + icon + "\x1b[0m"
+			status = "\x1b[" + code + "m" + status + "\x1b[0m"
 		}
-		suffix := fmt.Sprintf(" %-8s %5.1fs", row.state, elapsed.Seconds())
+		suffix := fmt.Sprintf(" %s %5.1fs", status, elapsed.Seconds())
 		prefix := " " + icon + " Container "
 		name := ansi.Truncate(row.name, nameWidth, "…")
 		name += strings.Repeat(" ", max(0, nameWidth-ansi.StringWidth(name)))

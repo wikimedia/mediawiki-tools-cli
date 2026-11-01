@@ -41,7 +41,7 @@ func TestContainerStartProgressPendingCompleteAndFailure(t *testing.T) {
 			t.Fatalf("missing %q in %q", want, text)
 		}
 	}
-	if !strings.Contains(buffer.String(), "\x1b[32m") || !strings.Contains(buffer.String(), "\x1b[31m") {
+	if !strings.Contains(buffer.String(), "\x1b[32mStarted") || !strings.Contains(buffer.String(), "\x1b[31mError") {
 		t.Fatal("success and failure colours missing")
 	}
 }
