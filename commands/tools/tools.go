@@ -135,6 +135,7 @@ func Cleanup() {
 func NewToolsCmd() *cobra.Command {
 	command := &cobra.Command{Use: "tools", GroupID: "service", Short: "Explore Wikimedia tools and usage statistics"}
 	command.AddCommand(
+		cobrautil.WithServiceInfo(newToolcounterCmd(), cobrautil.ServiceInfo{Name: "Toolcounter", URL: "https://toolcounter.toolforge.org"}),
 		cobrautil.WithServiceInfo(newToolviewsCmd(), cobrautil.ServiceInfo{Name: "Toolviews", URL: "https://toolviews.toolforge.org"}),
 		cobrautil.WithServiceInfo(quip.NewQuipCmd(), cobrautil.ServiceInfo{Name: "Quip", URL: "https://bash.toolforge.org", Logo: "https://bash.toolforge.org/favicon.ico"}),
 	)
