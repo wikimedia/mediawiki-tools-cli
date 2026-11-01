@@ -1,0 +1,41 @@
+---
+import { Code } from '@astrojs/starlight/components';
+---
+
+<p class="dev-intro">Build a local MediaWiki environment with Docker Compose, then add the services you need.</p>
+
+<div class="dev-paths">
+  <a href="#getting-started"><strong>Getting started</strong><span>Create and install your first local wiki.</span></a>
+  <a href="/manual/dev/mediawiki/"><strong>MediaWiki</strong><span>Work with checkouts, extensions and maintenance commands.</span></a>
+  <a href="#services"><strong>Services</strong><span>Add databases, caches, debugging tools and more.</span></a>
+  <a href="/manual/dev/env/"><strong>Environment configuration</strong><span>Inspect and change your environment settings.</span></a>
+</div>
+
+<h2 id="getting-started">Getting started</h2>
+<p>Install Docker with Compose and make sure <code>docker info</code> works. Create MediaWiki, add MySQL, then install the wiki:</p>
+<Code code={'mw dev mediawiki create\nmw dev mysql create\nmw dev mediawiki install --dbtype=mysql'} lang="sh" />
+<p>The setup wizard lets you choose a checkout and local port. For a separate environment, use <code>--context NAME</code>.</p>
+<p><a href="/guides/dev/setup/">Read the setup guide →</a></p>
+
+<h2 id="services">Working with services</h2>
+<p>Read the <a href="/guides/dev/services/">service workflow guide</a> for the shared patterns.</p>
+<p>Choose a service in the sidebar for its overview and commands. Many services share <code>create</code>, <code>start</code>, <code>stop</code>, <code>logs</code> and image configuration commands; each service's reference lists what it supports.</p>
+<ul>
+  <li><a href="/manual/dev/mysql/">MySQL</a> and <a href="/manual/dev/postgres/">PostgreSQL</a> for databases.</li>
+  <li><a href="/manual/dev/redis/">Redis</a> and <a href="/manual/dev/memcached/">Memcached</a> for caching.</li>
+  <li><a href="/manual/dev/jaeger/">Jaeger</a> and <a href="/manual/dev/mailhog/">MailHog</a> for debugging.</li>
+  <li><a href="/manual/dev/traefik/">Traefik</a> for gateway access and service URLs.</li>
+</ul>
+
+<h2 id="managing-your-environment">Managing your environment</h2>
+<p>Use <a href="/manual/dev/stop/">stop</a> and <a href="/manual/dev/start/">start</a> to pause and resume containers, or <a href="/manual/dev/compose/">compose</a> to work directly with Docker Compose.</p>
+<p>For repeatable setups, <a href="/manual/dev/recipe/">recipes</a> apply a YAML definition of an environment.</p>
+
+<style>
+  .dev-intro { font-size: var(--sl-text-lg); }
+  .dev-paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block: 1.5rem 2rem; }
+  .dev-paths a { display: flex; flex-direction: column; gap: 0.4rem; padding: 1.2rem; border: 1px solid var(--sl-color-hairline-light); border-radius: 0.5rem; text-decoration: none; }
+  .dev-paths a:hover { border-color: var(--sl-color-accent); background: var(--sl-color-accent-low); }
+  .dev-paths span { color: var(--sl-color-gray-2); font-size: var(--sl-text-sm); }
+  @media (max-width: 35rem) { .dev-paths { grid-template-columns: 1fr; } }
+</style>

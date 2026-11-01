@@ -1,0 +1,76 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+import manual from '../content/docs/manual/_services.json';
+interface Service {
+  name: string; command: string; link: string;
+  development: boolean; logo?: string; url?: string; children?: Service[];
+}
+const services: Service[] = manual.services;
+const sections = [
+  { title: 'Wikimedia services', development: false, description: 'Explore Wikimedia and work with its hosted services.' },
+  { title: 'Development services', development: true, description: 'Build a local MediaWiki environment with the services you need.' },
+];
+---
+
+<div class="service-catalog">
+  {sections.map((section) => (
+    <section aria-label={section.title}>
+      <h2>{section.title}</h2>
+      <p>{section.description}</p>
+      <ul class="service-grid">
+        {services.filter((service) => service.development === section.development).map((service) => (
+          <li>
+            <a class="reference" href={service.link}>
+              <span class:list={['logo', { fallback: !service.logo }]}>
+                {service.logo ? <img src={service.logo} alt="" loading="lazy" width="48" height="48" /> : <Icon name="setting" size="2.5rem" />}
+              </span>
+              <strong>{service.name}</strong>
+              <code>{service.command}</code>
+            </a>
+            {service.children && service.children.length > 0 && (
+              <ul class="tools" aria-label={`${service.name} tools`}>
+                {service.children.map((tool) => (
+                  <li>
+                    <a href={tool.link} title={tool.command}>
+                      {tool.logo && <img src={tool.logo} alt="" width="16" height="16" loading="lazy" />}
+                      {tool.name}
+                    </a>
+                    {tool.url && <a class="tool-site" href={tool.url} aria-label={`${tool.name} website`}>↗︎</a>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div class="links">
+              <a href={service.link} aria-label={`${service.name} command reference`}>Command reference</a>
+              {service.url && <a href={service.url} aria-label={`${service.name} website`}>Website <span aria-hidden="true">↗︎</span></a>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+  <p class="credits"><a href="/logos/NOTICE">Logo credits</a></p>
+</div>
+
+<style>
+  .service-catalog { margin-block-start: 3rem; }
+  section + section { margin-block-start: 3rem; }
+  h2 { font-size: var(--sl-text-2xl); margin-block-end: 0.5rem; }
+  section > p { color: var(--sl-color-gray-2); }
+  .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; list-style: none; padding: 0; margin-block: 1.5rem; }
+  .service-grid > li { display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--sl-color-hairline-light); border-radius: 0.5rem; }
+  .service-grid > li:focus-within, .service-grid > li:hover { border-color: var(--sl-color-text-accent); }
+  .reference { display: flex; flex: 1; width: 100%; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem 0.5rem 0.5rem; color: var(--sl-color-text); text-decoration: none; }
+  .reference:hover strong { color: var(--sl-color-text-accent); }
+  .logo { display: grid; place-items: center; width: 4rem; height: 4rem; margin-block-end: 0.3rem; border-radius: 0.6rem; background: white; }
+  .logo.fallback { color: var(--sl-color-text-accent); background: var(--sl-color-bg-nav); }
+  img { width: 3rem; height: 3rem; object-fit: contain; }
+  strong { font-size: var(--sl-text-base); line-height: 1.4; }
+  code { font-size: var(--sl-text-xs); overflow-wrap: anywhere; }
+  .links { display: flex; flex-direction: column; gap: 0.3rem; font-size: var(--sl-text-xs); margin-block: 0.3rem 0.8rem; }
+  .tools { list-style: none; padding: 0; margin: 0.4rem 0; text-align: start; }
+  .tools li { display: flex; gap: 0.4rem; align-items: center; }
+  .tools a { display: flex; align-items: center; gap: 0.4rem; font-size: var(--sl-text-sm); padding: 0.2rem; }
+  .tools img { width: 1rem; height: 1rem; object-fit: contain; }
+  .credits { font-size: var(--sl-text-xs); }
+</style>

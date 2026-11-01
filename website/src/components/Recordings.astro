@@ -1,0 +1,43 @@
+---
+import media from '../content/docs/manual/_recordings.json';
+interface Recording { id: string; title: string; video: string; poster?: string; guide: string; commands: string[] }
+const available: Recording[] = media.recordings;
+const pathname = Astro.url.pathname;
+const recordings = available.filter((recording) =>
+  pathname === `/guides/${recording.guide}/` || recording.commands.some((command) => pathname === `/manual/${command.replaceAll(' ', '/')}/`)
+);
+---
+
+{recordings.length > 0 && (
+  <section class="recordings" aria-label="Video demonstrations" id="recordings" data-recordings>
+    <h2>Watch it in action</h2>
+    {recordings.map((recording) => (
+      <figure>
+        <video controls playsinline preload="none" poster={recording.poster} src={recording.video} aria-label={recording.title}>
+          <a href={recording.video}>Download {recording.title}</a>
+        </video>
+        <figcaption>{recording.title}</figcaption>
+      </figure>
+    ))}
+  </section>
+)}
+
+<script>
+  // A stale or unavailable media URL should not leave a broken player behind.
+  document.querySelectorAll<HTMLVideoElement>('[data-recordings] video').forEach((video) => {
+    video.addEventListener('error', () => {
+      const figure = video.closest('figure');
+      const section = video.closest<HTMLElement>('[data-recordings]');
+      if (figure) figure.hidden = true;
+      if (section && [...section.querySelectorAll('figure')].every((item) => item.hidden)) section.hidden = true;
+    });
+  });
+</script>
+
+<style>
+  .recordings { margin-block-end: 2rem; }
+  .recordings h2 { margin-block-start: 0; font-size: var(--sl-text-h3); }
+  figure { margin: 1rem 0 0; }
+  video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; background: #171820; border: 1px solid var(--sl-color-hairline-light); border-radius: 0.5rem; }
+  figcaption { margin-block-start: 0.5rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+</style>

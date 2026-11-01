@@ -1,0 +1,31 @@
+---
+import manual from '../content/docs/manual/_meta.json';
+import { commandSections } from '../command-navigation.mjs';
+const pathname = Astro.url.pathname;
+const sections = commandSections(manual.commands, pathname);
+---
+
+<nav class="command-navigation" aria-label="Command navigation">
+  <h2>Subcommands</h2>
+  {sections.map((section, index) => (
+    <section>
+      <h3><a href={section.link} aria-current={index === 0 && pathname === section.link ? 'page' : undefined}>{section.label || section.title}</a></h3>
+      <ul>
+        {section.children.map((command) => (
+          <li><a href={command.link} aria-current={pathname === command.link ? 'page' : undefined} data-active-branch={pathname.startsWith(command.link) || undefined}>{command.name}</a></li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</nav>
+
+<style>
+  h2 { font-size: var(--sl-text-h5); margin: 0 0 1rem; }
+  section + section { margin-block-start: 1.5rem; }
+  h3 { margin: 0 0 0.3rem; font-size: var(--sl-text-sm); font-family: var(--sl-font-mono); }
+  ul { list-style: none; padding: 0; margin: 0; }
+  a { display: block; padding: 0.25rem 0.5rem; line-height: 1.4; border-radius: 0.25rem; color: var(--sl-color-gray-2); text-decoration: none; font-size: var(--sl-text-sm); overflow-wrap: anywhere; }
+  a:hover, a:focus-visible { color: var(--sl-color-text-accent); }
+  [data-active-branch] { color: var(--sl-color-text-accent); font-weight: 600; }
+  [aria-current='page'], [aria-current='page']:hover, [aria-current='page']:focus-visible { color: var(--sl-color-text-invert); background: var(--sl-color-text-accent); font-weight: 600; }
+</style>

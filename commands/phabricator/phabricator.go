@@ -40,6 +40,7 @@ For storage options and password managers, see "mw help guides authentication".`
 	_ = cmd.PersistentFlags().MarkHidden("site")
 
 	cmd.AddCommand(newPhabricatorAuthCmd(&site))
+	cmd.AddCommand(newPhabricatorCreateCmd(&site))
 	addViewCmd(cmd, &site)
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)

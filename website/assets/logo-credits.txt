@@ -1,0 +1,43 @@
+Service logo credits
+
+MediaWiki: Serhio Magpie, CC BY-SA 4.0; unchanged.
+https://commons.wikimedia.org/wiki/File:MediaWiki-2020-icon.svg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Toolforge: BDavis (WMF), CC BY-SA 4.0; unchanged.
+Includes elements adapted from Wikimedia Community Logo.svg and
+Forge Noun project 1044767.svg, as credited on the source page.
+https://commons.wikimedia.org/wiki/File:Toolforge_logo.svg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Wikimedia Cloud Services: Brandon Harris and Isarra,
+CC BY-SA 3.0; unchanged.
+https://commons.wikimedia.org/wiki/File:Wikimedia_Cloud_Services_logo.svg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+Gerrit icon: public domain (simple geometric shapes); unchanged.
+https://commons.wikimedia.org/wiki/File:Gerrit_icon.svg
+
+Citoid logo: Mvolz, optimised by Vulphere, CC BY-SA 4.0; unchanged.
+https://commons.wikimedia.org/wiki/File:Citoid_logo.svg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+OpenSearch S logo: copyright OpenSearch contributors, Apache License 2.0;
+vectorised by Vulphere; unchanged.
+https://commons.wikimedia.org/wiki/File:OpenSearch_S_logo.svg
+https://www.apache.org/licenses/LICENSE-2.0
+The full license is included in opensearch-LICENSE in this directory.
+
+Quip favicon: supplied by the Quip tool, unchanged.
+https://bash.toolforge.org/favicon.ico
+https://bash.toolforge.org
+
+Remaining SVG logos are unmodified Simple Icons assets (CC0 1.0).
+The original source for each is:
+https://github.com/simple-icons/simple-icons/blob/develop/icons/FILENAME.svg
+The exact source URLs are recorded in the CLI service metadata.
+https://github.com/simple-icons/simple-icons
+https://creativecommons.org/publicdomain/zero/1.0/
+The full CC0 license is included in simple-icons-LICENSE in this directory.
+
+Brand names and logos remain the trademarks of their respective owners.

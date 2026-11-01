@@ -1,0 +1,22 @@
+---
+import DefaultMobileTableOfContents from '@astrojs/starlight/components/MobileTableOfContents.astro';
+import CommandNavigation from './CommandNavigation.astro';
+---
+
+{Astro.url.pathname.startsWith('/manual/') ? (
+  <nav class="mobile-commands" aria-label="Mobile command navigation">
+    <details>
+      <summary>Subcommands</summary>
+      <div class="dropdown"><CommandNavigation /></div>
+    </details>
+  </nav>
+) : <DefaultMobileTableOfContents />}
+
+<style>
+  .mobile-commands { position: fixed; z-index: var(--sl-z-index-toc); top: calc(var(--sl-nav-height) - 1px); inset-inline: 0; border-block: 1px solid var(--sl-color-gray-5); background: var(--sl-color-bg-nav); }
+  summary { height: var(--sl-mobile-toc-height); padding: 0.7rem 1rem; font-size: var(--sl-text-sm); cursor: pointer; }
+  .dropdown { max-height: calc(80vh - var(--sl-nav-height)); overflow-y: auto; padding: 1rem; border-top: 1px solid var(--sl-color-gray-5); }
+  .dropdown :global(.command-navigation > h2) { display: none; }
+  .dropdown :global(.command-navigation a) { padding-block: 0.5rem; }
+  @media (min-width: 50rem) { .mobile-commands { inset-inline-start: var(--sl-content-inline-start, 0); } }
+</style>

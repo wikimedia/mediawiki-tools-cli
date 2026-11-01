@@ -1,0 +1,22 @@
+---
+import { projectLinks } from '../project-links';
+import { Icon } from '@astrojs/starlight/components';
+---
+
+{projectLinks.map(({ label, href, icon }) => (
+  <a href={href} aria-label={label} title={label} class="project-link">
+    <Icon name={icon} />
+  </a>
+))}
+
+<style>
+  .project-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sl-color-text-accent);
+    padding: 0.5em;
+    margin: -0.5em;
+  }
+  .project-link:hover { color: var(--sl-color-white); }
+</style>

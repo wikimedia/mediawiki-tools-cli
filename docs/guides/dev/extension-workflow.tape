@@ -30,8 +30,9 @@ Type '# Get an extension into this checkout'
 Enter
 Type 'mw dev mediawiki get-code --extension Cite --gerrit-interaction-type http --no-commit-hook'
 Enter
+Sleep 250ms
 Wait+Line@90s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Enable it in LocalSettings.php'
@@ -45,13 +46,15 @@ Enter
 Sleep 1s
 Type 'mw dev mediawiki mwscript update'
 Enter
+Sleep 250ms
 Wait+Line@90s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Run a focused extension test'
 Enter
 Type 'mw dev mediawiki composer phpunit extensions/Cite/tests/phpunit/unit/CiteParserTagHooksTest.php'
 Enter
+Sleep 250ms
 Wait+Line@90s /^> ?$/
 Sleep 3s

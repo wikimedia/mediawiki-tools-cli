@@ -20,6 +20,7 @@ Set TypingSpeed 25ms
 Hide
 Type 'set -e; cd _recordings; clear'
 Enter
+Sleep 250ms
 Wait+Line@120s /^> ?$/
 Show
 Type '# Inspect the tool before changing anything'
@@ -29,22 +30,19 @@ Enter
 Sleep 1s
 Type 'mw toolforge kubernetes get pods --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes get deployments --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes get services --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 
 Ctrl+L
 Type '# The manifest comes from the guide'
@@ -56,40 +54,34 @@ Sleep 5s
 Ctrl+L
 Type 'mw toolforge kubernetes create --dry-run=server -f cli-guide-hello.yaml --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes create -f cli-guide-hello.yaml --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes wait --for=condition=Ready pod/cli-guide-hello --timeout=120s --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@150s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes get pod cli-guide-hello --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes logs cli-guide-hello --tail=2 --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes exec cli-guide-hello --tool "$TOOL" -- python3 --version'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 
 Ctrl+L
 Type '# Forward the app to localhost'
@@ -99,16 +91,19 @@ Enter
 Hide
 Type 'forward_pid=$!; for i in {1..30}; do grep -q "Forwarding from" port-forward.log && break; kill -0 "$forward_pid" || exit 1; sleep 1; done; grep -q "Forwarding from" port-forward.log'
 Enter
+Sleep 250ms
 Wait+Line@45s /^> ?$/
 Type 'clear'
 Enter
+Sleep 250ms
 Wait+Line@10s /^> ?$/
 Show
 Type 'head -n 2 port-forward.log'
 Enter
-Sleep 2s
+Sleep 3s
 Type 'curl --fail http://127.0.0.1:18080/'
 Enter
+Sleep 250ms
 Wait+Line@30s /^> ?$/
 Sleep 4s
 Screenshot "_recordings/kubernetes-pod-helloworld.png"
@@ -117,19 +112,18 @@ Sleep 1s
 Hide
 Type 'kill "$forward_pid"; wait "$forward_pid" 2>/dev/null || true; clear'
 Enter
+Sleep 250ms
 Wait+Line@15s /^> ?$/
 Show
 Type '# Remove only the demo pod'
 Enter
 Type 'mw toolforge kubernetes delete pod cli-guide-hello --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
-Sleep 2s
+Sleep 3s
 Type 'mw toolforge kubernetes get pods --tool "$TOOL"'
 Enter
-Hide
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Show
 Sleep 4s

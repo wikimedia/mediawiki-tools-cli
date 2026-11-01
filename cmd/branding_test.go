@@ -17,7 +17,7 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 	t.Cleanup(func() { cli.Opts = previous })
 	cli.Opts.NoInteraction = true
 	for _, name := range []string{"mw", "wm", "wiki-tool"} {
-		for _, args := range [][]string{{"--help"}, {"cloudvps", "ssh", "--help"}, {"cloudvps", "auth", "login", "--help"}, {"cloudvps", "auth", "add", "--help"}, {"analytics", "pageviews", "--help"}} {
+		for _, args := range [][]string{{"--help"}, {"dev", "--help"}, {"cloudvps", "ssh", "--help"}, {"cloudvps", "auth", "login", "--help"}, {"cloudvps", "auth", "add", "--help"}, {"analytics", "pageviews", "--help"}} {
 			root := NewRootCmd(name)
 			var out bytes.Buffer
 			root.SetOut(&out)
@@ -30,7 +30,13 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 			if !strings.Contains(text, "Usage:\n  "+name+" ") {
 				t.Fatalf("wrong invocation: %s", text)
 			}
+			if strings.Contains(text, "Additional Commands:") {
+				t.Fatal("help still uses the old ungrouped-command heading")
+			}
 			if len(args) == 1 {
+				if !strings.Contains(text, "Other Commands:") {
+					t.Fatal("root help is missing Other Commands")
+				}
 				if !strings.Contains(text, cli.DisplayName) || strings.Contains(text, "+----+") {
 					t.Fatal("plain root help lost brand or contains terminal banner")
 				}

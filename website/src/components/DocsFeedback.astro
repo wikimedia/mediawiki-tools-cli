@@ -1,0 +1,158 @@
+---
+import { taskContent, taskURL } from '../docs-feedback.mjs';
+const { title, manualVersion, editUrl } = Astro.locals.starlightRoute.entry.data;
+const page = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const fallbackURL = taskURL(taskContent({ page, title, version: manualVersion, quote: '', issue: '', summary: '' }));
+---
+
+<docs-feedback data-page={page} data-title={title} data-version={manualVersion} data-source={typeof editUrl === 'string' ? editUrl : undefined}>
+  <a href={fallbackURL} class="report-page">Report an issue with this page</a>
+  <button type="button" class="report-selection" hidden>Report a docs issue</button>
+  <dialog aria-labelledby="docs-feedback-title">
+    <form>
+      <div class="dialog-heading">
+        <h2 id="docs-feedback-title">Report a documentation issue</h2>
+        <button type="button" class="close" aria-label="Close report dialog">×</button>
+      </div>
+      <p class="page-context"></p>
+      <label>Title <span>(optional)</span><input name="summary" maxlength="200" placeholder={`Docs: ${title}`} /></label>
+      <label>Selected text <span>(optional)</span><textarea name="quote" rows="3" maxlength="1500"></textarea></label>
+      <label>What’s wrong or missing?<textarea name="issue" rows="4" maxlength="2000" required></textarea></label>
+      <p>The report includes this page’s link, section and documentation version.</p>
+      <div class="actions">
+        <button type="submit" class="primary">Open in Phabricator</button>
+        <button type="button" class="copy-command">Copy CLI command</button>
+        <label class="shell-label">Shell<select name="shell"><option value="posix">Bash / Zsh</option><option value="powershell">PowerShell</option></select></label>
+      </div>
+      <p class="feedback-status" role="status" aria-live="polite"></p>
+      <label class="command-fallback" hidden>CLI command<textarea name="command" readonly rows="5"></textarea></label>
+      <p class="hint">Review and submit on Phabricator, or run the command using your saved CLI profile. The command asks before creating the task.</p>
+    </form>
+  </dialog>
+</docs-feedback>
+
+<script>
+  import { taskContent, taskURL, taskCommand } from '../docs-feedback.mjs';
+
+  class DocsFeedback extends HTMLElement {
+    private events?: AbortController;
+
+    disconnectedCallback() { this.events?.abort(); }
+
+    connectedCallback() {
+      const dialog = this.querySelector('dialog')!;
+      const form = this.querySelector('form')!;
+      const selectionButton = this.querySelector<HTMLButtonElement>('.report-selection')!;
+      const status = this.querySelector<HTMLElement>('.feedback-status')!;
+      const fallback = this.querySelector<HTMLElement>('.command-fallback')!;
+      const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      let quote = '';
+      let section = '';
+      let anchor = '';
+      const captureSelection = () => {
+        if (dialog.open) return;
+        const selection = window.getSelection();
+        selectionButton.hidden = true;
+        if (!selection || selection.isCollapsed || !selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        const content = document.querySelector('.sl-markdown-content');
+        if (!content?.contains(range.commonAncestorContainer)) return;
+        quote = selection.toString().trim().slice(0, 1500);
+        if (!quote) return;
+        section = '';
+        anchor = '';
+        for (const heading of content.querySelectorAll<HTMLElement>('h2[id], h3[id], h4[id]')) {
+          if (range.comparePoint(heading, 0) <= 0) {
+            section = heading.querySelector('span')?.textContent?.trim() || heading.textContent?.trim() || '';
+            anchor = heading.id;
+          }
+        }
+        const bounds = range.getBoundingClientRect();
+        selectionButton.hidden = false;
+        selectionButton.style.left = `${Math.max(8, Math.min(bounds.left, window.innerWidth - selectionButton.offsetWidth - 8))}px`;
+        selectionButton.style.top = `${Math.max(8, Math.min(bounds.bottom + 8, window.innerHeight - selectionButton.offsetHeight - 8))}px`;
+      };
+      const events = this.events = new AbortController();
+      document.addEventListener('selectionchange', captureSelection, { signal: events.signal });
+      document.addEventListener('scroll', () => { selectionButton.hidden = true; }, { passive: true, signal: events.signal });
+      const open = (withSelection: boolean) => {
+        if (!withSelection) { quote = ''; section = ''; anchor = ''; }
+        field('quote').value = quote;
+        selectionButton.hidden = true;
+        status.textContent = '';
+        fallback.hidden = true;
+        this.querySelector('.page-context')!.textContent = `${this.dataset.title}${section ? ` — ${section}` : ''}`;
+        dialog.showModal();
+        field('issue').focus();
+      };
+      // Preserve the selection when the floating button receives pointer focus.
+      selectionButton.addEventListener('pointerdown', (event) => event.preventDefault());
+      selectionButton.addEventListener('click', () => open(true));
+      this.querySelector('.report-page')!.addEventListener('click', (event) => { event.preventDefault(); open(false); });
+      this.querySelector('.close')!.addEventListener('click', () => dialog.close());
+      const content = () => {
+        const page = new URL(this.dataset.page!);
+        if (anchor) page.hash = anchor;
+        return taskContent({
+          page: page.href, title: this.dataset.title!, version: this.dataset.version,
+          section, source: this.dataset.source, quote: field('quote').value,
+          summary: field('summary').value, issue: field('issue').value,
+        });
+      };
+      const valid = () => {
+        field('issue').setCustomValidity(field('issue').value.trim() ? '' : 'Describe the documentation issue.');
+        return form.reportValidity();
+      };
+      field('issue').addEventListener('input', () => field('issue').setCustomValidity(''));
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (!valid()) return;
+        const url = taskURL(content());
+        if (url.length > 16000) { status.textContent = 'Please shorten the selected text or issue before opening Phabricator.'; return; }
+        window.open(url, '_blank', 'noopener,noreferrer');
+      });
+      this.querySelector('.copy-command')!.addEventListener('click', async () => {
+        if (!valid()) return;
+        const command = taskCommand(content(), field('shell').value);
+        field('command').value = command;
+        try {
+          await navigator.clipboard.writeText(command);
+          fallback.hidden = true;
+          status.textContent = 'Command copied. Run it with a CLI version that includes mw phab create.';
+        } catch {
+          fallback.hidden = false;
+          const input = field('command') as HTMLTextAreaElement;
+          input.focus();
+          input.select();
+          status.textContent = 'Copy the command below.';
+        }
+      });
+    }
+  }
+  if (!customElements.get('docs-feedback')) customElements.define('docs-feedback', DocsFeedback);
+</script>
+
+<style>
+  docs-feedback { display: block; margin-block: 2rem; }
+  button, input, textarea, select { font: inherit; }
+  button { cursor: pointer; padding: 0.5rem 0.8rem; border: 1px solid var(--sl-color-gray-4); border-radius: 0.3rem; color: var(--sl-color-text); background: var(--sl-color-bg-nav); }
+  button:hover { border-color: var(--sl-color-text-accent); }
+  .report-page { font-size: var(--sl-text-sm); }
+  .report-selection { position: fixed; z-index: var(--sl-z-index-menu); box-shadow: 0 2px 10px #0004; }
+  [hidden] { display: none !important; }
+  dialog { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; margin: auto; padding: 1.5rem; border: 1px solid var(--sl-color-gray-4); border-radius: 0.5rem; background: var(--sl-color-bg); color: var(--sl-color-text); }
+  dialog::backdrop { background: #0009; }
+  .dialog-heading { display: flex; align-items: start; gap: 1rem; justify-content: space-between; }
+  h2 { margin: 0; font-size: var(--sl-text-xl); }
+  .close { padding: 0 0.5rem; font-size: 1.5rem; }
+  label { display: block; margin-block: 1rem; font-weight: 600; }
+  label span, .hint, .page-context { color: var(--sl-color-gray-2); font-weight: normal; }
+  input, textarea, select { display: block; width: 100%; margin-block-start: 0.3rem; padding: 0.5rem; border: 1px solid var(--sl-color-gray-4); border-radius: 0.25rem; background: var(--sl-color-bg-nav); color: var(--sl-color-text); font-weight: normal; }
+  textarea { resize: vertical; }
+  p { font-size: var(--sl-text-sm); }
+  .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+  .primary { background: var(--sl-color-text-accent); color: var(--sl-color-text-invert); }
+  .shell-label { margin: 0; font-size: var(--sl-text-xs); }
+  .shell-label select { margin: 0; padding: 0.3rem; }
+  .feedback-status { margin-block: 0.7rem; }
+</style>

@@ -11,6 +11,7 @@ import (
 	toolforgeua "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/useragent"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
@@ -64,7 +65,7 @@ func NewToolforgeCmd() *cobra.Command {
 			removeDuplicateSubcommands(child, "quota")
 		}
 	}
-	command.AddCommand(newCopyCmd())
+	command.AddCommand(newCopyCmd(), newCreateToolCmd(browser.OpenURL))
 	inheritMwSetup(command, command)
 	return command
 }
@@ -133,6 +134,9 @@ func Cleanup() {
 // NewToolsCmd groups public tool discovery and usage statistics.
 func NewToolsCmd() *cobra.Command {
 	command := &cobra.Command{Use: "tools", GroupID: "service", Short: "Explore Wikimedia tools and usage statistics"}
-	command.AddCommand(newToolviewsCmd(), quip.NewQuipCmd())
+	command.AddCommand(
+		cobrautil.WithServiceInfo(newToolviewsCmd(), cobrautil.ServiceInfo{Name: "Toolviews", URL: "https://toolviews.toolforge.org"}),
+		cobrautil.WithServiceInfo(quip.NewQuipCmd(), cobrautil.ServiceInfo{Name: "Quip", URL: "https://bash.toolforge.org", Logo: "https://bash.toolforge.org/favicon.ico"}),
+	)
 	return command
 }

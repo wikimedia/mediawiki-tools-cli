@@ -1,0 +1,6 @@
+---
+import DefaultTableOfContents from '@astrojs/starlight/components/TableOfContents.astro';
+import CommandNavigation from './CommandNavigation.astro';
+---
+
+{Astro.url.pathname.startsWith('/manual/') ? <CommandNavigation /> : <DefaultTableOfContents />}

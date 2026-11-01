@@ -56,12 +56,12 @@ or instructions to move command details out of help.
 ## Sources and links
 
 Edit command help in its command package, including embedded `.long.md` and
-`.example` files. Put user guides in `docs/guides/`, add their publication mapping
-to `docs/wiki.json`, and link them from `docs/index.md`. Link help to relevant
+`.example` files. Put user guides in `docs/guides/`, list their source paths
+in `docs/guides.json`, and link them from `docs/index.md`. Link help to relevant
 guides with `mw help guides <topic>`; mapped guides are bundled offline and can
-be opened on the wiki with `--web`. Contributor documentation such as this file
+be opened on the documentation site with `--web`. Contributor documentation such as this file
 lives outside the published user guides.
 
 Run `make linti` to review command metadata and readability suggestions, and
-`make docs` to check guide links and generate the reference and wiki output.
-See [Documentation publishing](README.md) for the publishing workflow.
+`make manual-check` and `make manual` to validate guide links and build the site.
+See [Documentation](README.md) for builds and recordings.

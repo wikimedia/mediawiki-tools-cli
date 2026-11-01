@@ -262,7 +262,7 @@ build-release:
     script:
       - bash tools/ci/release-build.sh "VERSION=${CI_COMMIT_TAG:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}}"
 
-# Use the same pinned documentation tools locally and in release jobs.
+# Use the same pinned documentation tools locally and in CI.
 .docs-tools:
     before_script: &setup-docs-tools
       - curl -fsSL https://mise.run -o /tmp/install-mise.sh
@@ -271,27 +271,23 @@ build-release:
       - mise trust mise.toml
       - mise install
 
-build-docs:
+build-manual:
     extends: .go-job
     rules:
-      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    stage: release
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
+    stage: build
     needs:
       - *merged-source-need
-      - build
-      - integration-cli
-      - integration-get-code
-      - job: integration-github
-        optional: true
     before_script:
       - *checkout-merged-source
       - *setup-docs-tools
     script:
-      - mise exec -- go test ./tools/docs-gen
-      - make docs
+      - make manual-install
+      - make manual-check
+      - make manual
     artifacts:
-      expire_in: 1 week
-      paths: [_docs/]
+      expire_in: 2 days
+      paths: [website/dist/]
 
 release-build:
     extends: .go-job
@@ -362,32 +358,3 @@ release-publish:
         esac
       done
     - release-cli create --name "Release $CI_COMMIT_TAG" --description ".gitlab.description.md" --released-at "${CI_COMMIT_TIMESTAMP}" ${assets_links}
-
-release-docs:
-    interruptible: false
-    rules:
-      - if: '$CI_COMMIT_TAG'
-    stage: release
-    needs: [release-publish]
-    cache: {}
-    image: golang:1.26.10
-    tags:
-    - wmcs
-    before_script:
-      - *setup-docs-tools
-    script:
-      - make VERSION="$CI_COMMIT_TAG" docs-publish
-    artifacts:
-      when: always
-      paths: [_docs/]
-
-# Publish documentation corrections without creating another binary release.
-docs-publish:
-    extends: release-docs
-    rules:
-      - if: '$CI_PROJECT_ID == "16" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-        when: manual
-        allow_failure: true
-    needs: []
-    script:
-      - make docs-publish

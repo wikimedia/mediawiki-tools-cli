@@ -28,27 +28,33 @@ Type '# Stop the running environment'
 Enter
 Type 'mw dev stop'
 Enter
+Sleep 250ms
 Wait+Line@90s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Start the same services again'
 Enter
 Type 'mw dev start'
 Enter
+Sleep 250ms
 Wait+Line@120s /^> ?$/
-Sleep 2s
+Sleep 3s
 Ctrl+L
 
 Type '# Restart and inspect service health'
 Enter
 Type 'mw dev restart'
 Enter
+Sleep 250ms
 Wait+Line@120s /^> ?$/
 Type 'mw dev compose ps'
 Enter
+Sleep 250ms
+Wait+Line@60s /^> ?$/
 Sleep 3s
 Type 'mw dev compose logs -- --tail=5 mediawiki-web'
 Enter
+Sleep 250ms
 Wait+Line@45s /^> ?$/
 Sleep 3s

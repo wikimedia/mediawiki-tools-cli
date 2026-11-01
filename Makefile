@@ -94,33 +94,24 @@ linti:
 upgrade: $(GO_MOD_UPGRADE)
 	$(GO_MOD_UPGRADE)
 
-# Credentials stay in the environment, not command arguments or CI logs.
-export DOCS_UPDATE_USER ?= $(user)
-export DOCS_UPDATE_PASS ?= $(password)
-export DOCS_VERSION ?= $(if $(filter latest,$(VERSION)),,$(VERSION))
-export DOCS_VERSION_NOTICE ?= 0
+.PHONY: manual-install manual-dev manual-stop manual manual-check manual-preview manual-retirement-plan
+manual-install:
+	$(MISE) exec -- npm --prefix website ci
 
-.PHONY: docs docs-review docs-check docs-audit docs-pull docs-publish docs-import docs-accept
-docs:
-	$(MISE) exec -- go run ./tools/docs-gen
+manual-dev:
+	$(MISE) exec -- npm --prefix website run dev
 
-docs-review: docs
-	$(MISE) exec -- go run ./tools/docs-gen -mode review
+manual-stop:
+	cd website && $(MISE) exec -- npm exec -- astro dev stop
 
-docs-check: docs
-	$(MISE) exec -- go run ./tools/docs-gen -mode check
+manual:
+	$(MISE) exec -- npm --prefix website run build
 
-docs-audit: docs
-	$(MISE) exec -- go run ./tools/docs-gen -mode audit
+manual-check:
+	$(MISE) exec -- npm --prefix website run check
 
-docs-pull: docs
-	$(MISE) exec -- go run ./tools/docs-gen -mode pull
+manual-preview:
+	$(MISE) exec -- npm --prefix website run preview
 
-docs-publish: docs
-	$(MISE) exec -- go run ./tools/docs-gen -mode publish
-
-docs-import:
-	$(MISE) exec -- go run ./tools/docs-gen -mode import -page "$(page)" -source "$(file)"
-
-docs-accept:
-	$(MISE) exec -- go run ./tools/docs-gen -mode accept -page "$(page)"
+manual-retirement-plan:
+	$(MISE) exec -- npm --prefix website run retirement-plan

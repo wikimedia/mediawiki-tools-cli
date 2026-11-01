@@ -34,15 +34,15 @@ func AddGuides(root *cobra.Command) {
 	showTopics := func(c *cobra.Command, _ []string) error {
 		web, _ := c.Flags().GetBool("web")
 		if web {
-			return fmt.Errorf("choose a guide to open on the wiki: %s [guide] --web", c.CommandPath())
+			return fmt.Errorf("choose a guide to open on the documentation site: %s [guide] --web", c.CommandPath())
 		}
 		return c.Help()
 	}
 	guides := &cobra.Command{
-		Use: "guides", Short: "Read workflow guides offline or open them on the wiki",
+		Use: "guides", Short: "Read workflow guides offline or open them on the documentation site",
 		Args: cobra.NoArgs,
 	}
-	guides.PersistentFlags().Bool("web", false, "Open the guide on MediaWiki.org")
+	guides.PersistentFlags().Bool("web", false, "Open the guide on a-wikimedia-cli.toolforge.org")
 	guides.RunE = showTopics
 	help.AddCommand(guides)
 	for _, guide := range manifest.Guides {
@@ -93,7 +93,15 @@ func AddGuides(root *cobra.Command) {
 }
 
 func guideURL(manifest docs.Manifest, guide docs.Guide) string {
-	return strings.TrimRight(manifest.PageURL, "/") + "/" + strings.ReplaceAll(url.PathEscape(guide.Title), "%2F", "/")
+	parts := guide.Topic()
+	for i := range parts {
+		parts[i] = url.PathEscape(parts[i])
+	}
+	topic := strings.Join(parts, "/")
+	if topic != "" {
+		topic += "/"
+	}
+	return strings.TrimRight(manifest.SiteURL, "/") + "/guides/" + topic
 }
 
 // Preserve code examples while replacing prose links with offline help commands.
