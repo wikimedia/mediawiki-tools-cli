@@ -58,6 +58,7 @@ func NewWikiCmd() *cobra.Command {
 	// TODO(early 2027): remove --account and --user compatibility aliases.
 	_ = cmd.PersistentFlags().MarkHidden("account")
 	registerWikiCompletions(cmd)
+	registerResourceCompletions(cmd)
 	prepareWikiCommands(cmd)
 
 	return cmd
