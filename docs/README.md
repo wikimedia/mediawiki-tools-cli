@@ -1,5 +1,10 @@
 # Documentation publishing
 
+The static command manual is built with `make manual` and previewed with
+`make manual-dev`; see [local website development](../DEVELOPMENT.md#command-manual-website).
+It renders command help under `/manual/` and the same guides from `docs/` under
+`/guides/`, while layout and styling live in `website/`. The commands below manage the MediaWiki.org publication workflow.
+
 [Read the guides](index.md). Markdown guides live in `guides/`, grouped by command area (for example `guides/dev/` and `guides/gitlab/`); `wiki.json` maps each source to its MediaWiki.org title. The command reference comes from Cobra help. Both are built from the release checkout and published together after a release. Existing `Cli/` URLs remain stable during the rebrand; the reference index follows the default executable name.
 
 ## Build and review

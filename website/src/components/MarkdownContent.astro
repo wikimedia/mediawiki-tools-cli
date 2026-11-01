@@ -1,0 +1,39 @@
+---
+import DefaultMarkdownContent from '@astrojs/starlight/components/MarkdownContent.astro';
+import guides from '../content/docs/guides/_meta.json';
+import Recordings from './Recordings.astro';
+import DevOverview from './DevOverview.astro';
+import ServiceGrid from './ServiceGrid.astro';
+const guideCandidate = Astro.url.pathname.startsWith('/manual/help/guides/') ? Astro.url.pathname.replace('/manual/help/guides/', '/guides/') : undefined;
+const guide = guides.pages.find((page) => page.url === guideCandidate);
+const guideHref = guideCandidate && guides.pages.some((page) => page.url.startsWith(guideCandidate)) ? guideCandidate : undefined;
+const isDevelopmentOverview = Astro.url.pathname === '/manual/dev/';
+---
+
+<DefaultMarkdownContent>
+  {guideHref && (
+    <aside class="guide-reading">
+      <a href={guideHref}>{guide ? `Read the guide: ${guide.title}` : 'Browse these guides'} →</a>
+      <p>This page documents the CLI command. Follow the link to read the guide on this site.</p>
+    </aside>
+  )}
+  <Recordings />
+  {isDevelopmentOverview ? (
+    <>
+      <DevOverview />
+      <details class="dev-reference">
+        <summary>All environment commands and options</summary>
+        <slot />
+      </details>
+    </>
+  ) : <slot />}
+</DefaultMarkdownContent>
+{Astro.url.pathname === '/' && <ServiceGrid />}
+
+<style>
+  .guide-reading { padding: 1rem 1.2rem; margin-block-end: 1.5rem; border-inline-start: 3px solid var(--sl-color-accent); background: var(--sl-color-accent-low); }
+  .guide-reading a { font-weight: 600; }
+  .guide-reading p { margin: 0.4rem 0 0; font-size: var(--sl-text-sm); }
+  .dev-reference { margin-block-start: 2rem; border-block-start: 1px solid var(--sl-color-hairline-light); padding-block-start: 1rem; }
+  .dev-reference summary { cursor: pointer; font-weight: 600; color: var(--sl-color-text-accent); }
+</style>

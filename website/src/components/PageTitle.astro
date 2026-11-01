@@ -1,0 +1,31 @@
+---
+import DefaultPageTitle from '@astrojs/starlight/components/PageTitle.astro';
+
+const { manualVersion, manualUnreleased } = Astro.locals.starlightRoute.entry.data;
+const isManual = Astro.url.pathname.startsWith('/manual/');
+const isGuide = Astro.url.pathname.startsWith('/guides/');
+const parts = Astro.locals.starlightRoute.entry.data.title.split(' ');
+const parents = parts.slice(0, -1).map((label, index) => ({
+  label,
+  href: `/manual/${parts.slice(1, index + 1).join('/')}${index ? '/' : ''}`,
+}));
+---
+
+{isManual && manualVersion && parents.length > 0 && (
+  <nav class="command-breadcrumbs" aria-label="Command hierarchy">
+    {parents.map(({ label, href }) => <a href={href}>{label}</a>)}
+  </nav>
+)}
+{isGuide && Astro.url.pathname !== '/guides/' && (
+  <nav class="command-breadcrumbs" aria-label="Guide hierarchy">
+    <a href="/guides/">Guides</a>
+    {Astro.url.pathname.startsWith('/guides/dev/') && Astro.url.pathname !== '/guides/dev/' && <a href="/guides/dev/">Development</a>}
+  </nav>
+)}
+<DefaultPageTitle><slot /></DefaultPageTitle>
+{manualVersion && (
+  <p class:list={["manual-version", { "command-version": isManual }]}>
+    <span>{manualUnreleased ? (isGuide ? 'Development guide' : 'Development manual') : 'Release'}</span>
+    <code>{manualVersion}</code>
+  </p>
+)}

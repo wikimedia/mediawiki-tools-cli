@@ -49,6 +49,50 @@ make build
 
 The resulting binary will be located at `./bin/mw`.
 
+### Command manual website
+
+The Astro Starlight site lives in `website/`. Install the pinned Node.js version
+with `mise install`, then run:
+
+```sh
+make manual-install
+make manual-dev
+```
+
+Open `http://127.0.0.1:4321/`. Astro reloads site content, components and styles;
+changes to command-help sources and `docs/` guides trigger regeneration automatically.
+Go source changes require recompiling the native documentation generator, so
+these updates take longer than CSS changes. Press Ctrl+C to stop the server,
+or run `make manual-stop` if Astro started it in the background.
+
+Service cards come from Cobra service groups and `WithServiceInfo` metadata beside
+the command registrations. Annotated child commands appear as tools within a card.
+Logo source URLs are fetched during generation and cached in ignored
+`website/public/logos/`; delete that directory to refresh them. Keep logo credits
+and license text in `website/assets/`. Unavailable uncached logos use a neutral icon.
+
+Edit command help in `commands/`, guide content in `docs/`, and the website design
+in `website/src/`. Guide mappings come from `docs/wiki.json`; relative guide links
+and command-reference links are resolved to local site pages. Generated files
+under `website/src/content/docs/manual/` and `website/src/content/docs/guides/`
+are ignored by Git; the generator preserves unchanged files and removes stale
+generated pages.
+Each page identifies the source release or development checkout. Local builds
+describe the current checkout and do not fetch or publish a release.
+
+Optional video demos are mapped in `docs/recordings.json`. Site generation copies
+available videos from `_recordings/` into ignored `website/public/media/`; a
+`.webp` file with the same basename is used as an optional poster. Missing videos
+are omitted, while previously staged media is retained. Generation does not
+record demos or upload files.
+
+Run `make manual-check` for link-rewriting tests and Astro/TypeScript validation,
+and `make manual` for a static build in `website/dist/`, including its search index. Use
+`make manual-preview` to serve that build locally. Search is available in the
+static preview; Starlight shows a search placeholder in live development mode.
+Site builds do not need
+Pandoc, a wiki login or access to saved credentials.
+
 ### Embedded GitLab CLI dependencies
 
 Update `gitlab.com/gitlab-org/cli` alongside `gitlab.com/gitlab-org/api/client-go`

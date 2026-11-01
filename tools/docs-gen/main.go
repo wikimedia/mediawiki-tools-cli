@@ -8,10 +8,18 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "generate", "generate, review, check, audit, pull, publish, import, or accept")
+	mode := flag.String("mode", "generate", "generate, manual, review, check, audit, pull, publish, import, or accept")
+	output := flag.String("output", "website/src/content/docs/manual", "Generated manual directory (manual mode)")
 	page := flag.String("page", "", "Wiki title for import or accept")
 	source := flag.String("source", "", "Markdown path within docs/ for import")
 	flag.Parse()
+	if *mode == "manual" {
+		if err := generateManual(*output); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(*mode, *page, *source); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

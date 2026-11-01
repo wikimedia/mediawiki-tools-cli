@@ -124,3 +124,22 @@ docs-import:
 
 docs-accept:
 	$(MISE) exec -- go run ./tools/docs-gen -mode accept -page "$(page)"
+
+.PHONY: manual-install manual-dev manual-stop manual manual-check manual-preview
+manual-install:
+	$(MISE) exec -- npm --prefix website ci
+
+manual-dev:
+	$(MISE) exec -- npm --prefix website run dev
+
+manual-stop:
+	cd website && $(MISE) exec -- npm exec -- astro dev stop
+
+manual:
+	$(MISE) exec -- npm --prefix website run build
+
+manual-check:
+	$(MISE) exec -- npm --prefix website run check
+
+manual-preview:
+	$(MISE) exec -- npm --prefix website run preview

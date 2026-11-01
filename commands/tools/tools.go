@@ -134,6 +134,9 @@ func Cleanup() {
 // NewToolsCmd groups public tool discovery and usage statistics.
 func NewToolsCmd() *cobra.Command {
 	command := &cobra.Command{Use: "tools", GroupID: "service", Short: "Explore Wikimedia tools and usage statistics"}
-	command.AddCommand(newToolviewsCmd(), quip.NewQuipCmd())
+	command.AddCommand(
+		cobrautil.WithServiceInfo(newToolviewsCmd(), cobrautil.ServiceInfo{Name: "Toolviews", URL: "https://toolviews.toolforge.org"}),
+		cobrautil.WithServiceInfo(quip.NewQuipCmd(), cobrautil.ServiceInfo{Name: "Quip", URL: "https://bash.toolforge.org", Logo: "https://bash.toolforge.org/favicon.ico"}),
+	)
 	return command
 }

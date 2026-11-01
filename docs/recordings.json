@@ -1,0 +1,97 @@
+{
+  "recordings": [
+    {
+      "id": "pageviews",
+      "title": "Explore pageviews",
+      "file": "pageviews.webm",
+      "guide": "analytics/pageviews",
+      "commands": [
+        "analytics pageviews"
+      ]
+    },
+    {
+      "id": "update",
+      "title": "Preview an update",
+      "file": "update.webm",
+      "guide": "updating",
+      "commands": [
+        "update"
+      ]
+    },
+    {
+      "id": "dev-setup",
+      "title": "Create a local MediaWiki environment",
+      "file": "dev-setup.webm",
+      "guide": "dev/setup",
+      "commands": [
+        "dev mediawiki create",
+        "dev mediawiki install"
+      ]
+    },
+    {
+      "id": "dev-api",
+      "title": "Query a local wiki API",
+      "file": "dev-api.webm",
+      "guide": "dev/mediawiki",
+      "commands": [
+        "api"
+      ]
+    },
+    {
+      "id": "dev-fresh",
+      "title": "A recorded Fresh browser test",
+      "file": "dev-fresh-recentchanges.mp4",
+      "guide": "dev/fresh",
+      "commands": [
+        "dev mediawiki fresh"
+      ]
+    },
+    {
+      "id": "toolforge-pod",
+      "title": "Run a demo pod on Toolforge",
+      "file": "kubernetes-pod-helloworld.webm",
+      "guide": "tools/kubernetes-pod-helloworld",
+      "commands": [
+        "toolforge kubernetes"
+      ]
+    },
+    {
+      "id": "dev-extension",
+      "title": "Add and test a MediaWiki extension",
+      "file": "dev-extension-workflow.webm",
+      "guide": "dev/extension-workflow",
+      "commands": [
+        "dev mediawiki get-code"
+      ]
+    },
+    {
+      "id": "dev-tunnel",
+      "title": "Open and stop a development tunnel",
+      "file": "dev-tunnel.webm",
+      "guide": "dev/gateway",
+      "commands": [
+        "dev tunnel"
+      ]
+    },
+    {
+      "id": "dev-lifecycle",
+      "title": "Stop, resume and inspect an environment",
+      "file": "dev-lifecycle.webm",
+      "guide": "dev/services",
+      "commands": [
+        "dev start",
+        "dev stop",
+        "dev restart"
+      ]
+    },
+    {
+      "id": "dev-mysql",
+      "title": "Export and restore a MySQL database",
+      "file": "dev-mysql-dump.webm",
+      "guide": "dev/mysql-dumps",
+      "commands": [
+        "dev mysql"
+      ]
+    }
+  ]
+}

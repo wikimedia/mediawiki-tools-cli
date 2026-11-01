@@ -271,6 +271,24 @@ build-release:
       - mise trust mise.toml
       - mise install
 
+build-manual:
+    extends: .go-job
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
+    stage: build
+    needs:
+      - *merged-source-need
+    before_script:
+      - *checkout-merged-source
+      - *setup-docs-tools
+    script:
+      - make manual-install
+      - make manual-check
+      - make manual
+    artifacts:
+      expire_in: 2 days
+      paths: [website/dist/]
+
 build-docs:
     extends: .go-job
     rules:

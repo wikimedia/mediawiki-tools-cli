@@ -105,6 +105,9 @@ func NewRootCmd(name string) *cobra.Command {
 		Title: "Service Commands",
 	})
 
+	// Cobra's ungrouped-command section is inherited by subcommands too.
+	mwcliCmd.SetUsageTemplate(strings.ReplaceAll(mwcliCmd.UsageTemplate(), "Additional Commands:", "Other Commands:"))
+
 	// Override the default help function to check for unknown commands, which we want to return non zero exit codes for...
 	defaultHelpFunc := mwcliCmd.HelpFunc()
 	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
@@ -166,21 +169,21 @@ func NewRootCmd(name string) *cobra.Command {
 		debugcmd.Cmd(),
 
 		// Built in sub commands
-		gitlabcmd.Cmd(),
+		cobrautil.WithServiceInfo(gitlabcmd.Cmd(), cobrautil.ServiceInfo{Name: "GitLab", URL: "https://gitlab.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/gitlab.svg"}),
 		zikicmd.Cmd(),
 
 		// Older commands, not yet moved to the /commands directory
-		codesearch.NewCodeSearchCmd(),
-		analyticscmd.NewCmd(),
-		apicmd.NewCmd(),
-		eventscmd.NewCmd(),
+		cobrautil.WithServiceInfo(codesearch.NewCodeSearchCmd(), cobrautil.ServiceInfo{Name: "Code search", URL: "https://codesearch.wmcloud.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(analyticscmd.NewCmd(), cobrautil.ServiceInfo{Name: "Analytics", URL: "https://wikimedia.org/api/rest_v1/", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(apicmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia APIs", URL: "https://www.mediawiki.org/wiki/API:Main_page", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(eventscmd.NewCmd(), cobrautil.ServiceInfo{Name: "EventStreams", URL: "https://stream.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		toolhub.NewToolHubCmd(),
-		tools.NewToolsCmd(),
-		tools.NewToolforgeCmd(),
-		gerrit.NewGerritCmd(),
-		cloudvps.NewCloudVPSCmd(),
+		cobrautil.WithServiceInfo(tools.NewToolsCmd(), cobrautil.ServiceInfo{Name: "Wikimedia tools", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(tools.NewToolforgeCmd(), cobrautil.ServiceInfo{Name: "Toolforge", URL: "https://toolforge.org", Logo: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Toolforge_logo.svg"}),
+		cobrautil.WithServiceInfo(gerrit.NewGerritCmd(), cobrautil.ServiceInfo{Name: "Gerrit", URL: "https://gerrit.wikimedia.org", Logo: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Gerrit_icon.svg"}),
+		cobrautil.WithServiceInfo(cloudvps.NewCloudVPSCmd(), cobrautil.ServiceInfo{Name: "Cloud VPS", URL: "https://wikitech.wikimedia.org/wiki/Portal:Cloud_VPS", Logo: "https://upload.wikimedia.org/wikipedia/commons/3/3d/Wikimedia_Cloud_Services_logo.svg"}),
 		dev.NewCmd(),
-		wiki.NewWikiCmd(),
+		cobrautil.WithServiceInfo(wiki.NewWikiCmd(), cobrautil.ServiceInfo{Name: "MediaWiki wikis", URL: "https://www.mediawiki.org", Logo: "https://upload.wikimedia.org/wikipedia/commons/a/a6/MediaWiki-2020-icon.svg"}),
 		quip.NewLegacyCmd(),
 		phabricatorcmd.NewPhabricatorCmd(),
 		help.NewOutputTopicCmd(),

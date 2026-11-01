@@ -1,0 +1,76 @@
+:root {
+  --sl-color-accent-low: #172f51;
+  --sl-color-accent: #6b9fff;
+  --sl-color-accent-high: #c3d8ff;
+  --sl-content-width: 58rem;
+  --sl-sidebar-width: 19rem;
+  --sl-font: system-ui, sans-serif;
+  --sl-font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e7efff;
+  --sl-color-accent: #36c;
+  --sl-color-accent-high: #163567;
+}
+
+.manual-version {
+  margin-block-start: 0.5rem;
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-xs);
+}
+.manual-version code { margin-inline-start: 0.5rem; font-size: inherit; }
+.content-panel:has(.command-version) h1 { font-family: var(--sl-font-mono); }
+.sl-markdown-content pre { tab-size: 4; }
+.sl-markdown-content .command-options dt { margin-block-start: 1rem; }
+.sl-markdown-content .command-options dd {
+  margin: 0.3rem 0 0 1.5rem;
+  overflow-wrap: anywhere;
+}
+.sl-markdown-content .command-options code { white-space: normal; }
+.option-default { color: var(--sl-color-gray-3); }
+
+.command-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: var(--sl-font-mono);
+  font-size: var(--sl-text-sm);
+}
+.command-breadcrumbs a { text-decoration: none; }
+.command-breadcrumbs a:hover, .command-breadcrumbs a:focus-visible { text-decoration: underline; }
+.command-breadcrumbs a + a::before { content: '/'; padding-inline-end: 0.5rem; color: var(--sl-color-gray-3); }
+
+/* Desktop navigation participates in the page height and shares its scrollbar. */
+@media screen and (min-width: 50rem) {
+  [data-has-sidebar] .page {
+    display: grid;
+    grid-template-columns: var(--sl-sidebar-width) minmax(0, 1fr);
+  }
+  [data-has-sidebar] .sidebar {
+    grid-column: 1;
+    grid-row: 1;
+    padding-block-start: var(--sl-nav-height);
+    background: var(--sl-color-bg-sidebar);
+    border-inline-end: 1px solid var(--sl-color-hairline-shade);
+  }
+  [data-has-sidebar] .sidebar-pane {
+    position: static;
+    inset: auto;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    scrollbar-gutter: auto;
+    border-inline-end: 0;
+  }
+  [data-has-sidebar] .sidebar-content {
+    height: auto;
+    padding-block-end: 1.5rem;
+  }
+  [data-has-sidebar] .main-frame {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    padding-inline-start: 0;
+  }
+}

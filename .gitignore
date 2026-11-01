@@ -15,3 +15,13 @@ junit.xml
 code-gen
 
 /_recordings/
+
+/website/node_modules/
+/website/.astro/
+/website/dist/
+/website/src/content/docs/manual/
+
+/website/src/content/docs/guides/
+
+/website/public/media/
+/website/public/logos/

@@ -5,8 +5,9 @@ import (
 	"html"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/releaseversion"
 )
 
 type documentationVersion struct {
@@ -36,9 +37,9 @@ func currentDocumentationVersion() documentationVersion {
 			ref = gitOutput("describe", "--tags", "--exact-match", "HEAD")
 		}
 	}
-	release := regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][a-zA-Z0-9.-]+)?$`)
+	_, releaseError := releaseversion.Parse(ref)
 	version.Modified = gitOutput("status", "--porcelain", "--untracked-files=normal") != ""
-	version.Unreleased = !release.MatchString(ref) || version.Modified
+	version.Unreleased = releaseError != nil || version.Modified
 	if ref == "" || ref == "latest" {
 		ref = gitOutput("branch", "--show-current")
 		if ref == "" {
