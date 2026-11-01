@@ -50,7 +50,7 @@ func (ref objectReference) checkEndpoint(endpoint string) error {
 	return nil
 }
 
-func newPhabricatorObjectViewCmd(site *string, pasteOnly bool) *cobra.Command {
+func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 	var raw bool
 	out := output.Output{PrettyBinding: func(objects interface{}, pretty *output.Pretty) {
 		paste := objects.(*phabPaste)
@@ -70,14 +70,14 @@ func newPhabricatorObjectViewCmd(site *string, pasteOnly bool) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if pasteOnly && ref.Ref[0] != 'P' {
-				return fmt.Errorf("expected a paste reference such as P123")
+			if kind != "" && !strings.HasPrefix(ref.Ref, kind) {
+				return fmt.Errorf("expected a %s reference", kind)
 			}
 			if raw && ref.Ref[0] != 'P' {
 				return fmt.Errorf("--raw is only supported for pastes")
 			}
-			if raw && cmd.Flags().Changed("output") {
-				return fmt.Errorf("--raw cannot be combined with --output")
+			if raw && (cmd.Flags().Changed("output") || cmd.Flags().Changed("format")) {
+				return fmt.Errorf("--raw cannot be combined with --output or --format")
 			}
 			if out.Type != "pretty" && out.Type != "json" && out.Type != "jq" {
 				return fmt.Errorf("unsupported output format %q", out.Type)
@@ -85,7 +85,7 @@ func newPhabricatorObjectViewCmd(site *string, pasteOnly bool) *cobra.Command {
 			if out.Type == "jq" && out.Format == "" {
 				return fmt.Errorf("--output jq requires --format")
 			}
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -98,11 +98,13 @@ func newPhabricatorObjectViewCmd(site *string, pasteOnly bool) *cobra.Command {
 					return err
 				}
 				if out.Type == "pretty" {
-					renderTask(task, client)
+					renderTask(cmd.OutOrStdout(), task, client)
 				} else {
 					out.Print(cmd, task)
 				}
-				client.cache.flush()
+				if client.cache != nil {
+					client.cache.flush()
+				}
 				return nil
 			}
 			paste, err := client.getPaste(ref.Ref)
@@ -117,12 +119,21 @@ func newPhabricatorObjectViewCmd(site *string, pasteOnly bool) *cobra.Command {
 			return nil
 		},
 	}
-	if pasteOnly {
+	if kind == "P" {
 		cmd.Use = "view <P123|URL>"
 		cmd.Short = "View a Phabricator paste"
+		cmd.Long = "View a paste by its P-prefixed identifier or a URL belonging to the selected profile. Use --raw to print its exact content without a heading or added newline."
 		cmd.Example = "view P123\nview P123 --raw\nview P123 --output json"
 	}
-	cmd.Flags().BoolVar(&raw, "raw", false, "Print only the exact paste content")
+	if kind == "T" {
+		cmd.Use = "view <T123|URL>"
+		cmd.Short = "View a Phabricator task"
+		cmd.Long = "View a task by its T-prefixed identifier or a URL belonging to the selected profile. Use --output json for structured task fields and attachments."
+		cmd.Example = "view T123\nview T123 --output json"
+	}
+	if kind != "T" {
+		cmd.Flags().BoolVar(&raw, "raw", false, "Print only the exact paste content")
+	}
 	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.PrettyType), output.WithFilterFlagDisabled())
 	return cmd
 }

@@ -114,7 +114,7 @@ func newProjectCmd(site *string) *cobra.Command {
 			return err
 		}
 		out.Print(cmd, page)
-		if out.Type == "table" {
+		if out.Type == "table" || out.Type == "auto" {
 			printCursor(cmd, page.Cursor)
 		}
 		return nil
@@ -176,7 +176,7 @@ func newBoardCmd(site *string) *cobra.Command {
 func newTaskCmd(site *string) *cobra.Command {
 	root := &cobra.Command{Use: "task", Short: "Search, read and manage Phabricator tasks"}
 	root.AddCommand(newTaskListCmd(site), newPhabricatorCreateCmd(site), newTaskEditCmd(site))
-	addViewCmd(root, site)
+	root.AddCommand(newPhabricatorObjectViewCmd(site, "T"))
 	addCommentsCmd(root, site)
 	addReadCmd(root, site)
 	addAssignCmd(root, site)

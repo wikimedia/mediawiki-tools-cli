@@ -108,7 +108,7 @@ func (c *conduitClient) editPaste(ref string, transactions []map[string]interfac
 
 func newPhabricatorPasteCmd(site *string) *cobra.Command {
 	cmd := &cobra.Command{Use: "paste", Short: "Read, create and edit Phabricator pastes"}
-	cmd.AddCommand(newPhabricatorObjectViewCmd(site, true))
+	cmd.AddCommand(newPhabricatorObjectViewCmd(site, "P"))
 	for _, editing := range []bool{false, true} {
 		cmd.AddCommand(newPhabricatorPasteWriteCmd(site, editing, cli.CanAskForInput, func() (bool, error) {
 			var yes bool
@@ -205,7 +205,7 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 					return nil
 				}
 			}
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}

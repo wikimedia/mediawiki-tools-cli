@@ -19,7 +19,6 @@ func NewPhabricatorCmd() *cobra.Command {
 		Use:     "phabricator",
 		Aliases: []string{"phab"},
 		GroupID: "service",
-		Hidden:  true, // Hidden for now in its first version
 		Short:   "Interact with Wikimedia Phabricator",
 		Long: `Interact with Wikimedia Phabricator via the Conduit API.
 
@@ -41,7 +40,7 @@ For storage options and password managers, see "mw help guides authentication".`
 
 	cmd.AddCommand(newPhabricatorAuthCmd(&site))
 	cmd.AddCommand(newPhabricatorCreateCmd(&site))
-	cmd.AddCommand(newTaskCmd(&site), newProjectCmd(&site), newBoardCmd(&site))
+	cmd.AddCommand(newTaskCmd(&site), newProjectCmd(&site), newBoardCmd(&site), newPhabricatorBrowseCmd(&site))
 	cmd.AddCommand(newPhabricatorPasteCmd(&site))
 	cmd.AddCommand(newPhabricatorObjectViewCmd(&site, ""))
 	addCommentsCmd(cmd, &site)
@@ -73,7 +72,7 @@ func requireTaskArg(args []string) (string, error) {
 	}
 	ref := args[0]
 	upper := strings.ToUpper(ref)
-	if !strings.HasPrefix(upper, "T") {
+	if !objectReferencePattern.MatchString(upper) || !strings.HasPrefix(upper, "T") {
 		return "", fmt.Errorf("invalid task reference %q (expected T12345 format)", ref)
 	}
 	return upper, nil
@@ -102,7 +101,7 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 			if err != nil {
 				return err
 			}
-			renderComments(task, txs, client)
+			renderComments(cmd.OutOrStdout(), task, txs, client)
 			client.cache.flush()
 			return nil
 		},
@@ -128,12 +127,12 @@ func addReadCmd(parent *cobra.Command, site *string) {
 			if err != nil {
 				return err
 			}
-			renderTask(task, client)
+			renderTask(cmd.OutOrStdout(), task, client)
 			txs, err := client.getTransactions(task.PHID)
 			if err != nil {
 				return err
 			}
-			renderComments(task, txs, client)
+			renderComments(cmd.OutOrStdout(), task, txs, client)
 			client.cache.flush()
 			return nil
 		},

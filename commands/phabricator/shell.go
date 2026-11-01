@@ -296,7 +296,7 @@ func shellView(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderTask(task, s.client)
+	renderTask(os.Stdout, task, s.client)
 	return nil
 }
 
@@ -314,7 +314,7 @@ func shellComments(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderComments(task, txs, s.client)
+	renderComments(os.Stdout, task, txs, s.client)
 	return nil
 }
 

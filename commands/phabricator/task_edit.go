@@ -127,7 +127,7 @@ func newTaskEditCmd(site *string) *cobra.Command {
 			}
 			add("projects.add", phids)
 		}
-		if _, err = client.postContext(cmd.Context(), "maniphest.edit", map[string]interface{}{"objectIdentifier": task.PHID, "transactions": transactions}); err != nil {
+		if err = client.editTaskContext(cmd.Context(), task.PHID, transactions); err != nil {
 			return err
 		}
 		cmd.Printf("Updated %s: %s/%s\n", ref, strings.TrimRight(client.baseURL, "/"), ref)

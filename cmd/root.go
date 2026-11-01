@@ -185,7 +185,7 @@ func NewRootCmd(name string) *cobra.Command {
 		dev.NewCmd(),
 		cobrautil.WithServiceInfo(wiki.NewWikiCmd(), cobrautil.ServiceInfo{Name: "MediaWiki wikis", URL: "https://www.mediawiki.org", Logo: "https://upload.wikimedia.org/wikipedia/commons/a/a6/MediaWiki-2020-icon.svg"}),
 		quip.NewLegacyCmd(),
-		phabricatorcmd.NewPhabricatorCmd(),
+		cobrautil.WithServiceInfo(phabricatorcmd.NewPhabricatorCmd(), cobrautil.ServiceInfo{Name: "Phabricator", URL: "https://phabricator.wikimedia.org"}),
 		help.NewOutputTopicCmd(),
 	}...)
 

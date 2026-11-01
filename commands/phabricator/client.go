@@ -645,10 +645,17 @@ func (c *conduitClient) getTransactions(taskPHID string) ([]phabTransaction, err
 // ---- Task edit operations ----
 
 func (c *conduitClient) editTask(taskPHID string, transactions []map[string]interface{}) error {
-	_, err := c.post("maniphest.edit", map[string]interface{}{
+	return c.editTaskContext(c.requestContext(), taskPHID, transactions)
+}
+
+func (c *conduitClient) editTaskContext(ctx context.Context, taskPHID string, transactions []map[string]interface{}) error {
+	_, err := c.postContext(ctx, "maniphest.edit", map[string]interface{}{
 		"objectIdentifier": taskPHID,
 		"transactions":     transactions,
 	})
+	if err == nil && c.cache != nil {
+		c.cache.transactions.remove("tx:" + taskPHID)
+	}
 	return err
 }
 

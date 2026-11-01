@@ -257,3 +257,30 @@ func TestUserResolutionChunks(t *testing.T) {
 		t.Fatalf("users=%d calls=%d err=%v", len(users), calls, err)
 	}
 }
+
+func TestSuccessfulTaskEditInvalidatesPersistedComments(t *testing.T) {
+	client := queryClient(t, func(method string, _ map[string]interface{}) string {
+		switch method {
+		case "/api/maniphest.edit":
+			return `{"object":{"id":1}}`
+		case "/api/transaction.search":
+			return `{"data":[{"id":2,"type":"comment"}]}`
+		default:
+			t.Fatalf("unexpected method %s", method)
+			return ""
+		}
+	})
+	dir := t.TempDir()
+	client.cache = newPhabCache(dir)
+	client.cache.transactions.set("tx:PHID-TASK-one", []phabTransaction{{ID: 1}}, ttlTransactions)
+	client.cache.flush()
+	if err := client.editTask("PHID-TASK-one", []map[string]interface{}{{"type": "comment", "value": "New comment"}}); err != nil {
+		t.Fatal(err)
+	}
+	client.cache.flush()
+	client.cache = newPhabCache(dir)
+	txs, err := client.getTransactions("PHID-TASK-one")
+	if err != nil || len(txs) != 1 || txs[0].ID != 2 {
+		t.Fatalf("stale comments: %+v %v", txs, err)
+	}
+}
