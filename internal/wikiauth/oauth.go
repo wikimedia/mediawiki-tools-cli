@@ -171,11 +171,14 @@ func tokenRequest(ctx context.Context, client *http.Client, endpoint string, for
 	return tokens, nil
 }
 
-// BearerTransport attaches a token only to its exact API endpoint. In particular,
+// BearerTransport attaches a token to the selected API endpoint (and, when opted
+// in, its installation's REST routes). In particular,
 // downloaded assets, redirects and other hosts must not receive wiki tokens.
 type BearerTransport struct {
 	Base            http.RoundTripper
 	Endpoint, Token string
+	// IncludeREST permits only rest.php routes in the same installation.
+	IncludeREST bool
 }
 
 func (t BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -183,7 +186,7 @@ func (t BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	request.Header.Del("Authorization")
 	u := *req.URL
 	u.RawQuery, u.Fragment = "", ""
-	if u.String() == t.Endpoint {
+	if AllowsAPIRequest(t.Endpoint, &u, t.IncludeREST) {
 		request.Header.Set("Authorization", "Bearer "+t.Token)
 	}
 	base := t.Base
