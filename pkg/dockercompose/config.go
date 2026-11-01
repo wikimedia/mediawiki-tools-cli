@@ -27,9 +27,14 @@ func (p Project) Config() Config {
 	return config
 }
 
-// ConfigWithError reads rendered Compose metadata without terminating the caller.
-func (p Project) ConfigWithError() (Config, error) {
-	stdOut, stdErr, err := p.Command([]string{"config"}).RunAndCollect()
+// ConfigWithError reads rendered Compose metadata for the selected profiles.
+// Without explicit profiles, Compose keeps its normal profile selection.
+func (p Project) ConfigWithError(profiles ...string) (Config, error) {
+	args := []string{}
+	for _, profile := range profiles {
+		args = append(args, "--profile", profile)
+	}
+	stdOut, stdErr, err := p.Command(append(args, "config")).RunAndCollect()
 	if err != nil {
 		return Config{}, fmt.Errorf("read compose config: %w: %s", err, strings.TrimSpace(stdErr.String()))
 	}

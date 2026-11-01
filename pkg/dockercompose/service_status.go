@@ -38,7 +38,10 @@ func (p Project) ServiceStatuses() ([]ServiceStatus, error) {
 	if err := json.Unmarshal(output.Bytes(), &containers); err != nil {
 		return nil, fmt.Errorf("parse container statuses: %w", err)
 	}
-	config, err := p.ConfigWithError()
+	// Running containers may belong to profiles that are currently inactive.
+	// Include their metadata so stop/restart can close temporary tunnel access.
+	// This only renders configuration; it does not start any extra services.
+	config, err := p.ConfigWithError("*")
 	if err != nil {
 		return nil, err
 	}

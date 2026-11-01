@@ -13,11 +13,13 @@ func statusProject(t *testing.T, inspect, config string) Project {
 	dir := t.TempDir()
 	t.Setenv("MWCLI_TEST_INSPECT", inspect)
 	t.Setenv("MWCLI_TEST_CONFIG", config)
+	t.Setenv("MWCLI_TEST_PROFILE_CONFIG", config)
 	script := `#!/bin/sh
 case "$*" in
  "compose") exit 0 ;;
  *"ps --all --quiet"*) printf '%s\n' fixture ;;
  "container inspect -- fixture") printf '%s\n' "$MWCLI_TEST_INSPECT" ;;
+ *"--profile * config") printf '%s\n' "$MWCLI_TEST_PROFILE_CONFIG" ;;
  *" config") printf '%s\n' "$MWCLI_TEST_CONFIG" ;;
  *) printf 'unexpected command: %s\n' "$*" >&2; exit 1 ;;
 esac
@@ -27,6 +29,25 @@ esac
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	return Project{Name: "status-test", Directory: dir}
+}
+
+func TestServiceStatusesIncludesExistingProfiledServices(t *testing.T) {
+	inspect := `[
+ {"Config":{"Labels":{"com.docker.compose.service":"traefik"}},"State":{"Status":"running"}},
+ {"Config":{"Labels":{"com.docker.compose.service":"gateway-auth"}},"State":{"Status":"running"}},
+ {"Config":{"Labels":{"com.docker.compose.service":"setup"}},"State":{"Status":"exited"}}
+]`
+	project := statusProject(t, inspect, "services:\n  traefik:\n    image: fixture\n")
+	t.Setenv("MWCLI_TEST_PROFILE_CONFIG", "services:\n  traefik:\n    image: fixture\n  gateway-auth:\n    profiles: [tunnel]\n  setup:\n    profiles: [setup]\n    labels:\n      org.wikimedia.cli.lifecycle: oneshot\n")
+	config, err := project.ConfigWithError()
+	if err != nil || len(config.Services) != 1 {
+		t.Fatalf("default profile selection changed: %+v %v", config, err)
+	}
+	statuses, err := project.ServiceStatuses()
+	want := []ServiceStatus{{Name: "gateway-auth", State: "running"}, {Name: "setup", State: "exited", OneShot: true}, {Name: "traefik", State: "running"}}
+	if err != nil || !reflect.DeepEqual(statuses, want) {
+		t.Fatalf("profile-gated containers missing from inventory: %+v %v", statuses, err)
+	}
 }
 
 func TestServiceStatusesCombinesReplicasAndCurrentRoles(t *testing.T) {

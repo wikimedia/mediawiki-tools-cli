@@ -239,7 +239,8 @@ networks:
             snapshot = state / "mwdd" / context / "state-suspended-services.json"
             saved = json.loads(snapshot.read_text())
             assert set(saved["services"]) == {"dashboard", "traefik"}, saved
-            assert not compose("ps", "--services", "--filter", "status=running")
+            running = compose("ps", "--services", "--filter", "status=running").splitlines()
+            assert not running, running
             # Even an old snapshot containing tunnels must not reopen them.
             saved["services"] += ["cloudflared", "holesail", "gateway-auth"]
             snapshot.write_text(json.dumps(saved))
