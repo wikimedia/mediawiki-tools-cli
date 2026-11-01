@@ -26,7 +26,7 @@ func newBrowseSource(client *conduitClient) browseSource {
 			}
 			result := browsePage{after: browseCursor(page.Cursor.After), before: browseCursor(page.Cursor.Before)}
 			for _, project := range page.Data {
-				result.items = append(result.items, browseItem{key: project.PHID, title: project.Fields.Name, subtitle: project.PHID, url: fmt.Sprintf("%s/project/profile/%d/", base, project.ID)})
+				result.items = append(result.items, browseItem{key: project.PHID, title: project.Fields.Name, subtitle: fmt.Sprintf("Project %d", project.ID), url: fmt.Sprintf("%s/project/profile/%d/", base, project.ID)})
 			}
 			return result, nil
 		},
@@ -50,12 +50,27 @@ func newBrowseSource(client *conduitClient) browseSource {
 			if err != nil {
 				return browsePage{}, err
 			}
-			result := browsePage{after: browseCursor(page.Cursor.After), before: browseCursor(page.Cursor.Before)}
-			for _, task := range page.Data {
-				ref := fmt.Sprintf("T%d", task.ID)
-				result.items = append(result.items, browseItem{key: ref, title: ref + "  " + task.Fields.Name, subtitle: task.Fields.Status.Name + " · " + task.Fields.Priority.Name, url: base + "/" + ref})
+			return browseTaskPage(page, base), nil
+		},
+		columnTasks: func(ctx context.Context, query browseQuery) (browsePage, error) {
+			params, err := queryParams(25, query.after, query.before)
+			if err != nil {
+				return browsePage{}, err
 			}
-			return result, nil
+			// Column PHIDs come from the selected project's column search.
+			constraints := map[string]interface{}{"columnPHIDs": []string{query.column}}
+			if !query.allStatuses {
+				constraints["statuses"] = []string{"open()"}
+			}
+			if query.search != "" {
+				constraints["query"] = query.search
+			}
+			params["constraints"] = constraints
+			page, err := client.searchTaskPages(ctx, params, false)
+			if err != nil {
+				return browsePage{}, err
+			}
+			return browseTaskPage(page, base), nil
 		},
 		detail: func(ctx context.Context, ref string) (string, error) {
 			task, err := client.getTaskContext(ctx, ref)
@@ -94,4 +109,13 @@ func newBrowseSource(client *conduitClient) browseSource {
 		},
 		open: browser.OpenURL,
 	}
+}
+
+func browseTaskPage(page taskPage, base string) browsePage {
+	result := browsePage{after: browseCursor(page.Cursor.After), before: browseCursor(page.Cursor.Before)}
+	for _, task := range page.Data {
+		ref := fmt.Sprintf("T%d", task.ID)
+		result.items = append(result.items, browseItem{key: ref, title: ref + "  " + task.Fields.Name, subtitle: task.Fields.Status.Name + " · " + task.Fields.Priority.Name, url: base + "/" + ref})
+	}
+	return result
 }

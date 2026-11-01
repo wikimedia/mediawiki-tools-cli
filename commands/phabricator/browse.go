@@ -33,11 +33,12 @@ type (
 )
 
 type browseSource struct {
-	projects func(context.Context, string, string, string) (browsePage, error)
-	tasks    func(context.Context, browseQuery) (browsePage, error)
-	columns  func(context.Context, string) ([]browseColumn, error)
-	detail   func(context.Context, string) (string, error)
-	open     func(string) error
+	projects    func(context.Context, string, string, string) (browsePage, error)
+	tasks       func(context.Context, browseQuery) (browsePage, error)
+	columnTasks func(context.Context, browseQuery) (browsePage, error)
+	columns     func(context.Context, string) ([]browseColumn, error)
+	detail      func(context.Context, string) (string, error)
+	open        func(string) error
 }
 type browseResult struct {
 	generation int
@@ -45,6 +46,9 @@ type browseResult struct {
 	columns    []browseColumn
 	detail     string
 	err        error
+	lanes      []browseLane
+	lane       *browseLane
+	laneIndex  int
 }
 type (
 	browseOpened struct{ err error }
@@ -64,6 +68,9 @@ type (
 		detail                                      viewport.Model
 		detailItem                                  browseItem
 		initial                                     tea.Cmd
+		board                                       bool
+		lanes                                       []browseLane
+		activeLane                                  int
 	}
 )
 
@@ -80,16 +87,21 @@ func newBrowseModel(ctx context.Context, source browseSource, project string) br
 	return m
 }
 
-func (m *browseModel) load() tea.Cmd {
+func (m *browseModel) beginRequest() (context.Context, int) {
 	if m.cancel != nil {
 		m.cancel()
 	}
 	ctx, cancel := context.WithCancel(m.ctx)
 	m.cancel = cancel
 	m.generation++
-	generation := m.generation
 	m.loading = true
 	m.err = nil
+	return ctx, m.generation
+}
+
+func (m *browseModel) load() tea.Cmd {
+	ctx, generation := m.beginRequest()
+	board := m.board
 	source, screen, query, search, detailItem := m.source, m.screen, m.query, m.projectSearch, m.detailItem
 	return func() tea.Msg {
 		result := browseResult{generation: generation}
@@ -101,7 +113,11 @@ func (m *browseModel) load() tea.Cmd {
 				result.columns, result.err = source.columns(ctx, query.project)
 			}
 			if result.err == nil {
-				result.page, result.err = source.tasks(ctx, query)
+				if board {
+					result.lanes = loadBrowseBoard(ctx, source, query, result.columns)
+				} else {
+					result.page, result.err = source.tasks(ctx, query)
+				}
 			}
 		case "detail":
 			result.detail, result.err = source.detail(ctx, detailItem.key)
@@ -128,6 +144,14 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			if m.screen == "detail" {
 				m.detail.SetContent(ansi.Hardwrap(browseText(msg.detail), m.width, true))
 				m.detail.GotoTop()
+			} else if m.screen == "tasks" && m.board {
+				if msg.lane != nil {
+					m.lanes[msg.laneIndex] = *msg.lane
+				} else {
+					m.lanes = msg.lanes
+					m.columns = msg.columns
+					m.activeLane = max(0, min(m.activeLane, len(m.lanes)-1))
+				}
 			} else {
 				m.page = msg.page
 				m.columns = msg.columns
@@ -207,7 +231,20 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.detail, cmd = m.detail.Update(msg)
 			return m, cmd
 		}
+		if m.screen == "tasks" && m.board {
+			if handled, command := m.updateBoardKey(msg.String()); handled {
+				return m, command
+			}
+		}
 		switch msg.String() {
+		case "b":
+			if m.screen == "tasks" && m.query.project != "" {
+				m.board = !m.board
+				m.query.column = ""
+				m.query.after, m.query.before = "", ""
+				m.column = -1
+				return m, m.load()
+			}
 		case "j", "down":
 			if m.selected+1 < len(m.page.items) {
 				m.selected++
@@ -261,13 +298,16 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.load()
 			}
 		case "enter":
-			if len(m.page.items) == 0 {
+			item, ok := m.currentItem()
+			if !ok {
 				return m, nil
 			}
-			item := m.page.items[m.selected]
 			if m.screen == "projects" {
 				m.screen = "tasks"
 				m.projectName = item.title
+				m.lanes = nil
+				m.columns = nil
+				m.activeLane = 0
 				m.query = browseQuery{project: item.key}
 				m.column = -1
 			} else {
@@ -277,8 +317,8 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, m.load()
 		case "o":
-			if len(m.page.items) > 0 {
-				url := m.page.items[m.selected].url
+			if item, ok := m.currentItem(); ok {
+				url := item.url
 				return m, func() tea.Msg { return browseOpened{m.source.open(url)} }
 			}
 		}
@@ -298,18 +338,20 @@ func (m browseModel) View() string {
 		title = m.detailItem.title
 	}
 	var b strings.Builder
-	b.WriteString(browseLine(title, m.width) + "\n\n")
+	b.WriteString(browseHeading.Render(browseLine(title, m.width)) + "\n\n")
 	if m.loading {
-		b.WriteString("Loading…\n")
+		b.WriteString(browseAccent.Render("Loading…") + "\n")
 	}
 	if m.err != nil {
-		b.WriteString(browseLine("Error: "+m.err.Error(), m.width) + "\nPress r to retry or Esc to go back.\n")
+		b.WriteString(browseError.Render(browseLine("Error: "+m.err.Error(), m.width)) + "\nPress r to retry or Esc to go back.\n")
 	}
 	if m.screen == "detail" {
 		if !m.loading && m.err == nil {
 			b.WriteString(m.detail.View() + "\n")
 		}
 		b.WriteString("\n↑/↓ scroll · o browser · Esc back · q quit\n")
+	} else if m.screen == "tasks" && m.board {
+		b.WriteString(m.boardView())
 	} else {
 		if m.screen == "tasks" {
 			column := "All columns"
@@ -320,7 +362,7 @@ func (m browseModel) View() string {
 			if m.query.allStatuses {
 				status = "All statuses"
 			}
-			b.WriteString(browseLine(column+" · "+status, m.width) + "\n")
+			b.WriteString(browseAccent.Render(browseLine(column+" · "+status, m.width)) + "\n")
 		}
 		if !m.loading && m.err == nil {
 			if len(m.page.items) == 0 {
@@ -333,8 +375,14 @@ func (m browseModel) View() string {
 				if i == m.selected {
 					marker = "> "
 				}
-				b.WriteString(marker + browseLine(m.page.items[i].title, max(1, m.width-2)) + "\n")
-				b.WriteString("  " + browseLine(m.page.items[i].subtitle, max(1, m.width-2)) + "\n")
+				line := marker + browseLine(m.page.items[i].title, max(1, m.width-2))
+				if i == m.selected {
+					line = browseSelected.Width(m.width).Render(line)
+				} else {
+					line = browseHeading.Render(line)
+				}
+				b.WriteString(line + "\n")
+				b.WriteString("  " + browsePriority(m.page.items[i].subtitle).Render(browseLine(m.page.items[i].subtitle, max(1, m.width-2))) + "\n")
 			}
 		}
 		search := m.projectSearch
@@ -346,7 +394,7 @@ func (m browseModel) View() string {
 		}
 		b.WriteString("\n↑/↓ select · Enter open · / search · n/p pages · o browser\n")
 		if m.screen == "tasks" {
-			b.WriteString("c column · s open/all statuses · ")
+			b.WriteString("b board · c column · s open/all statuses · ")
 		}
 		b.WriteString("Esc back · q quit\n")
 	}
@@ -370,12 +418,15 @@ func browseLine(value string, width int) string {
 }
 
 func newPhabricatorBrowseCmd(site *string) *cobra.Command {
-	var project string
+	var project, view string
 	cmd := &cobra.Command{
 		Use: "browse", Short: "Browse projects and tasks interactively",
-		Long:    "Browse Phabricator projects, task lists and descriptions/comments in a read-only terminal interface. Search with /, switch workboard columns with c, and press o to open the selected object in your browser. Task changes use the normal task commands.",
-		Example: "browse\nbrowse --project a_wikimedia_cli", Args: cobra.NoArgs,
+		Long:    "Browse Phabricator projects, task lists and descriptions/comments in a read-only terminal interface. Search with /, use b to toggle board/list view, and press o to open the selected object in your browser. Task changes use the normal task commands.",
+		Example: "browse\nbrowse --project a_wikimedia_cli\nbrowse --project a_wikimedia_cli --view list", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if view != "board" && view != "list" {
+				return fmt.Errorf("--view must be board or list")
+			}
 			input, inOK := cmd.InOrStdin().(*os.File)
 			out, outOK := cmd.OutOrStdout().(*os.File)
 			if !cli.CanAskForInput() || !inOK || !outOK || !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(out.Fd())) || os.Getenv("TERM") == "dumb" {
@@ -391,11 +442,13 @@ func newPhabricatorBrowseCmd(site *string) *cobra.Command {
 			ctx, cancel := context.WithCancel(cmd.Context())
 			defer cancel()
 			model := newBrowseModel(ctx, newBrowseSource(client), project)
+			model.board = view == "board"
 			model.initial = model.load()
 			_, err = tea.NewProgram(model, tea.WithContext(ctx), tea.WithInput(input), tea.WithOutput(out), tea.WithAltScreen()).Run()
 			return err
 		},
 	}
 	cmd.Flags().StringVar(&project, "project", "", "Project slug or PHID to open")
+	cmd.Flags().StringVar(&view, "view", "board", "Project display: board or list")
 	return cmd
 }

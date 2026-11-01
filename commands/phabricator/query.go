@@ -198,6 +198,13 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 		constraints["assigned"] = []string{user.PHID}
 	}
 	params["constraints"] = constraints
+	return c.searchTaskPages(ctx, params, opts.All)
+}
+
+// searchTaskPages shares paging and attachments between resolved board columns
+// and user-supplied task searches.
+func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]interface{}, all bool) (taskPage, error) {
+	page := taskPage{Data: []phabTask{}}
 	params["order"] = "updated"
 	params["attachments"] = map[string]interface{}{"projects": true, "columns": true}
 	seen := map[string]bool{}
@@ -212,7 +219,7 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 		}
 		page.Data = append(page.Data, next.Data...)
 		page.Cursor = next.Cursor
-		if !opts.All || next.Cursor.After == nil {
+		if !all || next.Cursor.After == nil {
 			break
 		}
 		after := *next.Cursor.After
