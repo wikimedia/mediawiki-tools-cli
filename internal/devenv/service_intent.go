@@ -124,6 +124,16 @@ func (m Environment) recordServiceAction(services []string, action ServiceAction
 				delete(jobs, name)
 			}
 		} else {
+			// An explicit stop also applies to saved services whose containers
+			// disappeared. Do not leave old running intent waiting to return.
+			if action == ServiceStopped {
+				for name := range selected {
+					if running[name] || stopped[name] || jobs[name] {
+						delete(running, name)
+						stopped[name] = true
+					}
+				}
+			}
 			wasRunning := make(map[string]bool)
 			for _, service := range before {
 				wasRunning[service.Name] = service.State == "running"

@@ -14,6 +14,7 @@ type fakeLifecycleProject struct {
 	running, exited, created, started, stopped, restarted []string
 	failure                                               error
 	stopFailure                                           error
+	oneShot                                               map[string]bool
 	calls                                                 int
 }
 
@@ -24,7 +25,7 @@ func (p *fakeLifecycleProject) ServiceStatuses() ([]dockercompose.ServiceStatus,
 	var result []dockercompose.ServiceStatus
 	for status, names := range map[string][]string{"running": p.running, "exited": p.exited, "created": p.created} {
 		for _, name := range names {
-			result = append(result, dockercompose.ServiceStatus{Name: name, State: status})
+			result = append(result, dockercompose.ServiceStatus{Name: name, State: status, OneShot: p.oneShot[name]})
 		}
 	}
 	return result, nil
@@ -219,7 +220,7 @@ func TestStopThenStartDoesNotReopenTunnel(t *testing.T) {
 	if err := suspendDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(p.stopped, p.running) {
+	if !reflect.DeepEqual(p.stopped, []string{"cloudflared", "gateway-auth", "holesail", "mysql", "traefik"}) {
 		t.Fatalf("stop left containers running: %v", p.stopped)
 	}
 	p.exited = append([]string(nil), p.running...)
@@ -238,8 +239,8 @@ func TestLegacyResumeWithoutSnapshotExcludesTunnels(t *testing.T) {
 	if err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(p.started, []string{"mysql", "traefik"}) {
-		t.Fatalf("legacy resume reopens tunnel access: %v", p.started)
+	if len(p.started) != 0 {
+		t.Fatalf("legacy adoption guessed running intent: %v", p.started)
 	}
 }
 
@@ -251,7 +252,7 @@ func TestRestartDropsTunnelAccess(t *testing.T) {
 	if !reflect.DeepEqual(p.stopped, []string{"gateway-auth", "holesail"}) {
 		t.Fatalf("wrong stop selection: %v", p.stopped)
 	}
-	if !reflect.DeepEqual(p.restarted, []string{"traefik", "mysql"}) {
+	if !reflect.DeepEqual(p.restarted, []string{"mysql", "traefik"}) {
 		t.Fatalf("restart reopens tunnel access: %v", p.restarted)
 	}
 	p = &fakeLifecycleProject{running: []string{"gateway-auth", "cloudflared"}}
@@ -271,5 +272,27 @@ func TestRestartStopsOnTunnelShutdownFailure(t *testing.T) {
 	}
 	if len(p.restarted) != 0 {
 		t.Fatal("restarted services after failed tunnel shutdown")
+	}
+}
+
+func TestResumeAndRestartExcludeProvisioningJobs(t *testing.T) {
+	m := lifecycleTestEnvironment(t)
+	if err := m.SaveResumeServices([]string{"mysql", "setup"}); err != nil {
+		t.Fatal(err)
+	}
+	p := &fakeLifecycleProject{exited: []string{"mysql", "setup"}, oneShot: map[string]bool{"setup": true}}
+	if err := resumeDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.started, []string{"mysql"}) {
+		t.Fatal(p.started)
+	}
+	p.running = []string{"mysql", "setup"}
+	p.exited = nil
+	if err := restartDevelopmentServices(p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.restarted, []string{"mysql"}) {
+		t.Fatal(p.restarted)
 	}
 }

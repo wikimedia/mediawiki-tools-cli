@@ -22,6 +22,7 @@ func (m Environment) withServiceLock(ctx context.Context, name string, action fu
 		return err
 	}
 	lock := flock.New(filepath.Join(m.Directory(), name))
+	defer func() { err = errors.Join(err, lock.Close()) }()
 	locked, err := lock.TryLockContext(ctx, 100*time.Millisecond)
 	if err != nil {
 		return fmt.Errorf("lock service state: %w", err)
@@ -29,6 +30,5 @@ func (m Environment) withServiceLock(ctx context.Context, name string, action fu
 	if !locked {
 		return fmt.Errorf("service state lock was not acquired")
 	}
-	defer func() { err = errors.Join(err, lock.Close()) }()
 	return action()
 }
