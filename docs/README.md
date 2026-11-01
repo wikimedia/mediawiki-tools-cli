@@ -26,6 +26,25 @@ For release documentation, build from a clean checkout of the release tag.
 See [local website development](../DEVELOPMENT.md#command-manual-website) for
 live reload, service metadata and logo caching.
 
+## Publish on Toolforge
+
+With Toolforge SSH access configured, upload the built site:
+
+```sh
+./bin/mw toolforge cp --tool a-wikimedia-cli website/dist/ public_html/
+```
+
+For initial webservice setup, run the local script as the tool account:
+
+```sh
+./bin/mw toolforge shell --tool a-wikimedia-cli -- sh -s < website/scripts/setup-toolforge.sh
+```
+
+The script downloads the current Linux amd64 Caddy binary and starts it in
+Toolforge's `trixie` image, serving `public_html/`. Toolforge handles HTTPS.
+Subsequent uploads update the site without restarting the webservice. The copy
+command does not remove stale remote files.
+
 ## Sources and links
 
 Edit command help in its command package. Add user guides under `guides/`, list
