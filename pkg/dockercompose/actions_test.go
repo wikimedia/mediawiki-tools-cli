@@ -46,6 +46,10 @@ case "$1 $2" in
     exit "${MWCLI_INSPECT_EXIT:-0}"
     ;;
   'container start')
+    if [ -n "$MWCLI_START_FIRST" ]; then
+      printf '%s' "$MWCLI_START_FIRST"
+      while [ ! -f "$MWCLI_START_RELEASE" ]; do "$MWCLI_START_SLEEP" 0.01; done
+    fi
     printf '%s' "$MWCLI_START_OUTPUT"
     printf '%s' "$MWCLI_START_ERROR" >&2
     exit "${MWCLI_START_EXIT:-0}"
