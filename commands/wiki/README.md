@@ -244,11 +244,3 @@ specifications, plus the legacy Wikibase specification fallback. It cannot infer
 unadvertised extension routes beyond that fallback. Completion uses the last
 cached public schemas offline; raw requests still work without discovery. A
 canceled REST refresh preserves the previously published module index.
-
-Authenticated commands report password-manager reads and OAuth refresh/save stages
-on stderr, leaving stdout for results. Credential lookup and refresh have a
-two-minute deadline and honor a shorter command context. Canceling a lookup does
-not start an edit or token transformation. Native OS keyrings may leave their
-unlock prompt open after the CLI stops waiting; dismiss that prompt if necessary.
-After a successful OAuth rotation, saving the replacement token remains protected
-from cancellation so the saved login is not stranded with an invalid old token.
