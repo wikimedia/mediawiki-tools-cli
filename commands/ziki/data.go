@@ -43,51 +43,89 @@ var Events = map[string]*Event{
 type LocationName string
 
 var AllLocationNames = []LocationName{
-	CommandLine,
-	Phab,
-	Gerrit,
-	Gitlab,
-	Email,
-	Chat,
-	Meeting,
-	AFK,
+	CommandLine, Gerrit, Gitlab, Phab, CI, IRC, Telegram, Discord, Email, Meeting, Backports, Production, AFK, WMFSlack, Toolforge, CloudVPS, Wikitech, Grafana, Logstash, Patchdemo, Commons, Translatewiki, BetaCluster, Codesearch, Deployments, SAL,
 }
 
 const (
-	Start       LocationName = "Start"
-	CommandLine LocationName = "CommandLine"
-	Phab        LocationName = "Phab"
-	Gerrit      LocationName = "Gerrit"
-	Gitlab      LocationName = "Gitlab"
-	Email       LocationName = "Email"
-	Chat        LocationName = "Chat"
-	Meeting     LocationName = "Meeting"
-	AFK         LocationName = "AFK"
+	Toolforge     LocationName = "Toolforge"
+	CloudVPS      LocationName = "CloudVPS"
+	Wikitech      LocationName = "Wikitech"
+	Grafana       LocationName = "Grafana"
+	Logstash      LocationName = "Logstash"
+	Patchdemo     LocationName = "Patchdemo"
+	Commons       LocationName = "Commons"
+	Translatewiki LocationName = "Translatewiki"
+	BetaCluster   LocationName = "BetaCluster"
+	Codesearch    LocationName = "Codesearch"
+	Deployments   LocationName = "Deployments"
+	SAL           LocationName = "SAL"
+	Start         LocationName = "Start"
+	CommandLine   LocationName = "CommandLine"
+	Phab          LocationName = "Phab"
+	Gerrit        LocationName = "Gerrit"
+	Gitlab        LocationName = "Gitlab"
+	CI            LocationName = "CI"
+	IRC           LocationName = "IRC"
+	Telegram      LocationName = "Telegram"
+	Discord       LocationName = "Discord"
+	WMFSlack      LocationName = "WMFSlack"
+	Email         LocationName = "Email"
+	Meeting       LocationName = "Meeting"
+	Backports     LocationName = "Backports"
+	Production    LocationName = "Production"
+	AFK           LocationName = "AFK"
 )
 
 func allLocationsExcept(except []LocationName) []LocationName {
-	allExcept := []LocationName{}
+	result := []LocationName{}
 	for _, name := range AllLocationNames {
+		if name == WMFSlack {
+			continue
+		}
 		skip := false
-		for _, skipName := range except {
-			if name == skipName {
+		for _, excluded := range except {
+			if name == excluded {
 				skip = true
 			}
 		}
 		if !skip {
-			allExcept = append(allExcept, name)
+			result = append(result, name)
 		}
 	}
-	return allExcept
+	return result
 }
 
 var LocationMap = map[LocationName]*Location{
-	CommandLine: {Description: "You just pushed your first change to Gerrit.", Transitions: allLocationsExcept([]LocationName{CommandLine}), Events: []string{}},
-	Phab:        {Description: "You are looking at your Phabricator task.", Transitions: allLocationsExcept([]LocationName{Phab}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	Gerrit:      {Description: "You are looking at your change in Gerrit.", Transitions: allLocationsExcept([]LocationName{Gerrit}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	Gitlab:      {Description: "You are in Gitlab. There aren't many people here.", Transitions: allLocationsExcept([]LocationName{Gitlab}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	Email:       {Description: "You are in your email, looking at your massive inbox.", Transitions: allLocationsExcept([]LocationName{Email}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow", "extraHoliday", "spam"}},
-	Chat:        {Description: "You are in Slack/Element/IRC/whatever-you-prefer.", Transitions: allLocationsExcept([]LocationName{Chat}), Events: []string{"codeReview", "criticism", "wikilove", "unbreakNow"}},
-	Meeting:     {Description: "You are in Google Meet", Transitions: AllLocationNames, Events: []string{"codeReview", "criticism", "unbreakNow", "wikilove", "extraHoliday"}},
-	AFK:         {Description: "You are away from your computer, living your real life", Transitions: allLocationsExcept([]LocationName{AFK}), Events: []string{"recharging"}},
+	Toolforge:     {Description: "Volunteer tools, containers and jobs. The pod is temporary; your responsibility is not."},
+	CloudVPS:      {Description: "Horizon shows your project's VMs, security groups and quota. A reboot is not a diagnosis."},
+	Wikitech:      {Description: "Runbooks and operational notes. Today's carefully documented fix is tomorrow's shortcut."},
+	Grafana:       {Description: "A wall of graphs. Check the time range before announcing that traffic disappeared."},
+	Logstash:      {Description: "Exceptions, request IDs, and one useful stack trace hiding in a haystack of warnings."},
+	Patchdemo:     {Description: "A disposable wiki for your patch. Let another human try the actual interface."},
+	Commons:       {Description: "Files, licences and thumbnails. One unusual SVG has become everyone's afternoon."},
+	Translatewiki: {Description: "Messages and translations. English is not a universal UI framework."},
+	BetaCluster:   {Description: "A staging environment with a strong family resemblance to production, and a few surprises."},
+	Codesearch:    {Description: "Find callers before changing a shared helper. 'Only one use' was an optimistic guess."},
+	Deployments:   {Description: "The deployment calendar. Coordinate the window, the owners and the rollback plan."},
+	SAL:           {Description: "The server admin log: who changed what, when, and why. Future you is a demanding reader."},
+	CommandLine:   {Description: "Your terminal. One patch, twelve tabs, and an unreasonable amount of hope."},
+	Gerrit:        {Description: "The review queue glows softly. Your patch is waiting for a human, not another bot."},
+	Gitlab:        {Description: "A pipeline is red. Someone has replied 'works locally' with immense confidence."},
+	Phab:          {Description: "A task has seventeen subscribers, three duplicate reports, and no reproduction steps."},
+	CI:            {Description: "The test runners are ready. The integration suite has made no such promise."},
+	IRC:           {Description: "#wikimedia-dev. Someone knows the answer. They may be AFK, but the scrollback remembers."},
+	Telegram:      {Description: "The community group has 143 unread messages. One of them contains useful context."},
+	Discord:       {Description: "A volunteer dev channel. The fix is somewhere between a screenshot and a cat emoji."},
+	WMFSlack:      {Description: "A locked door. The public adventure continues elsewhere."},
+	Email:         {Description: "Your inbox contains a release announcement, a helpful reply, and twelve reply-alls."},
+	Meeting:       {Description: "You're on mute. The agenda says 'quick sync'. The clock disagrees."},
+	Backports:     {Description: "The release branch awaits. Cherry-pick carefully: main and production are different worlds."},
+	Production:    {Description: "The deployment window is open. The dashboards are mostly green. Mostly."},
+	AFK:           {Description: "Fresh air. A cup of tea. A reminder that you are more than your patch queue."},
+}
+
+func init() {
+	for name, location := range LocationMap {
+		location.Transitions = allLocationsExcept([]LocationName{name})
+	}
 }
