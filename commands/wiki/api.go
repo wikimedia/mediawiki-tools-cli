@@ -42,7 +42,11 @@ func wikiAPIClient(public bool) (*wikiapi.Client, error) {
 			client.Transport = bearer
 		}
 	}
-	return wikiapi.New(endpoint, client)
+	api, err := wikiapi.New(endpoint, client)
+	if err == nil {
+		api.AssertUser = !public && !wikiAnon && hasWikiCredentials()
+	}
+	return api, err
 }
 
 // Password-login library requests do not accept a context; carry the command's

@@ -18,8 +18,9 @@ import (
 
 // Client never follows redirects, or sends requests outside this installation.
 type Client struct {
-	Endpoint string
-	HTTP     *http.Client
+	Endpoint   string
+	HTTP       *http.Client
+	AssertUser bool
 }
 
 func New(endpoint string, authenticated *http.Client) (*Client, error) {
@@ -83,6 +84,9 @@ func (e *APIError) Error() string {
 
 func (c *Client) Action(ctx context.Context, method string, fields url.Values) ([]byte, error) {
 	fields = cloneValues(fields)
+	if c.AssertUser && !fields.Has("assert") {
+		fields.Set("assert", "user")
+	}
 	if fields.Get("format") == "" {
 		fields.Set("format", "json")
 	}
