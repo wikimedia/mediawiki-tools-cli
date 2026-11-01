@@ -7,9 +7,44 @@ notes will be missed.
 
 ## Unreleased
 
-- Added `mw tools toolviews` (`mw tools views`) for public Toolforge hit statistics, with JSON, table, jq, CSV, and terminal graph output, plus tool discovery with `list`.
-- Single-day Toolviews rankings show the top 20 by default; use `--limit 0` for all, or `--offset` and `--limit` to select a range. Tool time series remain unlimited.
-- Split `tools` and `toolforge`: Toolforge management commands now use `mw toolforge`; migrate existing `mw tools job`, `build`, `shell`, and other management invocations to `mw toolforge`.
+- Authentication and credentials:
+    - Added account profiles for Gerrit, Phabricator, GitLab, Cloud VPS and wikis, plus `mw config profiles` to list them.
+    - Added KeePassXC, Linux keyring, macOS Keychain and Windows Credential Manager storage, including Windows access from WSL.
+    - Added secret migration, verification, transfer and cleanup under `mw config secrets`. Existing plaintext credentials remain usable until explicitly migrated. (or should ;))
+    - Redacted secrets from configuration output and command logs.
+    - Existing service settings migrate into profiles automatically. Gerrit and Phabricator's `auth logout` is replaced by `auth remove`.
+    - Added Cloud VPS credential project checks and rotation, and profile-backed GitLab HTTPS pushes.
+
+- Wiki commands:
+    - Added saved OAuth login for Wikimedia and wikibase.world, selectable permissions and token refresh, alongside password and bot-password profiles (the consumer is pending approval at this time).
+    - Added page source, metadata, history and diffs; file metadata and usage; and richer page selection with recursive categories and combined filters.
+    - Expanded Wikibase commands for items, properties, terms, statements, qualifiers, references, ranks and sitelinks.
+    - Added authenticated Action/REST API requests and `wiki bulk apply` for JSONL edits with previews and per-record results.
+
+- Phabricator commands:
+    - Added task creation/editing, project search, column filters, pagination and JSON output. Task lists default to open tasks.
+    - Added `phab browse` with coloured workboards and task details, plus grouped operations under `phab task`.
+    - Added paste creation/editing and task/paste dispatch through `phab view`; fixed truncated comment histories.
+
+- Toolforge and GitLab:
+    - Moved Toolforge management from `mw tools` to `mw toolforge`.
+    - Added Toolviews statistics, Toolcounter counts and Quip search under `mw tools`, and `mw toolforge create` for tool-account registration.
+    - Added GitLab artifact storage summaries and size reporting after pruning.
+
+- Development environment (`mw dev`):
+    - Added Compose-style start progress with container names, colours and timings, preserving exact container selection.
+    - Added Quibble Selenium recording shortcut and fixed environment overrides for browser tests and custom commands.
+    - Updated OpenSearch from 1.3.20 to 2.19.5.
+    - Refreshed MediaWiki/jobrunner, Quibble, OpenSearch Dashboards/log storage, EventGate, Grafana, Jaeger, Prometheus/StatsD, Redis, Traefik and Cloudflared images.
+
+- Documentation:
+    - Added https://a-wikimedia-cli.toolforge.org/ with searchable command references, guides, recordings and issue reporting.
+    - Retired generated reference publishing to MediaWiki.org and updated online help links, but a landing page will remain.
+
+- Updates and other improvements:
+    - Added nightly updates and platform selection from CI ZIPs; prepared the updater for date-based tags (`vYYYY.MM.DD.REVISION`) without automatic downgrades.
+    - Fixed WSL browser launching, startup/completion side effects and concurrent telemetry queue handling.
+    - Expanded Ziki into a 16-assignment Wikimedia adventure.
 
 ## v0.34.0
 

@@ -46,6 +46,8 @@ For storage options and password managers, see "mw help guides authentication".`
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)
 	addAssignCmd(cmd, &site)
+	// TODO(early 2027): remove phab shell in favour of browse and the task commands.
+	// Once it reaches some kind of feature parity with shell.
 	addShellCmd(cmd, &site)
 	addMVCmd(cmd, &site)
 	addRMTagCmd(cmd, &site)
