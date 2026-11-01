@@ -4,6 +4,9 @@ quibble bash
 # Get help for the quibble CLI tool
 quibble quibble -- --help
 
+# Record one Selenium spec, or omit the spec to record the full suite
+quibble record tests/selenium/specs/recentchanges.js
+
 # Run php-unit quibble stage using your development LocalSettings.php, skipping anything that alters your installation
 quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --run phpunit-unit
 

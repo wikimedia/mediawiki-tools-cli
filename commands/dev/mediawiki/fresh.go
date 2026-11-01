@@ -32,17 +32,21 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample("record\nrecord tests/selenium/specs/recentchanges.js"),
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			command := []string{
-				"npm", "run", "selenium-test", "--",
-				"--recordVideo", "--useBrowserHeadless=false", "--maxInstances=1",
-			}
-			if len(args) == 1 {
-				command = append(command, "--spec", args[0])
-			}
-			runMediaWikiFresh(cmd, command)
+			runMediaWikiFresh(cmd, seleniumRecordingCommand(args))
 		},
 	})
 	return cmd
+}
+
+func seleniumRecordingCommand(spec []string) []string {
+	command := []string{
+		"npm", "run", "selenium-test", "--",
+		"--recordVideo", "--useBrowserHeadless=false", "--maxInstances=1",
+	}
+	if len(spec) == 1 {
+		command = append(command, "--spec", spec[0])
+	}
+	return command
 }
 
 func runMediaWikiFresh(cmd *cobra.Command, args []string) {

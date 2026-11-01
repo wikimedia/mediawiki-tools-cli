@@ -1,17 +1,20 @@
 # MediaWiki Quibble
 
-Runs commands in a `quibble` container.
+Runs commands in a `quibble` container. This integration is experimental:
+Quibble runs tests for all checked-out extensions by default, and omitting
+`--skip-install` can change your development installation.
 
-    This integration is WORK IN PROGRESS
+For Selenium recording, run `quibble npm ci` first, then:
 
-    Gotchas:
-        - This is a WORK IN PROGRESS integration, so don't expect all quibble features to work.
-        - quibble will run tests for ALL checked out extensions by default.
-        - If you let quibble touch your setup (missing --skip-install for example) it might break your environment.
-        - quibble has various things hardcoded :(, for example the user and password for browser tests, you might find the below command helpful.
+    mw dev mediawiki quibble record tests/selenium/specs/recentchanges.js
 
-    mw dev mediawiki exec php maintenance/createAndPromote.php -- --sysop WikiAdmin testwikijenkinspass
+Omit the spec to record the full suite. The shortcut uses the internal development
+wiki and `Admin`/`mwddpassword`, with videos in `tests/selenium/log/`. It skips
+cloning, dependency installation and wiki installation. Run `quibble record --help`
+for target, credential and output overrides.
 
-## Documentation
+The bundled container temporarily wraps Quibble to preserve environment overrides
+for browser tests and custom commands ([T252883](https://phabricator.wikimedia.org/T252883)).
+Raw Quibble commands otherwise retain their upstream defaults.
 
- - [Quibble](https://doc.wikimedia.org/quibble/)
+See [Quibble documentation](https://doc.wikimedia.org/quibble/) for its stages and options.

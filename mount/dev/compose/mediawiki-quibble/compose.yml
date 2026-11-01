@@ -17,6 +17,9 @@ services:
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     volumes:
+      # T252883: preserve caller environment overrides until fixed upstream.
+      - ./compose/mediawiki-quibble/quibble.sh:/usr/local/bin/quibble:ro
+      - ./compose/mediawiki-quibble/quibble.py:/wm-cli-quibble.py:ro
       # Quibble starts Memcached without a user option, including when run as root in CI.
       - ./compose/mediawiki-quibble/memcached.sh:/usr/local/bin/memcached:ro
       # Only mount code and config, don't mount logs or image

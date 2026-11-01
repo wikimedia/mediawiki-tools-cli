@@ -55,3 +55,69 @@ test_fresh_recording() {
     fi
     echo "PASS: Fresh produced a playable recording in $output_dir"
 }
+
+test_quibble_environment() {
+    local mw="$1" workspace container_workspace
+    mkdir -p tests/selenium/log
+    workspace=$(mktemp -d "$(pwd)/tests/selenium/log/quibble-environment.XXXXXX")
+    container_workspace="/workspace/src/tests/selenium/log/$(basename "$workspace")"
+    mkdir "$workspace/src"
+    # A dependency-free project probes the real BrowserTests stage without
+    # running every checked-out extension's Selenium suite.
+    cat > "$workspace/src/package.json" <<'EOF'
+{"name":"quibble-environment-test","private":true,"scripts":{"selenium-test":"node check.cjs"}}
+EOF
+    cat > "$workspace/src/check.cjs" <<'EOF'
+const assert = require('node:assert/strict');
+assert.equal(process.env.MW_SERVER, 'https://example.test');
+assert.equal(process.env.MW_SCRIPT_PATH, '');
+assert.equal(process.env.MEDIAWIKI_USER, 'OtherAdmin');
+assert.equal(process.env.MEDIAWIKI_PASSWORD, 'other-password');
+assert.equal(process.env.FORCE_COLOR, '0');
+assert.equal(process.env.CUSTOM_SETTING, 'custom value');
+require('node:fs').writeFileSync('browser-environment-ok', 'ok');
+console.log('browser-environment-ok');
+EOF
+    test_command_success "$mw" dev mediawiki quibble \
+        MW_SERVER=https://example.test MW_SCRIPT_PATH= \
+        MEDIAWIKI_USER=OtherAdmin MEDIAWIKI_PASSWORD=other-password \
+        FORCE_COLOR=0 'CUSTOM_SETTING=custom value' \
+        quibble -- --workspace "$container_workspace" --skip-zuul --skip-deps \
+        --skip-install --db-is-external --web-backend external \
+        --web-url http://mediawiki-web:8080/w --run selenium
+    if [ ! -f "$workspace/src/browser-environment-ok" ]; then
+        echo "FAIL: Quibble did not execute the browser environment probe"
+        return 1
+    fi
+}
+
+test_quibble_recording() {
+    local mw="$1" port="$2" target output_dir video container_video found
+    local -a target_env
+    # Exercise T252883 with real credentials and video, not just printenv.
+    # The gateway port deliberately differs from the internal Apache port.
+    for target in internal dns proxy; do
+        case "$target" in
+            internal) target_env=() ;;
+            dns) target_env=("MW_SERVER=http://default.mediawiki.local.wmftest.net:$port") ;;
+            proxy) target_env=("MW_SERVER=http://traefik:$port" MW_SCRIPT_PATH=/proxy/default/w) ;;
+        esac
+        mkdir -p tests/selenium/log
+        output_dir=$(mktemp -d "$(pwd)/tests/selenium/log/quibble-$target.XXXXXX")
+        test_command_success "$mw" dev mediawiki quibble record "${target_env[@]}" \
+            "LOG_DIR=/workspace/src/tests/selenium/log/$(basename "$output_dir")" \
+            tests/selenium/specs/recentchanges.js
+        found=0
+        for video in "$output_dir"/*.mp4; do
+            [ -s "$video" ] || continue
+            container_video="/workspace/src/tests/selenium/log/$(basename "$output_dir")/$(basename "$video")"
+            test_command_success_with_retries 10 1 "$mw" dev mediawiki quibble -- sh -c 'ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$1" | grep -qx h264' sh "$container_video"
+            found=1
+        done
+        if [ "$found" -ne 1 ]; then
+            echo "FAIL: Quibble recording produced no nonempty MP4 in $output_dir"
+            return 1
+        fi
+        echo "PASS: Quibble produced a playable recording using $target in $output_dir"
+    done
+}

@@ -209,6 +209,8 @@ test_fresh_recording "$(cd .. && pwd)/bin/mw"
 # quibble: Make sure a quibble works
 test_command_success ./../bin/mw dev mediawiki quibble quibble -- --help
 test_command ./../bin/mw dev mediawiki quibble quibble -- --skip-zuul --skip-deps --skip-install --db-is-external --command \"ls\" "index.php"
+test_quibble_environment "$(cd .. && pwd)/bin/mw"
+test_quibble_recording "$(cd .. && pwd)/bin/mw" "$PORT"
 
 # jobrunner: make sure the jobrunner starts and can run jobs
 test_command_success ./../bin/mw dev mediawiki jobrunner create

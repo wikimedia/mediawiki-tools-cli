@@ -37,6 +37,8 @@
 ./compose/mediawiki-jobrunner/mount/wait-for-it.sh
 ./compose/mediawiki-quibble/compose.yml
 ./compose/mediawiki-quibble/memcached.sh
+./compose/mediawiki-quibble/quibble.py
+./compose/mediawiki-quibble/quibble.sh
 ./compose/mediawiki/compose.yml
 ./compose/mediawiki/mount/mediawiki/DevInstall.php
 ./compose/mediawiki/mount/mediawiki/DevSettings.php
