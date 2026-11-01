@@ -14,7 +14,7 @@ const guideLink = (page) => ({ label: page.title, link: page.url });
 
 export default defineConfig({
   markdown: { processor: satteri({ mdastPlugins: [guideLinks(guides)] }) },
-  site: 'https://a-wikimedia-cli.toolforge.org',
+  site: guides.siteURL,
   trailingSlash: 'always',
   server: { host: '127.0.0.1', port: 4321 },
   devToolbar: { enabled: false },

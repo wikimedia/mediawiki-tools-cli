@@ -45,6 +45,6 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 
 ## Command reference
 
-[Browse all commands and options](https://www.mediawiki.org/wiki/Cli/ref). The reference is generated from the CLI; guides explain workflows across commands.
+[Browse all commands and options](https://a-wikimedia-cli.toolforge.org/manual/). The reference is generated from the CLI; guides explain workflows across commands.
 
 These guides can also be edited on the wiki. Corrections are reviewed before the next release and can be brought back into the repository.

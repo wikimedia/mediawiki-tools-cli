@@ -96,7 +96,7 @@ func TestGuideMarkdown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	guide := docs.Guide{Source: "guides/dev/setup.md", Title: "Cli/guide/Test title"}
+	guide := docs.Guide{Source: "guides/dev/setup.md"}
 	source := "[Contexts](contexts.md#name) and [Index](../../index.md).\n" +
 		"[External](https://example.org/example.md)\n" +
 		"`[Code](contexts.md)`\n```sh\nmw dev --help\n[Code](contexts.md)\n```\n" +
@@ -110,7 +110,23 @@ func TestGuideMarkdown(t *testing.T) {
 	if strings.Contains(got, "Imported metadata") {
 		t.Fatal("metadata retained")
 	}
-	if got := guideURL(manifest, guide); got != "https://www.mediawiki.org/wiki/Cli/guide/Test%20title" {
+	if got := guideURL(manifest, guide); got != "https://a-wikimedia-cli.toolforge.org/guides/dev/setup/" {
 		t.Fatal(got)
+	}
+}
+
+func TestGuideWebURLs(t *testing.T) {
+	manifest, err := docs.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct{ source, want string }{
+		{"index.md", "https://a-wikimedia-cli.toolforge.org/guides/"},
+		{"guides/gitlab/index.md", "https://a-wikimedia-cli.toolforge.org/guides/gitlab/"},
+		{"guides/installation.md", "https://a-wikimedia-cli.toolforge.org/guides/installation/"},
+	} {
+		if got := guideURL(manifest, docs.Guide{Source: test.source}); got != test.want {
+			t.Fatalf("%s: %s", test.source, got)
+		}
 	}
 }

@@ -7,7 +7,7 @@ Build, test, and contribute to a Wikimedia CLI.
 ### Requirements
 
 - [Go](https://go.dev/) 1.26+ installed (matching the version in `go.mod`).
-- [mise](https://mise.jdx.dev/getting-started.html) for pinned project tools (currently Pandoc for documentation).
+- [mise](https://mise.jdx.dev/getting-started.html) for pinned project tools (including Node.js for documentation).
 - [bingo](https://github.com/bwplotka/bingo) tool (used for managing Go-based build tools).
 
 ### Initial Setup
@@ -72,7 +72,7 @@ Logo source URLs are fetched during generation and cached in ignored
 and license text in `website/assets/`. Unavailable uncached logos use a neutral icon.
 
 Edit command help in `commands/`, guide content in `docs/`, and the website design
-in `website/src/`. Guide mappings come from `docs/wiki.json`; relative guide links
+in `website/src/`. Guide mappings come from `docs/guides.json`; relative guide links
 and command-reference links are resolved to local site pages. Generated files
 under `website/src/content/docs/manual/` and `website/src/content/docs/guides/`
 are ignored by Git; the generator preserves unchanged files and removes stale
@@ -90,8 +90,7 @@ Run `make manual-check` for link-rewriting tests and Astro/TypeScript validation
 and `make manual` for a static build in `website/dist/`, including its search index. Use
 `make manual-preview` to serve that build locally. Search is available in the
 static preview; Starlight shows a search placeholder in live development mode.
-Site builds do not need
-Pandoc, a wiki login or access to saved credentials.
+Site builds do not need a wiki login or access to saved credentials.
 
 ### Embedded GitLab CLI dependencies
 
@@ -215,7 +214,7 @@ Many Makefile commands exist that you might find useful:
 - `make fix`: Run basic lint fixes.
 - `make vet`: Run `go vet`.
 - `make generate`: Run code generation tools.
-- `make docs`: Generate documentation.
+- `make manual`: Build the static documentation site.
 
 ## Project Structure
 
@@ -310,16 +309,10 @@ This helps confirm exactly which commits will be included in the next release.
 
 ## Docs
 
-Markdown guides in `docs/` and generated command help are published to MediaWiki.org from release tags. See [documentation publishing](docs/README.md) for page mappings, imports and credentials.
-
-```sh
-make docs        # Build Markdown and wikitext locally
-make docs-check  # Show wiki edits since the last automatic publication
-make docs-audit  # Find wiki pages outside the current build
-make docs-pull   # Download wiki content and Markdown proposals for review
-```
-
-Wiki edits block automatic publication until reviewed. Documentation artifacts include the current content and diffs; edits also use revision IDs to protect changes made after the check.
+The static command manual and guides are generated from the command source and
+`docs/` Markdown. See [documentation](docs/README.md) for builds, recording demos
+and preparing the read-only retirement plan for old wiki references. CI checks
+the static site; MediaWiki.org project pages are maintained manually.
 
 ### Naming and releases
 

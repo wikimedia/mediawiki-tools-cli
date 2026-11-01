@@ -26,10 +26,11 @@ type manualSidebarItem struct {
 }
 
 type manualCommandReference struct {
-	Name   string `json:"name"`
-	Title  string `json:"title"`
-	Link   string `json:"link"`
-	Parent string `json:"parent,omitempty"`
+	Name    string   `json:"name"`
+	Title   string   `json:"title"`
+	Link    string   `json:"link"`
+	Parent  string   `json:"parent,omitempty"`
+	Aliases []string `json:"aliases,omitempty"`
 }
 
 type manualMetadata struct {
@@ -110,7 +111,7 @@ func writeManual(root *cobra.Command, directory string, version documentationVer
 	collect(root)
 	metadata := manualMetadata{Version: version, Pages: len(commands)}
 	for _, command := range commands {
-		reference := manualCommandReference{Name: command.Name(), Title: command.CommandPath(), Link: manualURL(command)}
+		reference := manualCommandReference{Name: command.Name(), Title: command.CommandPath(), Link: manualURL(command), Aliases: command.Aliases}
 		if command.HasParent() {
 			reference.Parent = manualURL(command.Parent())
 		}
@@ -332,4 +333,16 @@ func writeManualFile(filename string, data []byte) error {
 		return err
 	}
 	return os.Rename(temporary.Name(), filename)
+}
+
+// pruneReferenceChildren applies reference exclusions to a disposable command
+// tree. Runtime help and completion keep the complete upstream command tree.
+func pruneReferenceChildren(command *cobra.Command) {
+	if command.Annotations["mwcli-docs-skip-children"] != "" {
+		command.RemoveCommand(command.Commands()...)
+		return
+	}
+	for _, child := range command.Commands() {
+		pruneReferenceChildren(child)
+	}
 }

@@ -10,7 +10,7 @@ export function guideURL(source) {
 }
 
 export function generateGuides(repository, website) {
-  const manifest = JSON.parse(readFileSync(join(repository, 'docs/wiki.json'), 'utf8'));
+  const manifest = JSON.parse(readFileSync(join(repository, 'docs/guides.json'), 'utf8'));
   const version = JSON.parse(readFileSync(join(website, 'src/content/docs/manual/_meta.json'), 'utf8')).version;
   const output = join(website, 'src/content/docs/guides');
   const planned = new Map();
@@ -21,7 +21,7 @@ export function generateGuides(repository, website) {
     const url = guideURL(guide.source);
     const topic = url.slice('/guides/'.length).replace(/\/$/, '');
     const command = `mw help guides${topic ? ` ${topic.replaceAll('/', ' ')}` : ''}`;
-    const wikiURL = `${manifest.page_url}/${guide.title.replaceAll(' ', '_')}`;
+    const wikiURL = guide.legacy_url;
     const imported = /<!-- Imported from (\S+) \(CC BY-SA 4\.0\)/.exec(content);
     const attribution = imported ? `\n\nAdapted from [MediaWiki.org](${imported[1]}) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); see the linked page history for contributors.` : '';
     const frontmatter = {
@@ -64,7 +64,7 @@ export function generateGuides(repository, website) {
   for (const name of readdirSync(output, { recursive: true })) {
     if (name.endsWith('.md') && !planned.has(name.replaceAll('\\', '/')) && readFileSync(join(output, name), 'utf8').includes(marker)) unlinkSync(join(output, name));
   }
-  write(join(output, '_meta.json'), JSON.stringify({ pages }, null, 2) + '\n');
+  write(join(output, '_meta.json'), JSON.stringify({ siteURL: manifest.site_url, pages }, null, 2) + '\n');
   console.log(`Generated ${planned.size} guide pages from docs/`);
 }
 

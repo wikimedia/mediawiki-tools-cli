@@ -2,9 +2,9 @@ import { fileURLToPath } from 'node:url';
 import { posix } from 'node:path';
 
 // Operate on Markdown link nodes, leaving code blocks and inline examples intact.
-export default function guideLinks({ pages }) {
+export default function guideLinks({ pages, siteURL }) {
   const sources = new Map(pages.map((page) => [page.source, page.url]));
-  const wikiPages = new Map(pages.map((page) => [normalize(page.wikiURL), page.url]));
+  const wikiPages = new Map(pages.filter((page) => page.wikiURL).map((page) => [normalize(page.wikiURL), page.url]));
   const generated = new Map(pages.map((page) => [`${page.url}index.md`, page.source]));
   return ({ fileURL }) => {
     if (!fileURL) return;
@@ -14,7 +14,7 @@ export default function guideLinks({ pages }) {
     const source = index >= 0 ? generated.get(filename.slice(index + prefix.length)) : undefined;
     if (!source) return;
     function rewrite(node) {
-      return { ...node, url: rewriteGuideLink(node.url, source, sources, wikiPages) };
+      return { ...node, url: rewriteGuideLink(node.url, source, sources, wikiPages, siteURL) };
     }
     return { name: 'local-guide-links', link: rewrite, definition: rewrite, image: rewrite };
   };
@@ -22,8 +22,11 @@ export default function guideLinks({ pages }) {
 
 function normalize(url) { return decodeURI(url).replaceAll('_', ' '); }
 
-export function rewriteGuideLink(raw, source, sources, wikiPages) {
+export function rewriteGuideLink(raw, source, sources, wikiPages, siteURL) {
   const url = new URL(raw, 'https://guide.invalid/');
+  if (siteURL && url.origin === new URL(siteURL).origin && (url.pathname.startsWith('/manual/') || url.pathname.startsWith('/guides/'))) {
+    return url.pathname + url.search + url.hash;
+  }
   if (url.origin === 'https://guide.invalid' && !raw.startsWith('/')) {
     if (!url.pathname.endsWith('.md') && !posix.extname(url.pathname)) return raw;
     const target = posix.normalize(posix.join(posix.dirname(source), decodeURIComponent(raw.split(/[?#]/)[0])));

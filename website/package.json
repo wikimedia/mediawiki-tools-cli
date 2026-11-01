@@ -10,7 +10,8 @@
     "dev": "npm run generate && astro dev",
     "build": "npm run generate && astro build && node scripts/check-links.mjs",
     "check": "npm run generate && node --test scripts/*.test.mjs && astro check",
-    "preview": "astro preview --host 127.0.0.1"
+    "preview": "astro preview --host 127.0.0.1",
+    "retirement-plan": "npm run generate && node scripts/retirement-plan.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "0.4.6",

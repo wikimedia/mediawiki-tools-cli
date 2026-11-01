@@ -23,7 +23,7 @@ func TestCommandTreeFlagInheritance(t *testing.T) {
 				}
 			}()
 			// Exercise the same flag merging as Cobra's docs generator without
-			// executing commands or depending on pandoc and docs publication.
+			// executing commands or building documentation.
 			command.InitDefaultHelpFlag()
 			command.InheritedFlags()
 			command.LocalFlags()

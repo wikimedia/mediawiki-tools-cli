@@ -100,4 +100,4 @@ these expiry times. Published release packages are separate from CI artifacts.
 
 Updates preserve the executable's installed name and location. A binary called `wm` stays `wm`; configuration and credentials stay in their existing directories.
 
-See the [installation guide](installation.md) for a fresh installation, and the [command reference](https://www.mediawiki.org/wiki/Cli/ref/mw_update) for all update options.
+See the [installation guide](installation.md) for a fresh installation, and the [command reference](https://a-wikimedia-cli.toolforge.org/manual/update/) for all update options.

@@ -1,0 +1,109 @@
+{
+  "site_url": "https://a-wikimedia-cli.toolforge.org",
+  "guides": [
+    {
+      "source": "guides/tools/kubernetes-pod-helloworld.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Toolforge_Kubernetes"
+    },
+    {
+      "source": "guides/installation.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Installation"
+    },
+    {
+      "source": "guides/updating.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Update"
+    },
+    {
+      "source": "guides/analytics/pageviews.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Pageviews"
+    },
+    {
+      "source": "guides/authentication.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Authentication"
+    },
+    {
+      "source": "guides/dev/setup.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/First-Setup"
+    },
+    {
+      "source": "index.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide"
+    },
+    {
+      "source": "guides/dev/gateway.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Gateway"
+    },
+    {
+      "source": "guides/dev/services.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Service_Interaction"
+    },
+    {
+      "source": "guides/dev/logs.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Local_log_browsing"
+    },
+    {
+      "source": "guides/dev/dockerfiles.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Custom_Dockerfiles"
+    },
+    {
+      "source": "guides/dev/custom-services.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Custom_services"
+    },
+    {
+      "source": "guides/dev/configuration.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/LocalSettings.php"
+    },
+    {
+      "source": "guides/dev/keycloak.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Keycloak"
+    },
+    {
+      "source": "guides/dev/extension-workflow.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Extension_workflow"
+    },
+    {
+      "source": "guides/dev/mediawiki.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/MediaWiki"
+    },
+    {
+      "source": "guides/dev/update-code.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Update_code"
+    },
+    {
+      "source": "guides/dev/databases.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/Databases"
+    },
+    {
+      "source": "guides/gitlab/index.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Gitlab"
+    },
+    {
+      "source": "guides/dev/contexts.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Contexts"
+    },
+    {
+      "source": "guides/dev/ports.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Ports"
+    },
+    {
+      "source": "guides/dev/mysql-dumps.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/MySQL_dumps"
+    },
+    {
+      "source": "guides/dev/xdebug.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Xdebug"
+    },
+    {
+      "source": "guides/dev/fresh.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Fresh"
+    },
+    {
+      "source": "guides/dev/troubleshooting.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/FAQ"
+    },
+    {
+      "source": "guides/wiki/files.md",
+      "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Upload_files"
+    }
+  ]
+}

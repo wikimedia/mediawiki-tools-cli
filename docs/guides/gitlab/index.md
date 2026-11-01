@@ -82,4 +82,4 @@ per-file sizes inside an archive here. A missing type is shown as `unknown`.
 mw gitlab repo search --search="docker"
 ```
 
-Use `mw gitlab --help` or a subcommand's `--help` for all options. The [command reference](https://www.mediawiki.org/wiki/Cli/ref/mw_gitlab) documents the version included in this release.
+Use `mw gitlab --help` or a subcommand's `--help` for all options. The [command reference](https://a-wikimedia-cli.toolforge.org/manual/gitlab/) documents the version included in this release.

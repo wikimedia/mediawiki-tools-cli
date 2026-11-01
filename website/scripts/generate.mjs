@@ -8,7 +8,7 @@ export const repository = fileURLToPath(new URL('../../', import.meta.url));
 export const website = fileURLToPath(new URL('../', import.meta.url));
 
 export function generate() {
-  const child = spawn('go', ['run', '-mod=mod', './tools/docs-gen', '-mode', 'manual'], {
+  const child = spawn('go', ['run', '-mod=mod', './tools/docs-gen'], {
     cwd: repository,
     stdio: 'inherit',
   });

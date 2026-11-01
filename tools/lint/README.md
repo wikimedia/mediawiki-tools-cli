@@ -19,7 +19,7 @@ effects, safety details and usage examples in help. Move broader workflows to
 guides when that improves the explanation; do not shorten help just to clear a
 suggestion. See [Writing command help and guides](../../docs/writing.md).
 
-`make docs` checks guide links and generates the command reference; integration
+`make manual-check` and `make manual` validate guide links and build the site; integration
 tests validate the workflows that need running services.
 
 Commands can opt out using `mwcli-lint-skip`, or skip embedded third-party command trees with `mwcli-lint-skip-children`:

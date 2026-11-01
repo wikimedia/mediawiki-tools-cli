@@ -15,7 +15,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki from your term
 
 ### Usage
 
-Read the [guides in this repository](docs/index.md), or visit the [published documentation on MediaWiki.org](https://www.mediawiki.org/wiki/Cli).
+Read the [guides in this repository](docs/index.md), or visit the [published documentation](https://a-wikimedia-cli.toolforge.org/).
 
 ### Analytics and REST APIs
 
@@ -32,7 +32,7 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 ### Installation
 
-Follow the [installation guide](https://www.mediawiki.org/wiki/Cli/guide/Installation) on MediaWiki.org.
+Follow the [installation guide](https://a-wikimedia-cli.toolforge.org/guides/installation/).
 
 ## Contributing & Development
 

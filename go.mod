@@ -193,7 +193,6 @@ require (
 	github.com/antonholmquist/jason v1.0.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/creack/pty v1.1.24
 	github.com/dave/jennifer v1.7.1
 	github.com/dlclark/regexp2 v1.11.5 // indirect
