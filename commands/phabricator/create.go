@@ -85,7 +85,7 @@ func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, co
 					return nil
 				}
 			}
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}

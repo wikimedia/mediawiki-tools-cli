@@ -41,6 +41,7 @@ For storage options and password managers, see "mw help guides authentication".`
 
 	cmd.AddCommand(newPhabricatorAuthCmd(&site))
 	cmd.AddCommand(newPhabricatorCreateCmd(&site))
+	cmd.AddCommand(newTaskCmd(&site), newProjectCmd(&site), newBoardCmd(&site))
 	addViewCmd(cmd, &site)
 	addCommentsCmd(cmd, &site)
 	addReadCmd(cmd, &site)
@@ -84,7 +85,7 @@ func addViewCmd(parent *cobra.Command, site *string) {
 		Short:   "View a Phabricator task",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -110,7 +111,7 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 		Short:   "Show comments on a Phabricator task",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -140,7 +141,7 @@ func addReadCmd(parent *cobra.Command, site *string) {
 		Short:   "View a task and all its comments",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -170,7 +171,7 @@ func addAssignCmd(parent *cobra.Command, site *string) {
 		Short: "Assign a task to a Phabricator user",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -206,7 +207,7 @@ func addShellCmd(parent *cobra.Command, site *string) {
 		Short:   "Start an interactive Phabricator shell",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, cfg, err := clientFromSite(*site)
+			client, cfg, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -236,7 +237,7 @@ func addMVCmd(parent *cobra.Command, site *string) {
 		Short: "Move a task to a workboard column",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, cfg, err := clientFromSite(*site)
+			client, cfg, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -287,7 +288,7 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 		Short:   "Remove a project tag from a task",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -334,7 +335,7 @@ func addSetPrioCmd(parent *cobra.Command, site *string) {
 		Short:   "Set priority: u=unbreak t=triage h=high n=normal l=low ll=lowest",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}
@@ -371,7 +372,7 @@ func addSetStatusCmd(parent *cobra.Command, site *string) {
 		Short:   "Set status: o=open r=resolved p=progress s=stalled d=declined dup=duplicate i=invalid",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}

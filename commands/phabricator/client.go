@@ -1,6 +1,7 @@
 package phabricator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 
 // conduitClient wraps the Phabricator Conduit API.
 type conduitClient struct {
+	context    context.Context
 	baseURL    string
 	apiToken   string
 	username   string
@@ -48,6 +50,14 @@ type conduitResponse struct {
 }
 
 func (c *conduitClient) post(method string, params map[string]interface{}) (json.RawMessage, error) {
+	ctx := c.context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return c.postContext(ctx, method, params)
+}
+
+func (c *conduitClient) postContext(ctx context.Context, method string, params map[string]interface{}) (json.RawMessage, error) {
 	endpoint, err := secrets.Endpoint(c.baseURL)
 	if err != nil {
 		return nil, err
@@ -61,7 +71,7 @@ func (c *conduitClient) post(method string, params map[string]interface{}) (json
 		"params": {string(paramsJSON)},
 		"output": {"json"},
 	}
-	req, err := http.NewRequest("POST", endpoint+"/api/"+method, strings.NewReader(formData.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint+"/api/"+method, strings.NewReader(formData.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +125,7 @@ type phabTask struct {
 		DateModified int64 `json:"dateModified"`
 	} `json:"fields"`
 	Attachments struct {
+		Columns  json.RawMessage `json:"columns,omitempty"`
 		Projects struct {
 			ProjectPHIDs []string `json:"projectPHIDs"`
 		} `json:"projects"`
@@ -139,6 +150,7 @@ type phabUser struct {
 }
 
 type phabProject struct {
+	ID     int    `json:"id"`
 	PHID   string `json:"phid"`
 	Fields struct {
 		Name string `json:"name"`
@@ -264,26 +276,11 @@ func (c *conduitClient) lookupProjectPHID(name string) (string, error) {
 		}
 	}
 
-	result, err := c.post("project.search", map[string]interface{}{
-		"constraints": map[string]interface{}{
-			"query": query,
-		},
-	})
+	project, err := c.exactProject(c.requestContext(), name)
 	if err != nil {
 		return "", err
 	}
-	var sr searchResult
-	if err := json.Unmarshal(result, &sr); err != nil {
-		return "", err
-	}
-	var projects []phabProject
-	if err := json.Unmarshal(sr.Data, &projects); err != nil {
-		return "", err
-	}
-	if len(projects) == 0 {
-		return "", fmt.Errorf("project %q not found", name)
-	}
-	phid := projects[0].PHID
+	phid := project.PHID
 	if c.cache != nil {
 		c.cache.phids.set(cacheKey, phid, ttlDefault)
 	}
@@ -320,6 +317,10 @@ func (c *conduitClient) findProjectsByName(query string) (map[string]string, err
 // getUsers fetches username and real name for a list of user PHIDs.
 // Returns map[phid] -> [2]string{username, realName}.
 func (c *conduitClient) getUsers(phids []string) (map[string][2]string, error) {
+	return c.getUsersContext(c.requestContext(), phids)
+}
+
+func (c *conduitClient) getUsersContext(ctx context.Context, phids []string) (map[string][2]string, error) {
 	if len(phids) == 0 {
 		return nil, nil
 	}
@@ -342,41 +343,48 @@ func (c *conduitClient) getUsers(phids []string) (map[string][2]string, error) {
 		return out, nil
 	}
 
-	result, err := c.post("user.search", map[string]interface{}{
-		"constraints": map[string]interface{}{
-			"phids": missing,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	var sr searchResult
-	if err := json.Unmarshal(result, &sr); err != nil {
-		return nil, err
-	}
-	var users []phabUser
-	if err := json.Unmarshal(sr.Data, &users); err != nil {
-		return nil, err
-	}
-	for _, u := range users {
-		pair := [2]string{u.Fields.Username, u.Fields.RealName}
-		out[u.PHID] = pair
-		if c.cache != nil {
-			c.cache.phids.set("user:"+u.PHID, pair, ttlDefault)
+	for offset := 0; offset < len(missing); offset += 100 {
+		end := offset + 100
+		if end > len(missing) {
+			end = len(missing)
+		}
+		result, err := c.postContext(ctx, "user.search", map[string]interface{}{"constraints": map[string]interface{}{"phids": missing[offset:end]}, "limit": 100})
+		if err != nil {
+			return nil, err
+		}
+		var sr searchResult
+		if err = json.Unmarshal(result, &sr); err != nil {
+			return nil, err
+		}
+		var users []phabUser
+		if err = json.Unmarshal(sr.Data, &users); err != nil {
+			return nil, err
+		}
+		for _, u := range users {
+			pair := [2]string{u.Fields.Username, u.Fields.RealName}
+			out[u.PHID] = pair
+			if c.cache != nil {
+				c.cache.phids.set("user:"+u.PHID, pair, ttlDefault)
+			}
 		}
 	}
+
 	return out, nil
 }
 
 // resolveUser looks up a Phabricator user by exact username, or resolves "me"
 // to the authenticated account.
 func (c *conduitClient) resolveUser(username string) (*phabUser, error) {
+	return c.resolveUserContext(c.requestContext(), username)
+}
+
+func (c *conduitClient) resolveUserContext(ctx context.Context, username string) (*phabUser, error) {
 	username = strings.TrimSpace(username)
 	if username == "" {
 		return nil, fmt.Errorf("username is required (use a Phabricator username or me)")
 	}
 	if strings.EqualFold(username, "me") {
-		result, err := c.post("user.whoami", map[string]interface{}{})
+		result, err := c.postContext(ctx, "user.whoami", map[string]interface{}{})
 		if err != nil {
 			return nil, err
 		}
@@ -392,7 +400,7 @@ func (c *conduitClient) resolveUser(username string) (*phabUser, error) {
 		}
 	}
 
-	result, err := c.post("user.search", map[string]interface{}{
+	result, err := c.postContext(ctx, "user.search", map[string]interface{}{
 		"constraints": map[string]interface{}{
 			"usernames": []string{username},
 		},
@@ -481,30 +489,19 @@ func (c *conduitClient) getColumns(projectPHID string) (map[string]string, error
 		}
 	}
 
-	result, err := c.post("project.column.search", map[string]interface{}{
-		"constraints": map[string]interface{}{
-			"projects": []string{projectPHID},
-		},
-	})
+	page, err := c.listColumns(c.requestContext(), projectPHID)
 	if err != nil {
 		return nil, err
 	}
-	var sr searchResult
-	if err := json.Unmarshal(result, &sr); err != nil {
-		return nil, err
-	}
-	var cols []phabColumn
-	if err := json.Unmarshal(sr.Data, &cols); err != nil {
-		return nil, err
+	mapping := make(map[string]string)
+	for _, col := range page.Data {
+		key := normaliseColumnKey(col.Fields.Name)
+		if _, exists := mapping[key]; exists {
+			return nil, fmt.Errorf("multiple columns normalize to %q; use board columns and task list --column with a PHID", key)
+		}
+		mapping[key] = col.PHID
 	}
 
-	mapping := make(map[string]string)
-	for _, col := range cols {
-		if !col.Fields.IsHidden {
-			key := normaliseColumnKey(col.Fields.Name)
-			mapping[key] = col.PHID
-		}
-	}
 	if c.cache != nil {
 		c.cache.phids.set(cacheKey, mapping, ttlColumns)
 	}
@@ -634,18 +631,8 @@ func (c *conduitClient) getTransactions(taskPHID string) ([]phabTransaction, err
 		}
 	}
 
-	result, err := c.post("transaction.search", map[string]interface{}{
-		"objectIdentifier": taskPHID,
-	})
+	txs, err := c.taskTransactions(c.requestContext(), taskPHID)
 	if err != nil {
-		return nil, err
-	}
-	var sr searchResult
-	if err := json.Unmarshal(result, &sr); err != nil {
-		return nil, err
-	}
-	var txs []phabTransaction
-	if err := json.Unmarshal(sr.Data, &txs); err != nil {
 		return nil, err
 	}
 
@@ -742,4 +729,11 @@ func isEmojiRune(r rune) bool {
 		return true
 	}
 	return false
+}
+
+func (c *conduitClient) requestContext() context.Context {
+	if c.context != nil {
+		return c.context
+	}
+	return context.Background()
 }

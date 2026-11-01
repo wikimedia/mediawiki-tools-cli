@@ -420,6 +420,7 @@ func shellRMTag(s *shellState, args []string) error {
 }
 
 var priorityMap = map[string]string{
+	"unbreak": "unbreak", "triage": "triage", "high": "high", "normal": "normal", "low": "low", "lowest": "lowest",
 	"u":  "unbreak",
 	"t":  "triage",
 	"h":  "high",
@@ -463,6 +464,7 @@ func shellSetPrio(s *shellState, args []string) error {
 }
 
 var statusMap = map[string]string{
+	"open": "open", "resolved": "resolved", "progress": "progress", "stalled": "stalled", "declined": "declined", "duplicate": "duplicate", "invalid": "invalid",
 	"o":   "open",
 	"r":   "resolved",
 	"p":   "progress",

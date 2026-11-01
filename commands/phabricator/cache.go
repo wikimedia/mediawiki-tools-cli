@@ -87,6 +87,9 @@ func newPhabCache(dir string) *PhabCache {
 }
 
 func (pc *PhabCache) flush() {
+	if pc == nil {
+		return
+	}
 	pc.phids.flush()
 	pc.transactions.flush()
 }
