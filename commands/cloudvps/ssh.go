@@ -137,23 +137,10 @@ func runCloudVPSSSH(cmd *cobra.Command, args []string, opts sshOptions) error {
 	if err != nil {
 		return err
 	}
-	if opts.user == "" {
-		opts.user = defaults.SSH.User
-		if opts.user == "" {
-			opts.user = state.EffectiveKoanf.String("developer.username")
-		}
-	}
-	if opts.jumpHost == "" {
-		opts.jumpHost = defaults.SSH.JumpHost
-	}
-	// Query native SSH configuration rather than overwrite a user's working proxy.
-	probe := sshBaseArgs(opts)
-	probe = append(probe, "-G", host)
-	output, err := osexec.CommandContext(cmd.Context(), "ssh", probe...).Output()
+	opts, effective, err := resolveSSHOptions(cmd, host, opts)
 	if err != nil {
-		return fmt.Errorf("inspect SSH configuration (OpenSSH must be installed): %w", err)
+		return err
 	}
-	effective := parseSSHConfig(string(output))
 	if opts.user == "" && interactive {
 		// A non-default SSH User is already an intentional configuration.
 		localUser := os.Getenv("USER")
@@ -192,6 +179,51 @@ func runCloudVPSSSH(cmd *cobra.Command, args []string, opts sshOptions) error {
 		return err
 	}
 	return nil
+}
+
+// RemoteSSHArgs resolves a Cloud VPS instance using the same SSH defaults and
+// bastion handling as cloudvps ssh. The returned arguments end with the hostname.
+func RemoteSSHArgs(cmd *cobra.Command, project, id, user, jump string) ([]string, error) {
+	name, err := instanceNameByID(cmd, project, id)
+	if err != nil {
+		return nil, err
+	}
+	region := config.State().Effective.CloudVPS.SSH.Region
+	if region == "" {
+		region = "eqiad1"
+	}
+	host, err := instanceHostname(name, project, region)
+	if err != nil {
+		return nil, err
+	}
+	opts, effective, err := resolveSSHOptions(cmd, host, sshOptions{user: user, jumpHost: jump, noTTY: true})
+	if err != nil {
+		return nil, err
+	}
+	return sshSessionArgs(host, nil, opts, effective), nil
+}
+
+func resolveSSHOptions(cmd *cobra.Command, host string, opts sshOptions) (sshOptions, map[string]string, error) {
+	state := config.State()
+	defaults := state.Effective.CloudVPS
+	if opts.user == "" {
+		opts.user = defaults.SSH.User
+		if opts.user == "" {
+			opts.user = state.EffectiveKoanf.String("developer.username")
+		}
+	}
+	if opts.jumpHost == "" {
+		opts.jumpHost = defaults.SSH.JumpHost
+	}
+	// Query native SSH configuration rather than overwrite a user's working proxy.
+	probe := sshBaseArgs(opts)
+	probe = append(probe, "-G", host)
+	output, err := osexec.CommandContext(cmd.Context(), "ssh", probe...).Output()
+	if err != nil {
+		return opts, nil, fmt.Errorf("inspect SSH configuration (OpenSSH must be installed): %w", err)
+	}
+	effective := parseSSHConfig(string(output))
+	return opts, effective, nil
 }
 
 func sshBaseArgs(opts sshOptions) []string {
