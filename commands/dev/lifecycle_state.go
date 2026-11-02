@@ -72,6 +72,17 @@ func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
 	return m.CompleteSuspendServices()
 }
 
+func rememberRunningDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
+	if _, exists, err := m.ResumeServices(); err != nil || exists {
+		return err
+	}
+	running, err := p.ServicesWithStatus("running")
+	if err != nil {
+		return fmt.Errorf("list running containers: %w", err)
+	}
+	return m.SaveResumeServices(running)
+}
+
 func restartDevelopmentServices(p lifecycleProject) error {
 	running, err := p.ServicesWithStatus("running")
 	if err != nil {

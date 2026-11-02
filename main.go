@@ -1,8 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/devremote"
 )
 
 // Following variables will be statically linked at the time of compiling
@@ -26,6 +29,11 @@ var BuildDate string
 var Version string
 
 func main() {
+	cli.VersionDetails = cli.VersionAttributes{GitCommit: GitCommit, GitBranch: GitBranch, GitState: GitState, GitSummary: GitSummary, BuildDate: BuildDate, Version: cli.Version(Version)}
+	devremote.ValidateInvocation = cmd.ValidateRemoteInvocation
+	if handled, code := devremote.Early(os.Args[1:], os.Stdin, os.Stdout, os.Stderr); handled {
+		os.Exit(code)
+	}
 	// Alternatively, execute the command
 	cmd.Execute(GitCommit, GitBranch, GitState, GitSummary, BuildDate, cli.Version(Version))
 }

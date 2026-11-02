@@ -93,6 +93,7 @@
 ./recipes/contenttranslation.yml
 ./recipes/example-git-clone.yml
 ./recipes/mediasearch.yml
+./recipes/mediawiki.yml
 ./recipes/mwcli.config.json
 ./recipes/wikibase-repoclient.yml
 ./wait-for-it.sh

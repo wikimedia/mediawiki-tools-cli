@@ -73,6 +73,7 @@ func defaultContext() string {
 var dockerLong string
 
 func NewCmd() *cobra.Command {
+	remote := NewRemoteCmd()
 	cmd := &cobra.Command{
 		Use:     "dev",
 		Aliases: []string{"docker"},
@@ -83,6 +84,12 @@ func NewCmd() *cobra.Command {
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
+			// Remote setup must work on clients without a local Docker installation.
+			for original := cobrautil.ExecutingCommand(cmd); original != nil; original = original.Parent() {
+				if original == remote {
+					return
+				}
+			}
 			// These file-only command groups mark themselves before calling parent hooks.
 			if os.Getenv("MWCLI_MEDIAWIKI_ENV_COMMAND") == "" && os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" {
 				if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
@@ -193,6 +200,8 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewDevRestartCmd())
 	cmd.AddCommand(NewDevUpdateCmd())
 	cmd.AddCommand(NewRecipeCmd())
+	cmd.AddCommand(remote)
+	cmd.AddCommand(cobrautil.WithServiceInfo(NewVSCodeCmd(), cobrautil.ServiceInfo{Name: "Browser VS Code", URL: "https://coder.com/docs/code-server"}))
 	cmd.AddCommand(dockercompose.NewCmd())
 	envCmd := env.Env("Interact with the environment variables", devenv.DefaultForUser().Directory)
 	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {

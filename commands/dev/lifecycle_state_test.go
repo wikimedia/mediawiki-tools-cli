@@ -259,3 +259,29 @@ func TestRestartStopsOnTunnelShutdownFailure(t *testing.T) {
 		t.Fatal("restarted services after failed tunnel shutdown")
 	}
 }
+
+func TestRememberRunningServicesAvoidsCompletedSetupContainers(t *testing.T) {
+	m := lifecycleTestEnvironment(t)
+	p := &fakeLifecycleProject{running: []string{"mysql", "mediawiki"}, exited: []string{"mysql-configure-replication"}}
+	if err := rememberRunningDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if err := resumeDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if len(p.started) != 0 {
+		t.Fatalf("restarted completed setup containers: %v", p.started)
+	}
+	// A reboot must preserve the recorded services even when none are running.
+	p.running = nil
+	p.exited = []string{"mysql", "mediawiki", "mysql-configure-replication"}
+	if err := rememberRunningDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if err := resumeDevelopmentServices(m, p); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(p.started, []string{"mediawiki", "mysql"}) {
+		t.Fatalf("wrong resume selection after reboot: %v", p.started)
+	}
+}

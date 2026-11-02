@@ -1,0 +1,22 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: mediawiki
+description: A basic MediaWiki installation with MariaDB and the Vector skin.
+source:
+  shallow: true
+  gerritInteractionType: http
+code:
+  core: true
+  skins:
+    - name: Vector
+services:
+  - name: mediawiki
+  - name: mysql
+sites:
+  - dbname: default
+    dbtype: mysql
+localSettings:
+  files:
+    shared:
+      - content: |
+          wfLoadSkin( 'Vector' );
