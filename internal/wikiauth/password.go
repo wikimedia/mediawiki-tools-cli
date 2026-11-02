@@ -3,10 +3,10 @@ package wikiauth
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
-	"github.com/sirupsen/logrus"
 )
 
 // LoginPassword validates the login result even when MediaWiki also returns
@@ -40,7 +40,7 @@ func LoginPassword(w *mwclient.Client, username, password string) error {
 func loginResponseError(err error) error {
 	var warnings mwclient.APIWarnings
 	if errors.As(err, &warnings) {
-		logrus.Warn(warnings)
+		fmt.Fprintln(os.Stderr, "Warning:", warnings)
 		return nil
 	}
 	return err

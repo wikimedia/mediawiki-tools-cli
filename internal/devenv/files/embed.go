@@ -8,26 +8,27 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/mount"
 )
 
-func ensureJobRunnerSitesFile(projectDirectory string) {
+func ensureJobRunnerSitesFile(projectDirectory string) error {
 	mediaWikiDir := filepath.Clean(filepath.Join(projectDirectory, "mediawiki"))
 	if err := os.MkdirAll(mediaWikiDir, 0o755); err != nil {
-		panic(err)
+		return err
 	}
 
 	jobRunnerSitesPath := filepath.Clean(filepath.Join(mediaWikiDir, "jobrunner-sites"))
 	if info, err := os.Stat(jobRunnerSitesPath); err == nil && info.IsDir() {
 		if removeErr := os.RemoveAll(jobRunnerSitesPath); removeErr != nil {
-			panic(removeErr)
+			return removeErr
 		}
 	}
 
 	file, err := os.OpenFile(jobRunnerSitesPath, os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if err := file.Close(); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
@@ -61,9 +62,13 @@ func syncer(projectDirectory string) embedsync.EmbeddingDiskSync {
 }
 
 /*EnsureReady makes sure that the files component is ready.*/
-func EnsureReady(projectDirectory string) {
+func EnsureReady(projectDirectory string) error {
 	syncer := syncer(projectDirectory)
-	syncer.EnsureFilesOnDisk()
-	ensureJobRunnerSitesFile(projectDirectory)
-	syncer.EnsureNoExtraFilesOnDisk()
+	if err := syncer.EnsureFilesOnDisk(); err != nil {
+		return err
+	}
+	if err := ensureJobRunnerSitesFile(projectDirectory); err != nil {
+		return err
+	}
+	return syncer.EnsureNoExtraFilesOnDisk()
 }

@@ -31,41 +31,56 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/jsonfile"
 )
 
-func RecordServiceCreated(service string) {
-	j := jsonFileForStorage()
+func RecordServiceCreated(service string) error {
+	j, err := jsonFileForStorage()
+	if err != nil {
+		return err
+	}
 	j.Contents[service] = true
-	j.WriteToDisk()
+	return j.WriteToDisk()
 }
 
-func RecordServicesCreated(services []string) {
-	j := jsonFileForStorage()
+func RecordServicesCreated(services []string) error {
+	j, err := jsonFileForStorage()
+	if err != nil {
+		return err
+	}
 	for _, service := range services {
 		j.Contents[service] = true
 	}
-	j.WriteToDisk()
+	return j.WriteToDisk()
 }
 
-func RecordServiceDestroyed(service string) {
-	j := jsonFileForStorage()
+func RecordServiceDestroyed(service string) error {
+	j, err := jsonFileForStorage()
+	if err != nil {
+		return err
+	}
 	delete(j.Contents, service)
-	j.WriteToDisk()
+	return j.WriteToDisk()
 }
 
-func RecordServicesDestroyed(services []string) {
-	j := jsonFileForStorage()
+func RecordServicesDestroyed(services []string) error {
+	j, err := jsonFileForStorage()
+	if err != nil {
+		return err
+	}
 	for _, service := range services {
 		delete(j.Contents, service)
 	}
-	j.WriteToDisk()
+	return j.WriteToDisk()
 }
 
-func ClearServiceState() {
-	j := jsonFileForStorage()
+func ClearServiceState() error {
+	j, err := jsonFileForStorage()
+	if err != nil {
+		return err
+	}
 	j.Clear()
-	j.WriteToDisk()
+	return j.WriteToDisk()
 }
 
-func jsonFileForStorage() jsonfile.JSONFile {
+func jsonFileForStorage() (jsonfile.JSONFile, error) {
 	return jsonfile.LoadFromDisk(jsonPathForStorage())
 }
 

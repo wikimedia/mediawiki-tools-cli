@@ -247,7 +247,7 @@ For approval and visibility rules, see [Phabricator access](/guides/phabricator/
 	if err := writeManualFile(filepath.Join(directory, "_meta.json"), append(data, '\n')); err != nil {
 		return err
 	}
-	fmt.Printf("Generated %d manual pages in %s\n", len(commands), directory)
+	fmt.Fprintf(os.Stderr, "Generated %d manual pages in %s\n", len(commands), directory)
 	return nil
 }
 

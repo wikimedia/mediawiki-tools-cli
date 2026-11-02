@@ -75,9 +75,13 @@ func (c Credential) Replace(previous Credential, value string, insecure bool, me
 	}
 	// This temporary in-memory view lets the normal verified save create a new
 	// account slot. The on-disk reference stays untouched until that save commits.
-	ReApplyKoanfConf(working)
+	if err := ReApplyKoanfConf(working); err != nil {
+		return err
+	}
 	if err := c.saveWithProviderMetadata(value, false, typed, target); err != nil {
-		ReApplyKoanfConf(original)
+		if restoreErr := ReApplyKoanfConf(original); restoreErr != nil {
+			return fmt.Errorf("%w; restore configuration: %v", err, restoreErr)
+		}
 		return err
 	}
 	if source != nil && source.Provider != "plaintext" {

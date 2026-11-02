@@ -32,11 +32,10 @@ func NewGerritAccessListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Access Rights",
 		Use:   "list",

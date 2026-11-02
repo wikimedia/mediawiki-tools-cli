@@ -13,14 +13,14 @@ func DetectDataIssues() []issue.Issue {
 	// Load the data yml file
 	data, err := os.ReadFile("tools/image-update/data.yml")
 	if err != nil {
-		panic(err)
+		return []issue.Issue{{Target: "tools/image-update/data.yml", Level: issue.ErrorLevel, Code: "data-yml-read", Text: err.Error()}}
 	}
 
 	// Parse the data yml file
 	var dataYml map[string]interface{}
 	err = yaml.Unmarshal(data, &dataYml)
 	if err != nil {
-		panic(err)
+		return []issue.Issue{{Target: "tools/image-update/data.yml", Level: issue.ErrorLevel, Code: "data-yml-read", Text: err.Error()}}
 	}
 
 	issues := []issue.Issue{}

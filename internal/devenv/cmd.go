@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"log/slog"
 	"os"
 	osexec "os/exec"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/moby/moby/client"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
@@ -122,19 +122,23 @@ func newServiceUpCmdP(name *string, onCreateText string, opts *dockercompose.UpO
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
-			if err := DefaultForUser().PrepareGateway(); err != nil {
+			if err := DefaultForUser().PrepareGatewayWithOutput(cmd.ErrOrStderr()); err != nil {
 				return err
 			}
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().StartServiceNames(dereferencedName)
+			file := DefaultForUser().DockerCompose().File(dereferencedName)
+			contents, err := file.Contents()
+			if err != nil {
+				return err
+			}
+			services := contents.StartServiceNames(dereferencedName)
 			if len(services) == 0 {
 				return fmt.Errorf("no default services to start for %s", dereferencedName)
 			}
-			if err := DefaultForUser().DockerCompose().Up(services, *opts); err != nil {
+			if err := DefaultForUser().DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).Up(services, *opts); err != nil {
 				return err
 			}
 			if len(onCreateText) > 0 {
-				fmt.Print(cli.RenderMarkdown(onCreateText))
+				fmt.Fprint(cmd.ErrOrStderr(), cli.RenderMarkdown(onCreateText))
 			}
 			return DefaultForUser().MergeRunningResumeServices()
 		},
@@ -153,13 +157,19 @@ func NewServiceDestroyCmdP(name *string, additionalServices ...string) *cobra.Co
 		Short: "Destroy the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
-			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			file := DefaultForUser().DockerCompose().File(dereferencedName)
+			contents, err := file.Contents()
+			if err != nil {
+				return err
+			}
+			services := contents.ServiceNames()
 			services = append(services, additionalServices...)
-			volumes := DefaultForUser().DockerCompose().File(dereferencedName).Contents().VolumeNames()
+			volumes := contents.VolumeNames()
 
-			err := DefaultForUser().DockerCompose().Rm(services, dockercompose.RmOptions{
+			err = DefaultForUser().DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).Rm(services, dockercompose.RmOptions{
 				Stop:                   true,
 				Force:                  true,
 				RemoveAnonymousVolumes: true,
@@ -168,7 +178,7 @@ func NewServiceDestroyCmdP(name *string, additionalServices ...string) *cobra.Co
 				return err
 			}
 			if len(volumes) > 0 {
-				err := DefaultForUser().DockerCompose().VolumesRm(volumes)
+				err := DefaultForUser().DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).VolumesRm(volumes)
 				if err != nil {
 					return err
 				}
@@ -192,11 +202,17 @@ func NewServiceStopCmdP(name *string, additionalServices ...string) *cobra.Comma
 		Short:   "Stop the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
-			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().ServiceNames()
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			file := DefaultForUser().DockerCompose().File(dereferencedName)
+			contents, err := file.Contents()
+			if err != nil {
+				return err
+			}
+			services := contents.ServiceNames()
 			services = append(services, additionalServices...)
-			err := DefaultForUser().DockerCompose().Stop(services)
+			err = DefaultForUser().DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).Stop(services)
 			if err != nil {
 				return err
 			}
@@ -219,15 +235,19 @@ func NewServiceStartCmdP(name *string) *cobra.Command {
 		Short:   "Start the containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
-			if err := DefaultForUser().PrepareGateway(); err != nil {
+			if err := DefaultForUser().PrepareGatewayWithOutput(cmd.ErrOrStderr()); err != nil {
 				return err
 			}
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
-			services := DefaultForUser().DockerCompose().File(dereferencedName).Contents().StartServiceNames(dereferencedName)
+			file := DefaultForUser().DockerCompose().File(dereferencedName)
+			contents, err := file.Contents()
+			if err != nil {
+				return err
+			}
+			services := contents.StartServiceNames(dereferencedName)
 			if len(services) == 0 {
 				return fmt.Errorf("no default services to start for %s", dereferencedName)
 			}
-			err := DefaultForUser().DockerCompose().Up(services, dockercompose.UpOptions{Detached: true})
+			err = DefaultForUser().DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).Up(services, dockercompose.UpOptions{Detached: true})
 			if err != nil {
 				return err
 			}
@@ -258,8 +278,12 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			DefaultForUser().DockerCompose().File(dereferencedName).ExistsOrExit()
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			if err := DefaultForUser().DockerCompose().File(dereferencedName).RequireExists(); err != nil {
+				return err
+			}
 			command, env := CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := DefaultForUser().DockerCompose().ContainerID(dereferencedService)
 			if containerIDErr != nil {
@@ -307,11 +331,19 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *name
 			m := DefaultForUser()
-			m.EnsureReady()
-			m.DockerCompose().File(dereferencedName).ExistsOrExit()
+			if err := m.EnsureReady(); err != nil {
+				return err
+			}
+			if err := m.DockerCompose().File(dereferencedName).RequireExists(); err != nil {
+				return err
+			}
 
 			ctx := context.Background()
-			cli := docker.NewClientFromEnvOrPanic()
+			cli, err := docker.NewClientFromEnv()
+			if err != nil {
+				return err
+			}
+			defer cli.Close()
 			containerID, err := m.DockerCompose().ContainerID(dereferencedName)
 			if err != nil {
 				// unable to execute command, no container found for service: mysql
@@ -323,7 +355,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 
 			// Lookup internal port from an env var if not provided
 			if internalPort == "" {
-				logrus.Debug("No internal port provided, looking up from container env")
+				slog.Debug("No internal port provided, looking up from container env")
 				containerJson, err := cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 				if err != nil {
 					return fmt.Errorf("unable to inspect container: %w", err)
@@ -350,7 +382,7 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 
 			network := m.dockerNetworkName()
 
-			exec.RunTTYCommand(osexec.Command(
+			return exec.RunTTYCommand(osexec.Command(
 				"docker", "run",
 				"--publish", publish,
 				"--link", containerID,
@@ -358,7 +390,6 @@ func NewServiceExposeCmdP(name *string) *cobra.Command {
 				"alpine/socat:1.8.1.3",
 				"tcp-listen:"+internalPort+",fork,reuseaddr", "tcp-connect:"+dereferencedName+":"+internalPort,
 			)) // #nosec G204
-			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&externalPort, "external-port", "e", "", "External port to expose")
@@ -380,7 +411,9 @@ func NewServiceCommandCmdP(service *string, commands []string, aliases []string)
 		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedName := *service
-			DefaultForUser().EnsureReady()
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
 			userCommand, env := CommandAndEnvFromArgs(args)
 			containerId, containerIDErr := DefaultForUser().DockerCompose().ContainerID(dereferencedName)
 			if containerIDErr != nil {
@@ -409,8 +442,9 @@ func NewWhereCmd(description string, pathProvider WherePathProvider) *cobra.Comm
 	return &cobra.Command{
 		Use:   "where",
 		Short: "Outputs the path of " + description,
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(pathProvider())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), pathProvider())
+			return err
 		},
 	}
 }
@@ -428,10 +462,17 @@ func NewImageCmdP(service *string) *cobra.Command {
 	get := &cobra.Command{
 		Use:   "get",
 		Short: "Outputs the name of the image currently being used",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			fmt.Println(DefaultForUser().DockerCompose().Config().Services[dereferencedService].Image)
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			config, err := DefaultForUser().DockerCompose().Config()
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), config.Services[dereferencedService].Image)
+			return err
 		},
 	}
 	cmd.AddCommand(get)
@@ -439,10 +480,15 @@ func NewImageCmdP(service *string) *cobra.Command {
 	set := &cobra.Command{
 		Use:   "set",
 		Short: "Sets the image to use for the service as an overrides environment variable",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			DefaultForUser().Env().Set(strings.ToUpper(strings.ReplaceAll(dereferencedService, "-", "_"))+"_IMAGE", args[0])
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			if err := DefaultForUser().Env().Set(strings.ToUpper(strings.ReplaceAll(dereferencedService, "-", "_"))+"_IMAGE", args[0]); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 	cmd.AddCommand(set)
@@ -451,10 +497,15 @@ func NewImageCmdP(service *string) *cobra.Command {
 		Use:   "reset",
 		Args:  cobra.NoArgs,
 		Short: "Resets the image to use for the service to the default image specified in the docker-compose.yml file",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			DefaultForUser().Env().Delete(strings.ToUpper(strings.ReplaceAll(dereferencedService, "-", "_")) + "_IMAGE")
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			if err := DefaultForUser().Env().Delete(strings.ToUpper(strings.ReplaceAll(dereferencedService, "-", "_")) + "_IMAGE"); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 	cmd.AddCommand(reset)
@@ -501,7 +552,9 @@ Setting a file does not rebuild running containers. Run the service's rebuild co
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
 
 			var dockerfilePath string
 			if len(args) == 1 {
@@ -522,14 +575,16 @@ Setting a file does not rebuild running containers. Run the service's rebuild co
 				}
 			}
 
-			DefaultForUser().Env().Set(dockerfileEnvKey(dereferencedService), dockerfilePath)
+			if err := DefaultForUser().Env().Set(dockerfileEnvKey(dereferencedService), dockerfilePath); err != nil {
+				return err
+			}
 			if err := writeDockerfileComposeFile(DefaultForUser().Directory(), dereferencedService, dockerfilePath); err != nil {
 				return fmt.Errorf("failed to write compose override file: %w", err)
 			}
-			fmt.Printf("Custom Dockerfile activated for service %q.\n", dereferencedService)
-			fmt.Printf("Dockerfile: %s\n", dockerfilePath)
-			fmt.Printf("Run '%s rebuild' to build and apply the image.\n", cmd.Parent().Parent().Parent().CommandPath())
-			fmt.Printf("Run '%s reset' to remove the Dockerfile override.\n", cmd.Parent().CommandPath())
+			fmt.Fprintf(cmd.ErrOrStderr(), "Custom Dockerfile activated for service %q.\n", dereferencedService)
+			fmt.Fprintf(cmd.ErrOrStderr(), "Dockerfile: %s\n", dockerfilePath)
+			fmt.Fprintf(cmd.ErrOrStderr(), "Run '%s rebuild' to build and apply the image.\n", cmd.Parent().Parent().Parent().CommandPath())
+			fmt.Fprintf(cmd.ErrOrStderr(), "Run '%s reset' to remove the Dockerfile override.\n", cmd.Parent().CommandPath())
 			return nil
 		},
 	}
@@ -539,15 +594,23 @@ Setting a file does not rebuild running containers. Run the service's rebuild co
 		Use:   "get",
 		Short: "Show the path of the Dockerfile currently configured for this service",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
-			if path == "" {
-				fmt.Println("No custom Dockerfile set")
-			} else {
-				fmt.Println(path)
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
 			}
+			environment, err := DefaultForUser().Env().Read()
+			if err != nil {
+				return err
+			}
+			path := environment[dockerfileEnvKey(dereferencedService)]
+			if path == "" {
+				fmt.Fprintln(cmd.ErrOrStderr(), "No custom Dockerfile set")
+			} else {
+				_, err := fmt.Fprintln(cmd.OutOrStdout(), path)
+				return err
+			}
+			return nil
 		},
 	}
 	cmd.AddCommand(dockerfileGet)
@@ -558,8 +621,14 @@ Setting a file does not rebuild running containers. Run the service's rebuild co
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			environment, err := DefaultForUser().Env().Read()
+			if err != nil {
+				return err
+			}
+			path := environment[dockerfileEnvKey(dereferencedService)]
 			if path == "" {
 				return fmt.Errorf("no custom Dockerfile is set for service %q", dereferencedService)
 			}
@@ -567,8 +636,8 @@ Setting a file does not rebuild running containers. Run the service's rebuild co
 			if err != nil {
 				return fmt.Errorf("failed to read dockerfile %s: %w", path, err)
 			}
-			fmt.Print(string(content))
-			return nil
+			_, err = fmt.Fprint(cmd.OutOrStdout(), string(content))
+			return err
 		},
 	}
 	cmd.AddCommand(dockerfileCat)
@@ -582,8 +651,14 @@ If neither variable is set, vi is used as a fallback.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			path := DefaultForUser().Env().Get(dockerfileEnvKey(dereferencedService))
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			environment, err := DefaultForUser().Env().Read()
+			if err != nil {
+				return err
+			}
+			path := environment[dockerfileEnvKey(dereferencedService)]
 			if path == "" {
 				return fmt.Errorf("no custom Dockerfile is set for service %q — run 'image dockerfile set' first", dereferencedService)
 			}
@@ -595,9 +670,9 @@ If neither variable is set, vi is used as a fallback.`,
 				editor = "vi"
 			}
 			editorCmd := osexec.Command(editor, path) // #nosec G204,G702 -- editor is explicitly selected by the local user.
-			editorCmd.Stdout = os.Stdout
-			editorCmd.Stdin = os.Stdin
-			editorCmd.Stderr = os.Stderr
+			editorCmd.Stdout = cmd.OutOrStdout()
+			editorCmd.Stdin = cmd.InOrStdin()
+			editorCmd.Stderr = cmd.ErrOrStderr()
 			if err := editorCmd.Run(); err != nil {
 				return fmt.Errorf("editor exited with error: %w", err)
 			}
@@ -615,13 +690,17 @@ A separate image set override still applies. Reset that with image reset if you 
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dereferencedService := *service
-			DefaultForUser().EnsureReady()
-			DefaultForUser().Env().Delete(dockerfileEnvKey(dereferencedService))
+			if err := DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			if err := DefaultForUser().Env().Delete(dockerfileEnvKey(dereferencedService)); err != nil {
+				return err
+			}
 			if err := removeDockerfileComposeFile(DefaultForUser().Directory(), dereferencedService); err != nil {
 				return fmt.Errorf("failed to remove compose override file: %w", err)
 			}
-			fmt.Printf("Custom Dockerfile override removed for service %q.\n", dereferencedService)
-			fmt.Printf("Run '%s create --force-recreate' to apply the configured image.\n", cmd.Parent().Parent().Parent().CommandPath())
+			fmt.Fprintf(cmd.ErrOrStderr(), "Custom Dockerfile override removed for service %q.\n", dereferencedService)
+			fmt.Fprintf(cmd.ErrOrStderr(), "Run '%s create --force-recreate' to apply the configured image.\n", cmd.Parent().Parent().Parent().CommandPath())
 			return nil
 		},
 	}

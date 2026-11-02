@@ -26,7 +26,6 @@ linters:
     - unused # Default
     # Custom enabled linters
     - bodyclose
-    - depguard
     - gci
     - gofmt
     - gofumpt
@@ -65,13 +64,3 @@ linters-settings:
         alias: osexec
       - pkg: os/signal
         alias: ossignal
-  depguard:
-    rules:
-      main:
-        files:
-          - $all
-          - "!$test"
-        list-mode: lax
-        deny:
-          - pkg: log
-            desc: 'logging is allowed only by github.com/sirupsen/logrus'

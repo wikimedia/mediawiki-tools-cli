@@ -2,9 +2,9 @@ package mediawiki
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
@@ -34,14 +34,20 @@ func NewMediaWikiJobRunnerAddSiteCmd() *cobra.Command {
 		Use:   "add-site",
 		Short: "Add a site to the jobrunner.",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
+			if err := devenv.EnsureReady(); err != nil {
+				return err
+			}
 			file := devenv.Directory() + string(os.PathSeparator) + "mediawiki" + string(os.PathSeparator) + "jobrunner-sites"
 			// TODO check the site exists?
-			files.AddLineUnique(args[0], file)
-			// TODO different output if it was already running?
-			logrus.Info("Added site to jobrunner: " + args[0])
+			if err := files.AddLineUnique(args[0], file); err != nil {
+				return err
+			}
+			fmt.Fprintln(
+				// TODO different output if it was already running?
+				cmd.ErrOrStderr(), "Added site to jobrunner: "+args[0])
+			return nil
 		},
 	}
 	return cmd
@@ -53,12 +59,17 @@ func NewMediaWikiJobRunnerRemoveSiteCmd() *cobra.Command {
 		Aliases: []string{"rm-site"},
 		Short:   "Remove a site to the jobrunner.",
 		Args:    cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
+			if err := devenv.EnsureReady(); err != nil {
+				return err
+			}
 			file := devenv.Directory() + string(os.PathSeparator) + "mediawiki" + string(os.PathSeparator) + "jobrunner-sites"
-			files.RemoveAllLinesMatching(args[0], file)
-			logrus.Info("Removed site from jobrunner: " + args[0])
+			if err := files.RemoveAllLinesMatching(args[0], file); err != nil {
+				return err
+			}
+			fmt.Fprintln(cmd.ErrOrStderr(), "Removed site from jobrunner: "+args[0])
+			return nil
 		},
 	}
 	return cmd
@@ -70,14 +81,20 @@ func NewMediaWikiJobRunnerGetSitesCmd() *cobra.Command {
 		Aliases: []string{"sites"},
 		Short:   "Get a list of sites in the jobrunner.",
 		Args:    cobra.MinimumNArgs(0),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
-			file := devenv.Directory() + string(os.PathSeparator) + "mediawiki" + string(os.PathSeparator) + "jobrunner-sites"
-			lines := files.Lines(file)
-			for _, line := range lines {
-				logrus.Info(line)
+			if err := devenv.EnsureReady(); err != nil {
+				return err
 			}
+			file := devenv.Directory() + string(os.PathSeparator) + "mediawiki" + string(os.PathSeparator) + "jobrunner-sites"
+			lines, err := files.Lines(file)
+			if err != nil {
+				return err
+			}
+			for _, line := range lines {
+				fmt.Fprintln(cmd.OutOrStdout(), line)
+			}
+			return nil
 		},
 	}
 	return cmd

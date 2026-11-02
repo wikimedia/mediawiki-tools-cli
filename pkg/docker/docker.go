@@ -11,7 +11,6 @@ import (
 	contextdocker "github.com/docker/cli/cli/context/docker"
 	"github.com/docker/cli/cli/context/store"
 	"github.com/moby/moby/client"
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
@@ -57,14 +56,6 @@ func NewClientFromEnv() (*client.Client, error) {
 func dockerContextStoreConfig() store.Config {
 	return store.NewConfig(func() any { return new(map[string]any) },
 		store.EndpointTypeGetter(contextdocker.DockerEndpoint, func() any { return new(contextdocker.EndpointMeta) }))
-}
-
-func NewClientFromEnvOrPanic() *client.Client {
-	cli, err := NewClientFromEnv()
-	if err != nil {
-		logrus.Panicf("Unable to create Docker client: %v", err)
-	}
-	return cli
 }
 
 // CheckDockerDaemon retains the real endpoint/permission error for diagnostics.

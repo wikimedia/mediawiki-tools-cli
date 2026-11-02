@@ -29,17 +29,25 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Example: cobrautil.NormalizeExample(updateCodeExample),
 		Use:     "update-code", Short: "Update core, skin and extension checkouts", Long: cli.RenderMarkdown(updateCodeLong), Args: cobra.NoArgs,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if !composer || dryRun {
 				// Git-only updates need mw's setup, but no Docker daemon,
 				// environment provisioning or MediaWiki/container wizards.
 				root := cmd.Root()
-				if root != cmd && root.PersistentPreRun != nil {
-					root.PersistentPreRun(cmd, args)
+				if root != cmd {
+					if root.PersistentPreRunE != nil {
+						return root.PersistentPreRunE(cmd, args)
+					}
+					if root.PersistentPreRun != nil {
+						root.PersistentPreRun(cmd, args)
+					}
 				}
-				return
+				return nil
 			}
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+			if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
@@ -82,7 +90,7 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 				return fmt.Errorf("some checkouts were skipped; review them before running composer update explicitly")
 			}
 			if dryRun {
-				cmd.Println("Would run composer update after source updates")
+				fmt.Fprintln(cmd.ErrOrStderr(), "Would run composer update after source updates")
 				return nil
 			}
 			containerID, err := m.DockerCompose().ContainerID("mediawiki")

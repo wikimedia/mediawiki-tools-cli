@@ -49,9 +49,7 @@ func NewComputeGetCmd() *cobra.Command {
 				return err
 			}
 
-			out.Print(cmd, server)
-
-			return nil
+			return out.Print(cmd, server)
 		},
 	}
 

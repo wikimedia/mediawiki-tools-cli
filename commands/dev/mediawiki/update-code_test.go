@@ -1,6 +1,7 @@
 package mediawiki
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -20,13 +21,13 @@ func TestUpdateCodeOnlyInitializesDockerForActualComposer(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rootCalls, dockerCalls := 0, 0
-			root := &cobra.Command{Use: "mw", PersistentPreRun: func(cmd *cobra.Command, args []string) { rootCalls++ }}
+			root := &cobra.Command{Use: "mw", PersistentPreRunE: func(cmd *cobra.Command, args []string) error { rootCalls++; return nil }}
 			dev := &cobra.Command{Use: "dev"}
 			wiki := &cobra.Command{Use: "mediawiki"}
 			for _, parent := range []*cobra.Command{dev, wiki} {
-				parent.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+				parent.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 					dockerCalls++
-					cobrautil.CallAllPersistentPreRun(cmd, args)
+					return cobrautil.CallAllPersistentPreRunE(cmd, args)
 				}
 			}
 			root.AddCommand(dev)
@@ -53,5 +54,24 @@ func TestUpdateCodeOnlyInitializesDockerForActualComposer(t *testing.T) {
 				t.Fatalf("run=%v root hooks=%d docker hooks=%d (want %d)", called, rootCalls, dockerCalls, tc.wantDockerHooks)
 			}
 		})
+	}
+}
+
+func TestUpdateCodeReturnsRootSetupFailure(t *testing.T) {
+	root := &cobra.Command{Use: "mw", PersistentPreRunE: func(*cobra.Command, []string) error { return fmt.Errorf("root setup failed") }}
+	dev := &cobra.Command{Use: "dev"}
+	wiki := &cobra.Command{Use: "mediawiki"}
+	command := NewMediaWikiUpdateCodeCmd()
+	called := false
+	command.RunE = func(*cobra.Command, []string) error { called = true; return nil }
+	root.AddCommand(dev)
+	dev.AddCommand(wiki)
+	wiki.AddCommand(command)
+	root.SetArgs([]string{"dev", "mediawiki", "update-code"})
+	if err := root.Execute(); err == nil || err.Error() != "root setup failed" {
+		t.Fatalf("got %v", err)
+	}
+	if called {
+		t.Fatal("command ran after setup failed")
 	}
 }

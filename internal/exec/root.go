@@ -2,10 +2,10 @@ package exec
 
 import (
 	"bytes"
+	"log/slog"
 	"os"
 	"os/exec"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
@@ -21,7 +21,7 @@ func Command(name string, arg ...string) *exec.Cmd {
 }
 
 /*ComposeCommand gets a docker compose command to run.*/
-func ComposeCommand(context ComposeCommandContext, command string, arg ...string) *exec.Cmd {
+func ComposeCommand(context ComposeCommandContext, command string, arg ...string) (*exec.Cmd, error) {
 	dcp := dockercompose.Project{
 		Name:      context.ProjectName,
 		Directory: context.ProjectDirectory,
@@ -30,20 +30,17 @@ func ComposeCommand(context ComposeCommandContext, command string, arg ...string
 }
 
 /*RunTTYCommand runs a command in an interactive shell.*/
-func RunTTYCommand(cmd *exec.Cmd) {
-	logrus.Tracef("Running %s (arguments omitted)", cmd.Path)
+func RunTTYCommand(cmd *exec.Cmd) error {
+	slog.Debug("running command", "executable", cmd.Path)
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	return cmd.Run()
 }
 
 /*RunCommand runs a command, collecting output and errors.*/
 func RunCommandCollect(cmd *exec.Cmd) (stdout bytes.Buffer, stderr bytes.Buffer, err error) {
-	logrus.Tracef("Running %s (arguments omitted)", cmd.Path)
+	slog.Debug("running command", "executable", cmd.Path)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err = cmd.Run()

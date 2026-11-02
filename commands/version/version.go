@@ -53,8 +53,7 @@ version --output=jq --format='.Version'`),
 				info.GitSummary = cli.VersionDetails.GitSummary
 			}
 
-			out.Print(cmd, info)
-			return nil
+			return out.Print(cmd, info)
 		},
 	}
 

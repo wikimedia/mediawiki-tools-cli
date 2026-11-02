@@ -92,8 +92,7 @@ func NewPageviewsCmd() *cobra.Command {
 			if out.Type == "csv" {
 				return printPageviewsCSV(cmd.OutOrStdout(), items)
 			}
-			out.Print(cmd, items)
-			return nil
+			return out.Print(cmd, items)
 		},
 	}
 	cmd.Flags().StringVar(&project, "project", "en.wikipedia.org", "Wikimedia project host, for example en.wikipedia.org or commons.wikimedia.org")

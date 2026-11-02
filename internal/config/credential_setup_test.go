@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
@@ -28,10 +28,14 @@ func TestFirstCredentialCanChoosePlaintextWithoutKeyring(t *testing.T) {
 	store.failSet = true
 	cred := seedCredential(t)
 	calls := interactiveStorageFixture(t, "plaintext")
-	logs := &bytes.Buffer{}
-	oldOut := logrus.StandardLogger().Out
-	logrus.SetOutput(logs)
-	t.Cleanup(func() { logrus.SetOutput(oldOut) })
+	originalStderr := os.Stderr
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stderr = writer
+	t.Cleanup(func() { os.Stderr = originalStderr; reader.Close(); writer.Close() })
+
 	if err := cred.Save("new-plaintext-secret", false); err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +48,13 @@ func TestFirstCredentialCanChoosePlaintextWithoutKeyring(t *testing.T) {
 	if value, err := cred.Read(); err != nil || value != "new-plaintext-secret" {
 		t.Fatal("plaintext credential not usable")
 	}
-	if !strings.Contains(logs.String(), "unencrypted") || strings.Contains(logs.String(), "new-plaintext-secret") {
+	writer.Close()
+	os.Stderr = originalStderr
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "unencrypted") || strings.Contains(string(data), "new-plaintext-secret") {
 		t.Fatal("missing warning or credential in warning")
 	}
 	if err := PutKeyValueOnDisk("secrets.provider", "keyring"); err != nil {

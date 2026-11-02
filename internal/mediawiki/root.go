@@ -2,8 +2,6 @@ package mediawiki
 
 import (
 	"os"
-
-	"github.com/sirupsen/logrus"
 )
 
 /*MediaWiki representation of a MediaWiki install directory.*/
@@ -61,28 +59,29 @@ func (m MediaWiki) LocalSettingsPath() string {
 	return m.Path("LocalSettings.php")
 }
 
-func (m MediaWiki) LocalSettingsContents() string {
+func (m MediaWiki) LocalSettingsContents() (string, error) {
 	bytes, err := os.ReadFile(m.LocalSettingsPath())
 	if err != nil {
-		logrus.Fatal(err)
-		os.Exit(1)
+		return "", err
 	}
-	return string(bytes)
+	return string(bytes), nil
 }
 
-func (m MediaWiki) ExtensionsCheckedOut() []string {
+func (m MediaWiki) ExtensionsCheckedOut() ([]string, error) {
 	return directoriesInDirectory(m.Path("extensions"))
 }
 
-func (m MediaWiki) SkinsCheckedOut() []string {
+func (m MediaWiki) SkinsCheckedOut() ([]string, error) {
 	return directoriesInDirectory(m.Path("skins"))
 }
 
-func directoriesInDirectory(directory string) []string {
+func directoriesInDirectory(directory string) ([]string, error) {
 	entries, err := os.ReadDir(directory)
 	if err != nil {
-		logrus.Fatal(err)
-		os.Exit(1)
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		return nil, err
 	}
 	directories := []string{}
 	for _, e := range entries {
@@ -90,5 +89,5 @@ func directoriesInDirectory(directory string) []string {
 			directories = append(directories, e.Name())
 		}
 	}
-	return directories
+	return directories, nil
 }

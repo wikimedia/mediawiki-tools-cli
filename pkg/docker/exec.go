@@ -24,7 +24,11 @@ type ExecOptions struct {
 
 func Exec(containerID string, command ExecOptions) (ExitCode int) {
 	ctx := context.Background()
-	cli := NewClientFromEnvOrPanic()
+	cli, err := NewClientFromEnv()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create Docker client:", err)
+		return 1
+	}
 	defer cli.Close()
 
 	execConfig := client.ExecCreateOptions{
@@ -40,14 +44,14 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 
 	response, err := cli.ExecCreate(ctx, containerID, execConfig)
 	if err != nil {
-		fmt.Println("containerExecCreate failed")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "containerExecCreate failed")
+		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 
 	execID := response.ID
 	if execID == "" {
-		fmt.Println("exec ID empty")
+		fmt.Fprintln(os.Stderr, "exec ID empty")
 		return 1
 	}
 
@@ -57,15 +61,15 @@ func Exec(containerID string, command ExecOptions) (ExitCode int) {
 
 	waiter, err := cli.ExecAttach(ctx, execID, execStartCheck)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	defer waiter.Close()
 
 	if execConfig.TTY {
 		if err := monitorTtySize(ctx, cli, execID, true); err != nil {
-			fmt.Println("Error monitoring TTY size:")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Error monitoring TTY size:")
+			fmt.Fprintln(os.Stderr, err)
 		}
 	}
 

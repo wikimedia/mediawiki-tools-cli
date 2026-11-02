@@ -4,10 +4,9 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"os"
+	"log/slog"
 
 	"github.com/andygrunwald/go-gerrit"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,45 +25,42 @@ func NewGerritAPICmd() *cobra.Command {
 		Short:   "Gerrit's API",
 		Example: apiExample,
 		Long:    `https://gerrit.wikimedia.org/r/Documentation/rest-api.html`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				err := cmd.Help()
-				if err != nil {
-					panic(err)
-				}
-				os.Exit(1)
-			}
-
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if user == "" {
-				logrus.Trace("Using username from config")
+				slog.Debug("Using username from config")
 				user = gerritUsername
 			}
 			if password == "" {
-				logrus.Trace("Using password from config")
+				slog.Debug("Using password from config")
 				password = gerritPassword
 			}
 
-			client, _ := newGerritClient(cmd.Context())
+			client, err := newGerritClient(cmd.Context())
+			if err != nil {
+				return err
+			}
 			if user != "" && password != "" {
 				client.Authentication.SetBasicAuth(user, password)
-				logrus.Trace("Using username and password")
+				slog.Debug("Using username and password")
 			}
 
 			resp, err := client.Call(cmd.Context(), method, args[0], nil, nil)
 			if err != nil {
-				logrus.Fatalf("Error making request: %s", err)
+				return fmt.Errorf("Gerrit API request: %w", err)
 			}
 
 			defer resp.Response.Body.Close()
 
 			b, err := io.ReadAll(resp.Response.Body)
 			if err != nil {
-				logrus.Fatalln(err)
+				return err
 			}
 			b = gerrit.RemoveMagicPrefixLine(b)
 
 			// printing the structure
-			fmt.Print(string(b))
+			_, err = cmd.OutOrStdout().Write(b)
+			return err
 		},
 	}
 	cmd.Flags().StringVarP(&method, "method", "X", "GET", "The HTTP method for the request")

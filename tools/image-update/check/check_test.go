@@ -10,7 +10,10 @@ import (
 )
 
 func TestNewerTagsUseVersionOrder(t *testing.T) {
-	got := keepNewerTags("1.0.0", []string{"2.10.0", "invalid", "2.9.0", "latest", "0.9.0"})
+	got, err := keepNewerTags("1.0.0", []string{"2.10.0", "invalid", "2.9.0", "latest", "0.9.0"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	want := []string{"2.9.0", "2.10.0"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v, want %v", got, want)

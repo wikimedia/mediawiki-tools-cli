@@ -103,7 +103,9 @@ func newVolumeActionCmd(action string, provider providerFactory) *cobra.Command 
 			volumeID, target = args[0], "in-use"
 		}
 		// Print the resource ID before waiting so interrupted operations can be inspected.
-		out.Print(cmd, result)
+		if err := out.Print(cmd, result); err != nil {
+			return err
+		}
 		if wait && volumeID != "" {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
