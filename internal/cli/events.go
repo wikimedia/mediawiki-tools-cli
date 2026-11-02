@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
@@ -86,7 +86,7 @@ func (e *Events) addCommandEvent(cmd *cobra.Command, version Version, help bool)
 		command = cmd.Root().Name()
 	}
 	if strings.TrimSpace(command) == "" {
-		logrus.Debug("Not recording an unnamed command")
+		slog.Debug(fmt.Sprint("Not recording an unnamed command"))
 		return
 	}
 	e.addEventToStore(map[string]interface{}{
@@ -118,11 +118,11 @@ func (e *Events) addEventToStore(event map[string]interface{}) {
 	}
 	encoded, err := encodingjson.Marshal(event)
 	if err != nil {
-		logrus.Warnf("Could not encode telemetry event: %v", err)
+		slog.Debug(fmt.Sprintf("Could not encode telemetry event: %v", err))
 		return
 	}
 	if err := e.appendEvent(string(encoded)); err != nil {
-		logrus.Warnf("Could not queue telemetry event; continuing without recording it: %v", err)
+		slog.Debug(fmt.Sprintf("Could not queue telemetry event; continuing without recording it: %v", err))
 	}
 }
 
@@ -139,7 +139,7 @@ func (e *Events) appendEvent(event string) error {
 			return nil
 		}
 		if primaryErr := appendEventLine(e.EventFile, event); primaryErr == nil {
-			logrus.Warnf("Could not lock the temporary telemetry queue; saved the event to %s without queue locking", e.EventFile)
+			slog.Debug(fmt.Sprintf("Could not lock the temporary telemetry queue; saved the event to %s without queue locking", e.EventFile))
 			return nil
 		}
 		return fmt.Errorf("could not lock telemetry queue: %w", err)
@@ -154,7 +154,7 @@ func (e *Events) appendEvent(event string) error {
 			return fmt.Errorf("primary event file %s: %v; fallback event file %s: %w", e.EventFile, primaryErr, e.FallbackEventFile(), fallbackErr)
 		}
 		e.usedFallback.Store(true)
-		logrus.Warnf("Could not write telemetry to %s; queued it in the temporary fallback file %s", e.EventFile, e.FallbackEventFile())
+		slog.Debug(fmt.Sprintf("Could not write telemetry to %s; queued it in the temporary fallback file %s", e.EventFile, e.FallbackEventFile()))
 		return nil
 	}
 }
@@ -205,7 +205,7 @@ func appendEventLine(path, line string) error {
 func (e *Events) RawEvents() []string {
 	unlock, err := acquireEventsLock(filepath.Join(e.FallbackDir, "queue.lock"), time.Second)
 	if err != nil {
-		logrus.Warnf("Could not lock telemetry queue for reading: %v", err)
+		slog.Debug(fmt.Sprintf("Could not lock telemetry queue for reading: %v", err))
 		return e.readPendingEvents()
 	}
 	defer unlock()
@@ -219,7 +219,7 @@ func (e *Events) readPendingEvents() []string {
 	for _, path := range paths {
 		lines, err := readEventLines(path)
 		if err != nil {
-			logrus.Warnf("Could not read pending telemetry from %s: %v", path, err)
+			slog.Debug(fmt.Sprintf("Could not read pending telemetry from %s: %v", path, err))
 			continue
 		}
 		events = append(events, lines...)
@@ -244,7 +244,7 @@ func (e *Events) emitEvents(force bool) bool {
 		return false
 	}
 	if err := os.MkdirAll(e.FallbackDir, 0o700); err != nil {
-		logrus.Warnf("Could not create temporary telemetry directory %s: %v", e.FallbackDir, err)
+		slog.Debug(fmt.Sprintf("Could not create temporary telemetry directory %s: %v", e.FallbackDir, err))
 		return false
 	}
 
@@ -258,7 +258,7 @@ func (e *Events) emitEvents(force bool) bool {
 
 	unlockQueue, err := acquireEventsLock(filepath.Join(e.FallbackDir, "queue.lock"), time.Second)
 	if err != nil {
-		logrus.Warnf("Could not lock telemetry queue for sending: %v", err)
+		slog.Debug(fmt.Sprintf("Could not lock telemetry queue for sending: %v", err))
 		return false
 	}
 	queueLocked := true
@@ -272,7 +272,7 @@ func (e *Events) emitEvents(force bool) bool {
 	if !force {
 		lastAttempt, err := e.lastAttemptTime()
 		if err != nil {
-			logrus.Warnf("Could not read telemetry send limit: %v", err)
+			slog.Debug(fmt.Sprintf("Could not read telemetry send limit: %v", err))
 			return false
 		}
 		interval := normalEventSendInterval
@@ -288,7 +288,7 @@ func (e *Events) emitEvents(force bool) bool {
 		if err := e.rotateQueue(queuePath, now); err != nil {
 			// A read-only primary queue must not prevent sending events from the
 			// fallback queue. Its contents remain in place for a later writable run.
-			logrus.Warnf("Could not rotate telemetry queue %s: %v", queuePath, err)
+			slog.Debug(fmt.Sprintf("Could not rotate telemetry queue %s: %v", queuePath, err))
 		}
 	}
 	var batchPaths []string
@@ -301,7 +301,7 @@ func (e *Events) emitEvents(force bool) bool {
 		if err := os.Rename(path, claimedPath); err != nil {
 			// A read-only batch cannot be removed after sending. Leave it for
 			// a writable run instead of repeatedly sending the same events.
-			logrus.Warnf("Could not claim telemetry batch %s: %v", path, err)
+			slog.Debug(fmt.Sprintf("Could not claim telemetry batch %s: %v", path, err))
 			continue
 		}
 		batchPaths = append(batchPaths, claimedPath)
@@ -310,7 +310,7 @@ func (e *Events) emitEvents(force bool) bool {
 	for _, path := range batchPaths {
 		lines, err := readEventLines(path)
 		if err != nil {
-			logrus.Warnf("Could not read pending telemetry batch %s: %v", path, err)
+			slog.Debug(fmt.Sprintf("Could not read pending telemetry batch %s: %v", path, err))
 			return false
 		}
 		eventJSON = append(eventJSON, lines...)
@@ -319,7 +319,7 @@ func (e *Events) emitEvents(force bool) bool {
 		return false
 	}
 	if err := e.writeLastAttempt(now); err != nil {
-		logrus.Warnf("Could not record telemetry send limit: %v", err)
+		slog.Debug(fmt.Sprintf("Could not record telemetry send limit: %v", err))
 		return false
 	}
 
@@ -331,7 +331,7 @@ func (e *Events) emitEvents(force bool) bool {
 	payload := []byte("[" + strings.Join(eventJSON, ",") + "]")
 	req, err := http.NewRequest(http.MethodPost, EventIntakeEndpoint, bytes.NewReader(payload))
 	if err != nil {
-		logrus.Warnf("Could not create telemetry request: %v", err)
+		slog.Debug(fmt.Sprintf("Could not create telemetry request: %v", err))
 		return false
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -340,19 +340,19 @@ func (e *Events) emitEvents(force bool) bool {
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		logrus.Debugf("Telemetry submission failed: %v", err)
+		slog.Debug(fmt.Sprintf("Telemetry submission failed: %v", err))
 		return false
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		logrus.Debugf("Event submission failed with status code %d", resp.StatusCode)
+		slog.Debug(fmt.Sprintf("Event submission failed with status code %d", resp.StatusCode))
 		_, _ = io.Copy(io.Discard, resp.Body)
 		return false
 	}
 
 	for _, path := range batchPaths {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Warnf("Telemetry was sent, but pending batch %s could not be removed: %v", path, err)
+			slog.Debug(fmt.Sprintf("Telemetry was sent, but pending batch %s could not be removed: %v", path, err))
 		}
 	}
 	// Preserve the old behavior where the normal event file exists but is
@@ -360,7 +360,7 @@ func (e *Events) emitEvents(force bool) bool {
 	if file, err := os.OpenFile(e.EventFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600); err == nil {
 		_ = file.Close()
 	}
-	logrus.Debug("Event submission success")
+	slog.Debug(fmt.Sprint("Event submission success"))
 	return true
 }
 
@@ -410,7 +410,7 @@ func (e *Events) lastAttemptTime() (time.Time, error) {
 	}
 	lastAttempt, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(string(contents)))
 	if err != nil {
-		logrus.Warnf("Ignoring invalid telemetry send timestamp: %v", err)
+		slog.Debug(fmt.Sprintf("Ignoring invalid telemetry send timestamp: %v", err))
 		return time.Time{}, nil
 	}
 	return lastAttempt, nil

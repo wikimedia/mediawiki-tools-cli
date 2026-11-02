@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fatih/color"
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/detectors"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
@@ -33,28 +32,28 @@ func main() {
 	for _, thisIssue := range allIssues {
 		if thisIssue.Level == issue.SuggestLevel {
 			numSuggests++
-			color.Green("SUGGEST %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
-		}
-		if thisIssue.Context != "" {
-			fmt.Println(thisIssue.Context)
+			fmt.Fprintf(os.Stdout, "SUGGEST %s: (%s) %s\n", thisIssue.Target, thisIssue.Code, thisIssue.Text)
+			if thisIssue.Context != "" {
+				fmt.Println(thisIssue.Context)
+			}
 		}
 	}
 	for _, thisIssue := range allIssues {
 		if thisIssue.Level == issue.WarningLevel {
 			numWarnings++
-			color.Yellow("WARN %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
-		}
-		if thisIssue.Context != "" {
-			fmt.Println(thisIssue.Context)
+			fmt.Fprintf(os.Stdout, "WARN %s: (%s) %s\n", thisIssue.Target, thisIssue.Code, thisIssue.Text)
+			if thisIssue.Context != "" {
+				fmt.Println(thisIssue.Context)
+			}
 		}
 	}
 	for _, thisIssue := range allIssues {
 		if thisIssue.Level == issue.ErrorLevel {
 			numErrors++
-			color.Red("ERRR %s: (%s) %s", thisIssue.Target, thisIssue.Code, thisIssue.Text)
-		}
-		if thisIssue.Context != "" {
-			fmt.Println(thisIssue.Context)
+			fmt.Fprintf(os.Stdout, "ERROR %s: (%s) %s\n", thisIssue.Target, thisIssue.Code, thisIssue.Text)
+			if thisIssue.Context != "" {
+				fmt.Println(thisIssue.Context)
+			}
 		}
 	}
 
@@ -62,6 +61,6 @@ func main() {
 	if numErrors != 0 {
 		os.Exit(1)
 	} else {
-		fmt.Println("(success) :)")
+		fmt.Println("Lint passed.")
 	}
 }

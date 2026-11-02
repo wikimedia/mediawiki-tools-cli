@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
@@ -21,7 +20,9 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 		Long:  "Inspect code, dependencies, configured sites and Git branches. Known release/development branch mismatches are warnings only: feature branches and detached checkouts require manual compatibility review. This command does not fetch, switch branches, or update source code.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			m.EnsureReady()
+			if err := m.EnsureReady(); err != nil {
+				return err
+			}
 
 			mw, err := mediawiki.ForDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if err != nil {
@@ -29,7 +30,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			}
 
 			if branches, err := mw.CheckoutBranches(); err != nil {
-				logrus.Warnf("Could not inspect checkout branches: %v", err)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Could not inspect checkout branches: %v\n", err)
 			} else {
 				var branchWarnings []string
 				for _, checkout := range branches {
@@ -38,61 +39,73 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 					}
 				}
 				if len(branchWarnings) > 0 {
-					logrus.Warnf("Git checkout advisory: %s", strings.Join(branchWarnings, "; "))
+					fmt.Fprintf(cmd.ErrOrStderr(), "Git checkout advisory: %s\n", strings.Join(branchWarnings, "; "))
 				}
 			}
 			settings, _ := os.ReadFile(mw.LocalSettingsPath())
 			settingsContents := string(settings)
 
 			if !mw.MediaWikiIsPresent() {
-				logrus.Fatal("⚠️ MediaWiki is not present in the code volume")
+				return fmt.Errorf("⚠️ MediaWiki is not present in the code volume")
 			} else {
-				logrus.Info("✅ MediaWiki is present in the code volume")
+				fmt.Fprintln(cmd.OutOrStdout(), "✅ MediaWiki is present in the code volume")
 			}
 
 			if !mw.VendorDirectoryIsPresent() {
-				logrus.Warn("⚠️ The vendor directory is not present in the code volume")
-				logrus.Warn("You may not yet have done a composer install")
-				logrus.Warn("✨ You can do this with `mw dev mediawiki composer install`")
+				fmt.Fprintln(cmd.ErrOrStderr(), "⚠️ The vendor directory is not present in the code volume")
+				fmt.Fprintln(cmd.ErrOrStderr(), "You may not yet have done a composer install")
+				fmt.Fprintln(cmd.ErrOrStderr(), "✨ You can do this with `mw dev mediawiki composer install`")
 			} else {
-				logrus.Info("✅ The vendor directory is present in the code volume")
+				fmt.Fprintln(cmd.OutOrStdout(), "✅ The vendor directory is present in the code volume")
 			}
 
-			if len(mw.SkinsCheckedOut()) == 0 || !strings.Contains(settingsContents, "wfLoadSkin") {
-				logrus.Warn("⚠️ You have no skins checked out or loaded in LocalSettings.php")
-				logrus.Warn("✨ You can checkout the Vector skin with `mw dev mediawiki get-code --skin Vector`")
+			skins, err := mw.SkinsCheckedOut()
+			if err != nil {
+				return err
+			}
+			extensions, err := mw.ExtensionsCheckedOut()
+			if err != nil {
+				return err
+			}
+			if len(skins) == 0 || !strings.Contains(settingsContents, "wfLoadSkin") {
+				fmt.Fprintln(cmd.ErrOrStderr(), "⚠️ You have no skins checked out or loaded in LocalSettings.php")
+				fmt.Fprintln(cmd.ErrOrStderr(), "✨ You can checkout the Vector skin with `mw dev mediawiki get-code --skin Vector`")
 			} else {
-				logrus.Info("✅ A Skin is checked out and loaded in LocalSettings.php")
+				fmt.Fprintln(cmd.OutOrStdout(), "✅ A Skin is checked out and loaded in LocalSettings.php")
 			}
 
 			if (
 			// We have extensions or skins
-			len(mw.ExtensionsCheckedOut()) != 0 || len(mw.SkinsCheckedOut()) != 0) &&
+			len(extensions) != 0 || len(skins) != 0) &&
 				// And they are loaded in LocalSettings
 				(strings.Contains(settingsContents, "wfLoadExtension") || strings.Contains(settingsContents, "wfLoadSkin")) &&
 				!mw.ComposerLocalJsonExists() || !mw.ComposerJsonExists() {
-				logrus.Warn("⚠️ You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
-				logrus.Warn("If the extensions or skins require additional dependencies, they may not function correctly.")
-				logrus.Warn("See https://www.mediawiki.org/wiki/Composer#Using_composer-merge-plugin for more information.")
-				logrus.Warn("✨ You can create a default composer.local.json file with `mw dev mediawiki exec cp /var/www/html/w/composer.local.json-sample /var/www/html/w/composer.local.json`")
+				fmt.Fprintln(cmd.ErrOrStderr(), "⚠️ You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
+				fmt.Fprintln(cmd.ErrOrStderr(), "If the extensions or skins require additional dependencies, they may not function correctly.")
+				fmt.Fprintln(cmd.ErrOrStderr(), "See https://www.mediawiki.org/wiki/Composer#Using_composer-merge-plugin for more information.")
+				fmt.Fprintln(cmd.ErrOrStderr(), "✨ You can create a default composer.local.json file with `mw dev mediawiki exec cp /var/www/html/w/composer.local.json-sample /var/www/html/w/composer.local.json`")
 			} else {
-				logrus.Info("✅ composer.local.json file exists or is likely not needed")
+				fmt.Fprintln(cmd.OutOrStdout(), "✅ composer.local.json file exists or is likely not needed")
 			}
 
 			// TODO check if extension and skin git submodules are
 
 			// Check if a site has been installed
 			installedSite := ""
-			for _, host := range m.UsedHosts() {
+			usedHosts, err := m.UsedHosts()
+			if err != nil {
+				return err
+			}
+			for _, host := range usedHosts {
 				if strings.Contains(host, "mediawiki.local.wmftest.net") {
 					installedSite = host
 				}
 			}
 			if installedSite == "" {
-				logrus.Warn("⚠️ You have not installed a site yet")
-				logrus.Warn("✨ You can install a site with `mw dev mediawiki install`")
+				fmt.Fprintln(cmd.ErrOrStderr(), "⚠️ You have not installed a site yet")
+				fmt.Fprintln(cmd.ErrOrStderr(), "✨ You can install a site with `mw dev mediawiki install`")
 			} else {
-				logrus.Info("✅ You have installed a site (" + installedSite + ")")
+				fmt.Fprintln(cmd.OutOrStdout(), "✅ You have installed a site ("+installedSite+")")
 
 				// Check if the site is accessible
 				port := m.Env().Get("PORT")
@@ -100,7 +113,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 
 				req, err := http.NewRequest("GET", url, nil)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				ctx := context.Background()
@@ -112,10 +125,10 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 					defer res.Body.Close()
 				}
 				if err != nil || res.StatusCode != 200 {
-					logrus.Warn("⚠️ That site is not accessible at " + url)
-					logrus.Warn("✨ You likely need to use the `mw dev hosts` command to add the site to your hosts file")
+					fmt.Fprintln(cmd.ErrOrStderr(), "⚠️ That site is not accessible at "+url)
+					fmt.Fprintln(cmd.ErrOrStderr(), "✨ You likely need to use the `mw dev hosts` command to add the site to your hosts file")
 				} else {
-					logrus.Info("✅ That site is accessible at " + url)
+					fmt.Fprintln(cmd.OutOrStdout(), "✅ That site is accessible at "+url)
 				}
 			}
 
@@ -126,15 +139,14 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			}
 			for _, v := range varsToCheck {
 				if m.Env().Get(v) != "" {
-					logrus.Warn("⚠️ You have an override for " + v + " set that might change expected behaviour")
-					logrus.Warn("✨ You can remove this override with `mw dev env delete " + v + "`")
+					fmt.Fprintln(cmd.ErrOrStderr(), "⚠️ You have an override for "+v+" set that might change expected behaviour")
+					fmt.Fprintln(cmd.ErrOrStderr(), "✨ You can remove this override with `mw dev env delete "+v+"`")
 				} else {
-					logrus.Info("✅ You do not have an override for " + v + " set")
+					fmt.Fprintln(cmd.OutOrStdout(), "✅ You do not have an override for "+v+" set")
 				}
 			}
-
-			logrus.Print("Got more suggestions for things to check? File a ticket!")
-			logrus.Print("https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
+			fmt.Fprintln(cmd.ErrOrStderr(), "Got more suggestions for things to check? File a ticket!")
+			fmt.Fprintln(cmd.ErrOrStderr(), "https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=mwcli")
 			return nil
 		},
 	}

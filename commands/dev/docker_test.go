@@ -1,9 +1,11 @@
 package dev
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -43,6 +45,9 @@ func TestFileOnlyCommandsWithoutDocker(t *testing.T) {
 			t.Setenv("PATH", bin)
 			cli.Opts.NoInteraction = true
 			cmd := NewCmd()
+			var stdout, stderr bytes.Buffer
+			cmd.SetOut(&stdout)
+			cmd.SetErr(&stderr)
 			env := devenv.DefaultForUser().Env()
 			env.Set("PORT", "8080")
 			env.Set("MEDIAWIKI_VOLUMES_CODE", t.TempDir())
@@ -53,6 +58,14 @@ func TestFileOnlyCommandsWithoutDocker(t *testing.T) {
 			}
 			if tc.name == "env-set" && env.Get("EXAMPLE") != "value" {
 				t.Fatal("environment variable was not written")
+			}
+			if tc.name == "get-code" || tc.name == "get-code-alias" {
+				if !strings.Contains(stdout.String(), "Would clone https://gerrit.wikimedia.org/r/mediawiki/core") {
+					t.Errorf("dry-run plan missing from stdout: %q", stdout.String())
+				}
+				if !strings.Contains(stderr.String(), "Cloning repositories") || !strings.Contains(stderr.String(), "Repositories cloned") {
+					t.Errorf("progress missing from stderr: %q", stderr.String())
+				}
 			}
 		})
 	}

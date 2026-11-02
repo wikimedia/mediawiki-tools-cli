@@ -3,6 +3,7 @@ package dotenv
 import (
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -151,5 +152,26 @@ func TestFile_GeneralIntegration(t *testing.T) {
 				t.Errorf("%q failed "+envFile.Path(), tt.name)
 			}
 		})
+	}
+}
+
+func TestReadAndWritesReportInvalidFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("INVALID='unterminated"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file := File(path)
+	if _, err := file.Read(); err == nil {
+		t.Fatal("expected parse error")
+	}
+	if err := file.Set("NEW", "value"); err == nil {
+		t.Fatal("expected parse error before write")
+	}
+	if err := file.Delete("NEW"); err == nil {
+		t.Fatal("expected parse error before delete")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != "INVALID='unterminated" {
+		t.Fatalf("invalid file was altered: %q %v", data, err)
 	}
 }

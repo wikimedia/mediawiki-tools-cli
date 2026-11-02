@@ -3,13 +3,13 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Masterminds/sprig"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	analyticscmd "gitlab.wikimedia.org/repos/releng/cli/commands/analytics"
 	apicmd "gitlab.wikimedia.org/repos/releng/cli/commands/api"
@@ -53,7 +53,7 @@ func NewRootCmd(name string) *cobra.Command {
 		Short:         cli.Description,
 		SilenceErrors: true,
 		SilenceUsage:  true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Annotations[cli.TelemetrySkipAnnotation] == "true" || isCompletionRequest([]string{cmd.Name()}) {
 				if isCompletionRequest([]string{cmd.Name()}) {
 					cli.Opts.NoInteraction = true
@@ -64,11 +64,11 @@ func NewRootCmd(name string) *cobra.Command {
 				}
 				root.Annotations[cli.TelemetrySkipAnnotation] = "true"
 				cli.Opts.Telemetry = false
-				return
+				return nil
 			}
 
-			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
-			logrus.Trace("CLI: Top level PersistentPreRun")
+			cli.ConfigureLogging(cmd.ErrOrStderr(), cli.Opts.Verbosity)
+			slog.Log(cmd.Context(), cli.TraceLevel, "running root pre-run")
 
 			// Force the completion command to never ask for user input
 			if cmd.Name() == "__complete" {
@@ -83,8 +83,13 @@ func NewRootCmd(name string) *cobra.Command {
 			// But don't ask or output to the user, or persist the config, if we are in no-interaction mode
 			if !cli.Opts.NoInteraction {
 				if c.Effective.Telemetry == "" {
-					t := wizardTelemetry()
-					config.PutKeyValueOnDisk("telemetry", t)
+					t, err := wizardTelemetry(cmd)
+					if err != nil {
+						return err
+					}
+					if err := config.PutKeyValueOnDisk("telemetry", t); err != nil {
+						return err
+					}
 					cli.Opts.Telemetry = t == "yes"
 				}
 			}
@@ -94,6 +99,7 @@ func NewRootCmd(name string) *cobra.Command {
 			if cli.Opts.Telemetry {
 				events.AddCommandRunEvent(cmd, cli.VersionDetails.Version)
 			}
+			return nil
 		},
 	}
 	mwcliCmd.AddGroup(&cobra.Group{
@@ -136,7 +142,7 @@ func NewRootCmd(name string) *cobra.Command {
 		}
 		mwa := mwcliCmd.Name() + " " + strings.Join(commandWords, " ")
 		if len(commandWords) != 0 && !strings.Contains(mwa, "--help") && !stringsutil.StringInSlice(mwa, cobrautil.AllFullCommandStringsFromParent(mwcliCmd)) {
-			logrus.Errorf("unknown command: %s", strings.Join(commandWords, " "))
+			c.PrintErrf("Error: unknown command: %s\n", strings.Join(commandWords, " "))
 			c.Root().Annotations = make(map[string]string)
 			c.Root().Annotations["exitCode"] = "1"
 			return
@@ -154,7 +160,7 @@ func NewRootCmd(name string) *cobra.Command {
 		defaultHelpFunc(c, a)
 	})
 
-	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
+	// Verbosity enables debug and trace diagnostics without changing result output.
 	mwcliCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 
 	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
@@ -199,29 +205,28 @@ func NewRootCmd(name string) *cobra.Command {
 	return mwcliCmd
 }
 
-func wizardTelemetry() string {
+func wizardTelemetry(cmd *cobra.Command) (string, error) {
 	// Bail early in CI, and DO NOT send telemetry
 	if os.Getenv("MWCLI_CONTEXT_TEST") != "" {
-		return "no"
+		return "no", nil
 	}
 
-	fmt.Println("We would like to collect anonymous usage statistics to help improve this CLI tool.")
-	fmt.Println("If you accept, these statistics will periodically be submitted to the Wikimedia event intake.")
+	cmd.PrintErrln("We would like to collect anonymous usage statistics to help improve this CLI tool.")
+	cmd.PrintErrln("If you accept, these statistics will periodically be submitted to the Wikimedia event intake.")
 
 	telemetryAccept := false
 	telemetryPrompt := &survey.Confirm{
 		Message: "Do you accept?",
 	}
-	err := survey.AskOne(telemetryPrompt, &telemetryAccept)
+	err := survey.AskOne(telemetryPrompt, &telemetryAccept, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return "", err
 	}
 
 	if telemetryAccept {
-		return "yes"
+		return "yes", nil
 	}
-	return "no"
+	return "no", nil
 }
 
 /*Execute the root command.*/
@@ -239,7 +244,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		cli.Opts.NoInteraction = true
 		root := NewRootCmd(cli.InvocationName(os.Args[0]))
 		if err := root.Execute(); err != nil {
-			logrus.Error(err)
+			fmt.Fprintln(os.Stderr, "Error:", err)
 			os.Exit(1)
 		}
 		return
@@ -251,7 +256,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	if isSudoInvocation(os.Geteuid(), os.Getenv("SUDO_UID")) {
 		if root := sudoUpdateCommand(os.Args[1:]); root != nil {
 			if err := root.Execute(); err != nil {
-				logrus.Error(err)
+				fmt.Fprintln(os.Stderr, "Error:", err)
 				os.Exit(1)
 			}
 			return
@@ -268,10 +273,10 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			// And the new path does not exist
 			if _, err := os.Stat(newConfigPath); os.IsNotExist(err) {
 				// Move the old path to the new path
-				logrus.Info("Migrating config directory from " + oldConfigPath + " to " + newConfigPath)
+				fmt.Fprintln(os.Stderr, "Migrating config directory from", oldConfigPath, "to", newConfigPath)
 				err := os.Rename(oldConfigPath, newConfigPath)
 				if err != nil {
-					logrus.Warn("Failed to migrate config directory from " + oldConfigPath + " to " + newConfigPath)
+					fmt.Fprintln(os.Stderr, "Warning: failed to migrate config directory:", err)
 				}
 			}
 		}
@@ -290,12 +295,12 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			verbosity = vi
 		}
 	}
-	logrus.SetLevel(logLevelForVerbosity(verbosity))
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableTimestamp:       true,
-		DisableLevelTruncation: true,
-	})
+	cli.ConfigureLogging(os.Stderr, verbosity)
 
+	if err := config.Initialize(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
 	c := config.State()
 
 	// Check various timers and execute tasks if needed
@@ -313,7 +318,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 			// Otherwise, check for updates every 3 hours
 			lastUpdateCheckedTime, parseError := timers.Parse(c.Effective.TimerLastUpdateChecked)
 			if parseError != nil {
-				logrus.Warn("Failed to parse last update checked time")
+				slog.Debug("invalid update-check timestamp", "error", parseError)
 			}
 			if parseError == nil && timers.IsHoursAgo(lastUpdateCheckedTime, 3) {
 				shouldCheckForUpdates = true
@@ -399,23 +404,13 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	if err != nil {
-		logrus.Errorf("%s", err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 }
 
 func isCompletionRequest(args []string) bool {
 	return len(args) > 0 && (args[0] == "__complete" || args[0] == "__completeNoDesc")
-}
-
-func logLevelForVerbosity(verbosity int) logrus.Level {
-	if verbosity >= 2 {
-		return logrus.TraceLevel
-	}
-	if verbosity == 1 {
-		return logrus.DebugLevel
-	}
-	return logrus.InfoLevel
 }
 
 // isSudoInvocation excludes direct root sessions and non-Unix platforms.
@@ -433,7 +428,7 @@ func sudoUpdateCommand(args []string) *cobra.Command {
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cli.Opts.Telemetry = false
-			logrus.SetLevel(logLevelForVerbosity(cli.Opts.Verbosity))
+			cli.ConfigureLogging(cmd.ErrOrStderr(), cli.Opts.Verbosity)
 		},
 	}
 	root.PersistentFlags().BoolVar(&cli.Opts.NoInteraction, "no-interaction", false, "Do not ask any interactive questions")

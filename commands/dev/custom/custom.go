@@ -2,16 +2,18 @@ package custom
 
 import (
 	_ "embed"
+	"fmt"
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
+	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
 //go:embed custom.long.md
+
 var customLong string
 
 var customName string = "custom"
@@ -30,12 +32,16 @@ func NewCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&customName, "name", "n", "custom", "Name of the custom compose file (without extension), e.g. custom, custom-two, or custom.local")
 
-	cmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
 		// Validate the customName, make sure it is either "custom" or prefixed with
 		// "custom-" / "custom.".
 		if !(customName == "custom" || strings.HasPrefix(customName, "custom-") || strings.HasPrefix(customName, "custom.")) {
-			logrus.Warn("customName should be 'custom' or start with 'custom-' or 'custom.'")
+			fmt.Fprintln(cmd.ErrOrStderr(), "customName should be 'custom' or start with 'custom-' or 'custom.'")
 		}
+		return nil
 	}
 
 	cmd.AddCommand(NewWhereCmd())

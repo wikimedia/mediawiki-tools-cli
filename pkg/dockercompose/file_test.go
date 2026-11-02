@@ -19,11 +19,39 @@ func TestContentsAcceptsBothDependencyFormats(t *testing.T) {
 			if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			parsed := File(path).Contents()
+			parsed, err := File(path).Contents()
+			if err != nil {
+				t.Fatal(err)
+			}
 			if !reflect.DeepEqual(parsed.ServiceNames(), []string{"gateway"}) || parsed.Services["gateway"].Image != "traefik:test" || !reflect.DeepEqual(parsed.VolumeNames(), []string{"data"}) {
 				t.Fatalf("incorrect Compose metadata: %+v", parsed)
 			}
 		})
+	}
+}
+
+func TestContentsReturnsReadAndParseErrors(t *testing.T) {
+	t.Run("missing", func(t *testing.T) {
+		_, err := File(filepath.Join(t.TempDir(), "missing.yml")).Contents()
+		if err == nil {
+			t.Fatal("expected missing file error")
+		}
+	})
+	t.Run("invalid yaml", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "compose.yml")
+		if err := os.WriteFile(path, []byte("services: ["), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := File(path).Contents(); err == nil {
+			t.Fatal("expected YAML parse error")
+		}
+	})
+}
+
+func TestRequireExistsReportsMissingComposeFile(t *testing.T) {
+	err := File(filepath.Join(t.TempDir(), "missing.yml")).RequireExists()
+	if err == nil {
+		t.Fatal("expected missing file error")
 	}
 }
 

@@ -42,33 +42,29 @@ func (f File) String() string {
 	return string(f)
 }
 
-func (f File) Exists() bool {
-	if _, err := os.Stat(f.String()); os.IsNotExist(err) {
-		return false
+func (f File) RequireExists() error {
+	if _, err := os.Stat(f.String()); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("docker compose file %s does not exist", f.String())
+		}
+		return fmt.Errorf("check docker compose file %s: %w", f.String(), err)
 	}
-	return true
+	return nil
 }
 
-func (f File) ExistsOrExit() {
-	if !f.Exists() {
-		fmt.Println("docker compose file " + f.String() + " does not exist")
-		os.Exit(1)
-	}
-}
-
-func (f File) Contents() Contents {
+func (f File) Contents() (Contents, error) {
 	yamlFile, err := os.ReadFile(f.String())
 	if err != nil {
-		panic(err)
+		return Contents{}, fmt.Errorf("read docker compose file %s: %w", f.String(), err)
 	}
 	var contents Contents
 
 	err = yaml.Unmarshal(yamlFile, &contents)
 	if err != nil {
-		panic(err)
+		return Contents{}, fmt.Errorf("parse docker compose file %s: %w", f.String(), err)
 	}
 
-	return contents
+	return contents, nil
 }
 
 func (c Contents) ServiceNames() []string {

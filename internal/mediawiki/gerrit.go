@@ -3,6 +3,8 @@ package mediawiki
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	osexec "os/exec"
 	"regexp"
@@ -10,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/andygrunwald/go-gerrit"
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
@@ -242,6 +243,9 @@ type ApplyPatchOpts struct {
 	WithDependencies bool
 	CloneMissing     bool
 	StartBranch      string
+	In               io.Reader
+	Out              io.Writer
+	Err              io.Writer
 }
 
 func resolveGerritChangePlan(ctx context.Context, roots []string, includeDependencies bool, startBranch string) ([]*GerritChangeInfo, error) {
@@ -277,7 +281,7 @@ func resolveGerritChangePlan(ctx context.Context, roots []string, includeDepende
 		case stateDone:
 			return nil
 		case stateVisiting:
-			logrus.Warnf("Detected cyclic Depends-On reference at change %s (%s); skipping recursive dependency edge", strconv.Itoa(info.Number), info.ChangeID)
+			fmt.Fprintf(os.Stderr, "Detected cyclic Depends-On reference at change %s (%s); skipping recursive dependency edge\n", strconv.Itoa(info.Number), info.ChangeID)
 			return nil
 		}
 
@@ -311,7 +315,10 @@ func resolveGerritChangePlan(ctx context.Context, roots []string, includeDepende
 //   - checkout: fetch and checkout the patchset ref (detached HEAD)
 //   - cherry-pick: fetch and cherry-pick FETCH_HEAD into current branch
 func (m MediaWiki) ApplyGerritPatches(ctx context.Context, opts ApplyPatchOpts) error {
-	exitIfNoGit()
+	if _, err := osexec.LookPath("git"); err != nil {
+		return fmt.Errorf("git is required: %w", err)
+	}
+	in, out, errOut := commandWriters(opts.In, opts.Out, opts.Err)
 	mode := strings.TrimSpace(opts.Mode)
 	if mode == "" {
 		mode = "checkout"
@@ -333,11 +340,11 @@ func (m MediaWiki) ApplyGerritPatches(ctx context.Context, opts ApplyPatchOpts) 
 	}
 
 	for _, info := range plannedChanges {
-		fmt.Printf("Processing Gerrit change %d (%s)...\n", info.Number, info.ChangeID)
+		fmt.Fprintf(errOut, "Processing Gerrit change %d (%s)...\n", info.Number, info.ChangeID)
 
-		fmt.Printf("  Project: %s\n", info.Project)
-		fmt.Printf("  Subject: %s\n", info.Subject)
-		fmt.Printf("  Ref:     %s\n", info.Ref)
+		fmt.Fprintf(errOut, "  Project: %s\n", info.Project)
+		fmt.Fprintf(errOut, "  Subject: %s\n", info.Subject)
+		fmt.Fprintf(errOut, "  Ref:     %s\n", info.Ref)
 
 		relDir, err := ProjectToLocalDir(info.Project)
 		if err != nil {
@@ -345,15 +352,15 @@ func (m MediaWiki) ApplyGerritPatches(ctx context.Context, opts ApplyPatchOpts) 
 		}
 
 		repoDir := m.Path(relDir)
-		logrus.Debugf("Local directory for change: %s", repoDir)
+		slog.Debug(fmt.Sprintf("Local directory for change: %s", repoDir))
 
 		if opts.DryRun {
-			fmt.Printf("  Would apply to: %s\n", repoDir)
+			fmt.Fprintf(out, "  Would apply to: %s\n", repoDir)
 			if _, err := os.Stat(repoDir + "/.git"); os.IsNotExist(err) {
 				if cloneMissing {
-					fmt.Printf("  Would clone missing repository for %s\n", info.Project)
+					fmt.Fprintf(out, "  Would clone missing repository for %s\n", info.Project)
 				} else {
-					fmt.Printf("  Repository missing at %s (would fail without --clone-missing)\n", repoDir)
+					fmt.Fprintf(out, "  Repository missing at %s (would fail without --clone-missing)\n", repoDir)
 				}
 			}
 			continue
@@ -363,62 +370,62 @@ func (m MediaWiki) ApplyGerritPatches(ctx context.Context, opts ApplyPatchOpts) 
 			if !cloneMissing {
 				return fmt.Errorf("repository not found at %s for project %s (use --clone-missing to clone automatically)", repoDir, info.Project)
 			}
-			fmt.Printf("  Repository not found at %s, cloning...\n", repoDir)
+			fmt.Fprintf(errOut, "  Repository not found at %s, cloning...\n", repoDir)
 			cloneURL := "https://gerrit.wikimedia.org/r/" + info.Project
-			if err := runGitTTY("git", "clone", "--recurse-submodules", cloneURL, repoDir); err != nil {
+			if err := runGitTTYWithIO(in, out, errOut, "git", "clone", "--recurse-submodules", cloneURL, repoDir); err != nil {
 				return fmt.Errorf("cloning %s: %w", info.Project, err)
 			}
 		}
 
-		if err := stashIfDirty(repoDir); err != nil {
+		if err := stashIfDirtyWithIO(in, out, errOut, repoDir); err != nil {
 			return fmt.Errorf("stashing changes in %s: %w", repoDir, err)
 		}
 
-		fmt.Printf("  Fetching %s...\n", info.Ref)
-		if err := runGitTTY("git", "-C", repoDir, "fetch", info.FetchURL, info.Ref); err != nil {
+		fmt.Fprintf(errOut, "  Fetching %s...\n", info.Ref)
+		if err := runGitTTYWithIO(in, out, errOut, "git", "-C", repoDir, "fetch", info.FetchURL, info.Ref); err != nil {
 			return fmt.Errorf("fetching ref %s: %w", info.Ref, err)
 		}
 
 		switch mode {
 		case "checkout":
-			fmt.Printf("  Checking out fetched change...\n")
-			if err := runGitTTY("git", "-C", repoDir, "checkout", "--detach", "FETCH_HEAD"); err != nil {
+			fmt.Fprintln(errOut, "  Checking out fetched change...")
+			if err := runGitTTYWithIO(in, out, errOut, "git", "-C", repoDir, "checkout", "--detach", "FETCH_HEAD"); err != nil {
 				return fmt.Errorf("checking out change %d (%s): %w", info.Number, info.Subject, err)
 			}
 		case "cherry-pick":
-			fmt.Printf("  Cherry-picking...\n")
-			if err := runGitTTY("git", "-C", repoDir, "cherry-pick", "FETCH_HEAD"); err != nil {
-				fmt.Println("  Cherry-pick failed, aborting to restore repository state...")
-				_ = runGitTTY("git", "-C", repoDir, "cherry-pick", "--abort")
+			fmt.Fprintln(errOut, "  Cherry-picking...")
+			if err := runGitTTYWithIO(in, out, errOut, "git", "-C", repoDir, "cherry-pick", "FETCH_HEAD"); err != nil {
+				fmt.Fprintln(errOut, "  Cherry-pick failed, aborting to restore repository state...")
+				_ = runGitTTYWithIO(in, out, errOut, "git", "-C", repoDir, "cherry-pick", "--abort")
 				return fmt.Errorf("applying change %d (%s): cherry-pick conflict; no changes were made", info.Number, info.Subject)
 			}
 		}
 
-		fmt.Printf("  Successfully processed change %d (%s) using %s mode\n", info.Number, info.Subject, mode)
+		fmt.Fprintf(errOut, "  Successfully processed change %d (%s) using %s mode\n", info.Number, info.Subject, mode)
 	}
 
 	return nil
 }
 
 // runGitTTY runs a git command with stdin/stdout/stderr connected to the terminal,
-// returning any error rather than calling logrus.Fatal.
-func runGitTTY(name string, args ...string) error {
+// returning any error rather than terminating the process.
+func runGitTTYWithIO(in io.Reader, out, errOut io.Writer, name string, args ...string) error {
 	cmd := identifyGitCommand(osexec.Command(name, args...))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	cmd.Stdout = out
+	cmd.Stderr = errOut
+	cmd.Stdin = in
 	return cmd.Run()
 }
 
-func stashIfDirty(repoDir string) error {
+func stashIfDirtyWithIO(in io.Reader, out, errOut io.Writer, repoDir string) error {
 	cmd := osexec.Command("git", "-C", repoDir, "status", "--porcelain")
-	out, err := cmd.Output()
+	statusOutput, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("checking git status: %w", err)
 	}
-	if len(strings.TrimSpace(string(out))) > 0 {
-		fmt.Printf("  Stashing uncommitted changes in %s...\n", repoDir)
-		if err := runGitTTY("git", "-C", repoDir, "stash", "--include-untracked"); err != nil {
+	if len(strings.TrimSpace(string(statusOutput))) > 0 {
+		fmt.Fprintf(errOut, "  Stashing uncommitted changes in %s...\n", repoDir)
+		if err := runGitTTYWithIO(in, out, errOut, "git", "-C", repoDir, "stash", "--include-untracked"); err != nil {
 			return fmt.Errorf("stashing changes: %w", err)
 		}
 	}

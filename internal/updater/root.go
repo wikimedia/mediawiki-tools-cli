@@ -4,13 +4,13 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
@@ -20,7 +20,7 @@ func CanUpdate(currentVersion cli.Version, gitSummary string) (bool, string) {
 	if canUpdate {
 		return canUpdate, release
 	}
-	logrus.Debug("Current version is: " + currentVersion.String() + "\nLatest available is: " + release)
+	slog.Debug(fmt.Sprint("Current version is: " + currentVersion.String() + "\nLatest available is: " + release))
 
 	// When canUpdate is false, we don't have a release to get the version string of
 	return canUpdate, "No update available"
@@ -66,7 +66,7 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 		fileInfo, err := file.Stat()
 		if err != nil {
 			if closeErr := file.Close(); closeErr != nil {
-				logrus.Warn(closeErr)
+				slog.Debug("close update response", "error", closeErr)
 			}
 			return nil, fmt.Errorf("stat update file %q: %w", filePath, err)
 		}
@@ -98,7 +98,7 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			logrus.Warn(closeErr)
+			slog.Debug("close update response", "error", closeErr)
 		}
 		return nil, fmt.Errorf("download update %q: unexpected HTTP status %s", urlStr, resp.Status)
 	}
@@ -106,21 +106,21 @@ func DownloadFileResponse(urlStr string) (*http.Response, error) {
 	return resp, nil
 }
 
-func IsZipFile(file string) bool {
+func IsZipFile(file string) (bool, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		logrus.Fatal(err)
+		return false, err
 	}
 	defer f.Close()
-
-	buf := make([]byte, 4)
-	_, err = f.Read(buf)
-	if err != nil {
-		logrus.Fatal(err)
+	header := make([]byte, 4)
+	_, err = io.ReadFull(f, header)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return false, nil
 	}
-
-	// Check for the zip file signature
-	return string(buf) == "PK\x03\x04"
+	if err != nil {
+		return false, err
+	}
+	return string(header) == "PK\x03\x04", nil
 }
 
 func Unzip(src, dest string) error {

@@ -2,59 +2,39 @@ package gerrit
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dotgitreview"
 )
 
 func NewGerritDotGitReviewCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "dotgitreview",
-		Short: "Interact with Gerrit .gitreview files",
-	}
-	cmd.AddCommand(NewGerritDotGitReviewProjectCmd())
-	cmd.AddCommand(NewGerritDotGitReviewHostCmd())
-	cmd.AddCommand(NewGerritDotGitReviewPortCmd())
+	cmd := &cobra.Command{Use: "dotgitreview", Short: "Interact with Gerrit .gitreview files"}
+	cmd.AddCommand(NewGerritDotGitReviewProjectCmd(), NewGerritDotGitReviewHostCmd(), NewGerritDotGitReviewPortCmd())
 	return cmd
 }
 
 func NewGerritDotGitReviewProjectCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "project",
-		Short: "Current Gerrit project from .gitreview file",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(gitReviewOrExit().Project)
-		},
-	}
+	return gitReviewFieldCmd("project", func(r *dotgitreview.GitReview) string { return r.Project })
 }
 
 func NewGerritDotGitReviewHostCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "host",
-		Short: "Current Gerrit host from .gitreview file",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(gitReviewOrExit().Host)
-		},
-	}
+	return gitReviewFieldCmd("host", func(r *dotgitreview.GitReview) string { return r.Host })
 }
 
 func NewGerritDotGitReviewPortCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "port",
-		Short: "Current Gerrit port from .gitreview file",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(gitReviewOrExit().Port)
-		},
-	}
+	return gitReviewFieldCmd("port", func(r *dotgitreview.GitReview) string { return r.Port })
 }
 
-func gitReviewOrExit() *dotgitreview.GitReview {
-	gitReview, err := dotgitreview.ForCWD()
-	if err != nil {
-		fmt.Println("Failed to get .gitreview file, are you in a Gerrit repository?")
-		os.Exit(1)
+func gitReviewFieldCmd(field string, value func(*dotgitreview.GitReview) string) *cobra.Command {
+	return &cobra.Command{
+		Use: field, Short: "Current Gerrit " + field + " from .gitreview file", Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			review, err := dotgitreview.ForCWD()
+			if err != nil {
+				return fmt.Errorf("read .gitreview (run this command in a Gerrit checkout): %w", err)
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), value(review))
+			return err
+		},
 	}
-
-	return gitReview
 }

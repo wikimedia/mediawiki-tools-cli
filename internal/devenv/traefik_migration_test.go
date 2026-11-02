@@ -1,6 +1,7 @@
 package devenv
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"strings"
@@ -28,6 +29,7 @@ func TestLegacyProxyMigration(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var calls []string
+			var stderr bytes.Buffer
 			runner := func(kind string) gatewayCommand {
 				return func(args []string) (string, error) {
 					command := kind + " " + strings.Join(args, " ")
@@ -54,7 +56,7 @@ func TestLegacyProxyMigration(t *testing.T) {
 					return "", nil
 				}
 			}
-			err := (Environment{}).migrateLegacyProxy(runner("docker"), runner("compose"))
+			err := (Environment{}).migrateLegacyProxy(&stderr, runner("docker"), runner("compose"))
 			if (err != nil) != (tc.fail != "") {
 				t.Fatalf("migration error: %v", err)
 			}
@@ -72,6 +74,9 @@ func TestLegacyProxyMigration(t *testing.T) {
 				}
 			} else if len(calls) != 1 {
 				t.Fatalf("fresh context should not migrate: %v", calls)
+			}
+			if tc.legacy && !strings.Contains(stderr.String(), "Migrating the development proxy") {
+				t.Fatal("migration progress was not written to the supplied stderr")
 			}
 			if !strings.Contains(calls[0], "label=com.docker.compose.project=mwcli-mwdd-") {
 				t.Fatal("migration must be scoped to this context")

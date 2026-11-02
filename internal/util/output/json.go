@@ -1,118 +1,29 @@
 package output
 
-/*
-Output order is not guaranteed.
-*/
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"strings"
-
-	"github.com/cli/cli/v2/pkg/jsoncolor"
-	"github.com/itchyny/gojq"
-	"github.com/sirupsen/logrus"
 )
 
 type JSON struct {
-	Objects interface{}
-	Format  string
+	Objects    interface{}
+	Format     string
+	parseError error
 }
 
 func NewJSON(objects interface{}, format string) *JSON {
-	return &JSON{
-		Objects: objects,
-		Format:  format,
-	}
+	return &JSON{Objects: objects, Format: format}
 }
 
-func NewJSONFromString(objects string, format string) *JSON {
-	var obj interface{}
-	err := json.Unmarshal([]byte(objects), &obj)
-	if err != nil {
-		logrus.Panic(err)
-	}
-
-	return &JSON{
-		Objects: obj,
-		Format:  format,
-	}
+func NewJSONFromString(objects, format string) *JSON {
+	var value interface{}
+	err := json.Unmarshal([]byte(objects), &value)
+	return &JSON{Objects: value, Format: format, parseError: err}
 }
 
-func (j *JSON) Print(writer io.Writer) {
-	printWithKeys(j, writer)
-}
-
-func printWithKeys(j *JSON, writer io.Writer) {
-	query := parseFormatQueryOrPanic(j.Format)
-
-	// If it's a map[interface{}]interface{}, convert keys to string for JSON
-	switch objs := j.Objects.(type) {
-	case map[interface{}]interface{}:
-		mapOfInterfaces := make(map[string]interface{}, len(objs))
-		for key, value := range objs {
-			mapOfInterfaces[fmt.Sprintf("%v", key)] = value
-		}
-		marshalAndPrint(mapOfInterfaces, query, writer)
-	default:
-		marshalAndPrint(j.Objects, query, writer)
+func (j *JSON) Print(writer io.Writer) error {
+	if j.parseError != nil {
+		return j.parseError
 	}
-}
-
-func parseFormatQueryOrPanic(format string) *gojq.Query {
-	if format == "" {
-		format = "."
-	}
-
-	query, err := gojq.Parse(format)
-	if err != nil {
-		logrus.Error("Error parsing jq query: ", err)
-		query, _ = gojq.Parse(".")
-	}
-	logrus.Trace(query.String())
-	return query
-}
-
-func marshalAndPrint(in interface{}, query *gojq.Query, writer io.Writer) {
-	// Convert to a normalised interface{} so gojq can handle both arrays and objects
-	var obj interface{}
-	data, _ := json.Marshal(in)
-	err := json.Unmarshal(data, &obj)
-	if err != nil {
-		panic(err)
-	}
-
-	iter := query.Run(obj) // or query.RunWithContext
-	for {
-		v, ok := iter.Next()
-		if !ok {
-			break
-		}
-		if err, isErr := v.(error); isErr {
-			logrus.Errorln(err)
-		}
-
-		if shouldColor() {
-			err := jsoncolor.Write(writer, strings.NewReader(interfaceToJSONString(v)), "  ")
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			fmt.Fprintf(writer, "%v\n", interfaceToJSONString(v))
-		}
-	}
-}
-
-func interfaceToJSONString(v interface{}) string {
-	byteSlice, _ := json.Marshal(v)
-	return string(byteSlice)
-}
-
-func JSONStringToInterface(jsonString string) interface{} {
-	var obj interface{}
-	err := json.Unmarshal([]byte(jsonString), &obj)
-	if err != nil {
-		logrus.Panic(err)
-	}
-	return obj
+	return PrintJSONChecked(j.Objects, j.Format, false, writer)
 }

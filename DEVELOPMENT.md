@@ -339,3 +339,25 @@ File transfer requires local `rsync` and `ssh`; other commands do not require a
 separately installed Toolforge executable.
 
 Public Toolviews usage statistics are available separately under `mw tools toolviews`; `tools` is no longer an alias for `toolforge`. See the README for examples.
+
+## Command output and diagnostics
+
+Use `cmd.OutOrStdout()` for command results: source text, identifiers, tables,
+JSON/NDJSON, explicit help and generated shell commands. Use
+`cmd.ErrOrStderr()` for progress, warnings, status and prompts. Keep machine
+output free of banners and usage text on failure. Child commands that produce
+requested results retain their stdout; setup subprocess output belongs on stderr.
+
+Return operational errors from `RunE`/`PersistentPreRunE` and shared helpers.
+The root reports the failure once and sets the exit status. Avoid printing an
+error and then returning it, and do not call `os.Exit`, `Fatal` or `Panic` inside
+commands or libraries. A successful remote edit followed by an output failure
+must be identified as such so users do not repeat the edit accidentally.
+
+Use standard `log/slog` only for supplemental diagnostics. `-v` enables debug
+and `-vv` enables trace diagnostics, on stderr. Prefer stable messages with
+structured fields; never include passwords, tokens or credential-bearing
+request bodies. Ordinary user-facing messages are not log records.
+
+Test output and error streams independently, including piped output, failed
+requests, invalid input, completion and child-process failures.

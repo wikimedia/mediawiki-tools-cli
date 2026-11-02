@@ -3,6 +3,8 @@ package mediawiki
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	osexec "os/exec"
 	"path/filepath"
@@ -10,19 +12,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
-
-func exitIfNoGit() {
-	_, err := osexec.LookPath("git")
-	if err != nil {
-		fmt.Println("You must have git installed on your system.")
-		os.Exit(1)
-	}
-}
 
 /*CloneOpts for use with GithubCloneMediaWiki.*/
 type CloneOpts struct {
@@ -37,6 +30,34 @@ type CloneOpts struct {
 	DryRun                bool
 	SkipCommitHook        bool
 	Jobs                  int
+	In                    io.Reader
+	Out                   io.Writer
+	Err                   io.Writer
+}
+
+type synchronizedWriter struct {
+	mu *sync.Mutex
+	w  io.Writer
+}
+
+func (w synchronizedWriter) Write(data []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.w.Write(data)
+}
+
+func commandWriters(in io.Reader, out, errOut io.Writer) (io.Reader, io.Writer, io.Writer) {
+	if in == nil {
+		in = os.Stdin
+	}
+	if out == nil {
+		out = os.Stdout
+	}
+	if errOut == nil {
+		errOut = os.Stderr
+	}
+	mu := &sync.Mutex{}
+	return in, synchronizedWriter{mu, out}, synchronizedWriter{mu, errOut}
 }
 
 func (cp CloneOpts) AreThereThingsToClone() bool {
@@ -58,6 +79,7 @@ func (m MediaWiki) CloneSetup(options CloneOpts) error {
 	if options.GerritInteractionType != "http" && options.GerritInteractionType != "ssh" {
 		return fmt.Errorf("unknown Gerrit interaction type %q", options.GerritInteractionType)
 	}
+	in, resultOut, progressOut := commandWriters(options.In, options.Out, options.Err)
 	if options.GerritInteractionType == "ssh" && options.GerritUsername == "" {
 		return fmt.Errorf("Gerrit username required for SSH")
 	}
@@ -69,12 +91,12 @@ func (m MediaWiki) CloneSetup(options CloneOpts) error {
 	if options.GetVector && !stringsutil.StringInSlice("Vector", options.GetGerritSkins) {
 		options.GetGerritSkins = append(options.GetGerritSkins, "Vector")
 	}
-	fmt.Printf("Cloning repositories (jobs: %d)...\n", jobs)
+	fmt.Fprintf(progressOut, "Cloning repositories (jobs: %d)...\n", jobs)
 	if options.DryRun {
-		fmt.Println("...DRY RUN - no actual operations will be performed...")
+		fmt.Fprintln(resultOut, "...DRY RUN - no actual operations will be performed...")
 	}
 	clone := func(directory, startRemote, endRemote string, interactive bool) error {
-		return cloneAndSetRemote(directory, startRemote, endRemote, options.UseShallow, options.DryRun, !options.SkipCommitHook, interactive)
+		return cloneAndSetRemoteWithIO(directory, startRemote, endRemote, options.UseShallow, options.DryRun, !options.SkipCommitHook, interactive, in, resultOut, progressOut)
 	}
 	// Always finish core before starting children: cloning core into a directory
 	// already populated by a skin/extension is not supported by Git.
@@ -135,7 +157,7 @@ func (m MediaWiki) CloneSetup(options CloneOpts) error {
 	if err := runCloneJobs(work, jobs); err != nil {
 		return err
 	}
-	fmt.Println("Repositories cloned.")
+	fmt.Fprintln(progressOut, "Repositories cloned.")
 	return nil
 }
 
@@ -192,38 +214,42 @@ func githubRemoteForExtension(extension string) string {
 }
 
 func cloneAndSetRemote(directory string, startRemote string, endRemote string, useShallow bool, dryRun bool, installHook bool, interactive bool) error {
-	logrus.Trace("Cloning " + startRemote + " to " + directory + " and setting remote to " + endRemote + " (shallow: " + strconv.FormatBool(useShallow) + ")")
+	return cloneAndSetRemoteWithIO(directory, startRemote, endRemote, useShallow, dryRun, installHook, interactive, os.Stdin, os.Stdout, os.Stderr)
+}
+
+func cloneAndSetRemoteWithIO(directory string, startRemote string, endRemote string, useShallow bool, dryRun bool, installHook bool, interactive bool, in io.Reader, out, errOut io.Writer) error {
+	slog.Debug(fmt.Sprint("Cloning " + startRemote + " to " + directory + " and setting remote to " + endRemote + " (shallow: " + strconv.FormatBool(useShallow) + ")"))
 	if dryRun {
-		fmt.Printf("Would clone %s to %s\n", startRemote, directory)
+		fmt.Fprintf(out, "Would clone %s to %s\n", startRemote, directory)
 		if startRemote != endRemote {
-			fmt.Printf("Would set remote origin to %s\n", endRemote)
+			fmt.Fprintf(out, "Would set remote origin to %s\n", endRemote)
 		}
 		if installHook {
-			fmt.Printf("Would install Gerrit commit-msg hook in %s (preserving existing hooks)\n", directory)
+			fmt.Fprintf(out, "Would install Gerrit commit-msg hook in %s (preserving existing hooks)\n", directory)
 		}
 		return nil
 	}
-	if err := runCloneCommand(gitCloneCommand(directory, startRemote, useShallow), interactive); err != nil {
+	if err := runCloneCommandWithIO(gitCloneCommand(directory, startRemote, useShallow), interactive, in, out, errOut); err != nil {
 		return fmt.Errorf("clone %s: %w", startRemote, err)
 	}
 	if startRemote != endRemote {
-		if err := runCloneCommand(osexec.Command("git", gitRemoteSetURLArguments(directory, endRemote)...), interactive); err != nil {
+		if err := runCloneCommandWithIO(osexec.Command("git", gitRemoteSetURLArguments(directory, endRemote)...), interactive, in, out, errOut); err != nil {
 			return fmt.Errorf("set remote for %s: %w", directory, err)
 		}
 	}
 	if installHook {
 		if err := installGerritCommitHook(directory, gerritCommitHookURL); err != nil {
-			logrus.Warnf("Repository cloned, but commit-msg hook setup failed: %v. See https://gerrit.wikimedia.org/r/Documentation/cmd-hook-commit-msg.html", err)
+			fmt.Fprintf(errOut, "Repository cloned, but commit-msg hook setup failed: %v. See https://gerrit.wikimedia.org/r/Documentation/cmd-hook-commit-msg.html\n", err)
 		}
 	}
 	return nil
 }
 
-func runCloneCommand(cmd *osexec.Cmd, interactive bool) error {
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+func runCloneCommandWithIO(cmd *osexec.Cmd, interactive bool, in io.Reader, out, errOut io.Writer) error {
+	cmd.Stdout = out
+	cmd.Stderr = errOut
 	if interactive {
-		cmd.Stdin = os.Stdin
+		cmd.Stdin = in
 	}
 	return cmd.Run()
 }

@@ -1,9 +1,11 @@
 package dev
 
 import (
+	"context"
 	_ "embed"
+	"fmt"
+	"log/slog"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
@@ -16,36 +18,37 @@ func NewDevUpdateCmd() *cobra.Command {
 		GroupID: "core",
 		Short:   "Update running containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := devenv.DefaultForUser().PrepareGateway(); err != nil {
+			if err := devenv.DefaultForUser().PrepareGatewayWithOutput(cmd.ErrOrStderr()); err != nil {
 				return err
 			}
 			runningServices, runningServicesErr := devenv.DefaultForUser().DockerCompose().ServicesWithStatus("running")
 			if runningServicesErr != nil {
-				logrus.Panic(runningServicesErr)
+				return runningServicesErr
 			}
 			runningServices = devenv.WithoutTunnelServices(runningServices)
 			stoppedServices, stoppedServicesErr := devenv.DefaultForUser().DockerCompose().ServicesWithStatus("stopped")
 			if stoppedServicesErr != nil {
-				logrus.Panic(stoppedServicesErr)
+				return stoppedServicesErr
 			}
 			stoppedServices = devenv.WithoutTunnelServices(stoppedServices)
 			existingServices := append(runningServices, stoppedServices...)
 			if len(existingServices) == 0 {
-				logrus.Info("No services to update")
+				fmt.Fprintln(cmd.ErrOrStderr(), "No services to update")
 				return nil
 			}
-			logrus.Infof("Updating %d services", len(existingServices))
-			logrus.Tracef("Updating services: %v", existingServices)
-			err := devenv.DefaultForUser().DockerCompose().Pull(existingServices)
+			fmt.Fprintf(cmd.ErrOrStderr(), "Updating %d services\n", len(existingServices))
+			slog.Log(context.Background(), slog.Level(-8), fmt.Sprintf("Updating services: %v", existingServices))
+			compose := devenv.DefaultForUser().DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
+			err := compose.Pull(existingServices)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			// An empty Compose up selection means all configured services, including
 			// optional services the user has never created.
 			if len(runningServices) == 0 {
 				return nil
 			}
-			err = devenv.DefaultForUser().DockerCompose().Up(runningServices, dockercompose.UpOptions{
+			err = compose.Up(runningServices, dockercompose.UpOptions{
 				Detached:      true,
 				ForceRecreate: forceRecreate,
 			})

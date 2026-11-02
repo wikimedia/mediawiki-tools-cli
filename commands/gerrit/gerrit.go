@@ -14,7 +14,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
-	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
 
@@ -35,7 +34,16 @@ func NewGerritCmd() *cobra.Command {
 		Long:    cli.RenderMarkdown(gerritLong),
 		RunE:    nil,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+			// Cobra already selected this hook as the nearest persistent hook.
+			// Calling CallAllPersistentPreRunE here would invoke this same Gerrit
+			// hook again while walking the parent chain. Run only the global root
+			// setup directly; standalone Gerrit command trees have no separate root.
+			root := cmd.Root()
+			if root.Name() != "gerrit" && root.PersistentPreRunE != nil {
+				if err := root.PersistentPreRunE(cmd, args); err != nil {
+					return err
+				}
+			}
 			// Local .gitreview commands do not need HTTP credentials.
 			if cmd.Parent() != nil && cmd.Parent().Name() == "dotgitreview" {
 				return nil

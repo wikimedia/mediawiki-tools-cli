@@ -76,13 +76,16 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 		func(theCmd *cobra.Command, cmdStirng string) *issue.Issue {
 			testFound := false
 			err := filepath.Walk("tests", func(path string, info os.FileInfo, errAbove error) error {
+				if errAbove != nil {
+					return errAbove
+				}
 				if info.IsDir() || strings.Split(info.Name(), "-")[0] != "test" {
 					return nil
 				}
 
 				file, err := os.Open(filepath.Clean(path))
 				if err != nil {
-					panic(err)
+					return err
 				}
 				defer file.Close()
 
@@ -92,10 +95,10 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 						testFound = true
 					}
 				}
-				return nil
+				return scanner.Err()
 			})
 			if err != nil {
-				panic(err)
+				return &issue.Issue{Target: "tests", Level: issue.ErrorLevel, Code: "test-files-read", Text: err.Error()}
 			}
 			if !testFound {
 				return &issue.Issue{

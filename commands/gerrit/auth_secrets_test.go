@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/knadh/koanf"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
@@ -30,9 +30,8 @@ func setupAuthTest(t *testing.T) *bytes.Buffer {
 	}
 	keyring.MockInit()
 	log := &bytes.Buffer{}
-	oldOut, oldLevel := logrus.StandardLogger().Out, logrus.GetLevel()
-	logrus.SetOutput(log)
-	logrus.SetLevel(logrus.TraceLevel)
+	oldLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = transportFunc(func(r *http.Request) (*http.Response, error) {
 		if r.UserAgent() != cli.HTTPUserAgent {
@@ -49,8 +48,7 @@ func setupAuthTest(t *testing.T) *bytes.Buffer {
 	})
 	t.Cleanup(func() {
 		http.DefaultTransport = oldTransport
-		logrus.SetOutput(oldOut)
-		logrus.SetLevel(oldLevel)
+		slog.SetDefault(oldLogger)
 		config.ReApplyKoanfConf(koanf.New("."))
 	})
 	return log
@@ -122,7 +120,7 @@ func TestLocalGerritCommandDoesNotUnlockKeyring(t *testing.T) {
 		t.Fatal(err)
 	}
 	ran := false
-	leaf.Run = func(_ *cobra.Command, _ []string) { ran = true }
+	leaf.RunE = func(_ *cobra.Command, _ []string) error { ran = true; return nil }
 	cmd.SetArgs([]string{"dotgitreview", "host"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)

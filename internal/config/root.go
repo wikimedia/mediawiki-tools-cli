@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +15,6 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/structs"
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gopkg.in/yaml.v2"
 )
@@ -23,16 +24,14 @@ func Path() string {
 	return cli.UserDirectoryPath() + string(os.PathSeparator) + "config.json"
 }
 
-func ensureExists() {
+func ensureExists() error {
 	if err := secureConfigPath(); err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	if _, err := os.Lstat(Path()); os.IsNotExist(err) {
-		if err := writePrivateConfig([]byte("{}")); err != nil {
-			logrus.Fatal(err)
-		}
-	} else if err != nil {
-		logrus.Fatal(err)
+		return writePrivateConfig([]byte("{}"))
+	} else {
+		return err
 	}
 }
 
@@ -46,7 +45,8 @@ var (
 	// Config that is actually on disk as a struct
 	cOnDisk = Config{}
 	// Has the config been loaded?
-	kLoaded = false
+	kLoaded             = false
+	initializationError error
 )
 
 // TODO just use the state instead of a bunch of vars
@@ -64,7 +64,7 @@ type ConfigState struct {
 
 func State() *ConfigState {
 	if !kLoaded {
-		load()
+		initializationError = load()
 	}
 	return &ConfigState{
 		Effective:      &c,
@@ -75,96 +75,88 @@ func State() *ConfigState {
 }
 
 // Can contain various config migrations and other things
-func preload() {
-	// move the legacy Gerrit config, into the main config file :)
-	{
-		// Load the old config
-		gerritYaml := filepath.Join(cli.UserDirectoryPath(), "gerrit.yaml")
-		type gerritConfig struct {
-			Username string `yaml:"username"`
-			Password string `yaml:"password"`
-		}
-		gc := gerritConfig{}
-		if _, err := os.Stat(gerritYaml); os.IsNotExist(err) {
-			// do nothing, as we have an empty one already..
-		} else {
-			fileContents, err := os.ReadFile(filepath.Clean(gerritYaml))
-			if err != nil {
-				logrus.Errorf("Error while reading file. %v", err)
-				panic(err)
-			}
-			err = yaml.Unmarshal(fileContents, &gc)
-			if err != nil {
-				logrus.Error(err)
-				panic(err)
-			}
-			gerritMoveWorked := true
-			if gc.Username != "" {
-				logrus.Tracef("moving gerrit.username to config.json: %s", gc.Username)
-				err := soloPutKeyValueOnDisk("gerrit.username", gc.Username)
-				if err != nil {
-					gerritMoveWorked = false
-				}
-			}
-			if gc.Password != "" {
-				logrus.Tracef("moving gerrit.password to config.json")
-				err := soloPutKeyValueOnDisk("gerrit.password", gc.Password)
-				if err != nil {
-					gerritMoveWorked = false
-				}
-			}
-			if gerritMoveWorked {
-				// Delete the old config file
-				err := os.Remove(gerritYaml)
-				if err != nil {
-					logrus.Errorf("error removing old gerrit config: %v", err)
-				}
+func preload() error {
+	oldPath := filepath.Join(cli.UserDirectoryPath(), "gerrit.yaml")
+	data, err := os.ReadFile(oldPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read legacy Gerrit configuration: %w", err)
+	}
+	var old struct{ Username, Password string }
+	if yaml.Unmarshal(data, &old) != nil {
+		return fmt.Errorf("parse legacy Gerrit configuration")
+	}
+	for key, value := range map[string]string{"gerrit.username": old.Username, "gerrit.password": old.Password} {
+		if value != "" {
+			if err := soloPutKeyValueOnDisk(key, value); err != nil {
+				return err
 			}
 		}
 	}
+	return os.Remove(oldPath)
 }
 
-func load() *koanf.Koanf {
+// Initialize establishes the CLI's configuration error boundary before command
+// construction. State retains lazy access for packages/tests using this facade.
+func Initialize() error {
+	if !kLoaded {
+		initializationError = load()
+	}
+	return initializationError
+}
+
+func load() error {
 	if kLoaded {
-		return k
+		return nil
 	}
 	if !isConfigCompletion() {
 		unlock, err := lockConfigFile(context.Background())
 		if err != nil {
-			logrus.Fatal(err)
+			return err
 		}
 		defer unlock()
 	}
-	ensureExists()
+	if err := ensureExists(); err != nil {
+		return err
+	}
+	if err := preload(); err != nil {
+		return err
+	}
 
-	preload()
-
-	logrus.Trace("loading config")
-	logrus.Trace("loading defaults")
-	loadDefaults()
-	logrus.Trace("loading json")
+	slog.Debug("loading config")
+	slog.Debug("loading defaults")
+	if err := loadDefaults(); err != nil {
+		return err
+	}
+	slog.Debug("loading json")
 	f := file.Provider(Path())
-	loadJson(k, f)
-	loadJson(kOnDisk, f)
+	if err := loadJson(k, f); err != nil {
+		return err
+	}
+	if err := loadJson(kOnDisk, f); err != nil {
+		return err
+	}
 	migrated, changed, err := migratePhabricatorProfiles(kOnDisk)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	gerritMigrated, gerritChanged, err := migrateGerritProfiles(migrated)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	migrated = gerritMigrated
 	changed = changed || gerritChanged
 	wikiMigrated, wikiChanged, err := migrateWikiProfiles(migrated)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	migrated = wikiMigrated
 	changed = changed || wikiChanged
 	cloudMigrated, cloudChanged, err := migrateCloudVPSProfiles(migrated)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	migrated = cloudMigrated
 	changed = changed || cloudChanged
@@ -172,35 +164,45 @@ func load() *koanf.Koanf {
 		// Completion may translate metadata in memory, but must not write config.
 		if !isConfigCompletion() {
 			if err := putDiskConfig(migrated); err != nil {
-				logrus.Fatalf("could not migrate account profiles: %v", err)
+				return fmt.Errorf("migrate account profiles: %w", err)
 			}
 		}
 		kOnDisk = migrated
 		k = koanf.New(".")
-		loadDefaults()
+		if err := loadDefaults(); err != nil {
+			return err
+		}
 		_ = k.Merge(kOnDisk)
 	}
-	logrus.Trace("loading env")
-	loadEnv()
-	c = koanfToConfig(k)
-	cOnDisk = koanfToConfig(kOnDisk)
-	logrus.Trace("config loaded")
+	slog.Debug("loading env")
+	if err := loadEnv(); err != nil {
+		return err
+	}
+	c, err = koanfToConfig(k)
+	if err != nil {
+		return err
+	}
+	cOnDisk, err = koanfToConfig(kOnDisk)
+	if err != nil {
+		return err
+	}
+	slog.Debug("config loaded")
 
 	kLoaded = true
-	return k
+	return nil
 }
 
 // Take the koanf instance and convert it to a Config struct
-func koanfToConfig(k *koanf.Koanf) Config {
+func koanfToConfig(k *koanf.Koanf) (Config, error) {
 	// Convert to json, and then marshal it back to a struct
 	b, err := k.Marshal(koanfjson.Parser())
 	if err != nil {
-		logrus.Fatalf("error marshalling config: %v", err)
+		return Config{}, fmt.Errorf("marshal configuration: %w", err)
 	}
 	c := Config{}
 	err = json.Unmarshal(b, &c)
 	if err != nil {
-		logrus.Fatalf("error unmarshalling config: %v", err)
+		return Config{}, fmt.Errorf("configuration has invalid setting types")
 	}
 	// Other commands use the default Gerrit identity for cloning/SSH. Project
 	// that public username into the legacy struct without recreating disk keys.
@@ -210,24 +212,24 @@ func koanfToConfig(k *koanf.Koanf) Config {
 			c.Gerrit.Username = k.String("gerrit.profiles." + name + ".username")
 		}
 	}
-	return c
+	return c, nil
 }
 
 func Marshal(k *koanf.Koanf) ([]byte, error) {
 	return k.Marshal(koanfjson.Parser())
 }
 
-func PrettyPrint(k *koanf.Koanf) string {
+func PrettyPrint(k *koanf.Koanf) (string, error) {
 	m, err := Marshal(k)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		return "", err
 	}
 	var indented bytes.Buffer
 	err = json.Indent(&indented, m, "", "  ")
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		return "", err
 	}
-	return indented.String()
+	return indented.String(), nil
 }
 
 // PutDiskConfig explicitly replaces configuration. Ordinary mutations must use
@@ -262,12 +264,11 @@ func commitDiskConfig(kToPut *koanf.Koanf) error {
 	if err != nil {
 		return err
 	}
-	ReApplyKoanfConf(kToPut)
-	return nil
+	return ReApplyKoanfConf(kToPut)
 }
 
 func putDiskConfig(kToPut *koanf.Koanf) error {
-	logrus.Trace("persisting configuration")
+	slog.Debug("persisting configuration")
 	data, err := Marshal(kToPut)
 	if err != nil {
 		return err
@@ -276,7 +277,7 @@ func putDiskConfig(kToPut *koanf.Koanf) error {
 }
 
 func PutKeyValueOnDisk(key string, value string) error {
-	logrus.Trace("updating a configuration setting")
+	slog.Debug("updating a configuration setting")
 	return UpdateDiskConfig(func(disk *koanf.Koanf) error { return disk.Set(key, value) })
 }
 
@@ -289,42 +290,47 @@ func soloPutKeyValueOnDisk(key string, value string) error {
 	// Load the config from json in here
 	kTemp := koanf.New(".")
 	f := file.Provider(Path())
-	loadJson(kTemp, f)
+	if err := loadJson(kTemp, f); err != nil {
+		return err
+	}
 	kTemp.Set(key, value)
 	return putDiskConfig(kTemp) // without reapply
 }
 
-func ReApplyKoanfConf(override *koanf.Koanf) {
+func ReApplyKoanfConf(override *koanf.Koanf) error {
+	diskConfig, err := koanfToConfig(override)
+	if err != nil {
+		return err
+	}
 	kOnDisk = override.Copy()
-	cOnDisk = koanfToConfig(kOnDisk)
+	cOnDisk = diskConfig
 	k = koanf.New(".")
-	loadDefaults()
-	_ = k.Merge(kOnDisk)
-	loadEnv()
-	c = koanfToConfig(k)
-}
-
-func loadDefaults() {
-	defaultConf := defaultConfig()
-	err := k.Load(structs.Provider(defaultConf, "koanf"), nil)
-	if err != nil {
-		logrus.Errorf("error loading defaults: %v", err)
+	if err = loadDefaults(); err != nil {
+		return err
 	}
-}
-
-func loadJson(i *koanf.Koanf, f *file.File) {
-	err := i.Load(f, koanfjson.Parser())
-	if err != nil {
-		// TODO if an issue persists with config getting message up, we might want to make this better
-		// By moving the old file to a backup and creating a new one?
-		// https://phabricator.wikimedia.org/T294195
-		logrus.Errorf("error loading config: %v", err)
+	if err = k.Merge(kOnDisk); err != nil {
+		return err
 	}
+	if err = loadEnv(); err != nil {
+		return err
+	}
+	c, err = koanfToConfig(k)
+	return err
 }
 
-func loadEnv() {
-	k.Load(env.Provider("MWCLI_", ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, "MWCLI_")), "_", ".", -1)
+func loadDefaults() error {
+	return k.Load(structs.Provider(defaultConfig(), "koanf"), nil)
+}
+
+func loadJson(i *koanf.Koanf, f *file.File) error {
+	if err := i.Load(f, koanfjson.Parser()); err != nil {
+		return fmt.Errorf("load configuration %s: %w", Path(), err)
+	}
+	return nil
+}
+
+func loadEnv() error {
+	return k.Load(env.Provider("MWCLI_", ".", func(s string) string {
+		return strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(s, "MWCLI_")), "_", ".")
 	}), nil)
 }

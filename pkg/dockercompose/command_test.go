@@ -1,9 +1,26 @@
 package dockercompose
 
 import (
+	"bytes"
 	"os"
+	"os/exec"
 	"testing"
 )
+
+func TestRunAttachedWithIOUsesProvidedStreams(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := bytes.NewBufferString("input\n")
+	command := Command{Cmd: exec.Command("/bin/sh", "-c", "read value; printf 'out:%s' \"$value\"; printf 'err' >&2")}
+	if err := command.RunAttachedWithIO(stdin, &stdout, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := stdout.String(), "out:input"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+	if got, want := stderr.String(), "err"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
+	}
+}
 
 func TestShouldForceDockerDefaultPlatform(t *testing.T) {
 	origGOOS := runtimeGOOS

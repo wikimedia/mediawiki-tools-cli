@@ -51,6 +51,9 @@ func lockCredentials(ctx context.Context) (func(), error) {
 		unlock()
 		return nil, fmt.Errorf("could not reload credential registry")
 	}
-	ReApplyKoanfConf(disk)
+	if err := ReApplyKoanfConf(disk); err != nil {
+		unlock()
+		return nil, err
+	}
 	return unlock, nil
 }

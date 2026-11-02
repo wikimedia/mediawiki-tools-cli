@@ -5,7 +5,6 @@ package phabricator
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -166,7 +165,9 @@ func addAssignCmd(parent *cobra.Command, site *string) {
 			if err := client.assignTask(taskPHID, user.PHID); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "Assigned %s to %s\n", taskRef, user.Fields.Username)
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Assigned %s to %s\n", taskRef, user.Fields.Username); err != nil {
+				return err
+			}
 			client.cache.flush()
 			return nil
 		},
@@ -195,7 +196,7 @@ func addShellCmd(parent *cobra.Command, site *string) {
 				}
 				startTask = validated
 			}
-			err = runShell(client, cfg, project, startTask)
+			err = runShell(cmd.Context(), cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr(), client, cfg, project, startTask)
 			client.cache.flush()
 			return err
 		},
@@ -248,7 +249,9 @@ func addMVCmd(parent *cobra.Command, site *string) {
 			if err := client.moveTaskToColumn(taskPHID, colPHID); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "Moved %s to %s\n", taskRef, colName)
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Moved %s to %s\n", taskRef, colName); err != nil {
+				return err
+			}
 			client.cache.flush()
 			return nil
 		},
@@ -280,9 +283,9 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 				return fmt.Errorf("project %q not found", args[1])
 			}
 			if len(projects) > 1 {
-				fmt.Fprintln(os.Stderr, "Multiple projects matched:")
+				fmt.Fprintln(cmd.ErrOrStderr(), "Multiple projects matched:")
 				for name, phid := range projects {
-					fmt.Fprintf(os.Stderr, "  %s (%s)\n", name, phid)
+					fmt.Fprintf(cmd.ErrOrStderr(), "  %s (%s)\n", name, phid)
 				}
 				return fmt.Errorf("specify a more precise project name")
 			}
@@ -297,7 +300,9 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 			if err := client.removeProjectFromTask(taskPHID, projectPHID); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "Removed tag from %s\n", taskRef)
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Removed tag from %s\n", taskRef); err != nil {
+				return err
+			}
 			client.cache.flush()
 			return nil
 		},
@@ -334,7 +339,9 @@ func addSetPrioCmd(parent *cobra.Command, site *string) {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "%s priority set to: %s\n", taskRef, task.Fields.Priority.Name)
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s priority set to: %s\n", taskRef, task.Fields.Priority.Name); err != nil {
+				return err
+			}
 			client.cache.flush()
 			return nil
 		},
@@ -371,7 +378,9 @@ func addSetStatusCmd(parent *cobra.Command, site *string) {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "%s status set to: %s\n", taskRef, task.Fields.Status.Name)
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s status set to: %s\n", taskRef, task.Fields.Status.Name); err != nil {
+				return err
+			}
 			client.cache.flush()
 			return nil
 		},

@@ -27,7 +27,7 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		Long:    cli.RenderMarkdown(devMediawikiQuibbleLong),
 		Example: cobrautil.NormalizeExample(mediawikiQuibbleExample),
-		Run:     runMediaWikiQuibble,
+		RunE:    runMediaWikiQuibble,
 	}
 	cmd.PersistentFlags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	cmd.AddCommand(&cobra.Command{
@@ -39,8 +39,8 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 			spec, _ := cobrautil.CommandAndEnvFromArgs(args)
 			return cobra.MaximumNArgs(1)(cmd, spec)
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			runMediaWikiQuibble(cmd, quibbleRecordingArgs(args))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runMediaWikiQuibble(cmd, quibbleRecordingArgs(args))
 		},
 	})
 	return cmd
@@ -79,18 +79,20 @@ func quibbleRecordingArgs(args []string) []string {
 	)
 }
 
-func runMediaWikiQuibble(cmd *cobra.Command, args []string) {
-	devenv.DefaultForUser().EnsureReady()
+func runMediaWikiQuibble(cmd *cobra.Command, args []string) error {
+	if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+		return err
+	}
 	err := devenv.DefaultForUser().DockerCompose().Up([]string{"mediawiki-quibble"}, dockercompose.UpOptions{
 		Detached: true,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	command, env := cobrautil.CommandAndEnvFromArgs(args)
 	containerID, containerIDErr := devenv.DefaultForUser().DockerCompose().ContainerID("mediawiki-quibble")
 	if containerIDErr != nil {
-		panic(containerIDErr)
+		return containerIDErr
 	}
 	exitCode := docker.Exec(
 		containerID,
@@ -107,4 +109,5 @@ func runMediaWikiQuibble(cmd *cobra.Command, args []string) {
 		cmd.Root().Annotations = make(map[string]string)
 		cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 	}
+	return nil
 }

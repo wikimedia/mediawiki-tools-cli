@@ -98,8 +98,7 @@ func NewListCmd() *cobra.Command {
 				description, _, _ := strings.Cut(stream.Description, "\n")
 				items = append(items, summary{Name: stream.Name, Description: description})
 			}
-			out.Print(cmd, items)
-			return nil
+			return out.Print(cmd, items)
 		},
 	}
 	out.AddFlagsWithOpts(cmd,

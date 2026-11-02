@@ -3,6 +3,8 @@ package dockercompose
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/moby/moby/client"
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
@@ -18,37 +19,53 @@ import (
 type Project struct {
 	Name      string
 	Directory string
+	Stdin     io.Reader
+	Stdout    io.Writer
+	Stderr    io.Writer
+}
+
+// WithIO returns a project whose attached commands use the supplied streams.
+func (p Project) WithIO(stdin io.Reader, stdout, stderr io.Writer) Project {
+	p.Stdin, p.Stdout, p.Stderr = stdin, stdout, stderr
+	return p
 }
 
 func (p Project) Command(commandAndArgs []string) Command {
+	cmd, err := p.Cmd(commandAndArgs)
 	return Command{
-		Cmd: p.Cmd(commandAndArgs),
+		Cmd:    cmd,
+		err:    err,
+		stdin:  p.Stdin,
+		stdout: p.Stdout,
+		stderr: p.Stderr,
 	}
 }
 
 // TODO don't use this externally, use Command?
-func (p Project) Cmd(commandAndArgs []string) *exec.Cmd {
+func (p Project) Cmd(commandAndArgs []string) (*exec.Cmd, error) {
+	args, err := p.argsForExec(commandAndArgs)
+	if err != nil {
+		return nil, err
+	}
 	// If we have docker and a compose sub command, we can run it
 	if _, err := lookpath.NeedCommands([]string{"docker compose"}); err == nil {
-		return exec.Command("docker", append([]string{"compose"}, p.argsForExec(commandAndArgs)...)...) // #nosec G204
+		return exec.Command("docker", append([]string{"compose"}, args...)...), nil // #nosec G204
 	}
 	// If we have docker-compose, we can run it
 	if _, err := lookpath.NeedExecutables([]string{"docker-compose"}); err == nil {
-		return exec.Command("docker-compose", p.argsForExec(commandAndArgs)...) // #nosec G204
+		return exec.Command("docker-compose", args...), nil // #nosec G204
 	}
-	// Otherwise we have no option (but this should already be checked by callers)
-	panic("No docker-compose or docker compose found in PATH")
+	return nil, fmt.Errorf("neither docker compose nor docker-compose is available in PATH")
 }
 
-func (p Project) argsForExec(commandAndArgs []string) []string {
+func (p Project) argsForExec(commandAndArgs []string) ([]string, error) {
 	args := []string{
 		"--project-name", p.Name,
 		"--project-directory", p.Directory,
 	}
 	composeFiles, composeFilesErr := p.ComposeFiles()
 	if composeFilesErr != nil {
-		// TODO bubble this error up?
-		panic(composeFilesErr)
+		return nil, fmt.Errorf("discover Compose files in %s: %w", p.Directory, composeFilesErr)
 	}
 	// Position custom files last, so that they can override defaults
 	var lastArgs []string
@@ -62,7 +79,7 @@ func (p Project) argsForExec(commandAndArgs []string) []string {
 	args = append(args, lastArgs...)
 
 	args = append(args, commandAndArgs...)
-	return args
+	return args, nil
 }
 
 func (p Project) ComposeFiles() ([]string, error) {
@@ -116,7 +133,7 @@ func (p Project) TopLevelFilePaths() ([]string, error) {
 
 	err := filepath.Walk(p.Directory, func(path string, info os.FileInfo, err error) error {
 		pathMinusDir := strings.TrimPrefix(path, p.Directory+"/")
-		logrus.Trace("Checking path: " + path + " with pathMinusDir: " + pathMinusDir)
+		slog.Debug(fmt.Sprint("Checking path: " + path + " with pathMinusDir: " + pathMinusDir))
 		if !info.IsDir() && !strings.Contains(pathMinusDir, "/") {
 			files = append(files, path)
 		}
@@ -130,7 +147,10 @@ func (p Project) NetworkName(name string) string {
 }
 
 func (p Project) ContainerID(service string) (string, error) {
-	cli := docker.NewClientFromEnvOrPanic()
+	cli, err := docker.NewClientFromEnv()
+	if err != nil {
+		return "", err
+	}
 	defer cli.Close()
 	ctx := context.Background()
 
@@ -140,7 +160,7 @@ func (p Project) ContainerID(service string) (string, error) {
 	containerFilters = containerFilters.Add("label", "com.docker.compose.service="+strings.ToLower(service))
 	// Only ever retrieve the first container (all mwcli needs)
 	containerFilters = containerFilters.Add("label", "com.docker.compose.container-number=1")
-	logrus.Trace("Getting container ID for service: " + service + " using filters filters: project = " + projectNameLC + ", service = " + service)
+	slog.Debug(fmt.Sprint("Getting container ID for service: " + service + " using filters filters: project = " + projectNameLC + ", service = " + service))
 
 	containers, err := cli.ContainerList(ctx, client.ContainerListOptions{Filters: containerFilters})
 	if err != nil {

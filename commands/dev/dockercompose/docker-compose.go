@@ -25,13 +25,15 @@ func NewCmd() *cobra.Command {
 		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dev := devenv.DefaultForUser()
-			dev.EnsureReady()
+			if err := dev.EnsureReady(); err != nil {
+				return err
+			}
 			if len(args) > 0 && (args[0] == "up" || args[0] == "create" || args[0] == "run") {
-				if err := dev.PrepareGateway(); err != nil {
+				if err := dev.PrepareGatewayWithOutput(cmd.ErrOrStderr()); err != nil {
 					return err
 				}
 			}
-			return dev.DockerCompose().Command(args).RunAttached()
+			return dev.DockerCompose().Command(args).RunAttachedWithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 		},
 	}
 }

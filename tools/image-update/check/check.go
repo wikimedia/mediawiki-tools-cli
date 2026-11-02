@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gopkg.in/yaml.v2"
@@ -48,25 +47,53 @@ type CheckResult struct {
 	Commands  []CommandToRun
 }
 
-func getData() Data {
+func getData() (Data, error) {
 	var data Data
 	content, err := os.ReadFile("tools/image-update/data.yml")
 	if err != nil {
-		panic(err.Error())
+		return data, fmt.Errorf("read image data: %w", err)
 	}
 	err = yaml.Unmarshal(content, &data)
 	if err != nil {
-		logrus.Fatal("Failed to parse data file ", err)
+		return data, fmt.Errorf("parse image data: %w", err)
 	}
-	return data
+	images := append([]ImageData(nil), data.Images...)
+	for _, group := range data.ImageGroups {
+		matcher, err := regexp.Compile(group.SameTagMatcher)
+		if err != nil || matcher.NumSubexp() < 1 {
+			return data, fmt.Errorf("image group %s requires a valid sameTagMatcher with a capture group", group.Name)
+		}
+		images = append(images, group.Images...)
+	}
+	for _, image := range images {
+		if !strings.Contains(image.Image, "@sha256:") && !regexp.MustCompile(`([\w/.-]+):([\w_.-]+)`).MatchString(image.Image) {
+			return data, fmt.Errorf("image %q must include a tag or digest", image.Image)
+		}
+		if image.RequireRegex != "" {
+			if _, err := regexp.Compile(image.RequireRegex); err != nil {
+				return data, fmt.Errorf("image %s requireRegex: %w", image.Image, err)
+			}
+		}
+	}
+	return data, nil
 }
 
 func main() {
-	data := getData()
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	data, err := getData()
+	if err != nil {
+		return err
+	}
 	result := CheckResult{}
 
 	for _, imageData := range data.Images {
-		fmt.Println("Checking", imageData.Image)
+		fmt.Fprintln(os.Stderr, "Checking", imageData.Image)
 		image := imageData.Image
 		imageName, imageTag := imageData.nameAndTagFromTaggedName()
 
@@ -77,11 +104,15 @@ func main() {
 
 		tags, err := tagsForImageName(imageName)
 		if err != nil {
-			logrus.Errorf("Could not check %s: %v", image, err)
+			fmt.Fprintf(os.Stderr, "Could not check %s: %v\n", image, err)
 			result.Failed = append(result.Failed, imageData)
 			continue
 		}
-		tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tags), imageData.RequireRegex)
+		newer, err := keepNewerTags(imageTag, tags)
+		if err != nil {
+			return fmt.Errorf("image %s: %w", image, err)
+		}
+		tagsOfInterest := keepTagsMatchingRegex(newer, imageData.RequireRegex)
 
 		if len(tagsOfInterest) > 0 {
 			lastTag := tagsOfInterest[len(tagsOfInterest)-1]
@@ -100,7 +131,7 @@ func main() {
 		oneNewtag := true
 		newTag := ""
 		for _, imageData := range imageGroup.Images {
-			fmt.Println("Checking", imageData.Image)
+			fmt.Fprintln(os.Stderr, "Checking", imageData.Image)
 			image := imageData.Image
 			imageName, imageTag := imageData.nameAndTagFromTaggedName()
 
@@ -111,11 +142,15 @@ func main() {
 
 			tags, err := tagsForImageName(imageName)
 			if err != nil {
-				logrus.Errorf("Could not check %s: %v", image, err)
+				fmt.Fprintf(os.Stderr, "Could not check %s: %v\n", image, err)
 				result.Failed = append(result.Failed, imageData)
 				continue
 			}
-			tagsOfInterest := keepTagsMatchingRegex(keepNewerTags(imageTag, tags), imageData.RequireRegex)
+			newer, err := keepNewerTags(imageTag, tags)
+			if err != nil {
+				return fmt.Errorf("image %s: %w", image, err)
+			}
+			tagsOfInterest := keepTagsMatchingRegex(newer, imageData.RequireRegex)
 
 			if len(tagsOfInterest) > 0 {
 				lastTag := tagsOfInterest[len(tagsOfInterest)-1]
@@ -123,6 +158,9 @@ func main() {
 
 				r := regexp.MustCompile(imageGroup.SameTagMatcher)
 				regexSplit := r.FindStringSubmatch(lastTag)
+				if len(regexSplit) < 2 {
+					return fmt.Errorf("image group %s tag %q does not match sameTagMatcher", imageGroup.Name, lastTag)
+				}
 				if newTag == "" || regexSplit[1] == newTag {
 					newTag = regexSplit[1]
 				} else {
@@ -133,7 +171,7 @@ func main() {
 			}
 		}
 		if len(imageUpdatePairs) > 0 && (len(imageUpdatePairs) != len(imageGroup.Images)*2 || !oneNewtag) {
-			logrus.Errorf("No complete matching build for image group %s; leaving the group unchanged", imageGroup.Name)
+			fmt.Fprintf(os.Stderr, "No complete matching build for image group %s; leaving the group unchanged\n", imageGroup.Name)
 			result.Failed = append(result.Failed, imageGroup.Images...)
 			continue
 		}
@@ -184,9 +222,9 @@ func main() {
 		}
 		err := os.WriteFile("tools/image-update/.update.sh", []byte(bashOutput), 0o755) // #nosec G306
 		if err != nil {
-			panic(err)
+			return err
 		}
-		fmt.Println("Commands to update images written to tools/image-update/.update.sh")
+		fmt.Fprintln(os.Stderr, "Commands to update images written to tools/image-update/.update.sh")
 	}
 
 	{
@@ -198,17 +236,18 @@ func main() {
 		}
 		err := os.WriteFile("tools/image-update/.gitlab.update.yaml", []byte(gitlabOutput), 0o755) // #nosec G306
 		if err != nil {
-			panic(err)
+			return err
 		}
-		fmt.Println("A snippet for use in Gitlab CI is written to tools/image-update/.gitlab.update.yaml")
+		fmt.Fprintln(os.Stderr, "A snippet for use in Gitlab CI is written to tools/image-update/.gitlab.update.yaml")
 	}
 	if len(result.Failed) > 0 {
-		fmt.Println("The following images could not be checked:")
+		fmt.Fprintln(os.Stderr, "The following images could not be checked:")
 		for _, image := range result.Failed {
-			fmt.Println(image.Image)
+			fmt.Fprintln(os.Stderr, image.Image)
 		}
-		os.Exit(1)
+		return fmt.Errorf("%d images could not be checked", len(result.Failed))
 	}
+	return nil
 }
 
 func (i ImageData) nameAndTagFromTaggedName() (string, string) {
@@ -239,16 +278,16 @@ func (i ImageData) humanURLForImageName() string {
 	return "https://hub.docker.com/_/" + imageName + "/tags"
 }
 
-func keepNewerTags(currentTag string, allTags []string) []string {
+func keepNewerTags(currentTag string, allTags []string) ([]string, error) {
 	// There will be no newer tags if the current tag is "latest"
 	if currentTag == "latest" {
-		return []string{}
+		return []string{}, nil
 	}
 
 	// Parse the currently used version
 	current, err := version.NewVersion(currentTag)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("invalid current tag %q: %w", currentTag, err)
 	}
 
 	// Is the currently used version a WMF security release?
@@ -280,7 +319,7 @@ func keepNewerTags(currentTag string, allTags []string) []string {
 		right, _ := version.NewVersion(newerTags[j])
 		return left.LessThan(right)
 	})
-	return newerTags
+	return newerTags, nil
 }
 
 func keepTagsMatchingRegex(tags []string, regex string) []string {

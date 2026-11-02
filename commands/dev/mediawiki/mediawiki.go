@@ -4,13 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
@@ -21,16 +21,17 @@ import (
 )
 
 // User run docker command with the specified -u.
+
 var User string
 
-func randomString() string {
+func randomString() (string, error) {
 	length := 10
 	randomBytes := make([]byte, 32)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return base32.StdEncoding.EncodeToString(randomBytes)[:length]
+	return base32.StdEncoding.EncodeToString(randomBytes)[:length], nil
 }
 
 func NewMediaWikiCmd() *cobra.Command {
@@ -41,25 +42,38 @@ func NewMediaWikiCmd() *cobra.Command {
 		GroupID: "service",
 		Aliases: []string{"mw"},
 		RunE:    nil,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
 			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
+			if err := devenv.EnsureReady(); err != nil {
+				return err
+			}
 
 			// Skip the MediaWiki checks if the user is just trying to destroy the environment
 			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") || cmd.Name() == "doctor" {
-				return
+				return nil
 			}
 
-			usr, _ := user.Current()
+			usr, err := user.Current()
+			if err != nil {
+				return err
+			}
 			usrDir := usr.HomeDir
 
 			// TODO: Might be better placed as a PersistentPreRun of the shellbox commands
 			if devenv.Env().Missing("SHELLBOX_SECRET_KEY") {
-				devenv.Env().Set("SHELLBOX_SECRET_KEY", randomString())
+				secret, err := randomString()
+				if err != nil {
+					return err
+				}
+				if err := devenv.Env().Set("SHELLBOX_SECRET_KEY", secret); err != nil {
+					return err
+				}
 			}
 			if devenv.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
-				logrus.Debug("MEDIAWIKI_VOLUMES_CODE is missing")
+				slog.Debug(fmt.Sprint("MEDIAWIKI_VOLUMES_CODE is missing"))
 				if !cli.Opts.NoInteraction {
 					// Prompt the user for a directory or confirmation
 					dirValue := ""
@@ -73,45 +87,51 @@ func NewMediaWikiCmd() *cobra.Command {
 					}
 					err := survey.AskOne(prompt, &dirValue)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						return err
 					}
 					// TODO check if path looks valid?
 
 					if err == nil {
-						devenv.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(dirValue))
+						if err := devenv.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(dirValue)); err != nil {
+							return err
+						}
 					} else {
-						fmt.Println("Can't continue without a MediaWiki code directory")
-						os.Exit(1)
+						return fmt.Errorf("Can't continue without a MediaWiki code directory")
 					}
 				} else {
-					devenv.Env().Set("MEDIAWIKI_VOLUMES_CODE", mediawiki.GuessMediaWikiDirectoryBasedOnContext())
+					if err := devenv.Env().Set("MEDIAWIKI_VOLUMES_CODE", mediawiki.GuessMediaWikiDirectoryBasedOnContext()); err != nil {
+						return err
+					}
 				}
 			}
 
 			// Default the mediawiki container to a .composer directory in the running users home dir
 			if !devenv.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER") {
-				logrus.Debug("MEDIAWIKI_VOLUMES_DOT_COMPOSER is missing")
+				slog.Debug(fmt.Sprint("MEDIAWIKI_VOLUMES_DOT_COMPOSER is missing"))
 				usrComposerDirectory := usrDir + "/.composer"
 				if _, err := os.Stat(usrComposerDirectory); os.IsNotExist(err) {
 					err := os.Mkdir(usrComposerDirectory, 0o755) // #nosec G301
 					if err != nil {
-						fmt.Println("Failed to create directory needed for a composer cache")
-						os.Exit(1)
+						return fmt.Errorf("create Composer cache directory: %w", err)
 					}
 				}
-				devenv.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer")
+				if err := devenv.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer"); err != nil {
+					return err
+				}
 			}
 
 			// If we are not running get-code command, make sure we have code!
 			if os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" && cmd.Name() != "update-code" {
-				mediawiki, _ := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+				mediawiki, err := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+				if err != nil {
+					return err
+				}
 				if !mediawiki.MediaWikiIsPresent() || !mediawiki.VectorIsPresent() {
-					fmt.Println("MediaWiki or Vector is not present in the code directory")
-					fmt.Println("You can clone them manually or use `mw dev mediawiki get-code`")
-					os.Exit(1)
+					fmt.Fprintln(cmd.ErrOrStderr(), "MediaWiki or Vector is not present in the code directory")
+					return fmt.Errorf("You can clone them manually or use `mw dev mediawiki get-code`")
 				}
 			}
+			return nil
 		},
 	}
 

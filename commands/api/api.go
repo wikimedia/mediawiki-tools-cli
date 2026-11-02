@@ -150,8 +150,7 @@ func NewCmd() *cobra.Command {
 			if err := json.Unmarshal(data, &result); err != nil {
 				return err
 			}
-			out.Print(cmd, result)
-			return nil
+			return out.Print(cmd, result)
 		},
 	}
 	flags := cmd.Flags()

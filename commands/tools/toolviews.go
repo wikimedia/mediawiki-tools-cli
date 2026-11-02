@@ -257,8 +257,7 @@ func newToolviewsCmd() *cobra.Command {
 				writer.Flush()
 				return writer.Error()
 			}
-			out.Print(cmd, rows)
-			return nil
+			return out.Print(cmd, rows)
 		},
 	}
 	command.Flags().StringVarP(&toolFlag, "tool", "t", "", "Tool name (alternative to a positional name)")
@@ -309,8 +308,7 @@ func newToolviewsListCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		out.Print(cmd, names)
-		return nil
+		return out.Print(cmd, names)
 	}}
 	command.Flags().BoolVar(&refresh, "refresh", false, "Fetch a fresh tool list instead of using the disk cache")
 	command.Flags().DurationVar(&timeout, "timeout", 20*time.Second, "HTTP request timeout")

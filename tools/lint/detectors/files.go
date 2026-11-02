@@ -37,7 +37,11 @@ func fileDetectorList() []FileDetector {
 func DetectFileIssues(directory string) []issue.Issue {
 	issues := []issue.Issue{}
 	for _, detector := range fileDetectorList() {
-		files := listFiles(detector.Path)
+		files, err := listFiles(detector.Path)
+		if err != nil {
+			issues = append(issues, issue.Issue{Target: detector.Path, Level: issue.ErrorLevel, Code: "file-read", Text: err.Error()})
+			continue
+		}
 		for _, file := range files {
 			issue := detector.Function(file)
 			if issue != nil {
@@ -48,18 +52,18 @@ func DetectFileIssues(directory string) []issue.Issue {
 	return issues
 }
 
-func listFiles(directory string) []string {
+func listFiles(directory string) ([]string, error) {
 	var files []string
 
 	// TODO recursive?
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if !info.IsDir() {
 			files = append(files, path)
 		}
 		return nil
 	})
-	if err != nil {
-		panic(err)
-	}
-	return files
+	return files, err
 }

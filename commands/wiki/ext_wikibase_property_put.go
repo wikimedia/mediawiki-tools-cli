@@ -5,7 +5,6 @@ import (
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
@@ -25,9 +24,10 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 		Short:   "Create a Wikibase property",
 		Long:    "Create a new property with an English label and the selected datatype. This command always creates a property; it does not update an existing one.",
 		Example: "  put --profile wikibase-world/addshore --label 'Example property' --datatype string --dry-run",
-		Run: func(cmd *cobra.Command, args []string) {
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if wiki == "" {
-				logrus.Fatal("wiki is not set")
+				return fmt.Errorf("wiki is not set")
 			}
 
 			data := map[string]interface{}{
@@ -42,18 +42,20 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 			dataJSON := mustMarshalJSON(data)
 
 			if dryRun {
-				fmt.Println("Dry run mode: Creating Wikibase property with the following parameters:")
-				fmt.Printf("wiki: %s, user: %s, summary: %s, datatype: %s, label: %s, expect-id: %s, bot: %t\n",
+				cmd.Println("Dry run mode: Creating Wikibase property with the following parameters:")
+				cmd.Printf("wiki: %s, user: %s, summary: %s, datatype: %s, label: %s, expect-id: %s, bot: %t\n",
 					wiki, wikiUser, summary, datatype, label, expectID, bot)
-				fmt.Printf("data: %s\n", dataJSON)
-				return
+				cmd.Printf("data: %s\n", dataJSON)
+				return nil
 			}
 
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
-				panic(err)
+				return err
 			}
-			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
+			if err := loginIfCredentialsProvided(w); err != nil {
+				return fmt.Errorf("wiki authentication failed: %w", err)
+			}
 
 			editParams := params.Values{
 				"new":     "property",
@@ -69,13 +71,14 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 
 			id, err := wbEditEntity(w, editParams)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			if expectID != "" && id != expectID {
-				logrus.Fatalf("expected property id %q, got %q", expectID, id)
+				return fmt.Errorf("property %s was created, but expected ID was %q; do not retry creation", id, expectID)
 			}
-			fmt.Println(id)
+			cmd.Println(id)
+			return nil
 		},
 	}
 

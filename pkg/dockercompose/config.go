@@ -1,6 +1,8 @@
 package dockercompose
 
 import (
+	"fmt"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,21 +17,21 @@ type ServiceConfig struct {
 }
 
 // Config returns the docker compose config for the project, fully rendered with env vars.
-func (p Project) Config() Config {
+func (p Project) Config() (Config, error) {
 	stdOut, stdErr, err := p.Command([]string{"config"}).RunAndCollect()
 	if err != nil {
-		panic(err)
+		return Config{}, fmt.Errorf("run docker compose config: %w", err)
 	}
 	if stdErr.String() != "" {
-		panic(stdErr)
+		return Config{}, fmt.Errorf("docker compose config: %s", stdErr.String())
 	}
 
 	var config Config
 
 	err = yaml.Unmarshal(stdOut.Bytes(), &config)
 	if err != nil {
-		panic(err)
+		return Config{}, fmt.Errorf("parse docker compose config: %w", err)
 	}
 
-	return config
+	return config, nil
 }

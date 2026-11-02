@@ -2,13 +2,38 @@ package dev
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 )
+
+func TestRecipeJobrunnerFileErrorsAreReturned(t *testing.T) {
+	originalContext := devenv.Context
+	devenv.Context = "jobrunner-error-test"
+	t.Cleanup(func() { devenv.Context = originalContext })
+	m := devenv.Environment{BaseDir: t.TempDir()}
+	// A directory at the file path fails even when tests run as root.
+	if err := os.MkdirAll(filepath.Join(m.Directory(), "mediawiki", "jobrunner-sites"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := applyJobRunnerSites(m, []string{"example"}, false, io.Discard); err == nil || !strings.Contains(err.Error(), "add jobrunner site example") {
+		t.Fatalf("expected jobrunner write error, got %v", err)
+	}
+	if err := saveRecipeRuntimeState(m, recipeRuntimeState{JobRunnerSites: []string{"example"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := cleanupRecipeRuntimeState(m, false, io.Discard); err == nil || !strings.Contains(err.Error(), "remove jobrunner site example") {
+		t.Fatalf("expected jobrunner cleanup error, got %v", err)
+	}
+	if _, err := os.Stat(recipeRuntimeStatePath(m)); err != nil {
+		t.Fatalf("failed cleanup must retain state for retry: %v", err)
+	}
+}
 
 func TestRecipeRuntimeStateSurvivesSynchronizationAndCleanup(t *testing.T) {
 	// No external commands or user config are needed: all operations are scoped
@@ -53,7 +78,7 @@ func TestRecipeRuntimeStateSurvivesSynchronizationAndCleanup(t *testing.T) {
 			t.Fatalf("sync %d lost recipe records: %#v %v", cycle, loaded, err)
 		}
 	}
-	if err := cleanupRecipeRuntimeState(m, false); err != nil {
+	if err := cleanupRecipeRuntimeState(m, false, io.Discard); err != nil {
 		t.Fatal(err)
 	}
 	if m.Env().Has("RECIPE_SETTING") || m.Env().Get("UNRELATED_SETTING") != "user-value" {

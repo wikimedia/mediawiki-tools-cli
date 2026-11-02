@@ -2,10 +2,9 @@ package output
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/sirupsen/logrus"
 )
 
 func TestJSON_Print(t *testing.T) {
@@ -22,7 +21,7 @@ func TestJSON_Print(t *testing.T) {
 		{
 			name: "Simple table has output",
 			fields: fields{
-				Objects: provideMap("simpleTable"),
+				Objects: provideMap(t, "simpleTable"),
 				Format:  "",
 			},
 			wantWriter: `{"k1":"v1","k2":"v2"}` + "\n",
@@ -30,7 +29,7 @@ func TestJSON_Print(t *testing.T) {
 		{
 			name: "Simple table has output, and format can be applied ..",
 			fields: fields{
-				Objects: provideMap("simpleTable"),
+				Objects: provideMap(t, "simpleTable"),
 				Format:  ".[]",
 			},
 			wantWriter: "\"v1\"\n\"v2\"\n",
@@ -38,10 +37,10 @@ func TestJSON_Print(t *testing.T) {
 		{
 			name: "Simple table has output, bad format",
 			fields: fields{
-				Objects: provideMap("simpleTable"),
+				Objects: provideMap(t, "simpleTable"),
 				Format:  "hdsa0jdsa",
 			},
-			wantWriter:            "{}\n",
+			wantWriter:            "",
 			wantLogWriterContains: "function not defined: hdsa0jdsa",
 		},
 	}
@@ -52,11 +51,9 @@ func TestJSON_Print(t *testing.T) {
 				Format:  tt.fields.Format,
 			}
 			writer := &bytes.Buffer{}
-			logWriter := &bytes.Buffer{}
-			logrus.SetOutput(logWriter)
-			j.Print(writer)
+			err := j.Print(writer)
 			checkStringContainLinesInAnyOrder(t, writer.String(), tt.wantWriter)
-			if gotLogWriterWriter := logWriter.String(); tt.wantLogWriterContains != "" && !strings.Contains(gotLogWriterWriter, tt.wantLogWriterContains) {
+			if gotLogWriterWriter := fmt.Sprint(err); tt.wantLogWriterContains != "" && !strings.Contains(gotLogWriterWriter, tt.wantLogWriterContains) {
 				t.Errorf("JSON.Print() log output...\n%v\n...should contain...\n%v\n...", gotLogWriterWriter, tt.wantLogWriterContains)
 			}
 		})

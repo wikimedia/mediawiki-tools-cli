@@ -3,7 +3,6 @@ package cobrautil
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +18,7 @@ func ExecutingCommand(cmd *cobra.Command) *cobra.Command {
 	return cmd
 }
 
-func CallAllPersistentPreRun(cmd *cobra.Command, args []string) {
+func CallAllPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	root := cmd.Root()
 	previous := root.Context()
 	ctx := previous
@@ -30,18 +29,18 @@ func CallAllPersistentPreRun(cmd *cobra.Command, args []string) {
 		root.SetContext(context.WithValue(ctx, executingCommandKey{}, cmd))
 		defer root.SetContext(previous)
 	}
-	logrus.Tracef("CallAllPersistentPreRun for %s", cmd.Name())
 	parent := cmd.Parent()
 	if parent == nil {
-		logrus.Tracef("No parent for %s", cmd.Name())
-		return
+		return nil
+	}
+	if parent.PersistentPreRunE != nil {
+		return parent.PersistentPreRunE(parent, args)
 	}
 	if parent.PersistentPreRun != nil {
-		logrus.Tracef("Calling parent PersistentPreRun for %s", cmd.Name())
 		parent.PersistentPreRun(parent, args)
 	} else {
-		logrus.Tracef("No parent PersistentPreRun for %s", cmd.Name())
 		// Recurse
-		CallAllPersistentPreRun(parent, args)
+		return CallAllPersistentPreRunE(parent, args)
 	}
+	return nil
 }

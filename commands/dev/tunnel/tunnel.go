@@ -74,7 +74,9 @@ func NewCmd() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("provider", cobra.FixedCompletions([]string{"cloudflare", "holesail"}, cobra.ShellCompDirectiveNoFileComp))
 	selected := func(start bool) (devenv.Environment, provider, error) {
 		instance := devenv.DefaultForUser()
-		instance.EnsureReady()
+		if err := instance.EnsureReady(); err != nil {
+			return instance, provider{}, err
+		}
 		if start || providerFlag != "" {
 			p, err := selectProvider(providerFlag)
 			return instance, p, err
@@ -96,7 +98,7 @@ func NewCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := traefik.StartGateway(); err != nil {
+			if err := traefik.StartGatewayWithOutput(cmd.ErrOrStderr()); err != nil {
 				return fmt.Errorf("start the Traefik gateway: %w", err)
 			}
 			project := instance.DockerCompose()
@@ -111,13 +113,15 @@ func NewCmd() *cobra.Command {
 			if err := stopOtherProviders(project, p); err != nil {
 				return err
 			}
-			instance.Env().Delete("TUNNEL_PROVIDER")
+			if err := instance.Env().Delete("TUNNEL_PROVIDER"); err != nil {
+				return err
+			}
 			fmt.Fprintf(cmd.OutOrStdout(), "%s is available at %s\n", p.label, endpoint)
 			if p.name == "holesail" {
-				fmt.Fprintf(cmd.OutOrStdout(), "On your computer, run:\n  holesail %s --host 127.0.0.1 --port 8082\nThen open http://127.0.0.1:8082/proxy/dashboard/\n", endpoint)
-				fmt.Fprintln(cmd.OutOrStdout(), "Treat this connection string as a secret. A Holesail client is required; it is not a public HTTPS URL.")
+				fmt.Fprintf(cmd.ErrOrStderr(), "On your computer, run:\n  holesail %s --host 127.0.0.1 --port 8082\nThen open http://127.0.0.1:8082/proxy/dashboard/\n", endpoint)
+				fmt.Fprintln(cmd.ErrOrStderr(), "Treat this connection string as a secret. A Holesail client is required; it is not a public HTTPS URL.")
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Show the gateway login with '%s dev traefik credentials' (authentication is enabled by default).\n", cmd.Root().Name())
+			fmt.Fprintf(cmd.ErrOrStderr(), "Show the gateway login with '%s dev traefik credentials' (authentication is enabled by default).\n", cmd.Root().Name())
 			return nil
 		},
 	})
@@ -125,7 +129,9 @@ func NewCmd() *cobra.Command {
 		Use: "stop", Short: "Stop tunnels and their authentication while keeping local access running", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instance := devenv.DefaultForUser()
-			instance.EnsureReady()
+			if err := instance.EnsureReady(); err != nil {
+				return err
+			}
 			var services []string
 			if providerFlag != "" {
 				p, err := selectProvider(providerFlag)
@@ -138,10 +144,12 @@ func NewCmd() *cobra.Command {
 					services = append(services, candidate.service)
 				}
 			}
-			if err := instance.DockerCompose().Stop(services); err != nil {
+			if err := instance.DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).Stop(services); err != nil {
 				return err
 			}
-			instance.Env().Delete("TUNNEL_PROVIDER")
+			if err := instance.Env().Delete("TUNNEL_PROVIDER"); err != nil {
+				return err
+			}
 			return instance.StopGatewayAuthIfNoTunnel()
 		},
 	})
@@ -218,7 +226,7 @@ func NewCmd() *cobra.Command {
 			if follow {
 				composeArgs = append(composeArgs, "--follow")
 			}
-			return instance.DockerCompose().Command(append(composeArgs, p.service)).RunAttached()
+			return instance.DockerCompose().Command(append(composeArgs, p.service)).RunAttachedWithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 		},
 	}
 	logs.Flags().BoolVarP(&follow, "follow", "f", false, "Follow log output")

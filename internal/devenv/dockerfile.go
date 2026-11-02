@@ -167,14 +167,18 @@ func defaultImageForService(service string) string {
 // ensureDockerfileComposeFiles regenerates any auto-generated compose override files for
 // services that have a custom Dockerfile stored in the .env file.  This is called from
 // EnsureReady so that the files are recreated if they were accidentally deleted.
-func (m Environment) ensureDockerfileComposeFiles() {
-	envMap := m.Env().List()
+func (m Environment) ensureDockerfileComposeFiles() error {
+	envMap, err := m.Env().Read()
+	if err != nil {
+		return err
+	}
 	for key, value := range envMap {
 		if strings.HasSuffix(key, "_DOCKERFILE") && value != "" {
 			service := strings.ToLower(strings.TrimSuffix(key, "_DOCKERFILE"))
-			// Ignore errors here – if the Dockerfile path is stale, the user will see a
-			// clear error from Docker Compose when they next try to start the service.
-			_ = writeDockerfileComposeFile(m.Directory(), service, value)
+			if err := writeDockerfileComposeFile(m.Directory(), service, value); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

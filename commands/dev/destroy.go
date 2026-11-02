@@ -2,10 +2,11 @@ package dev
 
 import (
 	_ "embed"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
@@ -18,7 +19,7 @@ func NewDevDestroyCmd() *cobra.Command {
 		Short:   "Destroy all containers and data",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			err := m.DockerCompose().Down(dockercompose.DownOptions{
+			err := m.DockerCompose().WithIO(cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()).Down(dockercompose.DownOptions{
 				Volumes:       true,
 				RemoveOrphans: true,
 				Timeout:       1,
@@ -27,14 +28,18 @@ func NewDevDestroyCmd() *cobra.Command {
 				return err
 			}
 			// Remove the provider preference written by older CLI versions.
-			m.Env().Delete("TUNNEL_PROVIDER")
+			if err := m.Env().Delete("TUNNEL_PROVIDER"); err != nil {
+				return err
+			}
 			if err := m.ClearResumeServices(); err != nil {
 				return err
 			}
-			logrus.Debug("Removing used hosts file")
-			m.RemoveUsedHostsIfExists()
+			slog.Debug(fmt.Sprint("Removing used hosts file"))
+			if err := m.RemoveUsedHostsIfExists(); err != nil {
+				return err
+			}
 
-			if err := cleanupRecipeRuntimeState(m, false); err != nil {
+			if err := cleanupRecipeRuntimeState(m, false, cmd.ErrOrStderr()); err != nil {
 				return err
 			}
 

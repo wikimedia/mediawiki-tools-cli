@@ -5,7 +5,6 @@ import (
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
@@ -26,12 +25,13 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 		Short:   "Create a Wikibase item with one string claim",
 		Long:    "Create a new item with an English label and one string-valued claim. This command always creates an item; it does not update an existing one.",
 		Example: "  put --profile wikibase-world/addshore --label 'Example' --property P1 --value 'Example value' --dry-run",
-		Run: func(cmd *cobra.Command, args []string) {
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if wiki == "" {
-				logrus.Fatal("wiki is not set")
+				return fmt.Errorf("wiki is not set")
 			}
 			if property == "" {
-				logrus.Fatal("property is not set")
+				return fmt.Errorf("property is not set")
 			}
 
 			data := map[string]interface{}{
@@ -59,18 +59,20 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 			dataJSON := mustMarshalJSON(data)
 
 			if dryRun {
-				fmt.Println("Dry run mode: Creating Wikibase item with the following parameters:")
-				fmt.Printf("wiki: %s, user: %s, summary: %s, label: %s, property: %s, value: %s, expect-id: %s, bot: %t\n",
+				cmd.Println("Dry run mode: Creating Wikibase item with the following parameters:")
+				cmd.Printf("wiki: %s, user: %s, summary: %s, label: %s, property: %s, value: %s, expect-id: %s, bot: %t\n",
 					wiki, wikiUser, summary, label, property, value, expectID, bot)
-				fmt.Printf("data: %s\n", dataJSON)
-				return
+				cmd.Printf("data: %s\n", dataJSON)
+				return nil
 			}
 
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
 			if err != nil {
-				panic(err)
+				return err
 			}
-			defaultErrorHandling().handle(loginIfCredentialsProvided(w))
+			if err := loginIfCredentialsProvided(w); err != nil {
+				return fmt.Errorf("wiki authentication failed: %w", err)
+			}
 
 			editParams := params.Values{
 				"new":     "item",
@@ -86,13 +88,14 @@ func NewWikiExtWikibaseItemPutCmd() *cobra.Command {
 
 			id, err := wbEditEntity(w, editParams)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			if expectID != "" && id != expectID {
-				logrus.Fatalf("expected item id %q, got %q", expectID, id)
+				return fmt.Errorf("item %s was created, but expected ID was %q; do not retry creation", id, expectID)
 			}
-			fmt.Println(id)
+			cmd.Println(id)
+			return nil
 		},
 	}
 

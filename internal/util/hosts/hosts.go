@@ -1,11 +1,12 @@
 package hosts
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/txn2/txeh"
 )
 
@@ -36,7 +37,7 @@ func LocalIP() string {
 func AddHosts(ip string, toAdd []string, tryWrite bool) ChangeResult {
 	hosts := hosts()
 
-	logrus.Tracef("Adding hosts: %v", toAdd)
+	slog.Debug(fmt.Sprintf("Adding hosts: %v", toAdd))
 	hosts.AddHosts(ip, toAdd)
 	// TODO when the library supports it do ipv6 too https://github.com/txn2/txeh/issues/15
 	// hosts.AddHosts("::1", toAdd)

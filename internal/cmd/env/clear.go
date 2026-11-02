@@ -11,12 +11,20 @@ func envClear(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "clear",
 		Short: "Clears all values from the .env file",
-		Run: func(cmd *cobra.Command, args []string) {
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
 			file := dotenv.FileForDirectory(directory())
-			for name := range file.List() {
-				file.Delete(name)
+			values, err := file.Read()
+			if err != nil {
+				return err
 			}
-			fmt.Println("Cleared .env file")
+			for name := range values {
+				if err := file.Delete(name); err != nil {
+					return err
+				}
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Cleared .env file")
+			return err
 		},
 	}
 }

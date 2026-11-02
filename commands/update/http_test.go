@@ -35,10 +35,10 @@ func TestDatedReleaseSelectionInUpdateCommand(t *testing.T) {
 		name, current, explicit, want string
 		wantAsset                     bool
 	}{
-		{"migration", "0.34.0", "", "Upgraded from 0.34.0 to 2026.11.15.0", true},
-		{"maintenance", "2026.10.31.0", backport, "Upgraded from 2026.10.31.0 to 2026.10.31.2", true},
+		{"migration", "0.34.0", "", "Would have updated to version: 2026.11.15.0", true},
+		{"maintenance", "2026.10.31.0", backport, "Would have updated to version: 2026.10.31.2", true},
 		{"no automatic downgrade", "2026.12.01.0", "", "already at or above", false},
-		{"explicit downgrade", "2026.11.15.0", backport, "Downgraded from 2026.11.15.0 to 2026.10.31.2", true},
+		{"explicit downgrade", "2026.11.15.0", backport, "Would have updated to version: 2026.10.31.2", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			selected := latest

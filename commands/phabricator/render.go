@@ -26,7 +26,6 @@ var (
 	blue    = color.New(color.FgBlue, color.Bold)
 	magenta = color.New(color.FgMagenta, color.Bold)
 	green   = color.New(color.FgGreen, color.Bold)
-	cyan    = color.New(color.FgCyan)
 
 	yellowPlain = color.New(color.FgYellow)
 	whitePlain  = color.New(color.FgWhite)
@@ -232,27 +231,27 @@ func renderComments(w io.Writer, task *phabTask, txs []phabTransaction, client *
 }
 
 // renderTaskList prints a table of tasks in a column.
-func renderTaskList(tasks []taskSummary) {
+func renderTaskListTo(w io.Writer, tasks []taskSummary) {
 	if len(tasks) == 0 {
-		fmt.Println("(no tasks)")
+		fmt.Fprintln(w, "(no tasks)")
 		return
 	}
 	for _, t := range tasks {
 		id := normaliseLength(t.ID, 8)
 		title := normaliseLength(t.Title, 60)
-		yellowPlain.Printf("%s", id)
-		fmt.Printf("%s\n", title)
+		yellowPlain.Fprint(w, id)
+		fmt.Fprintf(w, "%s\n", title)
 	}
 }
 
 // renderColumnList prints all column names.
-func renderColumnList(columns map[string]string) {
+func renderColumnListTo(w io.Writer, columns map[string]string) {
 	names := make([]string, 0, len(columns))
 	for name := range columns {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		yellow.Printf("%s\n", normaliseLength(name, 30))
+		yellow.Fprintln(w, normaliseLength(name, 30))
 	}
 }

@@ -100,7 +100,9 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 				if out.Type == "pretty" {
 					renderTask(cmd.OutOrStdout(), task, client)
 				} else {
-					out.Print(cmd, task)
+					if err := out.Print(cmd, task); err != nil {
+						return err
+					}
 				}
 				if client.cache != nil {
 					client.cache.flush()
@@ -115,8 +117,7 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 				_, err = fmt.Fprint(cmd.OutOrStdout(), paste.Attachments.Content.Content)
 				return err
 			}
-			out.Print(cmd, paste)
-			return nil
+			return out.Print(cmd, paste)
 		},
 	}
 	if kind == "P" {

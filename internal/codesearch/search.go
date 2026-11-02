@@ -2,9 +2,9 @@ package codesearch
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"net/http"
-
-	"github.com/sirupsen/logrus"
 )
 
 type SearchResponse struct {
@@ -38,7 +38,7 @@ type SearchOptions struct {
 
 func (c *Client) Search(ctx context.Context, flavour string, query string, options *SearchOptions) (*SearchResponse, error) {
 	url := CraftSearchURL(flavour, true, query, options)
-	logrus.Debugf("URL: %s", url)
+	slog.Debug(fmt.Sprintf("URL: %s", url))
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

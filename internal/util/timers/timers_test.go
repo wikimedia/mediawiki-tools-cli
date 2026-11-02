@@ -17,7 +17,7 @@ func TestNowUTC(t *testing.T) {
 }
 
 func TestNowUTC_withOverride(t *testing.T) {
-	clockOverride = "2020-01-01T10:00:00Z"
+	clockOverride = time.Date(2020, 1, 1, 10, 0, 0, 0, time.UTC)
 	overrideTime, _ := time.Parse(time.RFC3339, "2020-01-01T10:00:00Z")
 
 	tests := []struct {
@@ -39,7 +39,7 @@ func TestNowUTC_withOverride(t *testing.T) {
 }
 
 func TestHoursAgo(t *testing.T) {
-	clockOverride = "2020-01-01T10:00:00Z"
+	clockOverride = time.Date(2020, 1, 1, 10, 0, 0, 0, time.UTC)
 	twoHoursBefore, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00Z")
 
 	type args struct {
@@ -68,7 +68,7 @@ func TestHoursAgo(t *testing.T) {
 }
 
 func TestIsHoursAgo(t *testing.T) {
-	clockOverride = "2020-01-01T10:00:00Z"
+	clockOverride = time.Date(2020, 1, 1, 10, 0, 0, 0, time.UTC)
 	twoHoursBefore, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00Z")
 
 	type args struct {

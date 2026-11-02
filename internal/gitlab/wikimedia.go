@@ -4,13 +4,13 @@ package gitlab
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/releaseversion"
@@ -53,7 +53,7 @@ func RelengCliGetRelease(name string) (*gitlab.Release, error) {
 }
 
 func RelengCliGetReleasesBetweenTags(from, to string) ([]*gitlab.Release, error) {
-	logrus.Tracef("Getting releases between tags: %s and %s", from, to)
+	slog.Debug(fmt.Sprintf("Getting releases between tags: %s and %s", from, to))
 
 	// Get all releases
 	releases, err := RelengCliGetReleases()

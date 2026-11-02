@@ -1,13 +1,10 @@
 package toolhub
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"os"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/toolhub"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -75,15 +72,14 @@ func NewToolHubToolsListCmd() *cobra.Command {
 		Use:     "list",
 		Short:   "List Toolhub Tools",
 		Example: cobrautil.NormalizeExample(toolhubToolsList),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			client := toolhub.NewClient()
-			ctx := context.Background()
+			ctx := cmd.Context()
 			tools, err := client.GetTools(ctx, nil)
 			if err != nil {
-				color.Red("Error: %s", err)
-				os.Exit(1)
+				return err
 			}
-			out.Print(cmd, resultsToObjects(tools.Results, toolType))
+			return out.Print(cmd, resultsToObjects(tools.Results, toolType))
 		},
 	}
 	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
@@ -103,16 +99,15 @@ func NewToolHubToolsSearchCmd() *cobra.Command {
 		Short:   "Search Toolhub Tools",
 		Example: cobrautil.NormalizeExample(toolhubToolsSearch),
 		Args:    cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			searchString := args[0]
 			client := toolhub.NewClient()
-			ctx := context.Background()
+			ctx := cmd.Context()
 			tools, err := client.SearchTools(ctx, searchString, nil)
 			if err != nil {
-				color.Red("Error: %s", err)
-				os.Exit(1)
+				return err
 			}
-			out.Print(cmd, resultsToObjects(tools.Results, toolType))
+			return out.Print(cmd, resultsToObjects(tools.Results, toolType))
 		},
 	}
 	out.AddFlagsWithOpts(cmd, output.WithDefaultTTY(output.PrettyType), output.WithDefaultPipe(output.JSONType))
@@ -125,20 +120,22 @@ func NewToolhubToolsGetCmd() *cobra.Command {
 		Use:   "get",
 		Short: "Get a specific Toolhub Tool",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
 			client := toolhub.NewClient()
-			ctx := context.Background()
+			ctx := cmd.Context()
 			tool, err := client.GetTool(ctx, name, nil)
 			if err != nil {
-				color.Red("Error: %s", err)
-				os.Exit(1)
+				return err
 			}
 
-			empJSON, _ := json.MarshalIndent(tool, "", "  ")
-
-			fmt.Println(string(empJSON))
+			data, err := json.MarshalIndent(tool, "", "  ")
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), string(data))
+			return err
 		},
 	}
 }

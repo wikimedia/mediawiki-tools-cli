@@ -1,7 +1,6 @@
 package codesearch
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 
@@ -47,13 +46,13 @@ search --output jq --format '.[] | .Matches' addshore
 			if output.Type(out.Type) == output.WebType {
 				url := codesearch.CraftSearchURL(searchType, false, searchString, searchOptions)
 
-				fmt.Println("Opening", url)
+				cmd.PrintErrln("Opening", url)
 				browser.OpenURL(url)
 				return nil
 			}
 
 			client := codesearch.NewClient(searchType)
-			response, err := client.Search(context.Background(), searchType, searchString, searchOptions)
+			response, err := client.Search(cmd.Context(), searchType, searchString, searchOptions)
 			if err != nil {
 				return err
 			}
@@ -63,8 +62,7 @@ search --output jq --format '.[] | .Matches' addshore
 				objects[key] = result
 			}
 
-			out.Print(cmd, objects)
-			return nil
+			return out.Print(cmd, objects)
 		},
 	}
 

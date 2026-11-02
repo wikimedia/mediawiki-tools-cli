@@ -70,7 +70,9 @@ func newComputeCreateCmd(provider providerFactory) *cobra.Command {
 			}
 			// Creation may return an admin password; do not include it in output.
 			server.AdminPass = ""
-			out.Print(cmd, server)
+			if err := out.Print(cmd, server); err != nil {
+				return err
+			}
 			if wait {
 				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 				defer cancel()

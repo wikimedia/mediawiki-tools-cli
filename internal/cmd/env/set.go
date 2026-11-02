@@ -9,9 +9,9 @@ func envSet(directory func() string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set [name] [value]",
 		Short: "Set an environment variable",
-		Args:  cobra.MinimumNArgs(2),
-		Run: func(cmd *cobra.Command, args []string) {
-			dotenv.FileForDirectory(directory()).Set(args[0], args[1])
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return dotenv.FileForDirectory(directory()).Set(args[0], args[1])
 		},
 	}
 }

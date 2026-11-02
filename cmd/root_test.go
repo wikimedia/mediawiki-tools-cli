@@ -51,13 +51,16 @@ func TestCommandTelemetry(t *testing.T) {
 			root := NewMwCliCmd()
 			root.SetOut(io.Discard)
 			root.SetErr(io.Discard)
-			probe := &cobra.Command{Use: "probe", PersistentPreRun: cobrautil.CallAllPersistentPreRun}
-			nested := &cobra.Command{Use: "nested", PersistentPreRun: func(c *cobra.Command, args []string) {
-				cobrautil.CallAllPersistentPreRun(c, args)
+			probe := &cobra.Command{Use: "probe", PersistentPreRunE: cobrautil.CallAllPersistentPreRunE}
+			nested := &cobra.Command{Use: "nested", PersistentPreRunE: func(c *cobra.Command, args []string) error {
+				if err := cobrautil.CallAllPersistentPreRunE(c, args); err != nil {
+					return err
+				}
 				// Parent setup hooks must still receive their own command.
 				if c.Name() != "run" && c.Name() != "nested" {
 					t.Errorf("unexpected hook command %q", c.Name())
 				}
+				return nil
 			}}
 			nested.AddCommand(&cobra.Command{Use: "run", Run: func(*cobra.Command, []string) {}})
 			probe.AddCommand(nested, &cobra.Command{Use: "plain", Run: func(*cobra.Command, []string) {}})

@@ -2,11 +2,12 @@ package phabricator
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
-	"syscall"
 )
 
 // shellState holds the current interactive shell state.
@@ -18,10 +19,13 @@ type shellState struct {
 	columns       map[string]string // normalized name -> PHID
 	currentColumn string            // normalized column name
 	currentTask   string            // task number like "T12345"
+	in            io.Reader
+	out           io.Writer
+	errOut        io.Writer
 }
 
 // runShell starts the interactive REPL.
-func runShell(client *conduitClient, cfg *PhabConfig, startProject string, startTask string) error {
+func runShell(ctx context.Context, in io.Reader, out, errOut io.Writer, client *conduitClient, cfg *PhabConfig, startProject string, startTask string) error {
 	projectName := strings.TrimSpace(startProject)
 	if projectName == "" {
 		projectName = strings.TrimSpace(cfg.DefaultProject)
@@ -49,23 +53,45 @@ func runShell(client *conduitClient, cfg *PhabConfig, startProject string, start
 		projectName: projectName,
 		columns:     columns,
 		currentTask: strings.ToUpper(strings.TrimSpace(startTask)),
+		in:          in,
+		out:         out,
+		errOut:      errOut,
 	}
 
-	// Handle SIGINT as shell exit.
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT)
-	go func() {
-		<-sigCh
-		fmt.Println("\nbye")
-		os.Exit(0)
-	}()
+	// Let the command return on Ctrl+C even while waiting for input.
+	shellCtx, stop := signal.NotifyContext(ctx, os.Interrupt)
+	defer stop()
 
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(in)
 	for {
-		printPrompt(state)
-		if !scanner.Scan() {
+		if err := printPrompt(state); err != nil {
+			return err
+		}
+		// Read only the requested line so an explicit exit cannot leave a
+		// goroutine waiting for the next line of terminal input.
+		scanned := make(chan bool, 1)
+		go func() { scanned <- scanner.Scan() }()
+		var hasLine bool
+		select {
+		case <-shellCtx.Done():
+			// Terminal input and pipes can be closed to unblock the pending read.
+			if closer, ok := in.(io.Closer); ok {
+				_ = closer.Close()
+			}
+			if _, err := fmt.Fprintln(out, "\nbye"); err != nil {
+				return err
+			}
+			return ctx.Err()
+		case hasLine = <-scanned:
+		}
+		if !hasLine {
 			// EOF (Ctrl-D)
-			fmt.Println("\nbye")
+			if _, err := fmt.Fprintln(out, "\nbye"); err != nil {
+				return err
+			}
+			if err := scanner.Err(); err != nil {
+				return err
+			}
 			break
 		}
 		line := strings.TrimSpace(scanner.Text())
@@ -74,36 +100,47 @@ func runShell(client *conduitClient, cfg *PhabConfig, startProject string, start
 		}
 		if err := handleShellLine(state, line); err != nil {
 			if err == errExit {
-				fmt.Println("bye")
+				if _, err := fmt.Fprintln(out, "bye"); err != nil {
+					return err
+				}
 				break
 			}
-			fmt.Fprintln(os.Stderr, "Error:", err)
+			if _, writeErr := fmt.Fprintln(errOut, "Error:", err); writeErr != nil {
+				return writeErr
+			}
 		}
 	}
 
-	signal.Stop(sigCh)
 	return nil
 }
 
 var errExit = fmt.Errorf("exit")
 
-func printPrompt(s *shellState) {
-	cyan.Printf("%s", s.config.Username)
-	fmt.Printf("@")
-	if s.projectName == "" {
-		white.Printf("(no-project)")
-	} else {
-		white.Printf("%s", s.projectName)
+func printPrompt(s *shellState) error {
+	if _, err := fmt.Fprintf(s.out, "%s@", s.config.Username); err != nil {
+		return err
 	}
-	if s.currentColumn != "" {
-		fmt.Printf("/")
-		white.Printf("%s", s.currentColumn)
-		if s.currentTask != "" {
-			fmt.Printf("/")
-			white.Printf("%s", s.currentTask)
+	if s.projectName == "" {
+		if _, err := fmt.Fprint(s.out, "(no-project)"); err != nil {
+			return err
+		}
+	} else {
+		if _, err := fmt.Fprint(s.out, s.projectName); err != nil {
+			return err
 		}
 	}
-	fmt.Printf(" \u276F ")
+	if s.currentColumn != "" {
+		if _, err := fmt.Fprintf(s.out, "/%s", s.currentColumn); err != nil {
+			return err
+		}
+		if s.currentTask != "" {
+			if _, err := fmt.Fprintf(s.out, "/%s", s.currentTask); err != nil {
+				return err
+			}
+		}
+	}
+	_, err := fmt.Fprint(s.out, " \u276F ")
+	return err
 }
 
 func requireProjectSelected(s *shellState, action string) error {
@@ -160,7 +197,7 @@ func handleShellLine(s *shellState, line string) error {
 		return shellSetStatus(s, args)
 
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\nCommands: ls, cd, view, comments, read, mv, assign, rmtag, setprio, setstatus, exit\n", cmd)
+		_, _ = fmt.Fprintf(s.errOut, "unknown command: %s\nCommands: ls, cd, view, comments, read, mv, assign, rmtag, setprio, setstatus, exit\n", cmd)
 	}
 	return nil
 }
@@ -175,14 +212,14 @@ func shellLS(s *shellState, args []string) error {
 		if err != nil {
 			return err
 		}
-		renderTaskList(tasks)
+		renderTaskListTo(s.out, tasks)
 		return nil
 	}
 
 	if len(args) == 0 {
 		if s.currentColumn == "" {
 			// List columns
-			renderColumnList(s.columns)
+			renderColumnListTo(s.out, s.columns)
 			return nil
 		}
 		// List tasks in current column
@@ -194,7 +231,7 @@ func shellLS(s *shellState, args []string) error {
 		if err != nil {
 			return err
 		}
-		renderTaskList(tasks)
+		renderTaskListTo(s.out, tasks)
 		return nil
 	}
 
@@ -208,7 +245,7 @@ func shellLS(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderTaskList(tasks)
+	renderTaskListTo(s.out, tasks)
 	return nil
 }
 
@@ -296,7 +333,7 @@ func shellView(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderTask(os.Stdout, task, s.client)
+	renderTask(s.out, task, s.client)
 	return nil
 }
 
@@ -314,7 +351,7 @@ func shellComments(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	renderComments(os.Stdout, task, txs, s.client)
+	renderComments(s.out, task, txs, s.client)
 	return nil
 }
 
@@ -347,7 +384,9 @@ func shellMV(s *shellState, args []string) error {
 	if err := s.client.moveTaskToColumn(taskPHID, colPHID); err != nil {
 		return err
 	}
-	fmt.Printf("Moved %s to %s\n", taskRef, colName)
+	if _, err := fmt.Fprintf(s.out, "Moved %s to %s\n", taskRef, colName); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -371,7 +410,9 @@ func shellAssign(s *shellState, args []string) error {
 	if err := s.client.assignTask(taskPHID, user.PHID); err != nil {
 		return err
 	}
-	fmt.Printf("Assigned %s to %s\n", taskRef, user.Fields.Username)
+	if _, err := fmt.Fprintf(s.out, "Assigned %s to %s\n", taskRef, user.Fields.Username); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -397,9 +438,9 @@ func shellRMTag(s *shellState, args []string) error {
 		return fmt.Errorf("project %q not found", tagQuery)
 	}
 	if len(projects) > 1 {
-		fmt.Fprintln(os.Stderr, "Multiple projects matched:")
+		fmt.Fprintln(s.errOut, "Multiple projects matched:")
 		for name, phid := range projects {
-			fmt.Fprintf(os.Stderr, "  %s (%s)\n", name, phid)
+			fmt.Fprintf(s.errOut, "  %s (%s)\n", name, phid)
 		}
 		return fmt.Errorf("specify a more precise project name")
 	}
@@ -415,7 +456,9 @@ func shellRMTag(s *shellState, args []string) error {
 	if err := s.client.removeProjectFromTask(taskPHID, projectPHID); err != nil {
 		return err
 	}
-	fmt.Printf("Removed tag from %s\n", taskRef)
+	if _, err := fmt.Fprintf(s.out, "Removed tag from %s\n", taskRef); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -459,7 +502,9 @@ func shellSetPrio(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s priority set to: %s\n", taskRef, task.Fields.Priority.Name)
+	if _, err := fmt.Fprintf(s.out, "%s priority set to: %s\n", taskRef, task.Fields.Priority.Name); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -504,7 +549,9 @@ func shellSetStatus(s *shellState, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s status set to: %s\n", taskRef, task.Fields.Status.Name)
+	if _, err := fmt.Fprintf(s.out, "%s status set to: %s\n", taskRef, task.Fields.Status.Name); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -3,6 +3,7 @@ package dev
 import (
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -62,8 +63,11 @@ func NewRecipeCmd() *cobra.Command {
 		Long:  "Apply a YAML recipe to set up services, checkout code, install sites, apply LocalSettings config, and run maintenance commands.",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			stderr := cmd.ErrOrStderr()
 			m := devenv.DefaultForUser()
-			m.EnsureReady()
+			if err := m.EnsureReady(); err != nil {
+				return err
+			}
 
 			if len(args) > 0 {
 				recipeName = args[0]
@@ -74,13 +78,13 @@ func NewRecipeCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Applying recipe %q (%s)\n", spec.Name, spec.Version)
+			fmt.Fprintf(stderr, "Applying recipe %q (%s)\n", spec.Name, spec.Version)
 			if dryRun {
-				fmt.Println("Dry run mode enabled. No changes will be made.")
+				fmt.Fprintln(stderr, "Dry run mode enabled. No changes will be made.")
 			}
 
 			// Ensure recipe-scoped state from previous runs does not leak into this run.
-			if err := cleanupRecipeRuntimeState(m, dryRun); err != nil {
+			if err := cleanupRecipeRuntimeState(m, dryRun, stderr); err != nil {
 				return err
 			}
 
@@ -89,18 +93,22 @@ func NewRecipeCmd() *cobra.Command {
 			for k, v := range spec.Env {
 				appliedEnvKeys = append(appliedEnvKeys, k)
 				if dryRun {
-					fmt.Printf("[dry-run] set env %s=%s\n", k, v)
+					fmt.Fprintf(stderr, "[dry-run] set env %s=%s\n", k, v)
 					continue
 				}
-				m.Env().Set(k, v)
+				if err := m.Env().Set(k, v); err != nil {
+					return err
+				}
 			}
 
 			if m.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
 				guess := mediawiki.GuessMediaWikiDirectoryBasedOnContext()
 				if dryRun {
-					fmt.Printf("[dry-run] set MEDIAWIKI_VOLUMES_CODE=%s\n", guess)
+					fmt.Fprintf(stderr, "[dry-run] set MEDIAWIKI_VOLUMES_CODE=%s\n", guess)
 				} else {
-					m.Env().Set("MEDIAWIKI_VOLUMES_CODE", guess)
+					if err := m.Env().Set("MEDIAWIKI_VOLUMES_CODE", guess); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -111,12 +119,15 @@ func NewRecipeCmd() *cobra.Command {
 				return fmt.Errorf("MEDIAWIKI_VOLUMES_CODE is empty")
 			}
 
-			thisMW, _ := mediawiki.ForDirectory(mediaWikiPath)
+			thisMW, err := mediawiki.ForDirectory(mediaWikiPath)
+			if err != nil {
+				return err
+			}
 
 			customComposeFile := ""
 			if strings.TrimSpace(spec.CustomCompose.Content) != "" {
 				customComposeFile = customComposeFileName(spec.CustomCompose)
-				if err := writeCustomComposeFile(m, spec.CustomCompose, dryRun); err != nil {
+				if err := writeCustomComposeFile(m, spec.CustomCompose, dryRun, stderr); err != nil {
 					return err
 				}
 			}
@@ -132,7 +143,7 @@ func NewRecipeCmd() *cobra.Command {
 			}
 
 			if !skipCode {
-				if err := applyCodeCheckout(spec, thisMW, dryRun); err != nil {
+				if err := applyCodeCheckout(spec, thisMW, dryRun, stderr); err != nil {
 					return err
 				}
 			}
@@ -147,50 +158,50 @@ func NewRecipeCmd() *cobra.Command {
 				spec.Services = append(spec.Services, recipe.Service{Name: "mediawiki-jobrunner", State: "started"})
 			}
 
-			if err := applyJobRunnerSites(m, spec.JobRunner.Sites, dryRun); err != nil {
+			if err := applyJobRunnerSites(m, spec.JobRunner.Sites, dryRun, stderr); err != nil {
 				return err
 			}
 
 			if !skipServices {
-				if err := applyServices(spec.Services, m, dryRun); err != nil {
+				if err := applyServices(spec.Services, m, dryRun, stderr); err != nil {
 					return err
 				}
 			}
 
-			if err := syncComposerLocalAndUpdate(m, thisMW, spec.Code, dryRun); err != nil {
+			if err := syncComposerLocalAndUpdate(m, thisMW, spec.Code, dryRun, stderr); err != nil {
 				return err
 			}
 
-			if err := removeManagedRecipeLocalSettings(thisMW, dryRun); err != nil {
+			if err := removeManagedRecipeLocalSettings(thisMW, dryRun, stderr); err != nil {
 				return err
 			}
 
 			// Apply LocalSettings BEFORE installing sites so that update.php
 			// (run inside installSite) picks up extension configuration.
-			if err := applyLocalSettings(thisMW, spec.Name, spec.LocalSettings, dryRun); err != nil {
+			if err := applyLocalSettings(thisMW, spec.Name, spec.LocalSettings, dryRun, stderr); err != nil {
 				return err
 			}
 
 			if !skipSites {
 				for _, site := range spec.Sites {
-					if err := installSite(m, thisMW, site, dryRun); err != nil {
+					if err := installSite(m, thisMW, site, dryRun, stderr); err != nil {
 						return err
 					}
 				}
 			}
 
 			if !skipMaintenance {
-				if err := runMaintenanceSteps(m, spec.Maintenance, dryRun); err != nil {
+				if err := runMaintenanceSteps(m, spec.Maintenance, dryRun, stderr); err != nil {
 					return err
 				}
 			}
 
-			if err := applyContent(m, spec.Sites, spec.Content, dryRun); err != nil {
+			if err := applyContent(m, spec.Sites, spec.Content, dryRun, stderr); err != nil {
 				return err
 			}
 
 			if !skipPatches {
-				if err := applyPatches(mediaWikiPath, spec.Patches, dryRun); err != nil {
+				if err := applyPatches(mediaWikiPath, spec.Patches, dryRun, stderr); err != nil {
 					return err
 				}
 			}
@@ -208,12 +219,12 @@ func NewRecipeCmd() *cobra.Command {
 			if spec.Description != "" {
 				outputDetails["Info"] = spec.Description
 			}
-			cmdgloss.PrintThreePartBlock(
+			_, printErr := fmt.Fprint(cmd.OutOrStdout(), cmdgloss.ThreePartBlock(
 				cmdgloss.SuccessHeading("Recipe applied successfully"),
 				outputDetails,
 				"Run `"+recipeStatusCommand+"` to see running services.",
-			)
-			return nil
+			))
+			return printErr
 		},
 	}
 
@@ -263,7 +274,7 @@ func saveRecipeRuntimeState(m devenv.Environment, state recipeRuntimeState) erro
 	return os.WriteFile(path, b, 0o644)
 }
 
-func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
+func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool, stderr io.Writer) error {
 	state, err := loadRecipeRuntimeState(m)
 	if err != nil {
 		return err
@@ -271,16 +282,18 @@ func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
 
 	for _, key := range uniqueStrings(nonEmptyStrings(state.EnvKeys)) {
 		if dryRun {
-			fmt.Printf("[dry-run] unset env %s\n", key)
+			fmt.Fprintf(stderr, "[dry-run] unset env %s\n", key)
 			continue
 		}
-		m.Env().Delete(key)
+		if err := m.Env().Delete(key); err != nil {
+			return err
+		}
 	}
 
 	for _, composeFile := range uniqueStrings(nonEmptyStrings(state.ComposeFiles)) {
 		path := filepath.Clean(filepath.Join(m.Directory(), composeFile))
 		if dryRun {
-			fmt.Printf("[dry-run] remove compose file %s\n", path)
+			fmt.Fprintf(stderr, "[dry-run] remove compose file %s\n", path)
 			continue
 		}
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
@@ -292,29 +305,33 @@ func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
 		jobRunnerSitesFile := filepath.Clean(filepath.Join(m.Directory(), "mediawiki", "jobrunner-sites"))
 		for _, site := range uniqueStrings(nonEmptyStrings(state.JobRunnerSites)) {
 			if dryRun {
-				fmt.Printf("[dry-run] remove jobrunner site %s from %s\n", site, jobRunnerSitesFile)
+				fmt.Fprintf(stderr, "[dry-run] remove jobrunner site %s from %s\n", site, jobRunnerSitesFile)
 				continue
 			}
-			filesutil.RemoveAllLinesMatching(site, jobRunnerSitesFile)
+			if err := filesutil.RemoveAllLinesMatching(site, jobRunnerSitesFile); err != nil {
+				return fmt.Errorf("remove jobrunner site %s: %w", site, err)
+			}
 		}
 	}
 
-	legacyComposeCleaned, err := cleanupLegacyRecipeComposeFiles(m, dryRun)
+	legacyComposeCleaned, err := cleanupLegacyRecipeComposeFiles(m, dryRun, stderr)
 	if err != nil {
 		return err
 	}
 	if legacyComposeCleaned {
 		for _, key := range []string{"MEDIAWIKI_DEFAULT_DBNAME", "CXSERVER_VOLUMES_CODE"} {
 			if dryRun {
-				fmt.Printf("[dry-run] unset legacy env %s\n", key)
+				fmt.Fprintf(stderr, "[dry-run] unset legacy env %s\n", key)
 				continue
 			}
-			m.Env().Delete(key)
+			if err := m.Env().Delete(key); err != nil {
+				return err
+			}
 		}
 	}
 
 	if dryRun {
-		fmt.Printf("[dry-run] remove recipe runtime state file %s\n", recipeRuntimeStatePath(m))
+		fmt.Fprintf(stderr, "[dry-run] remove recipe runtime state file %s\n", recipeRuntimeStatePath(m))
 		return nil
 	}
 	if err := os.Remove(recipeRuntimeStatePath(m)); err != nil && !os.IsNotExist(err) {
@@ -323,7 +340,7 @@ func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
 	return nil
 }
 
-func cleanupLegacyRecipeComposeFiles(m devenv.Environment, dryRun bool) (bool, error) {
+func cleanupLegacyRecipeComposeFiles(m devenv.Environment, dryRun bool, stderr io.Writer) (bool, error) {
 	entries, err := os.ReadDir(m.Directory())
 	if err != nil {
 		return false, err
@@ -358,7 +375,7 @@ func cleanupLegacyRecipeComposeFiles(m devenv.Environment, dryRun bool) (bool, e
 		}
 
 		if dryRun {
-			fmt.Printf("[dry-run] remove legacy compose file %s\n", path)
+			fmt.Fprintf(stderr, "[dry-run] remove legacy compose file %s\n", path)
 			cleaned = true
 			continue
 		}
@@ -399,7 +416,9 @@ func newRecipeValidateCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			m.EnsureReady()
+			if err := m.EnsureReady(); err != nil {
+				return err
+			}
 
 			if len(args) > 0 {
 				recipeName = args[0]
@@ -409,9 +428,9 @@ func newRecipeValidateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Recipe valid: %q (%s)\n", spec.Name, spec.Version)
-			fmt.Printf("Code checkout: core=%v, extensions=%d, skins=%d\n", spec.Code.Core, len(spec.Code.Extensions), len(spec.Code.Skins))
-			fmt.Printf("Services=%d, Sites=%d, Maintenance steps=%d, Patches=%d\n", len(spec.Services), len(spec.Sites), len(spec.Maintenance), len(spec.Patches))
+			fmt.Fprintf(cmd.OutOrStdout(), "Recipe valid: %q (%s)\n", spec.Name, spec.Version)
+			fmt.Fprintf(cmd.OutOrStdout(), "Code checkout: core=%v, extensions=%d, skins=%d\n", spec.Code.Core, len(spec.Code.Extensions), len(spec.Code.Skins))
+			fmt.Fprintf(cmd.OutOrStdout(), "Services=%d, Sites=%d, Maintenance steps=%d, Patches=%d\n", len(spec.Services), len(spec.Sites), len(spec.Maintenance), len(spec.Patches))
 			return nil
 		},
 	}
@@ -618,10 +637,10 @@ func expandRecipeEnvVars(value string, env map[string]string) string {
 	})
 }
 
-func writeCustomComposeFile(m devenv.Environment, custom recipe.CustomCompose, dryRun bool) error {
+func writeCustomComposeFile(m devenv.Environment, custom recipe.CustomCompose, dryRun bool, stderr io.Writer) error {
 	path := filepath.Clean(filepath.Join(m.Directory(), customComposeFileName(custom)))
 	if dryRun {
-		fmt.Printf("[dry-run] write custom compose file %s\n", path)
+		fmt.Fprintf(stderr, "[dry-run] write custom compose file %s\n", path)
 		return nil
 	}
 	content := strings.TrimSpace(custom.Content)
@@ -639,7 +658,7 @@ func customComposeFileName(custom recipe.CustomCompose) string {
 	return name + ".yml"
 }
 
-func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool) error {
+func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool, stderr io.Writer) error {
 	gerritInteractionType := spec.Source.GerritInteractionType
 	gerritUsername := spec.Source.GerritUsername
 	configState := config.State()
@@ -700,6 +719,8 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 		GerritInteractionType: gerritInteractionType,
 		GerritUsername:        gerritUsername,
 		DryRun:                dryRun,
+		Out:                   stderr,
+		Err:                   stderr,
 	}
 
 	if thisMW.MediaWikiIsPresent() {
@@ -726,10 +747,10 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 			destPath = filepath.Join(thisMW.Path(""), destPath)
 		}
 		if _, err := os.Stat(destPath); err == nil {
-			fmt.Printf("Skipping already-present repo at %s\n", co.Path)
+			fmt.Fprintf(stderr, "Skipping already-present repo at %s\n", co.Path)
 			continue
 		}
-		fmt.Printf("Cloning %s into %s\n", co.URL, co.Path)
+		fmt.Fprintf(stderr, "Cloning %s into %s\n", co.URL, co.Path)
 		if dryRun {
 			continue
 		}
@@ -737,8 +758,8 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 			return fmt.Errorf("creating parent directory for %s: %w", co.Path, err)
 		}
 		cmd := osexec.Command("git", "clone", co.URL, destPath)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = stderr
+		cmd.Stderr = stderr
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("cloning %s: %w", co.URL, err)
 		}
@@ -792,13 +813,17 @@ func uniqueStrings(in []string) []string {
 	return out
 }
 
-func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool) error {
+func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool, stderr io.Writer) error {
 	for _, svc := range services {
 		f := m.DockerCompose().File(svc.Name)
-		if !f.Exists() {
-			return fmt.Errorf("service file %s does not exist", f.String())
+		if err := f.RequireExists(); err != nil {
+			return err
 		}
-		names := f.Contents().ServiceNames()
+		contents, err := f.Contents()
+		if err != nil {
+			return err
+		}
+		names := contents.ServiceNames()
 		if len(names) == 0 {
 			return fmt.Errorf("service file %s does not define any services", f.String())
 		}
@@ -806,21 +831,21 @@ func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool)
 		switch svc.State {
 		case "started":
 			if dryRun {
-				fmt.Printf("[dry-run] docker compose up -d for service file %s (%v)\n", svc.Name, names)
+				fmt.Fprintf(stderr, "[dry-run] docker compose up -d for service file %s (%v)\n", svc.Name, names)
 				continue
 			}
-			if err := m.PrepareGateway(); err != nil {
+			if err := m.PrepareGatewayWithOutput(stderr); err != nil {
 				return err
 			}
-			if err := m.DockerCompose().Up(names, dockercompose.UpOptions{Detached: true}); err != nil {
+			if err := m.DockerCompose().WithIO(nil, stderr, stderr).Up(names, dockercompose.UpOptions{Detached: true}); err != nil {
 				return err
 			}
 		case "stopped":
 			if dryRun {
-				fmt.Printf("[dry-run] docker compose stop for service file %s (%v)\n", svc.Name, names)
+				fmt.Fprintf(stderr, "[dry-run] docker compose stop for service file %s (%v)\n", svc.Name, names)
 				continue
 			}
-			if err := m.DockerCompose().Stop(names); err != nil {
+			if err := m.DockerCompose().WithIO(nil, stderr, stderr).Stop(names); err != nil {
 				return err
 			}
 		}
@@ -828,50 +853,57 @@ func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool)
 	return nil
 }
 
-func applyJobRunnerSites(m devenv.Environment, sites []string, dryRun bool) error {
+func applyJobRunnerSites(m devenv.Environment, sites []string, dryRun bool, stderr io.Writer) error {
 	if len(sites) == 0 {
 		return nil
 	}
 	jobRunnerSitesFile := filepath.Clean(filepath.Join(m.Directory(), "mediawiki", "jobrunner-sites"))
 	for _, site := range uniqueStrings(nonEmptyStrings(sites)) {
 		if dryRun {
-			fmt.Printf("[dry-run] add jobrunner site %s to %s\n", site, jobRunnerSitesFile)
+			fmt.Fprintf(stderr, "[dry-run] add jobrunner site %s to %s\n", site, jobRunnerSitesFile)
 			continue
 		}
-		filesutil.AddLineUnique(site, jobRunnerSitesFile)
+		if err := filesutil.AddLineUnique(site, jobRunnerSitesFile); err != nil {
+			return fmt.Errorf("add jobrunner site %s: %w", site, err)
+		}
 	}
 	return nil
 }
 
-func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.Site, dryRun bool) error {
+func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.Site, dryRun bool, stderr io.Writer) (runErr error) {
 	if dryRun {
-		fmt.Printf("[dry-run] install wiki site dbname=%s dbtype=%s\n", site.DBName, site.DBType)
+		fmt.Fprintf(stderr, "[dry-run] install wiki site dbname=%s dbtype=%s\n", site.DBName, site.DBType)
 		return nil
 	}
+	compose := m.DockerCompose().WithIO(nil, stderr, stderr)
 
 	if err := ensureLocalSettingsBase(thisMW); err != nil {
 		return err
 	}
 
-	if !thisMW.LocalSettingsContains("/mwdd/DevSettings.php") && !thisMW.LocalSettingsContains("/wm-dev/DevSettings.php") && !thisMW.LocalSettingsContains("/mwdd/MwddSettings.php") {
+	settingsContents, err := thisMW.LocalSettingsContents()
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(settingsContents, "/mwdd/DevSettings.php") && !strings.Contains(settingsContents, "/wm-dev/DevSettings.php") && !strings.Contains(settingsContents, "/mwdd/MwddSettings.php") {
 		return fmt.Errorf("LocalSettings.php is missing the development settings include")
 	}
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+	if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 		User:           "root",
 		CommandAndArgs: []string{"mkdir", "-p", "/var/www/html/w/cache/docker/" + site.DBName},
 	}); err != nil {
 		return err
 	}
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+	if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 		User:           "root",
 		CommandAndArgs: []string{"chown", "-R", "nobody", "/var/www/html/w/cache", "/var/www/html/w/images", "/var/log/mediawiki"},
 	}); err != nil {
 		return err
 	}
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+	if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 		User:           "root",
 		CommandAndArgs: []string{"chmod", "-R", "0777", "/var/www/html/w/cache", "/var/www/html/w/images"},
 	}); err != nil {
@@ -879,34 +911,40 @@ func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.S
 	}
 
 	domain := site.DBName + ".mediawiki.local.wmftest.net"
-	m.RecordHostUsageBySite(domain)
+	if err := m.RecordHostUsageBySite(domain); err != nil {
+		return err
+	}
 
 	serverLink := "http://" + domain + ":" + m.Env().Get("PORT")
 	backupSuffix := time.Now().Format("20060102150405")
 	backupPath := "/var/www/html/w/LocalSettings.php.recipe.bak." + backupSuffix
 	restoredLocalSettings := false
-	restoreLocalSettings := func() {
+	restoreLocalSettings := func() error {
 		if restoredLocalSettings {
-			return
+			return nil
 		}
-		_ = m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+		err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 			User:           "root",
 			CommandAndArgs: []string{"mv", backupPath, "/var/www/html/w/LocalSettings.php"},
 		})
+		if err != nil {
+			return fmt.Errorf("restore LocalSettings.php: %w", err)
+		}
 		restoredLocalSettings = true
+		return nil
 	}
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+	if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 		User:           "root",
 		CommandAndArgs: []string{"mv", "/var/www/html/w/LocalSettings.php", backupPath},
 	}); err != nil {
 		return err
 	}
 
-	defer restoreLocalSettings()
+	defer func() { runErr = errors.Join(runErr, restoreLocalSettings()) }()
 
 	if site.DBType == "mysql" {
-		if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+		if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 			User:           "nobody",
 			CommandAndArgs: []string{"/wait-for-it.sh", "mysql:3306"},
 		}); err != nil {
@@ -914,7 +952,7 @@ func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.S
 		}
 	}
 	if site.DBType == "postgres" {
-		if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+		if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 			User:           "nobody",
 			CommandAndArgs: []string{"/wait-for-it.sh", "postgres:5432"},
 		}); err != nil {
@@ -944,7 +982,7 @@ func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.S
 		)
 	}
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+	if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 		User:           "nobody",
 		CommandAndArgs: installArgs,
 	}); err != nil {
@@ -952,16 +990,18 @@ func installSite(m devenv.Environment, thisMW mediawiki.MediaWiki, site recipe.S
 	}
 
 	// Move LocalSettings back before running update, as update needs /var/www/html/w/LocalSettings.php.
-	restoreLocalSettings()
+	if err := restoreLocalSettings(); err != nil {
+		return err
+	}
 
-	if err := m.DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+	if err := compose.Exec("mediawiki", dockercompose.ExecOptions{
 		User:           "nobody",
 		CommandAndArgs: []string{"php", "/var/www/html/w/maintenance/update.php", "--wiki", site.DBName, "--quick"},
 	}); err != nil {
 		return err
 	}
 
-	fmt.Printf("Installed wiki %s (%s)\n", site.DBName, site.DBType)
+	fmt.Fprintf(stderr, "Installed wiki %s (%s)\n", site.DBName, site.DBType)
 	return nil
 }
 
@@ -989,7 +1029,7 @@ func ensureLocalSettingsBase(thisMW mediawiki.MediaWiki) error {
 	return nil
 }
 
-func applyLocalSettings(thisMW mediawiki.MediaWiki, recipeName string, ls recipe.LocalSettings, dryRun bool) error {
+func applyLocalSettings(thisMW mediawiki.MediaWiki, recipeName string, ls recipe.LocalSettings, dryRun bool, stderr io.Writer) error {
 	hasFiles := len(ls.Files.Shared) > 0 || len(ls.Files.PerWiki) > 0
 	hasAppend := strings.TrimSpace(ls.AppendPHP) != ""
 	hasYAML := strings.TrimSpace(ls.YAMLSettingsFile) != ""
@@ -999,7 +1039,7 @@ func applyLocalSettings(thisMW mediawiki.MediaWiki, recipeName string, ls recipe
 	}
 
 	if dryRun {
-		fmt.Println("[dry-run] apply LocalSettings")
+		fmt.Fprintln(stderr, "[dry-run] apply LocalSettings")
 		return nil
 	}
 
@@ -1009,7 +1049,7 @@ func applyLocalSettings(thisMW mediawiki.MediaWiki, recipeName string, ls recipe
 
 	// Prefer LocalSettings.d files over appending to LocalSettings.php.
 	if hasFiles {
-		return applyLocalSettingsFiles(thisMW, recipeName, ls.Files)
+		return applyLocalSettingsFiles(thisMW, recipeName, ls.Files, stderr)
 	}
 
 	// Legacy: append to LocalSettings.php directly.
@@ -1056,7 +1096,7 @@ const recipeLocalSettingsMarker = "// Generated by mwcli recipe"
 
 // applyLocalSettingsFiles writes recipe-managed PHP files into LocalSettings.d/
 // so they are loaded by DevSettings.php automatically.
-func applyLocalSettingsFiles(thisMW mediawiki.MediaWiki, recipeName string, files recipe.LocalSettingsFiles) error {
+func applyLocalSettingsFiles(thisMW mediawiki.MediaWiki, recipeName string, files recipe.LocalSettingsFiles, stderr io.Writer) error {
 	localSettingsDPath := filepath.Clean(filepath.Join(thisMW.Path(""), "LocalSettings.d"))
 
 	// Write shared files (loaded for all wikis).
@@ -1070,7 +1110,7 @@ func applyLocalSettingsFiles(thisMW mediawiki.MediaWiki, recipeName string, file
 			return err
 		}
 		content := "<?php\n" + recipeLocalSettingsMarker + " — " + recipeName + "\n" + strings.TrimSpace(f.Content) + "\n"
-		fmt.Printf("Writing %s\n", filePath)
+		fmt.Fprintf(stderr, "Writing %s\n", filePath)
 		if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 			return err
 		}
@@ -1089,7 +1129,7 @@ func applyLocalSettingsFiles(thisMW mediawiki.MediaWiki, recipeName string, file
 				return err
 			}
 			content := "<?php\n" + recipeLocalSettingsMarker + " — " + recipeName + "\n" + strings.TrimSpace(f.Content) + "\n"
-			fmt.Printf("Writing %s\n", filePath)
+			fmt.Fprintf(stderr, "Writing %s\n", filePath)
 			if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 				return err
 			}
@@ -1099,9 +1139,9 @@ func applyLocalSettingsFiles(thisMW mediawiki.MediaWiki, recipeName string, file
 	return nil
 }
 
-func removeManagedRecipeLocalSettings(thisMW mediawiki.MediaWiki, dryRun bool) error {
+func removeManagedRecipeLocalSettings(thisMW mediawiki.MediaWiki, dryRun bool, stderr io.Writer) error {
 	if dryRun {
-		fmt.Println("[dry-run] remove managed recipe settings")
+		fmt.Fprintln(stderr, "[dry-run] remove managed recipe settings")
 		return nil
 	}
 
@@ -1140,9 +1180,14 @@ func cleanupRecipeLocalSettingsDFiles(dir string) error {
 			if err := cleanupRecipeLocalSettingsDFiles(entryPath); err != nil {
 				return err
 			}
-			remaining, _ := os.ReadDir(entryPath)
+			remaining, err := os.ReadDir(entryPath)
+			if err != nil {
+				return err
+			}
 			if len(remaining) == 0 {
-				_ = os.Remove(entryPath)
+				if err := os.Remove(entryPath); err != nil {
+					return err
+				}
 			}
 			continue
 		}
@@ -1190,7 +1235,7 @@ func removeManagedRecipeLocalSettingsBlocks(content string) string {
 	return content
 }
 
-func syncComposerLocalAndUpdate(m devenv.Environment, thisMW mediawiki.MediaWiki, code recipe.Code, dryRun bool) error {
+func syncComposerLocalAndUpdate(m devenv.Environment, thisMW mediawiki.MediaWiki, code recipe.Code, dryRun bool, stderr io.Writer) error {
 	includes := composerLocalIncludesForCode(thisMW, code)
 	if len(includes) == 0 {
 		return nil
@@ -1205,9 +1250,9 @@ func syncComposerLocalAndUpdate(m devenv.Environment, thisMW mediawiki.MediaWiki
 	updatedIncludes, changed := setComposerMergeIncludes(composerLocal, includes)
 	if dryRun {
 		if changed {
-			fmt.Printf("[dry-run] update %s includes: %v\n", composerLocalPath, updatedIncludes)
+			fmt.Fprintf(stderr, "[dry-run] update %s includes: %v\n", composerLocalPath, updatedIncludes)
 		}
-		fmt.Println("[dry-run] composer update --with-all-dependencies")
+		fmt.Fprintln(stderr, "[dry-run] composer update --with-all-dependencies")
 		return nil
 	}
 
@@ -1238,7 +1283,7 @@ func syncComposerLocalAndUpdate(m devenv.Environment, thisMW mediawiki.MediaWiki
 			return 1
 		}
 		return 0
-	}, os.Stdout, os.Stderr)
+	}, stderr, stderr)
 	if exitCode != 0 {
 		return fmt.Errorf("composer update (with composer.local.json includes) failed: %w", composerErr)
 	}
@@ -1370,7 +1415,7 @@ func stringSlicesEqual(a []string, b []string) bool {
 	return true
 }
 
-func runMaintenanceSteps(m devenv.Environment, steps []recipe.ContainerCommandStep, dryRun bool) error {
+func runMaintenanceSteps(m devenv.Environment, steps []recipe.ContainerCommandStep, dryRun bool, stderr io.Writer) error {
 	if len(steps) == 0 {
 		return nil
 	}
@@ -1386,12 +1431,13 @@ func runMaintenanceSteps(m devenv.Environment, steps []recipe.ContainerCommandSt
 			name = "step-" + strconv.Itoa(i+1)
 		}
 		if dryRun {
-			fmt.Printf("[dry-run] maintenance %s: %v\n", name, step.Command)
+			fmt.Fprintf(stderr, "[dry-run] maintenance %s: %v\n", name, step.Command)
 			continue
 		}
 
 		env := mapToEnv(step.Env)
 		exitCode := docker.Exec(containerID, docker.ExecOptions{
+			Output:     stderr,
 			Command:    step.Command,
 			Env:        env,
 			User:       defaultUser(step.User),
@@ -1427,7 +1473,7 @@ func mapToEnv(envMap map[string]string) []string {
 	return out
 }
 
-func applyPatches(mediaWikiPath string, patches []recipe.Patch, dryRun bool) error {
+func applyPatches(mediaWikiPath string, patches []recipe.Patch, dryRun bool, stderr io.Writer) error {
 	for i, patch := range patches {
 		name := patch.Name
 		if name == "" {
@@ -1444,14 +1490,14 @@ func applyPatches(mediaWikiPath string, patches []recipe.Patch, dryRun bool) err
 		}
 
 		if dryRun {
-			fmt.Printf("[dry-run] patch %s: git -C %s fetch %v && cherry-pick %s\n", name, repoPath, patch.Fetch, cherryPickRef)
+			fmt.Fprintf(stderr, "[dry-run] patch %s: git -C %s fetch %v && cherry-pick %s\n", name, repoPath, patch.Fetch, cherryPickRef)
 			continue
 		}
 
-		if err := runGit(repoPath, append([]string{"fetch"}, patch.Fetch...)...); err != nil {
+		if err := runGit(stderr, repoPath, append([]string{"fetch"}, patch.Fetch...)...); err != nil {
 			return fmt.Errorf("patch %q fetch failed: %w", name, err)
 		}
-		if err := runGit(repoPath, "cherry-pick", cherryPickRef); err != nil {
+		if err := runGit(stderr, repoPath, "cherry-pick", cherryPickRef); err != nil {
 			return fmt.Errorf("patch %q cherry-pick failed: %w", name, err)
 		}
 	}
@@ -1459,32 +1505,32 @@ func applyPatches(mediaWikiPath string, patches []recipe.Patch, dryRun bool) err
 }
 
 // waitForSites polls each site's API endpoint until it responds, or times out.
-func waitForSites(sites []recipe.Site, port string, dryRun bool) error {
+func waitForSites(sites []recipe.Site, port string, dryRun bool, stderr io.Writer) error {
 	if len(sites) == 0 {
 		return nil
 	}
 	if dryRun {
-		fmt.Println("[dry-run] wait for sites to respond")
+		fmt.Fprintln(stderr, "[dry-run] wait for sites to respond")
 		return nil
 	}
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	for _, site := range sites {
 		apiURL := "http://" + site.DBName + ".mediawiki.local.wmftest.net:" + port + "/w/api.php?action=query&format=json"
-		if err := waitForSiteURL(site.DBName, apiURL, client, recipeSiteWaitAttempts, 2*time.Second); err != nil {
+		if err := waitForSiteURL(stderr, site.DBName, apiURL, client, recipeSiteWaitAttempts, 2*time.Second); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempts int, delay time.Duration) error {
+func waitForSiteURL(stderr io.Writer, siteName string, apiURL string, client *http.Client, attempts int, delay time.Duration) error {
 	client = cli.WithHTTPUserAgent(client)
 	if attempts <= 0 {
 		attempts = 1
 	}
 
-	fmt.Printf("Waiting for %s site to respond...\n", siteName)
+	fmt.Fprintf(stderr, "Waiting for %s site to respond...\n", siteName)
 
 	lastStatus := 0
 	lastErr := error(nil)
@@ -1495,7 +1541,7 @@ func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempt
 			lastStatus = resp.StatusCode
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				fmt.Printf("%s site is ready.\n", siteName)
+				fmt.Fprintf(stderr, "%s site is ready.\n", siteName)
 				return nil
 			}
 			lastErr = nil
@@ -1519,13 +1565,13 @@ func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempt
 	return fmt.Errorf("%s", message)
 }
 
-func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Content, dryRun bool) error {
+func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Content, dryRun bool, stderr io.Writer) error {
 	if len(content.Wikibase.Properties) == 0 && len(content.Wikibase.Items) == 0 && len(content.Pages) == 0 {
 		return nil
 	}
 
 	port := m.Env().Get("PORT")
-	if err := waitForSites(sites, port, dryRun); err != nil {
+	if err := waitForSites(sites, port, dryRun, stderr); err != nil {
 		return err
 	}
 
@@ -1550,12 +1596,12 @@ func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Cont
 	// Create wikibase properties
 	for _, prop := range content.Wikibase.Properties {
 		if dryRun {
-			fmt.Printf("[dry-run] create wikibase property %s: %s (%s)\n", prop.ID, prop.Label, prop.Datatype)
+			fmt.Fprintf(stderr, "[dry-run] create wikibase property %s: %s (%s)\n", prop.ID, prop.Label, prop.Datatype)
 			continue
 		}
 
 		wikiURL := "http://" + repoSite + ".mediawiki.local.wmftest.net:" + port + "/w/api.php"
-		fmt.Printf("Creating wikibase property %s on %s...\n", prop.ID, repoSite)
+		fmt.Fprintf(stderr, "Creating wikibase property %s on %s...\n", prop.ID, repoSite)
 
 		propInput := mediawiki.WikibasePropertyInput{
 			ID:       prop.ID,
@@ -1571,12 +1617,12 @@ func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Cont
 	// Create wikibase items
 	for _, item := range content.Wikibase.Items {
 		if dryRun {
-			fmt.Printf("[dry-run] create wikibase item %s: %s\n", item.ID, item.Label)
+			fmt.Fprintf(stderr, "[dry-run] create wikibase item %s: %s\n", item.ID, item.Label)
 			continue
 		}
 
 		wikiURL := "http://" + repoSite + ".mediawiki.local.wmftest.net:" + port + "/w/api.php"
-		fmt.Printf("Creating wikibase item %s on %s...\n", item.ID, repoSite)
+		fmt.Fprintf(stderr, "Creating wikibase item %s on %s...\n", item.ID, repoSite)
 
 		claims := []mediawiki.WikibaseItemClaimInput{}
 		for _, claim := range item.Claims {
@@ -1600,12 +1646,12 @@ func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Cont
 	// Create pages
 	for _, page := range content.Pages {
 		if dryRun {
-			fmt.Printf("[dry-run] create page %s on %s: %s\n", page.Title, page.Wiki, page.Text)
+			fmt.Fprintf(stderr, "[dry-run] create page %s on %s: %s\n", page.Title, page.Wiki, page.Text)
 			continue
 		}
 
 		wikiURL := "http://" + page.Wiki + ".mediawiki.local.wmftest.net:" + port + "/w/api.php"
-		fmt.Printf("Creating page %s on %s...\n", page.Title, page.Wiki)
+		fmt.Fprintf(stderr, "Creating page %s on %s...\n", page.Title, page.Wiki)
 
 		pageInput := mediawiki.PageInput{
 			Title:   page.Title,
@@ -1621,9 +1667,9 @@ func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Cont
 	return nil
 }
 
-func runGit(repoPath string, args ...string) error {
+func runGit(stderr io.Writer, repoPath string, args ...string) error {
 	cmd := osexec.Command("git", append([]string{"-C", repoPath}, args...)...) // #nosec G204
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = stderr
+	cmd.Stderr = stderr
 	return cmd.Run()
 }

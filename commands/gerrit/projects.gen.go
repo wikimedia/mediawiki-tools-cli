@@ -61,11 +61,10 @@ func NewGerritProjectsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Projects",
 		Use:   "list",
@@ -95,11 +94,10 @@ func NewGerritProjectsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Project",
 		Use:   "get",
@@ -128,11 +126,10 @@ func NewGerritProjectsCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Project",
 		Use:   "create",
@@ -173,11 +170,10 @@ func NewGerritProjectsDescriptionGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Project Description",
 		Use:   "get",
@@ -206,11 +202,10 @@ func NewGerritProjectsDescriptionSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set Project Description",
 		Use:   "set",
@@ -239,11 +234,10 @@ func NewGerritProjectsDescriptionDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Project Description",
 		Use:   "delete",
@@ -283,11 +277,10 @@ func NewGerritProjectsParentGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Project Parent",
 		Use:   "get",
@@ -316,11 +309,10 @@ func NewGerritProjectsParentSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set Project Parent",
 		Use:   "set",
@@ -360,11 +352,10 @@ func NewGerritProjectsHEADGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get HEAD",
 		Use:   "get",
@@ -393,11 +384,10 @@ func NewGerritProjectsHEADSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set HEAD",
 		Use:   "set",
@@ -436,11 +426,10 @@ func NewGerritProjectsStatisticsGitCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Repository Statistics",
 		Use:   "git",
@@ -480,11 +469,10 @@ func NewGerritProjectsConfigGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Config",
 		Use:   "get",
@@ -513,11 +501,10 @@ func NewGerritProjectsConfigSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set Config",
 		Use:   "set",
@@ -546,11 +533,10 @@ func NewGerritProjectsGcCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Run GC",
 		Use:   "gc",
@@ -579,11 +565,10 @@ func NewGerritProjectsBanCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Ban Commit",
 		Use:   "ban",
@@ -624,11 +609,10 @@ func NewGerritProjectsAccessListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Access Rights for Project",
 		Use:   "list",
@@ -657,11 +641,10 @@ func NewGerritProjectsAccessAddCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Add, Update and Delete Access Rights for Project",
 		Use:   "add",
@@ -690,11 +673,10 @@ func NewGerritProjectsAccessReviewCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Access Rights Change for review.",
 		Use:   "review",
@@ -727,11 +709,10 @@ func NewGerritProjectsMyProjectCheckCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Check Access",
 		Use:   "check",
@@ -776,11 +757,10 @@ func NewGerritProjectsBranchesListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Branches",
 		Use:   "list",
@@ -811,11 +791,10 @@ func NewGerritProjectsBranchesGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Branch",
 		Use:   "get",
@@ -848,11 +827,10 @@ func NewGerritProjectsBranchesCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Branch",
 		Use:   "create",
@@ -885,11 +863,10 @@ func NewGerritProjectsBranchesDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Branch",
 		Use:   "delete",
@@ -920,11 +897,10 @@ func NewGerritProjectsBranchesDelete2Cmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Branches",
 		Use:   "delete-2",
@@ -957,11 +933,10 @@ func NewGerritProjectsBranchesFilesCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Content",
 		Use:   "files",
@@ -996,11 +971,10 @@ func NewGerritProjectsBranchesSuggestReviewersCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Suggest Reviewers",
 		Use:   "suggest-reviewers",
@@ -1033,11 +1007,10 @@ func NewGerritProjectsBranchesMergeableCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Mergeable Information",
 		Use:   "mergeable",
@@ -1070,11 +1043,10 @@ func NewGerritProjectsBranchesReflogCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Reflog",
 		Use:   "reflog",
@@ -1117,11 +1089,10 @@ func NewGerritProjectsChangesBranchesCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Suggest Reviewers",
 		Use:   "branches",
@@ -1163,11 +1134,10 @@ func NewGerritProjectsChildrenListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Child Projects",
 		Use:   "list",
@@ -1196,11 +1166,10 @@ func NewGerritProjectsChildrenGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Child Project",
 		Use:   "get",
@@ -1245,11 +1214,10 @@ func NewGerritProjectsTagsCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Tag",
 		Use:   "create",
@@ -1280,11 +1248,10 @@ func NewGerritProjectsTagsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Tags",
 		Use:   "list",
@@ -1315,11 +1282,10 @@ func NewGerritProjectsTagsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Tag",
 		Use:   "get",
@@ -1352,11 +1318,10 @@ func NewGerritProjectsTagsDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Tag",
 		Use:   "delete",
@@ -1387,11 +1352,10 @@ func NewGerritProjectsTagsDelete2Cmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Tags",
 		Use:   "delete-2",
@@ -1435,11 +1399,10 @@ func NewGerritProjectsCommitsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Commit",
 		Use:   "get",
@@ -1472,11 +1435,10 @@ func NewGerritProjectsCommitsInCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Included In",
 		Use:   "in",
@@ -1520,11 +1482,10 @@ func NewGerritProjectsCommitsFilesListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Files",
 		Use:   "list",
@@ -1559,11 +1520,10 @@ func NewGerritProjectsCommitsFilesContentCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Content",
 		Use:   "content",
@@ -1598,11 +1558,10 @@ func NewGerritProjectsCommitsCherrypickCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Cherry Pick Commit",
 		Use:   "cherrypick",
@@ -1646,11 +1605,10 @@ func NewGerritProjectsDashboardsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Dashboards",
 		Use:   "list",
@@ -1681,11 +1639,10 @@ func NewGerritProjectsDashboardsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Dashboard",
 		Use:   "get",
@@ -1718,11 +1675,10 @@ func NewGerritProjectsDashboardsCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Dashboard",
 		Use:   "create",
@@ -1755,11 +1711,10 @@ func NewGerritProjectsDashboardsDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Dashboard",
 		Use:   "delete",
@@ -1804,11 +1759,10 @@ func NewGerritProjectsLabelsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Labels",
 		Use:   "list",
@@ -1839,11 +1793,10 @@ func NewGerritProjectsLabelsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Label",
 		Use:   "get",
@@ -1876,11 +1829,10 @@ func NewGerritProjectsLabelsCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Label",
 		Use:   "create",
@@ -1913,11 +1865,10 @@ func NewGerritProjectsLabelsDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Label",
 		Use:   "delete",
@@ -1948,11 +1899,10 @@ func NewGerritProjectsLabelsBatchUpdateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Batch Update Labels",
 		Use:   "batch-update",
@@ -1996,11 +1946,10 @@ func NewGerritProjectsSubmitRequirementsCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Submit Requirement",
 		Use:   "create",
@@ -2033,11 +1982,10 @@ func NewGerritProjectsSubmitRequirementsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Submit Requirement",
 		Use:   "get",
@@ -2068,11 +2016,10 @@ func NewGerritProjectsSubmitRequirementsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Submit Requirements",
 		Use:   "list",
@@ -2103,11 +2050,10 @@ func NewGerritProjectsSubmitRequirementsDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Submit Requirement",
 		Use:   "delete",

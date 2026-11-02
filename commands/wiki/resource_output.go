@@ -33,6 +33,5 @@ func printResourceOutput(cmd *cobra.Command, out *output.Output, objects interfa
 	if out.Type == "json" || out.Type == "jq" {
 		return output.PrintJSONChecked(objects, out.Format, out.Type == "jq", cmd.OutOrStdout())
 	}
-	out.Print(cmd, objects)
-	return nil
+	return out.Print(cmd, objects)
 }

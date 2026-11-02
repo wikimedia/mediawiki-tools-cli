@@ -1,7 +1,6 @@
 package cmdgloss
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -29,10 +28,6 @@ func ThreePartBlock(heading string, details map[string]string, footer string) st
 	return Block(lines)
 }
 
-func PrintThreePartBlock(heading string, details map[string]string, footer string) {
-	fmt.Print(ThreePartBlock(heading, details, footer))
-}
-
 func Block(lines []string) string {
 	block := ""
 	block = block + "***************************************\n"
@@ -41,8 +36,4 @@ func Block(lines []string) string {
 	}
 	block = block + "***************************************\n"
 	return block
-}
-
-func PrintBlock(lines []string) {
-	fmt.Print(Block(lines))
 }

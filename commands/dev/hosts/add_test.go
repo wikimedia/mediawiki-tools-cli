@@ -38,7 +38,10 @@ func TestHostsHelpDoesNotResolveDefaultIP(t *testing.T) {
 }
 
 func TestHostsToAddIncludesExtraHosts(t *testing.T) {
-	hosts := hostsToAdd([]string{"client.mediawiki.local.wmftest.net"})
+	hosts, err := hostsToAdd([]string{"client.mediawiki.local.wmftest.net"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	foundDefault := false
 	foundClient := false

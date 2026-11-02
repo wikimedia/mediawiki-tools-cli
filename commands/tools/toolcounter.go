@@ -99,8 +99,7 @@ func newToolcounterCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			out.Print(cmd, stats)
-			return nil
+			return out.Print(cmd, stats)
 		},
 	}
 	command.Flags().StringVar(&page, "page", "index", "Exact page identifier used by the Toolcounter embed")

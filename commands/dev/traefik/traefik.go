@@ -40,7 +40,7 @@ func NewCmd() *cobra.Command {
 		Short: "Show gateway credentials and single-use login links",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := filepath.Join(devenv.DefaultForUser().Directory(), "compose", "traefik", "auth", "credentials")
-			if err := devenv.EnsureTraefikAuth(); err != nil {
+			if err := devenv.EnsureTraefikAuthWithOutput(cmd.ErrOrStderr()); err != nil {
 				return err
 			}
 			credentials, err := os.ReadFile(path)
@@ -56,7 +56,7 @@ func NewCmd() *cobra.Command {
 				}
 				origin = runningTunnelURL("http://"+net.JoinHostPort("localhost", port), string(credentials))
 				if origin == "" {
-					fmt.Fprintln(cmd.OutOrStdout(), "Local access does not require a gateway login. Use --url with your tunnel address to create a login link.")
+					fmt.Fprintln(cmd.ErrOrStderr(), "Local access does not require a gateway login. Use --url with your tunnel address to create a login link.")
 					return nil
 				}
 			}
@@ -66,7 +66,7 @@ func NewCmd() *cobra.Command {
 				return nil
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "\nLogin: %s\n", link)
-			fmt.Fprintln(cmd.OutOrStdout(), "Each link is valid for 5 minutes and works once.")
+			fmt.Fprintln(cmd.ErrOrStderr(), "Each link is valid for 5 minutes and works once.")
 			return nil
 		},
 	}
@@ -77,11 +77,19 @@ func NewCmd() *cobra.Command {
 
 // StartGateway prepares authentication and starts the default Traefik proxy.
 func StartGateway() error {
+	return StartGatewayWithOutput(os.Stderr)
+}
+
+// StartGatewayWithOutput prepares and starts the gateway, routing progress to stderr.
+func StartGatewayWithOutput(stderr io.Writer) error {
+	if stderr == nil {
+		stderr = os.Stderr
+	}
 	instance := devenv.DefaultForUser()
-	if err := instance.PrepareGateway(); err != nil {
+	if err := instance.PrepareGatewayWithOutput(stderr); err != nil {
 		return err
 	}
-	return instance.DockerCompose().Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})
+	return instance.DockerCompose().WithIO(nil, stderr, stderr).Up([]string{"traefik", "docker-socket-proxy"}, dockercompose.UpOptions{Detached: true})
 }
 
 func gatewayRequest(method, origin, path, credentials string) (*http.Request, error) {

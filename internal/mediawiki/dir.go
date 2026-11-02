@@ -4,8 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 /*NotMediaWikiDirectory error when a directory appears to not contain MediaWiki code.*/
@@ -52,14 +50,6 @@ func ForDirectory(directory string) (MediaWiki, error) {
 func ForCurrentWorkingDirectory() (MediaWiki, error) {
 	currentWorkingDirectory, _ := os.Getwd()
 	return ForDirectory(currentWorkingDirectory)
-}
-
-/*CheckIfInCoreDirectory checks that the current working directory looks like a MediaWiki directory.*/
-func CheckIfInCoreDirectory() {
-	_, err := ForCurrentWorkingDirectory()
-	if err != nil {
-		logrus.Fatal("❌ Please run this command within the root of the MediaWiki core repository.")
-	}
 }
 
 func errorIfDirectoryMissingGitReviewForProject(directory string, expectedProject string) error {

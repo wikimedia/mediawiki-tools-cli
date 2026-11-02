@@ -12,10 +12,11 @@ func NewHostsShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
 		Short: "Show your system hosts file",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			content := hosts.FileContent()
 			trimmedContent := strings.TrimSuffix(content, "\n")
-			fmt.Println(trimmedContent)
+			fmt.Fprintln(cmd.OutOrStdout(), trimmedContent)
+			return nil
 		},
 	}
 }
