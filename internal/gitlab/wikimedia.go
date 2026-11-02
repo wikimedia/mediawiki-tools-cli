@@ -183,6 +183,15 @@ func RelengCliReleaseBinary(tagName string) (*gitlab.ReleaseLink, error) {
 	return releaseBinary(release)
 }
 
+// RelengCliReleaseBinaryForPlatform selects an exact release asset without changing the updater platform.
+func RelengCliReleaseBinaryForPlatform(tag, platform, architecture string) (*gitlab.ReleaseLink, error) {
+	release, err := RelengCliRelease(tag)
+	if err != nil {
+		return nil, err
+	}
+	return releaseBinaryForPlatform(release, platform, architecture)
+}
+
 // RelengCliNightlyBinaryURL finds a successful nightly rather than whichever
 // weekly/Dependabot pipeline most recently ran on the shared scheduled ref.
 func RelengCliNightlyBinaryURL() (string, error) {
@@ -223,9 +232,13 @@ func RelengCliNightlyBinaryURL() (string, error) {
 }
 
 func releaseBinary(release *gitlab.Release) (*gitlab.ReleaseLink, error) {
+	return releaseBinaryForPlatform(release, outOs, arch)
+}
+
+func releaseBinaryForPlatform(release *gitlab.Release, platform, architecture string) (*gitlab.ReleaseLink, error) {
 	var expected []string
 	for _, name := range cli.BinaryNames() {
-		filename := releaseBinaryName(name, release.TagName, outOs, arch)
+		filename := releaseBinaryName(name, release.TagName, platform, architecture)
 		expected = append(expected, filename)
 		for _, link := range release.Assets.Links {
 			if link.Name == filename {

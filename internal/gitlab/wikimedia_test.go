@@ -358,3 +358,20 @@ func TestReleaseBinaryAcceptsBothNamesAndSelectsPlatform(t *testing.T) {
 		t.Fatalf("Windows asset: %v, %v", got, err)
 	}
 }
+
+func TestRemoteReleaseSelectionDoesNotChangeUpdaterPlatform(t *testing.T) {
+	beforeOS, beforeArch := outOs, arch
+	linux := &gitlab.ReleaseLink{Name: "wm_v2026.11.02.0_linux_arm64", URL: "https://example.invalid/linux"}
+	release := &gitlab.Release{TagName: "v2026.11.02.0"}
+	release.Assets.Links = []*gitlab.ReleaseLink{linux, {Name: "wm_v2026.11.02.0_windows_amd64.exe"}}
+	got, err := releaseBinaryForPlatform(release, "linux", "arm64")
+	if err != nil || got != linux {
+		t.Fatalf("remote selection: %+v, %v", got, err)
+	}
+	if outOs != beforeOS || arch != beforeArch {
+		t.Fatal("remote selection changed the updater platform")
+	}
+	if _, err := releaseBinaryForPlatform(release, "linux", "amd64"); err == nil {
+		t.Fatal("selected another architecture as fallback")
+	}
+}

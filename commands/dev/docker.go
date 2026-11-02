@@ -74,6 +74,7 @@ var dockerLong string
 
 func NewCmd() *cobra.Command {
 	dashboard, status, recipeCmd := newDashboardCmd(), newDevStatusCmd(), NewRecipeCmd()
+	remote := NewRemoteCmd()
 	cmd := &cobra.Command{
 		Use:     "dev",
 		Aliases: []string{"docker"},
@@ -85,6 +86,12 @@ func NewCmd() *cobra.Command {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			executing := cobrautil.ExecutingCommand(cmd)
+			// Remote setup must work on clients without a local Docker installation.
+			for command := executing; command != nil; command = command.Parent() {
+				if command == remote {
+					return
+				}
+			}
 			if executing == dashboard || executing == status || (executing.Parent() == recipeCmd && executing.Name() == "validate") {
 				return
 			}
@@ -204,6 +211,8 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewDevRestartCmd())
 	cmd.AddCommand(NewDevUpdateCmd())
 	cmd.AddCommand(recipeCmd)
+	cmd.AddCommand(remote)
+	cmd.AddCommand(cobrautil.WithServiceInfo(NewVSCodeCmd(), cobrautil.ServiceInfo{Name: "Browser VS Code", URL: "https://coder.com/docs/code-server"}))
 	cmd.AddCommand(dockercompose.NewCmd())
 	envCmd := env.Env("Interact with the environment variables", devenv.DefaultForUser().Directory)
 	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
