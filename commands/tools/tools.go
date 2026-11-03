@@ -65,7 +65,7 @@ func NewToolforgeCmd() *cobra.Command {
 			removeDuplicateSubcommands(child, "quota")
 		}
 	}
-	command.AddCommand(newCopyCmd(), newCreateToolCmd(browser.OpenURL))
+	command.AddCommand(newCopyCmd(), newCreateToolCmd(browser.OpenURL), newReplicasCmd())
 	inheritMwSetup(command, command)
 	return command
 }

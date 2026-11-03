@@ -2,6 +2,9 @@
   "site_url": "https://a-wikimedia-cli.toolforge.org",
   "guides": [
     {
+      "source": "guides/tools/wiki-replicas.md"
+    },
+    {
       "source": "guides/tools/kubernetes-pod-helloworld.md",
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Toolforge_Kubernetes"
     },
