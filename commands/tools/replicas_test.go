@@ -7,12 +7,14 @@ import (
 	"io"
 	"os"
 	osexec "os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/spf13/cobra"
+	toolforge "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/cli"
 )
 
 func TestReplicaForwards(t *testing.T) {
@@ -81,7 +83,7 @@ func TestReplicaTunnelSSHArgumentsAndIO(t *testing.T) {
 	cmd := newReplicaTunnelCmd(func(ssh *osexec.Cmd) error {
 		called = true
 		want := []string{
-			"ssh", "-N", "-T", "-o", "ExitOnForwardFailure=yes", "-o", "ControlMaster=no",
+			"ssh", "-N", "-T", "-o", "ClearAllForwardings=no", "-o", "ExitOnForwardFailure=yes", "-o", "ControlMaster=no",
 			"-o", "ControlPath=none", "-o", "IgnoreUnknown=ForkAfterAuthentication", "-o", "ForkAfterAuthentication=no",
 			"-L", "127.0.0.1:13306:enwiki.web.db.svc.wikimedia.cloud:3306",
 			"-L", "127.0.0.1:13307:dewiki.web.db.svc.wikimedia.cloud:3306", "login.toolforge.org",
@@ -210,5 +212,40 @@ func TestReplicaTunnelCancellationStopsSSH(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("SSH was not stopped on cancellation")
+	}
+}
+
+func TestReplicaTunnelRejectsSavedForwards(t *testing.T) {
+	if _, err := osexec.LookPath("ssh"); err != nil {
+		t.Skip("OpenSSH unavailable")
+	}
+	for _, forward := range []string{"LocalForward 0.0.0.0:59999 example.org:3306", "RemoteForward 0.0.0.0:59998 example.org:3306", "DynamicForward 0.0.0.0:59997"} {
+		path := filepath.Join(t.TempDir(), "config")
+		config := "Host *\n ClearAllForwardings yes\n " + forward + "\n"
+		if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		conn := toolforge.Connection{Host: "login.toolforge.org", SSHOptions: []string{"-F", path}}
+		if err := checkReplicaSSHForwards(t.Context(), conn); err == nil {
+			t.Errorf("accepted saved %s", forward)
+		}
+	}
+}
+
+func TestReplicaTunnelOverridesClearAllForwardings(t *testing.T) {
+	if _, err := osexec.LookPath("ssh"); err != nil {
+		t.Skip("OpenSSH unavailable")
+	}
+	path := filepath.Join(t.TempDir(), "config")
+	if err := os.WriteFile(path, []byte("Host *\n ClearAllForwardings yes\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"-F", path, "-G", "-o", "ClearAllForwardings=no", "-L", "127.0.0.1:4711:enwiki.analytics.db.svc.wikimedia.cloud:3306", "login.toolforge.org"}
+	out, err := osexec.Command("ssh", args...).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "localforward ") || !strings.Contains(string(out), "enwiki.analytics.db.svc.wikimedia.cloud") {
+		t.Fatalf("requested forward removed: %s", out)
 	}
 }

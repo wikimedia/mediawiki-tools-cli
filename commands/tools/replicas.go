@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"os"
 	osexec "os/exec"
@@ -59,7 +60,7 @@ func newReplicasCmd() *cobra.Command {
 		Use:   "replicas",
 		Short: "Access Wiki Replicas from your computer through Toolforge",
 	}
-	cmd.AddCommand(newReplicaTunnelCmd(func(cmd *osexec.Cmd) error { return cmd.Run() }))
+	cmd.AddCommand(newReplicaTunnelCmd(func(cmd *osexec.Cmd) error { return cmd.Run() }), newReplicaUsernameCmd(readReplicaUsername), newReplicaProxyCmd())
 	return cmd
 }
 
@@ -79,7 +80,8 @@ not accepted. Database existence and permissions are checked by your DB client.
 Reuses Toolforge's SSH destination and your existing OpenSSH configuration,
 keys, agent and host-key verification. No remote shell, background daemon,
 database login or credential lookup is started. Keep this foreground command
-running while using your DB client; Ctrl+C closes the tunnel. An occupied local
+running while using your DB client; Ctrl+C closes the tunnel. Saved LocalForward, RemoteForward and DynamicForward entries for this host
+are rejected; keep those out of its SSH configuration. An occupied local
 port fails the SSH connection; use another --port. Forwards are usable only
 after SSH authentication succeeds, and DB connectivity is checked on use.
 
@@ -96,38 +98,18 @@ tunnel enwiki dewiki --dry-run
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, name := range []string{"beta", "lima"} {
-				if cmd.Flags().Lookup(name) != nil {
-					enabled, err := cmd.Flags().GetBool(name)
-					if err != nil {
-						return err
-					}
-					if enabled {
-						return fmt.Errorf("Wiki Replica tunnels use production Toolforge; omit --beta and --lima")
-					}
-				}
-			}
-			if cmd.Flags().Lookup("tool") != nil {
-				tool, err := cmd.Flags().GetString("tool")
-				if err != nil {
-					return err
-				}
-				if tool != "" {
-					return fmt.Errorf("omit --tool: the tunnel uses your SSH login; select the replica account in your DB client")
-				}
-			}
-			forwards, err := replicaForwards(args, service, port)
+			connection, err := replicaConnection(cmd, false)
 			if err != nil {
 				return err
 			}
-			connection, err := toolforge.NewConnection("", false, false)
+			forwards, err := replicaForwards(args, service, port)
 			if err != nil {
 				return err
 			}
 			sshArgs := append([]string(nil), connection.SSHOptions...)
 			// Older OpenSSH has no ForkAfterAuthentication setting and does not
 			// fork without -f. Newer clients must override any saved fork setting.
-			sshArgs = append(sshArgs, "-N", "-T", "-o", "ExitOnForwardFailure=yes",
+			sshArgs = append(sshArgs, "-N", "-T", "-o", "ClearAllForwardings=no", "-o", "ExitOnForwardFailure=yes",
 				"-o", "ControlMaster=no", "-o", "ControlPath=none",
 				"-o", "IgnoreUnknown=ForkAfterAuthentication", "-o", "ForkAfterAuthentication=no")
 			lines := []string{"Requested Wiki Replica forwards (available after SSH connects):"}
@@ -151,6 +133,9 @@ tunnel enwiki dewiki --dry-run
 				cmd.Println(strings.Join(quoted, " "))
 				return nil
 			}
+			if err := checkReplicaSSHForwards(cmd.Context(), connection); err != nil {
+				return err
+			}
 			cmd.Println("Connecting through Toolforge. Press Ctrl+C to close all forwards. Close idle connections in your DB client.")
 			ctx, stop := ossignal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
@@ -167,8 +152,35 @@ tunnel enwiki dewiki --dry-run
 		},
 	}
 	cmd.Flags().StringVar(&service, "service", "analytics", "Replica endpoint: analytics or web")
-	cmd.Flags().IntVar(&port, "port", 4711, "First local TCP port; additional wikis use consecutive ports")
+	cmd.Flags().IntVar(&port, "port", 4711, "First local tunnel TCP port; additional wikis use consecutive ports")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print mappings and the SSH command without connecting")
 	_ = cmd.RegisterFlagCompletionFunc("service", cobra.FixedCompletions([]string{"analytics", "web"}, cobra.ShellCompDirectiveNoFileComp))
 	return cmd
+}
+
+// OpenSSH adds saved forwards to command-line -L options. Refuse those rather
+// than opening unrelated listeners. Explicit ClearAllForwardings=no prevents a
+// saved yes setting from silently removing the forwards we report to the user.
+func checkReplicaSSHForwards(ctx context.Context, connection toolforge.Connection) error {
+	args := append([]string(nil), connection.SSHOptions...)
+	args = append(args, "-G", "-o", "ClearAllForwardings=no", connection.Host)
+	config, err := osexec.CommandContext(ctx, "ssh", args...).Output() // #nosec G204
+	if err != nil {
+		return fmt.Errorf("could not inspect effective Toolforge SSH configuration: %w", err)
+	}
+	return validateReplicaSSHForwards(string(config))
+}
+
+func validateReplicaSSHForwards(config string) error {
+	for line := range strings.SplitSeq(config, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		switch strings.ToLower(fields[0]) {
+		case "localforward", "remoteforward", "dynamicforward":
+			return fmt.Errorf("Toolforge SSH configuration includes saved port forwards; remove LocalForward, RemoteForward and DynamicForward for this host before starting a replica tunnel")
+		}
+	}
+	return nil
 }
