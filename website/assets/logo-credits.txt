@@ -1,5 +1,9 @@
 Service logo credits
 
+Wikimedia Enterprise squirrel: Christie Rixford, CC BY-SA 4.0; unchanged.
+https://commons.wikimedia.org/wiki/File:Wikimedia_Enterprise_squirrel.svg
+https://creativecommons.org/licenses/by-sa/4.0/
+
 MediaWiki: Serhio Magpie, CC BY-SA 4.0; unchanged.
 https://commons.wikimedia.org/wiki/File:MediaWiki-2020-icon.svg
 https://creativecommons.org/licenses/by-sa/4.0/

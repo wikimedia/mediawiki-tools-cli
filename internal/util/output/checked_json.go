@@ -46,7 +46,9 @@ func PrintJSONChecked(objects interface{}, format string, rawStrings bool, write
 		return err
 	}
 	var value interface{}
-	if err = json.Unmarshal(data, &value); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	if err = decoder.Decode(&value); err != nil {
 		return err
 	}
 	var buffer bytes.Buffer

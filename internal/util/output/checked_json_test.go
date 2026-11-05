@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -39,3 +40,20 @@ func TestCheckedJSONFormatsAndFailures(t *testing.T) {
 type checkedFailWriter struct{ err error }
 
 func (w checkedFailWriter) Write([]byte) (int, error) { return 0, w.err }
+
+func TestCheckedJSONPreservesLargeIdentifiers(t *testing.T) {
+	value := map[string]any{"identifier": json.Number("9007199254740993")}
+	for _, format := range []string{".identifier", ".identifier + 1"} {
+		var out bytes.Buffer
+		if err := PrintJSONChecked(value, format, false, &out); err != nil {
+			t.Fatal(err)
+		}
+		want := "9007199254740993\n"
+		if strings.Contains(format, "+") {
+			want = "9007199254740994\n"
+		}
+		if out.String() != want {
+			t.Fatalf("identifier lost precision: %s", out.String())
+		}
+	}
+}

@@ -15,6 +15,7 @@ import (
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/enterprise"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiauth"
 )
@@ -45,6 +46,27 @@ func Check(ctx context.Context, input Request) Result {
 	client := wikiauth.HTTPClient()
 	client.Timeout = 15 * time.Second
 	switch input.Service {
+	case "enterprise":
+		if endpoint != enterprise.API {
+			return Result{Status: "unavailable"}
+		}
+		tokens, err := enterprise.ParseTokens(input.Value)
+		if err != nil {
+			return Result{Status: "unavailable"}
+		}
+		if !time.Now().Before(tokens.ExpiresAt) {
+			return Result{Status: "expired"}
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"/v2/projects", nil)
+		if err != nil {
+			return Result{Status: "unavailable"}
+		}
+		req.Header.Set("Authorization", "Bearer "+tokens.AccessToken)
+		_, status := send(client, req)
+		if status != "" {
+			return Result{Status: status}
+		}
+		return Result{Status: "valid", Detail: "API accepted the access token; account identity was not independently checked"}
 	case "phabricator":
 		params, _ := json.Marshal(map[string]any{"__conduit__": map[string]string{"token": input.Value}})
 		form := url.Values{"params": {string(params)}, "output": {"json"}}
