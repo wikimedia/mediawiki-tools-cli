@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	mwclient "cgt.name/pkg/go-mwclient"
 	"cgt.name/pkg/go-mwclient/params"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -28,11 +26,10 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 		Use:     "delete",
 		Short:   "Delete pages by title or from stdin",
 		Long:    "Delete the page selected by --title, the titles supplied as arguments, or newline-separated titles from standard input. Use --dry-run to inspect the selected titles without deleting pages.",
-		RunE:    nil,
 		Example: cobrautil.NormalizeExample(pageDeleteExample),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if wiki == "" {
-				logrus.Fatal("wiki is not set")
+				return fmt.Errorf("wiki is not set")
 			}
 
 			var titles []string
@@ -41,9 +38,9 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 			} else if len(args) > 0 {
 				titles = args
 			} else {
-				bytes, err := io.ReadAll(os.Stdin)
+				bytes, err := io.ReadAll(cmd.InOrStdin())
 				if err != nil {
-					panic(err)
+					return err
 				}
 				titles = strings.Split(strings.TrimSpace(string(bytes)), "\n")
 			}
@@ -54,17 +51,17 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 				for _, title := range titles {
 					fmt.Printf("title: %s\n", title)
 				}
-				return
+				return nil
 			}
 
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			err = loginIfCredentialsProvided(w)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			for _, title := range titles {
@@ -80,9 +77,10 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 
 				deleteErr := wikiDelete(w, deleteParams)
 				if deleteErr != nil {
-					fmt.Println(deleteErr)
+					return fmt.Errorf("delete %q: %w", title, deleteErr)
 				}
 			}
+			return nil
 		},
 	}
 

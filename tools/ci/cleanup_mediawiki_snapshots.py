@@ -20,7 +20,7 @@ def expired_snapshots(packages, now):
 
 def main():
     base = f"{os.environ['CI_API_V4_URL']}/projects/{int(os.environ['CI_PROJECT_ID'])}/packages"
-    headers = {"JOB-TOKEN": os.environ["CI_JOB_TOKEN"], "User-Agent": "a-wikimedia-cli-ci"}
+    headers = {"JOB-TOKEN": os.environ["CI_JOB_TOKEN"], "User-Agent": "a-wikimedia-cli-ci (https://a-wikimedia-cli.toolforge.org/)"}
 
     def request(url, method="GET"):
         with urllib.request.urlopen(urllib.request.Request(url, headers=headers, method=method), timeout=60) as response:

@@ -43,7 +43,7 @@ export async function stageLogos(website, { fetchImage = fetch, warn = console.w
       if (new URL(source).protocol !== 'https:') throw new Error('Logo source must use HTTPS');
       let name = cached;
       if (!cached || refresh) {
-        const response = await fetchImage(source, { headers: { 'User-Agent': 'a-wikimedia-cli-docs/1.0 (https://www.mediawiki.org/wiki/Cli)' }, signal: AbortSignal.timeout(10000) });
+        const response = await fetchImage(source, { headers: { 'User-Agent': 'a-wikimedia-cli-docs/1.0 (https://a-wikimedia-cli.toolforge.org/)' }, signal: AbortSignal.timeout(10000) });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = Buffer.from(await response.arrayBuffer());
         if (data.length > 2 * 1024 * 1024) throw new Error('Logo exceeds 2 MiB');

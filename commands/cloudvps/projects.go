@@ -92,7 +92,7 @@ func fetchProjectNames(ctx context.Context, client *http.Client, baseURL string)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

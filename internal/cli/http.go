@@ -33,6 +33,6 @@ func (t userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	if identified.Header == nil {
 		identified.Header = make(http.Header)
 	}
-	identified.Header.Set("User-Agent", HTTPUserAgent)
+	identified.Header.Set("User-Agent", HTTPUserAgent())
 	return t.base.RoundTrip(identified)
 }

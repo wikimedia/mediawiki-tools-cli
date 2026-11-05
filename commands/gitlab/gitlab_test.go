@@ -29,7 +29,7 @@ func testFactory(t *testing.T) mwcli.Factory {
 		t.Fatal(err)
 	}
 	runGit(t, "init", "--quiet")
-	factory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent)
+	factory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestWikimediaRemoteHosts(t *testing.T) {
 				t.Fatal(err)
 			}
 			client.HTTPClient().Transport = roundTripFunc(func(request *http.Request) (*http.Response, error) {
-				if !strings.HasPrefix(request.UserAgent(), cli.HTTPUserAgent+" glab/") {
+				if !strings.HasPrefix(request.UserAgent(), cli.HTTPUserAgent()+" glab/") {
 					t.Errorf("GitLab User-Agent = %q", request.UserAgent())
 				}
 				if request.URL.Host != "gitlab.wikimedia.org" || request.Header.Get("PRIVATE-TOKEN") != "canonical-test-token" {
@@ -152,7 +152,7 @@ func TestUnrelatedRemoteIsRejected(t *testing.T) {
 func TestWikimediaDefaultHostAndAPIClient(t *testing.T) {
 	testFactory(t)
 	t.Setenv("GITLAB_HOST", "")
-	factory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent)
+	factory, err := mwcli.NewFactory(glabVersion(), cli.HTTPUserAgent())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestWikimediaDefaultHostAndAPIClient(t *testing.T) {
 	if client.Lab().BaseURL().Host != "gitlab.wikimedia.org" {
 		t.Fatalf("API host = %q", client.Lab().BaseURL().Host)
 	}
-	if !strings.HasPrefix(client.Lab().UserAgent, cli.HTTPUserAgent+" glab/") {
+	if !strings.HasPrefix(client.Lab().UserAgent, cli.HTTPUserAgent()+" glab/") {
 		t.Fatalf("API User-Agent = %q", client.Lab().UserAgent)
 	}
 	root := Cmd()

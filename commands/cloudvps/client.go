@@ -71,7 +71,7 @@ func authenticatedCloudClient(ctx context.Context, options gophercloud.AuthOptio
 	if err != nil {
 		return nil, err
 	}
-	provider.UserAgent.Prepend(cli.HTTPUserAgent)
+	provider.UserAgent.Prepend(cli.HTTPUserAgent())
 	if err := openstack.Authenticate(ctx, provider, options); err != nil {
 		return nil, err
 	}

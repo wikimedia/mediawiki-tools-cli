@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 const discoveryFixture = `{"paths": {
@@ -32,7 +34,7 @@ func mockEventHTTP(t *testing.T, handler eventTransport) {
 func discoveryHTTP(t *testing.T, status int, body string) {
 	t.Helper()
 	mockEventHTTP(t, func(req *http.Request) (*http.Response, error) {
-		if req.URL.String() != eventStreamsURL+"/?spec" || req.Header.Get("User-Agent") != eventStreamsUserAgent {
+		if req.URL.String() != eventStreamsURL+"/?spec" || req.Header.Get("User-Agent") != cli.HTTPUserAgent() {
 			t.Fatalf("unexpected discovery request: %v", req)
 		}
 		return &http.Response{StatusCode: status, Status: http.StatusText(status), Body: io.NopCloser(strings.NewReader(body))}, nil

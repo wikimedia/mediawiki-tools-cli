@@ -23,7 +23,7 @@ func TestDockerUserAgent(t *testing.T) {
 		t.Run(map[bool]string{false: "environment", true: "context"}[namedContext], func(t *testing.T) {
 			dir := dockerTestConfig(t)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.UserAgent() != cli.HTTPUserAgent {
+				if r.UserAgent() != cli.HTTPUserAgent() {
 					t.Errorf("Docker User-Agent = %q", r.UserAgent())
 				}
 				w.Header().Set("API-Version", "1.45")
@@ -166,7 +166,7 @@ func TestDockerAPIVersionNegotiation(t *testing.T) {
 				dir := dockerTestConfig(t)
 				listed := false
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.UserAgent() != cli.HTTPUserAgent {
+					if r.UserAgent() != cli.HTTPUserAgent() {
 						t.Errorf("User-Agent = %q", r.UserAgent())
 					}
 					if r.URL.Path == "/_ping" {

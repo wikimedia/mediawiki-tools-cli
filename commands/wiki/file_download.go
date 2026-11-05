@@ -113,7 +113,7 @@ download 'Logo_of_a-wikimedia-cli.svg' --wiki commons.wikimedia.org
 			}
 			httpClient := cli.NewHTTPClient()
 			httpClient.Timeout = 5 * time.Minute
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
 				return err
 			}
