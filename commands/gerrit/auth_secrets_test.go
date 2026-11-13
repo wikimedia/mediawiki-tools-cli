@@ -35,7 +35,7 @@ func setupAuthTest(t *testing.T) *bytes.Buffer {
 	logrus.SetLevel(logrus.TraceLevel)
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = transportFunc(func(r *http.Request) (*http.Response, error) {
-		if r.UserAgent() != cli.HTTPUserAgent {
+		if r.UserAgent() != cli.HTTPUserAgent() {
 			t.Errorf("unexpected User-Agent: %q", r.UserAgent())
 		}
 		user, password, ok := r.BasicAuth()

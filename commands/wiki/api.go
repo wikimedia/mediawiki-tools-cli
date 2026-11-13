@@ -30,7 +30,7 @@ func wikiAPIClient(public bool) (*wikiapi.Client, error) {
 		return nil, err
 	}
 	if !public && !wikiAnon {
-		w, e := mwclient.New(endpoint, cli.HTTPUserAgent)
+		w, e := mwclient.New(endpoint, cli.HTTPUserAgent())
 		if e != nil {
 			return nil, e
 		}

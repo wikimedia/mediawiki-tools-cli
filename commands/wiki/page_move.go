@@ -73,7 +73,7 @@ move --prefix 'Cli/ref/mw_docker' 'Cli/ref/mw_dev' --wiki www.mediawiki.org --dr
 			if bot && (wikiAnon || !hasWikiCredentials()) {
 				return fmt.Errorf("--bot requires a saved profile or --username with --password or --password-file, including with --dry-run; omit --anon")
 			}
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
 				return err
 			}

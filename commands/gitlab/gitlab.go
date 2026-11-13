@@ -21,7 +21,7 @@ func Cmd() *cobra.Command { return newCommand() }
 func newCommand(options ...mwcli.FactoryOption) *cobra.Command {
 	var profile string
 	session := &profileSession{selected: &profile}
-	cmdFactory, err := mwcli.NewProfileFactory(glabVersion(), cli.HTTPUserAgent, session.credentials, options...)
+	cmdFactory, err := mwcli.NewProfileFactory(glabVersion(), cli.HTTPUserAgent(), session.credentials, options...)
 	if err != nil {
 		return &cobra.Command{
 			Use: "gitlab", Aliases: []string{"glab", "gl"}, GroupID: "service",

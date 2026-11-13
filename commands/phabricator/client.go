@@ -76,7 +76,7 @@ func (c *conduitClient) postContext(ctx context.Context, method string, params m
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

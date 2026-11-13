@@ -31,7 +31,7 @@ func TestQuipCommands(t *testing.T) {
 				if r.URL.Path != tc.path {
 					t.Errorf("path = %q", r.URL.Path)
 				}
-				if r.UserAgent() != cli.HTTPUserAgent {
+				if r.UserAgent() != cli.HTTPUserAgent() {
 					t.Errorf("User-Agent = %q", r.UserAgent())
 				}
 				if tc.query != "" && (r.URL.Query().Get("q") != tc.query || r.URL.Query().Get("p") != "1") {

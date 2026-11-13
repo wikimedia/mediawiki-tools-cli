@@ -49,7 +49,7 @@ func newQuipCmd(client *http.Client, baseURL string) *cobra.Command {
 		if err != nil {
 			return fmt.Errorf("create quip request: %w", err)
 		}
-		req.Header.Set("User-Agent", cli.HTTPUserAgent)
+		req.Header.Set("User-Agent", cli.HTTPUserAgent())
 		res, err := client.Do(req)
 		if err != nil {
 			return fmt.Errorf("request quip: %w", err)
