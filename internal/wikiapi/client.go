@@ -178,7 +178,7 @@ func (c *Client) request(ctx context.Context, method, target string, headers htt
 	if req.Header == nil {
 		req.Header = make(http.Header)
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	if req.Header.Get("Accept") == "" {
 		req.Header.Set("Accept", "application/json")
 	}

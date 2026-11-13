@@ -49,7 +49,7 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 				return
 			}
 
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
 				panic(err)
 			}

@@ -87,6 +87,16 @@ Publish and verify the replacement site before applying a reviewed retirement
 plan. Keep manually maintained project pages, guides and their attribution
 histories outside this reference-only pass.
 
+After reviewing the plan, preview and test one deletion using its planned reason:
+
+```sh
+make build
+bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put'
+bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put' --profile wikimedia/addshore --apply
+```
+
+The profile needs wiki deletion permission and, for OAuth, a grant allowing deletion. The script previews by default and stops at the first failed deletion. After checking the result, regenerate the plan to exclude deleted pages; use `--all` instead of `--title` for the reviewed batch. Unmapped entries are skipped.
+
 ## Check workflow examples
 
 Run `make manual-check` and `make manual` to validate documentation links and

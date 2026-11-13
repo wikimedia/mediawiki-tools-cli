@@ -9,10 +9,28 @@ import (
 const DisplayName = "a Wikimedia CLI"
 
 const (
-	AgentName     = "a-wikimedia-cli"
-	ProjectURL    = "https://www.mediawiki.org/wiki/Cli"
-	HTTPUserAgent = AgentName + " (" + ProjectURL + ")"
+	AgentName  = "a-wikimedia-cli"
+	ProjectURL = "https://a-wikimedia-cli.toolforge.org/"
 )
+
+// UserAgentVersion identifies a release, a source checkout, or an unversioned
+// development build. Evaluate it after Execute supplies the build metadata.
+func UserAgentVersion() string {
+	version := VersionDetails.Version.String()
+	if version == "" || version == "latest" {
+		version = strings.TrimPrefix(VersionDetails.GitSummary, "v")
+	}
+	if version == "" {
+		return "dev"
+	}
+	return version
+}
+
+// HTTPUserAgent is evaluated at request time, so clients constructed before
+// application startup do not retain an empty or stale version.
+func HTTPUserAgent() string {
+	return AgentName + "/" + UserAgentVersion() + " (" + ProjectURL + ")"
+}
 
 const Description = "Explore Wikimedia data, work with services, and develop MediaWiki."
 

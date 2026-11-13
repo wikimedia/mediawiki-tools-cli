@@ -162,7 +162,7 @@ type gerritUserAgentTransport struct{ base http.RoundTripper }
 
 func (t gerritUserAgentTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	request = request.Clone(request.Context())
-	request.Header.Set("User-Agent", cli.HTTPUserAgent)
+	request.Header.Set("User-Agent", cli.HTTPUserAgent())
 	return t.base.RoundTrip(request)
 }
 

@@ -12,7 +12,7 @@ SUL = "https://raw.githubusercontent.com/wikimedia/operations-mediawiki-config/m
 
 
 def fetch(url):
-    request = Request(url, headers={"User-Agent": "a-wikimedia-cli realm-list updater"})
+    request = Request(url, headers={"User-Agent": "a-wikimedia-cli-maint (https://a-wikimedia-cli.toolforge.org/)"})
     with urlopen(request, timeout=30) as response:
         return response.read().decode()
 

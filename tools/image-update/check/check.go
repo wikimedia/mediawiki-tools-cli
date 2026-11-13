@@ -389,7 +389,7 @@ func jsonFromURL(url string, unmarshalTo interface{}, token ...string) (http.Hea
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	if len(token) > 0 {
 		req.Header.Set("Authorization", "Bearer "+token[0])
 	}

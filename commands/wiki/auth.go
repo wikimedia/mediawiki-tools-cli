@@ -220,7 +220,7 @@ func newWikiLoginCmd() *cobra.Command {
 				if secret == "" {
 					return fmt.Errorf("wiki password is empty")
 				}
-				w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
+				w, err := mwclient.New(endpoint, cli.HTTPUserAgent())
 				if err != nil {
 					return err
 				}
@@ -488,7 +488,7 @@ func newWikiStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
+			w, err := mwclient.New(endpoint, cli.HTTPUserAgent())
 			if err != nil {
 				return err
 			}

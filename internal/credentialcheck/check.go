@@ -156,7 +156,7 @@ func identityResult(expected, actual string) Result {
 }
 
 func send(client *http.Client, req *http.Request) ([]byte, string) {
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := client.Do(req)
 	if err != nil {
 		return nil, "unavailable"
@@ -199,7 +199,7 @@ func checkWiki(ctx context.Context, client *http.Client, input Request) Result {
 		}
 		client.Transport = wikiauth.BearerTransport{Endpoint: endpoint, Token: tokens.AccessToken}
 	} else if input.WikiMethod == "password" || input.WikiMethod == "bot-password" {
-		w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
+		w, err := mwclient.New(endpoint, cli.HTTPUserAgent())
 		if err != nil {
 			return Result{Status: "unavailable"}
 		}

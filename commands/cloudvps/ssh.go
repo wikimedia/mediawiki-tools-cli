@@ -309,7 +309,7 @@ func projectInstances(ctx context.Context, client *http.Client, baseURL, project
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("discover project instances: %w", err)

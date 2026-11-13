@@ -67,7 +67,7 @@ func CraftSearchURL(flavour string, isApi bool, query string, options *SearchOpt
 }
 
 func (c *Client) sendRequest(req *http.Request, v interface{}) error {
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return err

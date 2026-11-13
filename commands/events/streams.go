@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -38,7 +39,7 @@ func fetchStreams(ctx context.Context) ([]streamInfo, error) {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", eventStreamsUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {

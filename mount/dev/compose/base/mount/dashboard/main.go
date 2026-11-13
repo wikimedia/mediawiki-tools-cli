@@ -586,6 +586,10 @@ func dashboardGet(client *http.Client, target string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "a-wikimedia-cli (https://www.mediawiki.org/wiki/Cli)")
+	version := strings.TrimSpace(os.Getenv("MWCLI_VERSION"))
+	if version == "" {
+		version = "dev"
+	}
+	req.Header.Set("User-Agent", "a-wikimedia-cli/"+version+" (https://a-wikimedia-cli.toolforge.org/)")
 	return client.Do(req)
 }
