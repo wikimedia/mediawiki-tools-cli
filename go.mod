@@ -15,7 +15,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/cli/cli/v2 v2.97.0
-	github.com/docker/cli v29.9.2+incompatible
+	github.com/docker/cli v29.9.3+incompatible
 	github.com/fatih/color v1.19.0
 	github.com/gofrs/flock v0.13.1
 	github.com/google/go-cmp v0.7.0
