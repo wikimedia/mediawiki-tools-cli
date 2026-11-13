@@ -123,7 +123,7 @@ images:
     requireRegex: ^v0\.\d+\.\d+$
 
   # Prometheus server for local metrics.
-  - image: prom/prometheus:v3.15.1
+  - image: prom/prometheus:v3.16.0
     requireRegex: ^v3\.\d+\.\d+$
 
   # Grafana dashboards for local metrics.
