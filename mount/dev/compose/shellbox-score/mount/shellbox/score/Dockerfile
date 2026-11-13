@@ -1,4 +1,4 @@
-FROM "${SHELLBOX_SCORE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-score83}"
+FROM "${SHELLBOX_SCORE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-score83}"
 
 USER root
 RUN PHP_VERSION=$(ls /etc/php/ | sort -V | tail -1) && \

@@ -176,23 +176,23 @@ imageGroups:
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
       # Shellbox image for media processing.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-media83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-media83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-media83$
 
       # Shellbox image for PHP RPC.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-php-rpc83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-php-rpc83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc83$
 
       # Shellbox image for score processing.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-score83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-score83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-score83$
 
       # Shellbox image for SyntaxHighlight.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-syntaxhighlight83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-syntaxhighlight83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight83$
 
       # Shellbox image for Timeline rendering.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-timeline83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-timeline83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline83$
 
 # Files and directories scanned for image references.
