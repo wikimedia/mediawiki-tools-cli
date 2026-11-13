@@ -143,7 +143,7 @@ images:
     noCheck: true
 
   # Go image used by build, test, and weekly CI jobs.
-  - image: golang:1.26.10
+  - image: golang:1.26.11
     requireRegex: ^1\.26\.\d+$
 
   # Browser, PHP, and Composer image used by integration CI.
