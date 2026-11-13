@@ -91,7 +91,7 @@ images:
 
   # CirrusSearch OpenSearch image used by the local search stack.
   # Keep automatic updates on OpenSearch 2.x; major upgrades need compatibility review.
-  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v2.19.5-3
+  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v2.19.5-4
     requireRegex: ^v2\.\d+\.\d+-\d+$
 
   # OpenSearch Dashboards UI for the local logs stack.
