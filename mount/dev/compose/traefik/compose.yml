@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: "${TRAEFIK_IMAGE:-traefik:v3.7.17}"
+    image: "${TRAEFIK_IMAGE:-traefik:v3.7.18}"
     restart: unless-stopped
     environment:
       # DPS resolves local service names to the proxy, including inside containers.
