@@ -28,7 +28,7 @@ stages:
       - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
 
 prepare-merge:
-    image: golang:1.26.10
+    image: golang:1.26.11
     tags:
       - wmcs
     stage: .pre
@@ -60,7 +60,7 @@ secret_detection:
 # them. Separate job keys avoid parallel jobs overwriting each other's caches.
 .go-job:
     extends: .commit-job
-    image: golang:1.26.10
+    image: golang:1.26.11
     tags:
       - wmcs
     variables:
@@ -133,7 +133,7 @@ build:
 integration-cli:
     extends: .commit-job
     stage: integration
-    image: golang:1.26.10
+    image: golang:1.26.11
     tags:
       - wmcs
     cache: []
@@ -174,7 +174,7 @@ prepare-mediawiki:
 # Cloning code uses Git and local environment files, not a Docker daemon.
 integration-get-code:
     extends: .commit-job
-    image: golang:1.26.10
+    image: golang:1.26.11
     tags:
       - wmcs
     cache: []
