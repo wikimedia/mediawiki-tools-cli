@@ -1,6 +1,6 @@
 services:
   cloudflared:
-    image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.10.7}"
+    image: "${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.11.0}"
     profiles: ["tunnel"]
     restart: "no"
     command:
