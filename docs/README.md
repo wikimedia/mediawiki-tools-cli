@@ -111,7 +111,7 @@ bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put'
 bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put' --profile wikimedia/addshore --apply
 ```
 
-The profile needs wiki deletion permission and, for OAuth, a grant allowing deletion. The script previews by default and stops at the first failed deletion. After checking the result, regenerate the plan to exclude deleted pages; use `--all` instead of `--title` for the reviewed batch. Unmapped entries are skipped.
+The script requires `jq`. The profile needs wiki deletion permission and, for OAuth, a grant allowing deletion. The script previews by default and stops at the first failed deletion. After checking the result, regenerate the plan to exclude deleted pages; use `--all` instead of `--title` for the reviewed batch. Unmapped entries are skipped.
 
 ## Check workflow examples
 

@@ -282,6 +282,7 @@ build-manual:
       - *checkout-merged-source
       - *setup-docs-tools
     script:
+      - apt-get update && apt-get install -y --no-install-recommends jq
       - make manual-install
       - make manual-check
       - make manual
