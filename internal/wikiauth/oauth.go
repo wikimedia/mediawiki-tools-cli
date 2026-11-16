@@ -19,7 +19,10 @@ import (
 
 // Registered public a-wikimedia-cli OAuth 2 client (authorization code + PKCE).
 const (
-	DefaultClientID    = "b54c7ed6be6d2dc967a2d5101436f4a1"
+	DefaultClientID = "b54c7ed6be6d2dc967a2d5101436f4a1"
+	// Enable after approval
+	// https://meta.wikimedia.org/wiki/Steward_requests/Miscellaneous#OAuth_2.0_approval_request_for_a-wikimedia-cli_2
+	// DefaultClientIDWikimediaV1Point1 = "908bfd26bddb665b024f947b09fe3655"
 	DefaultRedirectURI = "http://localhost:8765/auth/login"
 )
 
