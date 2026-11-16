@@ -83,7 +83,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any,
 	if err != nil {
 		return nil, fmt.Errorf("could not construct Enterprise request")
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

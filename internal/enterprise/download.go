@@ -42,7 +42,7 @@ func (c *Client) downloadResponse(ctx context.Context, method, path string, offs
 		if err != nil {
 			return nil, fmt.Errorf("invalid storage request")
 		}
-		req.Header.Set("User-Agent", cli.HTTPUserAgent)
+		req.Header.Set("User-Agent", cli.HTTPUserAgent())
 		req.Header.Set("Accept-Encoding", "identity")
 		if offset > 0 {
 			req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
