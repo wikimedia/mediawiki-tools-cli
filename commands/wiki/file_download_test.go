@@ -38,7 +38,7 @@ type wikiDownloadFixture struct {
 func (f *wikiDownloadFixture) serve(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if !strings.Contains(r.UserAgent(), cli.HTTPUserAgent) {
+	if !strings.Contains(r.UserAgent(), cli.HTTPUserAgent()) {
 		f.t.Error("missing CLI user agent")
 	}
 	if err := r.ParseForm(); err != nil {

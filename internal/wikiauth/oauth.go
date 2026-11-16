@@ -151,7 +151,7 @@ func tokenRequest(ctx context.Context, client *http.Client, endpoint string, for
 		return Tokens{}, fmt.Errorf("could not construct OAuth request")
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := scopedClient.Do(req)
 	if err != nil {
 		return Tokens{}, fmt.Errorf("OAuth token request failed")
@@ -201,7 +201,7 @@ func Identity(ctx context.Context, client *http.Client, endpoint string) (string
 	if err != nil {
 		return "", fmt.Errorf("invalid wiki endpoint")
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("could not verify wiki identity")

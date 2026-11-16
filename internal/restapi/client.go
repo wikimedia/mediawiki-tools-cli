@@ -12,10 +12,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
-const (
-	BaseURL   = "https://wikimedia.org/api/rest_v1/"
-	UserAgent = cli.HTTPUserAgent
-)
+const BaseURL = "https://wikimedia.org/api/rest_v1/"
 
 // Request accepts an absolute URL or an endpoint relative to baseURL.
 func Request(ctx context.Context, method, baseURL, endpoint string, headers http.Header, body io.Reader) (*http.Response, error) {
@@ -51,7 +48,7 @@ func Request(ctx context.Context, method, baseURL, endpoint string, headers http
 		req.Header.Set("Accept", "application/json")
 	}
 	if req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", UserAgent)
+		req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	}
 	// A REST request should not silently become a GET or move credentials to a
 	// different endpoint because of an HTTP redirect.

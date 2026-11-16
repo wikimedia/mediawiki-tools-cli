@@ -49,7 +49,7 @@ func TestWikiFileUpload(t *testing.T) {
 			}
 			var uploads atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.UserAgent() == "" || !strings.Contains(r.UserAgent(), cli.HTTPUserAgent) {
+				if r.UserAgent() == "" || !strings.Contains(r.UserAgent(), cli.HTTPUserAgent()) {
 					t.Error("missing CLI user agent")
 				}
 				if err := r.ParseForm(); err != nil {

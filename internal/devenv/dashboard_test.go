@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
 func TestCustomDashboardMetadata(t *testing.T) {
@@ -63,11 +65,17 @@ func TestCustomDashboardMetadata(t *testing.T) {
 }
 
 func TestDashboardMetadataSurvivesEmbeddedSync(t *testing.T) {
+	previousVersion := cli.VersionDetails
+	cli.VersionDetails = cli.VersionAttributes{Version: "0.35.0"}
+	t.Cleanup(func() { cli.VersionDetails = previousVersion })
 	original := Context
 	Context = "test"
 	t.Cleanup(func() { Context = original })
 	m := Environment{BaseDir: t.TempDir()}
 	m.EnsureReady()
+	if version := m.Env().Get("MWCLI_VERSION"); version != "0.35.0" {
+		t.Fatalf("dashboard lost the CLI version: %q", version)
+	}
 	file := filepath.Join(m.Directory(), "custom-example.yml")
 	if err := os.WriteFile(file, []byte("services:\n  custom-worker:\n    image: busybox\n"), 0o600); err != nil {
 		t.Fatal(err)

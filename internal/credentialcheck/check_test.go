@@ -19,7 +19,7 @@ func TestServiceChecksAuthenticateAndReportOnlyStatus(t *testing.T) {
 		for _, scenario := range []string{"valid", "invalid", "denied", "unavailable", "wrong-account"} {
 			t.Run(service+"/"+scenario, func(t *testing.T) {
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if !strings.HasPrefix(r.UserAgent(), cli.HTTPUserAgent) {
+					if !strings.HasPrefix(r.UserAgent(), cli.HTTPUserAgent()) {
 						t.Error("CLI identity missing")
 					}
 					if scenario == "invalid" {

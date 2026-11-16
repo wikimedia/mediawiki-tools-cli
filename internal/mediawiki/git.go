@@ -242,11 +242,7 @@ func identifyGitCommand(cmd *osexec.Cmd) *osexec.Cmd {
 }
 
 func mwcliUserAgent() string {
-	version := cli.VersionDetails.Version.String()
-	if version == "" {
-		version = "dev"
-	}
-	return cli.AgentName + "/" + version + " (" + cli.ProjectURL + ")"
+	return cli.HTTPUserAgent()
 }
 
 func gitCloneArguments(directory string, remote string, useShallow bool) []string {

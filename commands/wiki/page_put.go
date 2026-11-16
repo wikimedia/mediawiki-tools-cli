@@ -54,7 +54,7 @@ put --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --t
 			}
 			text := string(bytes)
 
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
 				return err
 			}

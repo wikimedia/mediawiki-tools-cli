@@ -76,7 +76,7 @@ upload demo.webm --wiki commons.wikimedia.org --profile wikimedia/addshore --fil
 			if !hasWikiCredentials() {
 				return fmt.Errorf("file uploads require a saved profile or --username with --password or --password-file")
 			}
-			w, err := mwclient.New(endpoint, cli.HTTPUserAgent)
+			w, err := mwclient.New(endpoint, cli.HTTPUserAgent())
 			if err != nil {
 				return err
 			}

@@ -39,6 +39,7 @@ func (m Environment) Directory() string {
 func (m Environment) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
+	m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion())
 	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
 	m.Env().Set("TRAEFIK_DOCKER_PROJECT", strings.ToLower(m.DockerCompose().Name))
 	m.ensureDockerfileComposeFiles()
