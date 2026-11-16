@@ -19,7 +19,7 @@ type replicaCredentials struct {
 // can contain secret file contents, so neither Python nor Go prints them.
 const replicaCredentialsScript = `import configparser, json, os, re, sys
 try:
-    config = configparser.ConfigParser(interpolation=None)
+    config = configparser.ConfigParser(interpolation=None, allow_no_value=True)
     with open(os.path.expanduser('~/replica.my.cnf'), encoding='utf-8') as source:
         data = source.read(16385)
     if len(data) > 16384:

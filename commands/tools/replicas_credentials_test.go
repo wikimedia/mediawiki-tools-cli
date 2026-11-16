@@ -25,9 +25,11 @@ func TestReplicaCredentialsScript(t *testing.T) {
 		invalid    bool
 	}{
 		{"normal", "[client]\nuser=s12345\npassword=REAL_REPLICA_SECRET\n", false},
+		{"valueless mysql option", "[client]\nuser = s12345\npassword = REAL_REPLICA_SECRET\n\ndisable-ssl=true\nskip-ssl\n", false},
 		{"quoted", "[client]\nuser='s12345'\npassword=\"REAL_REPLICA_SECRET\"\n", false},
 		{"missing", "[client]\nuser=s12345\n", true},
-		{"malformed", "[client]\nREAL_REPLICA_SECRET\n", true},
+		{"valueless password", "[client]\nuser=s12345\npassword\n", true},
+		{"malformed", "[client\nuser=s12345\npassword=REAL_REPLICA_SECRET\n", true},
 		{"multiline", "[client]\nuser=s12345\npassword=REAL_REPLICA_SECRET\n continued\n", true},
 		{"invalid user", "[client]\nuser=REAL_REPLICA_SECRET@host\npassword=REAL_REPLICA_SECRET\n", true},
 		{"large", strings.Repeat("REAL_REPLICA_SECRET", 1024), true},
@@ -83,6 +85,56 @@ func TestReplicaCredentialsSSHOutputIsValidatedWithoutDisclosure(t *testing.T) {
 		} else if err == nil || strings.Contains(err.Error(), "REAL_REPLICA_SECRET") {
 			t.Fatal("invalid SSH output accepted or leaked")
 		}
+	}
+}
+
+func TestReplicaCredentialLookupsThroughToolLoginShell(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX shell required")
+	}
+	dir := t.TempDir()
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, "replica.my.cnf"), []byte("[client]\nuser = s12345\npassword = REAL_REPLICA_SECRET\n\ndisable-ssl=true\nskip-ssl\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sudo := `#!/usr/bin/python3
+import os, sys
+args = sys.argv[sys.argv.index('--') + 1:]
+command = ' '.join(''.join(c if c.isascii() and (c.isalnum() or c in '_-$') else '\\' + c for c in arg) for arg in args)
+os.execv('/bin/sh', ['sh', '-c', command])
+`
+	ssh := `#!/usr/bin/python3
+import os, sys
+command = sys.argv[-1].replace("'/usr/bin/sudo'", "'" + os.environ['FAKE_SUDO'] + "'")
+os.execv('/bin/sh', ['sh', '-c', command])
+`
+	for name, content := range map[string]string{"sudo": sudo, "ssh": ssh} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("FAKE_SUDO", filepath.Join(dir, "sudo"))
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	for _, tool := range []string{"", "mytool"} {
+		t.Run("tool="+tool, func(t *testing.T) {
+			connection, err := toolforge.NewConnection(tool, false, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var stderr strings.Builder
+			credentials, err := readReplicaCredentials(t.Context(), connection, nil, &stderr)
+			if err != nil || credentials.User != "s12345" || credentials.Password != "REAL_REPLICA_SECRET" {
+				t.Fatalf("credential lookup failed: %v; stderr=%q", err, stderr.String())
+			}
+			user, err := readReplicaUsername(t.Context(), connection, nil, &stderr)
+			if err != nil || user != "s12345" {
+				t.Fatalf("username lookup failed: %v; stderr=%q", err, stderr.String())
+			}
+			if strings.Contains(stderr.String(), "REAL_REPLICA_SECRET") {
+				t.Fatal("credential leaked in diagnostics")
+			}
+		})
 	}
 }
 

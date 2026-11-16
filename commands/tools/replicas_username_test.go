@@ -116,9 +116,10 @@ func TestReplicaUsernameScriptReturnsOnlyUsername(t *testing.T) {
 		wantError     bool
 	}{
 		{name: "normal", content: "[client]\nuser=s12345\npassword=SECRET_SENTINEL\n"},
+		{name: "valueless mysql option", content: "[client]\nuser = s12345\npassword=SECRET_SENTINEL\ndisable-ssl=true\nskip-ssl\n"},
 		{name: "quoted", content: "[client]\nuser='s12345'\npassword=SECRET_SENTINEL\n"},
 		{name: "missing user", content: "[client]\npassword=SECRET_SENTINEL\n", wantError: true},
-		{name: "malformed", content: "[client]\nuser=s12345\npassword SECRET_SENTINEL\n", wantError: true},
+		{name: "malformed", content: "[client\nuser=s12345\npassword=SECRET_SENTINEL\n", wantError: true},
 		{name: "multiline user", content: "[client]\nuser=s12345\n  password=SECRET_SENTINEL\n", wantError: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {

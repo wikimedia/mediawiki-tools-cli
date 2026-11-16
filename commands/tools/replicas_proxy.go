@@ -23,10 +23,22 @@ import (
 )
 
 func newReplicaProxyCmd() *cobra.Command {
+	return newDatabaseProxyCmd(false)
+}
+
+func newDatabaseProxyCmd(toolsDB bool) *cobra.Command {
+	return newDatabaseProxyCmdWithConnections(toolsDB, readReplicaCredentials, replicaSSHStream)
+}
+
+func newDatabaseProxyCmdWithConnections(toolsDB bool,
+	readCredentials func(context.Context, toolforge.Connection, io.Reader, io.Writer) (replicaCredentials, error),
+	openStream func(context.Context, toolforge.Connection, string) (net.Conn, error),
+) *cobra.Command {
 	var login replicaProxyLoginOptions
 	var port int
 	var service string
 	var idle time.Duration
+	var readOnly bool
 	cmd := &cobra.Command{
 		Use:          "proxy <wiki>",
 		Short:        "Run an experimental local proxy with replica authentication",
@@ -70,7 +82,15 @@ proxy commonswiki --tool mytool --idle-timeout 30s
 			if idle < time.Second || idle > 5*time.Minute {
 				return fmt.Errorf("--idle-timeout must be between 1s and 5m")
 			}
-			forwards, err := replicaForwards(args, service, port)
+			var forwards []replicaForward
+			var err error
+			if toolsDB {
+				var forward replicaForward
+				forward, err = toolsDBForward(args[0], readOnly, port)
+				forwards = []replicaForward{forward}
+			} else {
+				forwards, err = replicaForwards(args, service, port)
+			}
 			if err != nil {
 				return err
 			}
@@ -85,7 +105,7 @@ proxy commonswiki --tool mytool --idle-timeout 30s
 			defer listener.Close()
 			ctx, stop := ossignal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
-			credentials, err := readReplicaCredentials(ctx, connection, cmd.InOrStdin(), cmd.ErrOrStderr())
+			credentials, err := readCredentials(ctx, connection, cmd.InOrStdin(), cmd.ErrOrStderr())
 			if ctx.Err() != nil {
 				return nil
 			}
@@ -94,15 +114,19 @@ proxy commonswiki --tool mytool --idle-timeout 30s
 			}
 			local, generated := login.resolve(credentials)
 			forward := forwards[0]
+			name := "Wiki Replica"
+			if toolsDB {
+				name = "ToolsDB"
+			}
 			cmd.Print(cmdgloss.Block([]string{
-				"Experimental local Wiki Replica authentication proxy",
+				"Experimental local " + name + " authentication proxy",
 				"Host: 127.0.0.1  Port: " + strconv.Itoa(port) + "  Database: " + forward.database,
 				replicaProxyLoginDescription(local, generated),
 				"Idle timeout: " + idle.String() + "; protocol pings do not keep a session alive.",
 				"No database connection is opened until a client uses it. Press Ctrl+C to stop.",
 			}))
 			dial := func(session context.Context) (net.Conn, error) {
-				return replicaSSHStream(session, connection, forward.host)
+				return openStream(session, connection, forward.host)
 			}
 			config := replicaProxyConfig{
 				database: forward.database, credentials: credentials, user: local.User, password: local.Password, idle: idle, dial: dial,
@@ -115,7 +139,21 @@ proxy commonswiki --tool mytool --idle-timeout 30s
 	cmd.Flags().StringVar(&login.user, "user", "wmuser", "Local proxy username; overrides --use-replica-credentials when set")
 	cmd.Flags().StringVar(&login.password, "password", "", "Local proxy password; overrides --use-replica-credentials when set (default random; value is visible in command arguments)")
 	cmd.Flags().IntVar(&port, "port", 4711, "Local proxy TCP port on 127.0.0.1")
-	cmd.Flags().StringVar(&service, "service", "analytics", "Replica endpoint: analytics or web")
+	if toolsDB {
+		cmd.Use = "proxy <database>"
+		cmd.Short = "Run an experimental local ToolsDB authentication proxy"
+		cmd.Long = `Run a local authenticated proxy for a ToolsDB database such as s12345__mydb.
+Use --tool to retrieve the tool account's replica.my.cnf credentials over SSH.
+The proxy binds to 127.0.0.1 and generates a temporary local password by default.
+Use --read-only for the read-only ToolsDB replica; the default is writable.
+The selected database is the default, not an authorization boundary: SQL can
+access any database permitted to the selected Toolforge account.
+The same session limits and protocol restrictions as the Wiki Replica proxy apply.`
+		cmd.Example = cobrautil.NormalizeExample("proxy s12345__mydb --tool mytool\nproxy s12345__mydb --tool mytool --read-only")
+		cmd.Flags().BoolVar(&readOnly, "read-only", false, "Use the read-only ToolsDB replica")
+	} else {
+		cmd.Flags().StringVar(&service, "service", "analytics", "Replica endpoint: analytics or web")
+	}
 	cmd.Flags().DurationVar(&idle, "idle-timeout", time.Minute, "Disconnect idle sessions (1s–5m); pings do not extend the deadline")
 	return cmd
 }

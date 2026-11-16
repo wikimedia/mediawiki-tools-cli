@@ -65,9 +65,17 @@ func newReplicasCmd() *cobra.Command {
 }
 
 func newReplicaTunnelCmd(run func(*osexec.Cmd) error) *cobra.Command {
+	return newDatabaseTunnelCmd(run, false)
+}
+
+func newDatabaseTunnelCmd(run func(*osexec.Cmd) error, toolsDB bool) *cobra.Command {
 	var service string
 	var port int
-	var dryRun bool
+	var dryRun, readOnly bool
+	name := "Wiki Replica"
+	if toolsDB {
+		name = "ToolsDB"
+	}
 	cmd := &cobra.Command{
 		Use:   "tunnel <wiki> [wiki...]",
 		Short: "Forward local ports to Wiki Replicas over one SSH connection",
@@ -102,7 +110,14 @@ tunnel enwiki dewiki --dry-run
 			if err != nil {
 				return err
 			}
-			forwards, err := replicaForwards(args, service, port)
+			var forwards []replicaForward
+			if toolsDB {
+				var forward replicaForward
+				forward, err = toolsDBForward(args[0], readOnly, port)
+				forwards = []replicaForward{forward}
+			} else {
+				forwards, err = replicaForwards(args, service, port)
+			}
 			if err != nil {
 				return err
 			}
@@ -112,7 +127,7 @@ tunnel enwiki dewiki --dry-run
 			sshArgs = append(sshArgs, "-N", "-T", "-o", "ClearAllForwardings=no", "-o", "ExitOnForwardFailure=yes",
 				"-o", "ControlMaster=no", "-o", "ControlPath=none",
 				"-o", "IgnoreUnknown=ForkAfterAuthentication", "-o", "ForkAfterAuthentication=no")
-			lines := []string{"Requested Wiki Replica forwards (available after SSH connects):"}
+			lines := []string{"Requested " + name + " forwards (available after SSH connects):"}
 			for _, forward := range forwards {
 				local := "127.0.0.1:" + strconv.Itoa(forward.port)
 				sshArgs = append(sshArgs, "-L", local+":"+forward.host+":3306")
@@ -120,7 +135,7 @@ tunnel enwiki dewiki --dry-run
 			}
 			sshArgs = append(sshArgs, connection.Host)
 			if dryRun {
-				lines[0] = "Planned Wiki Replica forwards (no connection opened):"
+				lines[0] = "Planned " + name + " forwards (no connection opened):"
 			} else if _, err := lookpath.NeedExecutables([]string{"ssh"}); err != nil {
 				return err
 			}
@@ -146,15 +161,30 @@ tunnel enwiki dewiki --dry-run
 				return nil
 			}
 			if err != nil {
-				return preserveExitCode(cmd, fmt.Errorf("Wiki Replica tunnel failed (check SSH access and local port availability): %w", err))
+				return preserveExitCode(cmd, fmt.Errorf("%s tunnel failed (check SSH access and local port availability): %w", name, err))
 			}
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&service, "service", "analytics", "Replica endpoint: analytics or web")
+	if toolsDB {
+		cmd.Use = "tunnel <database>"
+		cmd.Short = "Forward a local port to ToolsDB over SSH"
+		cmd.Long = `Forward a loopback port to production ToolsDB using your Toolforge SSH login.
+Specify the full database name, for example s12345__mydb. The name is shown
+for convenience; the tunnel reaches the shared server, so database access is
+controlled by your SQL client's credentials and server permissions.
+Use --read-only for the read-only replica. --tool, --beta and --lima do not apply.
+The tunnel does not retrieve credentials. Keep it running until finished.
+Use 127.0.0.1 in your SQL client; Ctrl+C closes the tunnel.`
+		cmd.Example = cobrautil.NormalizeExample("tunnel s12345__mydb\ntunnel s12345__mydb --read-only --dry-run")
+		cmd.Args = cobra.ExactArgs(1)
+		cmd.Flags().BoolVar(&readOnly, "read-only", false, "Use the read-only ToolsDB replica")
+	} else {
+		cmd.Flags().StringVar(&service, "service", "analytics", "Replica endpoint: analytics or web")
+		_ = cmd.RegisterFlagCompletionFunc("service", cobra.FixedCompletions([]string{"analytics", "web"}, cobra.ShellCompDirectiveNoFileComp))
+	}
 	cmd.Flags().IntVar(&port, "port", 4711, "First local tunnel TCP port; additional wikis use consecutive ports")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print mappings and the SSH command without connecting")
-	_ = cmd.RegisterFlagCompletionFunc("service", cobra.FixedCompletions([]string{"analytics", "web"}, cobra.ShellCompDirectiveNoFileComp))
 	return cmd
 }
 

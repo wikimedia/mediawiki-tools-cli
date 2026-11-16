@@ -8,6 +8,7 @@ import (
 	osexec "os/exec"
 	ossignal "os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -91,7 +92,7 @@ username --tool mytool
 // the contents of a malformed credential file, including its password line.
 const replicaUsernameScript = `import configparser, os, re, sys
 try:
-    config = configparser.ConfigParser(interpolation=None)
+    config = configparser.ConfigParser(interpolation=None, allow_no_value=True)
     with open(os.path.expanduser('~/replica.my.cnf'), encoding='utf-8') as source:
         config.read_file(source)
     user = config.get('client', 'user').strip()
@@ -120,10 +121,11 @@ func readReplicaUsername(ctx context.Context, connection toolforge.Connection, i
 func readReplicaFields(ctx context.Context, connection toolforge.Connection, input io.Reader, stderr io.Writer, script string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
+	python := "exec(" + strconv.Quote(script) + ")"
 	args := append([]string(nil), connection.SSHOptions...)
 	args = append(args, "-T", "-o", "ClearAllForwardings=yes", "-o", "PermitLocalCommand=no", "-o", "ControlMaster=no", "-o", "ControlPath=none",
 		"-o", "IgnoreUnknown=ForkAfterAuthentication", "-o", "ForkAfterAuthentication=no",
-		connection.Host, connection.RemoteCommand([]string{"python3", "-c", script}))
+		connection.Host, connection.RemoteCommand([]string{"python3", "-c", python}))
 	lookup := osexec.CommandContext(ctx, "ssh", args...) // #nosec G204 -- fixed Toolforge destination and fixed, shell-quoted field extraction script.
 	lookup.Stdin, lookup.Stderr = input, stderr
 	value, err := lookup.Output()

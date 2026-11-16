@@ -73,6 +73,10 @@ type replicaProxyHarness struct {
 }
 
 func startReplicaProxyTest(t *testing.T, idle time.Duration, query func(string) (*mysql.Result, error)) *replicaProxyHarness {
+	return startDatabaseProxyTest(t, "enwiki_p", idle, query)
+}
+
+func startDatabaseProxyTest(t *testing.T, database string, idle time.Duration, query func(string) (*mysql.Result, error)) *replicaProxyHarness {
 	t.Helper()
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
@@ -81,7 +85,7 @@ func startReplicaProxyTest(t *testing.T, idle time.Duration, query func(string) 
 	ctx, cancel := context.WithCancel(context.Background())
 	h := &replicaProxyHarness{address: listener.Addr().String(), cancel: cancel, closed: make(chan struct{})}
 	config := replicaProxyConfig{
-		database: "enwiki_p", user: "wmuser", password: "LOCAL_SESSION_PASSWORD", idle: idle,
+		database: database, user: "wmuser", password: "LOCAL_SESSION_PASSWORD", idle: idle,
 		credentials: replicaCredentials{User: "s12345", Password: "REAL_REPLICA_SECRET"},
 		dial: func(context.Context) (net.Conn, error) {
 			h.dials.Add(1)

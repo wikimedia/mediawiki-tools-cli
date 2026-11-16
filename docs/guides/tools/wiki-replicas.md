@@ -215,3 +215,37 @@ section names such as `s1`, extension databases and arbitrary forwarding options
 are not accepted. All local listeners bind to `127.0.0.1`; the command does not
 provide SOCKS, remote forwarding or publicly exposed database access. These are
 production Wiki Replicas, so `--beta` and `--lima` do not apply.
+
+## Access ToolsDB
+
+ToolsDB uses a shared server and full database names such as `s12345__mydb`.
+List the selected account's visible databases before choosing one:
+
+```sh
+mw toolforge toolsdb list --tool mytool
+```
+
+The list command briefly connects to ToolsDB using the account's credentials
+and prints names with that account's credential username as their prefix.
+It produces no output when there are no matches. Use `--read-only` to query
+the read-only replica, which can lag behind the primary. Then use a full name:
+
+```sh
+mw toolforge toolsdb tunnel s12345__mydb
+# Or use the experimental local authentication proxy:
+mw toolforge toolsdb proxy s12345__mydb --tool mytool
+```
+
+Connect your SQL client to `127.0.0.1:4711` and select `s12345__mydb`.
+The tunnel does not retrieve credentials; supply the tool account credentials
+to your SQL client. The proxy retrieves them over SSH and prints a temporary
+local password, as described above. Use `--port` to choose another port and
+`--read-only` to connect to the ToolsDB read-only replica instead of the
+writable primary. The replica can lag behind the primary.
+
+The database name selects the initial database, **not an authorization
+boundary**: the tunnel reaches the shared server, and SQL sent through the
+proxy can also access other databases permitted to the selected account.
+The proxy's protocol and session limitations above also apply to ToolsDB;
+use the tunnel for large exports or unsupported operations. For server details,
+see [ToolsDB on Wikitech](https://wikitech.wikimedia.org/wiki/Help:Toolforge/ToolsDB).

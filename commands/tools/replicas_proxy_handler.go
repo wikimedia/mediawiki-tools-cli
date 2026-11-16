@@ -97,7 +97,7 @@ func (h *replicaProxyHandler) result(result *mysql.Result, err error) (*mysql.Re
 
 func (h *replicaProxyHandler) UseDB(database string) error {
 	if database != "" && database != h.config.database {
-		return mysql.NewError(mysql.ER_BAD_DB_ERROR, "this proxy accepts only its selected wiki database")
+		return mysql.NewError(mysql.ER_BAD_DB_ERROR, "this proxy accepts only its selected database")
 	}
 	// The library calls UseDB during the frontend handshake, before checking
 	// its password. Never open an upstream until frontend authentication ends.
