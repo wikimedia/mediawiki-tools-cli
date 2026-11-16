@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { pageHref } from '../src/route-path.mjs';
 
 const referenceRoot = 'Cli/ref';
 const repository = fileURLToPath(new URL('../../', import.meta.url));
@@ -45,7 +46,7 @@ export function referenceDestination(title, commands) {
   }
   return {
     match: remaining.length ? 'ancestor' : changed ? 'renamed' : raw && raw !== current.title ? 'alias' : 'exact',
-    canonicalCommand: current.title, path: current.link,
+    canonicalCommand: current.title, path: pageHref(current.link),
     ...(remaining.length ? { unmatched: remaining.join(' ') } : {}),
   };
 }

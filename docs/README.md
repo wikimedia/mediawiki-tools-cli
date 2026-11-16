@@ -95,6 +95,9 @@ matched, a proposed moved notice and a deletion reason. Alias mappings and
 retired commands resolving only to an ancestor need review. Translations and
 unrecognized titles are flagged separately; the plan does not establish that a
 page was bot-generated or that its contents can be discarded.
+Targets, notices and deletion reasons use slash-free manual URLs. Regenerate and
+review older plans before use; the deletion script rejects selected entries with
+trailing-slash targets or outdated deletion reasons.
 
 Publish and verify the replacement site before applying a reviewed retirement
 plan. Keep manually maintained project pages, guides and their attribution
