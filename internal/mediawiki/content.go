@@ -41,7 +41,7 @@ const anonCSRFToken = `+\`
 
 // CreateWikibaseProperty creates a Wikibase property on the given wiki
 func CreateWikibaseProperty(wikiURL, username, password string, prop WikibasePropertyInput) error {
-	w, err := mwclient.New(normalizeWikiURL(wikiURL), cli.HTTPUserAgent)
+	w, err := mwclient.New(normalizeWikiURL(wikiURL), cli.HTTPUserAgent())
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func CreateWikibaseProperty(wikiURL, username, password string, prop WikibasePro
 
 // CreateWikibaseItem creates a Wikibase item on the given wiki
 func CreateWikibaseItem(wikiURL, username, password string, item WikibaseItemInput) error {
-	w, err := mwclient.New(normalizeWikiURL(wikiURL), cli.HTTPUserAgent)
+	w, err := mwclient.New(normalizeWikiURL(wikiURL), cli.HTTPUserAgent())
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func CreateWikibaseItem(wikiURL, username, password string, item WikibaseItemInp
 
 // CreatePage creates or edits a wiki page
 func CreatePage(wikiURL, username, password string, page PageInput) error {
-	w, err := mwclient.New(normalizeWikiURL(wikiURL), cli.HTTPUserAgent)
+	w, err := mwclient.New(normalizeWikiURL(wikiURL), cli.HTTPUserAgent())
 	if err != nil {
 		return err
 	}

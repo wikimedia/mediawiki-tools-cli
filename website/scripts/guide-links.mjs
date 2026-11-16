@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { posix } from 'node:path';
+import { pageHref } from '../src/route-path.mjs';
 
 // Operate on Markdown link nodes, leaving code blocks and inline examples intact.
 export default function guideLinks({ pages, siteURL }) {
@@ -12,11 +13,15 @@ export default function guideLinks({ pages, siteURL }) {
     const prefix = '/src/content/docs';
     const index = filename.lastIndexOf(prefix);
     const source = index >= 0 ? generated.get(filename.slice(index + prefix.length)) : undefined;
-    if (!source) return;
     function rewrite(node) {
-      return { ...node, url: rewriteGuideLink(node.url, source, sources, wikiPages, siteURL) };
+      const url = source ? rewriteGuideLink(node.url, source, sources, wikiPages, siteURL) : node.url;
+      const local = new URL(url, siteURL);
+      const isPage = local.origin === new URL(siteURL).origin &&
+        (local.pathname === '/manual/' || local.pathname.startsWith('/manual/') ||
+         local.pathname === '/guides/' || local.pathname.startsWith('/guides/'));
+      return { ...node, url: isPage ? pageHref(url) : url };
     }
-    return { name: 'local-guide-links', link: rewrite, definition: rewrite, image: rewrite };
+    return { name: 'local-guide-links', link: rewrite, definition: rewrite, ...(source ? { image: rewrite } : {}) };
   };
 }
 

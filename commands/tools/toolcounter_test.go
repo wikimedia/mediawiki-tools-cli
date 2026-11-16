@@ -22,7 +22,7 @@ func mockToolcounter(t *testing.T, page, body string, status int) {
 		if r.Method != http.MethodGet || r.URL.Host != "toolcounter.toolforge.org" || r.URL.Path != "/api.php" || query.Get("tool") != "example" || query.Get("page") != page || query.Get("action") != "get" || len(query) != 3 {
 			t.Fatalf("unexpected or mutating request: %s %s", r.Method, r.URL)
 		}
-		if r.UserAgent() != cli.HTTPUserAgent || r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" {
+		if r.UserAgent() != cli.HTTPUserAgent() || r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" {
 			t.Fatalf("unexpected request headers: %v", r.Header)
 		}
 		return &http.Response{StatusCode: status, Header: http.Header{"Retry-After": []string{"30"}}, Body: io.NopCloser(strings.NewReader(body))}, nil

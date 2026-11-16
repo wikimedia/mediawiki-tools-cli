@@ -16,7 +16,7 @@ make manual
 ```
 
 The site lives in `website/`. Commands are generated from Cobra help under
-`/manual/`; Markdown guides from this directory appear under `/guides/` and are
+`/manual`; Markdown guides from this directory appear under `/guides` and are
 also bundled for offline reading with `mw help guides`. `--web` opens the same
 guide on the documentation site.
 
@@ -25,6 +25,19 @@ to `website/dist/`. Building does not upload anything or access wiki credentials
 For release documentation, build from a clean checkout of the release tag.
 See [local website development](../DEVELOPMENT.md#command-manual-website) for
 live reload, service metadata and logo caching.
+
+Every page has **Copy Markdown** and **View Markdown** controls. Append `.md` to
+the page URL (the homepage uses `/index.md`).
+These files contain the page title, documentation version and canonical URL,
+with links to other documentation rewritten to absolute Markdown URLs.
+`/llms.txt` introduces the site and links to `/guides/llms.txt` and
+`/manual/llms.txt`, which index the guides and commands respectively.
+
+The Toolforge server also serves Markdown for requests with an explicit,
+nonzero-quality `Accept: text/markdown` header. Normal browser requests receive
+HTML at slash-free page URLs; explicit `.md` URLs work with any static host,
+including local preview.
+Apply the server configuration update below when first publishing this feature.
 
 ## Publish on Toolforge
 
@@ -82,10 +95,23 @@ matched, a proposed moved notice and a deletion reason. Alias mappings and
 retired commands resolving only to an ancestor need review. Translations and
 unrecognized titles are flagged separately; the plan does not establish that a
 page was bot-generated or that its contents can be discarded.
+Targets, notices and deletion reasons use slash-free manual URLs. Regenerate and
+review older plans before use; the deletion script rejects selected entries with
+trailing-slash targets or outdated deletion reasons.
 
 Publish and verify the replacement site before applying a reviewed retirement
 plan. Keep manually maintained project pages, guides and their attribution
 histories outside this reference-only pass.
+
+After reviewing the plan, preview and test one deletion using its planned reason:
+
+```sh
+make build
+bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put'
+bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put' --profile wikimedia/addshore --apply
+```
+
+The profile needs wiki deletion permission and, for OAuth, a grant allowing deletion. The script previews by default and stops at the first failed deletion. After checking the result, regenerate the plan to exclude deleted pages; use `--all` instead of `--title` for the reviewed batch. Unmapped entries are skipped.
 
 ## Check workflow examples
 

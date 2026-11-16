@@ -17,7 +17,7 @@ case "$(uname -m)" in
   arm64|aarch64) ARCH=arm64 ;;
   *) echo 'Choose a binary for your CPU from the releases page.' >&2; exit 1 ;;
 esac
-UA='a-wikimedia-cli (https://www.mediawiki.org/wiki/Cli)'
+UA='a-wikimedia-cli-docs/1.0 (https://a-wikimedia-cli.toolforge.org/)'
 RELEASE_URL=$(curl -fsSL -A "$UA" -o /dev/null -w '%{url_effective}' \
   https://gitlab.wikimedia.org/repos/releng/cli/-/releases/permalink/latest)
 VER=${RELEASE_URL##*/}

@@ -335,7 +335,7 @@ func (e *Events) emitEvents(force bool) bool {
 		return false
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", HTTPUserAgent)
+	req.Header.Set("User-Agent", HTTPUserAgent())
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)

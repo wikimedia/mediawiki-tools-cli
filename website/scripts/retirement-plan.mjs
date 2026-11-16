@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { pageHref } from '../src/route-path.mjs';
 
 const referenceRoot = 'Cli/ref';
 const repository = fileURLToPath(new URL('../../', import.meta.url));
@@ -45,7 +46,7 @@ export function referenceDestination(title, commands) {
   }
   return {
     match: remaining.length ? 'ancestor' : changed ? 'renamed' : raw && raw !== current.title ? 'alias' : 'exact',
-    canonicalCommand: current.title, path: current.link,
+    canonicalCommand: current.title, path: pageHref(current.link),
     ...(remaining.length ? { unmatched: remaining.join(' ') } : {}),
   };
 }
@@ -72,7 +73,7 @@ export async function referenceTitles(fetchPage = fetch) {
   while (true) {
     const url = new URL('https://www.mediawiki.org/w/api.php');
     url.search = new URLSearchParams({ action: 'query', format: 'json', formatversion: '2', list: 'allpages', apnamespace: '0', apprefix: referenceRoot, aplimit: '500', ...continuation }).toString();
-    const response = await fetchPage(url, { headers: { 'User-Agent': 'a-wikimedia-cli-docs/1.0 (https://www.mediawiki.org/wiki/Cli)' }, signal: AbortSignal.timeout(15000) });
+    const response = await fetchPage(url, { headers: { 'User-Agent': 'a-wikimedia-cli-docs/1.0 (https://a-wikimedia-cli.toolforge.org/)' }, signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error(`Wiki inventory returned HTTP ${response.status}`);
     const data = await response.json();
     if (data.error || !Array.isArray(data.query?.allpages)) throw new Error('Wiki inventory did not return a page list');

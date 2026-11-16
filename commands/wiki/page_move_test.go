@@ -35,7 +35,7 @@ type moveAPIFixture struct {
 func (f *moveAPIFixture) serve(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if !strings.HasPrefix(r.UserAgent(), cli.HTTPUserAgent+" ") {
+	if !strings.HasPrefix(r.UserAgent(), cli.HTTPUserAgent()+" ") {
 		f.t.Errorf("unexpected user agent: %q", r.UserAgent())
 	}
 	if err := r.ParseForm(); err != nil {

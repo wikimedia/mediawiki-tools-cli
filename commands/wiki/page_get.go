@@ -24,7 +24,7 @@ func NewWikiPageGetCmd() *cobra.Command {
 				}
 				title = args[0]
 			}
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent)
+			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
 				return err
 			}

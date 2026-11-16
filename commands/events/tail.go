@@ -17,10 +17,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-const (
-	eventStreamsURL       = "https://stream.wikimedia.org"
-	eventStreamsUserAgent = cli.HTTPUserAgent
-)
+const eventStreamsURL = "https://stream.wikimedia.org"
 
 type tailOptions struct {
 	stream, wiki, title, user string
@@ -105,7 +102,7 @@ func tail(ctx context.Context, opts tailOptions, out io.Writer) error {
 			return err
 		}
 		req.Header.Set("Accept", "text/event-stream")
-		req.Header.Set("User-Agent", eventStreamsUserAgent)
+		req.Header.Set("User-Agent", cli.HTTPUserAgent())
 		if lastID != "" {
 			req.Header.Set("Last-Event-ID", lastID)
 		}

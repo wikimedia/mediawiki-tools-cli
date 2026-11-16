@@ -15,7 +15,7 @@ const guideLink = (page) => ({ label: page.title, link: page.url });
 export default defineConfig({
   markdown: { processor: satteri({ mdastPlugins: [guideLinks(guides)] }) },
   site: guides.siteURL,
-  trailingSlash: 'always',
+  trailingSlash: 'never',
   server: { host: '127.0.0.1', port: 4321 },
   devToolbar: { enabled: false },
   integrations: [watchManual(), starlight({
@@ -29,6 +29,7 @@ export default defineConfig({
     customCss: ['./src/styles/custom.css'],
     routeMiddleware: './src/manual-navigation.ts',
     components: {
+      Head: './src/components/Head.astro',
       PageTitle: './src/components/PageTitle.astro',
       Sidebar: './src/components/Sidebar.astro',
       TableOfContents: './src/components/TableOfContents.astro',
