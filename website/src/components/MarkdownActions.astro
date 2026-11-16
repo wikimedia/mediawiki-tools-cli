@@ -1,0 +1,40 @@
+---
+import { markdownPath } from '../../scripts/markdown-docs.mjs';
+const href = markdownPath(Astro.url.pathname);
+---
+{Astro.url.pathname !== '/404/' && (
+  <div class="markdown-actions">
+    <button type="button" data-copy-markdown={href} hidden>Copy Markdown</button>
+    <a href={href}>View Markdown</a>
+    <span role="status" aria-live="polite"></span>
+  </div>
+)}
+<script>
+  function initialize() {
+    document.querySelectorAll<HTMLButtonElement>('[data-copy-markdown]').forEach((button) => {
+      if (!navigator.clipboard?.writeText || button.dataset.initialized) return;
+      button.dataset.initialized = 'true';
+      button.hidden = false;
+      button.addEventListener('click', async () => {
+        const status = button.parentElement?.querySelector('[role="status"]');
+        button.disabled = true;
+        try {
+          const response = await fetch(button.dataset.copyMarkdown!);
+          if (!response.ok) throw new Error('Markdown unavailable');
+          await navigator.clipboard.writeText(await response.text());
+          if (status) status.textContent = 'Markdown copied';
+        } catch {
+          if (status) status.textContent = 'Could not copy. Use View Markdown to select and copy the text.';
+        } finally { button.disabled = false; }
+      });
+    });
+  }
+  initialize();
+  document.addEventListener('astro:page-load', initialize);
+</script>
+<style>
+  .markdown-actions { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; margin-block-end: 1.5rem; font-size: var(--sl-text-sm); }
+  button { font: inherit; color: var(--sl-color-text-accent); background: transparent; border: 1px solid var(--sl-color-gray-4); border-radius: 0.35rem; padding: 0.3rem 0.65rem; cursor: pointer; }
+  button:hover { background: var(--sl-color-gray-6); }
+  [role="status"] { color: var(--sl-color-gray-2); }
+</style>

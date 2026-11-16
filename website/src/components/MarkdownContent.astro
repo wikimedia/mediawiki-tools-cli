@@ -5,12 +5,14 @@ import Recordings from './Recordings.astro';
 import DevOverview from './DevOverview.astro';
 import DocsFeedback from './DocsFeedback.astro';
 import ServiceGrid from './ServiceGrid.astro';
+import MarkdownActions from './MarkdownActions.astro';
 const guideCandidate = Astro.url.pathname.startsWith('/manual/help/guides/') ? Astro.url.pathname.replace('/manual/help/guides/', '/guides/') : undefined;
 const guide = guides.pages.find((page) => page.url === guideCandidate);
 const guideHref = guideCandidate && guides.pages.some((page) => page.url.startsWith(guideCandidate)) ? guideCandidate : undefined;
 const isDevelopmentOverview = Astro.url.pathname === '/manual/dev/';
 ---
 
+<MarkdownActions />
 <DefaultMarkdownContent>
   {guideHref && (
     <aside class="guide-reading">

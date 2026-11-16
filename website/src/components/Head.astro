@@ -1,0 +1,9 @@
+---
+import DefaultHead from '@astrojs/starlight/components/Head.astro';
+import { markdownPath } from '../../scripts/markdown-docs.mjs';
+const pathname = Astro.url.pathname;
+const scope = pathname.startsWith('/manual/') ? '/manual/' : pathname.startsWith('/guides/') ? '/guides/' : '/';
+---
+<DefaultHead />
+{pathname !== '/404/' && <link rel="alternate" type="text/markdown" href={new URL(markdownPath(pathname), Astro.site)} />}
+<link rel="describedby" type="text/plain" href={new URL(`${scope}llms.txt`, Astro.site)} />

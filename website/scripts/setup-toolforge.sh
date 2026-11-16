@@ -26,6 +26,29 @@ cat > "$HOME/Caddyfile" <<'EOF'
 
 :{$PORT:8000} {
   root * "{$HOME}/public_html"
+
+  # Preserve separate HTML and Markdown variants in intermediary caches.
+  header Vary Accept
+  @markdown_file {
+    path *.md
+    file {path}
+  }
+  header @markdown_file Content-Type "text/markdown; charset=utf-8"
+
+  map {path} {markdown_path} {
+    / /index.md
+    ~^(.*?)/?$ ${1}.md
+  }
+  @markdown {
+    # An explicit Markdown media type with nonzero quality (or no quality).
+    header_regexp Accept `(?i)(?:^|,)\s*text/markdown\s*(?:;\s*q=(?:1(?:\.0{1,3})?|0?\.\d*[1-9]\d*))?\s*(?:,|$)`
+    file {markdown_path}
+  }
+  handle @markdown {
+    rewrite * {markdown_path}
+    header Content-Type "text/markdown; charset=utf-8"
+    file_server
+  }
   file_server
 
   handle_errors 404 {

@@ -29,6 +29,7 @@ export default defineConfig({
     customCss: ['./src/styles/custom.css'],
     routeMiddleware: './src/manual-navigation.ts',
     components: {
+      Head: './src/components/Head.astro',
       PageTitle: './src/components/PageTitle.astro',
       Sidebar: './src/components/Sidebar.astro',
       TableOfContents: './src/components/TableOfContents.astro',

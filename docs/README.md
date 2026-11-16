@@ -26,6 +26,18 @@ For release documentation, build from a clean checkout of the release tag.
 See [local website development](../DEVELOPMENT.md#command-manual-website) for
 live reload, service metadata and logo caching.
 
+Every page has **Copy Markdown** and **View Markdown** controls. Its Markdown
+URL replaces the trailing slash with `.md` (the homepage uses `/index.md`).
+These files contain the page title, documentation version and canonical URL,
+with links to other documentation rewritten to absolute Markdown URLs.
+`/llms.txt` introduces the site and links to `/guides/llms.txt` and
+`/manual/llms.txt`, which index the guides and commands respectively.
+
+The Toolforge server also serves Markdown for requests with an explicit,
+nonzero-quality `Accept: text/markdown` header. Normal browser requests receive
+HTML; explicit `.md` URLs work with any static host, including local preview.
+Apply the server configuration update below when first publishing this feature.
+
 ## Publish on Toolforge
 
 From a clean checkout of the release tag, with Toolforge SSH access configured:
