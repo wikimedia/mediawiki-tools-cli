@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/cloudvps"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/enterprise"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
@@ -15,7 +16,7 @@ import (
 
 // Keep the service-independent auth surface stable even as login protocols differ.
 func TestServiceProfileCommandContract(t *testing.T) {
-	for _, parent := range []*cobra.Command{gerrit.NewGerritCmd(), phabricator.NewPhabricatorCmd(), wiki.NewWikiCmd(), cloudvps.NewCloudVPSCmd(), gitlab.Cmd()} {
+	for _, parent := range []*cobra.Command{gerrit.NewGerritCmd(), phabricator.NewPhabricatorCmd(), wiki.NewWikiCmd(), cloudvps.NewCloudVPSCmd(), gitlab.Cmd(), enterprise.NewCmd()} {
 		t.Run(parent.Name(), func(t *testing.T) {
 			flag := parent.PersistentFlags().Lookup("profile")
 			if flag == nil || flag.Value.Type() != "string" {
@@ -42,6 +43,10 @@ func TestServiceProfileCommandContract(t *testing.T) {
 			}
 			sort.Strings(names)
 			want := []string{"default", "login", "profiles", "remove", "status"}
+			if parent.Name() == "enterprise" {
+				want = append(want, "revoke")
+				sort.Strings(want)
+			}
 			if !reflect.DeepEqual(names, want) {
 				t.Fatalf("auth commands=%v, want %v", names, want)
 			}

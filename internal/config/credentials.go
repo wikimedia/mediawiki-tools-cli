@@ -306,6 +306,12 @@ func (c Credential) Update(ctx context.Context, update func(string) (string, err
 func CredentialForKey(key string) (Credential, error) {
 	state := State().OnDiskKoanf
 	switch {
+	case strings.HasPrefix(key, "enterprise.profiles.") && strings.HasSuffix(key, ".token"):
+		parts := strings.Split(key, ".")
+		if len(parts) != 4 || parts[2] == "" {
+			break
+		}
+		return Credential{Key: key, Service: "enterprise", Endpoint: "https://api.enterprise.wikimedia.com", Account: state.String(strings.TrimSuffix(key, "token") + "username")}, nil
 	case strings.HasPrefix(key, "wiki.profiles."):
 		parts := strings.Split(key, ".")
 		if len(parts) != 5 || (parts[4] != "password" && parts[4] != "token") {

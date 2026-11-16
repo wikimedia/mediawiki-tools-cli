@@ -18,6 +18,7 @@ import (
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev"
+	enterprisecmd "gitlab.wikimedia.org/repos/releng/cli/commands/enterprise"
 	eventscmd "gitlab.wikimedia.org/repos/releng/cli/commands/events"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
@@ -169,6 +170,7 @@ func NewRootCmd(name string) *cobra.Command {
 		debugcmd.Cmd(),
 
 		// Built in sub commands
+		cobrautil.WithServiceInfo(enterprisecmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Enterprise", URL: "https://enterprise.wikimedia.com", Logo: "https://upload.wikimedia.org/wikipedia/commons/8/84/Wikimedia_Enterprise_squirrel.svg"}),
 		cobrautil.WithServiceInfo(gitlabcmd.Cmd(), cobrautil.ServiceInfo{Name: "GitLab", URL: "https://gitlab.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/gitlab.svg"}),
 		zikicmd.Cmd(),
 
