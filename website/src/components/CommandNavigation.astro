@@ -1,7 +1,8 @@
 ---
 import manual from '../content/docs/manual/_meta.json';
 import { commandSections } from '../command-navigation.mjs';
-const pathname = Astro.url.pathname;
+import { normalizeRoutePath, pageHref } from '../route-path.mjs';
+const pathname = normalizeRoutePath(Astro.url.pathname);
 const sections = commandSections(manual.commands, pathname);
 ---
 
@@ -9,10 +10,10 @@ const sections = commandSections(manual.commands, pathname);
   <h2>Subcommands</h2>
   {sections.map((section, index) => (
     <section>
-      <h3><a href={section.link} aria-current={index === 0 && pathname === section.link ? 'page' : undefined}>{section.label || section.title}</a></h3>
+      <h3><a href={pageHref(section.link)} aria-current={index === 0 && pathname === section.link ? 'page' : undefined}>{section.label || section.title}</a></h3>
       <ul>
         {section.children.map((command) => (
-          <li><a href={command.link} aria-current={pathname === command.link ? 'page' : undefined} data-active-branch={pathname.startsWith(command.link) || undefined}>{command.name}</a></li>
+          <li><a href={pageHref(command.link)} aria-current={pathname === command.link ? 'page' : undefined} data-active-branch={pathname.startsWith(command.link) || undefined}>{command.name}</a></li>
         ))}
       </ul>
     </section>

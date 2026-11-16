@@ -1,8 +1,10 @@
 ---
 import { markdownPath } from '../../scripts/markdown-docs.mjs';
-const href = markdownPath(Astro.url.pathname);
+import { normalizeRoutePath } from '../route-path.mjs';
+const pathname = normalizeRoutePath(Astro.url.pathname);
+const href = markdownPath(pathname);
 ---
-{Astro.url.pathname !== '/404/' && (
+{pathname !== '/404/' && (
   <div class="markdown-actions">
     <button type="button" data-copy-markdown={href} hidden>Copy Markdown</button>
     <a href={href}>View Markdown</a>

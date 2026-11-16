@@ -70,7 +70,8 @@ export function renderMarkdown(page, context) {
   }
   visit(tree);
   const description = page.description && !page.body.includes(page.description) ? `${page.description}\n\n` : '';
-  return `# ${page.title}\n\n${description}Documentation version: ${page.version}\n\nCanonical page: ${new URL(page.pathname, context.siteURL).href}\n\n${toMarkdown(tree, { fences: true, bullet: '-' })}`;
+  const canonicalPath = page.pathname === '/' ? '/' : page.pathname.replace(/\/$/, '');
+  return `# ${page.title}\n\n${description}Documentation version: ${page.version}\n\nCanonical page: ${new URL(canonicalPath, context.siteURL).href}\n\n${toMarkdown(tree, { fences: true, bullet: '-' })}`;
 }
 
 export function llmsIndex({ documents, siteURL }, scope = '/') {

@@ -22,6 +22,13 @@ test('command family and active branch remain available on nested command pages'
   assert.deepEqual(sections[1].children.map((child) => child.name), ['get', 'list']);
 });
 
+test('slash-free route URLs keep command navigation available', () => {
+  const sections = commandSections(commands, '/manual/gerrit/accounts/get');
+  assert.deepEqual(sections.map((section) => section.name), ['gerrit', 'accounts']);
+  assert.deepEqual(commandSections(commands, '/manual/dev'), []);
+  assert.deepEqual(commandSections(commands, '/manual').map((section) => section.name), ['mw']);
+});
+
 test('development navigation starts at the service area already selected on the left', () => {
   assert.deepEqual(commandSections(commands, '/manual/dev/'), []);
   assert.deepEqual(commandSections(commands, '/manual/dev/mediawiki/').map((section) => section.name), ['mediawiki']);

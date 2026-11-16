@@ -29,16 +29,18 @@ test('missing relative guides fail the build instead of becoming broken links', 
   assert.throws(() => rewriteGuideLink('missing.md', 'guides/dev/setup.md', sources, wikiPages), /Unknown guide link/);
 });
 
-test('guide visitors target generated guide pages, leaving code and reference pages alone', () => {
+test('visitors normalize guide and reference links without changing code', () => {
   const plugin = guideLinks({ pages, siteURL });
   const visitors = plugin({ fileURL: new URL('file:///project/website/src/content/docs/guides/gitlab/index.md') });
   const link = { type: 'link', url: '../dev/setup.md', children: [] };
   const definition = { type: 'definition', url: '../dev/setup.md#install' };
-  assert.equal(visitors.link(link).url, '/guides/dev/setup/');
-  assert.equal(visitors.definition(definition).url, '/guides/dev/setup/#install');
+  assert.equal(visitors.link(link).url, '/guides/dev/setup');
+  assert.equal(visitors.definition(definition).url, '/guides/dev/setup#install');
   assert.equal(link.url, '../dev/setup.md');
   assert.equal(visitors.code, undefined);
   assert.equal(visitors.inlineCode, undefined);
   assert.equal(visitors.html, undefined);
-  assert.equal(plugin({ fileURL: new URL('file:///project/website/src/content/docs/manual/wiki/index.md') }), undefined);
+  const manual = plugin({ fileURL: new URL('file:///project/website/src/content/docs/manual/wiki/index.md') });
+  assert.equal(manual.link({ type: 'link', url: '/manual/wiki/page/?format=1#options' }).url, '/manual/wiki/page?format=1#options');
+  assert.equal(manual.link({ type: 'link', url: 'https://example.org/a/' }).url, 'https://example.org/a/');
 });

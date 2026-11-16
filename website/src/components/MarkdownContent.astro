@@ -6,17 +6,19 @@ import DevOverview from './DevOverview.astro';
 import DocsFeedback from './DocsFeedback.astro';
 import ServiceGrid from './ServiceGrid.astro';
 import MarkdownActions from './MarkdownActions.astro';
-const guideCandidate = Astro.url.pathname.startsWith('/manual/help/guides/') ? Astro.url.pathname.replace('/manual/help/guides/', '/guides/') : undefined;
+import { normalizeRoutePath, pageHref } from '../route-path.mjs';
+const pathname = normalizeRoutePath(Astro.url.pathname);
+const guideCandidate = pathname.startsWith('/manual/help/guides/') ? pathname.replace('/manual/help/guides/', '/guides/') : undefined;
 const guide = guides.pages.find((page) => page.url === guideCandidate);
 const guideHref = guideCandidate && guides.pages.some((page) => page.url.startsWith(guideCandidate)) ? guideCandidate : undefined;
-const isDevelopmentOverview = Astro.url.pathname === '/manual/dev/';
+const isDevelopmentOverview = pathname === '/manual/dev/';
 ---
 
 <MarkdownActions />
 <DefaultMarkdownContent>
   {guideHref && (
     <aside class="guide-reading">
-      <a href={guideHref}>{guide ? `Read the guide: ${guide.title}` : 'Browse these guides'} →</a>
+      <a href={pageHref(guideHref)}>{guide ? `Read the guide: ${guide.title}` : 'Browse these guides'} →</a>
       <p>This page documents the CLI command. Follow the link to read the guide on this site.</p>
     </aside>
   )}
@@ -31,7 +33,7 @@ const isDevelopmentOverview = Astro.url.pathname === '/manual/dev/';
     </>
   ) : <slot />}
 </DefaultMarkdownContent>
-{Astro.url.pathname === '/' && <ServiceGrid />}
+{pathname === '/' && <ServiceGrid />}
 <DocsFeedback />
 
 <style>

@@ -22,7 +22,7 @@ test('exports metadata, local links and flag lists while preserving examples and
   const result = renderMarkdown({ pathname: '/guides/one/', title: 'One', version: 'v1.2', source: 'guides/one.md', body }, context);
   assert.match(result, /^# One\n/);
   assert.match(result, /Documentation version: v1.2/);
-  assert.match(result, /Canonical page: https:\/\/docs.example\/guides\/one\//);
+  assert.match(result, /Canonical page: https:\/\/docs.example\/guides\/one\n/);
   assert.match(result, /https:\/\/docs.example\/guides\/two.md#usage/);
   assert.match(result, /https:\/\/docs.example\/manual.md/);
   assert.match(result, /echo "\[Next\]\(two.md\)"/);

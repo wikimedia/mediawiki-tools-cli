@@ -1,7 +1,8 @@
 ---
 import DefaultHead from '@astrojs/starlight/components/Head.astro';
 import { markdownPath } from '../../scripts/markdown-docs.mjs';
-const pathname = Astro.url.pathname;
+import { normalizeRoutePath } from '../route-path.mjs';
+const pathname = normalizeRoutePath(Astro.url.pathname);
 const scope = pathname.startsWith('/manual/') ? '/manual/' : pathname.startsWith('/guides/') ? '/guides/' : '/';
 ---
 <DefaultHead />

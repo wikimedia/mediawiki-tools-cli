@@ -49,7 +49,10 @@ cat > "$HOME/Caddyfile" <<'EOF'
     header Content-Type "text/markdown; charset=utf-8"
     file_server
   }
-  file_server
+  handle {
+    try_files {path}.html {path}/index.html {path}
+    file_server
+  }
 
   handle_errors 404 {
     rewrite * /404.html

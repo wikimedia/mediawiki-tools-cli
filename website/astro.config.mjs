@@ -15,7 +15,7 @@ const guideLink = (page) => ({ label: page.title, link: page.url });
 export default defineConfig({
   markdown: { processor: satteri({ mdastPlugins: [guideLinks(guides)] }) },
   site: guides.siteURL,
-  trailingSlash: 'always',
+  trailingSlash: 'never',
   server: { host: '127.0.0.1', port: 4321 },
   devToolbar: { enabled: false },
   integrations: [watchManual(), starlight({

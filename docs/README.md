@@ -16,7 +16,7 @@ make manual
 ```
 
 The site lives in `website/`. Commands are generated from Cobra help under
-`/manual/`; Markdown guides from this directory appear under `/guides/` and are
+`/manual`; Markdown guides from this directory appear under `/guides` and are
 also bundled for offline reading with `mw help guides`. `--web` opens the same
 guide on the documentation site.
 
@@ -26,8 +26,8 @@ For release documentation, build from a clean checkout of the release tag.
 See [local website development](../DEVELOPMENT.md#command-manual-website) for
 live reload, service metadata and logo caching.
 
-Every page has **Copy Markdown** and **View Markdown** controls. Its Markdown
-URL replaces the trailing slash with `.md` (the homepage uses `/index.md`).
+Every page has **Copy Markdown** and **View Markdown** controls. Append `.md` to
+the page URL (the homepage uses `/index.md`).
 These files contain the page title, documentation version and canonical URL,
 with links to other documentation rewritten to absolute Markdown URLs.
 `/llms.txt` introduces the site and links to `/guides/llms.txt` and
@@ -35,7 +35,8 @@ with links to other documentation rewritten to absolute Markdown URLs.
 
 The Toolforge server also serves Markdown for requests with an explicit,
 nonzero-quality `Accept: text/markdown` header. Normal browser requests receive
-HTML; explicit `.md` URLs work with any static host, including local preview.
+HTML at slash-free page URLs; explicit `.md` URLs work with any static host,
+including local preview.
 Apply the server configuration update below when first publishing this feature.
 
 ## Publish on Toolforge

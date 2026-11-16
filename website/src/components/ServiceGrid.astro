@@ -1,6 +1,7 @@
 ---
 import { Icon } from '@astrojs/starlight/components';
 import manual from '../content/docs/manual/_services.json';
+import { pageHref } from '../route-path.mjs';
 interface Service {
   name: string; command: string; link: string;
   development: boolean; logo?: string; url?: string; children?: Service[];
@@ -20,7 +21,7 @@ const sections = [
       <ul class="service-grid">
         {services.filter((service) => service.development === section.development).map((service) => (
           <li>
-            <a class="reference" href={service.link}>
+            <a class="reference" href={pageHref(service.link)}>
               <span class:list={['logo', { fallback: !service.logo }]}>
                 {service.logo ? <img src={service.logo} alt="" loading="lazy" width="48" height="48" /> : <Icon name="setting" size="2.5rem" />}
               </span>
@@ -31,7 +32,7 @@ const sections = [
               <ul class="tools" aria-label={`${service.name} tools`}>
                 {service.children.map((tool) => (
                   <li>
-                    <a href={tool.link} title={tool.command}>
+                    <a href={pageHref(tool.link)} title={tool.command}>
                       {tool.logo && <img src={tool.logo} alt="" width="16" height="16" loading="lazy" />}
                       {tool.name}
                     </a>
@@ -41,7 +42,7 @@ const sections = [
               </ul>
             )}
             <div class="links">
-              <a href={service.link} aria-label={`${service.name} command reference`}>Command reference</a>
+              <a href={pageHref(service.link)} aria-label={`${service.name} command reference`}>Command reference</a>
               {service.url && <a href={service.url} aria-label={`${service.name} website`}>Website <span aria-hidden="true">↗︎</span></a>}
             </div>
           </li>
