@@ -13,4 +13,7 @@ status.
 Toolforge SSH access must already be configured. `--beta` selects toolsbeta;
 `--lima` uses the local lima-kilo SSH configuration.
 
+For local Wiki Replica access, use `mw toolforge replicas tunnel enwiki dewiki`.
+Arguments after `shell --` run remotely; they are not local SSH options.
+
 See [Toolforge documentation](https://wikitech.wikimedia.org/wiki/Help:Toolforge).
