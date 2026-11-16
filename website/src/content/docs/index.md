@@ -11,14 +11,14 @@ hero:
     alt: a Wikimedia CLI logo
   actions:
     - text: Browse the command manual
-      link: /manual/
+      link: /manual
       icon: right-arrow
     - text: Get started
-      link: /guides/installation/
+      link: /guides/installation
       variant: secondary
 ---
 
-Read the [workflow guides](/guides/) for setup and common tasks.
+Read the [workflow guides](/guides) for setup and common tasks.
 
 The manual covers command behaviour, examples and available options. Each page
 identifies the release or development checkout it describes.

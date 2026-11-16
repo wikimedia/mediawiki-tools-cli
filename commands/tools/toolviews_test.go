@@ -30,7 +30,7 @@ func mockToolviews(t *testing.T, path, body string, status int) {
 		if r.URL.Host != "toolviews.toolforge.org" || r.URL.EscapedPath() != path {
 			t.Fatalf("unexpected request: %s", r.URL)
 		}
-		if r.UserAgent() != cli.HTTPUserAgent || !strings.Contains(r.UserAgent(), "a-wikimedia-cli") {
+		if r.UserAgent() != cli.HTTPUserAgent() || !strings.Contains(r.UserAgent(), "a-wikimedia-cli") {
 			t.Fatalf("wrong User-Agent: %q", r.UserAgent())
 		}
 		if r.Header.Get("Authorization") != "" {

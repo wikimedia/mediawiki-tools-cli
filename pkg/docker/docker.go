@@ -32,7 +32,7 @@ func NewClientFromEnv() (*client.Client, error) {
 		}
 	}
 	if name == "" || name == "default" {
-		return client.New(client.FromEnv, client.WithUserAgent(cli.HTTPUserAgent))
+		return client.New(client.FromEnv, client.WithUserAgent(cli.HTTPUserAgent()))
 	}
 	contexts := store.New(dockerconfig.ContextStoreDir(), dockerContextStoreConfig())
 	metadata, err := contexts.GetMetadata(name)
@@ -51,7 +51,7 @@ func NewClientFromEnv() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Docker context %q client: %w", name, err)
 	}
-	return client.New(append(opts, client.WithUserAgent(cli.HTTPUserAgent))...)
+	return client.New(append(opts, client.WithUserAgent(cli.HTTPUserAgent()))...)
 }
 
 func dockerContextStoreConfig() store.Config {

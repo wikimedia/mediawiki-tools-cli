@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const output = fileURLToPath(new URL('../dist/', import.meta.url));
@@ -14,8 +14,16 @@ for (const page of pages) {
     const url = new URL(href.replaceAll('&amp;', '&'), pageURL);
     if (url.origin !== origin) continue;
     const path = decodeURIComponent(url.pathname);
-    const target = path === '/404/' ? join(output, '404.html') : join(output, path, path.endsWith('/') ? 'index.html' : '');
-    if (!existsSync(target)) broken.add(`${page}: ${href}`);
+    const routePath = path.replace(/\/$/, '') || '/';
+    if (path !== '/' && path.endsWith('/') && (routePath === '/manual' || routePath.startsWith('/manual/') || routePath === '/guides' || routePath.startsWith('/guides/'))) {
+      broken.add(`${page}: noncanonical page link ${href}`);
+      continue;
+    }
+    const targets = [
+      join(output, routePath),
+      ...(extname(routePath) ? [] : [join(output, `${routePath}.html`), join(output, routePath, 'index.html')]),
+    ];
+    if (!targets.some((target) => existsSync(target) && statSync(target).isFile())) broken.add(`${page}: ${href}`);
   }
 }
 if (broken.size) {

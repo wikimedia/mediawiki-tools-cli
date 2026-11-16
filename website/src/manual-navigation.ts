@@ -1,4 +1,5 @@
 import { commandSections } from './command-navigation.mjs';
+import { normalizeRoutePath, pageHref } from './route-path.mjs';
 import { defineRouteMiddleware, type StarlightRouteData } from '@astrojs/starlight/route-data';
 import guides from './content/docs/guides/_meta.json';
 import manual from './content/docs/manual/_meta.json';
@@ -12,7 +13,7 @@ interface ManualItem {
 }
 
 export const onRequest = defineRouteMiddleware((context) => {
-  const pathname = context.url.pathname;
+  const pathname = normalizeRoutePath(context.url.pathname);
   const route = context.locals.starlightRoute;
   if (pathname.startsWith('/manual/')) {
     route.toc = commandSections(manual.commands, pathname).length
@@ -23,7 +24,7 @@ export const onRequest = defineRouteMiddleware((context) => {
   }
   function highlight(item: SidebarEntry): SidebarEntry {
     return item.type === 'link'
-      ? { ...item, attrs: { ...item.attrs, ...(item.href.startsWith('/manual/') && item.href !== '/manual/' && pathname.startsWith(item.href) ? { 'data-active-branch': true } : {}) } }
+      ? { ...item, attrs: { ...item.attrs, ...(item.href.startsWith('/manual/') && item.href !== '/manual/' && pathname.startsWith(normalizeRoutePath(item.href)) ? { 'data-active-branch': true } : {}) } }
       : { ...item, entries: item.entries.map(highlight) };
   }
   route.sidebar = route.sidebar.map(highlight);
@@ -32,8 +33,8 @@ export const onRequest = defineRouteMiddleware((context) => {
   function entry(item: ManualItem): SidebarEntry {
     if (item.link) {
       return {
-        type: 'link', label: item.label, href: item.link,
-        isCurrent: pathname === item.link, attrs: item.link.startsWith('/manual/') && item.link !== '/manual/' && pathname.startsWith(item.link) ? { 'data-active-branch': true } : {}, badge: undefined,
+        type: 'link', label: item.label, href: pageHref(item.link),
+        isCurrent: pathname === normalizeRoutePath(item.link), attrs: item.link.startsWith('/manual/') && item.link !== '/manual/' && pathname.startsWith(normalizeRoutePath(item.link)) ? { 'data-active-branch': true } : {}, badge: undefined,
       };
     }
     return {

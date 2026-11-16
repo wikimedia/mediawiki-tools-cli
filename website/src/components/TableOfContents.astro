@@ -1,6 +1,8 @@
 ---
 import DefaultTableOfContents from '@astrojs/starlight/components/TableOfContents.astro';
 import CommandNavigation from './CommandNavigation.astro';
+import { normalizeRoutePath } from '../route-path.mjs';
+const pathname = normalizeRoutePath(Astro.url.pathname);
 ---
 
-{Astro.url.pathname.startsWith('/manual/') ? <CommandNavigation /> : <DefaultTableOfContents />}
+{pathname.startsWith('/manual/') ? <CommandNavigation /> : <DefaultTableOfContents />}

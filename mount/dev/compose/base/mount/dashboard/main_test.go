@@ -53,6 +53,31 @@ func TestDashboardServesCodexStylesDirectlyAndThroughGateway(t *testing.T) {
 	}
 }
 
+func TestDashboardRequestsIncludeCLIVersion(t *testing.T) {
+	for _, version := range []string{"0.35.0", ""} {
+		t.Run(version, func(t *testing.T) {
+			t.Setenv("MWCLI_VERSION", version)
+			wantVersion := version
+			if wantVersion == "" {
+				wantVersion = "dev"
+			}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				want := "a-wikimedia-cli/" + wantVersion + " (https://a-wikimedia-cli.toolforge.org/)"
+				if r.UserAgent() != want {
+					t.Errorf("got %q, want %q", r.UserAgent(), want)
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			response, err := dashboardGet(server.Client(), server.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response.Body.Close()
+		})
+	}
+}
+
 func TestCheckHostRunningTrue(t *testing.T) {
 	origLookup := dnsLookupHost
 	origTimeout := dnsLookupTimeout

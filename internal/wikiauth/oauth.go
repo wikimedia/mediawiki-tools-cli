@@ -19,7 +19,10 @@ import (
 
 // Registered public a-wikimedia-cli OAuth 2 client (authorization code + PKCE).
 const (
-	DefaultClientID    = "b54c7ed6be6d2dc967a2d5101436f4a1"
+	DefaultClientID = "b54c7ed6be6d2dc967a2d5101436f4a1"
+	// Enable after approval
+	// https://meta.wikimedia.org/wiki/Steward_requests/Miscellaneous#OAuth_2.0_approval_request_for_a-wikimedia-cli_2
+	// DefaultClientIDWikimediaV1Point1 = "908bfd26bddb665b024f947b09fe3655"
 	DefaultRedirectURI = "http://localhost:8765/auth/login"
 )
 
@@ -151,7 +154,7 @@ func tokenRequest(ctx context.Context, client *http.Client, endpoint string, for
 		return Tokens{}, fmt.Errorf("could not construct OAuth request")
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := scopedClient.Do(req)
 	if err != nil {
 		return Tokens{}, fmt.Errorf("OAuth token request failed")
@@ -201,7 +204,7 @@ func Identity(ctx context.Context, client *http.Client, endpoint string) (string
 	if err != nil {
 		return "", fmt.Errorf("invalid wiki endpoint")
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("could not verify wiki identity")

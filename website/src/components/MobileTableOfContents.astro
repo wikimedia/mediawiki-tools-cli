@@ -1,9 +1,11 @@
 ---
 import DefaultMobileTableOfContents from '@astrojs/starlight/components/MobileTableOfContents.astro';
 import CommandNavigation from './CommandNavigation.astro';
+import { normalizeRoutePath } from '../route-path.mjs';
+const pathname = normalizeRoutePath(Astro.url.pathname);
 ---
 
-{Astro.url.pathname.startsWith('/manual/') ? (
+{pathname.startsWith('/manual/') ? (
   <nav class="mobile-commands" aria-label="Mobile command navigation">
     <details>
       <summary>Subcommands</summary>

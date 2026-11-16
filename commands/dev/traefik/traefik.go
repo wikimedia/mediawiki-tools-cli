@@ -107,7 +107,7 @@ func gatewayRequest(method, origin, path, credentials string) (*http.Request, er
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", cli.HTTPUserAgent)
+	req.Header.Set("User-Agent", cli.HTTPUserAgent())
 	req.SetBasicAuth(username, password)
 	return req, nil
 }

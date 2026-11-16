@@ -234,7 +234,7 @@ func TestGitlabCredentialHelperPinsProfileAndHost(t *testing.T) {
 func TestGitlabProfileConfigAdapterDoesNotPersistTokens(t *testing.T) {
 	path := isolateGitlabProfiles(t)
 	before, _ := os.ReadFile(path)
-	factory, err := mwcli.NewProfileFactory(glabVersion(), cli.HTTPUserAgent, func() (*mwcli.ProfileCredentials, error) {
+	factory, err := mwcli.NewProfileFactory(glabVersion(), cli.HTTPUserAgent(), func() (*mwcli.ProfileCredentials, error) {
 		return &mwcli.ProfileCredentials{Host: "gitlab.wikimedia.org", Username: "Addshore", Token: func() (string, error) { return "adapter-private-fixture", nil }}, nil
 	})
 	if err != nil {

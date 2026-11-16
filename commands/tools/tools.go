@@ -25,7 +25,7 @@ var cpExample string
 var execLong string
 
 func NewToolforgeCmd() *cobra.Command {
-	toolforgeua.SetApplication(cli.HTTPUserAgent)
+	toolforgeua.SetApplication(cli.HTTPUserAgent())
 	command := toolforge.NewCommand()
 	command.Use = "toolforge"
 	command.GroupID = "service"

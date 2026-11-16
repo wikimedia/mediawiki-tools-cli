@@ -18,6 +18,13 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
+func TestWikimediaPresetKeepsV1Client(t *testing.T) {
+	preset, ok := BuiltinPreset("wikimedia")
+	if !ok || preset.ClientID != "b54c7ed6be6d2dc967a2d5101436f4a1" {
+		t.Fatal("Wikimedia preset must keep the existing V1 client", preset, ok)
+	}
+}
+
 func TestPKCEAndCallbackValidation(t *testing.T) {
 	a, err := Begin(DefaultClientID, DefaultRedirectURI)
 	if err != nil {

@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-HTTP_USER_AGENT = "a-wikimedia-cli (https://www.mediawiki.org/wiki/Cli)"
+HTTP_USER_AGENT = "a-wikimedia-cli-ci (https://a-wikimedia-cli.toolforge.org/)"
 
 API = "https://gitlab.wikimedia.org/api/v4"
 PROJECT = 16

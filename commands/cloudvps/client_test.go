@@ -16,7 +16,7 @@ func TestCloudAuthenticationUserAgent(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		if !strings.HasPrefix(r.UserAgent(), cli.HTTPUserAgent+" ") {
+		if !strings.HasPrefix(r.UserAgent(), cli.HTTPUserAgent()+" ") {
 			t.Errorf("authentication User-Agent = %q", r.UserAgent())
 		}
 		w.WriteHeader(http.StatusUnauthorized)

@@ -1,8 +1,11 @@
+import { normalizeRoutePath } from './route-path.mjs';
+
 /**
  * @param {Array<{name: string, title: string, link: string, parent?: string}>} commands
  * @param {string} pathname
  */
 export function commandSections(commands, pathname) {
+  pathname = normalizeRoutePath(pathname);
   if (pathname === '/manual/dev/') return [];
   const byLink = new Map(commands.map((command) => [command.link, command]));
   const branch = [];

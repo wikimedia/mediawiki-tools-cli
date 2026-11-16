@@ -1,13 +1,15 @@
 ---
 import DefaultPageTitle from '@astrojs/starlight/components/PageTitle.astro';
+import { normalizeRoutePath } from '../route-path.mjs';
 
 const { manualVersion, manualUnreleased } = Astro.locals.starlightRoute.entry.data;
-const isManual = Astro.url.pathname.startsWith('/manual/');
-const isGuide = Astro.url.pathname.startsWith('/guides/');
+const pathname = normalizeRoutePath(Astro.url.pathname);
+const isManual = pathname.startsWith('/manual/');
+const isGuide = pathname.startsWith('/guides/');
 const parts = Astro.locals.starlightRoute.entry.data.title.split(' ');
 const parents = parts.slice(0, -1).map((label, index) => ({
   label,
-  href: `/manual/${parts.slice(1, index + 1).join('/')}${index ? '/' : ''}`,
+  href: index ? `/manual/${parts.slice(1, index + 1).join('/')}` : '/manual',
 }));
 ---
 
@@ -16,10 +18,10 @@ const parents = parts.slice(0, -1).map((label, index) => ({
     {parents.map(({ label, href }) => <a href={href}>{label}</a>)}
   </nav>
 )}
-{isGuide && Astro.url.pathname !== '/guides/' && (
+{isGuide && pathname !== '/guides/' && (
   <nav class="command-breadcrumbs" aria-label="Guide hierarchy">
-    <a href="/guides/">Guides</a>
-    {Astro.url.pathname.startsWith('/guides/dev/') && Astro.url.pathname !== '/guides/dev/' && <a href="/guides/dev/">Development</a>}
+    <a href="/guides">Guides</a>
+    {pathname.startsWith('/guides/dev/') && pathname !== '/guides/dev/' && <a href="/guides/dev">Development</a>}
   </nav>
 )}
 <DefaultPageTitle><slot /></DefaultPageTitle>

@@ -20,14 +20,14 @@ if [[ ! -f .mediawiki/.mwcli.ci.cache.$CACHE_KEY_DATE ]]; then
     local output_file=$3
     ARCHIVE_STRIP_COMPONENTS=0
 
-    if curl --user-agent 'a-wikimedia-cli-ci' --fail --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 "$gerrit_url" -o "$output_file"; then
+    if curl --user-agent 'a-wikimedia-cli-ci (https://a-wikimedia-cli.toolforge.org/)' --fail --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 "$gerrit_url" -o "$output_file"; then
       return 0
     fi
 
     echo "Gerrit archive unavailable; falling back to the Wikimedia GitHub mirror"
     rm -f "$output_file"
     ARCHIVE_STRIP_COMPONENTS=1
-    curl --user-agent 'a-wikimedia-cli-ci' --fail --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 "$github_url" -o "$output_file"
+    curl --user-agent 'a-wikimedia-cli-ci (https://a-wikimedia-cli.toolforge.org/)' --fail --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 "$github_url" -o "$output_file"
   }
 
   download_archive \

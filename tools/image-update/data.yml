@@ -7,7 +7,7 @@ images:
   - image: docker-registry.wikimedia.org/releng/node20-test-browser:20.20.2
 
   # Quibble image for MediaWiki test runs.
-  - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s8
+  - image: docker-registry.wikimedia.org/releng/quibble-bookworm-php83:1.22.0-s9
 
   # Citoid service image; its SHA tag is intentionally not version-checked.
   - image: docker-registry.wikimedia.org/wikimedia/mediawiki-services-citoid:fcc15c59d18eccc9a0d04f88be64975804233608
@@ -64,7 +64,7 @@ images:
     requireRegex: 18\.\d+\.\d+
 
   # Cloudflare tunnel client for local development.
-  - image: cloudflare/cloudflared:2026.10.7
+  - image: cloudflare/cloudflared:2026.11.0
     requireRegex: ^\d{4}\.\d+\.\d+$
 
   # Graphite metrics and monitoring service.
@@ -79,7 +79,7 @@ images:
     requireRegex: 1\.\d+\.\d+(\.\d+)?(-r\d+)?$
 
   # EventGate service for local event logging.
-  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.36.0
+  - image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia:v1.39.0
 
   # Ubuntu image reference; latest is intentionally not version-checked.
   - image: ubuntu:latest
@@ -91,7 +91,7 @@ images:
 
   # CirrusSearch OpenSearch image used by the local search stack.
   # Keep automatic updates on OpenSearch 2.x; major upgrades need compatibility review.
-  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v2.19.5-3
+  - image: docker-registry.wikimedia.org/repos/search-platform/cirrussearch-opensearch-image:v2.19.5-4
     requireRegex: ^v2\.\d+\.\d+-\d+$
 
   # OpenSearch Dashboards UI for the local logs stack.
@@ -107,7 +107,7 @@ images:
     requireRegex: ^1\.\d+$
 
   # Traefik reverse proxy for local development services.
-  - image: traefik:v3.7.17
+  - image: traefik:v3.7.19
     requireRegex: ^v3\.\d+\.\d+$
 
   # Go gateway-auth service image used by the local Traefik stack.
@@ -123,7 +123,7 @@ images:
     requireRegex: ^v0\.\d+\.\d+$
 
   # Prometheus server for local metrics.
-  - image: prom/prometheus:v3.15.1
+  - image: prom/prometheus:v3.16.0
     requireRegex: ^v3\.\d+\.\d+$
 
   # Grafana dashboards for local metrics.
@@ -143,7 +143,7 @@ images:
     noCheck: true
 
   # Go image used by build, test, and weekly CI jobs.
-  - image: golang:1.26.10
+  - image: golang:1.26.11
     requireRegex: ^1\.26\.\d+$
 
   # Browser, PHP, and Composer image used by integration CI.
@@ -176,23 +176,23 @@ imageGroups:
     sameTagMatcher: ^(\d{4}\-\d{2}\-\d{2}\-\d{6})\-
     images:
       # Shellbox image for media processing.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-media83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-media83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-media83$
 
       # Shellbox image for PHP RPC.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-php-rpc83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-php-rpc83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-php-rpc83$
 
       # Shellbox image for score processing.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-score83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-score83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-score83$
 
       # Shellbox image for SyntaxHighlight.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-syntaxhighlight83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-syntaxhighlight83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-syntaxhighlight83$
 
       # Shellbox image for Timeline rendering.
-      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-10-22-141212-timeline83
+      - image: docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-10-141215-timeline83
         requireRegex: ^\d{4}\-\d{2}\-\d{2}\-\d{6}\-timeline83$
 
 # Files and directories scanned for image references.
