@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release
 notes will be missed.
 
+## v0.36.0
+
+- Toolforge database access:
+    - Added `mw toolforge replicas tunnel` to forward local ports to Wiki Replicas over SSH, with analytics and web endpoints and a dry run.
+    - Added `mw toolforge replicas username` and an experimental local authentication proxy for Wiki Replicas, including support for tool-account credentials.
+    - Added `mw toolforge toolsdb list`, `tunnel` and `proxy` for tool databases, with an optional read-only endpoint.
+    - The experimental proxies bind to loopback, use temporary local credentials by default and close idle sessions. They have protocol and response-size limitations; use a tunnel for unsupported operations or large exports.
+
+- Wikimedia Enterprise:
+    - Added `mw enterprise` account profiles and authentication, with automatic token refresh and optional access checks, and initial round of commands, only partially tested due to lack of access to some of the APIs.
+
+- Development environment (`mw dev`):
+    - EventGate from v1.36.0 to v1.39.0
+    - Cloudflared from 2026.10.7 to 2026.11.0
+    - Traefik from v3.7.17 to v3.7.19
+    - Prometheus from v3.15.1 to v3.16.0
+    - Shellbox images from 2026-10-22-141212 to 2026-11-10-141215
+    - Quibble (Bookworm, PHP 8.3) from 1.22.0-s8 to 1.22.0-s9
+    - CirrusSearch OpenSearch image from v2.19.5-3 to v2.19.5-4
+
+- Documentation:
+    - Added Markdown versions of documentation pages and `llms.txt` indexes for discovering them.
+    - Changed documentation page URLs to omit trailing slashes.
+    - Added a preview-first workflow for retiring generated MediaWiki.org reference pages once their replacements are published.
+
+- Other improvements:
+    - Fixed `wiki page delete` to return API errors and stop on the first failed deletion.
+    - Added release or build versions to the CLI's HTTP and Git User-Agent identities.
+
 ## v0.35.0
 
 - Authentication and credentials:
