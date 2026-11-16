@@ -34,6 +34,7 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 	}
 	disk := mwconfig.State().OnDiskKoanf.Copy()
 	for key, value := range map[string]string{
+		"enterprise.profiles.bot.username": "EnterpriseBot", "enterprise.profiles.bot.token": "enterprise-private-fixture", "enterprise.default_profile": "bot",
 		"gitlab.profiles.bot.username": "Addbot", "gitlab.profiles.bot.token": "gitlab-private-fixture", "gitlab.default_profile": "bot",
 		"phabricator.profiles.bot.username": "Addbot", "phabricator.profiles.bot.key": "phab-private-fixture",
 		"wiki.profiles.wikimedia.personal.username": "Addshore", "wiki.profiles.wikimedia.personal.method": "oauth", "wiki.profiles.wikimedia.personal.token": "oauth-private-fixture",
@@ -55,7 +56,7 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 	previous := http.DefaultTransport
 	http.DefaultTransport = profileNoNetwork{t: t}
 	t.Cleanup(func() { http.DefaultTransport = previous })
-	for _, args := range [][]string{{"profiles"}, {"profiles", "list", "--details"}, {"profiles", "--json"}, {"profiles", "--service", "phab", "--json"}} {
+	for _, args := range [][]string{{"profiles"}, {"profiles", "list", "--details"}, {"profiles", "--json"}, {"profiles", "--service", "phab", "--json"}, {"profiles", "--service", "enterprise", "--json"}} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			out := &bytes.Buffer{}
 			cmd := Cmd()
@@ -65,7 +66,7 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 			if err := cmd.Execute(); err != nil {
 				t.Fatal(err)
 			}
-			for _, value := range []string{"gerrit-private-fixture", "phab-private-fixture", "oauth-private-fixture", "wiki-private-fixture", "cloud-private-fixture", "gitlab-private-fixture"} {
+			for _, value := range []string{"gerrit-private-fixture", "phab-private-fixture", "oauth-private-fixture", "wiki-private-fixture", "cloud-private-fixture", "gitlab-private-fixture", "enterprise-private-fixture"} {
 				if strings.Contains(out.String(), value) {
 					t.Fatal("secret leaked")
 				}
@@ -75,14 +76,14 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 				if err := json.Unmarshal(out.Bytes(), &profiles); err != nil {
 					t.Fatal(err)
 				}
-				want := 6
-				if strings.Contains(strings.Join(args, " "), "phab") {
+				want := 7
+				if strings.Contains(strings.Join(args, " "), "--service") {
 					want = 1
 				}
 				if len(profiles) != want {
 					t.Fatalf("got %d profiles, want %d", len(profiles), want)
 				}
-				if want == 6 {
+				if want == 7 {
 					defaults := 0
 					for _, profile := range profiles {
 						if profile.Default {
@@ -92,12 +93,12 @@ func TestConfigProfilesListsAllServicesWithoutReadingSecrets(t *testing.T) {
 							t.Fatal("keyring profile was not listed")
 						}
 					}
-					if defaults != 4 {
+					if defaults != 5 {
 						t.Fatal("service defaults not represented", defaults)
 					}
 				}
 			} else {
-				for _, service := range []string{"gerrit", "phabricator", "wiki", "cloudvps", "gitlab"} {
+				for _, service := range []string{"gerrit", "phabricator", "wiki", "cloudvps", "gitlab", "enterprise"} {
 					if !strings.Contains(out.String(), service) {
 						t.Fatal("missing service", service)
 					}

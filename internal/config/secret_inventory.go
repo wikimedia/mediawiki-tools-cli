@@ -38,6 +38,9 @@ type SecretInfo struct {
 func SecretInventory() []SecretInfo {
 	disk := State().OnDiskKoanf
 	candidates := map[string]bool{"gerrit.password": true, "phabricator.key": true}
+	for _, name := range disk.MapKeys("enterprise.profiles") {
+		candidates["enterprise.profiles."+name+".token"] = true
+	}
 	for _, name := range disk.MapKeys("gitlab.profiles") {
 		candidates["gitlab.profiles."+name+".token"] = true
 	}

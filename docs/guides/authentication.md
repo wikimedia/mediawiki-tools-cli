@@ -1,6 +1,6 @@
 # Credentials and password managers
 
-On the first interactive Gerrit, Cloud VPS, Phabricator, GitLab or wiki credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
+On the first interactive Gerrit, Cloud VPS, Phabricator, GitLab, wiki or Enterprise credential save, the CLI checks for an OS keyring and KeePassXC, then asks where to store credentials. Plaintext configuration is also an option. The choice becomes the default after a successful save. Configuration holds the account and a reference to the secret. Linux uses Secret Service over D-Bus, macOS uses Keychain, and Windows uses Credential Manager. Commands read credentials only when needed; unrelated commands do not unlock the keyring.
 
 On native Windows, the storage picker shows Windows Credential Manager once. In WSL, OS keyring means Linux Secret Service and Windows Credential Manager means the Windows store, so both remain available when detected.
 
@@ -8,7 +8,25 @@ On native Windows, the storage picker shows Windows Credential Manager once. In 
 mw gerrit auth login
 mw cloudvps auth login
 mw phabricator auth login
+mw enterprise auth login
 ```
+
+Wikimedia Enterprise uses its own account from [the Enterprise dashboard](https://dashboard.enterprise.wikimedia.com/). `mw enterprise auth login` reads the username and password, exchanges them for access and refresh tokens, and saves the tokens with the selected credential provider. The password is not saved. Use `--username ACCOUNT --password-stdin` for noninteractive login and `--profile NAME` for separate accounts. Commands refresh expiring access tokens under the credential lock; when the refresh token expires or reaches its refresh limit, log in again. Token bundles can exceed Windows Credential Manager's size limit; choose KeePassXC if the provider rejects the bundle.
+
+`mw enterprise auth status` displays local metadata without unlocking storage. Add `--check` to check API access without refreshing tokens. `auth profiles`, `auth default --profile NAME`, and `auth remove --profile NAME` follow the other services' profile conventions. `auth revoke --profile NAME` revokes the remote session before removing its local profile. Enterprise credentials participate in `mw config secrets list`, verification, transfer, and cleanup as `enterprise.profiles.NAME.token`.
+
+```sh
+mw enterprise articles get 'Albert Einstein' --wiki enwiki
+mw enterprise projects list --filter code=wikidata
+mw enterprise snapshots list --wiki enwiki --output table
+mw enterprise snapshots download enwiki_namespace_0 --file enwiki.tar.gz
+mw enterprise snapshots download enwiki_namespace_0 --file enwiki.tar.gz --resume
+mw enterprise api projects
+mw enterprise api articles/Squirrel --input query.json
+mw enterprise stream articles --wiki enwiki --checkpoint enterprise-checkpoint.json
+```
+
+`enterprise api` accepts paths relative to `/v2`, GET/POST/HEAD methods, and a JSON body from `--input FILE` or `--input -`. Downloads retain compressed tarballs and preserve interrupted transfers as `.part` files with resume metadata. Streaming writes NDJSON, reconnects using per-partition timestamps, and can replay events; downstream consumers should deduplicate event identifiers. Stream checkpoint files are bound to the endpoint, fields, filters, and partitions. Structured Contents and Wikidata endpoints are beta. Realtime streams and hourly batches require the appropriate Enterprise subscription; batch dates and hours are UTC.
 
 Use hidden prompts or `--password-stdin`, `--secret-stdin` and `--token-stdin` rather than putting secrets in command arguments or shell history. A password-manager command can pipe its output into these flags. Do not enable shell tracing (`set -x`) around secrets.
 
