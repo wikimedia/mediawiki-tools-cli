@@ -10,6 +10,7 @@
 
 # Documentation
 
+- Do not modify `CHANGELOG.md` during normal development. Only update it when explicitly requested as part of a release.
 - Do not create unnecessary documentation or Markdown files.
 - Prefer updating relevant existing documentation, don't automatically expand the scope.
 - Document only useful, lasting information about the code and its behavior.
