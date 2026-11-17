@@ -69,5 +69,8 @@ of permission or an argument-specific guarantee. For example, `--dry-run` does
 not reclassify a write command, and `--public-only` does not reclassify a private
 read. Routine internal caching is not considered a domain mutation. Hints are
 not inherited from parent commands. Phabricator is the first classified family;
-its existing task visibility checks remain separate and unchanged. Future MCP
+its task visibility checks remain separate. The Phabricator agent policy uses
+these hints to allow reads and supported offline previews, and to refuse actual
+mutations, credential input, secret output and unknown-capability operations.
+Read hints do not replace per-object visibility checks. Future MCP
 integration can expose the four standard fields separately from mw metadata.

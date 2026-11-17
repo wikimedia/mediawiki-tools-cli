@@ -92,7 +92,7 @@ func TestBrowserLoginAndExistingTokenProfiles(t *testing.T) {
 	}
 	remove := NewPhabricatorCmd()
 	remove.SetOut(out)
-	remove.SetArgs([]string{"auth", "remove", "--profile", "bot"})
+	remove.SetArgs([]string{"auth", "remove", "--profile", "bot", "--yes"})
 	if err := remove.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -313,7 +313,7 @@ func TestRemoveProfileDeletesMetadataAndDefault(t *testing.T) {
 			out := &bytes.Buffer{}
 			cmd := NewPhabricatorCmd()
 			cmd.SetOut(out)
-			cmd.SetArgs([]string{"auth", action, "--profile", "wikimedia"})
+			cmd.SetArgs([]string{"auth", action, "--profile", "wikimedia", "--yes"})
 			if err := cmd.Execute(); err != nil {
 				t.Fatal(err)
 			}

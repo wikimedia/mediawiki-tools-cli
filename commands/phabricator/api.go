@@ -33,7 +33,9 @@ HTTP and Conduit errors return a failing exit status.
 
 Use repeatable --field flags for string parameters, or --input FILE (or - for
 stdin) for a JSON object containing typed or nested parameters.
-This is a low-level interface: methods that modify data run without confirmation.`,
+This is a low-level interface: methods that modify data run without confirmation.
+Agent mode refuses all raw API calls, including read methods, because their effects
+and data access cannot be verified. There is no generic --dry-run for arbitrary methods.`,
 		Example: "api conduit.ping\n# \"phab1005\" (responding server; may vary)\napi conduit.getcapabilities\napi user.query -f limit=1\napi project.search --input params.json\napi project.search --input -\napi conduit.getcapabilities --output jq --format 'keys'",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

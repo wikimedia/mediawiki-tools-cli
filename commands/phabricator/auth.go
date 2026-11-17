@@ -24,19 +24,19 @@ func newPhabricatorAuthCmd(site *string) *cobra.Command {
 	}
 	profiles := authprofile.Commands{Label: "Phabricator", Selected: site, Backend: phabProfiles}
 	cmd.AddCommand(newPhabricatorAuthLoginCmd(site))
-	cmd.AddCommand(commandmeta.Set(profiles.RemoveCmd(), commandmeta.Hints{
+	cmd.AddCommand(profileMutationCommand(commandmeta.Set(profiles.RemoveCmd(), commandmeta.Hints{
 		ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true},
 		DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
-	}))
+	}), site))
 	cmd.AddCommand(newPhabricatorAuthStatusCmd(site))
 	cmd.AddCommand(commandmeta.Set(profiles.ProfilesCmd(), commandmeta.Hints{
 		ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true},
 		DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
 	}))
-	cmd.AddCommand(commandmeta.Set(profiles.DefaultCmd(), commandmeta.Hints{
+	cmd.AddCommand(profileMutationCommand(commandmeta.Set(profiles.DefaultCmd(), commandmeta.Hints{
 		ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, IdempotentHint: true},
 		DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
-	}))
+	}), site))
 	return cmd
 }
 

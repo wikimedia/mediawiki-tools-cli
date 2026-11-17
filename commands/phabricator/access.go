@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/agent"
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
@@ -28,16 +27,11 @@ func taskAccessFromCommand(cmd *cobra.Command, endpoint string) (taskAccess, err
 	if cmd.Name() == "api" {
 		return access, nil
 	}
-	detected, err := agent.Detect()
+	agentMode, err := commandAgentMode(cmd)
 	if err != nil {
 		return access, err
 	}
-	access.agent = detected != nil
-	flagEnabled := func(name string) bool {
-		flag := cmd.Flag(name)
-		return flag != nil && flag.Value.String() == "true"
-	}
-	access.agent = access.agent || flagEnabled("agent")
+	access.agent = agentMode
 	config := mwconfig.State().EffectiveKoanf
 	if config.Exists("phabricator.public_only") {
 		var err error
@@ -47,13 +41,13 @@ func taskAccessFromCommand(cmd *cobra.Command, endpoint string) (taskAccess, err
 		}
 	}
 	if flag := cmd.Flag("public-only"); flag != nil && flag.Changed {
-		access.publicOnly = flagEnabled("public-only")
+		access.publicOnly = commandFlagEnabled(cmd, "public-only")
 	}
-	if flagEnabled("allow-non-public") {
+	if commandFlagEnabled(cmd, "allow-non-public") {
 		if access.agent {
 			return access, fmt.Errorf("human approval required: --allow-non-public cannot be used in agent mode; ask a human to rerun the specific operation in their own terminal outside agent mode")
 		}
-		if flagEnabled("public-only") {
+		if commandFlagEnabled(cmd, "public-only") {
 			return access, fmt.Errorf("--allow-non-public cannot be combined with --public-only")
 		}
 		access.publicOnly = false

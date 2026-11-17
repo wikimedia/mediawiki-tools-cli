@@ -96,7 +96,7 @@ func TestLoginIgnoresProjectDestinationAndRemovalDoesNotUseLegacy(t *testing.T) 
 	}
 	remove := NewPhabricatorCmd()
 	remove.SetOut(out)
-	remove.SetArgs([]string{"auth", "remove"})
+	remove.SetArgs([]string{"auth", "remove", "--yes"})
 	if err := remove.Execute(); err != nil {
 		t.Fatal(err)
 	}

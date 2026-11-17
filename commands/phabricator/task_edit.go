@@ -94,7 +94,7 @@ func newTaskEditCmd(site *string) *cobra.Command {
 				return nil
 			}
 			if !yes {
-				if !cli.CanAskForInput() {
+				if commandFlagEnabled(cmd, "no-interaction") || !cli.CanAskForInput() {
 					return fmt.Errorf("task was not changed; use --yes to update without an interactive confirmation")
 				}
 				approved := false

@@ -78,7 +78,7 @@ func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, co
 				return nil
 			}
 			if !yes {
-				if !canAsk() {
+				if cli.Opts.NoInteraction || commandFlagEnabled(cmd, "no-interaction") || !canAsk() {
 					return fmt.Errorf("task was not created; use --yes to create without an interactive confirmation")
 				}
 				approved, err := confirm()

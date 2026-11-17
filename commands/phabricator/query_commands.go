@@ -220,12 +220,15 @@ func newTaskCmd(site *string) *cobra.Command {
 		case "mv":
 			cmd.Use = "move <T12345> <column>"
 			cmd.Aliases = []string{"mv"}
+			cmd.Example = strings.ReplaceAll(cmd.Example, "mv ", "move ")
 		case "setprio":
 			cmd.Use = "priority <T12345> <priority>"
 			cmd.Aliases = []string{"setprio", "prio"}
+			cmd.Example = strings.ReplaceAll(cmd.Example, "setprio ", "priority ")
 		case "setstatus":
 			cmd.Use = "status <T12345> <status>"
 			cmd.Aliases = []string{"setstatus"}
+			cmd.Example = strings.ReplaceAll(cmd.Example, "setstatus ", "status ")
 		}
 	}
 	return root

@@ -460,6 +460,13 @@ func TestTaskAccessCommandWiringAndCacheIsolation(t *testing.T) {
 			cmd.SetOut(&buffer)
 			cmd.SetErr(io.Discard)
 			cmd.SilenceUsage = true
+			target, _, err := cmd.Find(args)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if target.Flags().Lookup("yes") != nil {
+				args = append(append([]string{}, args...), "--yes")
+			}
 			cmd.SetArgs(append([]string{"--profile", "access"}, args...))
 			if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "public-only access") {
 				t.Fatalf("error = %v", err)
@@ -513,6 +520,14 @@ func TestTaskAccessCommandWiringAndCacheIsolation(t *testing.T) {
 	var raw bytes.Buffer
 	api.SetOut(&raw)
 	api.SetArgs([]string{"api", "maniphest.search", "--profile", "access", "--agent", "--public-only"})
+	if err := api.Execute(); err == nil || !strings.Contains(err.Error(), "human approval required") || strings.Contains(raw.String(), private.Fields.Name) {
+		t.Fatalf("agent raw API was not blocked: output=%s error=%v", raw.String(), err)
+	}
+	t.Setenv("COPILOT_AGENT_SESSION_ID", "")
+	api = NewPhabricatorCmd()
+	raw.Reset()
+	api.SetOut(&raw)
+	api.SetArgs([]string{"api", "maniphest.search", "--profile", "access", "--public-only"})
 	if err := api.Execute(); err != nil || !strings.Contains(raw.String(), private.Fields.Name) {
 		t.Fatalf("raw API behavior changed: output=%s error=%v", raw.String(), err)
 	}

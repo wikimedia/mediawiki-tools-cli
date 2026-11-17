@@ -199,7 +199,7 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 				return nil
 			}
 			if !yes {
-				if !canAsk() {
+				if cli.Opts.NoInteraction || commandFlagEnabled(cmd, "no-interaction") || !canAsk() {
 					return fmt.Errorf("paste was not saved; use --yes to save without an interactive confirmation")
 				}
 				approved, err := confirm()
