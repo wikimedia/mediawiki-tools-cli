@@ -127,6 +127,7 @@ Keep a [VHS](https://github.com/charmbracelet/vhs) `.tape` beside its guide, wit
 
 ```sh
 TOOL=your-tool ./docs/guides/tools/kubernetes-pod-helloworld.record.sh
+./docs/guides/tools/wiki-replicas.record.sh
 ```
 
 Install mise and FFmpeg first; mise provides pinned VHS and ttyd versions. Toolforge SSH must work without interactive prompts. If VHS stalls before typing, try a different Chromium executable or launcher named `chrome` at the front of `PATH`.
@@ -134,6 +135,12 @@ Install mise and FFmpeg first; mise provides pinned VHS and ttyd versions. Toolf
 Keep recording-only setup inside `Hide`/`Show`. Select a disposable context by setting `CONTEXT` in the hidden shell setup, rather than adding recording context flags to visible commands. The recording scripts clean shell harness lines from VHS text exports with `tools/clean-recording-text.py`; run it manually for recordings made directly with VHS.
 
 This recording extracts its manifest from the guide, creates and deletes only `cli-guide-hello`, and forwards localhost port 18080. It refuses to start if that pod exists. After an interrupted recording, stop its port forward and remove only the demo pod before retrying.
+
+The Wiki Replicas recording is a scripted replay of captured output: a count on
+`itwiki`, ToolsDB database discovery and table listing, and a count on
+`s54943__laravel.answers` as the `wikicrowd` tool account. It uses a temporary
+command stand-in and a clean shell, without running the CLI or accessing SSH,
+credentials or databases.
 
 Add or update the guide/command mapping in `docs/recordings.json`. Site generation
 copies available videos and optional matching `.webp` posters into ignored

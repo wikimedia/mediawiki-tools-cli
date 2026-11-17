@@ -56,6 +56,17 @@
       ]
     },
     {
+      "id": "toolforge-sql",
+      "title": "Query Wiki Replicas and ToolsDB (scripted demo)",
+      "file": "toolforge-sql.webm",
+      "guide": "tools/wiki-replicas",
+      "commands": [
+        "toolforge replicas sql",
+        "toolforge toolsdb list",
+        "toolforge toolsdb sql"
+      ]
+    },
+    {
       "id": "dev-extension",
       "title": "Add and test a MediaWiki extension",
       "file": "dev-extension-workflow.webm",

@@ -60,7 +60,7 @@ func newReplicasCmd() *cobra.Command {
 		Use:   "replicas",
 		Short: "Access Wiki Replicas from your computer through Toolforge",
 	}
-	cmd.AddCommand(newReplicaTunnelCmd(func(cmd *osexec.Cmd) error { return cmd.Run() }), newReplicaUsernameCmd(readReplicaUsername), newReplicaProxyCmd())
+	cmd.AddCommand(newReplicaTunnelCmd(func(cmd *osexec.Cmd) error { return cmd.Run() }), newReplicaUsernameCmd(readReplicaUsername), newReplicaProxyCmd(), newDatabaseSQLCmd(false, runDatabaseSQL))
 	return cmd
 }
 

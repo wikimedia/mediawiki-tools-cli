@@ -1,5 +1,29 @@
 # Connect to Wiki Replicas from your computer
 
+## Run SQL directly
+
+Run the MariaDB client on Toolforge over SSH, using your account's
+`~/replica.my.cnf`:
+
+```sh
+mw toolforge replicas sql enwiki
+mw toolforge replicas sql enwiki --service web -- -e 'SELECT COUNT(*) FROM page'
+printf 'SELECT 1;\n' | mw toolforge replicas sql enwiki
+mw toolforge toolsdb sql s12345__mydb --tool mytool
+mw toolforge toolsdb sql s12345__mydb --tool mytool --read-only -- -e 'SELECT 1'
+```
+
+Use `--tool` for a tool account's credentials. Client options go after `--`;
+their paths are on Toolforge, not your computer. SQL and options supplied as
+arguments may be visible in process listings. Interactive sessions use an SSH
+terminal when both input and output are terminals; piped input and output use
+no terminal. The remote MariaDB client handles formatting, errors and SQL
+features, and the credentials remain on Toolforge. The client can access any
+database permitted to the selected account. These commands connect to production,
+so `--beta` and `--lima` do not apply.
+
+## Forward local ports
+
 Use your existing Toolforge SSH access to reach one or more Wiki Replica
 databases from a local SQL client. Run this command on your own computer, with
 OpenSSH installed and your Toolforge login configured in your SSH config:

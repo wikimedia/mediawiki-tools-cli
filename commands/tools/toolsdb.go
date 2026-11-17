@@ -33,6 +33,6 @@ func toolsDBHost(readOnly bool) string {
 
 func newToolsDBCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "toolsdb", Short: "Access ToolsDB from your computer through Toolforge"}
-	cmd.AddCommand(newDatabaseTunnelCmd(func(cmd *osexec.Cmd) error { return cmd.Run() }, true), newDatabaseProxyCmd(true), newToolsDBListCmd(readReplicaCredentials, replicaSSHStream))
+	cmd.AddCommand(newDatabaseTunnelCmd(func(cmd *osexec.Cmd) error { return cmd.Run() }, true), newDatabaseProxyCmd(true), newToolsDBListCmd(readReplicaCredentials, replicaSSHStream), newDatabaseSQLCmd(true, runDatabaseSQL))
 	return cmd
 }
