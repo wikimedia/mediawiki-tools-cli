@@ -27,3 +27,47 @@ Commands can opt out using `mwcli-lint-skip`, or skip embedded third-party comma
 ```go
 cmd.Annotations["mwcli-lint-skip-children"] = "Embedded third-party CLI"
 ```
+
+## Command capability hints
+
+`make linti` reports classified/total executable commands and a coverage percentage.
+Every executable command missing hints produces a warning, including hidden
+commands, executable parents, Cobra's built-in help/completion commands and
+imported command trees. Aliases count once.
+The lint skip annotations above do not exclude commands from hint coverage.
+Non-executable grouping/help-topic commands do not need hints. Invalid or partial
+hints are errors and do not count as classified.
+
+Set `Annotations: commandmeta.Annotations(commandmeta.Hints{...})` in the
+command's Cobra struct literal so its capabilities stay beside its implementation.
+For commands returned by shared constructors, use `commandmeta.Set` at their
+registration site to attach hints while preserving existing annotations.
+All four behavioral fields use MCP names: `readOnlyHint`,
+`destructiveHint`, `idempotentHint` and `openWorldHint`. Two additional fields are
+mw-specific:
+
+- `dataAccess` is a list of data categories retrieved or displayed:
+  `public`, `potentially-private-content`, `potentially-private-metadata`,
+  `account-metadata`, `supplied-content` or `secrets`. Use `none` or `unknown`
+  alone when appropriate. Empty, duplicate or unrecognized categories are errors.
+- `secretInput` identifies dedicated credential input/import, not ordinary use of
+  saved credentials. It does not mean credentials are printed. Arbitrary APIs
+  with `dataAccess: ["unknown"]` can accept or expose secrets depending on input.
+
+Potentially private means the command can access restricted objects, not that
+every result is private. Account metadata means profile names, endpoints and
+usernames, not task/paste content or unmasked credentials. Supplied content means
+caller-provided text that the command previews, rather than existing remote
+content. Secrets means unmasked credential data retrieved for the caller.
+Authentication alone does not classify a command as private content or secrets.
+A read-only command is not necessarily public.
+Destructive includes overwriting existing fields, not just deleting objects.
+Idempotence concerns repeated effects, not whether query results stay identical.
+
+Hints describe the conservative capabilities of the whole command, not a grant
+of permission or an argument-specific guarantee. For example, `--dry-run` does
+not reclassify a write command, and `--public-only` does not reclassify a private
+read. Routine internal caching is not considered a domain mutation. Hints are
+not inherited from parent commands. Phabricator is the first classified family;
+its existing task visibility checks remain separate and unchanged. Future MCP
+integration can expose the four standard fields separately from mw metadata.

@@ -9,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 type phabPaste struct {
@@ -123,11 +124,16 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 	var title, file, language, status, visibility string
 	var yes, dryRun bool
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: editing, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataSuppliedContent},
+		}),
 		Use:     "create",
 		Aliases: []string{"send"},
 		Short:   "Create a Phabricator paste from a file or stdin",
 		Long: "Preview and save a paste using the selected profile. Content must be UTF-8 text. " +
 			"Use --file - for stdin. Confirm interactively or use --yes. " +
+			"The preview prints the supplied content and fields. " +
 			"--dry-run previews changes without reading credentials or contacting Phabricator. " +
 			"Unless --visibility is provided, Phabricator chooses the view policy; it may be public.",
 		Example: "create --title 'Example output' --file output.txt\ncreate --title 'Example output' --file - --yes",
@@ -227,6 +233,10 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 		cmd.Use = "edit <P123|URL>"
 		cmd.Aliases = nil
 		cmd.Short = "Edit paste content, title, language or visibility"
+		cmd.Long = "Preview and update the supplied paste fields without fetching the existing paste content. " +
+			"The preview prints all supplied changes, including text from --file (use - for stdin). " +
+			"Confirm interactively or use --yes. --dry-run previews without reading credentials or contacting Phabricator. " +
+			"Omitted fields, including visibility, are left unchanged. Paste operations are not covered by the task public-only filter."
 		cmd.Example = "edit P123 --file revised.txt\nedit P123 --title 'New title' --yes\nedit P123 --status archived --dry-run"
 		cmd.Args = cobra.ExactArgs(1)
 	}

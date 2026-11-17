@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -58,6 +59,10 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 		pretty.AddItem("Content", paste.Attachments.Content.Content)
 	}}
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "view <T123|P123|URL>",
 		Aliases: []string{"v"},
 		Short:   "View a Phabricator task or paste",

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
@@ -39,6 +40,11 @@ func newPhabricatorAuthLoginCmdWithInteraction(site *string, interaction loginIn
 	var provider, method, configFile, configSection string
 	var noBrowser bool
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
+			SecretInput:     true,
+		}),
 		Use:     "login",
 		Short:   "Login to Phabricator through the browser or an existing API token",
 		Long:    "Open Phabricator's browser login and paste its token into a hidden prompt. Verifying the token activates ongoing access until revoked. Use --method token for an existing API token, or --method phab-cfg to validate and copy credentials from an existing file. Save separate accounts with --profile; otherwise use the verified username in lowercase. The first login becomes the default; later logins ask before switching it. Use --default to switch explicitly. The default destination is Wikimedia Phabricator; --url explicitly selects another HTTPS endpoint. A project-local phab.cfg never chooses where a newly entered token is sent.",

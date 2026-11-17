@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -19,6 +20,10 @@ func newPhabricatorAPICmd(site *string) *cobra.Command {
 	var input string
 	out := &output.Output{}
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataUnknown},
+		}),
 		Use:   "api <method>",
 		Short: "Call a Phabricator Conduit API method",
 		Long: `Call a Conduit API method using a saved Phabricator profile.

@@ -10,6 +10,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 func newPhabricatorCreateCmd(site *string) *cobra.Command {
@@ -25,9 +26,13 @@ func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, co
 	var projects []string
 	var yes, dryRun bool
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataSuppliedContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "create",
 		Short:   "Create a Phabricator task",
-		Long:    "Preview and create a task using a saved Phabricator profile. Projects are exact project slugs (as used in hashtags) or project PHIDs. Confirm interactively, or pass --yes for scripts. Use --dry-run to preview without accessing credentials or contacting Phabricator.",
+		Long:    "Preview and create a task using a saved Phabricator profile. The preview prints the supplied title, description and projects. Projects are exact project slugs (as used in hashtags) or project PHIDs; slugs are resolved through project.search. Existing task content is not fetched. Server and project defaults determine visibility, so creation is blocked in public-only mode. Confirm interactively, or pass --yes for scripts. Use --dry-run to preview without accessing credentials or contacting Phabricator.",
 		Example: "create --title 'Clarify development setup' --description-file issue.txt --project a_wikimedia_cli\ncreate --title 'Documentation issue' --description-file - --yes",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {

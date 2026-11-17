@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"golang.org/x/term"
 )
 
@@ -428,6 +429,10 @@ func browseLine(value string, width int) string {
 func newPhabricatorBrowseCmd(site *string) *cobra.Command {
 	var project, view string
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use: "browse", Short: "Browse projects and tasks interactively",
 		Long:    "Browse Phabricator projects, task lists and descriptions/comments in a read-only terminal interface. Search with /, use b to toggle board/list view, and press o to open the selected object in your browser. Task changes use the normal task commands.",
 		Example: "browse\nbrowse --project a_wikimedia_cli\nbrowse --project a_wikimedia_cli --view list", Args: cobra.NoArgs,

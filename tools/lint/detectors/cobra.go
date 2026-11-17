@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 	"gitlab.wikimedia.org/repos/releng/cli/tools/lint/issue"
 )
@@ -184,6 +185,12 @@ func detectAllowedAnnotations(theCmd *cobra.Command, cmdString string) *issue.Is
 		"service-url",
 		"service-logo",
 		cli.TelemetrySkipAnnotation,
+		commandmeta.ReadOnlyAnnotation,
+		commandmeta.DestructiveAnnotation,
+		commandmeta.IdempotentAnnotation,
+		commandmeta.OpenWorldAnnotation,
+		commandmeta.DataAccessAnnotation,
+		commandmeta.SecretInputAnnotation,
 	}
 	// TODO check all annotaitons and issue for each
 	for key := range theCmd.Annotations {

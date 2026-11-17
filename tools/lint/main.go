@@ -15,10 +15,20 @@ func main() {
 
 	// Collect all issues
 	allIssues := detectors.DetectCobraCommandIssuesRoot(rootCmd)
+	// Execute normally adds Cobra's built-in help and completion commands.
+	rootCmd.InitDefaultHelpCmd()
+	rootCmd.InitDefaultCompletionCmd()
+	coverage, hintIssues := detectors.DetectCommandHints(rootCmd)
+	allIssues = append(allIssues, hintIssues...)
 	allIssues = append(allIssues, detectors.DetectFileIssues("./../../")...)
 	allIssues = append(allIssues, detectors.DetectDataIssues()...)
 
 	issueCount := len(allIssues)
+	percentage := 0.0
+	if coverage.Executable > 0 {
+		percentage = 100 * float64(coverage.Classified) / float64(coverage.Executable)
+	}
+	fmt.Printf("Command hint coverage: %d/%d executable commands (%.1f%%)\n", coverage.Classified, coverage.Executable, percentage)
 
 	if issueCount == 0 {
 		fmt.Println("No issues detected!")

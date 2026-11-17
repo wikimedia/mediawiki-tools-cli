@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 // NewPhabricatorCmd returns the "phabricator" cobra command.
@@ -84,6 +85,10 @@ func requireTaskArg(args []string) (string, error) {
 
 func addCommentsCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "comments <T12345>",
 		Aliases: []string{"c"},
 		Short:   "Show comments on a Phabricator task",
@@ -114,6 +119,10 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 
 func addReadCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "read <T12345>",
 		Aliases: []string{"r"},
 		Short:   "View a task and all its comments",
@@ -145,6 +154,10 @@ func addReadCmd(parent *cobra.Command, site *string) {
 
 func addAssignCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:   "assign <T12345> <username|me>",
 		Short: "Assign a task to a Phabricator user",
 		Args:  cobra.ExactArgs(2),
@@ -180,9 +193,14 @@ func addShellCmd(parent *cobra.Command, site *string) {
 	var task string
 
 	c := &cobra.Command{
-		Use:     "shell",
+		Use: "shell",
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Aliases: []string{"sh"},
 		Short:   "Start an interactive Phabricator shell",
+		Long:    "Browse projects, tasks and comments, and update task assignment, columns, tags, priority or status. Changes run immediately without a separate confirmation. Existing task access guardrails also apply inside the shell.",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, cfg, err := clientFromCommand(cmd, *site)
@@ -211,7 +229,11 @@ func addShellCmd(parent *cobra.Command, site *string) {
 func addMVCmd(parent *cobra.Command, site *string) {
 	var project string
 	c := &cobra.Command{
-		Use:   "mv <T12345> <column>",
+		Use: "mv <T12345> <column>",
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Short: "Move a task to a workboard column",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -261,6 +283,10 @@ func addMVCmd(parent *cobra.Command, site *string) {
 
 func addRMTagCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "rmtag <T12345> <project>",
 		Aliases: []string{"rm"},
 		Short:   "Remove a project tag from a task",
@@ -308,6 +334,10 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 
 func addSetPrioCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "setprio <T12345> <priority>",
 		Aliases: []string{"sp", "prio"},
 		Short:   "Set priority: u=unbreak t=triage h=high n=normal l=low ll=lowest",
@@ -345,6 +375,10 @@ func addSetPrioCmd(parent *cobra.Command, site *string) {
 
 func addSetStatusCmd(parent *cobra.Command, site *string) {
 	parent.AddCommand(&cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use:     "setstatus <T12345> <status>",
 		Aliases: []string{"st"},
 		Short:   "Set status: o=open r=resolved p=progress s=stalled d=declined dup=duplicate i=invalid",

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/authprofile"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 const (
@@ -23,10 +24,19 @@ func newPhabricatorAuthCmd(site *string) *cobra.Command {
 	}
 	profiles := authprofile.Commands{Label: "Phabricator", Selected: site, Backend: phabProfiles}
 	cmd.AddCommand(newPhabricatorAuthLoginCmd(site))
-	cmd.AddCommand(profiles.RemoveCmd())
+	cmd.AddCommand(commandmeta.Set(profiles.RemoveCmd(), commandmeta.Hints{
+		ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true},
+		DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
+	}))
 	cmd.AddCommand(newPhabricatorAuthStatusCmd(site))
-	cmd.AddCommand(profiles.ProfilesCmd())
-	cmd.AddCommand(profiles.DefaultCmd())
+	cmd.AddCommand(commandmeta.Set(profiles.ProfilesCmd(), commandmeta.Hints{
+		ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true},
+		DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
+	}))
+	cmd.AddCommand(commandmeta.Set(profiles.DefaultCmd(), commandmeta.Hints{
+		ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, IdempotentHint: true},
+		DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
+	}))
 	return cmd
 }
 
