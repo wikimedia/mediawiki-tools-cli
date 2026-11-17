@@ -66,32 +66,24 @@ func TestCreateTaskTransactions(t *testing.T) {
 	}
 }
 
-func TestCreateTaskPreviewAndConfirmation(t *testing.T) {
+func TestCreateTaskPreviewAndValidation(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		args    []string
 		input   string
-		canAsk  bool
 		wantErr string
 		wantOut string
-		prompts int
 	}{
 		{name: "preview stdin", args: []string{"--title", "Docs issue", "--description-file", "-", "--project", "#a_wikimedia_cli", "--dry-run"}, wantOut: "Projects: a_wikimedia_cli\n\nIssue body\n\nPreview only"},
 		{name: "preview JSON", args: []string{"--input", "-", "--dry-run"}, input: `{"title":"Docs issue","description":"It’s unclear: \"quoted\"","projects":["a_wikimedia_cli"]}`, wantOut: "It’s unclear: \"quoted\""},
 		{name: "invalid JSON", args: []string{"--input", "-", "--dry-run"}, input: `{"title":`, wantErr: "parse task JSON"},
 		{name: "conflicting JSON and title", args: []string{"--input", "-", "--title", "Docs"}, wantErr: "none of the others can be"},
-		{name: "noninteractive", args: []string{"--title", "Docs issue"}, wantErr: "use --yes"},
-		{name: "cancel", args: []string{"--title", "Docs issue"}, canAsk: true, prompts: 1, wantOut: "Cancelled"},
 		{name: "empty title", args: []string{"--title", " "}, wantErr: "--title must not be empty"},
 		{name: "conflicting descriptions", args: []string{"--title", "Docs", "--description", "one", "--description-file", "-"}, wantErr: "none of the others can be"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			profile := "must-not-load-real-credentials"
-			prompts := 0
-			cmd := newPhabricatorCreateCmdWithInteraction(&profile, func() bool { return test.canAsk }, func() (bool, error) {
-				prompts++
-				return false, nil
-			})
+			cmd := newPhabricatorCreateCmd(&profile)
 			var out bytes.Buffer
 			cmd.SetOut(&out)
 			cmd.SetErr(&out)
@@ -109,8 +101,8 @@ func TestCreateTaskPreviewAndConfirmation(t *testing.T) {
 			} else if err != nil {
 				t.Fatal(err)
 			}
-			if prompts != test.prompts || !strings.Contains(out.String(), test.wantOut) {
-				t.Fatalf("prompts=%d output=%s", prompts, out.String())
+			if !strings.Contains(out.String(), test.wantOut) {
+				t.Fatalf("output=%s", out.String())
 			}
 		})
 	}
@@ -144,7 +136,7 @@ func TestCreateCommandUsesSavedProfile(t *testing.T) {
 	out.Reset()
 	cmd := NewPhabricatorCmd()
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"create", "--profile", "reporter", "--title", "Docs issue", "--description", "Fix the example", "--yes"})
+	cmd.SetArgs([]string{"create", "--profile", "reporter", "--title", "Docs issue", "--description", "Fix the example"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}

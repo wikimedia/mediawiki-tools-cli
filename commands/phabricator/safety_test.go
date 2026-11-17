@@ -108,14 +108,6 @@ func TestAgentBlocksMutationsBeforeInputCredentialsOrNetwork(t *testing.T) {
 	for _, args := range invocations {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			args = append(append([]string{}, args...), "--agent=false", "--public-only=false")
-			cmd := NewPhabricatorCmd()
-			target, _, err := cmd.Find(args)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if target.Flags().Lookup("yes") != nil {
-				args = append(args, "--yes")
-			}
 			output, err := executeSafetyCommand(args...)
 			if err == nil || !strings.Contains(err.Error(), "human approval required") || output != "" {
 				t.Fatalf("output=%q error=%v", output, err)
@@ -161,23 +153,9 @@ func TestAgentMutationPreviewsAreOffline(t *testing.T) {
 	}
 }
 
-func TestHumanMutationRequiresConfirmationAndDryRunValidates(t *testing.T) {
+func TestHumanMutationDryRunValidates(t *testing.T) {
 	isolatedAuthConfig(t)
 	forbidPhabricatorHTTP(t)
-	for _, args := range [][]string{
-		{"assign", "T123", "me"},
-		{"task", "move", "T123", "Backlog"},
-		{"rmtag", "T123", "fixture"},
-		{"task", "priority", "T123", "high"},
-		{"task", "status", "T123", "resolved"},
-		{"task", "create", "--title", "fixture"},
-		{"task", "edit", "T123", "--title", "fixture"},
-	} {
-		output, err := executeSafetyCommand(append(args, "--no-interaction")...)
-		if err == nil || !strings.Contains(err.Error(), "--yes") {
-			t.Fatalf("%v: output=%q error=%v", args, output, err)
-		}
-	}
 	for _, args := range [][]string{
 		{"assign", "P123", "me"},
 		{"assign", "T123", ""},
@@ -188,7 +166,7 @@ func TestHumanMutationRequiresConfirmationAndDryRunValidates(t *testing.T) {
 			t.Fatalf("invalid preview accepted: %v", args)
 		}
 	}
-	for _, flags := range [][]string{{"--agent"}, {"--agent", "--dry-run=false", "--yes"}} {
+	for _, flags := range [][]string{{"--agent"}, {"--agent", "--dry-run=false", "--yes=false"}} {
 		_, err := executeSafetyCommand(append([]string{"task", "status", "T123", "resolved"}, flags...)...)
 		if err == nil || !strings.Contains(err.Error(), "human approval required") {
 			t.Fatal(err)
@@ -196,7 +174,7 @@ func TestHumanMutationRequiresConfirmationAndDryRunValidates(t *testing.T) {
 	}
 }
 
-func TestHumanConfirmedTaskMutationRunsOnce(t *testing.T) {
+func TestHumanTargetedTaskMutationRunsOnceWithoutConfirmation(t *testing.T) {
 	isolatedAuthConfig(t)
 	ran := 0
 	cmd := taskMutationCommand(&cobra.Command{
@@ -210,9 +188,77 @@ func TestHumanConfirmedTaskMutationRunsOnce(t *testing.T) {
 		},
 	}, nil)
 	cmd.SetOut(io.Discard)
-	cmd.SetArgs([]string{"T123", "me", "--yes"})
+	cmd.Flags().Bool("no-interaction", false, "Do not prompt")
+	cmd.SetArgs([]string{"T123", "me", "--no-interaction"})
 	if err := cmd.Execute(); err != nil || ran != 1 {
 		t.Fatalf("ran=%d error=%v", ran, err)
+	}
+}
+
+func TestHumanTargetedWritesApplyWithoutYesInNoninteractiveMode(t *testing.T) {
+	isolatedAuthConfig(t)
+	mockLoginIdentity(t)
+	login := NewPhabricatorCmd()
+	login.SetOut(io.Discard)
+	login.SetIn(strings.NewReader("fixture-secret\n"))
+	login.SetArgs([]string{"auth", "login", "--profile", "fixture", "--method", "token", "--token-stdin", "--provider", "keyring"})
+	if err := login.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	for key, value := range map[string]string{
+		"phabricator.profiles.fixture.default_project": "fixture",
+		"phabricator.profiles.fixture.cache_path":      t.TempDir(),
+	} {
+		if err := mwconfig.PutKeyValueOnDisk(key, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	previous := cli.Opts.NoInteraction
+	cli.Opts.NoInteraction = true
+	t.Cleanup(func() { cli.Opts.NoInteraction = previous })
+	writes := 0
+	http.DefaultTransport = authTransport(func(r *http.Request) (*http.Response, error) {
+		var result string
+		switch r.URL.Path {
+		case "/api/maniphest.search":
+			result = accessPage(t, accessTask(123, "public", wikimediaPublicSpace))
+		case "/api/maniphest.edit", "/api/paste.edit":
+			writes++
+			result = `{"object":{"id":123}}`
+		case "/api/user.whoami":
+			result = `{"userName":"fixture"}`
+		case "/api/user.search":
+			result = `{"data":[{"phid":"PHID-USER-fixture","fields":{"username":"fixture"}}]}`
+		case "/api/project.search":
+			result = `{"data":[{"id":1,"phid":"PHID-PROJ-fixture","fields":{"name":"fixture"}}]}`
+		case "/api/project.column.search":
+			result = `{"data":[{"id":1,"phid":"PHID-PCOL-fixture","fields":{"name":"Backlog"}}]}`
+		default:
+			t.Errorf("unexpected request %s", r.URL)
+			return nil, fmt.Errorf("unexpected request %s", r.URL)
+		}
+		return pasteResponse(`{"result":` + result + `}`), nil
+	})
+	for _, args := range phabricatorMutationInvocations() {
+		if args[0] == "auth" {
+			continue
+		}
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			args = append([]string{}, args...)
+			if args[0] == "paste" && args[1] == "create" {
+				args[len(args)-1] = "-"
+			}
+			before := writes
+			cmd := NewPhabricatorCmd()
+			cmd.PersistentFlags().Bool("no-interaction", false, "Do not prompt")
+			cmd.SetOut(io.Discard)
+			cmd.SetErr(io.Discard)
+			cmd.SetIn(strings.NewReader("supplied content"))
+			cmd.SetArgs(append(args, "--profile", "fixture", "--no-interaction"))
+			if err := cmd.Execute(); err != nil || writes != before+1 {
+				t.Fatalf("writes=%d want=%d error=%v", writes, before+1, err)
+			}
+		})
 	}
 }
 
@@ -231,27 +277,6 @@ func TestAgentReadOnlyMetadataAndParentSetupStillWork(t *testing.T) {
 	}
 }
 
-func TestExplicitNoInteractionDisablesInjectedPrompt(t *testing.T) {
-	isolatedAuthConfig(t)
-	previous := cli.Opts.NoInteraction
-	cli.Opts.NoInteraction = true
-	t.Cleanup(func() { cli.Opts.NoInteraction = previous })
-	site := ""
-	cmd := newPhabricatorCreateCmdWithInteraction(&site, func() bool {
-		t.Fatal("no-interaction consulted prompt capability")
-		return true
-	}, func() (bool, error) {
-		t.Fatal("no-interaction prompted")
-		return false, nil
-	})
-	cmd.SetOut(io.Discard)
-	cmd.SetErr(io.Discard)
-	cmd.SetArgs([]string{"--title", "fixture"})
-	if err := cmd.Execute(); err == nil {
-		t.Fatal("missing confirmation allowed")
-	}
-}
-
 func TestProfileMutationConfirmationAndTarget(t *testing.T) {
 	isolatedAuthConfig(t)
 	forbidPhabricatorHTTP(t)
@@ -260,7 +285,7 @@ func TestProfileMutationConfirmationAndTarget(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, operation := range []string{"default", "remove"} {
+	for _, operation := range []string{"remove"} {
 		before := mwconfig.State().OnDiskKoanf.Sprint()
 		if _, err := executeSafetyCommand("auth", operation, "--profile", "fixture", "--no-interaction"); err == nil || !strings.Contains(err.Error(), "--yes") {
 			t.Fatalf("%s error=%v", operation, err)
@@ -269,7 +294,7 @@ func TestProfileMutationConfirmationAndTarget(t *testing.T) {
 			t.Fatal("unconfirmed operation changed profiles")
 		}
 	}
-	if _, err := executeSafetyCommand("auth", "default", "--profile", "fixture", "--yes", "--no-interaction"); err != nil {
+	if _, err := executeSafetyCommand("auth", "default", "--profile", "fixture", "--no-interaction"); err != nil {
 		t.Fatal(err)
 	}
 	if got := phabProfiles.Default(); got != "fixture" {
@@ -287,8 +312,7 @@ func TestExplicitAgentBlocksEscapeHatchesAndDryRunFalse(t *testing.T) {
 		{"auth", "login", "--token", "do-not-read"},
 		{"api", "conduit.ping"},
 		{"shell"},
-		{"task", "status", "T123", "resolved", "--yes", "--dry-run=false"},
-		{"task", "status", "T123", "resolved", "--yes", "--allow-non-public"},
+		{"task", "status", "T123", "resolved", "--yes=false", "--dry-run=false"},
 	} {
 		_, err := executeSafetyCommand(append(args, "--agent")...)
 		if err == nil || !strings.Contains(err.Error(), "human approval required") {

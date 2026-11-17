@@ -87,11 +87,11 @@ func TestPasteEditTransactions(t *testing.T) {
 	}
 }
 
-func TestPasteWritePreviewAndConfirmation(t *testing.T) {
+func TestPasteWritePreviewAndValidation(t *testing.T) {
 	for _, tc := range []struct {
 		name, input, want string
 		args              []string
-		editing, canAsk   bool
+		editing           bool
 		wantErr           bool
 	}{
 		{name: "stdin", args: []string{"--title", "Title", "--dry-run"}, input: "paste\ntext", want: "text: paste\ntext"},
@@ -102,13 +102,11 @@ func TestPasteWritePreviewAndConfirmation(t *testing.T) {
 		{name: "missing edit", editing: true, args: []string{"P123", "--dry-run"}, want: "at least one field", wantErr: true},
 		{name: "status", editing: true, args: []string{"P123", "--status", "closed", "--dry-run"}, want: "active or archived", wantErr: true},
 		{name: "task", editing: true, args: []string{"T123", "--title", "Title", "--dry-run"}, want: "expected a paste", wantErr: true},
-		{name: "no confirmation", args: []string{"--title", "Title"}, input: "content", want: "use --yes", wantErr: true},
-		{name: "cancel", args: []string{"--title", "Title"}, input: "content", canAsk: true, want: "Cancelled"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// A nonexistent profile ensures preview/cancellation never reads credentials.
+			// A nonexistent profile ensures previews never read credentials.
 			profile := "must-not-access-credentials"
-			cmd := newPhabricatorPasteWriteCmd(&profile, tc.editing, func() bool { return tc.canAsk }, func() (bool, error) { return false, nil })
+			cmd := newPhabricatorPasteWriteCmd(&profile, tc.editing)
 			var out bytes.Buffer
 			cmd.SetOut(&out)
 			cmd.SetErr(&out)
@@ -156,8 +154,8 @@ func TestPasteCommandsUseProfileAndDispatch(t *testing.T) {
 		}
 	})
 	for _, args := range [][]string{
-		{"paste", "send", "--title", "Title", "--yes"},
-		{"paste", "edit", "P123", "--title", "New", "--yes"},
+		{"paste", "send", "--title", "Title"},
+		{"paste", "edit", "P123", "--title", "New"},
 		{"paste", "view", "P123", "--raw"},
 		{"v", "https://phabricator.wikimedia.org/P123", "--raw"},
 	} {
@@ -180,8 +178,8 @@ func TestPasteCommandsUseProfileAndDispatch(t *testing.T) {
 
 func TestPasteCreateHelpIncludesPipedExample(t *testing.T) {
 	site := "unused"
-	cmd := newPhabricatorPasteWriteCmd(&site, false, func() bool { return false }, func() (bool, error) { return false, nil })
-	want := `echo a-wikimedia-cli | mw phab paste create --title "Example" --file - --yes`
+	cmd := newPhabricatorPasteWriteCmd(&site, false)
+	want := `echo a-wikimedia-cli | mw phab paste create --title "Example" --file -`
 	if !strings.Contains(cmd.Long, want) {
 		t.Fatalf("missing runnable pipeline in help: %s", cmd.Long)
 	}

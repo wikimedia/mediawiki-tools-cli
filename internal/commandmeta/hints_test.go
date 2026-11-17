@@ -16,6 +16,7 @@ func TestHintsRoundTrip(t *testing.T) {
 			ToolAnnotations: ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
 			DataAccess:      []DataAccess{access},
 			SecretInput:     true,
+			HighRisk:        true,
 		}
 		cmd := &cobra.Command{Use: "read", Annotations: map[string]string{"other": "retained"}}
 		if Set(cmd, want) != cmd {
@@ -50,6 +51,7 @@ func TestHintsMissingInvalidAndNotInherited(t *testing.T) {
 		{"missing boolean", ReadOnlyAnnotation, "", "must be a boolean"},
 		{"invalid boolean", IdempotentAnnotation, "maybe", "must be a boolean"},
 		{"missing secret input", SecretInputAnnotation, "", "must be a boolean"},
+		{"missing risk", HighRiskAnnotation, "", "must be a boolean"},
 		{"missing exposure", DataAccessAnnotation, "", "invalid data category"},
 		{"invalid exposure", DataAccessAnnotation, "confidential-ish", "invalid data category"},
 		{"duplicate exposure", DataAccessAnnotation, "public,public", "duplicate category"},

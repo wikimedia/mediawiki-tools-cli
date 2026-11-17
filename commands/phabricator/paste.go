@@ -6,9 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
@@ -111,18 +109,14 @@ func newPhabricatorPasteCmd(site *string) *cobra.Command {
 	cmd := &cobra.Command{Use: "paste", Short: "Read, create and edit Phabricator pastes"}
 	cmd.AddCommand(newPhabricatorObjectViewCmd(site, "P"))
 	for _, editing := range []bool{false, true} {
-		cmd.AddCommand(newPhabricatorPasteWriteCmd(site, editing, cli.CanAskForInput, func() (bool, error) {
-			var yes bool
-			err := survey.AskOne(&survey.Confirm{Message: "Save this Phabricator paste?", Default: false}, &yes)
-			return yes, err
-		}))
+		cmd.AddCommand(newPhabricatorPasteWriteCmd(site, editing))
 	}
 	return cmd
 }
 
-func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool, confirm func() (bool, error)) *cobra.Command {
+func newPhabricatorPasteWriteCmd(site *string, editing bool) *cobra.Command {
 	var title, file, language, status, visibility string
-	var yes, dryRun bool
+	var dryRun bool
 	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: editing, OpenWorldHint: true},
@@ -132,11 +126,11 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 		Aliases: []string{"send"},
 		Short:   "Create a Phabricator paste from a file or stdin",
 		Long: "Preview and save a paste using the selected profile. Content must be UTF-8 text. " +
-			"Use --file - for stdin. Confirm interactively or use --yes. " +
+			"Use --file - for stdin. Saving does not prompt for confirmation. Agents follow agent.policy; obtain user approval before rerunning with --yes when required. " +
 			"The preview prints the supplied content and fields. " +
 			"--dry-run previews changes without reading credentials or contacting Phabricator. " +
 			"Unless --visibility is provided, Phabricator chooses the view policy; it may be public.",
-		Example: "create --title 'Example output' --file output.txt\ncreate --title 'Example output' --file - --yes",
+		Example: "create --title 'Example output' --file output.txt\ncreate --title 'Example output' --file -",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var ref objectReference
@@ -198,19 +192,6 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 				cmd.Println("Preview only; no paste saved.")
 				return nil
 			}
-			if !yes {
-				if cli.Opts.NoInteraction || commandFlagEnabled(cmd, "no-interaction") || !canAsk() {
-					return fmt.Errorf("paste was not saved; use --yes to save without an interactive confirmation")
-				}
-				approved, err := confirm()
-				if err != nil {
-					return err
-				}
-				if !approved {
-					cmd.Println("Cancelled; no paste saved.")
-					return nil
-				}
-			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
@@ -227,7 +208,7 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 		},
 	}
 	if !editing {
-		cmd.Long += "\n\nPipe text from another command:\n\n    echo a-wikimedia-cli | mw phab paste create --title \"Example\" --file - --yes"
+		cmd.Long += "\n\nPipe text from another command:\n\n    echo a-wikimedia-cli | mw phab paste create --title \"Example\" --file -"
 	}
 	if editing {
 		cmd.Use = "edit <P123|URL>"
@@ -235,9 +216,9 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 		cmd.Short = "Edit paste content, title, language or visibility"
 		cmd.Long = "Preview and update the supplied paste fields without fetching the existing paste content. " +
 			"The preview prints all supplied changes, including text from --file (use - for stdin). " +
-			"Confirm interactively or use --yes. --dry-run previews without reading credentials or contacting Phabricator. " +
+			"Changes apply without a confirmation prompt. Agents follow agent.policy; obtain user approval before rerunning with --yes when required. --dry-run previews without reading credentials or contacting Phabricator. " +
 			"Omitted fields, including visibility, are left unchanged. Paste operations are not covered by the task public-only filter."
-		cmd.Example = "edit P123 --file revised.txt\nedit P123 --title 'New title' --yes\nedit P123 --status archived --dry-run"
+		cmd.Example = "edit P123 --file revised.txt\nedit P123 --title 'New title'\nedit P123 --status archived --dry-run"
 		cmd.Args = cobra.ExactArgs(1)
 	}
 	cmd.Flags().StringVar(&title, "title", "", "Paste title")
@@ -249,7 +230,7 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool, canAsk func() bool,
 	cmd.Flags().StringVar(&language, "language", "", "Phabricator syntax-highlighting language key")
 	cmd.Flags().StringVar(&status, "status", "", "Paste status: active or archived")
 	cmd.Flags().StringVar(&visibility, "visibility", "", "View policy constant or policy PHID (for example users or no-one)")
-	cmd.Flags().BoolVar(&yes, "yes", false, "Save without asking for confirmation")
+	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or saving a paste")
 	return cmd
 }

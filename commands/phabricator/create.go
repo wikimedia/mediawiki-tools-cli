@@ -7,24 +7,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 func newPhabricatorCreateCmd(site *string) *cobra.Command {
-	return newPhabricatorCreateCmdWithInteraction(site, cli.CanAskForInput, func() (bool, error) {
-		var yes bool
-		err := survey.AskOne(&survey.Confirm{Message: "Create this Phabricator task?", Default: false}, &yes)
-		return yes, err
-	})
-}
-
-func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, confirm func() (bool, error)) *cobra.Command {
 	var title, description, descriptionFile, inputFile string
 	var projects []string
-	var yes, dryRun bool
+	var dryRun bool
 	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{OpenWorldHint: true},
@@ -32,8 +22,8 @@ func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, co
 		}),
 		Use:     "create",
 		Short:   "Create a Phabricator task",
-		Long:    "Preview and create a task using a saved Phabricator profile. The preview prints the supplied title, description and projects. Projects are exact project slugs (as used in hashtags) or project PHIDs; slugs are resolved through project.search. Existing task content is not fetched. Server and project defaults determine visibility, so creation is blocked in public-only mode. Confirm interactively, or pass --yes for scripts. Use --dry-run to preview without accessing credentials or contacting Phabricator.",
-		Example: "create --title 'Clarify development setup' --description-file issue.txt --project a_wikimedia_cli\ncreate --title 'Documentation issue' --description-file - --yes",
+		Long:    "Create a task using a saved Phabricator profile without a confirmation prompt. The supplied title, description and projects are printed before creation. Projects are exact project slugs (as used in hashtags) or project PHIDs; slugs are resolved through project.search. Existing task content is not fetched. Server and project defaults determine visibility, so creation is blocked in public-only mode, including agent mode even with --yes. Use --dry-run to preview without accessing credentials or contacting Phabricator. Agents follow agent.policy for approval; approval does not override visibility checks.",
+		Example: "create --title 'Clarify development setup' --description-file issue.txt --project a_wikimedia_cli\ncreate --title 'Documentation issue' --description-file -",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if inputFile != "" {
@@ -77,19 +67,6 @@ func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, co
 				cmd.Println("Preview only; no task created.")
 				return nil
 			}
-			if !yes {
-				if cli.Opts.NoInteraction || commandFlagEnabled(cmd, "no-interaction") || !canAsk() {
-					return fmt.Errorf("task was not created; use --yes to create without an interactive confirmation")
-				}
-				approved, err := confirm()
-				if err != nil {
-					return err
-				}
-				if !approved {
-					cmd.Println("Cancelled; no task created.")
-					return nil
-				}
-			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
@@ -111,7 +88,7 @@ func newPhabricatorCreateCmdWithInteraction(site *string, canAsk func() bool, co
 	for _, flag := range []string{"title", "description", "description-file", "project"} {
 		cmd.MarkFlagsMutuallyExclusive("input", flag)
 	}
-	cmd.Flags().BoolVar(&yes, "yes", false, "Create without asking for confirmation")
+	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or creating a task")
 	return cmd
 }

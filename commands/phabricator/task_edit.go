@@ -4,27 +4,25 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 func newTaskEditCmd(site *string) *cobra.Command {
 	var title, description, descriptionFile, status, priority, assignee, comment string
 	var projects []string
-	var yes, dryRun bool
+	var dryRun bool
 	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata, commandmeta.DataSuppliedContent},
 		}),
-		Use: "edit <T12345>", Short: "Preview and update a task", Long: "Update selected task fields in one transaction request. Projects add tags without replacing existing tags. Preview changes with --dry-run; otherwise confirm interactively or pass --yes. Dry runs do not access credentials or resolve user/project names.", Example: "edit T12345 --title 'Improve CLI documentation' --dry-run\nedit T12345 --status resolved --comment 'Fixed in the latest release'\nedit T12345 --assigned-to me --project a_wikimedia_cli --yes", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		Use: "edit <T12345>", Short: "Preview and update a task", Long: "Update selected task fields in one transaction request without a confirmation prompt. Projects add tags without replacing existing tags. Preview changes with --dry-run without accessing credentials or resolving user/project names. Agents follow agent.policy; when approval is required, show the preview and ask the user before rerunning with --yes. Task visibility checks still apply.", Example: "edit T12345 --title 'Improve CLI documentation' --dry-run\nedit T12345 --status resolved --comment 'Fixed in the latest release'\nedit T12345 --assigned-to me --project a_wikimedia_cli", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 			ref, err := requireTaskArg(args)
 			if err != nil {
 				return err
 			}
-			// Validate the numeric part before prompting or retrieving credentials.
+			// Validate the numeric part before retrieving credentials.
 			if !isTaskRef(ref) {
 				return fmt.Errorf("invalid task reference %q", ref)
 			}
@@ -93,19 +91,6 @@ func newTaskEditCmd(site *string) *cobra.Command {
 				cmd.Println("Preview only; no task changed.")
 				return nil
 			}
-			if !yes {
-				if commandFlagEnabled(cmd, "no-interaction") || !cli.CanAskForInput() {
-					return fmt.Errorf("task was not changed; use --yes to update without an interactive confirmation")
-				}
-				approved := false
-				if err := survey.AskOne(&survey.Confirm{Message: "Apply these task changes?", Default: false}, &approved); err != nil {
-					return err
-				}
-				if !approved {
-					cmd.Println("Cancelled; no task changed.")
-					return nil
-				}
-			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
@@ -149,7 +134,7 @@ func newTaskEditCmd(site *string) *cobra.Command {
 	cmd.Flags().StringVar(&assignee, "assigned-to", "", "Assignee username or me")
 	cmd.Flags().StringSliceVar(&projects, "project", nil, "Project hashtag, exact name, ID or PHID to add (repeatable)")
 	cmd.Flags().StringVar(&comment, "comment", "", "Add a comment (Phabricator Remarkup)")
-	cmd.Flags().BoolVar(&yes, "yes", false, "Apply changes without confirmation")
+	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or changing a task")
 	return cmd
 }

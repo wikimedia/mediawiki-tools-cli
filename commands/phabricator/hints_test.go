@@ -84,6 +84,7 @@ func TestPhabricatorHintSemantics(t *testing.T) {
 
 			got, err := commandmeta.Read(cmd)
 			want := commandmeta.Hints{
+				HighRisk: test.path == "api" || test.path == "shell" || test.path == "auth login" || test.path == "auth remove",
 				ToolAnnotations: commandmeta.ToolAnnotations{
 					ReadOnlyHint: test.readOnly, DestructiveHint: test.destructive,
 					IdempotentHint: test.idempotent, OpenWorldHint: test.openWorld,
@@ -119,7 +120,7 @@ func TestPhabricatorHelpExplainsDataAndEffects(t *testing.T) {
 		want []string
 	}{
 		{"auth status", []string{"user.whoami", "masked", "not task or paste content"}},
-		{"task create", []string{"preview prints", "Existing task content is not fetched", "public-only"}},
+		{"task create", []string{"printed before creation", "Existing task content is not fetched", "public-only"}},
 		{"paste create", []string{"preview prints", "may be public"}},
 		{"paste edit", []string{"without fetching", "preview prints", "visibility, are left unchanged", "not covered"}},
 		{"shell", []string{"update task", "immediately", "without a separate confirmation"}},

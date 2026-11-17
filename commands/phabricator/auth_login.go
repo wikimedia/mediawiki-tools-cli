@@ -41,6 +41,7 @@ func newPhabricatorAuthLoginCmdWithInteraction(site *string, interaction loginIn
 	var noBrowser bool
 	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			HighRisk:        true,
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataAccountMetadata},
 			SecretInput:     true,

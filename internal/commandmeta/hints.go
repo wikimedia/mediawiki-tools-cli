@@ -17,6 +17,7 @@ const (
 	OpenWorldAnnotation   = "mwcli-hint-open-world"
 	DataAccessAnnotation  = "mwcli-hint-data-access"
 	SecretInputAnnotation = "mwcli-hint-secret-input"
+	HighRiskAnnotation    = "mwcli-hint-high-risk"
 )
 
 type DataAccess string
@@ -44,6 +45,7 @@ type Hints struct {
 	ToolAnnotations
 	DataAccess  []DataAccess `json:"dataAccess"`
 	SecretInput bool         `json:"secretInput"`
+	HighRisk    bool         `json:"highRisk"`
 }
 
 var ErrMissingHints = errors.New("command capability hints are missing")
@@ -73,6 +75,7 @@ func Annotations(hints Hints) map[string]string {
 		OpenWorldAnnotation:   strconv.FormatBool(hints.OpenWorldHint),
 		DataAccessAnnotation:  strings.Join(data, ","),
 		SecretInputAnnotation: strconv.FormatBool(hints.SecretInput),
+		HighRiskAnnotation:    strconv.FormatBool(hints.HighRisk),
 	}
 }
 
@@ -80,7 +83,7 @@ func Annotations(hints Hints) map[string]string {
 func Read(cmd *cobra.Command) (Hints, error) {
 	var hints Hints
 	found := false
-	for _, key := range []string{ReadOnlyAnnotation, DestructiveAnnotation, IdempotentAnnotation, OpenWorldAnnotation, DataAccessAnnotation, SecretInputAnnotation} {
+	for _, key := range []string{ReadOnlyAnnotation, DestructiveAnnotation, IdempotentAnnotation, OpenWorldAnnotation, DataAccessAnnotation, SecretInputAnnotation, HighRiskAnnotation} {
 		if _, ok := cmd.Annotations[key]; ok {
 			found = true
 		}
@@ -97,6 +100,7 @@ func Read(cmd *cobra.Command) (Hints, error) {
 		{IdempotentAnnotation, &hints.IdempotentHint},
 		{OpenWorldAnnotation, &hints.OpenWorldHint},
 		{SecretInputAnnotation, &hints.SecretInput},
+		{HighRiskAnnotation, &hints.HighRisk},
 	} {
 		value, err := strconv.ParseBool(cmd.Annotations[field.key])
 		if err != nil {

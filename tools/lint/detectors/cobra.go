@@ -191,6 +191,7 @@ func detectAllowedAnnotations(theCmd *cobra.Command, cmdString string) *issue.Is
 		commandmeta.OpenWorldAnnotation,
 		commandmeta.DataAccessAnnotation,
 		commandmeta.SecretInputAnnotation,
+		commandmeta.HighRiskAnnotation,
 	}
 	// TODO check all annotaitons and issue for each
 	for key := range theCmd.Annotations {

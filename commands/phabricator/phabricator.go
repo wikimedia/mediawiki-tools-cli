@@ -42,9 +42,15 @@ for non-public task access. These are local guardrails, not credential isolation
 Only explicitly public tasks in Wikimedia's known public S1 Space pass the
 initial filter; other Spaces and missing policies are treated as unknown.
 The low-level api command and non-task objects are not covered by the task filter.
-Agents may preview supported changes with --dry-run, but cannot apply mutations,
-log in, use the raw API, or enter the mutation shell. Ask a human to rerun those
-operations outside agent mode. --yes skips confirmation, never agent restrictions.
+Agent approvals follow the CLI-wide agent.policy setting, initially enforced
+only for Phabricator: permissive requires approval for high-risk operations,
+balanced (default) for writes and high-risk operations, and cautious for all calls.
+Supported offline --dry-run previews never require approval. When approval is
+required, explain the operation and ask the user before rerunning with --yes.
+Raw API calls are high-risk and unfiltered, even with task access flags.
+Targeted task/paste writes do not prompt humans
+for confirmation. Profile removal still requires confirmation or --yes.
+--yes is a cooperative assertion of user approval, not a bypass of task visibility checks.
 For task access controls, see "mw help guides phabricator access".
 
 For storage options and password managers, see "mw help guides authentication".`,
@@ -55,6 +61,7 @@ For storage options and password managers, see "mw help guides authentication".`
 	cmd.MarkFlagsMutuallyExclusive("site", "profile")
 	cmd.PersistentFlags().Bool("public-only", false, "Restrict task commands to public tasks in Wikimedia's known public Space (also phabricator.public_only)")
 	cmd.PersistentFlags().Bool("agent", false, "Enforce agent restrictions on task access, mutations, login, raw API and shell")
+	cmd.PersistentFlags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
 	cmd.PersistentFlags().Bool("allow-non-public", false, "Approve non-public task access for this invocation outside agent mode")
 	// TODO(early 2027): remove the legacy --site flag after the profile migration window.
 	_ = cmd.PersistentFlags().MarkHidden("site")
@@ -169,7 +176,7 @@ func addAssignCmd(parent *cobra.Command, site *string) {
 		}),
 		Use:     "assign <T12345> <username|me>",
 		Short:   "Assign a task to a Phabricator user",
-		Example: "assign T12345 me --dry-run\nassign T12345 me --yes",
+		Example: "assign T12345 me --dry-run\nassign T12345 me",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -205,12 +212,13 @@ func addShellCmd(parent *cobra.Command, site *string) {
 	c := &cobra.Command{
 		Use: "shell",
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			HighRisk:        true,
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
 		}),
 		Aliases: []string{"sh"},
 		Short:   "Start an interactive Phabricator shell",
-		Long:    "Browse projects, tasks and comments, and update task assignment, columns, tags, priority or status. Changes run immediately without a separate confirmation. Existing task access guardrails also apply inside the shell. Agent mode and --no-interaction refuse this mutation shell; use browse or one-shot task commands instead.",
+		Long:    "Browse projects, tasks and comments, and update task assignment, columns, tags, priority or status. Changes run immediately without a separate confirmation. Existing task access guardrails also apply inside the shell. All agent policies require user approval (--yes) for this high-risk session, covering its subsequent actions. An interactive terminal is required; --no-interaction refuses the shell. Prefer one-shot task commands for narrowly scoped approval.",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if commandFlagEnabled(cmd, "no-interaction") || !cli.CanAskForInput() {
@@ -248,7 +256,7 @@ func addMVCmd(parent *cobra.Command, site *string) {
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
 		}),
 		Short:   "Move a task to a workboard column",
-		Example: "mv T12345 Backlog --project a_wikimedia_cli --dry-run\nmv T12345 Backlog --project a_wikimedia_cli --yes",
+		Example: "mv T12345 Backlog --project a_wikimedia_cli --dry-run\nmv T12345 Backlog --project a_wikimedia_cli",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, cfg, err := clientFromCommand(cmd, *site)
@@ -304,7 +312,7 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 		Use:     "rmtag <T12345> <project>",
 		Aliases: []string{"rm"},
 		Short:   "Remove a project tag from a task",
-		Example: "rmtag T12345 a_wikimedia_cli --dry-run\nrmtag T12345 a_wikimedia_cli --yes",
+		Example: "rmtag T12345 a_wikimedia_cli --dry-run\nrmtag T12345 a_wikimedia_cli",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -356,7 +364,7 @@ func addSetPrioCmd(parent *cobra.Command, site *string) {
 		Use:     "setprio <T12345> <priority>",
 		Aliases: []string{"sp", "prio"},
 		Short:   "Set priority: u=unbreak t=triage h=high n=normal l=low ll=lowest",
-		Example: "setprio T12345 high --dry-run\nsetprio T12345 high --yes",
+		Example: "setprio T12345 high --dry-run\nsetprio T12345 high",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -403,7 +411,7 @@ func addSetStatusCmd(parent *cobra.Command, site *string) {
 		Use:     "setstatus <T12345> <status>",
 		Aliases: []string{"st"},
 		Short:   "Set status: o=open r=resolved p=progress s=stalled d=declined dup=duplicate i=invalid",
-		Example: "setstatus T12345 resolved --dry-run\nsetstatus T12345 resolved --yes",
+		Example: "setstatus T12345 resolved --dry-run\nsetstatus T12345 resolved",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)

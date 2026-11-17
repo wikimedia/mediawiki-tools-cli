@@ -9,6 +9,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/agent"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
+	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
 
 func commandFlagEnabled(cmd *cobra.Command, name string) bool {
@@ -26,11 +27,11 @@ func checkPhabricatorAgentPolicy(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	err = commandmeta.CheckAgentPolicy(cmd, agentMode, commandFlagEnabled(cmd, "dry-run"))
-	if err != nil && cmd.Flags().Lookup("dry-run") != nil {
-		return fmt.Errorf("%w; --dry-run is available for an offline preview only", err)
+	policy, err := commandmeta.ParseAgentPolicy(mwconfig.State().Effective.Agent.Policy)
+	if err != nil {
+		return err
 	}
-	return err
+	return commandmeta.CheckAgentPolicy(cmd, policy, agentMode, commandFlagEnabled(cmd, "dry-run"), commandFlagEnabled(cmd, "yes"))
 }
 
 func confirmPhabricatorChange(cmd *cobra.Command) (bool, error) {
@@ -81,21 +82,17 @@ func taskMutationCommand(cmd *cobra.Command, validateValue func(string) error) *
 			cmd.Println("Preview only; no credentials accessed or remote names resolved, and no task changed.")
 			return nil
 		}
-		approved, err := confirmPhabricatorChange(cmd)
-		if err != nil || !approved {
-			return err
-		}
 		return run(cmd, args)
 	}
 	addMutationFlags(cmd)
 	cmd.Long = cmd.Short + ". Preview the requested change with --dry-run without accessing credentials or contacting Phabricator. " +
-		"Remote targets and configured defaults are resolved only when applying. Confirm interactively or pass --yes. " +
-		"--no-interaction never assumes confirmation. Agents may preview but cannot apply changes; --yes does not override agent policy."
+		"Remote targets and configured defaults are resolved only when applying. The explicit task and change are sufficient intent; no confirmation is requested, including with --no-interaction. " +
+		"Agents follow agent.policy; when approval is required, show the --dry-run preview and ask the user before rerunning with --yes. Task visibility checks still apply."
 	return cmd
 }
 
 func addMutationFlags(cmd *cobra.Command) {
-	cmd.Flags().Bool("yes", false, "Apply changes without asking for confirmation (does not override agent policy)")
+	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
 	cmd.Flags().Bool("dry-run", false, "Preview without applying changes or accessing credentials")
 }
 
@@ -117,9 +114,11 @@ func profileMutationCommand(cmd *cobra.Command, site *string) *cobra.Command {
 			cmd.Println("Preview only; no credentials accessed or profiles changed.")
 			return nil
 		}
-		approved, err := confirmPhabricatorChange(cmd)
-		if err != nil || !approved {
-			return err
+		if cmd.Name() == "remove" {
+			approved, err := confirmPhabricatorChange(cmd)
+			if err != nil || !approved {
+				return err
+			}
 		}
 		previous := *site
 		*site = name
@@ -131,6 +130,13 @@ func profileMutationCommand(cmd *cobra.Command, site *string) *cobra.Command {
 		cmd.Long = cmd.Short + "."
 	}
 	cmd.Example = cmd.Name() + " --profile personal --dry-run\n" + cmd.Name() + " --profile personal --yes"
-	cmd.Long += "\n\nPreview the selected profile operation with --dry-run without accessing credentials. Confirm interactively or pass --yes. Agents may preview but cannot apply profile changes."
+	cmd.Long += "\n\nPreview the selected profile operation with --dry-run without accessing credentials. Agents follow agent.policy; obtain user approval before rerunning with --yes when required."
+	if cmd.Name() == "remove" {
+		cmd.Flags().Lookup("yes").Usage = "Confirm profile removal and assert user approval when agent policy requires it"
+		cmd.Long += " Removal requires interactive confirmation or --yes; --no-interaction never assumes confirmation."
+	} else {
+		cmd.Example = cmd.Name() + " --profile personal --dry-run\n" + cmd.Name() + " --profile personal"
+		cmd.Long += " Selecting an explicit default profile does not prompt for confirmation, including with --no-interaction."
+	}
 	return cmd
 }

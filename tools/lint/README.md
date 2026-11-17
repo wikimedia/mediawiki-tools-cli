@@ -43,7 +43,7 @@ command's Cobra struct literal so its capabilities stay beside its implementatio
 For commands returned by shared constructors, use `commandmeta.Set` at their
 registration site to attach hints while preserving existing annotations.
 All four behavioral fields use MCP names: `readOnlyHint`,
-`destructiveHint`, `idempotentHint` and `openWorldHint`. Two additional fields are
+`destructiveHint`, `idempotentHint` and `openWorldHint`. Three additional fields are
 mw-specific:
 
 - `dataAccess` is a list of data categories retrieved or displayed:
@@ -53,6 +53,10 @@ mw-specific:
 - `secretInput` identifies dedicated credential input/import, not ordinary use of
   saved credentials. It does not mean credentials are printed. Arbitrary APIs
   with `dataAccess: ["unknown"]` can accept or expose secrets depending on input.
+- `highRisk` explicitly marks operations needing approval even under permissive
+  agent policy. Phabricator marks login, profile removal, the mutation shell and
+  raw API calls. Ordinary field overwrites are not automatically high-risk.
+  Like the other booleans, this annotation must be present and valid.
 
 Potentially private means the command can access restricted objects, not that
 every result is private. Account metadata means profile names, endpoints and
@@ -70,7 +74,12 @@ not reclassify a write command, and `--public-only` does not reclassify a privat
 read. Routine internal caching is not considered a domain mutation. Hints are
 not inherited from parent commands. Phabricator is the first classified family;
 its task visibility checks remain separate. The Phabricator agent policy uses
-these hints to allow reads and supported offline previews, and to refuse actual
-mutations, credential input, secret output and unknown-capability operations.
-Read hints do not replace per-object visibility checks. Future MCP
+these hints with `agent.policy`: permissive asks for high-risk operations,
+balanced (default) also asks for writes, and cautious asks for reads too.
+Supported offline previews are always allowed. Approval through `--yes` is a
+cooperative user-consent assertion, not verified authorization. High-risk,
+credential input, secret output and unknown-capability operations always require
+approval. Read hints do not replace per-object visibility checks; approved raw
+API calls remain unfiltered. See the [access guide](../../docs/guides/phabricator/access.md).
+Future MCP
 integration can expose the four standard fields separately from mw metadata.
