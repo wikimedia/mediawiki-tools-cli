@@ -15,6 +15,7 @@ Read these guides offline with `mw help guides`; for example, `mw help guides de
 ## Wikimedia data
 
 - [Explore pageviews as a graph, JSON or CSV](guides/analytics/pageviews.md)
+- [Explore and download Wikimedia dumps](https://a-wikimedia-cli.toolforge.org/manual/dumps)
 
 ## Development environments
 

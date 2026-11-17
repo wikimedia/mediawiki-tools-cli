@@ -18,6 +18,7 @@ import (
 	configcmd "gitlab.wikimedia.org/repos/releng/cli/commands/config"
 	debugcmd "gitlab.wikimedia.org/repos/releng/cli/commands/debug"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev"
+	dumpscmd "gitlab.wikimedia.org/repos/releng/cli/commands/dumps"
 	enterprisecmd "gitlab.wikimedia.org/repos/releng/cli/commands/enterprise"
 	eventscmd "gitlab.wikimedia.org/repos/releng/cli/commands/events"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
@@ -177,6 +178,7 @@ func NewRootCmd(name string) *cobra.Command {
 		// Older commands, not yet moved to the /commands directory
 		cobrautil.WithServiceInfo(codesearch.NewCodeSearchCmd(), cobrautil.ServiceInfo{Name: "Code search", URL: "https://codesearch.wmcloud.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		cobrautil.WithServiceInfo(analyticscmd.NewCmd(), cobrautil.ServiceInfo{Name: "Analytics", URL: "https://wikimedia.org/api/rest_v1/", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(dumpscmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Dumps", URL: "https://dumps.wikimedia.org/"}),
 		cobrautil.WithServiceInfo(apicmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia APIs", URL: "https://www.mediawiki.org/wiki/API:Main_page", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		cobrautil.WithServiceInfo(eventscmd.NewCmd(), cobrautil.ServiceInfo{Name: "EventStreams", URL: "https://stream.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		toolhub.NewToolHubCmd(),

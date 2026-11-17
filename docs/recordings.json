@@ -1,6 +1,19 @@
 {
   "recordings": [
     {
+      "id": "dumps",
+      "title": "Find, compare and resume a Wikidata dump download",
+      "file": "dumps.webm",
+      "guide": "dumps",
+      "commands": [
+        "dumps",
+        "dumps datasets",
+        "dumps list",
+        "dumps mirrors test",
+        "dumps download"
+      ]
+    },
+    {
       "id": "pageviews",
       "title": "Explore pageviews",
       "file": "pageviews.webm",
