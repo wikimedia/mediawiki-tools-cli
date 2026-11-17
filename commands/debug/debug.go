@@ -18,5 +18,6 @@ func Cmd() *cobra.Command {
 	cmd.Annotations = make(map[string]string)
 	cmd.Annotations["group"] = "Debug"
 	cmd.AddCommand(DebugEventsCmd())
+	cmd.AddCommand(DebugAgentCmd())
 	return cmd
 }
