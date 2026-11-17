@@ -2,6 +2,7 @@ package phabricator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -31,14 +32,17 @@ func newTaskListCmd(site *string) *cobra.Command {
 	opts := searchOptions{Limit: 50}
 	out := phabOutput([]string{"Task", "Title", "Status", "Priority"}, func(objects interface{}, table *output.Table) {
 		for _, task := range objects.(taskPage).Data {
-			table.AddRow(fmt.Sprintf("T%d", task.ID), task.Fields.Name, task.Fields.Status.Name, task.Fields.Priority.Name)
+			table.AddRow(taskReference(task), task.Fields.Name, task.Fields.Status.Name, task.Fields.Priority.Name)
 		}
 	})
-	cmd := &cobra.Command{Use: "list", Short: "Search and page through Phabricator tasks", Long: "List tasks matching project, workboard column, text, assignee and status filters. Each request returns up to --limit tasks, ordered by update time. Use the returned cursor with --after or --before, or --all to fetch every page. Column membership does not imply workboard card ordering. JSON output includes data and cursor fields. By default, only open tasks are included (including in-progress and stalled tasks). Use --status all to include closed tasks. --all fetches every matching page without changing the status filter.", Example: "list --project a_wikimedia_cli\nlist --project a_wikimedia_cli --column Backlog\nlist --assigned-to me --search documentation --output json\nlist --limit 50 --after CURSOR\nlist --project a_wikimedia_cli --status all --all", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	cmd := &cobra.Command{Use: "list", Short: "Search and page through Phabricator tasks", Long: "List tasks matching project, workboard column, text, author, assignee and status filters. Each request returns up to --limit tasks, ordered by update time by default; use --order newest for most recently created tasks first. Use the returned cursor with --after or --before, or --all to fetch every page. Column membership does not imply workboard card ordering. JSON output includes data and cursor fields. By default, only open tasks are included (including in-progress and stalled tasks). Use --status all to include closed tasks. --all fetches every matching page without changing the status filter.", Example: "list --project a_wikimedia_cli\nlist --project a_wikimedia_cli --column Backlog\nlist --assigned-to me --search documentation --output json\nlist --author me --order newest --status all --limit 20 --public-only\nlist --limit 50 --after CURSOR\nlist --project a_wikimedia_cli --status all --all", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if _, err := queryParams(opts.Limit, opts.After, opts.Before); err != nil {
 			return err
 		}
 		if err := validatePhabOutput(out); err != nil {
+			return err
+		}
+		if err := validateTaskOrder(opts.Order); err != nil {
 			return err
 		}
 		if opts.Column != "" && opts.Project == "" {
@@ -66,6 +70,8 @@ func newTaskListCmd(site *string) *cobra.Command {
 	cmd.Flags().StringVar(&opts.Column, "column", "", "Exact workboard column name or PHID (requires --project)")
 	cmd.Flags().StringVar(&opts.Search, "search", "", "Full-text task search")
 	cmd.Flags().StringVar(&opts.AssignedTo, "assigned-to", "", "Assignee username or me")
+	cmd.Flags().StringVar(&opts.Author, "author", "", "Author username or me")
+	cmd.Flags().StringVar(&opts.Order, "order", "updated", "Task ordering: updated or newest (most recently created first)")
 	cmd.Flags().StringSliceVar(&opts.Statuses, "status", []string{"open()"}, "Task status (default: open tasks; use all to include closed tasks)")
 	addPageFlags(cmd, &opts.Limit, &opts.After, &opts.Before)
 	cmd.Flags().BoolVar(&opts.All, "all", false, "Fetch all matching pages")
@@ -201,9 +207,21 @@ func newTaskCmd(site *string) *cobra.Command {
 }
 
 func clientFromCommand(cmd *cobra.Command, site string) (*conduitClient, *PhabConfig, error) {
-	client, cfg, err := clientFromSite(site)
-	if err == nil {
-		client.context = cmd.Context()
+	access, err := taskAccessFromCommand(cmd, "")
+	if err != nil {
+		return nil, nil, err
 	}
-	return client, cfg, err
+	cfg, err := loadConfig(site)
+	if err != nil {
+		return nil, nil, fmt.Errorf("loading config: %w", err)
+	}
+	access.endpoint = strings.TrimRight(cfg.URL, "/")
+	clientConfig := *cfg
+	if access.publicOnly {
+		clientConfig.CachePath = ""
+	}
+	client := newConduitClient(&clientConfig)
+	client.context = cmd.Context()
+	client.access = access
+	return client, cfg, nil
 }

@@ -32,6 +32,78 @@ func queryClient(t *testing.T, handle func(string, map[string]interface{}) strin
 	return client
 }
 
+func TestTaskSearchAuthorAndOrdering(t *testing.T) {
+	for _, author := range []string{"me", "Example"} {
+		t.Run(author, func(t *testing.T) {
+			identityCalls, userCalls, taskCalls := 0, 0, 0
+			client := queryClient(t, func(method string, params map[string]interface{}) string {
+				switch method {
+				case "/api/user.whoami":
+					identityCalls++
+					return `{"userName":"Example"}`
+				case "/api/user.search":
+					userCalls++
+					if !reflect.DeepEqual(params["constraints"], map[string]interface{}{"usernames": []interface{}{"Example"}}) {
+						t.Fatalf("user constraints = %+v", params["constraints"])
+					}
+					return `{"data":[{"phid":"PHID-USER-example","fields":{"username":"Example"}}]}`
+				case "/api/maniphest.search":
+					taskCalls++
+					constraints := params["constraints"].(map[string]interface{})
+					if !reflect.DeepEqual(constraints["authorPHIDs"], []interface{}{"PHID-USER-example"}) || constraints["statuses"] != nil {
+						t.Fatalf("task constraints = %+v", constraints)
+					}
+					if params["order"] != "newest" || params["limit"] != float64(20) {
+						t.Fatalf("task params = %+v", params)
+					}
+					return accessPage(t, accessTask(1, "public", wikimediaPublicSpace), accessTask(2, "users", wikimediaPublicSpace))
+				default:
+					t.Fatalf("unexpected method %s", method)
+					return ""
+				}
+			})
+			client.access = publicTaskAccess()
+			page, err := client.searchTasks(context.Background(), searchOptions{Author: author, Order: "newest", Limit: 20, Statuses: []string{"all"}})
+			if err != nil || len(page.Data) != 2 || page.Data[0].ID != 1 || !page.Data[1].Redacted {
+				t.Fatalf("page = %+v, error = %v", page, err)
+			}
+			wantIdentity := 0
+			if author == "me" {
+				wantIdentity = 1
+			}
+			if identityCalls != wantIdentity || userCalls != 1 || taskCalls != 1 {
+				t.Fatalf("identity=%d users=%d tasks=%d", identityCalls, userCalls, taskCalls)
+			}
+		})
+	}
+	for _, order := range []string{"", "updated"} {
+		client := queryClient(t, func(_ string, params map[string]interface{}) string {
+			if params["order"] != "updated" {
+				t.Fatalf("default ordering changed: %+v", params)
+			}
+			return `{"data":[]}`
+		})
+		if _, err := client.searchTasks(context.Background(), searchOptions{Order: order, Limit: 20}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	client := queryClient(t, func(string, map[string]interface{}) string {
+		t.Fatal("invalid order contacted API")
+		return ""
+	})
+	if _, err := client.searchTasks(context.Background(), searchOptions{Order: "invalid", Limit: 20}); err == nil {
+		t.Fatal("invalid order accepted")
+	}
+	site := "must-not-load-credentials"
+	cmd := newTaskListCmd(&site)
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	cmd.SetArgs([]string{"--order", "invalid"})
+	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "--order must be") {
+		t.Fatalf("command validation = %v", err)
+	}
+}
+
 func TestTaskSearchColumnAndPagination(t *testing.T) {
 	calls := 0
 	client := queryClient(t, func(method string, params map[string]interface{}) string {

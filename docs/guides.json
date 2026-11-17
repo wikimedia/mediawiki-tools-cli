@@ -25,6 +25,9 @@
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Authentication"
     },
     {
+      "source": "guides/phabricator/access.md"
+    },
+    {
       "source": "guides/dev/setup.md",
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Docker-Development-Environment/First-Setup"
     },

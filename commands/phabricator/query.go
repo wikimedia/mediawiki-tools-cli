@@ -29,10 +29,18 @@ type columnPage struct {
 
 type searchOptions struct {
 	Project, Column, Search, AssignedTo string
+	Author, Order                       string
 	Statuses                            []string
 	Limit                               int
 	After, Before                       string
 	All                                 bool
+}
+
+func validateTaskOrder(order string) error {
+	if order != "" && order != "updated" && order != "newest" {
+		return fmt.Errorf("--order must be updated or newest")
+	}
+	return nil
 }
 
 func queryParams(limit int, after, before string) (map[string]interface{}, error) {
@@ -150,6 +158,9 @@ func (c *conduitClient) listColumns(ctx context.Context, project string) (column
 
 func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (taskPage, error) {
 	page := taskPage{Data: []phabTask{}}
+	if err := validateTaskOrder(opts.Order); err != nil {
+		return page, err
+	}
 	params, err := queryParams(opts.Limit, opts.After, opts.Before)
 	if err != nil {
 		return page, err
@@ -197,6 +208,16 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 		}
 		constraints["assigned"] = []string{user.PHID}
 	}
+	if opts.Author != "" {
+		user, err := c.resolveUserContext(ctx, opts.Author)
+		if err != nil {
+			return page, err
+		}
+		constraints["authorPHIDs"] = []string{user.PHID}
+	}
+	if opts.Order != "" {
+		params["order"] = opts.Order
+	}
 	params["constraints"] = constraints
 	return c.searchTaskPages(ctx, params, opts.All)
 }
@@ -205,7 +226,9 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 // and user-supplied task searches.
 func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]interface{}, all bool) (taskPage, error) {
 	page := taskPage{Data: []phabTask{}}
-	params["order"] = "updated"
+	if _, exists := params["order"]; !exists {
+		params["order"] = "updated"
+	}
 	params["attachments"] = map[string]interface{}{"projects": true, "columns": true}
 	seen := map[string]bool{}
 	for {
@@ -217,7 +240,9 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 		if e = json.Unmarshal(raw, &next); e != nil {
 			return page, e
 		}
-		page.Data = append(page.Data, next.Data...)
+		for _, task := range next.Data {
+			page.Data = append(page.Data, c.taskForList(task))
+		}
 		page.Cursor = next.Cursor
 		if !all || next.Cursor.After == nil {
 			break
@@ -233,6 +258,11 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 }
 
 func (c *conduitClient) taskTransactions(ctx context.Context, phid string) ([]phabTransaction, error) {
+	if c.access.publicOnly {
+		if _, err := c.getTaskByPHIDContext(ctx, phid); err != nil {
+			return nil, err
+		}
+	}
 	txs := []phabTransaction{}
 	after := ""
 	seen := map[string]bool{}
@@ -279,6 +309,9 @@ func (c *conduitClient) getTaskContext(ctx context.Context, ref string) (*phabTa
 	}
 	if len(page.Data) != 1 {
 		return nil, fmt.Errorf("task T%d not found", id)
+	}
+	if err := c.requirePublicTask(page.Data[0]); err != nil {
+		return nil, err
 	}
 	return &page.Data[0], nil
 }

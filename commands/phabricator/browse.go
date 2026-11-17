@@ -302,6 +302,10 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			if !ok {
 				return m, nil
 			}
+			if item.key == "" {
+				m.err = fmt.Errorf("non-public task: ask a human to rerun the specific operation outside agent mode")
+				return m, nil
+			}
 			if m.screen == "projects" {
 				m.screen = "tasks"
 				m.projectName = item.title
@@ -318,6 +322,10 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.load()
 		case "o":
 			if item, ok := m.currentItem(); ok {
+				if item.url == "" {
+					m.err = fmt.Errorf("non-public task: browser access is unavailable in this mode")
+					return m, nil
+				}
 				url := item.url
 				return m, func() tea.Msg { return browseOpened{m.source.open(url)} }
 			}
@@ -432,7 +440,7 @@ func newPhabricatorBrowseCmd(site *string) *cobra.Command {
 			if !cli.CanAskForInput() || !inOK || !outOK || !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(out.Fd())) || os.Getenv("TERM") == "dumb" {
 				return fmt.Errorf("browse requires an interactive terminal; use task list or project list for scripts")
 			}
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}

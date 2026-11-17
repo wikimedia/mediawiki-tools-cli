@@ -126,6 +126,9 @@ func readTaskFile(cmd *cobra.Command, path string) ([]byte, error) {
 }
 
 func (c *conduitClient) createTask(title, description string, projects []string) (int, error) {
+	if c.access.publicOnly {
+		return 0, fmt.Errorf("task creation uses server and project default policies, so public visibility cannot be verified before creation: %w", c.access.denied())
+	}
 	transactions := []map[string]interface{}{
 		{"type": "title", "value": title},
 		{"type": "description", "value": description},

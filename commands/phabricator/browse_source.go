@@ -114,6 +114,13 @@ func newBrowseSource(client *conduitClient) browseSource {
 func browseTaskPage(page taskPage, base string) browsePage {
 	result := browsePage{after: browseCursor(page.Cursor.After), before: browseCursor(page.Cursor.Before)}
 	for _, task := range page.Data {
+		if task.Redacted {
+			result.items = append(result.items, browseItem{
+				title:    taskReference(task) + "  " + nonPublicLabel,
+				subtitle: task.Fields.Status.Name + " · " + task.Fields.Priority.Name,
+			})
+			continue
+		}
 		ref := fmt.Sprintf("T%d", task.ID)
 		result.items = append(result.items, browseItem{key: ref, title: ref + "  " + task.Fields.Name, subtitle: task.Fields.Status.Name + " · " + task.Fields.Priority.Name, url: base + "/" + ref})
 	}

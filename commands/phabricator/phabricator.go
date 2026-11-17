@@ -29,12 +29,23 @@ Use login --url to explicitly choose the endpoint.
 Use auth login --method phab-cfg to validate and copy credentials from phab.cfg.
 Commands use saved CLI profiles; external credential files are never used directly.
 
+Use --public-only (or set phabricator.public_only to true) to mask non-public tasks.
+--agent and detected agent environments require a human rerun outside agent mode
+for non-public task access. These are local guardrails, not credential isolation.
+Only explicitly public tasks in Wikimedia's known public S1 Space pass the
+initial filter; other Spaces and missing policies are treated as unknown.
+The low-level api command and non-task objects are not filtered.
+For task access controls, see "mw help guides phabricator access".
+
 For storage options and password managers, see "mw help guides authentication".`,
 	}
 
 	cmd.PersistentFlags().StringVar(&site, "site", "", "Saved site/profile to use (compatible alias for --profile)")
 	phabProfiles.AddFlag(cmd, &site)
 	cmd.MarkFlagsMutuallyExclusive("site", "profile")
+	cmd.PersistentFlags().Bool("public-only", false, "Restrict task commands to public tasks in Wikimedia's known public Space (also phabricator.public_only)")
+	cmd.PersistentFlags().Bool("agent", false, "Require a human rerun outside agent mode for non-public task access")
+	cmd.PersistentFlags().Bool("allow-non-public", false, "Approve non-public task access for this invocation outside agent mode")
 	// TODO(early 2027): remove the legacy --site flag after the profile migration window.
 	_ = cmd.PersistentFlags().MarkHidden("site")
 
@@ -56,16 +67,6 @@ For storage options and password managers, see "mw help guides authentication".`
 	addSetStatusCmd(cmd, &site)
 
 	return cmd
-}
-
-// clientFromSite loads config and creates a client. Returns client, cfg, and error.
-func clientFromSite(site string) (*conduitClient, *PhabConfig, error) {
-	cfg, err := loadConfig(site)
-	if err != nil {
-		return nil, nil, fmt.Errorf("loading config: %w", err)
-	}
-	client := newConduitClient(cfg)
-	return client, cfg, nil
 }
 
 // requireTaskArg validates the task ref argument.
