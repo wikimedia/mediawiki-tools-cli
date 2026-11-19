@@ -22,8 +22,8 @@ func newPhabricatorCreateCmd(site *string) *cobra.Command {
 		}),
 		Use:     "create",
 		Short:   "Create a Phabricator task",
-		Long:    "Create a task using a saved Phabricator profile without a confirmation prompt. The supplied title, description and projects are printed before creation. Projects are exact project slugs (as used in hashtags) or project PHIDs; slugs are resolved through project.search. Existing task content is not fetched. Server and project defaults determine visibility, so creation is blocked in public-only mode, including agent mode even with --yes. Use --dry-run to preview without accessing credentials or contacting Phabricator. Agents follow agent.policy for approval; approval does not override visibility checks.",
-		Example: "create --title 'Clarify development setup' --description-file issue.txt --project a_wikimedia_cli\ncreate --title 'Documentation issue' --description-file -",
+		Long:    "Create a task using a saved Phabricator profile. Confirm interactively or pass --yes. The supplied title, description and projects are printed before creation. Projects are exact project slugs (as used in hashtags) or project PHIDs; slugs are resolved through project.search. Existing task content is not fetched. Server and project defaults determine visibility, so creation is blocked in public-only mode, including agent mode even with --yes. Use --dry-run to preview without accessing credentials or contacting Phabricator. Agents follow agent.policy for approval; approval does not override visibility checks.",
+		Example: "create --title 'Clarify development setup' --description-file issue.txt --project a_wikimedia_cli\ncreate --title 'Documentation issue' --description-file - --yes",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if inputFile != "" {
@@ -67,6 +67,10 @@ func newPhabricatorCreateCmd(site *string) *cobra.Command {
 				cmd.Println("Preview only; no task created.")
 				return nil
 			}
+			approved, err := confirmPhabricatorChange(cmd)
+			if err != nil || !approved {
+				return err
+			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
@@ -88,7 +92,7 @@ func newPhabricatorCreateCmd(site *string) *cobra.Command {
 	for _, flag := range []string{"title", "description", "description-file", "project"} {
 		cmd.MarkFlagsMutuallyExclusive("input", flag)
 	}
-	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
+	cmd.Flags().Bool("yes", false, "Confirm task creation and assert user approval when agent policy requires it")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or creating a task")
 	return cmd
 }

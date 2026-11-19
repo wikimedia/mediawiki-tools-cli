@@ -11,8 +11,14 @@ import (
 	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiauth"
 )
+
+// MCPTools lists the wiki commands available through the MCP service.
+func MCPTools() []mcpserver.Operation {
+	return []mcpserver.Operation{pageInfoTool()}
+}
 
 var (
 	wiki             string

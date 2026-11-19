@@ -1,6 +1,7 @@
 package phabricator
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,49 @@ import (
 
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
+
+func TestAnonymousTaskSearchByWorkboardColumn(t *testing.T) {
+	client := anonymousPhabricator{http: &http.Client{Transport: authTransport(func(req *http.Request) (*http.Response, error) {
+		var body string
+		switch req.URL.Path {
+		case "/project/":
+			if req.URL.Query().Get("phids") != "PHID-PROJ-team" {
+				t.Errorf("unexpected project lookup %s", req.URL)
+			}
+			body = `<ul class="phui-oi-list-view"><li><a class="phui-oi-link" href="/project/view/12/">Team</a></li></ul>`
+		case "/project/board/12/":
+			body = `<div class="phabricator-nav-local"><a href="/maniphest/?project=PHID-PROJ-team">Tasks</a></div>
+				<div class="phui-workpanel-view"><span class="phui-header-header">Backlog</span>
+				<ul data-sigil="project-column" data-meta="0_0"></ul></div>
+				<data data-javelin-init-data='{"block":0,"data":[{"columnPHID":"PHID-PCOL-backlog"}]}'></data>`
+		case "/maniphest/":
+			if req.URL.Query().Get("columnPHIDs") != "PHID-PCOL-backlog" {
+				t.Errorf("missing column constraint in %s", req.URL)
+			}
+			body = `<input name="projectPHIDs[]" value="PHID-PROJ-team"><input name="statuses[]" value="open()">
+				<ul class="phui-oi-list-view"><li class="phui-oi"><a class="phui-oi-link" href="/T123">Public task</a></li></ul>`
+		default:
+			t.Errorf("unexpected request %s", req.URL)
+		}
+		return anonymousResponse(req, http.StatusOK, body), nil
+	})}}
+	opts := defaultTaskListOptions()
+	opts.Projects = []string{"PHID-PROJ-team"}
+	opts.Column = "Backlog"
+	page, err := client.searchTasks(context.Background(), opts)
+	if err != nil || len(page.Data) != 1 || page.Data[0].ID != 123 {
+		t.Fatalf("column search: %+v %v", page, err)
+	}
+	opts.Column = "Nonexistent"
+	if _, err = client.searchTasks(context.Background(), opts); err == nil || !strings.Contains(err.Error(), "did not resolve uniquely") {
+		t.Fatalf("unknown column: %v", err)
+	}
+	opts.Column = "PHID-PCOL-backlog"
+	opts.Author = "Unknown"
+	if _, err = client.searchTasks(context.Background(), opts); err == nil || !strings.Contains(err.Error(), "could not resolve username") {
+		t.Fatalf("search accepted a dropped author filter: %v", err)
+	}
+}
 
 func TestAnonymousPhabricatorCommands(t *testing.T) {
 	isolatedAuthConfig(t)
@@ -30,6 +74,12 @@ func TestAnonymousPhabricatorCommands(t *testing.T) {
 			<a href="/project/profile/12/">Example Sprint</a>
 			<a href="/maniphest/?project=PHID-PROJ-sprint">Open Tasks</a>
 		</div>`
+	const filters = `
+		<input name="assignedPHIDs[]" value="none()">
+		<input name="projectPHIDs[]" value="PHID-PROJ-sprint">
+		<input name="projectPHIDs[]" value="PHID-PROJ-team">
+		<input name="statuses[]" value="open()">
+		<input name="priorities[]" value="100"><input name="priorities[]" value="80">`
 	const list = `
 		<ul class="phui-oi-list-view"><li class="phui-oi">
 			<a class="phui-oi-link" href="/T123">Public task</a>
@@ -72,9 +122,9 @@ func TestAnonymousPhabricatorCommands(t *testing.T) {
 				}
 			}
 			if query.Get("after") == "123" {
-				return anonymousResponse(req, http.StatusOK, `<div class="phui-info-view-body">No tasks found.</div>`), nil
+				return anonymousResponse(req, http.StatusOK, filters+`<div class="phui-info-view-body">No tasks found.</div>`), nil
 			}
-			return anonymousResponse(req, http.StatusOK, list), nil
+			return anonymousResponse(req, http.StatusOK, filters+list), nil
 		default:
 			return nil, fmt.Errorf("unexpected request %s", req.URL.Path)
 		}

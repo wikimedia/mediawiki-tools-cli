@@ -195,7 +195,7 @@ func TestHumanTargetedTaskMutationRunsOnceWithoutConfirmation(t *testing.T) {
 	}
 }
 
-func TestHumanTargetedWritesApplyWithoutYesInNoninteractiveMode(t *testing.T) {
+func TestHumanWritesConfirmPublishingInNoninteractiveMode(t *testing.T) {
 	isolatedAuthConfig(t)
 	mockLoginIdentity(t)
 	login := NewPhabricatorCmd()
@@ -249,13 +249,23 @@ func TestHumanTargetedWritesApplyWithoutYesInNoninteractiveMode(t *testing.T) {
 				args[len(args)-1] = "-"
 			}
 			before := writes
-			cmd := NewPhabricatorCmd()
-			cmd.PersistentFlags().Bool("no-interaction", false, "Do not prompt")
-			cmd.SetOut(io.Discard)
-			cmd.SetErr(io.Discard)
-			cmd.SetIn(strings.NewReader("supplied content"))
-			cmd.SetArgs(append(args, "--profile", "fixture", "--no-interaction"))
-			if err := cmd.Execute(); err != nil || writes != before+1 {
+			run := func(flags ...string) error {
+				cmd := NewPhabricatorCmd()
+				cmd.PersistentFlags().Bool("no-interaction", false, "Do not prompt")
+				cmd.SetOut(io.Discard)
+				cmd.SetErr(io.Discard)
+				cmd.SetIn(strings.NewReader("supplied content"))
+				cmd.SetArgs(append(append([]string{}, args...), flags...))
+				return cmd.Execute()
+			}
+			flags := []string{"--profile", "fixture", "--no-interaction"}
+			if args[0] == "create" || args[0] == "paste" || (args[0] == "task" && args[1] == "create") {
+				if err := run(flags...); err == nil || !strings.Contains(err.Error(), "--yes") || writes != before {
+					t.Fatalf("unconfirmed operation: writes=%d want=%d error=%v", writes, before, err)
+				}
+				flags = append(flags, "--yes")
+			}
+			if err := run(flags...); err != nil || writes != before+1 {
 				t.Fatalf("writes=%d want=%d error=%v", writes, before+1, err)
 			}
 		})

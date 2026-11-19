@@ -154,8 +154,8 @@ func TestPasteCommandsUseProfileAndDispatch(t *testing.T) {
 		}
 	})
 	for _, args := range [][]string{
-		{"paste", "send", "--title", "Title"},
-		{"paste", "edit", "P123", "--title", "New"},
+		{"paste", "send", "--title", "Title", "--yes"},
+		{"paste", "edit", "P123", "--title", "New", "--yes"},
 		{"paste", "view", "P123", "--raw"},
 		{"v", "https://phabricator.wikimedia.org/P123", "--raw"},
 	} {

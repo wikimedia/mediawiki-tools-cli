@@ -3,6 +3,7 @@ package phabricator
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -97,4 +98,21 @@ func anonymousPageCursor(doc *goquery.Document, limit int) pageCursor {
 		}
 	})
 	return cursor
+}
+
+func anonymousPageMetadata(doc *goquery.Document) map[string]json.RawMessage {
+	metadata := map[string]json.RawMessage{}
+	doc.Find("data[data-javelin-init-data]").Each(func(_ int, data *goquery.Selection) {
+		var block struct {
+			Block *int
+			Data  []json.RawMessage
+		}
+		if json.Unmarshal([]byte(data.AttrOr("data-javelin-init-data", "")), &block) != nil || block.Block == nil {
+			return
+		}
+		for index, entry := range block.Data {
+			metadata[fmt.Sprintf("%d_%d", *block.Block, index)] = entry
+		}
+	})
+	return metadata
 }

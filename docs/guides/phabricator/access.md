@@ -18,15 +18,17 @@ mw phab task view T440478
 mw phab comments T440478
 mw phab project view a_wikimedia_cli
 mw phab task list --project a_wikimedia_cli --priority 100,80 --unassigned
+mw phab task list --project a_wikimedia_cli --column Backlog
 ```
 
-In public searches, separate project tags, exact names, numeric IDs or PHIDs
-with commas to require all the projects. Use numeric IDs or PHIDs for
-milestones without tags. Public project lookup accepts tags, exact names and
-numeric IDs. Public search supports the `--priority` and `--unassigned` filters,
-and needs an explicit username in place of `me`. Workboard column searches
-require a profile. Public output contains the fields available in the web pages,
-so some Conduit fields are empty and descriptions are plain text.
+Repeat `--project` or use comma-separated tags, exact names, numeric IDs or
+PHIDs to require all the projects. Use numeric IDs or PHIDs for milestones
+without tags. Priority and unassigned filters work with either backend. A
+column name or PHID needs one project and a workboard visible to the selected
+backend. Anonymous search needs an explicit username in place of `me`.
+Public project lookup accepts tags, exact names and numeric IDs. Public output
+contains the fields available in the web pages, so some Conduit fields are
+empty and descriptions are plain text.
 
 ## Use Phabricator from an MCP client
 
@@ -46,6 +48,16 @@ The `wiki` service provides anonymous page metadata from MediaWiki.org and
 English Wikipedia. A Phabricator profile binding applies only to the
 Phabricator tool and uses the configured Phabricator guardrails. MCP clients
 can approve calls using their own permission settings.
+
+MCP structured results use the corresponding CLI JSON format. Phabricator
+search supports text, projects, workboard column, status, priority, author,
+assignee, unassigned and ordering. Both entry points default to 50 results.
+MCP returns one page per call. Repeat the same filters and pass `cursor.after`
+as `after` to continue.
+Profile-backed searches keep abbreviated fields for tasks whose public
+visibility cannot be verified. Wiki page info returns native page metadata,
+including `pageid`, `lastrevid` and `fullurl`. Set `followRedirects` to resolve
+wiki redirects, as with `mw wiki page info --follow-redirects`.
 
 `--services` sets which tools are visible at launch. `--deferred-services`
 authorizes additional services to be enabled during the session.
@@ -143,20 +155,18 @@ Without agent mode or a public-only setting, normal account permissions apply.
 
 ## Previewing and confirming changes
 
-One-shot task changes (including the legacy top-level aliases), paste writes,
-and `auth default`/`auth remove` support:
+Task creation, one-shot task changes (including the legacy top-level aliases),
+paste writes, and `auth default`/`auth remove` support:
 
 - `--dry-run`: preview supplied changes without applying them or accessing
   credentials. Task/paste previews do not contact Phabricator or resolve remote
   names, permissions or policies; they are not a guarantee that applying will
   succeed. Profile previews read local profile metadata only.
-- `--yes`: assert the user's approval when required by agent policy, and skip
-  terminal confirmation for profile removal. Never overrides server permissions
-  or task visibility restrictions.
-- `--no-interaction`: never prompt. Explicit single-task/paste writes and default
-  profile selection still run. Profile removal requires `--yes` (or `--dry-run`)
-  instead of assuming confirmation. For agents, chat approval via `--yes` is
-  independent from terminal interaction; `--no-interaction` grants no consent.
+- `--yes`: confirm task creation, paste creation or editing, or profile removal.
+  It also asserts the user's approval when required by agent policy. Server
+  permissions and task visibility restrictions still apply.
+- `--no-interaction`: skip prompts. Commands that require confirmation need
+  `--yes` to apply in this mode. Use `--dry-run` to preview.
 
 ```sh
 mw phab task assign T12345 me --dry-run
@@ -170,11 +180,10 @@ mw phab task assign T12345 me --no-interaction
 mw phab task assign T12345 me --yes --no-interaction
 ```
 
-For humans outside agent mode, specifying the task/paste and changes is sufficient
-intent: creation, editing and legacy one-shot mutations apply without confirmation.
-Selecting an explicit default profile also applies directly. Removing a local
-credential profile still requires confirmation or `--yes`; cancellation makes
-no changes. Agent restrictions apply regardless of these confirmation defaults.
+Task creation, paste creation or editing, and credential profile removal ask
+for confirmation unless you pass `--yes`. For humans outside agent mode,
+one-shot changes to an existing task and explicit default profile selection
+apply directly. Agent restrictions apply regardless of these confirmation defaults.
 The interactive mutation shell applies its internal changes immediately and
 requires an interactive terminal. Agent approval for this high-risk command
 covers the session, not individual changes; prefer one-shot commands for

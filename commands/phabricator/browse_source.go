@@ -42,7 +42,10 @@ func newBrowseSource(client *conduitClient) browseSource {
 			return result, nil
 		},
 		tasks: func(ctx context.Context, query browseQuery) (browsePage, error) {
-			opts := searchOptions{Project: query.project, Column: query.column, Search: query.search, Limit: 25, After: query.after, Before: query.before}
+			opts := searchOptions{Column: query.column, Search: query.search, Limit: 25, After: query.after, Before: query.before}
+			if query.project != "" {
+				opts.Projects = []string{query.project}
+			}
 			if !query.allStatuses {
 				opts.Statuses = []string{"open()"}
 			}

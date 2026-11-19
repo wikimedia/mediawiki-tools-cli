@@ -28,15 +28,68 @@ type columnPage struct {
 }
 
 type searchOptions struct {
-	Project, Column, Search, AssignedTo string
-	Author, Order                       string
-	Statuses                            []string
-	Projects                            []string
-	Priorities                          []int
-	Unassigned                          bool
-	Limit                               int
-	After, Before                       string
-	All                                 bool
+	Search     string   `json:"query,omitempty" jsonschema:"Full-text search sent to Phabricator. Use public terms for anonymous searches."`
+	Projects   []string `json:"projects,omitempty" jsonschema:"Project tags, exact names, numeric IDs, or PHIDs. Tasks must match every project."`
+	Column     string   `json:"column,omitempty" jsonschema:"Exact workboard column name or PHID. Requires one project and a visible workboard."`
+	AssignedTo string   `json:"assignedTo,omitempty" jsonschema:"Assignee username, or me when a profile is bound."`
+	Author     string   `json:"author,omitempty" jsonschema:"Author username, or me when a profile is bound."`
+	Order      string   `json:"order,omitempty" jsonschema:"updated (default) or newest (most recently created first)."`
+	Statuses   []string `json:"statuses,omitempty" jsonschema:"Task status keys. Defaults to open(); use all to include closed tasks."`
+	Priorities []int    `json:"priorities,omitempty" jsonschema:"Numeric priorities, for example 100 (Unbreak Now) and 80 (High)."`
+	Unassigned bool     `json:"unassigned,omitempty" jsonschema:"Only return tasks without an assignee. Mutually exclusive with assignedTo."`
+	After      string   `json:"after,omitempty" jsonschema:"The cursor.after value returned by the previous page."`
+	Before     string   `json:"before,omitempty" jsonschema:"The cursor.before value returned by the current page."`
+	Limit      int      `json:"-"`
+	All        bool     `json:"-"`
+}
+
+const defaultSearchPageLimit = 50
+
+func defaultTaskListOptions() searchOptions {
+	return searchOptions{Limit: defaultSearchPageLimit, Order: "updated", Statuses: []string{"open()"}}
+}
+
+func (opts searchOptions) params() (map[string]interface{}, error) {
+	params, err := queryParams(opts.Limit, opts.After, opts.Before)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateTaskOrder(opts.Order); err != nil {
+		return nil, err
+	}
+	if opts.Column != "" && len(opts.Projects) != 1 {
+		return nil, fmt.Errorf("--column requires exactly one --project")
+	}
+	for _, project := range opts.Projects {
+		if strings.TrimPrefix(strings.TrimSpace(project), "#") == "" {
+			return nil, fmt.Errorf("project is required")
+		}
+	}
+	if opts.All && (opts.After != "" || opts.Before != "") {
+		return nil, fmt.Errorf("--all cannot be combined with a cursor")
+	}
+	if opts.Unassigned && opts.AssignedTo != "" {
+		return nil, fmt.Errorf("--unassigned cannot be combined with --assigned-to")
+	}
+	for _, username := range []string{opts.Author, opts.AssignedTo} {
+		if username != "" && (strings.TrimSpace(username) == "" || strings.ContainsAny(username, ",()")) {
+			return nil, fmt.Errorf("provide one Phabricator username per author or assignee filter")
+		}
+	}
+	return params, nil
+}
+
+func findSearchColumn(columns []phabColumn, ref string) (string, error) {
+	var matches []string
+	for _, column := range columns {
+		if column.PHID == ref || strings.EqualFold(column.Fields.Name, ref) {
+			matches = append(matches, column.PHID)
+		}
+	}
+	if len(matches) != 1 {
+		return "", fmt.Errorf("column %q did not resolve uniquely; use its exact name or PHID", ref)
+	}
+	return matches[0], nil
 }
 
 func validateTaskOrder(order string) error {
@@ -128,14 +181,18 @@ func (c *conduitClient) searchProjects(ctx context.Context, query string, limit 
 }
 
 func (c *conduitClient) listColumns(ctx context.Context, project string) (columnPage, error) {
-	page := columnPage{Data: []phabColumn{}}
 	p, err := c.exactProject(ctx, project)
 	if err != nil {
-		return page, err
+		return columnPage{Data: []phabColumn{}}, err
 	}
+	return c.listProjectColumns(ctx, p.PHID)
+}
+
+func (c *conduitClient) listProjectColumns(ctx context.Context, phid string) (columnPage, error) {
+	page := columnPage{Data: []phabColumn{}}
 	after := ""
 	for {
-		params := map[string]interface{}{"constraints": map[string]interface{}{"projects": []string{p.PHID}, "statuses": []string{"0"}}, "limit": 100}
+		params := map[string]interface{}{"constraints": map[string]interface{}{"projects": []string{phid}, "statuses": []string{"0"}}, "limit": 100}
 		if after != "" {
 			params["after"] = after
 		}
@@ -161,15 +218,9 @@ func (c *conduitClient) listColumns(ctx context.Context, project string) (column
 
 func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (taskPage, error) {
 	page := taskPage{Data: []phabTask{}}
-	if err := validateTaskOrder(opts.Order); err != nil {
-		return page, err
-	}
-	params, err := queryParams(opts.Limit, opts.After, opts.Before)
+	params, err := opts.params()
 	if err != nil {
 		return page, err
-	}
-	if opts.All && (opts.After != "" || opts.Before != "") {
-		return page, fmt.Errorf("--all cannot be combined with a cursor")
 	}
 	constraints := map[string]interface{}{}
 	if len(opts.Statuses) > 0 && !(len(opts.Statuses) == 1 && opts.Statuses[0] == "all") {
@@ -178,34 +229,8 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 	if opts.Search != "" {
 		constraints["query"] = opts.Search
 	}
-	if opts.Column != "" && opts.Project == "" {
-		return page, fmt.Errorf("--column requires --project")
-	}
-	if opts.Project != "" {
-		project, e := c.exactProject(ctx, opts.Project)
-		if e != nil {
-			return page, e
-		}
-		constraints["projects"] = []string{project.PHID}
-		if opts.Column != "" {
-			columns, e := c.listColumns(ctx, project.PHID)
-			if e != nil {
-				return page, e
-			}
-			var matching []phabColumn
-			for _, col := range columns.Data {
-				if col.PHID == opts.Column || strings.EqualFold(col.Fields.Name, opts.Column) {
-					matching = append(matching, col)
-				}
-			}
-			if len(matching) != 1 {
-				return page, fmt.Errorf("column %q did not resolve uniquely; use board columns to find its PHID", opts.Column)
-			}
-			constraints["columnPHIDs"] = []string{matching[0].PHID}
-		}
-	}
+	projects := make([]string, 0, len(opts.Projects))
 	if len(opts.Projects) > 0 {
-		projects := make([]string, 0, len(opts.Projects))
 		for _, ref := range opts.Projects {
 			project, err := c.exactProject(ctx, ref)
 			if err != nil {
@@ -214,6 +239,17 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 			projects = append(projects, project.PHID)
 		}
 		constraints["projects"] = projects
+	}
+	if opts.Column != "" {
+		columns, err := c.listProjectColumns(ctx, projects[0])
+		if err != nil {
+			return page, err
+		}
+		column, err := findSearchColumn(columns.Data, opts.Column)
+		if err != nil {
+			return page, err
+		}
+		constraints["columnPHIDs"] = []string{column}
 	}
 	if len(opts.Priorities) > 0 {
 		constraints["priorities"] = opts.Priorities

@@ -140,7 +140,7 @@ func TestTaskSearchColumnAndPagination(t *testing.T) {
 			return ""
 		}
 	})
-	page, err := client.searchTasks(context.Background(), searchOptions{Project: "a_wikimedia_cli", Column: "Backlog ✨", Search: "documentation", Statuses: []string{"open()"}, Limit: 50, All: true})
+	page, err := client.searchTasks(context.Background(), searchOptions{Projects: []string{"a_wikimedia_cli"}, Column: "Backlog ✨", Search: "documentation", Statuses: []string{"open()"}, Limit: 50, All: true})
 	if err != nil || len(page.Data) != 2 || calls != 2 {
 		t.Fatalf("page=%+v calls=%d err=%v", page, calls, err)
 	}

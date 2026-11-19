@@ -1,6 +1,7 @@
 package phabricator
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -15,17 +16,21 @@ import (
 )
 
 func TestPhabricatorMCPPublicSearch(t *testing.T) {
+	isolatedAuthConfig(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	calls := 0
-	httpClient := &http.Client{Transport: authTransport(func(req *http.Request) (*http.Response, error) {
+	previous := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = previous })
+	http.DefaultTransport = authTransport(func(req *http.Request) (*http.Response, error) {
 		calls++
 		if req.Method != http.MethodGet || req.URL.Host != "phabricator.wikimedia.org" || req.URL.Path != "/maniphest/" ||
 			req.Header.Get("Authorization") != "" || req.Header.Get("Cookie") != "" {
 			t.Errorf("unexpected public search request %s %s", req.Method, req.URL)
 		}
 		for key, want := range map[string]string{
-			"projects": "PHID-PROJ-ci", "priorities": "100,80", "assigned": "none()", "limit": "2", "statuses": "open()",
+			"projects": "PHID-PROJ-ci", "priorities": "100,80", "assigned": "none()", "authors": "Example",
+			"limit": "50", "statuses": "open()", "order": "newest",
 		} {
 			if got := req.URL.Query().Get(key); got != want {
 				t.Errorf("query %s = %q, want %q", key, got, want)
@@ -33,10 +38,31 @@ func TestPhabricatorMCPPublicSearch(t *testing.T) {
 		}
 		return anonymousResponse(req, http.StatusOK, `<ul class="phui-oi-list-view"><li class="phui-oi">
 			<a class="phui-oi-link" href="/T123">Public task</a>
-		</li></ul>`), nil
-	})}
+		</li></ul><div class="phui-pager-view"><a href="/maniphest/?after=123">Next</a></div>
+		<input name="projectPHIDs[]" value="PHID-PROJ-ci">
+		<input name="priorities[]" value="100"><input name="priorities[]" value="80">
+		<input name="assignedPHIDs[]" value="none()"><input name="authorPHIDs[]" value="PHID-USER-example">
+		<input name="statuses[]" value="open()">`), nil
+	})
+	var stdout bytes.Buffer
+	cmd := NewPhabricatorCmd()
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{"task", "list", "--project", "PHID-PROJ-ci", "--priority", "100,80", "--unassigned", "--author", "Example", "--order", "newest", "--output", "json"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if err := mwconfig.PutKeyValueOnDisk("phabricator.default_profile", "unused"); err != nil {
+		t.Fatal(err)
+	}
+	if err := mwconfig.PutKeyValueOnDisk("phabricator.profiles.unused.key", "unused-token"); err != nil {
+		t.Fatal(err)
+	}
 	server := mcpserver.New("test-server")
-	anonymousMCPSearch(anonymousPhabricator{http: httpClient}).Register(server)
+	operations, err := MCPTools(cmd, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	operations[0].Register(server)
 	session := connectTestPhabricatorMCP(t, ctx, server)
 
 	tools, err := session.ListTools(ctx, nil)
@@ -50,7 +76,7 @@ func TestPhabricatorMCPPublicSearch(t *testing.T) {
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: toolName,
 		Arguments: map[string]any{
-			"projects": []string{"PHID-PROJ-ci"}, "priorities": []int{100, 80}, "unassigned": true, "limit": 2,
+			"projects": []string{"PHID-PROJ-ci"}, "priorities": []int{100, 80}, "unassigned": true, "author": "Example", "order": "newest",
 		},
 	})
 	if err != nil || result.IsError {
@@ -60,16 +86,24 @@ func TestPhabricatorMCPPublicSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var search mcpSearchResult
-	if err := json.Unmarshal(raw, &search); err != nil || len(search.Tasks) != 1 || search.Tasks[0].ID != "T123" {
+	var search taskPage
+	if err := json.Unmarshal(raw, &search); err != nil || len(search.Data) != 1 || search.Data[0].ID != 123 ||
+		search.Cursor.After == nil || *search.Cursor.After != "123" || search.Cursor.Limit != 50 {
 		t.Fatalf("search result %s: %v", raw, err)
 	}
-	result, err = session.CallTool(ctx, &mcp.CallToolParams{Name: toolName, Arguments: map[string]any{"limit": 0}})
+	var cliJSON, mcpJSON any
+	if err := json.Unmarshal(stdout.Bytes(), &cliJSON); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &mcpJSON); err != nil || !reflect.DeepEqual(cliJSON, mcpJSON) {
+		t.Fatalf("CLI and MCP JSON differ: CLI %s, MCP %s, error %v", stdout.Bytes(), raw, err)
+	}
+	result, err = session.CallTool(ctx, &mcp.CallToolParams{Name: toolName, Arguments: map[string]any{"query": "test", "limit": 0}})
 	if err != nil || !result.IsError {
 		t.Fatalf("invalid search: %+v, %v", result, err)
 	}
-	if calls != 1 {
-		t.Fatalf("expected one HTTP request, got %d", calls)
+	if calls != 2 {
+		t.Fatalf("expected two HTTP requests, got %d", calls)
 	}
 }
 
@@ -105,8 +139,9 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 	}
 	previous := http.DefaultTransport
 	t.Cleanup(func() { http.DefaultTransport = previous })
+	searches := 0
 	http.DefaultTransport = authTransport(func(req *http.Request) (*http.Response, error) {
-		if req.Method != http.MethodPost || req.URL.Path != "/api/maniphest.search" {
+		if req.Method != http.MethodPost {
 			t.Errorf("unexpected profile request %s %s", req.Method, req.URL)
 		}
 		if err := req.ParseForm(); err != nil {
@@ -114,10 +149,17 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 		}
 		var payload struct {
 			Conduit     struct{ Token string } `json:"__conduit__"`
+			Limit       int
+			Order       string
 			Constraints struct {
-				Query      string   `json:"query"`
-				Priorities []int    `json:"priorities"`
-				Assigned   []string `json:"assigned"`
+				Query       string   `json:"query"`
+				Priorities  []int    `json:"priorities"`
+				Assigned    []string `json:"assigned"`
+				AuthorPHIDs []string
+				Statuses    []string
+				Projects    []string
+				Usernames   []string
+				Slugs       []string
 			} `json:"constraints"`
 		}
 		if err := json.Unmarshal([]byte(req.FormValue("params")), &payload); err != nil {
@@ -126,12 +168,47 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 		if payload.Conduit.Token != "fixture-token" {
 			t.Error("request did not use the explicitly selected profile")
 		}
-		if payload.Constraints.Query != "example" || !reflect.DeepEqual(payload.Constraints.Priorities, []int{80}) ||
-			!reflect.DeepEqual(payload.Constraints.Assigned, []string{"none()"}) {
-			t.Errorf("unexpected constraints: %+v", payload.Constraints)
+		switch req.URL.Path {
+		case "/api/user.whoami":
+			return pasteResponse(`{"result":{"userName":"example"}}`), nil
+		case "/api/user.search":
+			if !reflect.DeepEqual(payload.Constraints.Usernames, []string{"example"}) {
+				t.Errorf("unexpected author lookup: %+v", payload.Constraints)
+			}
+			return pasteResponse(`{"result":{"data":[{"phid":"PHID-USER-example","fields":{"username":"example"}}]}}`), nil
+		case "/api/project.search":
+			if reflect.DeepEqual(payload.Constraints.Slugs, []string{"ci"}) {
+				return pasteResponse(`{"result":{"data":[{"id":1,"phid":"PHID-PROJ-ci","fields":{"name":"CI"}}]}}`), nil
+			}
+			if reflect.DeepEqual(payload.Constraints.Slugs, []string{"team"}) {
+				return pasteResponse(`{"result":{"data":[{"id":2,"phid":"PHID-PROJ-team","fields":{"name":"Team"}}]}}`), nil
+			}
+			t.Errorf("unexpected project lookup: %+v", payload.Constraints)
+			return pasteResponse(`{"result":{"data":[]}}`), nil
+		case "/api/maniphest.search":
+			searches++
+		default:
+			t.Errorf("unexpected request path %s", req.URL.Path)
 		}
-		return pasteResponse(`{"result":` + accessPage(t, accessTask(123, "users", wikimediaPublicSpace)) + `}`), nil
+		if payload.Constraints.Query != "example" || !reflect.DeepEqual(payload.Constraints.Priorities, []int{80}) ||
+			!reflect.DeepEqual(payload.Constraints.Assigned, []string{"none()"}) ||
+			!reflect.DeepEqual(payload.Constraints.AuthorPHIDs, []string{"PHID-USER-example"}) ||
+			!reflect.DeepEqual(payload.Constraints.Statuses, []string{"resolved"}) ||
+			!reflect.DeepEqual(payload.Constraints.Projects, []string{"PHID-PROJ-ci", "PHID-PROJ-team"}) || payload.Limit != 50 || payload.Order != "newest" {
+			t.Errorf("unexpected search payload: %+v", payload.Constraints)
+		}
+		return pasteResponse(`{"result":` + accessPage(t, accessTask(123, "public", wikimediaPublicSpace), accessTask(124, "users", wikimediaPublicSpace)) + `}`), nil
 	})
+	var stdout bytes.Buffer
+	cliCmd := NewPhabricatorCmd()
+	cliCmd.SetOut(&stdout)
+	cliCmd.SetArgs([]string{
+		"task", "list", "--profile", "work", "--search", "example", "--priority", "80", "--unassigned", "--project", "ci,team",
+		"--author", "me", "--status", "resolved", "--order", "newest", "--output", "json",
+	})
+	if err := cliCmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	server := mcpserver.New("test-server")
@@ -146,8 +223,11 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 	}
 	session := connectTestPhabricatorMCP(t, ctx, server)
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{
-		Name:      "phabricator_search_tasks",
-		Arguments: map[string]any{"query": "example", "priorities": []int{80}, "unassigned": true},
+		Name: "phabricator_search_tasks",
+		Arguments: map[string]any{
+			"query": "example", "priorities": []int{80}, "unassigned": true,
+			"projects": []string{"ci", "team"}, "author": "me", "statuses": []string{"resolved"}, "order": "newest",
+		},
 	})
 	if err != nil || result.IsError {
 		t.Fatalf("search: %+v, %v", result, err)
@@ -156,8 +236,13 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var page mcpSearchResult
-	if err := json.Unmarshal(raw, &page); err != nil || len(page.Tasks) != 1 || !page.Tasks[0].Redacted || page.Tasks[0].Title != nonPublicLabel {
+	var page taskPage
+	if err := json.Unmarshal(raw, &page); err != nil || len(page.Data) != 2 || !page.Data[1].Redacted || page.Data[1].Fields.Name != nonPublicLabel ||
+		page.Data[1].Fields.DateCreated != 0 || page.Data[1].Fields.DateModified != 0 {
 		t.Fatalf("profile search did not apply the configured public-only policy: %s, %v", raw, err)
+	}
+	var cliPage taskPage
+	if err := json.Unmarshal(stdout.Bytes(), &cliPage); err != nil || len(cliPage.Data) != 2 || !reflect.DeepEqual(cliPage.Data[0], page.Data[0]) || searches != 2 {
+		t.Fatalf("public task JSON or request count differs: CLI %s, MCP %s, searches %d, error %v", stdout.Bytes(), raw, searches, err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -96,47 +97,55 @@ func readAnonymousTask(cmd *cobra.Command, args []string, commentsOnly bool) err
 	return nil
 }
 
-func (c anonymousPhabricator) searchTasks(ctx context.Context, opts searchOptions, priorities []string, unassigned bool) (taskPage, error) {
+func (c anonymousPhabricator) searchTasks(ctx context.Context, opts searchOptions) (taskPage, error) {
 	page := taskPage{Data: []phabTask{}}
-	if opts.Column != "" {
-		return page, fmt.Errorf("--column requires a saved Phabricator profile")
+	if _, err := opts.params(); err != nil {
+		return page, err
 	}
-	if opts.AssignedTo == "me" || opts.Author == "me" {
+	assigned, author := strings.TrimSpace(opts.AssignedTo), strings.TrimSpace(opts.Author)
+	if strings.EqualFold(assigned, "me") || strings.EqualFold(author, "me") {
 		return page, fmt.Errorf("use an explicit username or select a Phabricator profile to search for me")
 	}
-	if unassigned && opts.AssignedTo != "" {
-		return page, fmt.Errorf("--unassigned cannot be combined with --assigned-to")
+	priorities := make([]string, len(opts.Priorities))
+	for i, priority := range opts.Priorities {
+		priorities[i] = strconv.Itoa(priority)
 	}
-	for _, priority := range priorities {
-		if _, err := strconv.Atoi(priority); err != nil {
-			return page, fmt.Errorf("invalid priority %q: use a numeric Phabricator priority", priority)
-		}
-	}
-	params := url.Values{"limit": {strconv.Itoa(opts.Limit)}, "order": {opts.Order}}
+	params := url.Values{"limit": {strconv.Itoa(opts.Limit)}, "order": {opts.Order}, "group": {"none"}}
 	if len(opts.Statuses) > 0 && !(len(opts.Statuses) == 1 && opts.Statuses[0] == "all") {
 		params.Set("statuses", strings.Join(opts.Statuses, ","))
 	}
-	if opts.Project != "" {
-		var projects []string
-		for _, project := range strings.Split(opts.Project, ",") {
-			project = strings.TrimSpace(project)
-			if !projectPHIDPattern.MatchString(project) {
-				resolved, err := c.project(ctx, project)
+	if len(opts.Projects) > 0 {
+		projects := make([]string, 0, len(opts.Projects))
+		for _, ref := range opts.Projects {
+			ref = strings.TrimPrefix(strings.TrimSpace(ref), "#")
+			project := &phabProject{PHID: ref}
+			if !projectPHIDPattern.MatchString(ref) {
+				var err error
+				project, err = c.project(ctx, ref)
 				if err != nil {
 					return page, err
 				}
-				project = resolved.PHID
 			}
-			projects = append(projects, project)
+			if opts.Column != "" {
+				columns, err := c.searchBoardColumns(ctx, project)
+				if err != nil {
+					return page, err
+				}
+				column, err := findSearchColumn(columns, opts.Column)
+				if err != nil {
+					return page, err
+				}
+				params.Set("columnPHIDs", column)
+			}
+			projects = append(projects, project.PHID)
 		}
 		params.Set("projects", strings.Join(projects, ","))
 	}
-	assigned := opts.AssignedTo
-	if unassigned {
+	if opts.Unassigned {
 		assigned = "none()"
 	}
 	for name, value := range map[string]string{
-		"query": opts.Search, "assigned": assigned, "authors": opts.Author,
+		"query": opts.Search, "assigned": assigned, "authors": author,
 		"priorities": strings.Join(priorities, ","), "after": opts.After, "before": opts.Before,
 	} {
 		if value != "" {
@@ -147,6 +156,9 @@ func (c anonymousPhabricator) searchTasks(ctx context.Context, opts searchOption
 	for {
 		doc, err := c.get(ctx, "/maniphest/", params)
 		if err != nil {
+			return page, err
+		}
+		if err := verifyAnonymousTaskFilters(doc, params); err != nil {
 			return page, err
 		}
 		tasks, err := parseAnonymousTaskList(doc)
@@ -167,6 +179,41 @@ func (c anonymousPhabricator) searchTasks(ctx context.Context, opts searchOption
 	}
 }
 
+// Maniphest can silently drop unresolved tokens from an anonymous search.
+// Check the submitted constraints against the tokens on the response page.
+func verifyAnonymousTaskFilters(doc *goquery.Document, params url.Values) error {
+	for _, field := range []struct {
+		param, input string
+		user         bool
+	}{
+		{"authors", "authorPHIDs", true},
+		{"assigned", "assignedPHIDs", true},
+		{"projects", "projectPHIDs", false},
+		{"statuses", "statuses", false},
+		{"priorities", "priorities", false},
+	} {
+		requested := params.Get(field.param)
+		if requested == "" {
+			continue
+		}
+		values := doc.Find("input[name='" + field.input + "[]']").Map(func(_ int, input *goquery.Selection) string {
+			return input.AttrOr("value", "")
+		})
+		if field.user && requested != "none()" {
+			if len(values) != 1 || !strings.HasPrefix(values[0], "PHID-USER-") {
+				return fmt.Errorf("public Phabricator search could not resolve username %q", requested)
+			}
+			continue
+		}
+		for _, value := range strings.Split(requested, ",") {
+			if !slices.Contains(values, value) {
+				return fmt.Errorf("public Phabricator search did not apply %s filter %q", field.param, value)
+			}
+		}
+	}
+	return nil
+}
+
 func parseAnonymousTaskList(doc *goquery.Document) ([]phabTask, error) {
 	items := doc.Find(".phui-oi-list-view .phui-oi")
 	if items.Length() == 0 && strings.TrimSpace(doc.Find(".phui-info-view-body").First().Text()) != "No tasks found." {
@@ -174,22 +221,7 @@ func parseAnonymousTaskList(doc *goquery.Document) ([]phabTask, error) {
 	}
 
 	// Phabricator stores each list item's status and priority in a tooltip.
-	tips := map[string]string{}
-	doc.Find("data[data-javelin-init-data]").Each(func(_ int, data *goquery.Selection) {
-		var raw struct {
-			Block int
-			Data  []json.RawMessage
-		}
-		if json.Unmarshal([]byte(data.AttrOr("data-javelin-init-data", "")), &raw) != nil {
-			return
-		}
-		for index, entry := range raw.Data {
-			var meta struct{ Tip string }
-			if json.Unmarshal(entry, &meta) == nil && meta.Tip != "" {
-				tips[fmt.Sprintf("%d_%d", raw.Block, index)] = meta.Tip
-			}
-		}
-	})
+	metadata := anonymousPageMetadata(doc)
 
 	tasks := []phabTask{}
 	items.Each(func(_ int, item *goquery.Selection) {
@@ -205,7 +237,11 @@ func parseAnonymousTaskList(doc *goquery.Document) ([]phabTask, error) {
 		task := phabTask{ID: id}
 		task.Fields.Name = strings.TrimSpace(link.AttrOr("title", link.Text()))
 		task.Fields.Name = strings.TrimPrefix(task.Fields.Name, ref+": ")
-		status, priority, _ := strings.Cut(tips[item.Find(".phui-oi-status-icon").AttrOr("data-meta", "")], ", ")
+		var meta struct{ Tip string }
+		if raw := metadata[item.Find(".phui-oi-status-icon").AttrOr("data-meta", "")]; raw != nil {
+			_ = json.Unmarshal(raw, &meta)
+		}
+		status, priority, _ := strings.Cut(meta.Tip, ", ")
 		task.Fields.Status.Name = status
 		task.Fields.Priority.Name = priority
 		tasks = append(tasks, task)

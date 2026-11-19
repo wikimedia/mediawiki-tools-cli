@@ -136,7 +136,7 @@ func TestCreateCommandUsesSavedProfile(t *testing.T) {
 	out.Reset()
 	cmd := NewPhabricatorCmd()
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"create", "--profile", "reporter", "--title", "Docs issue", "--description", "Fix the example"})
+	cmd.SetArgs([]string{"create", "--profile", "reporter", "--title", "Docs issue", "--description", "Fix the example", "--yes"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}

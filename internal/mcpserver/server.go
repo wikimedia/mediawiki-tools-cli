@@ -31,21 +31,36 @@ type Operation struct {
 	register    func(*mcp.Server)
 }
 
+// Action is an operation shared by a CLI command and an MCP tool. Define it
+// beside the CLI command and pass the same result to CLI JSON output and Tool.
+// Each entry point binds its permitted backend before invoking the action.
+type Action[In, Out any] func(context.Context, In) (Out, error)
+
+func (action Action[In, Out]) Tool(tool mcp.Tool, hints commandmeta.Hints) Operation {
+	return newOperation(tool, hints, func(ctx context.Context, _ *mcp.CallToolRequest, input In) (*mcp.CallToolResult, Out, error) {
+		result, err := action(ctx, input)
+		return nil, result, err
+	})
+}
+
 func NewOperation[In, Out any](name, description string, hints commandmeta.Hints, handler mcp.ToolHandlerFor[In, Out]) Operation {
+	return newOperation(mcp.Tool{Name: name, Description: description}, hints, handler)
+}
+
+func newOperation[In, Out any](tool mcp.Tool, hints commandmeta.Hints, handler mcp.ToolHandlerFor[In, Out]) Operation {
+	tool.Annotations = &mcp.ToolAnnotations{
+		ReadOnlyHint: hints.ReadOnlyHint, DestructiveHint: &hints.DestructiveHint,
+		IdempotentHint: hints.IdempotentHint, OpenWorldHint: &hints.OpenWorldHint,
+	}
+	tool.Meta = mcp.Meta{
+		"a-wikimedia-cli/dataAccess": hints.DataAccess,
+		"a-wikimedia-cli/hints":      hints,
+	}
 	return Operation{
-		name: name, description: description, hints: hints,
+		name: tool.Name, description: tool.Description, hints: hints,
 		register: func(server *mcp.Server) {
-			mcp.AddTool(server, &mcp.Tool{
-				Name: name, Description: description,
-				Annotations: &mcp.ToolAnnotations{
-					ReadOnlyHint: hints.ReadOnlyHint, DestructiveHint: &hints.DestructiveHint,
-					IdempotentHint: hints.IdempotentHint, OpenWorldHint: &hints.OpenWorldHint,
-				},
-				Meta: mcp.Meta{
-					"a-wikimedia-cli/dataAccess": hints.DataAccess,
-					"a-wikimedia-cli/hints":      hints,
-				},
-			}, handler)
+			definition := tool
+			mcp.AddTool(server, &definition, handler)
 		},
 	}
 }

@@ -53,8 +53,9 @@ balanced (default) for writes and high-risk operations, and cautious for all cal
 Supported offline --dry-run previews never require approval. When approval is
 required, explain the operation and ask the user before rerunning with --yes.
 Raw API calls are high-risk and unfiltered, even with task access flags.
-Targeted task/paste writes do not prompt humans
-for confirmation. Profile removal still requires confirmation or --yes.
+Task creation, paste creation or editing, and profile removal require
+interactive confirmation or --yes. Targeted changes to existing tasks
+apply directly outside agent mode.
 --yes is a cooperative assertion of user approval, not a bypass of task visibility checks.
 For task access controls, see "mw help guides phabricator access".
 

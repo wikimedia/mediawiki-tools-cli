@@ -2,6 +2,7 @@ package phabricator
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 
 var (
 	projectPHIDPattern        = regexp.MustCompile(`^PHID-PROJ-[a-z0-9]+$`)
+	columnPHIDPattern         = regexp.MustCompile(`^PHID-PCOL-[a-z0-9]+$`)
 	anonymousProjectSlug      = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	anonymousProjectProfile   = regexp.MustCompile(`^/project/profile/([1-9][0-9]*)/$`)
 	anonymousProjectResultURL = regexp.MustCompile(`^/project/view/([1-9][0-9]*)/$`)
@@ -77,6 +79,50 @@ func (c anonymousPhabricator) project(ctx context.Context, ref string) (*phabPro
 		return nil, fmt.Errorf("public Phabricator project %q not found", ref)
 	}
 	return c.projectByPath(ctx, "/project/profile/"+match+"/")
+}
+
+func (c anonymousPhabricator) searchBoardColumns(ctx context.Context, project *phabProject) ([]phabColumn, error) {
+	id := project.ID
+	if id == 0 {
+		results, err := c.get(ctx, "/project/", url.Values{"phids": {project.PHID}})
+		if err != nil {
+			return nil, err
+		}
+		links := results.Find(".phui-oi-list-view .phui-oi-link")
+		parts := anonymousProjectResultURL.FindStringSubmatch(links.First().AttrOr("href", ""))
+		if links.Length() != 1 || parts == nil {
+			return nil, fmt.Errorf("public Phabricator project %q did not resolve to one workboard", project.PHID)
+		}
+		id, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, err
+		}
+	}
+	doc, err := c.get(ctx, "/project/board/"+strconv.Itoa(id)+"/", nil)
+	if err != nil {
+		return nil, err
+	}
+	taskLink, err := url.Parse(doc.Find(".phabricator-nav-local a[href^='/maniphest/?project=']").First().AttrOr("href", ""))
+	if err != nil || taskLink.Query().Get("project") != project.PHID {
+		return nil, fmt.Errorf("could not verify public workboard for project %q", project.PHID)
+	}
+	metadata := anonymousPageMetadata(doc)
+	columns := []phabColumn{}
+	doc.Find(".phui-workpanel-view").Each(func(_ int, panel *goquery.Selection) {
+		name := strings.TrimSpace(panel.Find(".phui-header-header").First().Text())
+		key := panel.Find("[data-sigil~='project-column']").First().AttrOr("data-meta", "")
+		var marker struct{ ColumnPHID string }
+		if name == "" || json.Unmarshal(metadata[key], &marker) != nil || !columnPHIDPattern.MatchString(marker.ColumnPHID) {
+			return
+		}
+		column := phabColumn{PHID: marker.ColumnPHID}
+		column.Fields.Name = name
+		columns = append(columns, column)
+	})
+	if len(columns) == 0 {
+		return nil, fmt.Errorf("no readable columns on public workboard for project %q", project.PHID)
+	}
+	return columns, nil
 }
 
 func (c anonymousPhabricator) projectByPath(ctx context.Context, path string) (*phabProject, error) {
