@@ -10,7 +10,7 @@ func TestMCPProfileBindings(t *testing.T) {
 		profile  string
 		valid    bool
 	}{
-		{"anonymous", []string{"phab", "wiki"}, nil, "", true},
+		{"anonymous", []string{"phab", "gerrit", "gitlab", "wiki"}, nil, "", true},
 		{"named", []string{"phab", "wiki"}, []string{"phab=work"}, "work", true},
 		{"unknown service", []string{"unknown"}, nil, "", false},
 		{"duplicate service", []string{"phab", "phab"}, nil, "", false},
@@ -18,7 +18,9 @@ func TestMCPProfileBindings(t *testing.T) {
 		{"unqualified profile", []string{"phab"}, []string{"work"}, "", false},
 		{"duplicate profile", []string{"phab"}, []string{"phab=work", "phab=other"}, "", false},
 		{"disabled service", []string{"wiki"}, []string{"phab=work"}, "", false},
-		{"unsupported profile", []string{"wiki"}, []string{"wiki=work"}, "", false},
+		{"unsupported wiki profile", []string{"wiki"}, []string{"wiki=work"}, "", false},
+		{"unsupported Gerrit profile", []string{"gerrit"}, []string{"gerrit=work"}, "", false},
+		{"unsupported GitLab profile", []string{"gitlab"}, []string{"gitlab=work"}, "", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			profile, err := mcpPhabricatorProfile(tc.services, nil, tc.bindings)

@@ -71,7 +71,7 @@ func TestPhabricatorMCPPublicSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 3 {
+	if len(tools.Tools) != 5 {
 		t.Fatalf("unexpected tools: %+v", tools.Tools)
 	}
 	toolName := "phabricator_search_tasks"
@@ -133,13 +133,13 @@ func TestPhabricatorMCPPublicTaskAndComments(t *testing.T) {
 		operation.Register(server)
 	}
 	session := connectTestPhabricatorMCP(t, t.Context(), server)
-	for name, expected := range map[string]string{"phabricator_get_task": "Task details", "phabricator_get_comments": "A comment"} {
-		result, err := session.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: map[string]any{"ref": "T123"}})
+	for name, expected := range map[string]string{"phabricator_get_task": "Task details", "phabricator_get_comments": "A comment", "phabricator_get_task_comments": "A comment"} {
+		result, err := session.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: map[string]any{"taskId": "123"}})
 		if err != nil || result.IsError {
 			t.Fatalf("%s: %+v, %v", name, result, err)
 		}
 		raw, err := json.Marshal(result.StructuredContent)
-		if err != nil || !bytes.Contains(raw, []byte(expected)) {
+		if err != nil || !bytes.Contains(raw, []byte(expected)) || (name == "phabricator_get_task" && !bytes.Contains(raw, []byte("A comment"))) {
 			t.Fatalf("%s: %s, %v", name, raw, err)
 		}
 	}
@@ -183,7 +183,7 @@ func TestPhabricatorMCPPasteRequiresGrant(t *testing.T) {
 		return pasteResponse(`{"result":{"data":[{"id":123,"phid":"PHID-PSTE-example","fields":{"title":"Example"},"attachments":{"content":{"content":"Fixture source"}}}]}}`), nil
 	})
 	operations, err := MCPTools(cmd, "work")
-	if err != nil || len(operations) != 4 {
+	if err != nil || len(operations) != 6 {
 		t.Fatalf("paste grant: %d tools, %v", len(operations), err)
 	}
 	server := mcpserver.New("test-server")

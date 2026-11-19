@@ -87,7 +87,9 @@ func phabricatorMCPTools(profile *conduitClient, allowPaste bool) []mcpserver.Op
 	tools := []mcpserver.Operation{
 		taskSearchTool(profile == nil, search),
 		readTaskTool(public),
-		readCommentsTool(public),
+		readCommentsTool(public, "phabricator_get_comments"),
+		readCommentsTool(public, "phabricator_get_task_comments"),
+		projectViewTool(public),
 	}
 	if allowPaste {
 		tools = append(tools, readPasteTool(profile))

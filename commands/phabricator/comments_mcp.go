@@ -8,15 +8,23 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 )
 
-func readCommentsTool(client anonymousPhabricator) mcpserver.Operation {
+func readCommentsTool(client anonymousPhabricator, name string) mcpserver.Operation {
 	type result struct {
+		TaskID   string             `json:"taskId"`
 		Comments []anonymousComment `json:"comments"`
 	}
-	run := mcpserver.Action[objectReadInput, result](func(ctx context.Context, input objectReadInput) (result, error) {
-		_, comments, err := client.task(ctx, input.Ref)
-		return result{Comments: comments}, err
+	run := mcpserver.Action[taskReadInput, result](func(ctx context.Context, input taskReadInput) (result, error) {
+		ref, err := input.reference()
+		if err != nil {
+			return result{}, err
+		}
+		task, comments, err := client.task(ctx, ref)
+		if err != nil {
+			return result{}, err
+		}
+		return result{TaskID: taskReference(*task), Comments: comments}, nil
 	})
 	return run.Tool(mcp.Tool{
-		Name: "phabricator_get_comments", Description: "Read public comments on a Wikimedia Phabricator task.",
+		Name: name, Description: "Read public comments on a Wikimedia Phabricator task.",
 	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator comments")
 }
