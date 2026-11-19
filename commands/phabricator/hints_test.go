@@ -25,8 +25,8 @@ func TestPhabricatorHintCoverage(t *testing.T) {
 		}
 	}
 	visit(root)
-	if count != 34 {
-		t.Fatalf("classified %d executable Phabricator commands, want 34", count)
+	if count != 35 {
+		t.Fatalf("classified %d executable Phabricator commands, want 35", count)
 	}
 }
 
@@ -41,6 +41,7 @@ func TestPhabricatorHintSemantics(t *testing.T) {
 		data        []commandmeta.DataAccess
 		secretInput bool
 	}{
+		{"mcp", true, false, true, true, []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata}, false},
 		{"task view", true, false, true, true, []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata}, false},
 		{"view", true, false, true, true, []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata}, false},
 		{"paste view", true, false, true, true, []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata}, false},

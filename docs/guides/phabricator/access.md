@@ -28,6 +28,34 @@ and needs an explicit username in place of `me`. Workboard column searches
 require a profile. Public output contains the fields available in the web pages,
 so some Conduit fields are empty and descriptions are plain text.
 
+## Use Phabricator from an MCP client
+
+Configure a local stdio MCP client to launch one of these commands.
+
+```sh
+mw phab mcp
+mw phab mcp --profile work
+mw mcp --services phab,wiki
+mw mcp --services phab --deferred-services wiki
+mw mcp --services phab,wiki --profile phab=work
+```
+
+Both entry points use anonymous Phabricator search unless you bind a named
+profile. The umbrella command enables Phabricator and wiki tools by default.
+The `wiki` service provides anonymous page metadata from MediaWiki.org and
+English Wikipedia. A Phabricator profile binding applies only to the
+Phabricator tool and uses the configured Phabricator guardrails. MCP clients
+can approve calls using their own permission settings.
+
+`--services` sets which tools are visible at launch. `--deferred-services`
+authorizes additional services to be enabled during the session.
+`mw_discover_tools` lists authorized operations and their capability hints.
+`mw_enable_service` makes an authorized deferred service visible and notifies
+the client that the tool list changed. The client must refresh its list and
+allow the new tool names. Any profile binding is resolved at startup.
+Tool definitions include standard MCP behavior annotations and the full CLI
+capability hints under `_meta["a-wikimedia-cli/hints"]`.
+
 ## Public-only tasks
 
 ```sh

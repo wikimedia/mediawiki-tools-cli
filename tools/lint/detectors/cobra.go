@@ -185,6 +185,7 @@ func detectAllowedAnnotations(theCmd *cobra.Command, cmdString string) *issue.Is
 		"service-url",
 		"service-logo",
 		cli.TelemetrySkipAnnotation,
+		cli.SkipConfigAnnotation,
 		commandmeta.ReadOnlyAnnotation,
 		commandmeta.DestructiveAnnotation,
 		commandmeta.IdempotentAnnotation,

@@ -73,6 +73,7 @@ For storage options and password managers, see "mw help guides authentication".`
 
 	cmd.AddCommand(newPhabricatorAuthCmd(&site))
 	cmd.AddCommand(newPhabricatorAPICmd(&site))
+	cmd.AddCommand(newPhabricatorMCPCmd(&site))
 	cmd.AddCommand(newPhabricatorCreateCmd(&site))
 	cmd.AddCommand(newTaskCmd(&site), newProjectCmd(&site), newBoardCmd(&site), newPhabricatorBrowseCmd(&site))
 	cmd.AddCommand(newPhabricatorPasteCmd(&site))

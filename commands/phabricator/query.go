@@ -31,6 +31,9 @@ type searchOptions struct {
 	Project, Column, Search, AssignedTo string
 	Author, Order                       string
 	Statuses                            []string
+	Projects                            []string
+	Priorities                          []int
+	Unassigned                          bool
 	Limit                               int
 	After, Before                       string
 	All                                 bool
@@ -201,12 +204,29 @@ func (c *conduitClient) searchTasks(ctx context.Context, opts searchOptions) (ta
 			constraints["columnPHIDs"] = []string{matching[0].PHID}
 		}
 	}
+	if len(opts.Projects) > 0 {
+		projects := make([]string, 0, len(opts.Projects))
+		for _, ref := range opts.Projects {
+			project, err := c.exactProject(ctx, ref)
+			if err != nil {
+				return page, err
+			}
+			projects = append(projects, project.PHID)
+		}
+		constraints["projects"] = projects
+	}
+	if len(opts.Priorities) > 0 {
+		constraints["priorities"] = opts.Priorities
+	}
 	if opts.AssignedTo != "" {
 		user, e := c.resolveUserContext(ctx, opts.AssignedTo)
 		if e != nil {
 			return page, e
 		}
 		constraints["assigned"] = []string{user.PHID}
+	}
+	if opts.Unassigned {
+		constraints["assigned"] = []string{"none()"}
 	}
 	if opts.Author != "" {
 		user, err := c.resolveUserContext(ctx, opts.Author)

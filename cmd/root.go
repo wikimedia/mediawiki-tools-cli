@@ -156,12 +156,7 @@ func NewRootCmd(name string) *cobra.Command {
 		defaultHelpFunc(c, a)
 	})
 
-	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
-	mwcliCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
-
-	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
-	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
-	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
+	addRootFlags(mwcliCmd)
 
 	mwcliCmd.AddCommand([]*cobra.Command{
 		// Core CLI command
@@ -169,6 +164,7 @@ func NewRootCmd(name string) *cobra.Command {
 		updatecmd.Cmd(),
 		configcmd.Cmd(),
 		debugcmd.Cmd(),
+		newMCPCmd(),
 
 		// Built in sub commands
 		cobrautil.WithServiceInfo(enterprisecmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Enterprise", URL: "https://enterprise.wikimedia.com", Logo: "https://upload.wikimedia.org/wikipedia/commons/8/84/Wikimedia_Enterprise_squirrel.svg"}),
@@ -237,8 +233,15 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
-	// Shell completion reads local metadata only. Bypass migrations, timers
-	// and background update checks before constructing the command tree.
+	if root := mcpStartupCommand(cli.InvocationName(os.Args[0]), os.Args[1:]); root != nil {
+		if err := root.Execute(); err != nil {
+			logrus.Error(err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Shell completion bypasses migrations, timers and background update checks.
 	if isCompletionRequest(os.Args[1:]) {
 		cli.Opts.NoInteraction = true
 		root := NewRootCmd(cli.InvocationName(os.Args[0]))
@@ -406,6 +409,31 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		logrus.Errorf("%s", err)
 		os.Exit(1)
 	}
+}
+
+func addRootFlags(root *cobra.Command) {
+	root.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
+	root.PersistentFlags().BoolVar(&cli.Opts.NoInteraction, "no-interaction", false, "Do not ask any interactive questions")
+	// GitLab auth login uses -h for hostname.
+	root.PersistentFlags().Bool("help", false, "Help for this command")
+}
+
+// Other command constructors can load configuration, so resolve stdio servers
+// on a small command tree before initializing the rest of the CLI.
+func mcpStartupCommand(name string, args []string) *cobra.Command {
+	if !stringsutil.StringInSlice("mcp", args) {
+		return nil
+	}
+	root := &cobra.Command{Use: name, SilenceErrors: true, SilenceUsage: true}
+	addRootFlags(root)
+	root.AddGroup(&cobra.Group{ID: "service", Title: "Service Commands"})
+	root.AddCommand(newMCPCmd(), phabricatorcmd.NewPhabricatorCmd())
+	selected, _, err := root.Find(args)
+	if err != nil || selected == nil || selected.Annotations[cli.SkipConfigAnnotation] != "true" {
+		return nil
+	}
+	root.SetArgs(args)
+	return root
 }
 
 func isCompletionRequest(args []string) bool {
