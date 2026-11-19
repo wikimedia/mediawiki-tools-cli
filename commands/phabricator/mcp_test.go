@@ -62,17 +62,24 @@ func TestPhabricatorMCPPublicSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	operations[0].Register(server)
+	for _, operation := range operations {
+		operation.Register(server)
+	}
 	session := connectTestPhabricatorMCP(t, ctx, server)
 
 	tools, err := session.ListTools(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 1 || !tools.Tools[0].Annotations.ReadOnlyHint {
+	if len(tools.Tools) != 3 {
 		t.Fatalf("unexpected tools: %+v", tools.Tools)
 	}
-	toolName := tools.Tools[0].Name
+	toolName := "phabricator_search_tasks"
+	for _, tool := range tools.Tools {
+		if !tool.Annotations.ReadOnlyHint || tool.Name == "phabricator_get_paste" {
+			t.Fatalf("unexpected anonymous tool: %+v", tool)
+		}
+	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: toolName,
 		Arguments: map[string]any{
@@ -104,6 +111,93 @@ func TestPhabricatorMCPPublicSearch(t *testing.T) {
 	}
 	if calls != 2 {
 		t.Fatalf("expected two HTTP requests, got %d", calls)
+	}
+}
+
+func TestPhabricatorMCPPublicTaskAndComments(t *testing.T) {
+	previous := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = previous })
+	http.DefaultTransport = authTransport(func(req *http.Request) (*http.Response, error) {
+		if req.Method != http.MethodGet || req.URL.Host != "phabricator.wikimedia.org" || req.URL.Path != "/T123" ||
+			req.Header.Get("Authorization") != "" || req.Header.Get("Cookie") != "" {
+			t.Errorf("unexpected public task request %s %s", req.Method, req.URL)
+		}
+		return anonymousResponse(req, http.StatusOK, `
+			<meta property="og:title" content="T123 Public task">
+			<div class="phui-property-list-text-content"><div class="phabricator-remarkup">Task details</div></div>
+			<div class="phui-timeline-event-view"><div class="phui-timeline-title"><a class="phui-link-person">Example</a></div>
+			<div class="transaction-comment"><div class="phabricator-remarkup">A comment</div></div></div>`), nil
+	})
+	server := mcpserver.New("test-server")
+	for _, operation := range phabricatorMCPTools(nil, false) {
+		operation.Register(server)
+	}
+	session := connectTestPhabricatorMCP(t, t.Context(), server)
+	for name, expected := range map[string]string{"phabricator_get_task": "Task details", "phabricator_get_comments": "A comment"} {
+		result, err := session.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: map[string]any{"ref": "T123"}})
+		if err != nil || result.IsError {
+			t.Fatalf("%s: %+v, %v", name, result, err)
+		}
+		raw, err := json.Marshal(result.StructuredContent)
+		if err != nil || !bytes.Contains(raw, []byte(expected)) {
+			t.Fatalf("%s: %s, %v", name, raw, err)
+		}
+	}
+	result, err := session.CallTool(t.Context(), &mcp.CallToolParams{
+		Name: "phabricator_get_task", Arguments: map[string]any{"ref": "https://example.invalid/T123"},
+	})
+	if err != nil || !result.IsError {
+		t.Fatalf("foreign task URL accepted: %+v, %v", result, err)
+	}
+}
+
+func TestPhabricatorMCPPasteRequiresGrant(t *testing.T) {
+	isolatedAuthConfig(t)
+	cmd := &cobra.Command{Use: "mcp"}
+	cmd.Flags().Bool(MCPAllowPasteFlag, false, "")
+	cmd.SetContext(t.Context())
+	if err := cmd.Flags().Set(MCPAllowPasteFlag, "true"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := MCPTools(cmd, ""); err == nil {
+		t.Fatal("paste grant accepted without a profile")
+	}
+	for key, value := range map[string]string{
+		"phabricator.profiles.work.key":      "fixture-token",
+		"phabricator.profiles.work.username": "example",
+		"phabricator.profiles.work.url":      defaultPhabricatorURL,
+	} {
+		if err := mwconfig.PutKeyValueOnDisk(key, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	previous := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = previous })
+	http.DefaultTransport = authTransport(func(req *http.Request) (*http.Response, error) {
+		if req.Method != http.MethodPost || req.URL.Path != "/api/paste.search" {
+			t.Errorf("unexpected request: %s %s", req.Method, req.URL)
+		}
+		if err := req.ParseForm(); err != nil || !bytes.Contains([]byte(req.Form.Get("params")), []byte("fixture-token")) {
+			t.Errorf("paste request did not use the selected profile: %v", err)
+		}
+		return pasteResponse(`{"result":{"data":[{"id":123,"phid":"PHID-PSTE-example","fields":{"title":"Example"},"attachments":{"content":{"content":"Fixture source"}}}]}}`), nil
+	})
+	operations, err := MCPTools(cmd, "work")
+	if err != nil || len(operations) != 4 {
+		t.Fatalf("paste grant: %d tools, %v", len(operations), err)
+	}
+	server := mcpserver.New("test-server")
+	for _, operation := range operations {
+		operation.Register(server)
+	}
+	session := connectTestPhabricatorMCP(t, t.Context(), server)
+	result, err := session.CallTool(t.Context(), &mcp.CallToolParams{Name: "phabricator_get_paste", Arguments: map[string]any{"ref": "P123"}})
+	if err != nil || result.IsError {
+		t.Fatalf("paste: %+v, %v", result, err)
+	}
+	raw, err := json.Marshal(result.StructuredContent)
+	if err != nil || !bytes.Contains(raw, []byte("Fixture source")) {
+		t.Fatalf("paste: %s, %v", raw, err)
 	}
 }
 

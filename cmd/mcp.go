@@ -20,7 +20,7 @@ func newMCPCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "mcp",
 		Short:       "Serve selected Wikimedia services over MCP",
-		Long:        "Start a local stdio MCP server. With no flags, serve anonymous Phabricator search and public wiki page metadata. Select initially visible services with --services and authorize on-demand services with --deferred-services. To use a named Phabricator account, bind it at startup with --profile phab=NAME.",
+		Long:        "Start a local stdio MCP server for public Phabricator tasks and wiki pages. Select services with --services or --deferred-services. Bind --profile phab=NAME for account-backed search. Add --allow-paste to expose account-visible paste content.",
 		Example:     "mcp --services phab,wiki\nmcp --services phab --deferred-services wiki\nmcp --services phab --profile phab=work",
 		Args:        cobra.NoArgs,
 		Annotations: annotations,
@@ -33,6 +33,9 @@ func newMCPCmd() *cobra.Command {
 			profile, err := mcpPhabricatorProfile(services, deferredServices, profileBindings)
 			if err != nil {
 				return err
+			}
+			if allowed, _ := cmd.Flags().GetBool(phabricator.MCPAllowPasteFlag); allowed && profile == "" {
+				return fmt.Errorf("--allow-paste requires an explicit Phabricator profile")
 			}
 			groups := make([]mcpserver.Service, 0, len(services)+len(deferredServices))
 			for _, selection := range []struct {
@@ -62,7 +65,18 @@ func newMCPCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&deferredServices, "deferred-services", nil, "Comma-separated MCP services eligible for on-demand activation (phab,wiki)")
 	cmd.Flags().StringArrayVar(&profileBindings, "profile", nil, "Bind a saved profile to a service as SERVICE=NAME (currently phab only)")
 	cmd.Flags().Bool("yes", false, "Assert user approval if a profiled service requires it")
+	cmd.Flags().Bool(phabricator.MCPAllowPasteFlag, false, "Expose account-visible paste content using the explicit Phabricator profile")
 	return cmd
+}
+
+// MCPCommandTools describes the CLI tools that can be registered at launch.
+func MCPCommandTools() []mcpserver.CommandTool {
+	operations := append(phabricator.MCPDefinitions(), wiki.MCPTools()...)
+	tools := make([]mcpserver.CommandTool, 0, len(operations))
+	for _, operation := range operations {
+		tools = append(tools, operation.CommandTool())
+	}
+	return tools
 }
 
 func mcpPhabricatorProfile(services, deferred, bindings []string) (string, error) {

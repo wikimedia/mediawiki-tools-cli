@@ -1,14 +1,11 @@
 package phabricator
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -30,135 +27,6 @@ func validatePhabOutput(out *output.Output) error {
 		return fmt.Errorf("--output jq requires --format")
 	}
 	return nil
-}
-
-func newTaskListCmd(site *string) *cobra.Command {
-	opts := defaultTaskListOptions()
-	out := phabOutput([]string{"Task", "Title", "Status", "Priority"}, func(objects interface{}, table *output.Table) {
-		for _, task := range objects.(taskPage).Data {
-			table.AddRow(taskReference(task), task.Fields.Name, task.Fields.Status.Name, task.Fields.Priority.Name)
-		}
-	})
-	cmd := &cobra.Command{
-		Annotations: commandmeta.Annotations(taskListHints(false)),
-		Use:         "list", Short: "Search and page through Phabricator tasks", Long: "List tasks matching project, workboard column, text, author, assignee, priority and status filters. Each request returns up to --limit tasks, ordered by update time by default; use --order newest for most recently created tasks first. Use the returned cursor with --after or --before, or --all to fetch every page. Column membership does not imply workboard card ordering. JSON output includes data and cursor fields. By default, only open tasks are included (including in-progress and stalled tasks). Use --status all to include closed tasks. --all fetches every matching page without changing the status filter.", Example: "list --project a_wikimedia_cli\nlist --project a_wikimedia_cli --column Backlog\nlist --assigned-to me --search documentation --output json\nlist --author me --order newest --status all --limit 20 --public-only\nlist --limit 50 --after CURSOR\nlist --project a_wikimedia_cli --status all --all", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-			if _, err := opts.params(); err != nil {
-				return err
-			}
-			if err := validatePhabOutput(out); err != nil {
-				return err
-			}
-			var run taskSearch
-			if useAnonymousPhabricator(cmd, *site) {
-				run = newAnonymousPhabricator().searchTasks
-			} else {
-				client, _, loadErr := clientFromCommand(cmd, *site)
-				if loadErr != nil {
-					return loadErr
-				}
-				defer client.cache.flush()
-				run = client.searchTasks
-			}
-			page, err := run(cmd.Context(), opts)
-			if err != nil {
-				return err
-			}
-			out.Print(cmd, page)
-			if out.Type == "table" || out.Type == "auto" {
-				printCursor(cmd, page.Cursor)
-			}
-			return nil
-		},
-	}
-	cmd.Flags().StringSliceVar(&opts.Projects, "project", nil, "Project hashtag, exact name, ID or PHID (repeatable or comma-separated)")
-	cmd.Flags().StringVar(&opts.Column, "column", "", "Exact workboard column name or PHID (requires one --project and a visible workboard)")
-	cmd.Flags().StringVar(&opts.Search, "search", "", "Full-text task search")
-	cmd.Flags().StringVar(&opts.AssignedTo, "assigned-to", "", "Assignee username or me")
-	cmd.Flags().StringVar(&opts.Author, "author", "", "Author username or me")
-	cmd.Flags().StringVar(&opts.Order, "order", opts.Order, "Task ordering: updated or newest (most recently created first)")
-	cmd.Flags().StringSliceVar(&opts.Statuses, "status", opts.Statuses, "Task status (default: open tasks; use all to include closed tasks)")
-	cmd.Flags().IntSliceVar(&opts.Priorities, "priority", nil, "Numeric priorities (100=Unbreak Now, 80=High)")
-	cmd.Flags().BoolVar(&opts.Unassigned, "unassigned", false, "Only show unassigned tasks")
-	addPageFlags(cmd, &opts.Limit, &opts.After, &opts.Before)
-	cmd.Flags().BoolVar(&opts.All, "all", false, "Fetch all matching pages")
-	addPhabOutput(cmd, out)
-	return cmd
-}
-
-type taskSearch = mcpserver.Action[searchOptions, taskPage]
-
-func taskListHints(anonymous bool) commandmeta.Hints {
-	if anonymous {
-		return mcpserver.ReadHints(commandmeta.DataPublic)
-	}
-	return mcpserver.ReadHints(commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata)
-}
-
-type taskSearchInput struct {
-	searchOptions
-	Limit *int `json:"limit,omitempty" jsonschema:"Results per page, from 1 to 100. Defaults to 50."`
-}
-
-func taskSearchTool(anonymous bool, search taskSearch) mcpserver.Operation {
-	description := "Search Phabricator tasks using the configured account. Results can include summaries of non-public tasks visible to that account."
-	if anonymous {
-		description = "Search public Wikimedia Phabricator tasks. Search text and filters are sent to phabricator.wikimedia.org."
-	}
-	description += " Returns one page. Apply at least one filter and repeat the same filters when paging."
-	run := mcpserver.Action[taskSearchInput, taskPage](func(ctx context.Context, input taskSearchInput) (taskPage, error) {
-		opts := input.searchOptions
-		if strings.TrimSpace(opts.Search) == "" && len(opts.Projects) == 0 && len(opts.Statuses) == 0 &&
-			len(opts.Priorities) == 0 && opts.Author == "" && opts.AssignedTo == "" && !opts.Unassigned && opts.Column == "" {
-			return taskPage{}, fmt.Errorf("provide a task filter")
-		}
-		defaults := defaultTaskListOptions()
-		opts.Limit = defaults.Limit
-		if opts.Order == "" {
-			opts.Order = defaults.Order
-		}
-		if opts.Statuses == nil {
-			opts.Statuses = defaults.Statuses
-		}
-		if input.Limit != nil {
-			opts.Limit = *input.Limit
-		}
-		return search(ctx, opts)
-	})
-	return run.Tool(mcp.Tool{
-		Name: "phabricator_search_tasks", Description: description,
-		// Task records have a reduced JSON shape when redacted.
-		OutputSchema: map[string]any{
-			"type": "object", "required": []string{"data", "cursor"},
-			"properties": map[string]any{
-				"data":   map[string]any{"type": "array", "items": map[string]string{"type": "object"}},
-				"cursor": map[string]string{"type": "object"},
-			},
-		},
-	}, taskListHints(anonymous))
-}
-
-// Preserve the MCP disclosure scope for tasks whose public visibility cannot
-// be verified, even when the selected account can read additional fields.
-func limitedProfileTaskSearch(client *conduitClient) taskSearch {
-	public := taskAccess{publicOnly: true, endpoint: client.access.endpoint}
-	return func(ctx context.Context, opts searchOptions) (taskPage, error) {
-		page, err := client.searchTasks(ctx, opts)
-		if err != nil {
-			return page, err
-		}
-		for i, task := range page.Data {
-			if public.permits(task) {
-				continue
-			}
-			page.Cursor.Before = nil
-			summary := phabTask{ID: task.ID, Redacted: task.Redacted}
-			summary.Fields.Name = task.Fields.Name
-			summary.Fields.Status.Name = task.Fields.Status.Name
-			summary.Fields.Priority.Name = task.Fields.Priority.Name
-			page.Data[i] = summary
-		}
-		return page, nil
-	}
 }
 
 func printCursor(cmd *cobra.Command, cursor pageCursor) {

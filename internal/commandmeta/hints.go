@@ -48,6 +48,19 @@ type Hints struct {
 	HighRisk    bool         `json:"highRisk"`
 }
 
+// AlwaysRequiresApproval reports whether even the permissive policy asks.
+func (h Hints) AlwaysRequiresApproval() bool {
+	if h.HighRisk || h.SecretInput {
+		return true
+	}
+	for _, category := range h.DataAccess {
+		if category == DataSecrets || category == DataUnknown {
+			return true
+		}
+	}
+	return false
+}
+
 var ErrMissingHints = errors.New("command capability hints are missing")
 
 // Set attaches command-local hints, preserving unrelated annotations.

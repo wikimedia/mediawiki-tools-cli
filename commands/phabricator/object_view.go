@@ -91,10 +91,7 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 				return fmt.Errorf("--output jq requires --format")
 			}
 			if ref.Ref[0] == 'T' && useAnonymousPhabricator(cmd, *site) {
-				if err := ref.checkEndpoint(defaultPhabricatorURL); err != nil {
-					return err
-				}
-				task, _, err := newAnonymousPhabricator().task(cmd.Context(), ref.Ref)
+				task, _, err := newAnonymousPhabricator().publicTask(cmd.Context(), ref)
 				if err != nil {
 					return err
 				}
@@ -127,7 +124,7 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 				}
 				return nil
 			}
-			paste, err := client.getPaste(ref.Ref)
+			paste, err := client.getPaste(cmd.Context(), ref.Ref)
 			if err != nil {
 				return err
 			}

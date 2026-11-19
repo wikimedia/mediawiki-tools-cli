@@ -15,12 +15,27 @@ import (
 )
 
 type anonymousComment struct {
-	Author string
-	Date   string
-	Body   string
+	Author string `json:"author"`
+	Date   string `json:"date"`
+	Body   string `json:"body"`
 }
 
-func (c anonymousPhabricator) task(ctx context.Context, ref string) (*phabTask, []anonymousComment, error) {
+func (c anonymousPhabricator) task(ctx context.Context, raw string) (*phabTask, []anonymousComment, error) {
+	ref, err := parseObjectReference(raw)
+	if err != nil {
+		return nil, nil, err
+	}
+	return c.publicTask(ctx, ref)
+}
+
+func (c anonymousPhabricator) publicTask(ctx context.Context, reference objectReference) (*phabTask, []anonymousComment, error) {
+	if reference.Ref[0] != 'T' {
+		return nil, nil, fmt.Errorf("expected a task reference such as T123")
+	}
+	if err := reference.checkEndpoint(defaultPhabricatorURL); err != nil {
+		return nil, nil, err
+	}
+	ref := reference.Ref
 	doc, err := c.get(ctx, "/"+ref, nil)
 	if err != nil {
 		return nil, nil, err

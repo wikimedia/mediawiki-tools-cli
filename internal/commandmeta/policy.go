@@ -39,11 +39,7 @@ func CheckAgentPolicy(cmd *cobra.Command, policy AgentPolicy, agent, preview, ap
 	if preview {
 		return nil
 	}
-	highRisk := hints.HighRisk || hints.SecretInput
-	for _, category := range hints.DataAccess {
-		highRisk = highRisk || category == DataSecrets || category == DataUnknown
-	}
-	requireApproval := highRisk || policy == PolicyCautious || (policy == PolicyBalanced && !hints.ReadOnlyHint)
+	requireApproval := hints.AlwaysRequiresApproval() || policy == PolicyCautious || (policy == PolicyBalanced && !hints.ReadOnlyHint)
 	if !requireApproval || approved {
 		return nil
 	}

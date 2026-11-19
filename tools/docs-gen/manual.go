@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gitlab.wikimedia.org/repos/releng/cli/cmd"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
@@ -36,10 +39,23 @@ type manualCommandReference struct {
 type manualMetadata struct {
 	Services           []manualService          `json:"services"`
 	Commands           []manualCommandReference `json:"commands"`
+	Catalog            []manualCatalogEntry     `json:"catalog"`
 	Version            documentationVersion     `json:"version"`
 	Pages              int                      `json:"pages"`
 	Sidebar            []manualSidebarItem      `json:"sidebar"`
 	DevelopmentSidebar []manualSidebarItem      `json:"developmentSidebar"`
+}
+
+type manualCatalogEntry struct {
+	Title       string                  `json:"title"`
+	Description string                  `json:"description"`
+	Aliases     []string                `json:"aliases,omitempty"`
+	Link        string                  `json:"link,omitempty"`
+	Hidden      bool                    `json:"hidden,omitempty"`
+	Deprecated  bool                    `json:"deprecated,omitempty"`
+	Hints       *commandmeta.Hints      `json:"hints,omitempty"`
+	HighRisk    bool                    `json:"highRisk,omitempty"`
+	MCPTools    []mcpserver.CommandTool `json:"mcpTools,omitempty"`
 }
 
 type manualService struct {
@@ -70,12 +86,7 @@ func generateManual(directory string) error {
 	}
 	root := cmd.NewMwCliCmd()
 	root.InitDefaultCompletionCmd()
-	pruneReferenceChildren(root)
-	cobrautil.VisitAllSubCommands(root, func(command *cobra.Command) {
-		command.Example = cobrautil.CommandExamples(command)
-		command.DisableAutoGenTag = true
-	})
-	return writeManual(root, directory, version)
+	return writeManual(root, directory, version, cmd.MCPCommandTools()...)
 }
 
 func manualURL(command *cobra.Command) string {
@@ -97,7 +108,44 @@ func manualFilename(command *cobra.Command) string {
 	return path + "index.md"
 }
 
-func writeManual(root *cobra.Command, directory string, version documentationVersion) error {
+func writeManual(root *cobra.Command, directory string, version documentationVersion, tools ...mcpserver.CommandTool) error {
+	toolsByCommand := map[string][]mcpserver.CommandTool{}
+	for _, tool := range tools {
+		toolsByCommand[root.Name()+" "+tool.Command] = append(toolsByCommand[root.Name()+" "+tool.Command], tool)
+	}
+	var catalog []manualCatalogEntry
+	var catalogErr error
+	var scan func(*cobra.Command, bool, bool)
+	scan = func(command *cobra.Command, hidden, deprecated bool) {
+		hidden = hidden || command.Hidden
+		deprecated = deprecated || command.Deprecated != ""
+		if command.Runnable() {
+			entry := manualCatalogEntry{
+				Title: command.CommandPath(), Description: command.Short, Aliases: command.Aliases,
+				Hidden: hidden, Deprecated: deprecated, MCPTools: toolsByCommand[command.CommandPath()],
+			}
+			delete(toolsByCommand, entry.Title)
+			hints, err := commandmeta.Read(command)
+			if err == nil {
+				entry.Hints = &hints
+				entry.HighRisk = hints.AlwaysRequiresApproval()
+			} else if !errors.Is(err, commandmeta.ErrMissingHints) && catalogErr == nil {
+				catalogErr = fmt.Errorf("%s: %w", entry.Title, err)
+			}
+			catalog = append(catalog, entry)
+		}
+		for _, child := range command.Commands() {
+			scan(child, hidden, deprecated)
+		}
+	}
+	scan(root, false, false)
+	if catalogErr != nil {
+		return catalogErr
+	}
+	for path, tools := range toolsByCommand {
+		return fmt.Errorf("MCP tool %q refers to an unknown executable command %q", tools[0].Name, path)
+	}
+	pruneReferenceChildren(root)
 	var commands []*cobra.Command
 	var collect func(*cobra.Command)
 	collect = func(command *cobra.Command) {
@@ -109,9 +157,13 @@ func writeManual(root *cobra.Command, directory string, version documentationVer
 		}
 	}
 	collect(root)
-	metadata := manualMetadata{Version: version, Pages: len(commands)}
+	metadata := manualMetadata{Version: version, Pages: len(commands), Catalog: catalog}
+	links := make(map[string]string, len(commands))
 	for _, command := range commands {
+		command.Example = cobrautil.CommandExamples(command)
+		command.DisableAutoGenTag = true
 		reference := manualCommandReference{Name: command.Name(), Title: command.CommandPath(), Link: manualURL(command), Aliases: command.Aliases}
+		links[reference.Title] = reference.Link
 		if command.HasParent() {
 			reference.Parent = manualURL(command.Parent())
 		}
@@ -120,13 +172,27 @@ func writeManual(root *cobra.Command, directory string, version documentationVer
 			metadata.Services = append(metadata.Services, manualServiceReference(command, command.Parent() != root))
 		}
 	}
+	for i := range metadata.Catalog {
+		metadata.Catalog[i].Link = links[metadata.Catalog[i].Title]
+	}
 	metadata.Sidebar = manualSidebar(root)
 	for _, child := range root.Commands() {
 		if child.Name() == "dev" && manualCommandAvailable(child) {
 			metadata.DevelopmentSidebar = manualSidebar(child)
 		}
 	}
-	planned := map[string][]byte{}
+	planned := map[string][]byte{"catalog/index.md": []byte(`---
+title: Command catalog
+description: Search every executable command by action, risk, and MCP support.
+editUrl: false
+---
+
+` + manualMarker + `
+
+Every executable command in this build, including hidden commands. Capability
+hints describe what a command can do. **Unclassified** means it has no hints.
+For approval and visibility rules, see [Phabricator access](/guides/phabricator/access).
+`)}
 	for _, command := range commands {
 		content := manualContent(command)
 		title, _ := json.Marshal(command.CommandPath())

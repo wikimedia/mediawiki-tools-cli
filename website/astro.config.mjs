@@ -47,6 +47,7 @@ export default defineConfig({
         ...generalGuides.filter((page) => page.source.split('/').length > 2).map(guideLink),
       ] },
       { label: 'Overview', link: '/manual/' },
+      { label: 'Command catalog', link: '/manual/catalog/' },
       ...manual.sidebar,
     ],
   })],

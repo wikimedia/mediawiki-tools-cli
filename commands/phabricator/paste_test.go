@@ -35,7 +35,7 @@ func TestPasteSearchRequestsContentAndExactID(t *testing.T) {
 		}
 		return pasteResponse(`{"result":{"data":[{"id":123,"phid":"PHID-PSTE-test","fields":{"title":"Fixture","language":"text"},"attachments":{"content":{"content":"raw\ntext"}}}]}}`), nil
 	})
-	paste, err := client.getPaste("P123")
+	paste, err := client.getPaste(t.Context(), "P123")
 	if err != nil || paste.Fields.Title != "Fixture" || paste.Attachments.Content.Content != "raw\ntext" {
 		t.Fatalf("paste=%+v err=%v", paste, err)
 	}
@@ -52,7 +52,7 @@ func TestPasteSearchErrors(t *testing.T) {
 	} {
 		client := newConduitClient(&PhabConfig{URL: "https://phabricator.example", Key: "fixture"})
 		client.httpClient.Transport = authTransport(func(*http.Request) (*http.Response, error) { return pasteResponse(body), nil })
-		if _, err := client.getPaste("P123"); err == nil {
+		if _, err := client.getPaste(t.Context(), "P123"); err == nil {
 			t.Fatalf("accepted invalid paste response: %s", body)
 		}
 	}

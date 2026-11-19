@@ -66,8 +66,9 @@ mw mcp --services phab,wiki
 mw mcp --profile phab=work
 ```
 
-MCP is read-only and starts anonymously by default. A Phabricator profile can
-return non-public task summaries. Wiki page info stays anonymous.
+MCP starts anonymously with public tasks, comments, and wiki pages. A
+Phabricator profile can return non-public task summaries. Add `--allow-paste`
+with a profile to read account-visible pastes.
 `--deferred-services` authorizes services for later activation with
 `mw_enable_service`. Search returns CLI JSON with up to 50 results by default.
 Repeat the filters and pass `cursor.after` as `after` for the next page.

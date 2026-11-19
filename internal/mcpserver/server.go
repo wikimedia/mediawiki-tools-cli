@@ -29,10 +29,35 @@ type Operation struct {
 	description string
 	hints       commandmeta.Hints
 	register    func(*mcp.Server)
+	command     string
+	requirement string
+}
+
+// CommandTool describes a tool's relationship to a CLI command for the manual.
+type CommandTool struct {
+	Command     string `json:"-"`
+	Name        string `json:"name"`
+	Requirement string `json:"requirement,omitempty"`
+}
+
+// ForCommand records the canonical command path relative to the CLI root.
+func (o Operation) ForCommand(path string) Operation {
+	o.command = path
+	return o
+}
+
+func (o Operation) WithRequirement(requirement string) Operation {
+	o.requirement = requirement
+	return o
+}
+
+func (o Operation) CommandTool() CommandTool {
+	return CommandTool{Command: o.command, Name: o.name, Requirement: o.requirement}
 }
 
 // Action is an operation shared by a CLI command and an MCP tool. Define it
 // beside the CLI command and pass the same result to CLI JSON output and Tool.
+// Put the tool adapter in a companion _mcp.go file.
 // Each entry point binds its permitted backend before invoking the action.
 type Action[In, Out any] func(context.Context, In) (Out, error)
 

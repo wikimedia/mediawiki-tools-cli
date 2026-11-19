@@ -8,8 +8,60 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
+
+func TestManualCatalogIncludesUnlistedCommandsAndTraits(t *testing.T) {
+	root := &cobra.Command{Use: "mw"}
+	run := func(*cobra.Command, []string) {}
+	read := &cobra.Command{
+		Use: "read", Run: run, Aliases: []string{"r"},
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataSecrets},
+		}),
+	}
+	hidden := &cobra.Command{Use: "internal", Hidden: true}
+	hidden.AddCommand(&cobra.Command{Use: "debug", Run: run})
+	imported := &cobra.Command{Use: "external", Run: run, Annotations: map[string]string{"mwcli-docs-skip-children": "imported"}}
+	imported.AddCommand(&cobra.Command{Use: "list", Run: run})
+	root.AddCommand(read, hidden, imported)
+	directory := t.TempDir()
+	tools := []mcpserver.CommandTool{{Command: "read", Name: "test_read"}, {Command: "read", Name: "test_read_more", Requirement: "Profile"}}
+	if err := writeManual(root, directory, documentationVersion{}, tools...); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(directory, "_meta.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var metadata manualMetadata
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		t.Fatal(err)
+	}
+	entries := map[string]manualCatalogEntry{}
+	for _, entry := range metadata.Catalog {
+		entries[entry.Title] = entry
+	}
+	if len(entries) != 4 {
+		t.Fatalf("unexpected catalog: %+v", entries)
+	}
+	got := entries["mw read"]
+	if got.Link != "/manual/read/" || len(got.MCPTools) != 2 || got.MCPTools[0].Name != "test_read" || got.MCPTools[1].Requirement != "Profile" ||
+		!got.HighRisk || got.Hints == nil || !got.Hints.ReadOnlyHint ||
+		len(got.Aliases) != 1 || got.Aliases[0] != "r" {
+		t.Fatalf("read metadata: %+v", got)
+	}
+	got = entries["mw internal debug"]
+	if !got.Hidden || got.Link != "" || got.Hints != nil {
+		t.Fatalf("hidden metadata: %+v", got)
+	}
+	if got := entries["mw external list"]; got.Title == "" || got.Link != "" {
+		t.Fatalf("unlisted imported command: %+v", got)
+	}
+}
 
 func TestManualLinksFlagsAndRegeneration(t *testing.T) {
 	root := &cobra.Command{Use: "mw", Short: "CLI", DisableAutoGenTag: true}

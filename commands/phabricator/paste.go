@@ -1,6 +1,7 @@
 package phabricator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -29,7 +30,7 @@ type phabPaste struct {
 	} `json:"attachments"`
 }
 
-func (c *conduitClient) getPaste(ref string) (*phabPaste, error) {
+func (c *conduitClient) getPaste(ctx context.Context, ref string) (*phabPaste, error) {
 	parsed, err := parseObjectReference(ref)
 	if err != nil || parsed.Ref[0] != 'P' {
 		return nil, fmt.Errorf("expected a paste reference such as P123")
@@ -39,7 +40,7 @@ func (c *conduitClient) getPaste(ref string) (*phabPaste, error) {
 	}
 	var id int
 	_, _ = fmt.Sscanf(parsed.Ref, "P%d", &id)
-	result, err := c.post("paste.search", map[string]interface{}{
+	result, err := c.postContext(ctx, "paste.search", map[string]interface{}{
 		"constraints": map[string]interface{}{"ids": []int{id}},
 		"attachments": map[string]bool{"content": true},
 	})
