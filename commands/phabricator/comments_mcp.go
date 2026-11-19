@@ -26,5 +26,5 @@ func readCommentsTool(client anonymousPhabricator, name string) mcpserver.Operat
 	})
 	return run.Tool(mcp.Tool{
 		Name: name, Description: "Read public comments on a Wikimedia Phabricator task.",
-	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator comments")
+	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator comments").WithOutbound("phabricator.wikimedia.org", "task ID")
 }

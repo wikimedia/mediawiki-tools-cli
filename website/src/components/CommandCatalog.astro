@@ -2,6 +2,8 @@
 import manual from '../content/docs/manual/_meta.json';
 import { pageHref } from '../route-path.mjs';
 
+const dataLabels = (values: string[]) => values.map((value) => value.replaceAll("-", " ")).join(", ");
+
 const rows = manual.catalog.map((command) => {
   const { hints } = command;
   const action = hints ? (hints.readOnlyHint ? 'Read' : 'Write or other action') : 'Unclassified';
@@ -42,7 +44,7 @@ const rows = manual.catalog.map((command) => {
   <p class="count" role="status">{rows.length.toLocaleString('en')} commands</p>
   <p hidden data-empty>No commands match these filters.</p>
   <table aria-label="Command catalog">
-    <thead><tr><th scope="col">Command</th><th scope="col">Action and risk</th><th scope="col">Data access</th><th scope="col">MCP tool</th></tr></thead>
+    <thead><tr><th scope="col">Command</th><th scope="col">CLI action and risk</th><th scope="col">CLI data access</th><th scope="col">MCP tool</th></tr></thead>
     <tbody>
       {rows.map((row) => (
         <tr data-action={row.action} data-risk={row.risk} data-mcp={row.mcpTools?.length ? 'yes' : 'no'}
@@ -60,9 +62,16 @@ const rows = manual.catalog.map((command) => {
             {row.risk === 'Policy-dependent' && <small>Policy-dependent</small>}
             {row.traits.length > 0 && <small>{row.traits.join(' · ')}</small>}
           </td>
-          <td>{row.hints?.dataAccess.map((value) => value.replaceAll('-', ' ')).join(', ') ?? '—'}</td>
+          <td>{row.hints ? dataLabels(row.hints.dataAccess) : '—'}</td>
           <td>{row.mcpTools?.length ? row.mcpTools.map((tool) => (
-            <div><code>{tool.name}</code>{'requirement' in tool && <small>{tool.requirement}</small>}</div>
+            <div>
+              <code>{tool.name}</code>
+              <small>{tool.hints.readOnlyHint ? 'Read' : 'Write or other action'} · {dataLabels(tool.hints.dataAccess)}</small>
+              {'outbound' in tool && <small>Sends {tool.outbound.fields.join(', ')} to {tool.outbound.destination}</small>}
+              {'profile' in tool && <small>With a Phabricator profile · {dataLabels(tool.profile.hints.dataAccess)}</small>}
+              {'profile' in tool && 'outbound' in tool.profile && <small>Sends {tool.profile.outbound.fields.join(', ')} to {tool.profile.outbound.destination}</small>}
+              {'requirement' in tool && <small>{tool.requirement}</small>}
+            </div>
           )) : '—'}</td>
         </tr>
       ))}

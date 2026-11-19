@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 )
@@ -25,7 +26,7 @@ func NewWikiPageGetCmd() *cobra.Command {
 				}
 				title = args[0]
 			}
-			client, err := wikiAPIClient(false)
+			client, err := wikiPageReadClient(cmd)
 			if err != nil {
 				return err
 			}
@@ -38,5 +39,6 @@ func NewWikiPageGetCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page (defaults to the wiki's main page)")
+	accesspolicy.Support(cmd)
 	return cmd
 }

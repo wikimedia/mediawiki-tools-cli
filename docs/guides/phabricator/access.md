@@ -21,19 +21,26 @@ searches. `me` requires a profile.
 Use `--public-only` for one invocation or set it as the default.
 
 ```sh
-mw config set phabricator.public_only true
+mw config set access.public_only true
 ```
 
 In this mode, authenticated task access requires a public view policy in
-Wikimedia’s public S1 Space. Hidden tasks appear as `[NON PUBLIC]` with ID,
-status, priority, and timestamps in JSON. Opening, commenting on, or changing
-those tasks is blocked. Task creation is blocked because its visibility is
-unknown before submission.
+Wikimedia’s public S1 Space. Known restricted tasks there appear as
+`[NON PUBLIC]` with ID, status, priority, and timestamps in CLI JSON. Search
+omits tasks whose visibility is unknown and withholds that page’s cursors.
+Opening, commenting on, or changing restricted tasks is blocked. Task creation
+is blocked because its visibility is unknown before submission.
+
+The setting also covers wiki page source and info. Other commands without
+public-only support return an error. The older `phabricator.public_only`
+setting still applies to Phabricator task commands when the global setting
+is unset.
 
 ## AI agents and human overrides
 
-Agent detection and `--agent` enable public-only mode. Check detection with
-`mw debug agent`. A human can use `--allow-non-public` outside agent mode.
+Agent detection and `--agent` enable public-only mode for Phabricator tasks.
+Check detection with `mw debug agent`. A human can use `--allow-non-public`
+outside agent mode.
 Set Phabricator’s approval policy with `mw config set agent.policy POLICY`.
 Supported offline previews always run without approval.
 
@@ -46,9 +53,9 @@ Supported offline previews always run without approval.
 High-risk operations include login, profile removal, the mutation shell, raw
 API calls, and commands that accept secrets, reveal secrets, or have unknown
 data access.
-`mw phab api` can access non-public data even with `--public-only`. Paste reads
-and project metadata are also outside the task filter. Enforce isolation by
-keeping credentials and human caches outside the agent’s reach.
+Raw API calls, paste reads, and project metadata can expose non-public data
+when public-only mode is off. Enforce isolation by keeping credentials and
+human caches outside the agent’s reach.
 
 ## Confirming changes
 

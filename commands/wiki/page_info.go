@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiapi"
@@ -34,7 +35,6 @@ func readPageInfo(openClient func(pageInfoInput) (*wikiapi.Client, error)) mcpse
 func newWikiPageInfoCmd() *cobra.Command {
 	var input pageInfoInput
 	out := apiOutput{}
-	run := readPageInfo(func(pageInfoInput) (*wikiapi.Client, error) { return wikiAPIClient(false) })
 	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(mcpserver.ReadHints(commandmeta.DataPublic, commandmeta.DataPrivateMetadata)),
 		Use:         "info TITLE", Short: "Read page identity, URLs and protection metadata", Args: cobra.ExactArgs(1), ValidArgsFunction: cobra.NoFileCompletions,
@@ -45,6 +45,7 @@ func newWikiPageInfoCmd() *cobra.Command {
 				return err
 			}
 			input.Title = args[0]
+			run := readPageInfo(func(pageInfoInput) (*wikiapi.Client, error) { return wikiPageReadClient(cmd) })
 			page, err := run(cmd.Context(), input)
 			if err != nil {
 				return err
@@ -61,5 +62,6 @@ func newWikiPageInfoCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&input.FollowRedirects, "follow-redirects", false, "Resolve redirects within the selected wiki before reading metadata")
 	out.flags(cmd)
+	accesspolicy.Support(cmd)
 	return cmd
 }

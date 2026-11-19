@@ -17,5 +17,5 @@ func projectViewTool(client anonymousPhabricator) mcpserver.Operation {
 	})
 	return run.Tool(mcp.Tool{
 		Name: "phabricator_get_project", Description: "Look up a public Wikimedia Phabricator project.",
-	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator project view")
+	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator project view").WithOutbound("phabricator.wikimedia.org", "project identifier")
 }

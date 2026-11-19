@@ -24,5 +24,5 @@ func pageSourceTool() mcpserver.Operation {
 	})
 	return run.Tool(mcp.Tool{
 		Name: "wiki_get_page", Description: "Read a public wiki page’s source on MediaWiki.org or English Wikipedia.",
-	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("wiki page get")
+	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("wiki page get").WithOutbound("www.mediawiki.org or en.wikipedia.org", "page title")
 }

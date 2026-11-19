@@ -12,5 +12,5 @@ func pageInfoTool() mcpserver.Operation {
 	return run.Tool(mcp.Tool{
 		Name: "wiki_page_info", Description: "Read native page identity, URLs and protection metadata on MediaWiki.org or English Wikipedia. The selected public wiki receives the page title.",
 		OutputSchema: map[string]any{"type": "object"},
-	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("wiki page info")
+	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("wiki page info").WithOutbound("www.mediawiki.org or en.wikipedia.org", "page title", "redirect preference")
 }

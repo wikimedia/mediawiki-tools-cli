@@ -11,11 +11,16 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 )
 
-func TestPageInfoMCPMatchesAnonymousCLIJSON(t *testing.T) {
+func TestPageInfoMCPMatchesPublicOnlyCLIJSON(t *testing.T) {
 	isolateWikiProfiles(t)
+	if err := config.PutKeyValueOnDisk(accesspolicy.ConfigKey, "true"); err != nil {
+		t.Fatal(err)
+	}
 	previous := http.DefaultTransport
 	t.Cleanup(func() { http.DefaultTransport = previous })
 	http.DefaultTransport = wikiRoundTripFunc(func(req *http.Request) (*http.Response, error) {
@@ -27,7 +32,7 @@ func TestPageInfoMCPMatchesAnonymousCLIJSON(t *testing.T) {
 		const body = `{"query":{"pages":[{"pageid":1,"lastrevid":2,"title":"Earth","fullurl":"https://www.mediawiki.org/wiki/Earth","protection":[]}]}}`
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
 	})
-	stdout, err := runWikiProfile(t, []string{"page", "info", "Earth", "--anon", "--wiki", "www.mediawiki.org", "--follow-redirects", "--output", "json"}, "")
+	stdout, err := runWikiProfile(t, []string{"page", "info", "Earth", "--username", "fixture", "--password", "fixture", "--wiki", "www.mediawiki.org", "--follow-redirects", "--output", "json"}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

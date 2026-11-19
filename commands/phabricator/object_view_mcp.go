@@ -55,7 +55,7 @@ func readTaskTool(client anonymousPhabricator) mcpserver.Operation {
 	return run.Tool(mcp.Tool{
 		Name: "phabricator_get_task", Description: "Read a public Wikimedia Phabricator task, its description and public comments.",
 		OutputSchema: map[string]any{"type": "object"},
-	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator task view")
+	}, mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand("phabricator task view").WithOutbound("phabricator.wikimedia.org", "task ID")
 }
 
 func readPasteTool(client *conduitClient) mcpserver.Operation {
@@ -68,5 +68,5 @@ func readPasteTool(client *conduitClient) mcpserver.Operation {
 	return run.Tool(mcp.Tool{
 		Name: "phabricator_get_paste", Description: "Read a paste and its source using the authorized Phabricator account. Results can include private content.",
 	}, mcpserver.ReadHints(commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata)).
-		ForCommand("phabricator paste view").WithRequirement("Phabricator profile and --" + MCPAllowPasteFlag)
+		ForCommand("phabricator paste view").WithOutbound("configured Phabricator site", "paste ID", "profile credential").WithRequirement("Phabricator profile, --public-only=false and --" + MCPAllowPasteFlag)
 }

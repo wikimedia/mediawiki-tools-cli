@@ -31,11 +31,12 @@ type discoverInput struct {
 }
 
 type operationInfo struct {
-	Service     string            `json:"service"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Enabled     bool              `json:"enabled"`
-	Hints       commandmeta.Hints `json:"hints"`
+	Service     string `json:"service"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	ToolAccess
+	Requirement string `json:"requirement,omitempty"`
 }
 
 type discoverResult struct {
@@ -52,31 +53,39 @@ type enableResult struct {
 	Tools   []string `json:"tools"`
 }
 
-func RegisterCatalog(server *mcp.Server, services []Service) {
+func RegisterCatalog(server *mcp.Server, services []Service) error {
 	c := &catalog{server: server, services: services}
+	var all, active []Operation
 	hasDeferred := false
 	for _, service := range services {
+		all = append(all, service.Tools...)
 		if service.Deferred {
 			hasDeferred = true
 			continue
 		}
-		for _, tool := range service.Tools {
-			tool.Register(server)
-		}
+		active = append(active, service.Tools...)
 	}
-
 	discoverHints := ReadHints(commandmeta.DataNone)
 	discoverHints.OpenWorldHint = false
-	NewOperation("mw_discover_tools", "Find Wikimedia CLI operations authorized for this server and see which services can be enabled.",
-		discoverHints, c.discover).Register(server)
+	helpers := []Operation{
+		NewOperation("mw_discover_tools", "Find Wikimedia CLI operations authorized for this server and see which services can be enabled.",
+			discoverHints, c.discover),
+	}
 	if hasDeferred {
 		enableHints := commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{IdempotentHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataNone},
 		}
-		NewOperation("mw_enable_service", "Enable a service authorized at launch. This updates the tool catalog for this local MCP process. Refresh the tool list after enabling.",
-			enableHints, c.enable).Register(server)
+		helpers = append(helpers, NewOperation("mw_enable_service", "Enable a service authorized at launch. This updates the tool catalog for this local MCP process. Refresh the tool list after enabling.",
+			enableHints, c.enable))
 	}
+	if err := ValidateOperations(append(all, helpers...)); err != nil {
+		return err
+	}
+	for _, tool := range append(active, helpers...) {
+		tool.Register(server)
+	}
+	return nil
 }
 
 func (c *catalog) discover(_ context.Context, _ *mcp.CallToolRequest, input discoverInput) (*mcp.CallToolResult, discoverResult, error) {
@@ -110,7 +119,7 @@ func (c *catalog) discover(_ context.Context, _ *mcp.CallToolRequest, input disc
 			}
 			result.Tools = append(result.Tools, operationInfo{
 				Service: service.Name, Name: tool.name, Description: tool.description,
-				Enabled: !service.Deferred, Hints: tool.hints,
+				Enabled: !service.Deferred, ToolAccess: tool.access(), Requirement: tool.requirement,
 			})
 		}
 	}

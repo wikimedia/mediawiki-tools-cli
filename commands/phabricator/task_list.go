@@ -15,7 +15,7 @@ func newTaskListCmd(site *string) *cobra.Command {
 		}
 	})
 	cmd := &cobra.Command{
-		Annotations: commandmeta.Annotations(taskListHints(false)),
+		Annotations: commandmeta.Annotations(mcpserver.ReadHints(commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata)),
 		Use:         "list", Short: "Search and page through Phabricator tasks", Long: "List tasks matching project, workboard column, text, author, assignee, priority and status filters. Each request returns up to --limit tasks, ordered by update time by default; use --order newest for most recently created tasks first. Use the returned cursor with --after or --before, or --all to fetch every page. Column membership does not imply workboard card ordering. JSON output includes data and cursor fields. By default, only open tasks are included (including in-progress and stalled tasks). Use --status all to include closed tasks. --all fetches every matching page without changing the status filter.", Example: "list --project a_wikimedia_cli\nlist --project a_wikimedia_cli --column Backlog\nlist --assigned-to me --search documentation --output json\nlist --author me --order newest --status all --limit 20 --public-only\nlist --limit 50 --after CURSOR\nlist --project a_wikimedia_cli --status all --all", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 			if _, err := opts.params(); err != nil {
 				return err
@@ -61,10 +61,3 @@ func newTaskListCmd(site *string) *cobra.Command {
 }
 
 type taskSearch = mcpserver.Action[searchOptions, taskPage]
-
-func taskListHints(anonymous bool) commandmeta.Hints {
-	if anonymous {
-		return mcpserver.ReadHints(commandmeta.DataPublic)
-	}
-	return mcpserver.ReadHints(commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata)
-}

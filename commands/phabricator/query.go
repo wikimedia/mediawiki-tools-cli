@@ -287,6 +287,7 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 	}
 	params["attachments"] = map[string]interface{}{"projects": true, "columns": true}
 	seen := map[string]bool{}
+	hidden := false
 	for {
 		raw, e := c.postContext(ctx, "maniphest.search", params)
 		if e != nil {
@@ -297,9 +298,17 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 			return page, e
 		}
 		for _, task := range next.Data {
+			if !c.access.canList(task) {
+				hidden = true
+				continue
+			}
 			page.Data = append(page.Data, c.taskForList(task))
 		}
 		page.Cursor = next.Cursor
+		if hidden {
+			// A backend cursor can identify an omitted task.
+			page.Cursor.After, page.Cursor.Before = nil, nil
+		}
 		if !all || next.Cursor.After == nil {
 			break
 		}

@@ -93,7 +93,7 @@ func newPhabricatorCreateCmd(site *string) *cobra.Command {
 		cmd.MarkFlagsMutuallyExclusive("input", flag)
 	}
 	cmd.Flags().Bool("yes", false, "Confirm task creation and assert user approval when agent policy requires it")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or creating a task")
+	addOfflinePreviewFlag(cmd, &dryRun, "Preview without accessing credentials or creating a task")
 	return cmd
 }
 

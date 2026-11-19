@@ -6,9 +6,18 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiapi"
 )
+
+func wikiPageReadClient(cmd *cobra.Command) (*wikiapi.Client, error) {
+	publicOnly, err := accesspolicy.CLI(cmd, "")
+	if err != nil {
+		return nil, err
+	}
+	return wikiAPIClient(publicOnly)
+}
 
 func newWikiPageHistoryCmd() *cobra.Command {
 	options := wikiapi.HistoryOptions{}

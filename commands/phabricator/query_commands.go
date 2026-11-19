@@ -1,10 +1,12 @@
 package phabricator
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
@@ -168,15 +170,20 @@ func newTaskCmd(site *string) *cobra.Command {
 	addSetStatusCmd(root, site)
 	for _, cmd := range root.Commands() {
 		switch cmd.Name() {
+		case "list", "create", "edit", "view", "read", "comments", "assign":
+			accesspolicy.Support(cmd)
 		case "mv":
+			accesspolicy.Support(cmd)
 			cmd.Use = "move <T12345> <column>"
 			cmd.Aliases = []string{"mv"}
 			cmd.Example = strings.ReplaceAll(cmd.Example, "mv ", "move ")
 		case "setprio":
+			accesspolicy.Support(cmd)
 			cmd.Use = "priority <T12345> <priority>"
 			cmd.Aliases = []string{"setprio", "prio"}
 			cmd.Example = strings.ReplaceAll(cmd.Example, "setprio ", "priority ")
 		case "setstatus":
+			accesspolicy.Support(cmd)
 			cmd.Use = "status <T12345> <status>"
 			cmd.Aliases = []string{"setstatus"}
 			cmd.Example = strings.ReplaceAll(cmd.Example, "setstatus ", "status ")
@@ -186,14 +193,14 @@ func newTaskCmd(site *string) *cobra.Command {
 }
 
 func clientFromCommand(cmd *cobra.Command, site string) (*conduitClient, *PhabConfig, error) {
-	return loadCommandClient(cmd, site, true)
-}
-
-func loadCommandClient(cmd *cobra.Command, site string, useCache bool) (*conduitClient, *PhabConfig, error) {
 	access, err := taskAccessFromCommand(cmd, "")
 	if err != nil {
 		return nil, nil, err
 	}
+	return loadClientWithAccess(cmd.Context(), site, true, access)
+}
+
+func loadClientWithAccess(ctx context.Context, site string, useCache bool, access taskAccess) (*conduitClient, *PhabConfig, error) {
 	cfg, err := loadConfig(site)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading config: %w", err)
@@ -204,7 +211,7 @@ func loadCommandClient(cmd *cobra.Command, site string, useCache bool) (*conduit
 		clientConfig.CachePath = ""
 	}
 	client := newConduitClient(&clientConfig)
-	client.context = cmd.Context()
+	client.context = ctx
 	client.access = access
 	return client, cfg, nil
 }

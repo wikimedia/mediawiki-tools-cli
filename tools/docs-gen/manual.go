@@ -111,6 +111,14 @@ func manualFilename(command *cobra.Command) string {
 func writeManual(root *cobra.Command, directory string, version documentationVersion, tools ...mcpserver.CommandTool) error {
 	toolsByCommand := map[string][]mcpserver.CommandTool{}
 	for _, tool := range tools {
+		if err := tool.ToolAccess.Validate(); err != nil {
+			return fmt.Errorf("MCP tool %q: %w", tool.Name, err)
+		}
+		if tool.Profile != nil {
+			if err := tool.Profile.Validate(); err != nil {
+				return fmt.Errorf("MCP tool %q with profile: %w", tool.Name, err)
+			}
+		}
 		toolsByCommand[root.Name()+" "+tool.Command] = append(toolsByCommand[root.Name()+" "+tool.Command], tool)
 	}
 	var catalog []manualCatalogEntry

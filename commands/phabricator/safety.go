@@ -93,7 +93,16 @@ func taskMutationCommand(cmd *cobra.Command, validateValue func(string) error) *
 
 func addMutationFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
-	cmd.Flags().Bool("dry-run", false, "Preview without applying changes or accessing credentials")
+	var dryRun bool
+	addOfflinePreviewFlag(cmd, &dryRun, "Preview without applying changes or accessing credentials")
+}
+
+func addOfflinePreviewFlag(cmd *cobra.Command, dryRun *bool, usage string) {
+	if cmd.Annotations == nil {
+		cmd.Annotations = make(map[string]string)
+	}
+	cmd.Annotations[cli.OfflinePreviewAnnotation] = "true"
+	cmd.Flags().BoolVar(dryRun, "dry-run", false, usage)
 }
 
 func profileMutationCommand(cmd *cobra.Command, site *string) *cobra.Command {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
@@ -18,7 +19,7 @@ func newPhabricatorMCPCmd(site *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "mcp",
 		Short:       "Serve Phabricator reads over MCP",
-		Long:        "Start a local stdio MCP server. Task and comment details are public. Bind --profile to search with an account. Add --allow-paste to expose account-visible paste content.",
+		Long:        "Start a local stdio MCP server. Task and comment details are public. Bind --profile to search with an account. Public-only access is the default. Add --public-only=false and --allow-paste to expose account-visible paste content.",
 		Example:     "mcp\nmcp --profile personal",
 		Annotations: annotations,
 		Args:        cobra.NoArgs,
@@ -26,8 +27,8 @@ func newPhabricatorMCPCmd(site *string) *cobra.Command {
 			if (cmd.Flags().Changed("profile") || cmd.Flags().Changed("site")) && strings.TrimSpace(*site) == "" {
 				return fmt.Errorf("provide a saved Phabricator profile name")
 			}
-			if commandFlagEnabled(cmd, "allow-non-public") && *site == "" {
-				return fmt.Errorf("--allow-non-public requires an explicit Phabricator profile")
+			if commandFlagEnabled(cmd, "allow-non-public") {
+				return fmt.Errorf("use --public-only=false to allow account-visible MCP results")
 			}
 			return nil
 		},
@@ -37,12 +38,16 @@ func newPhabricatorMCPCmd(site *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := mcpserver.ValidateOperations(tools); err != nil {
+				return err
+			}
 			for _, tool := range tools {
 				tool.Register(server)
 			}
 			return mcpserver.Serve(cmd.Context(), server)
 		},
 	}
+	accesspolicy.Support(cmd)
 	cmd.Flags().Bool(MCPAllowPasteFlag, false, "Expose account-visible paste content using the explicit Phabricator profile")
 	return cmd
 }
@@ -57,6 +62,13 @@ func MCPTools(cmd *cobra.Command, profile string) ([]mcpserver.Operation, error)
 		}
 		return phabricatorMCPTools(nil, false), nil
 	}
+	publicOnly, err := accesspolicy.MCP(cmd)
+	if err != nil {
+		return nil, err
+	}
+	if publicOnly && allowPaste {
+		return nil, fmt.Errorf("--allow-paste requires --public-only=false and an explicit Phabricator profile")
+	}
 	if err := checkPhabricatorAgentPolicy(cmd); err != nil {
 		return nil, err
 	}
@@ -65,17 +77,26 @@ func MCPTools(cmd *cobra.Command, profile string) ([]mcpserver.Operation, error)
 	if err != nil {
 		return nil, err
 	}
-	client, _, err := loadCommandClient(cmd, selected, false)
+	client, _, err := loadClientWithAccess(cmd.Context(), selected, false, taskAccess{publicOnly: publicOnly})
 	if err != nil {
 		return nil, err
 	}
 	return phabricatorMCPTools(client, allowPaste), nil
 }
 
-// MCPDefinitions returns the advertised operations for documentation without
-// opening a profile. The runtime chooses which operations to register.
-func MCPDefinitions() []mcpserver.Operation {
-	return phabricatorMCPTools(nil, true)
+// MCPCommandTools documents the public and account-backed tools without opening a profile.
+func MCPCommandTools() []mcpserver.CommandTool {
+	operations := phabricatorMCPTools(nil, true)
+	profile := taskSearchTool(false, false, nil).CommandTool()
+	tools := make([]mcpserver.CommandTool, 0, len(operations))
+	for _, operation := range operations {
+		tool := operation.CommandTool()
+		if tool.Name == profile.Name {
+			tool.Profile = &profile.ToolAccess
+		}
+		tools = append(tools, tool)
+	}
+	return tools
 }
 
 func phabricatorMCPTools(profile *conduitClient, allowPaste bool) []mcpserver.Operation {
@@ -85,7 +106,7 @@ func phabricatorMCPTools(profile *conduitClient, allowPaste bool) []mcpserver.Op
 		search = limitedProfileTaskSearch(profile)
 	}
 	tools := []mcpserver.Operation{
-		taskSearchTool(profile == nil, search),
+		taskSearchTool(profile == nil, profile == nil || profile.access.publicOnly, search),
 		readTaskTool(public),
 		readCommentsTool(public, "phabricator_get_comments"),
 		readCommentsTool(public, "phabricator_get_task_comments"),

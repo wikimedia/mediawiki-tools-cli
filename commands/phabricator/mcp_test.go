@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -155,6 +156,7 @@ func TestPhabricatorMCPPasteRequiresGrant(t *testing.T) {
 	isolatedAuthConfig(t)
 	cmd := &cobra.Command{Use: "mcp"}
 	cmd.Flags().Bool(MCPAllowPasteFlag, false, "")
+	cmd.Flags().Bool("public-only", true, "")
 	cmd.SetContext(t.Context())
 	if err := cmd.Flags().Set(MCPAllowPasteFlag, "true"); err != nil {
 		t.Fatal(err)
@@ -182,6 +184,12 @@ func TestPhabricatorMCPPasteRequiresGrant(t *testing.T) {
 		}
 		return pasteResponse(`{"result":{"data":[{"id":123,"phid":"PHID-PSTE-example","fields":{"title":"Example"},"attachments":{"content":{"content":"Fixture source"}}}]}}`), nil
 	})
+	if _, err := MCPTools(cmd, "work"); err == nil || !strings.Contains(err.Error(), "--public-only=false") {
+		t.Fatalf("public-only server accepted paste read: %v", err)
+	}
+	if err := cmd.Flags().Set("public-only", "false"); err != nil {
+		t.Fatal(err)
+	}
 	operations, err := MCPTools(cmd, "work")
 	if err != nil || len(operations) != 6 {
 		t.Fatalf("paste grant: %d tools, %v", len(operations), err)
@@ -225,7 +233,8 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 		"phabricator.profiles.work.key":      "fixture-token",
 		"phabricator.profiles.work.username": "example",
 		"phabricator.profiles.work.url":      defaultPhabricatorURL,
-		"phabricator.public_only":            "true",
+		"phabricator.public_only":            "false",
+		"access.public_only":                 "false",
 	} {
 		if err := mwconfig.PutKeyValueOnDisk(key, value); err != nil {
 			t.Fatal(err)
@@ -291,13 +300,13 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 			!reflect.DeepEqual(payload.Constraints.Projects, []string{"PHID-PROJ-ci", "PHID-PROJ-team"}) || payload.Limit != 50 || payload.Order != "newest" {
 			t.Errorf("unexpected search payload: %+v", payload.Constraints)
 		}
-		return pasteResponse(`{"result":` + accessPage(t, accessTask(123, "public", wikimediaPublicSpace), accessTask(124, "users", wikimediaPublicSpace)) + `}`), nil
+		return pasteResponse(`{"result":` + accessPage(t, accessTask(123, "public", wikimediaPublicSpace), accessTask(124, "users", wikimediaPublicSpace), accessTask(125, "", wikimediaPublicSpace)) + `}`), nil
 	})
 	var stdout bytes.Buffer
 	cliCmd := NewPhabricatorCmd()
 	cliCmd.SetOut(&stdout)
 	cliCmd.SetArgs([]string{
-		"task", "list", "--profile", "work", "--search", "example", "--priority", "80", "--unassigned", "--project", "ci,team",
+		"task", "list", "--public-only", "--profile", "work", "--search", "example", "--priority", "80", "--unassigned", "--project", "ci,team",
 		"--author", "me", "--status", "resolved", "--order", "newest", "--output", "json",
 	})
 	if err := cliCmd.Execute(); err != nil {
@@ -333,7 +342,7 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 	var page taskPage
 	if err := json.Unmarshal(raw, &page); err != nil || len(page.Data) != 2 || !page.Data[1].Redacted || page.Data[1].Fields.Name != nonPublicLabel ||
 		page.Data[1].Fields.DateCreated != 0 || page.Data[1].Fields.DateModified != 0 {
-		t.Fatalf("profile search did not apply the configured public-only policy: %s, %v", raw, err)
+		t.Fatalf("profile search did not apply the default public-only policy: %s, %v", raw, err)
 	}
 	var cliPage taskPage
 	if err := json.Unmarshal(stdout.Bytes(), &cliPage); err != nil || len(cliPage.Data) != 2 || !reflect.DeepEqual(cliPage.Data[0], page.Data[0]) || searches != 2 {

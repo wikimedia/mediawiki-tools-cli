@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 )
 
@@ -14,10 +15,20 @@ type taskSearchInput struct {
 	Limit *int `json:"limit,omitempty" jsonschema:"Results per page, from 1 to 100. Defaults to 50."`
 }
 
-func taskSearchTool(anonymous bool, search taskSearch) mcpserver.Operation {
-	description := "Search Phabricator tasks using the configured account. Results can include summaries of non-public tasks visible to that account."
+func taskSearchTool(anonymous, publicOnly bool, search taskSearch) mcpserver.Operation {
+	hints := mcpserver.ReadHints(commandmeta.DataPublic)
+	destination := "phabricator.wikimedia.org"
+	fields := []string{"search text", "filters", "sort order", "page limit", "cursor"}
+	description := "Search Phabricator tasks using the configured account. Public-only mode masks restricted titles and omits tasks whose visibility is unknown."
 	if anonymous {
 		description = "Search public Wikimedia Phabricator tasks. Search text and filters are sent to phabricator.wikimedia.org."
+	} else {
+		destination = "configured Phabricator site"
+		hints = mcpserver.ReadHints(commandmeta.DataPublic, commandmeta.DataPrivateMetadata)
+		fields = append(fields, "profile credential")
+		if !publicOnly {
+			description = "Search Phabricator tasks using the configured account. Results can include summaries of non-public tasks visible to that account."
+		}
 	}
 	description += " Returns one page. Apply at least one filter and repeat the same filters when paging."
 	run := mcpserver.Action[taskSearchInput, taskPage](func(ctx context.Context, input taskSearchInput) (taskPage, error) {
@@ -49,7 +60,7 @@ func taskSearchTool(anonymous bool, search taskSearch) mcpserver.Operation {
 				"cursor": map[string]string{"type": "object"},
 			},
 		},
-	}, taskListHints(anonymous)).ForCommand("phabricator task list")
+	}, hints).ForCommand("phabricator task list").WithOutbound(destination, fields...)
 }
 
 // Preserve the MCP disclosure scope for tasks whose public visibility cannot

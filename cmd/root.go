@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,7 @@ import (
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
@@ -233,7 +235,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
-	if root := mcpStartupCommand(cli.InvocationName(os.Args[0]), os.Args[1:]); root != nil {
+	if root := minimalStartupCommand(cli.InvocationName(os.Args[0]), os.Args[1:]); root != nil {
 		if err := root.Execute(); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
@@ -349,6 +351,9 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
+	if c.EffectiveKoanf.Exists(accesspolicy.ConfigKey) || slices.ContainsFunc(os.Args[1:], isPublicOnlyFlag) {
+		guardPublicOnlyCommands(rootCmd)
+	}
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
 	// - Commands can be split into sections based on annotations
@@ -412,27 +417,83 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 }
 
 func addRootFlags(root *cobra.Command) {
+	accesspolicy.AddFlag(root)
 	root.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
 	root.PersistentFlags().BoolVar(&cli.Opts.NoInteraction, "no-interaction", false, "Do not ask any interactive questions")
 	// GitLab auth login uses -h for hostname.
 	root.PersistentFlags().Bool("help", false, "Help for this command")
 }
 
-// Other command constructors can load configuration, so resolve stdio servers
-// on a small command tree before initializing the rest of the CLI.
-func mcpStartupCommand(name string, args []string) *cobra.Command {
-	if !stringsutil.StringInSlice("mcp", args) {
+func isPublicOnlyFlag(arg string) bool {
+	return arg == "--"+accesspolicy.Flag || strings.HasPrefix(arg, "--"+accesspolicy.Flag+"=")
+}
+
+// Check unsupported operations during argument validation, before service hooks
+// can load credentials. Local configuration and help remain available.
+func guardPublicOnlyCommands(root *cobra.Command) {
+	for _, service := range root.Commands() {
+		switch service.Name() {
+		case "config", "help", "version":
+			continue
+		}
+		cobrautil.VisitAllSubCommands(service, func(cmd *cobra.Command) {
+			if !cmd.Runnable() || cmd.Annotations[accesspolicy.SupportedAnnotation] == "true" {
+				return
+			}
+			validate := cmd.Args
+			cmd.Args = func(cmd *cobra.Command, args []string) error {
+				if cmd.DisableFlagParsing && slices.ContainsFunc(args, isPublicOnlyFlag) {
+					return fmt.Errorf("%s does not support --public-only", cmd.CommandPath())
+				}
+				publicOnly, err := accesspolicy.CLI(cmd, "")
+				if err != nil {
+					return err
+				}
+				if publicOnly {
+					return fmt.Errorf("%s does not support --public-only", cmd.CommandPath())
+				}
+				if validate != nil {
+					return validate(cmd, args)
+				}
+				return nil
+			}
+		})
+	}
+}
+
+// Resolve stdio servers and offline previews before initializing the full CLI.
+func minimalStartupCommand(name string, args []string) *cobra.Command {
+	mayBeMCP := slices.Contains(args, "mcp")
+	mayBePreview := slices.ContainsFunc(args, func(arg string) bool {
+		return arg == "--dry-run" || strings.HasPrefix(arg, "--dry-run=")
+	})
+	if !mayBeMCP && !mayBePreview {
 		return nil
 	}
+	root := newMinimalCommandTree(name)
+	selected, remaining, err := root.Find(args)
+	if err != nil || selected == nil {
+		return nil
+	}
+	if selected.Annotations[cli.SkipConfigAnnotation] != "true" {
+		if selected.Annotations[cli.OfflinePreviewAnnotation] != "true" || selected.ParseFlags(remaining) != nil {
+			return nil
+		}
+		if dryRun, _ := selected.Flags().GetBool("dry-run"); !dryRun {
+			return nil
+		}
+		// Let execution parse the original flags on a fresh tree.
+		root = newMinimalCommandTree(name)
+	}
+	root.SetArgs(args)
+	return root
+}
+
+func newMinimalCommandTree(name string) *cobra.Command {
 	root := &cobra.Command{Use: name, SilenceErrors: true, SilenceUsage: true}
 	addRootFlags(root)
 	root.AddGroup(&cobra.Group{ID: "service", Title: "Service Commands"})
 	root.AddCommand(newMCPCmd(), phabricatorcmd.NewPhabricatorCmd())
-	selected, _, err := root.Find(args)
-	if err != nil || selected == nil || selected.Annotations[cli.SkipConfigAnnotation] != "true" {
-		return nil
-	}
-	root.SetArgs(args)
 	return root
 }
 

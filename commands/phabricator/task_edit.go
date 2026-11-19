@@ -135,6 +135,6 @@ func newTaskEditCmd(site *string) *cobra.Command {
 	cmd.Flags().StringSliceVar(&projects, "project", nil, "Project hashtag, exact name, ID or PHID to add (repeatable)")
 	cmd.Flags().StringVar(&comment, "comment", "", "Add a comment (Phabricator Remarkup)")
 	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or changing a task")
+	addOfflinePreviewFlag(cmd, &dryRun, "Preview without accessing credentials or changing a task")
 	return cmd
 }

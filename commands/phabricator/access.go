@@ -3,11 +3,10 @@ package phabricator
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
-	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 )
 
 const (
@@ -32,16 +31,9 @@ func taskAccessFromCommand(cmd *cobra.Command, endpoint string) (taskAccess, err
 		return access, err
 	}
 	access.agent = agentMode
-	config := mwconfig.State().EffectiveKoanf
-	if config.Exists("phabricator.public_only") {
-		var err error
-		access.publicOnly, err = strconv.ParseBool(config.String("phabricator.public_only"))
-		if err != nil {
-			return access, fmt.Errorf("phabricator.public_only must be true or false: %w", err)
-		}
-	}
-	if flag := cmd.Flag("public-only"); flag != nil && flag.Changed {
-		access.publicOnly = commandFlagEnabled(cmd, "public-only")
+	access.publicOnly, err = accesspolicy.CLI(cmd, "phabricator.public_only")
+	if err != nil {
+		return access, err
 	}
 	if commandFlagEnabled(cmd, "allow-non-public") {
 		if access.agent {
@@ -57,14 +49,28 @@ func taskAccessFromCommand(cmd *cobra.Command, endpoint string) (taskAccess, err
 }
 
 func (a taskAccess) permits(task phabTask) bool {
+	return !a.publicOnly || a.viewPolicy(task) == "public"
+}
+
+func (a taskAccess) viewPolicy(task phabTask) string {
+	// A visibility policy is only verified in Wikimedia's known public S1 Space.
+	if a.endpoint != defaultPhabricatorURL || task.Fields.SpacePHID != wikimediaPublicSpace {
+		return ""
+	}
+	return task.Fields.Policy["view"]
+}
+
+// Allow placeholders only for recognized policies within the supported Space.
+func (a taskAccess) canList(task phabTask) bool {
 	if !a.publicOnly {
 		return true
 	}
-	// The initial Space allowlist is limited to Wikimedia's known public S1.
-	// A public task policy in any other (or missing) Space is still unknown.
-	return a.endpoint == defaultPhabricatorURL &&
-		task.Fields.SpacePHID == wikimediaPublicSpace &&
-		task.Fields.Policy["view"] == "public"
+	switch a.viewPolicy(task) {
+	case "public", "users", "admin", "no-one":
+		return true
+	default:
+		return false
+	}
 }
 
 func (a taskAccess) denied() error {

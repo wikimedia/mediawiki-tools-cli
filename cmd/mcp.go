@@ -11,6 +11,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
@@ -24,14 +25,14 @@ var publicMCPServices = map[string]func() []mcpserver.Operation{
 
 func newMCPCmd() *cobra.Command {
 	var services, deferredServices, profileBindings []string
-	defaultServices := append([]string{"phab"}, slices.Sorted(maps.Keys(publicMCPServices))...)
-	serviceList := strings.Join(defaultServices, ",")
+	defaultServices := []string{"phab", "gerrit", "gitlab", "wiki"}
+	serviceList := strings.Join(append([]string{"phab"}, slices.Sorted(maps.Keys(publicMCPServices))...), ",")
 	annotations := commandmeta.Annotations(mcpserver.ReadHints(commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata))
 	annotations[cli.SkipConfigAnnotation] = "true"
 	cmd := &cobra.Command{
 		Use:         "mcp",
 		Short:       "Serve selected Wikimedia services over MCP",
-		Long:        "Start a local stdio MCP server for public Phabricator, Gerrit, GitLab, and wiki reads. Select services with --services or --deferred-services. Bind --profile phab=NAME for account-backed search. Add --allow-paste to expose account-visible paste content.",
+		Long:        "Start a local stdio MCP server for public Phabricator, Gerrit, GitLab, and wiki reads. Select services with --services or --deferred-services. Bind --profile phab=NAME for account-backed search. Public-only access is the default. Add --public-only=false and --allow-paste to expose account-visible paste content.",
 		Example:     "mcp --services phab,wiki\nmcp --services phab --deferred-services wiki\nmcp --services phab --profile phab=work",
 		Args:        cobra.NoArgs,
 		Annotations: annotations,
@@ -68,27 +69,28 @@ func newMCPCmd() *cobra.Command {
 				}
 			}
 			server := mcpserver.New("mw")
-			mcpserver.RegisterCatalog(server, groups)
+			if err := mcpserver.RegisterCatalog(server, groups); err != nil {
+				return err
+			}
 			return mcpserver.Serve(cmd.Context(), server)
 		},
 	}
+	accesspolicy.Support(cmd)
 	cmd.Flags().StringSliceVar(&services, "services", defaultServices, "Comma-separated MCP services to expose immediately ("+serviceList+")")
 	cmd.Flags().StringSliceVar(&deferredServices, "deferred-services", nil, "Comma-separated MCP services eligible for on-demand activation ("+serviceList+")")
 	cmd.Flags().StringArrayVar(&profileBindings, "profile", nil, "Bind a saved profile to a service as SERVICE=NAME (currently phab only)")
 	cmd.Flags().Bool("yes", false, "Assert user approval if a profiled service requires it")
-	cmd.Flags().Bool(phabricator.MCPAllowPasteFlag, false, "Expose account-visible paste content using the explicit Phabricator profile")
+	cmd.Flags().Bool(phabricator.MCPAllowPasteFlag, false, "Expose account-visible pastes with a Phabricator profile and --public-only=false")
 	return cmd
 }
 
 // MCPCommandTools describes the CLI tools that can be registered at launch.
 func MCPCommandTools() []mcpserver.CommandTool {
-	operations := phabricator.MCPDefinitions()
+	tools := phabricator.MCPCommandTools()
 	for _, service := range slices.Sorted(maps.Keys(publicMCPServices)) {
-		operations = append(operations, publicMCPServices[service]()...)
-	}
-	tools := make([]mcpserver.CommandTool, 0, len(operations))
-	for _, operation := range operations {
-		tools = append(tools, operation.CommandTool())
+		for _, operation := range publicMCPServices[service]() {
+			tools = append(tools, operation.CommandTool())
+		}
 	}
 	return tools
 }

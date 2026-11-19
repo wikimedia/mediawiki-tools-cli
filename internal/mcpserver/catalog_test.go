@@ -19,12 +19,14 @@ func TestCatalogDiscoveryAndActivation(t *testing.T) {
 		return NewOperation(name, description, ReadHints(commandmeta.DataPublic),
 			func(context.Context, *mcp.CallToolRequest, struct{}) (*mcp.CallToolResult, struct{}, error) {
 				return nil, struct{}{}, nil
-			})
+			}).WithOutbound("example.org", "test input")
 	}
-	RegisterCatalog(server, []Service{
+	if err := RegisterCatalog(server, []Service{
 		{Name: "phab", Tools: []Operation{fixture("phabricator_search_tasks", "Search tasks")}},
 		{Name: "wiki", Deferred: true, Tools: []Operation{fixture("wiki_page_info", "Read wiki page metadata")}},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	changed := make(chan struct{}, 1)
 	host := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "1"}, &mcp.ClientOptions{
 		ToolListChangedHandler: func(context.Context, *mcp.ToolListChangedRequest) { changed <- struct{}{} },
@@ -116,5 +118,16 @@ func TestCatalogDiscoveryAndActivation(t *testing.T) {
 	page = discover(discoverInput{Query: "page metadata"})
 	if len(page.Tools) != 1 || !page.Tools[0].Enabled {
 		t.Fatalf("unexpected active operation: %+v", page)
+	}
+}
+
+func TestCatalogRejectsDeferredNameCollision(t *testing.T) {
+	run := Action[struct{}, struct{}](func(context.Context, struct{}) (struct{}, error) { return struct{}{}, nil })
+	tool := run.Tool(mcp.Tool{Name: "duplicate"}, commandmeta.Hints{DataAccess: []commandmeta.DataAccess{commandmeta.DataNone}})
+	if err := RegisterCatalog(New("collision-test"), []Service{
+		{Name: "one", Tools: []Operation{tool}},
+		{Name: "two", Tools: []Operation{tool}, Deferred: true},
+	}); err == nil {
+		t.Fatal("accepted a duplicate deferred tool")
 	}
 }

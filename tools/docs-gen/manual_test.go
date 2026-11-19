@@ -29,7 +29,14 @@ func TestManualCatalogIncludesUnlistedCommandsAndTraits(t *testing.T) {
 	imported.AddCommand(&cobra.Command{Use: "list", Run: run})
 	root.AddCommand(read, hidden, imported)
 	directory := t.TempDir()
-	tools := []mcpserver.CommandTool{{Command: "read", Name: "test_read"}, {Command: "read", Name: "test_read_more", Requirement: "Profile"}}
+	public := mcpserver.ToolAccess{
+		Hints:    mcpserver.ReadHints(commandmeta.DataPublic),
+		Outbound: &mcpserver.Outbound{Destination: "example.org", Fields: []string{"identifier"}},
+	}
+	tools := []mcpserver.CommandTool{
+		{Command: "read", Name: "test_read", ToolAccess: public},
+		{Command: "read", Name: "test_read_more", Requirement: "Profile", ToolAccess: public},
+	}
 	if err := writeManual(root, directory, documentationVersion{}, tools...); err != nil {
 		t.Fatal(err)
 	}
@@ -51,6 +58,8 @@ func TestManualCatalogIncludesUnlistedCommandsAndTraits(t *testing.T) {
 	got := entries["mw read"]
 	if got.Link != "/manual/read/" || len(got.MCPTools) != 2 || got.MCPTools[0].Name != "test_read" || got.MCPTools[1].Requirement != "Profile" ||
 		!got.HighRisk || got.Hints == nil || !got.Hints.ReadOnlyHint ||
+		got.MCPTools[0].Outbound == nil || got.MCPTools[0].Outbound.Destination != "example.org" ||
+		got.MCPTools[0].Hints.DataAccess[0] != commandmeta.DataPublic ||
 		len(got.Aliases) != 1 || got.Aliases[0] != "r" {
 		t.Fatalf("read metadata: %+v", got)
 	}

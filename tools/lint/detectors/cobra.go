@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
@@ -186,6 +187,8 @@ func detectAllowedAnnotations(theCmd *cobra.Command, cmdString string) *issue.Is
 		"service-logo",
 		cli.TelemetrySkipAnnotation,
 		cli.SkipConfigAnnotation,
+		cli.OfflinePreviewAnnotation,
+		accesspolicy.SupportedAnnotation,
 		commandmeta.ReadOnlyAnnotation,
 		commandmeta.DestructiveAnnotation,
 		commandmeta.IdempotentAnnotation,

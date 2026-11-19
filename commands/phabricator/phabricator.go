@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -41,18 +42,18 @@ Use login --url to explicitly choose the endpoint.
 Use auth login --method phab-cfg to validate and copy credentials from phab.cfg.
 Commands use saved CLI profiles; external credential files are never used directly.
 
-Use --public-only (or set phabricator.public_only to true) to mask non-public tasks.
+Use --public-only (or set access.public_only to true) to restrict data access.
 --agent and detected agent environments require a human rerun outside agent mode
 for non-public task access. These are local guardrails, not credential isolation.
 Only explicitly public tasks in Wikimedia's known public S1 Space pass the
 initial filter; other Spaces and missing policies are treated as unknown.
-The low-level api command and non-task objects are not covered by the task filter.
+Public-only mode rejects raw API and other unsupported operations.
 Agent approvals follow the CLI-wide agent.policy setting, initially enforced
 only for Phabricator: permissive requires approval for high-risk operations,
 balanced (default) for writes and high-risk operations, and cautious for all calls.
 Supported offline --dry-run previews never require approval. When approval is
 required, explain the operation and ask the user before rerunning with --yes.
-Raw API calls are high-risk and unfiltered, even with task access flags.
+Raw API calls are high-risk.
 Task creation, paste creation or editing, and profile removal require
 interactive confirmation or --yes. Targeted changes to existing tasks
 apply directly outside agent mode.
@@ -65,7 +66,7 @@ For storage options and password managers, see "mw help guides authentication".`
 	cmd.PersistentFlags().StringVar(&site, "site", "", "Saved site/profile to use (compatible alias for --profile)")
 	phabProfiles.AddFlag(cmd, &site)
 	cmd.MarkFlagsMutuallyExclusive("site", "profile")
-	cmd.PersistentFlags().Bool("public-only", false, "Restrict task commands to public tasks in Wikimedia's known public Space (also phabricator.public_only)")
+	accesspolicy.AddFlag(cmd)
 	cmd.PersistentFlags().Bool("agent", false, "Enforce agent restrictions on task access, mutations, login, raw API and shell")
 	cmd.PersistentFlags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
 	cmd.PersistentFlags().Bool("allow-non-public", false, "Approve non-public task access for this invocation outside agent mode")
@@ -90,6 +91,12 @@ For storage options and password managers, see "mw help guides authentication".`
 	addSetPrioCmd(cmd, &site)
 	addSetStatusCmd(cmd, &site)
 
+	for _, child := range cmd.Commands() {
+		switch child.Name() {
+		case "read", "comments", "create", "assign", "mv", "rmtag", "setprio", "setstatus":
+			accesspolicy.Support(child)
+		}
+	}
 	return cmd
 }
 

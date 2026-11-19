@@ -222,7 +222,7 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool) *cobra.Command {
 		cmd.Long = "Preview and update the supplied paste fields without fetching the existing paste content. " +
 			"The preview prints all supplied changes, including text from --file (use - for stdin). " +
 			"Confirm interactively or pass --yes. Agents follow agent.policy for approval. --dry-run previews without reading credentials or contacting Phabricator. " +
-			"Omitted fields, including visibility, are left unchanged. Paste operations are not covered by the task public-only filter."
+			"Omitted fields, including visibility, are left unchanged. Saving a paste requires public-only mode to be off."
 		cmd.Example = "edit P123 --file revised.txt\nedit P123 --title 'New title' --yes\nedit P123 --status archived --dry-run"
 		cmd.Args = cobra.ExactArgs(1)
 	}
@@ -236,6 +236,6 @@ func newPhabricatorPasteWriteCmd(site *string, editing bool) *cobra.Command {
 	cmd.Flags().StringVar(&status, "status", "", "Paste status: active or archived")
 	cmd.Flags().StringVar(&visibility, "visibility", "", "View policy constant or policy PHID (for example users or no-one)")
 	cmd.Flags().Bool("yes", false, "Confirm saving the paste and assert user approval when agent policy requires it")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or saving a paste")
+	addOfflinePreviewFlag(cmd, &dryRun, "Preview without accessing credentials or saving a paste")
 	return cmd
 }

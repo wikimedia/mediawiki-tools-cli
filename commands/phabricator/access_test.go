@@ -375,7 +375,7 @@ func TestTaskAccessPagination(t *testing.T) {
 	}
 }
 
-func TestTaskAccessAllPagesAreRedacted(t *testing.T) {
+func TestTaskAccessContinuesPastUnknownVisibility(t *testing.T) {
 	requests := 0
 	client := queryClient(t, func(_ string, params map[string]interface{}) string {
 		requests++
@@ -393,8 +393,13 @@ func TestTaskAccessAllPagesAreRedacted(t *testing.T) {
 		}
 	})
 	client.access = publicTaskAccess()
+	first, err := client.searchTasks(context.Background(), searchOptions{Limit: 50})
+	if err != nil || len(first.Data) != 0 || first.Cursor.After != nil || first.Cursor.Before != nil {
+		t.Fatalf("unknown task or cursor was disclosed: %+v, %v", first, err)
+	}
+	requests = 0
 	page, err := client.searchTasks(context.Background(), searchOptions{Limit: 50, All: true})
-	if err != nil || len(page.Data) != 2 || !page.Data[0].Redacted || page.Data[1].ID != 3 || requests != 2 {
+	if err != nil || len(page.Data) != 1 || page.Data[0].ID != 3 || requests != 2 {
 		t.Fatalf("page = %+v, requests = %d, error = %v", page, requests, err)
 	}
 	data, err := json.Marshal(page)
