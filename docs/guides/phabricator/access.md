@@ -1,209 +1,73 @@
 # Phabricator access and agent guardrails
 
-Limit accidental access to non-public tasks, either by default or when using an
-AI agent. For login and profiles, see [authentication](../authentication.md#phabricator-login-and-account-profiles).
+## Public reads
 
-## Read public Phabricator without signing in
-
-When no profile is selected or configured as the default and no legacy CLI
-token is configured, `task list`, `task view`, `read`, `comments`, and
-`project view` read public pages on `phabricator.wikimedia.org` anonymously.
-These commands use HTTPS GET and skip Phabricator credentials and caches.
-A selected profile uses its existing authenticated behavior, including reporting
-credential errors. Commands such as writes, paste reads and raw API calls
-require a profile or legacy CLI token.
+With no selected or default profile or legacy token, `task list`, `task view`,
+`read`, `comments`, and `project view` read public Wikimedia Phabricator pages
+anonymously. Writes, paste reads, and raw API calls need credentials. See
+[Phabricator login](../authentication.md#phabricator-login-and-account-profiles).
 
 ```sh
 mw phab task view T440478
-mw phab comments T440478
-mw phab project view a_wikimedia_cli
-mw phab task list --project a_wikimedia_cli --priority 100,80 --unassigned
 mw phab task list --project a_wikimedia_cli --column Backlog
 ```
 
-Repeat `--project` or use comma-separated tags, exact names, numeric IDs or
-PHIDs to require all the projects. Use numeric IDs or PHIDs for milestones
-without tags. Priority and unassigned filters work with either backend. A
-column name or PHID needs one project and a workboard visible to the selected
-backend. Anonymous search needs an explicit username in place of `me`.
-Public project lookup accepts tags, exact names and numeric IDs. Public output
-contains the fields available in the web pages, so some Conduit fields are
-empty and descriptions are plain text.
-
-## Use Phabricator from an MCP client
-
-Configure a local stdio MCP client to launch one of these commands.
-
-```sh
-mw phab mcp
-mw phab mcp --profile work
-mw mcp --services phab,wiki
-mw mcp --services phab --deferred-services wiki
-mw mcp --services phab,wiki --profile phab=work
-```
-
-Both entry points use anonymous Phabricator search unless you bind a named
-profile. The umbrella command enables Phabricator and wiki tools by default.
-The `wiki` service provides anonymous page metadata from MediaWiki.org and
-English Wikipedia. A Phabricator profile binding applies only to the
-Phabricator tool and uses the configured Phabricator guardrails. MCP clients
-can approve calls using their own permission settings.
-
-MCP structured results use the corresponding CLI JSON format. Phabricator
-search supports text, projects, workboard column, status, priority, author,
-assignee, unassigned and ordering. Both entry points default to 50 results.
-MCP returns one page per call. Repeat the same filters and pass `cursor.after`
-as `after` to continue.
-Profile-backed searches keep abbreviated fields for tasks whose public
-visibility cannot be verified. Wiki page info returns native page metadata,
-including `pageid`, `lastrevid` and `fullurl`. Set `followRedirects` to resolve
-wiki redirects, as with `mw wiki page info --follow-redirects`.
-
-`--services` sets which tools are visible at launch. `--deferred-services`
-authorizes additional services to be enabled during the session.
-`mw_discover_tools` lists authorized operations and their capability hints.
-`mw_enable_service` makes an authorized deferred service visible and notifies
-the client that the tool list changed. The client must refresh its list and
-allow the new tool names. Any profile binding is resolved at startup.
-Tool definitions include standard MCP behavior annotations and the full CLI
-capability hints under `_meta["a-wikimedia-cli/hints"]`.
+Repeat `--project` or use comma-separated values to match every project. Column
+search needs one visible workboard. Use an explicit username in anonymous
+searches. `me` requires a profile.
 
 ## Public-only tasks
 
-```sh
-mw phab task list --author me --order newest --status all --limit 20 --public-only --output table
-mw phab task view T12345 --public-only
+Use `--public-only` for one invocation or set it as the default.
 
-# Make public-only access the default
+```sh
 mw config set phabricator.public_only true
 ```
 
-Only tasks on `https://phabricator.wikimedia.org` with `fields.policy.view:
-public` in the known public S1 Space are accepted. Other servers, Spaces,
-policies or missing metadata are treated as unverified. S1 is allowlisted, not
-dynamically revalidated.
-
-For non-public or unverified tasks:
-
-- Lists show `[NON PUBLIC]`, retaining ID, status, priority and created/modified
-  timestamps (timestamps are available in JSON/jq). JSON marks these rows with
-  `redacted: true`. Task existence, ordering and search/board placement remain
-  visible, but content and other task metadata are hidden.
-- Opening tasks, reading comments and making changes are blocked. Placeholders
-  cannot be opened in the interactive browser.
-- Task creation is blocked because visibility cannot be verified beforehand.
-
-Restricted commands bypass disk caches and check current task metadata before
-comments and edits. Existing cache files are left untouched.
+In this mode, authenticated task access requires a public view policy in
+Wikimedia’s public S1 Space. Hidden tasks appear as `[NON PUBLIC]` with ID,
+status, priority, and timestamps in JSON. Opening, commenting on, or changing
+those tasks is blocked. Task creation is blocked because its visibility is
+unknown before submission.
 
 ## AI agents and human overrides
 
-Detected agents automatically use public-only task access and a command policy
-based on the command's capability hints. You can also enable these restrictions
-explicitly with `--agent`. Neither `--agent=false` nor `--public-only=false`
-disables automatic detection.
+Agent detection and `--agent` enable public-only mode. Check detection with
+`mw debug agent`. A human can use `--allow-non-public` outside agent mode.
+Set Phabricator’s approval policy with `mw config set agent.policy POLICY`.
+Supported offline previews always run without approval.
 
-The CLI-wide `agent.policy` setting controls approval, initially only for
-Phabricator commands. Missing or invalid command hints fail closed in agent mode;
-an invalid policy value is an error.
+| `agent.policy` | Ask the user before |
+|---|---|
+| `permissive` | High-risk operations |
+| `balanced` (default) | Writes and high-risk operations |
+| `cautious` | All commands |
 
-| Policy | Ordinary reads | Targeted writes | High-risk or unknown operations |
-|---|---|---|---|
-| `permissive` | Allow | Allow | Ask user |
-| `balanced` (default) | Allow | Ask user | Ask user |
-| `cautious` | Ask user | Ask user | Ask user |
+High-risk operations include login, profile removal, the mutation shell, raw
+API calls, and commands that accept secrets, reveal secrets, or have unknown
+data access.
+`mw phab api` can access non-public data even with `--public-only`. Paste reads
+and project metadata are also outside the task filter. Enforce isolation by
+keeping credentials and human caches outside the agent’s reach.
 
-```sh
-mw config set agent.policy balanced
-```
+## Confirming changes
 
-High-risk commands are credential login, local profile removal, the interactive
-mutation shell and every raw API call (including read methods). Secret input,
-secret output and unknown data access also require approval under every policy.
-Changing one task's status is a targeted write, not automatically high-risk just
-because it overwrites a field. Supported offline `--dry-run` previews require no
-approval under any policy.
+Use `--dry-run` to preview supported changes without contacting Phabricator.
+Task creation, paste creation or editing, and profile removal prompt for
+confirmation or require `--yes` in scripts. When agent policy requires
+approval, show the preview when available, ask the user, then rerun with
+`--yes`. Task visibility checks still apply.
 
-When approval is required, the command fails before its handler runs and tells
-the agent to explain the exact target, inputs and risks to the user. For supported
-writes, the agent should first run `--dry-run` and show the preview. Only after
-the user confirms should the agent rerun that same operation with `--yes`.
-Approval is per invocation, not saved; `--yes=false` does not approve.
-`--yes` is a cooperative assertion, not verified evidence that the agent asked.
-Agents should not change `agent.policy` or their detection environment to avoid
-asking the user.
-
-Detection uses [Vercel's detect-agent](https://github.com/vercel/detect-agent),
-plus a Copilot SDK session-marker fallback. `AI_AGENT` identifies custom agents;
-upstream nonempty-variable checks treat even `0` and `false` as detection.
-Check the result with the hidden diagnostic command:
+## Use Phabricator from an MCP client
 
 ```sh
-mw debug agent
-# {"agent":"github_copilot_vscode_agent","is_agent":true}
+mw phab mcp
+mw mcp --services phab,wiki
+mw mcp --profile phab=work
 ```
 
-If task visibility access is denied, the agent must ask a human to rerun the operation in their
-own terminal outside agent mode. A human can override the public-only default
-with `--allow-non-public` or `--public-only=false`. `--allow-non-public` is rejected
-in agent mode; it does not grant the agent permission to retry. `--yes` satisfies
-command approval only, not task visibility checks. Task creation remains blocked
-in agent mode even with approval because its visibility cannot be verified in
-advance. Public-task writes can proceed when the selected policy permits them.
-
-Without agent mode or a public-only setting, normal account permissions apply.
-
-## Previewing and confirming changes
-
-Task creation, one-shot task changes (including the legacy top-level aliases),
-paste writes, and `auth default`/`auth remove` support:
-
-- `--dry-run`: preview supplied changes without applying them or accessing
-  credentials. Task/paste previews do not contact Phabricator or resolve remote
-  names, permissions or policies; they are not a guarantee that applying will
-  succeed. Profile previews read local profile metadata only.
-- `--yes`: confirm task creation, paste creation or editing, or profile removal.
-  It also asserts the user's approval when required by agent policy. Server
-  permissions and task visibility restrictions still apply.
-- `--no-interaction`: skip prompts. Commands that require confirmation need
-  `--yes` to apply in this mode. Use `--dry-run` to preview.
-
-```sh
-mw phab task assign T12345 me --dry-run
-mw phab task status T12345 resolved --dry-run
-mw phab auth remove --profile bot --dry-run
-
-# A human outside agent mode can explicitly apply the change
-mw phab task assign T12345 me --no-interaction
-
-# After showing the preview and obtaining user confirmation, an agent can apply
-mw phab task assign T12345 me --yes --no-interaction
-```
-
-Task creation, paste creation or editing, and credential profile removal ask
-for confirmation unless you pass `--yes`. For humans outside agent mode,
-one-shot changes to an existing task and explicit default profile selection
-apply directly. Agent restrictions apply regardless of these confirmation defaults.
-The interactive mutation shell applies its internal changes immediately and
-requires an interactive terminal. Agent approval for this high-risk command
-covers the session, not individual changes; prefer one-shot commands for
-narrowly scoped approvals. Login and raw API calls have no generic dry-run.
-For raw API approval, explain the method and full payload's effects and
-data-access scope rather than guessing safety from names such as `.search`.
-Never expose credential values while asking for approval.
-
-## Limitations
-
-- These are local guardrails, not an authorization boundary. Detection is
-  best-effort; agents with shell access can bypass it or use credentials directly.
-  Isolate privileged credentials and human caches for enforceable restrictions.
-- **`mw phab api` is unfiltered**, even with task access flags and in agent mode.
-  Every agent call requires approval via `--yes` under every policy. Approval
-  explicitly covers the raw method and payload, including potential non-public
-  data access; it does not make the API equivalent to filtered task commands.
-  Non-task objects, including paste reads and project metadata, also remain
-  outside the public-task filter. The command policy does not verify visibility.
-- Stronger approval requires a trusted execution boundary, for example an agent
-  runner or MCP host/server enforcing grants. MCP annotations alone do not
-  enforce approval. Isolate credentials to prevent bypass through another client.
-- Public task content is not scanned and may itself contain confidential details.
+MCP is read-only and starts anonymously by default. A Phabricator profile can
+return non-public task summaries. Wiki page info stays anonymous.
+`--deferred-services` authorizes services for later activation with
+`mw_enable_service`. Search returns CLI JSON with up to 50 results by default.
+Repeat the filters and pass `cursor.after` as `after` for the next page.

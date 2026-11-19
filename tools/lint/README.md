@@ -30,56 +30,15 @@ cmd.Annotations["mwcli-lint-skip-children"] = "Embedded third-party CLI"
 
 ## Command capability hints
 
-`make linti` reports classified/total executable commands and a coverage percentage.
-Every executable command missing hints produces a warning, including hidden
-commands, executable parents, Cobra's built-in help/completion commands and
-imported command trees. Aliases count once.
-The lint skip annotations above do not exclude commands from hint coverage.
-Non-executable grouping/help-topic commands do not need hints. Invalid or partial
-hints are errors and do not count as classified.
+`make linti` counts all executable commands, including hidden and imported
+commands. Missing hints warn. Invalid or incomplete hints fail the check.
+Commands skipped by other lint rules still count toward coverage.
 
-Set `Annotations: commandmeta.Annotations(commandmeta.Hints{...})` in the
-command's Cobra struct literal so its capabilities stay beside its implementation.
-For commands returned by shared constructors, use `commandmeta.Set` at their
-registration site to attach hints while preserving existing annotations.
-All four behavioral fields use MCP names: `readOnlyHint`,
-`destructiveHint`, `idempotentHint` and `openWorldHint`. Three additional fields are
-mw-specific:
-
-- `dataAccess` is a list of data categories retrieved or displayed:
-  `public`, `potentially-private-content`, `potentially-private-metadata`,
-  `account-metadata`, `supplied-content` or `secrets`. Use `none` or `unknown`
-  alone when appropriate. Empty, duplicate or unrecognized categories are errors.
-- `secretInput` identifies dedicated credential input/import, not ordinary use of
-  saved credentials. It does not mean credentials are printed. Arbitrary APIs
-  with `dataAccess: ["unknown"]` can accept or expose secrets depending on input.
-- `highRisk` explicitly marks operations needing approval even under permissive
-  agent policy. Phabricator marks login, profile removal, the mutation shell and
-  raw API calls. Ordinary field overwrites are not automatically high-risk.
-  Like the other booleans, this annotation must be present and valid.
-
-Potentially private means the command can access restricted objects, not that
-every result is private. Account metadata means profile names, endpoints and
-usernames, not task/paste content or unmasked credentials. Supplied content means
-caller-provided text that the command previews, rather than existing remote
-content. Secrets means unmasked credential data retrieved for the caller.
-Authentication alone does not classify a command as private content or secrets.
-A read-only command is not necessarily public.
-Destructive includes overwriting existing fields, not just deleting objects.
-Idempotence concerns repeated effects, not whether query results stay identical.
-
-Hints describe the conservative capabilities of the whole command, not a grant
-of permission or an argument-specific guarantee. For example, `--dry-run` does
-not reclassify a write command, and `--public-only` does not reclassify a private
-read. Routine internal caching is not considered a domain mutation. Hints are
-not inherited from parent commands. Phabricator is the first classified family;
-its task visibility checks remain separate. The Phabricator agent policy uses
-these hints with `agent.policy`: permissive asks for high-risk operations,
-balanced (default) also asks for writes, and cautious asks for reads too.
-Supported offline previews are always allowed. Approval through `--yes` is a
-cooperative user-consent assertion, not verified authorization. High-risk,
-credential input, secret output and unknown-capability operations always require
-approval. Read hints do not replace per-object visibility checks; approved raw
-API calls remain unfiltered. See the [access guide](../../docs/guides/phabricator/access.md).
-Future MCP
-integration can expose the four standard fields separately from mw metadata.
+Declare `commandmeta.Hints` beside each Cobra command with
+`commandmeta.Annotations`, or use `commandmeta.Set` for shared constructors.
+Hints apply to one command and describe its full capabilities, including
+overwrites as destructive changes. Use the four MCP behavior fields plus
+`dataAccess`, `secretInput`, and `highRisk`. Use `none` and `unknown` alone.
+The [hint definitions](../../internal/commandmeta/hints.go) list the data
+categories. See the [Phabricator access guide](../../docs/guides/phabricator/access.md)
+for approval rules.
