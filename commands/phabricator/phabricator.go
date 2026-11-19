@@ -27,7 +27,12 @@ func NewPhabricatorCmd() *cobra.Command {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			return checkPhabricatorAgentPolicy(cmd)
 		},
-		Long: `Interact with Wikimedia Phabricator via the Conduit API.
+		Long: `Interact with Wikimedia Phabricator.
+
+Without a selected or default profile or a legacy CLI token, task list, task
+view, read, comments, and project view use public pages on phabricator.wikimedia.org.
+These requests are anonymous. Writes, paste reads, and raw API calls require
+a saved account or legacy CLI token.
 
 Run "mw phabricator auth login --profile personal" to sign in through your browser
 and save credentials in your chosen password manager. Use --method token for an
@@ -110,6 +115,9 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 		Short:   "Show comments on a Phabricator task",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if useAnonymousPhabricator(cmd, *site) {
+				return readAnonymousTask(cmd, args, true)
+			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
@@ -144,6 +152,9 @@ func addReadCmd(parent *cobra.Command, site *string) {
 		Short:   "View a task and all its comments",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if useAnonymousPhabricator(cmd, *site) {
+				return readAnonymousTask(cmd, args, false)
+			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err

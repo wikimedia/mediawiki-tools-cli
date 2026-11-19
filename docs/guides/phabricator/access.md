@@ -3,6 +3,31 @@
 Limit accidental access to non-public tasks, either by default or when using an
 AI agent. For login and profiles, see [authentication](../authentication.md#phabricator-login-and-account-profiles).
 
+## Read public Phabricator without signing in
+
+When no profile is selected or configured as the default and no legacy CLI
+token is configured, `task list`, `task view`, `read`, `comments`, and
+`project view` read public pages on `phabricator.wikimedia.org` anonymously.
+These commands use HTTPS GET and skip Phabricator credentials and caches.
+A selected profile uses its existing authenticated behavior, including reporting
+credential errors. Commands such as writes, paste reads and raw API calls
+require a profile or legacy CLI token.
+
+```sh
+mw phab task view T440478
+mw phab comments T440478
+mw phab project view a_wikimedia_cli
+mw phab task list --project a_wikimedia_cli --priority 100,80 --unassigned
+```
+
+In public searches, separate project tags, exact names, numeric IDs or PHIDs
+with commas to require all the projects. Use numeric IDs or PHIDs for
+milestones without tags. Public project lookup accepts tags, exact names and
+numeric IDs. Public search supports the `--priority` and `--unassigned` filters,
+and needs an explicit username in place of `me`. Workboard column searches
+require a profile. Public output contains the fields available in the web pages,
+so some Conduit fields are empty and descriptions are plain text.
+
 ## Public-only tasks
 
 ```sh

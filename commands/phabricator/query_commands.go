@@ -31,6 +31,8 @@ func validatePhabOutput(out *output.Output) error {
 
 func newTaskListCmd(site *string) *cobra.Command {
 	opts := searchOptions{Limit: 50}
+	var priorities []string
+	var unassigned bool
 	out := phabOutput([]string{"Task", "Title", "Status", "Priority"}, func(objects interface{}, table *output.Table) {
 		for _, task := range objects.(taskPage).Data {
 			table.AddRow(taskReference(task), task.Fields.Name, task.Fields.Status.Name, task.Fields.Priority.Name)
@@ -57,12 +59,21 @@ func newTaskListCmd(site *string) *cobra.Command {
 			if opts.All && (opts.After != "" || opts.Before != "") {
 				return fmt.Errorf("--all cannot be combined with a cursor")
 			}
-			client, _, err := clientFromCommand(cmd, *site)
-			if err != nil {
-				return err
+			var page taskPage
+			var err error
+			if useAnonymousPhabricator(cmd, *site) {
+				page, err = newAnonymousPhabricator().searchTasks(cmd.Context(), opts, priorities, unassigned)
+			} else {
+				if cmd.Flags().Changed("priority") || cmd.Flags().Changed("unassigned") {
+					return fmt.Errorf("--priority and --unassigned are currently supported only for public searches without a Phabricator profile")
+				}
+				client, _, loadErr := clientFromCommand(cmd, *site)
+				if loadErr != nil {
+					return loadErr
+				}
+				defer client.cache.flush()
+				page, err = client.searchTasks(cmd.Context(), opts)
 			}
-			defer client.cache.flush()
-			page, err := client.searchTasks(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
@@ -73,13 +84,15 @@ func newTaskListCmd(site *string) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&opts.Project, "project", "", "Project hashtag, exact name, ID or PHID")
+	cmd.Flags().StringVar(&opts.Project, "project", "", "Project hashtag, exact name, ID or PHID (comma-separated for public searches)")
 	cmd.Flags().StringVar(&opts.Column, "column", "", "Exact workboard column name or PHID (requires --project)")
 	cmd.Flags().StringVar(&opts.Search, "search", "", "Full-text task search")
 	cmd.Flags().StringVar(&opts.AssignedTo, "assigned-to", "", "Assignee username or me")
 	cmd.Flags().StringVar(&opts.Author, "author", "", "Author username or me")
 	cmd.Flags().StringVar(&opts.Order, "order", "updated", "Task ordering: updated or newest (most recently created first)")
 	cmd.Flags().StringSliceVar(&opts.Statuses, "status", []string{"open()"}, "Task status (default: open tasks; use all to include closed tasks)")
+	cmd.Flags().StringSliceVar(&priorities, "priority", nil, "Numeric priorities for public searches (100=Unbreak Now, 80=High)")
+	cmd.Flags().BoolVar(&unassigned, "unassigned", false, "Only show unassigned tasks in public searches")
 	addPageFlags(cmd, &opts.Limit, &opts.After, &opts.Before)
 	cmd.Flags().BoolVar(&opts.All, "all", false, "Fetch all matching pages")
 	addPhabOutput(cmd, out)
@@ -153,6 +166,14 @@ func newProjectCmd(site *string) *cobra.Command {
 		Use: "view <project>", Short: "View a project by hashtag, exact name, ID or PHID", Example: "view a_wikimedia_cli", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validatePhabOutput(viewOut); err != nil {
 				return err
+			}
+			if useAnonymousPhabricator(cmd, *site) {
+				p, err := newAnonymousPhabricator().project(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				viewOut.Print(cmd, p)
+				return nil
 			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {

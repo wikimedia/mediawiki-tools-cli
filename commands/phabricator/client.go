@@ -156,6 +156,7 @@ type phabUser struct {
 type phabProject struct {
 	ID     int    `json:"id"`
 	PHID   string `json:"phid"`
+	URI    string `json:"uri,omitempty"`
 	Fields struct {
 		Name string `json:"name"`
 	} `json:"fields"`
