@@ -3,6 +3,7 @@ package gerrit
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,6 +29,31 @@ func (input changeReadInput) path() (string, error) {
 		return "", fmt.Errorf("provide a numeric Gerrit change ID")
 	}
 	return "/changes/" + strconv.FormatUint(id, 10), nil
+}
+
+type revisionReadInput struct {
+	changeReadInput
+	Revision string `json:"revision,omitempty" jsonschema:"Patch set number or full commit SHA. Reuse current_revision from get_change_details to pin the patch set. Defaults to current."`
+}
+
+func (input revisionReadInput) revisionPath() (string, error) {
+	path, err := input.path()
+	if err != nil {
+		return "", err
+	}
+	switch input.Revision {
+	case "", "current":
+		return path + "/revisions/current", nil
+	}
+	if len(input.Revision) == 40 {
+		if _, err := hex.DecodeString(input.Revision); err == nil {
+			return path + "/revisions/" + input.Revision, nil
+		}
+	}
+	if number, err := strconv.ParseUint(input.Revision, 10, 32); err == nil && number > 0 {
+		return path + "/revisions/" + strconv.FormatUint(number, 10), nil
+	}
+	return "", fmt.Errorf("provide a Gerrit patch set number or full commit SHA")
 }
 
 func publicGerritJSON(ctx context.Context, path string) (json.RawMessage, error) {
@@ -63,9 +89,9 @@ func publicGerritJSON(ctx context.Context, path string) (json.RawMessage, error)
 	return data, nil
 }
 
-func gerritReadTool[In, Out any](name, description, command string, run mcpserver.Action[In, Out]) mcpserver.Operation {
+func gerritReadTool[In, Out any](name, description, command string, run mcpserver.Action[In, Out], fields ...string) mcpserver.Operation {
 	return run.Tool(mcp.Tool{Name: name, Description: description, OutputSchema: map[string]string{"type": "object"}},
-		mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand(command)
+		mcpserver.ReadHints(commandmeta.DataPublic)).ForCommand(command).WithOutbound("gerrit.wikimedia.org", fields...)
 }
 
 func changeReadTool(name, description, command, suffix, resultKey string) mcpserver.Operation {
@@ -79,18 +105,18 @@ func changeReadTool(name, description, command, suffix, resultKey string) mcpser
 			return nil, err
 		}
 		return map[string]json.RawMessage{resultKey: data}, nil
-	})
+	}, "change ID")
 }
 
 // MCPTools lists the anonymous Gerrit review tools.
 func MCPTools() []mcpserver.Operation {
 	return []mcpserver.Operation{
-		gerritReadTool("query_changes", "Search public Wikimedia Gerrit changes. Gerrit receives the query.", "gerrit changes list", queryChanges),
-		gerritReadTool("get_change_details", "Read a public change with labels, patch set, and full review and CI messages.", "gerrit changes detail", changeDetails),
-		gerritReadTool("get_commit_message", "Read the verbatim commit message for the current patch set.", "gerrit changes message get", commitMessage),
-		changeReadTool("list_change_files", "List files in the current patch set.", "gerrit changes revisions files list", "/revisions/current/files/", "files"),
-		gerritReadTool("get_file_diff", "Read Gerrit's structured diff for a file in the current patch set.", "gerrit changes revisions files diff", fileDiff),
-		changeReadTool("list_change_comments", "Read published comments grouped by file, with reply IDs.", "gerrit changes comments", "/comments/", "comments"),
+		gerritReadTool("query_changes", "Search public Wikimedia Gerrit changes. Gerrit receives the query.", "gerrit changes list", queryChanges, "search query", "result limit"),
+		gerritReadTool("get_change_details", "Read a public change with labels, patch set, and full review and CI messages.", "gerrit changes detail", changeDetails, "change ID"),
+		gerritReadTool("get_commit_message", "Read the verbatim commit message for the selected patch set.", "gerrit changes message get", commitMessage, "change ID", "patch set"),
+		gerritReadTool("list_change_files", "List files in the selected patch set.", "gerrit changes revisions files list", listChangeFiles, "change ID", "patch set"),
+		gerritReadTool("get_file_diff", "Read Gerrit's structured diff for a file in the selected patch set.", "gerrit changes revisions files diff", fileDiff, "change ID", "patch set", "file path"),
+		gerritReadTool("list_change_comments", "Read published comments grouped by file, with reply IDs. Set revision to limit comments to one patch set.", "gerrit changes comments", listChangeComments, "change ID", "patch set"),
 		changeReadTool("changes_submitted_together", "Read changes Gerrit would submit together with this change.", "gerrit changes submitted-together", "/submitted_together/", "changes"),
 	}
 }
@@ -125,38 +151,66 @@ func changeDetails(ctx context.Context, input changeDetailsInput) (json.RawMessa
 	return publicGerritJSON(ctx, path+"/detail/?o=CURRENT_REVISION&o=CURRENT_COMMIT&o=DETAILED_LABELS&o=MESSAGES")
 }
 
-func commitMessage(ctx context.Context, input changeReadInput) (map[string]string, error) {
-	path, err := input.path()
+func listChangeFiles(ctx context.Context, input revisionReadInput) (map[string]json.RawMessage, error) {
+	path, err := input.revisionPath()
 	if err != nil {
 		return nil, err
 	}
-	data, err := publicGerritJSON(ctx, path+"/message/")
+	data, err := publicGerritJSON(ctx, path+"/files/")
+	return map[string]json.RawMessage{"files": data}, err
+}
+
+func listChangeComments(ctx context.Context, input revisionReadInput) (map[string]json.RawMessage, error) {
+	var path string
+	var err error
+	if input.Revision == "" {
+		path, err = input.path()
+	} else {
+		path, err = input.revisionPath()
+	}
+	if err != nil {
+		return nil, err
+	}
+	data, err := publicGerritJSON(ctx, path+"/comments/")
+	return map[string]json.RawMessage{"comments": data}, err
+}
+
+func commitMessage(ctx context.Context, input revisionReadInput) (map[string]string, error) {
+	path, err := input.revisionPath()
+	if err != nil {
+		return nil, err
+	}
+	data, err := publicGerritJSON(ctx, path+"/commit/")
 	if err != nil {
 		return nil, err
 	}
 	var response struct {
-		FullMessage string `json:"full_message"`
+		Message string `json:"message"`
 	}
-	if err := json.Unmarshal(data, &response); err != nil || response.FullMessage == "" {
+	if err := json.Unmarshal(data, &response); err != nil || response.Message == "" {
 		return nil, fmt.Errorf("Gerrit did not return a commit message")
 	}
-	return map[string]string{"change_id": input.ChangeID, "verbatim_commit_message": response.FullMessage}, nil
+	return map[string]string{"change_id": input.ChangeID, "verbatim_commit_message": response.Message}, nil
 }
 
 type fileDiffInput struct {
-	changeReadInput
-	FilePath string `json:"file_path" jsonschema:"Exact relative path as listed by Gerrit."`
+	revisionReadInput
+	FilePath string `json:"file_path" jsonschema:"Exact path as listed by Gerrit, including /COMMIT_MSG or /MERGE_LIST."`
 }
 
 func fileDiff(ctx context.Context, input fileDiffInput) (json.RawMessage, error) {
-	path, err := input.path()
+	path, err := input.revisionPath()
 	if err != nil {
 		return nil, err
 	}
-	for _, part := range strings.Split(input.FilePath, "/") {
+	file := input.FilePath
+	if file == "/COMMIT_MSG" || file == "/MERGE_LIST" {
+		file = strings.TrimPrefix(file, "/")
+	}
+	for _, part := range strings.Split(file, "/") {
 		if part == "" || part == "." || part == ".." || strings.ContainsAny(part, "\\\x00") {
 			return nil, fmt.Errorf("provide a relative Gerrit file path")
 		}
 	}
-	return publicGerritJSON(ctx, path+"/revisions/current/files/"+url.PathEscape(input.FilePath)+"/diff/")
+	return publicGerritJSON(ctx, path+"/files/"+url.PathEscape(input.FilePath)+"/diff/")
 }

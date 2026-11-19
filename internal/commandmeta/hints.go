@@ -121,25 +121,34 @@ func Read(cmd *cobra.Command) (Hints, error) {
 		}
 		*field.value = value
 	}
-	seen := make(map[DataAccess]bool)
 	for _, value := range strings.Split(cmd.Annotations[DataAccessAnnotation], ",") {
-		access := DataAccess(value)
+		hints.DataAccess = append(hints.DataAccess, DataAccess(value))
+	}
+	return hints, hints.Validate()
+}
+
+// Validate checks a classification regardless of how it was constructed.
+func (h Hints) Validate() error {
+	if len(h.DataAccess) == 0 {
+		return fmt.Errorf("%s must contain a data category", DataAccessAnnotation)
+	}
+	seen := make(map[DataAccess]bool)
+	for _, access := range h.DataAccess {
 		switch access {
 		case DataNone, DataPublic, DataPrivateContent, DataPrivateMetadata, DataAccountMetadata, DataSuppliedContent, DataSecrets, DataUnknown:
 		default:
-			return hints, fmt.Errorf("%s contains invalid data category %q", DataAccessAnnotation, value)
+			return fmt.Errorf("%s contains invalid data category %q", DataAccessAnnotation, access)
 		}
 		if seen[access] {
-			return hints, fmt.Errorf("%s contains duplicate category %q", DataAccessAnnotation, access)
+			return fmt.Errorf("%s contains duplicate category %q", DataAccessAnnotation, access)
 		}
 		seen[access] = true
-		hints.DataAccess = append(hints.DataAccess, access)
 	}
-	if len(hints.DataAccess) > 1 && (seen[DataNone] || seen[DataUnknown]) {
-		return hints, fmt.Errorf("%s categories none and unknown must be used alone", DataAccessAnnotation)
+	if len(h.DataAccess) > 1 && (seen[DataNone] || seen[DataUnknown]) {
+		return fmt.Errorf("%s categories none and unknown must be used alone", DataAccessAnnotation)
 	}
-	if hints.ReadOnlyHint && hints.DestructiveHint {
-		return hints, fmt.Errorf("read-only commands cannot also be destructive")
+	if h.ReadOnlyHint && h.DestructiveHint {
+		return fmt.Errorf("read-only commands cannot also be destructive")
 	}
-	return hints, nil
+	return nil
 }

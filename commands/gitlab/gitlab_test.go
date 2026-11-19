@@ -188,3 +188,12 @@ func TestGitLabConfigurationError(t *testing.T) {
 		t.Fatalf("configuration error = %v", err)
 	}
 }
+
+func TestInheritedGitLabMCPIsDisabled(t *testing.T) {
+	t.Setenv("GLAB_CONFIG_DIR", t.TempDir())
+	for _, child := range Cmd().Commands() {
+		if child.Name() == "mcp" {
+			t.Fatal("inherited GitLab MCP launcher is still registered")
+		}
+	}
+}
