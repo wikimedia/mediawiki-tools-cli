@@ -42,7 +42,7 @@ require (
 	gitlab.com/gitlab-org/cli/mwcli v0.0.0
 	golang.org/x/image v0.48.0
 	golang.org/x/term v0.48.0
-	gopkg.in/ini.v1 v1.67.3
+	gopkg.in/ini.v1 v1.68.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
