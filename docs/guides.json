@@ -25,6 +25,9 @@
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Authentication"
     },
     {
+      "source": "guides/mcp.md"
+    },
+    {
       "source": "guides/phabricator/access.md"
     },
     {

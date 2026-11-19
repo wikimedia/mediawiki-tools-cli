@@ -60,15 +60,4 @@ approval, show the preview when available, ask the user, then rerun with
 
 ## Use Phabricator from an MCP client
 
-```sh
-mw phab mcp
-mw mcp --services phab,wiki
-mw mcp --profile phab=work
-```
-
-MCP starts anonymously with public tasks, comments, and wiki pages. A
-Phabricator profile can return non-public task summaries. Add `--allow-paste`
-with a profile to read account-visible pastes.
-`--deferred-services` authorizes services for later activation with
-`mw_enable_service`. Search returns CLI JSON with up to 50 results by default.
-Repeat the filters and pass `cursor.after` as `after` for the next page.
+See the [MCP guide](../mcp.md) for anonymous access, named profiles, and paste reads.
