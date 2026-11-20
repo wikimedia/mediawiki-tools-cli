@@ -15,16 +15,31 @@ func newDashboardCmd() *cobra.Command {
 		Use:     "dashboard",
 		GroupID: "core",
 		Short:   "Show the dashboard URL for your development environment",
-		Long:    "Show the configured local dashboard URL for the selected development context. Open it to see running services and installed wikis.",
+		Long:    "Show the published dashboard URL for the selected development context, or the configured URL when the gateway is offline. Open it to see running services and installed wikis.",
 		Example: cobrautil.NormalizeExample("dashboard\ndashboard --open\ndashboard --context work"),
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			url, err := devenv.DefaultForUser().DashboardURL()
-			if err != nil {
-				return err
+			m := devenv.DefaultForUser()
+			status, statusErr := m.GatewayStatus(cmd.Context())
+			url := status.URL
+			if url == "" {
+				var err error
+				url, err = m.DashboardURL()
+				if err != nil {
+					return fmt.Errorf("%w. %s", err, dashboardNextStep(cmd, status.State))
+				}
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), url)
 			if open {
+				if statusErr == nil && (status.State == devenv.GatewayMissing || status.State == devenv.GatewayStopped || status.State == devenv.GatewayDashboardStopped) {
+					return fmt.Errorf("dashboard is unavailable (%s). %s", status.State, dashboardNextStep(cmd, status.State))
+				}
+				if !dashboardResponds(cmd.Context(), url) {
+					if statusErr != nil {
+						return fmt.Errorf("dashboard did not respond and Docker is unavailable: %w", statusErr)
+					}
+					return fmt.Errorf("dashboard did not respond. %s", dashboardNextStep(cmd, devenv.GatewayStarting))
+				}
 				return browser.OpenURL(url)
 			}
 			return nil

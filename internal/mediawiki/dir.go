@@ -25,22 +25,15 @@ func GuessMediaWikiDirectoryBasedOnContext() string {
 	}
 
 	for {
-		// Check if the current directory looks like core
-		_, checkError := ForDirectory(suggestedMwDir)
-		if checkError == nil {
-			// If it does look like core, break out of the loop
-			break
+		if _, err := ForDirectory(suggestedMwDir); err == nil {
+			return suggestedMwDir
 		}
-		// Otherwise, get the parent directory to try with
-		suggestedMwDir = filepath.Dir(suggestedMwDir)
-		if suggestedMwDir == "/" {
-			// But if we reach the root level, then provide some sensible default
-			suggestedMwDir = "~/git/gerrit/mediawiki/core"
-			break
+		parent := filepath.Dir(suggestedMwDir)
+		if parent == suggestedMwDir {
+			return "~/git/gerrit/mediawiki/core"
 		}
+		suggestedMwDir = parent
 	}
-
-	return suggestedMwDir
 }
 
 /*ForDirectory returns a MediaWiki for the current working directory.*/

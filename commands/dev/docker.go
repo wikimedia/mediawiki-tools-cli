@@ -73,18 +73,25 @@ func defaultContext() string {
 var dockerLong string
 
 func NewCmd() *cobra.Command {
+	dashboard, status, recipeCmd := newDashboardCmd(), newDevStatusCmd(), NewRecipeCmd()
 	cmd := &cobra.Command{
 		Use:     "dev",
 		Aliases: []string{"docker"},
 		GroupID: "dev",
 		Short:   "Manage a development environment",
 		Long:    cli.RenderMarkdown(dockerLong),
-		Example: cobrautil.NormalizeExample("dev mediawiki create\ndev mysql create\ndev mediawiki install --dbtype=mysql"),
+		Example: cobrautil.NormalizeExample("dev mediawiki get-code\ndev mediawiki create\ndev mysql create\ndev mediawiki install --dbtype=mysql\ndev status"),
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
-			if cobrautil.ExecutingCommand(cmd).Name() == "dashboard" {
+			executing := cobrautil.ExecutingCommand(cmd)
+			if executing == dashboard || executing == status || (executing.Parent() == recipeCmd && executing.Name() == "validate") {
 				return
+			}
+			if executing == recipeCmd {
+				if dryRun, _ := recipeCmd.Flags().GetBool("dry-run"); dryRun {
+					return
+				}
 			}
 			// These file-only command groups mark themselves before calling parent hooks.
 			if os.Getenv("MWCLI_MEDIAWIKI_ENV_COMMAND") == "" && os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" {
@@ -186,7 +193,7 @@ func NewCmd() *cobra.Command {
 	}
 
 	// High level commands
-	cmd.AddCommand(newDashboardCmd())
+	cmd.AddCommand(dashboard, status)
 	cmd.AddCommand(devenv.NewWhereCmd(
 		"the working directory for the environment",
 		func() string { return devenv.DefaultForUser().Directory() },
@@ -196,7 +203,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(NewDevStartCmd())
 	cmd.AddCommand(NewDevRestartCmd())
 	cmd.AddCommand(NewDevUpdateCmd())
-	cmd.AddCommand(NewRecipeCmd())
+	cmd.AddCommand(recipeCmd)
 	cmd.AddCommand(dockercompose.NewCmd())
 	envCmd := env.Env("Interact with the environment variables", devenv.DefaultForUser().Directory)
 	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
@@ -239,30 +246,13 @@ func NewCmd() *cobra.Command {
 }
 
 func envSubst(s string) string {
-	// TODO do this more dynamically... / better...
-	// Resetting is needed here as docker will look at the existing system / content env vars too
-
-	// Record previous env vars...
-	previousPort, portSet := os.LookupEnv("PORT")
-
-	// Set and subst...
-	err := os.Setenv("PORT", devenv.DefaultForUser().Env().Get("PORT"))
-	if err != nil {
-		panic(err)
-	}
-	expanded := os.ExpandEnv(s)
-
-	// Reset
-	if portSet {
-		err := os.Setenv("PORT", previousPort)
-		if err != nil {
-			panic(err)
+	values, _ := devenv.DefaultForUser().Env().Read()
+	return os.Expand(s, func(key string) string {
+		if key == "PORT" {
+			return values[key]
 		}
-	} else {
-		os.Unsetenv("PORT")
-	}
-
-	return expanded
+		return os.Getenv(key)
+	})
 }
 
 //go:embed elasticsearch/elasticsearch.long.md

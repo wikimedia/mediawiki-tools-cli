@@ -45,8 +45,10 @@ func (cp CloneOpts) AreThereThingsToClone() bool {
 
 /*CloneSetup provides a packages initial setup method for MediaWiki etc with some speedy features.*/
 func (m MediaWiki) CloneSetup(options CloneOpts) error {
-	if _, err := osexec.LookPath("git"); err != nil {
-		return fmt.Errorf("git is required: %w", err)
+	if !options.DryRun {
+		if _, err := osexec.LookPath("git"); err != nil {
+			return fmt.Errorf("git is required: %w", err)
+		}
 	}
 	if options.Jobs < 0 {
 		return fmt.Errorf("jobs must be positive")
@@ -69,9 +71,10 @@ func (m MediaWiki) CloneSetup(options CloneOpts) error {
 	if options.GetVector && !stringsutil.StringInSlice("Vector", options.GetGerritSkins) {
 		options.GetGerritSkins = append(options.GetGerritSkins, "Vector")
 	}
-	fmt.Printf("Cloning repositories (jobs: %d)...\n", jobs)
 	if options.DryRun {
-		fmt.Println("...DRY RUN - no actual operations will be performed...")
+		fmt.Println("Previewing repository clones:")
+	} else {
+		fmt.Printf("Cloning repositories (jobs: %d)...\n", jobs)
 	}
 	clone := func(directory, startRemote, endRemote string, interactive bool) error {
 		return cloneAndSetRemote(directory, startRemote, endRemote, options.UseShallow, options.DryRun, !options.SkipCommitHook, interactive)
@@ -135,7 +138,9 @@ func (m MediaWiki) CloneSetup(options CloneOpts) error {
 	if err := runCloneJobs(work, jobs); err != nil {
 		return err
 	}
-	fmt.Println("Repositories cloned.")
+	if !options.DryRun {
+		fmt.Println("Repositories cloned.")
+	}
 	return nil
 }
 

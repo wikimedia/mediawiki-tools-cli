@@ -2,11 +2,13 @@ package devenv
 
 import (
 	"encoding/json"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/moby/moby/api/types/container"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
@@ -33,6 +35,30 @@ func TestDashboardURLUsesSelectedContext(t *testing.T) {
 	}
 	if _, err := os.Stat(m.Directory()); !os.IsNotExist(err) {
 		t.Fatalf("lookup touched unconfigured context: %v", err)
+	}
+}
+
+func TestComposeGatewayStatusUsesPublishedPort(t *testing.T) {
+	containers := []container.Summary{
+		{
+			Labels: map[string]string{"com.docker.compose.service": "traefik"},
+			State:  "running",
+			Ports: []container.PortSummary{
+				{IP: netip.MustParseAddr("127.0.0.1"), PrivatePort: 8080, PublicPort: 8181, Type: "tcp"},
+			},
+		},
+		{Labels: map[string]string{"com.docker.compose.service": "dashboard"}, State: "running"},
+	}
+	if got := composeGatewayStatus(containers); got.State != GatewayRunning || got.URL != "http://localhost:8181/proxy/dashboard/" {
+		t.Fatalf("running gateway = %+v", got)
+	}
+	containers[1].State = "exited"
+	if got := composeGatewayStatus(containers); got.State != GatewayDashboardStopped {
+		t.Fatalf("stopped dashboard = %+v", got)
+	}
+	containers[0].State = "exited"
+	if got := composeGatewayStatus(containers); got.State != GatewayStopped || got.URL != "" {
+		t.Fatalf("stopped gateway = %+v", got)
 	}
 }
 

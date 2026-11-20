@@ -55,10 +55,11 @@ Service create/start/stop/destroy commands update an existing record. `mw dev re
 
 An older context with no saved stop record initially starts its exited or created services. Its first global stop establishes the selective resume set.
 
-For a quick environment check, inspect the Compose services and recent web logs after starting:
+Use `mw dev status` to check the context, gateway and dashboard. For container details or recent web logs, use Compose:
 
 ```sh
 mw dev start
+mw dev status
 mw dev compose ps
 mw dev compose logs -- --tail=20 mediawiki-web
 ```

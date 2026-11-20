@@ -31,7 +31,7 @@ mw dev compose up -- -d --force-recreate traefik dashboard
 mw dev dashboard --open
 ```
 
-The dashboard URL now uses port 8088. Changing `.env` alone does not change a running container's port bindings.
+The dashboard URL now uses port 8088. Until the containers are recreated, `mw dev dashboard` uses the port published by the running gateway.
 
 Use the same `--context NAME` for each command when targeting another [context](contexts.md). To choose a port before initial setup, set it before `mw dev mediawiki create`.
 

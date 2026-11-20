@@ -1,19 +1,22 @@
 package devenv
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/cli/cli/compose/template"
-	"github.com/joho/godotenv"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,8 +24,8 @@ import (
 func (m Environment) DashboardURL() (string, error) {
 	port := os.Getenv("PORT")
 	if port == "" {
-		values, err := godotenv.Read(m.Env().Path())
-		if err != nil && !os.IsNotExist(err) {
+		values, err := m.Env().Read()
+		if err != nil {
 			return "", fmt.Errorf("read development context %q: %w", Context, err)
 		}
 		port = values["PORT"]
@@ -34,17 +37,97 @@ func (m Environment) DashboardURL() (string, error) {
 	if err != nil || portNumber == 0 {
 		return "", fmt.Errorf("invalid dashboard port %q for development context %q", port, Context)
 	}
-	return "http://" + net.JoinHostPort("localhost", strconv.FormatUint(portNumber, 10)) + "/proxy/dashboard/", nil
+	return dashboardURL("localhost", uint16(portNumber)), nil
+}
+
+type GatewayState string
+
+const (
+	GatewayMissing          GatewayState = "not created"
+	GatewayStopped          GatewayState = "stopped"
+	GatewayStarting         GatewayState = "starting"
+	GatewayRunning          GatewayState = "running"
+	GatewayDashboardStopped GatewayState = "running, dashboard stopped"
+)
+
+type GatewayStatus struct {
+	State         GatewayState
+	URL           string
+	HasContainers bool
+}
+
+// GatewayStatus inspects the selected Compose project without loading or creating its files.
+func (m Environment) GatewayStatus(ctx context.Context) (GatewayStatus, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	engine, err := docker.NewClientFromEnv()
+	if err != nil {
+		return GatewayStatus{}, err
+	}
+	defer engine.Close()
+	filters := client.Filters{}.Add("label", "com.docker.compose.project="+strings.ToLower(m.DockerCompose().Name))
+	list, err := engine.ContainerList(ctx, client.ContainerListOptions{All: true, Filters: filters})
+	if err != nil {
+		return GatewayStatus{}, err
+	}
+	return composeGatewayStatus(list.Items), nil
+}
+
+func composeGatewayStatus(containers []container.Summary) GatewayStatus {
+	status := GatewayStatus{State: GatewayMissing, HasContainers: len(containers) > 0}
+	var dashboardState container.ContainerState
+	for _, item := range containers {
+		if number := item.Labels["com.docker.compose.container-number"]; number != "" && number != "1" {
+			continue
+		}
+		switch item.Labels["com.docker.compose.service"] {
+		case "dashboard":
+			dashboardState = item.State
+		case "traefik":
+			status.State = GatewayStopped
+			if item.State == "running" || item.State == "restarting" {
+				status.State = GatewayStarting
+			}
+			if item.State != "running" {
+				continue
+			}
+			for _, port := range item.Ports {
+				if port.PublicPort == 0 || port.Type != "tcp" {
+					continue
+				}
+				host := "localhost"
+				if port.IP.IsValid() && !port.IP.IsUnspecified() && !port.IP.IsLoopback() {
+					host = port.IP.String()
+				}
+				status.URL = dashboardURL(host, port.PublicPort)
+				break
+			}
+		}
+	}
+	if status.URL != "" {
+		switch dashboardState {
+		case "running":
+			status.State = GatewayRunning
+		case "created", "restarting":
+			status.State = GatewayStarting
+		default:
+			status.State = GatewayDashboardStopped
+		}
+	}
+	return status
+}
+
+func dashboardURL(host string, port uint16) string {
+	return "http://" + net.JoinHostPort(host, strconv.Itoa(int(port))) + "/proxy/dashboard/"
 }
 
 // RunningDashboardURL supplies an optional link for commands that may leave the gateway stopped.
 func (m Environment) RunningDashboardURL() string {
-	running, err := m.DockerCompose().ServicesWithStatus("running")
-	if err != nil || !slices.Contains(running, "traefik") || !slices.Contains(running, "dashboard") {
-		return ""
+	status, err := m.GatewayStatus(context.Background())
+	if err == nil && status.State == GatewayRunning {
+		return status.URL
 	}
-	url, _ := m.DashboardURL()
-	return url
+	return ""
 }
 
 // dashboardService contains display metadata only, never the full environment.

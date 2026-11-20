@@ -43,8 +43,8 @@ func NewMediaWikiCmd() *cobra.Command {
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
-			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
+			environment := devenv.DefaultForUser()
+			environment.EnsureReady()
 
 			// Skip the MediaWiki checks if the user is just trying to destroy the environment
 			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") || cmd.Name() == "doctor" {
@@ -55,10 +55,10 @@ func NewMediaWikiCmd() *cobra.Command {
 			usrDir := usr.HomeDir
 
 			// TODO: Might be better placed as a PersistentPreRun of the shellbox commands
-			if devenv.Env().Missing("SHELLBOX_SECRET_KEY") {
-				devenv.Env().Set("SHELLBOX_SECRET_KEY", randomString())
+			if environment.Env().Missing("SHELLBOX_SECRET_KEY") {
+				environment.Env().Set("SHELLBOX_SECRET_KEY", randomString())
 			}
-			if devenv.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
+			if environment.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
 				logrus.Debug("MEDIAWIKI_VOLUMES_CODE is missing")
 				if !cli.Opts.NoInteraction {
 					// Prompt the user for a directory or confirmation
@@ -79,18 +79,18 @@ func NewMediaWikiCmd() *cobra.Command {
 					// TODO check if path looks valid?
 
 					if err == nil {
-						devenv.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(dirValue))
+						environment.Env().Set("MEDIAWIKI_VOLUMES_CODE", paths.FullifyUserProvidedPath(dirValue))
 					} else {
 						fmt.Println("Can't continue without a MediaWiki code directory")
 						os.Exit(1)
 					}
 				} else {
-					devenv.Env().Set("MEDIAWIKI_VOLUMES_CODE", mediawiki.GuessMediaWikiDirectoryBasedOnContext())
+					environment.Env().Set("MEDIAWIKI_VOLUMES_CODE", mediawiki.GuessMediaWikiDirectoryBasedOnContext())
 				}
 			}
 
 			// Default the mediawiki container to a .composer directory in the running users home dir
-			if !devenv.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER") {
+			if !environment.Env().Has("MEDIAWIKI_VOLUMES_DOT_COMPOSER") {
 				logrus.Debug("MEDIAWIKI_VOLUMES_DOT_COMPOSER is missing")
 				usrComposerDirectory := usrDir + "/.composer"
 				if _, err := os.Stat(usrComposerDirectory); os.IsNotExist(err) {
@@ -100,15 +100,15 @@ func NewMediaWikiCmd() *cobra.Command {
 						os.Exit(1)
 					}
 				}
-				devenv.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer")
+				environment.Env().Set("MEDIAWIKI_VOLUMES_DOT_COMPOSER", usrDir+"/.composer")
 			}
 
 			// If we are not running get-code command, make sure we have code!
 			if os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" && cmd.Name() != "update-code" {
-				mediawiki, _ := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+				mediawiki, _ := mediawiki.ForDirectory(environment.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 				if !mediawiki.MediaWikiIsPresent() || !mediawiki.VectorIsPresent() {
-					fmt.Println("MediaWiki or Vector is not present in the code directory")
-					fmt.Println("You can clone them manually or use `mw dev mediawiki get-code`")
+					fmt.Fprintf(cmd.ErrOrStderr(), "MediaWiki core or Vector is missing from %s.\n", mediawiki.Directory())
+					fmt.Fprintf(cmd.ErrOrStderr(), "Run `%s dev --context %q mediawiki get-code` to fetch the missing code, then retry.\n", cmd.Root().Name(), devenv.Context)
 					os.Exit(1)
 				}
 			}
@@ -129,7 +129,7 @@ func NewMediaWikiCmd() *cobra.Command {
 		devenv.NewServiceRebuildCmd("mediawiki", ""),
 	} {
 		serviceUp.PostRun = func(cmd *cobra.Command, args []string) {
-			if url, err := devenv.DefaultForUser().DashboardURL(); err == nil {
+			if url := devenv.DefaultForUser().RunningDashboardURL(); url != "" {
 				fmt.Fprintf(cmd.OutOrStdout(), "Dashboard: %s\n", url)
 			}
 		}

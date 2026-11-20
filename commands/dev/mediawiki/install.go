@@ -379,7 +379,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			outputDetails["User"] = adminUser
 			outputDetails["Pass"] = adminPass
 			outputDetails["Link"] = serverLink
-			if url, err := devenv.DefaultForUser().DashboardURL(); err == nil {
+			if url := devenv.DefaultForUser().RunningDashboardURL(); url != "" {
 				outputDetails["Dashboard"] = url
 			}
 			cmdgloss.PrintThreePartBlock(
@@ -396,8 +396,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 	// Figure out the default DB name for the flag, as this is configurable in the .env file by users
 	defaultDbname := "default"
-	if devenv.DefaultForUser().Env().Has("MEDIAWIKI_DEFAULT_DBNAME") {
-		defaultDbname = devenv.DefaultForUser().Env().Get("MEDIAWIKI_DEFAULT_DBNAME")
+	values, _ := devenv.DefaultForUser().Env().Read()
+	if configured, ok := values["MEDIAWIKI_DEFAULT_DBNAME"]; ok {
+		defaultDbname = configured
 	}
 
 	cmd.Flags().String("dbname", defaultDbname, "Name of the database to install (must be accepted by MediaWiki, stick to letters and numbers)")

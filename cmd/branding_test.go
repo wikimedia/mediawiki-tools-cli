@@ -127,3 +127,28 @@ func TestDevDashboardUsesSelectedContextWithoutDocker(t *testing.T) {
 		t.Fatalf("dashboard output = %q", got)
 	}
 }
+
+func TestDevRecipePreviewAndValidationLeaveContextUntouched(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GITLAB_CI", "true")
+	t.Setenv("CI_PROJECT_DIR", dir)
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("MWCLI_CONTEXT_TEST", "1")
+	previousOptions, previousContext := cli.Opts, devenv.Context
+	t.Cleanup(func() { cli.Opts, devenv.Context = previousOptions, previousContext })
+
+	for _, args := range [][]string{
+		{"validate", "example-git-clone"},
+		{"--dry-run", "example-git-clone"},
+		{"--dry-run", "mediasearch"},
+	} {
+		root := NewRootCmd("mw")
+		root.SetArgs(append([]string{"--no-interaction", "dev", "--context", "recipe-preview", "recipe"}, args...))
+		if err := root.Execute(); err != nil {
+			t.Fatalf("recipe %v: %v", args, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "mwdd")); !os.IsNotExist(err) {
+		t.Fatalf("recipe commands touched development contexts: %v", err)
+	}
+}

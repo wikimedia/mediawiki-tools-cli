@@ -6,20 +6,26 @@
 
 ## Create MediaWiki and a database
 
-Start the setup wizard:
+If you need a MediaWiki checkout, run the code wizard first. It can fetch MediaWiki core and the Vector skin:
+
+```sh
+mw dev mediawiki get-code
+```
+
+If you already have core and Vector, skip the code wizard and select your checkout when prompted. For an existing `LocalSettings.php`, read the [configuration guide](configuration.md) before reusing it.
+
+Start the MediaWiki containers:
 
 ```sh
 mw dev mediawiki create
 ```
-
-Choose a local port, a MediaWiki checkout and cloning options. You can use an existing checkout or let the wizard fetch one. For an existing `LocalSettings.php`, read the [configuration guide](configuration.md) before reusing it.
 
 Start MySQL and install the wiki:
 
 ```sh
 mw dev mysql create
 mw dev mediawiki install --dbtype=mysql
-mw dev compose ps
+mw dev status
 ```
 
 Use the wiki credentials printed by the installer to sign into MediaWiki. They are separate from the gateway login.

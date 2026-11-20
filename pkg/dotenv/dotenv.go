@@ -37,8 +37,17 @@ func (f File) EnsureExists() {
 
 func (f File) read() map[string]string {
 	f.EnsureExists()
-	envMap, _ := godotenv.Read(f.Path())
+	envMap, _ := f.Read()
 	return envMap
+}
+
+// Read loads the environment without creating a missing file.
+func (f File) Read() (map[string]string, error) {
+	values, err := godotenv.Read(f.Path())
+	if os.IsNotExist(err) {
+		return map[string]string{}, nil
+	}
+	return values, err
 }
 
 func (f File) write(envMap map[string]string) {

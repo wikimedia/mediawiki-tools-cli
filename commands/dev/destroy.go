@@ -34,7 +34,7 @@ func NewDevDestroyCmd() *cobra.Command {
 			logrus.Debug("Removing used hosts file")
 			m.RemoveUsedHostsIfExists()
 
-			if err := cleanupRecipeRuntimeState(m, false); err != nil {
+			if err := cleanupRecipeRuntimeState(m, nil); err != nil {
 				return err
 			}
 

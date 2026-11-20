@@ -1,7 +1,6 @@
 package dev
 
 import (
-	_ "embed"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -16,11 +15,26 @@ func NewDevStartCmd() *cobra.Command {
 		Short:   "Start containers that were running before",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			if err := resumeDevelopmentServices(m, m.DockerCompose()); err != nil {
+			if gateway, err := m.GatewayStatus(cmd.Context()); err == nil && !gateway.HasContainers {
+				fmt.Fprintln(cmd.OutOrStdout(), "No services to resume.")
+				fmt.Fprintln(cmd.OutOrStdout(), dashboardNextStep(cmd, devenv.GatewayMissing))
+				return nil
+			}
+			resumed, err := resumeDevelopmentServices(m, m.DockerCompose())
+			if err != nil {
 				return err
 			}
-			if url := m.RunningDashboardURL(); url != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), "Dashboard: %s\n", url)
+			gateway, statusErr := m.GatewayStatus(cmd.Context())
+			if !resumed {
+				fmt.Fprintln(cmd.OutOrStdout(), "No services to resume.")
+				if statusErr == nil && gateway.State == devenv.GatewayMissing {
+					fmt.Fprintln(cmd.OutOrStdout(), dashboardNextStep(cmd, gateway.State))
+				} else if gateway.State != devenv.GatewayRunning {
+					fmt.Fprintf(cmd.OutOrStdout(), "Check the environment with `%s`.\n", devContextCommand(cmd, "status"))
+				}
+			}
+			if gateway.State == devenv.GatewayRunning {
+				fmt.Fprintf(cmd.OutOrStdout(), "Dashboard: %s\n", gateway.URL)
 			}
 			return nil
 		},

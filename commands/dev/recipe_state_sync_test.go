@@ -53,7 +53,7 @@ func TestRecipeRuntimeStateSurvivesSynchronizationAndCleanup(t *testing.T) {
 			t.Fatalf("sync %d lost recipe records: %#v %v", cycle, loaded, err)
 		}
 	}
-	if err := cleanupRecipeRuntimeState(m, false); err != nil {
+	if err := cleanupRecipeRuntimeState(m, nil); err != nil {
 		t.Fatal(err)
 	}
 	if m.Env().Has("RECIPE_SETTING") || m.Env().Get("UNRELATED_SETTING") != "user-value" {

@@ -97,13 +97,13 @@ func TestSuspendResumeIntegration(t *testing.T) {
 		if err := suspendDevelopmentServices(m, p); err != nil {
 			t.Fatal(err)
 		}
-		if err := resumeDevelopmentServices(m, p); err != nil {
+		if _, err := resumeDevelopmentServices(m, p); err != nil {
 			t.Fatal(err)
 		}
 		if got := startedAt(); got != originalStart {
 			t.Fatalf("cycle %d restarted the excluded one-shot dependency: before=%s after=%s", i, originalStart, got)
 		}
-		if err := resumeDevelopmentServices(m, p); err != nil {
+		if _, err := resumeDevelopmentServices(m, p); err != nil {
 			t.Fatal(err)
 		}
 		if err := restartDevelopmentServices(p); err != nil {

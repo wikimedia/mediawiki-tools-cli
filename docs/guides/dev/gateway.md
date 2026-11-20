@@ -6,7 +6,7 @@ Traefik serves your local development services on one port, usually 8080. Open t
 mw dev dashboard --open
 ```
 
-Run `mw dev dashboard` to print the URL for the selected development context. You can open the local dashboard without signing in.
+Run `mw dev dashboard` to print the URL for the selected development context. If the gateway is stopped, it prints the configured URL. Use `mw dev status` to check whether the dashboard is ready. You can open the local dashboard without signing in.
 
 ## Sign in over a tunnel
 
