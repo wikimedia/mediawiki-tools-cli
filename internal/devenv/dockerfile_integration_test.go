@@ -34,7 +34,7 @@ func TestDockerfileRebuildIntegration(t *testing.T) {
 	dockerfile := filepath.Join(dir, "Dockerfile")
 	base := os.Getenv("MWCLI_DOCKER_TEST_IMAGE")
 	if base == "" {
-		base = "docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0"
+		base = defaultImageForService("mediawiki")
 	}
 	if err := osexec.Command("docker", "image", "inspect", base).Run(); err != nil {
 		t.Fatalf("base image must already be cached: %v", err)
