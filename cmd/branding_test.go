@@ -20,7 +20,17 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 	t.Cleanup(func() { cli.Opts = previous })
 	cli.Opts.NoInteraction = true
 	for _, name := range []string{"mw", "wm", "wiki-tool"} {
-		for _, args := range [][]string{{"--help"}, {"dev", "--help"}, {"cloudvps", "ssh", "--help"}, {"cloudvps", "auth", "login", "--help"}, {"cloudvps", "auth", "add", "--help"}, {"analytics", "pageviews", "--help"}} {
+		for _, args := range [][]string{
+			{"--help"},
+			{"dev", "--help"},
+			{"cloudvps", "ssh", "--help"},
+			{"cloudvps", "auth", "login", "--help"},
+			{"cloudvps", "auth", "add", "--help"},
+			{"analytics", "pageviews", "--help"},
+			{"grafana", "--help"},
+			{"grafana", "dashboard", "query", "--help"},
+			{"--no-interaction", "grafana", "dashboard", "query", "--help"},
+		} {
 			root := NewRootCmd(name)
 			var out bytes.Buffer
 			root.SetOut(&out)
@@ -51,6 +61,12 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 				// Aliases remain callable, while examples use the canonical name.
 				if !strings.Contains(text, "  "+command.CommandPath()+" ") {
 					t.Fatalf("example is not copyable: %s", text)
+				}
+				if strings.HasPrefix(command.CommandPath(), name+" grafana") {
+					want := name + " grafana dashboard query 'CDN Frontend Traffic' 'Varnish status' --since 15m --var site=eqiad --var cache_type=text --var status_type=2"
+					if !strings.Contains(text, want) {
+						t.Fatalf("Grafana help did not include the CDN traffic example: %s", text)
+					}
 				}
 			}
 		}

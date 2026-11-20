@@ -30,6 +30,8 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 `mw api` accepts REST endpoints relative to `https://wikimedia.org/api/rest_v1/`, an alternative `--base-url`, or an absolute URL. Use `--method` (`-X`), repeatable `--header` (`-H`) and `--field` (`-f`) flags, or `--input FILE` (`-` for stdin). Fields become a JSON POST body by default, or query parameters with `--method GET`. `--include` prints response headers; `--raw` preserves the response body.
 
+`mw grafana` reads public Wikimedia Grafana dashboards, runs PromQL queries, and sends read requests to the Grafana API. See the [Grafana guide](docs/guides/grafana.md).
+
 ### Installation
 
 Follow the [installation guide](https://a-wikimedia-cli.toolforge.org/guides/installation/).

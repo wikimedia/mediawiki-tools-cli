@@ -23,6 +23,7 @@ import (
 	eventscmd "gitlab.wikimedia.org/repos/releng/cli/commands/events"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/gerrit"
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/grafana"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
 	phabricatorcmd "gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
@@ -114,7 +115,6 @@ func NewRootCmd(name string) *cobra.Command {
 	defaultHelpFunc := mwcliCmd.HelpFunc()
 	mwcliCmd.SetHelpFunc(func(c *cobra.Command, a []string) {
 		// Remove flags (arguments starting with -) and their values from a, so we only check actual command words
-		// Currently this might miss bool flags??! ;(
 		commandWords := []string{}
 		skipNext := false
 		for i := 0; i < len(a); i++ {
@@ -127,6 +127,11 @@ func NewRootCmd(name string) *cobra.Command {
 				// If it's --flag=value or -f=value, skip this arg only
 				if strings.Contains(arg, "=") {
 					continue
+				}
+				if strings.HasPrefix(arg, "--") {
+					if flag := c.Flags().Lookup(strings.TrimPrefix(arg, "--")); flag != nil && flag.NoOptDefVal != "" {
+						continue
+					}
 				}
 				// If next arg exists and does not start with -, treat as value for this flag
 				if i+1 < len(a) && !strings.HasPrefix(a[i+1], "-") {
@@ -178,6 +183,7 @@ func NewRootCmd(name string) *cobra.Command {
 		// Older commands, not yet moved to the /commands directory
 		cobrautil.WithServiceInfo(codesearch.NewCodeSearchCmd(), cobrautil.ServiceInfo{Name: "Code search", URL: "https://codesearch.wmcloud.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		cobrautil.WithServiceInfo(analyticscmd.NewCmd(), cobrautil.ServiceInfo{Name: "Analytics", URL: "https://wikimedia.org/api/rest_v1/", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
+		cobrautil.WithServiceInfo(grafana.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Grafana", URL: grafana.BaseURL, Logo: "https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg"}),
 		cobrautil.WithServiceInfo(dumpscmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Dumps", URL: "https://dumps.wikimedia.org/"}),
 		cobrautil.WithServiceInfo(apicmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia APIs", URL: "https://www.mediawiki.org/wiki/API:Main_page", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 		cobrautil.WithServiceInfo(eventscmd.NewCmd(), cobrautil.ServiceInfo{Name: "EventStreams", URL: "https://stream.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
