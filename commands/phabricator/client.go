@@ -100,6 +100,10 @@ func (c *conduitClient) postContext(ctx context.Context, method string, params m
 	return cr.Result, nil
 }
 
+func taskReference(task phabTask) string {
+	return fmt.Sprintf("T%d", task.ID)
+}
+
 // ---- Data types ----
 
 type phabTask struct {
@@ -121,8 +125,10 @@ type phabTask struct {
 			Name  string `json:"name"`
 			Color string `json:"color"`
 		} `json:"priority"`
-		DateCreated  int64 `json:"dateCreated"`
-		DateModified int64 `json:"dateModified"`
+		DateCreated  int64             `json:"dateCreated"`
+		DateModified int64             `json:"dateModified"`
+		Policy       map[string]string `json:"policy,omitempty"`
+		SpacePHID    string            `json:"spacePHID,omitempty"`
 	} `json:"fields"`
 	Attachments struct {
 		Columns  json.RawMessage `json:"columns,omitempty"`
@@ -152,6 +158,7 @@ type phabUser struct {
 type phabProject struct {
 	ID     int    `json:"id"`
 	PHID   string `json:"phid"`
+	URI    string `json:"uri,omitempty"`
 	Fields struct {
 		Name string `json:"name"`
 	} `json:"fields"`
@@ -237,7 +244,11 @@ func (c *conduitClient) getTask(taskNumber string) (*phabTask, error) {
 }
 
 func (c *conduitClient) getTaskByPHID(phid string) (*phabTask, error) {
-	result, err := c.post("maniphest.search", map[string]interface{}{
+	return c.getTaskByPHIDContext(c.requestContext(), phid)
+}
+
+func (c *conduitClient) getTaskByPHIDContext(ctx context.Context, phid string) (*phabTask, error) {
+	result, err := c.postContext(ctx, "maniphest.search", map[string]interface{}{
 		"constraints": map[string]interface{}{
 			"phids": []string{phid},
 		},
@@ -559,7 +570,7 @@ func (c *conduitClient) listTasksInColumn(projectPHID, columnPHID string, limit 
 
 		for _, t := range tasks {
 			results = append(results, taskSummary{
-				ID:           fmt.Sprintf("T%d", t.ID),
+				ID:           taskReference(t),
 				Title:        t.Fields.Name,
 				Priority:     t.Fields.Priority.Name,
 				DateModified: t.Fields.DateModified,
@@ -609,7 +620,7 @@ func (c *conduitClient) listTasksGlobal(limit int) ([]taskSummary, error) {
 	results := make([]taskSummary, 0, len(tasks))
 	for _, t := range tasks {
 		results = append(results, taskSummary{
-			ID:           fmt.Sprintf("T%d", t.ID),
+			ID:           taskReference(t),
 			Title:        t.Fields.Name,
 			Priority:     t.Fields.Priority.Name,
 			DateModified: t.Fields.DateModified,

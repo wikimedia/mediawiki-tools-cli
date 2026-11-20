@@ -1,0 +1,127 @@
+---
+import manual from '../content/docs/manual/_meta.json';
+import { pageHref } from '../route-path.mjs';
+
+const dataLabels = (values: string[]) => values.map((value) => value.replaceAll("-", " ")).join(", ");
+
+const rows = manual.catalog.map((command) => {
+  const { hints } = command;
+  const action = hints ? (hints.readOnlyHint ? 'Read' : 'Write or other action') : 'Unclassified';
+  const risk = hints ? (command.highRisk ? 'High risk' : 'Policy-dependent') : 'Unclassified';
+  const traits = [
+    hints?.destructiveHint && 'May overwrite or delete',
+    hints?.idempotentHint && 'Idempotent',
+    hints?.openWorldHint && 'External access',
+    hints?.secretInput && 'Accepts secrets',
+  ].filter(Boolean);
+  return { ...command, action, risk, traits };
+});
+---
+
+<command-catalog data-pagefind-ignore>
+  <div class="filters" hidden>
+    <div><label for="catalog-search">Search</label>
+      <input id="catalog-search" type="search" placeholder="Command, alias, or MCP tool" />
+    </div>
+    <div><label for="catalog-action">Action</label><select id="catalog-action" data-filter="action">
+      <option value="">All actions</option>
+      <option>Read</option>
+      <option>Write or other action</option>
+      <option>Unclassified</option>
+    </select></div>
+    <div><label for="catalog-risk">Risk</label><select id="catalog-risk" data-filter="risk">
+      <option value="">All risk levels</option>
+      <option>High risk</option>
+      <option>Policy-dependent</option>
+      <option>Unclassified</option>
+    </select></div>
+    <div><label for="catalog-mcp">MCP</label><select id="catalog-mcp" data-filter="mcp">
+      <option value="">All commands</option>
+      <option value="yes">Has MCP tool</option>
+      <option value="no">CLI only</option>
+    </select></div>
+  </div>
+  <p class="count" role="status">{rows.length.toLocaleString('en')} commands</p>
+  <p hidden data-empty>No commands match these filters.</p>
+  <table aria-label="Command catalog">
+    <thead><tr><th scope="col">Command</th><th scope="col">CLI action and risk</th><th scope="col">CLI data access</th><th scope="col">MCP tool</th></tr></thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr data-action={row.action} data-risk={row.risk} data-mcp={row.mcpTools?.length ? 'yes' : 'no'}
+            data-search={[row.title, row.description, ...(row.aliases ?? []), ...(row.mcpTools?.map((tool) => tool.name) ?? [])].join(' ').toLowerCase()}>
+          <th scope="row">
+            {row.link ? <a href={pageHref(row.link)}><code>{row.title}</code></a> : <code>{row.title}</code>}
+            <small>{row.description}</small>
+            {row.aliases?.length ? <small>Aliases: {row.aliases.join(', ')}</small> : null}
+            {row.hidden && <small>Hidden</small>}
+            {row.deprecated && <small>Deprecated</small>}
+          </th>
+          <td>
+            {row.action}
+            {row.risk === 'High risk' && <strong>High risk</strong>}
+            {row.risk === 'Policy-dependent' && <small>Policy-dependent</small>}
+            {row.traits.length > 0 && <small>{row.traits.join(' · ')}</small>}
+          </td>
+          <td>{row.hints ? dataLabels(row.hints.dataAccess) : '—'}</td>
+          <td>{row.mcpTools?.length ? row.mcpTools.map((tool) => (
+            <div>
+              <code>{tool.name}</code>
+              <small>{tool.hints.readOnlyHint ? 'Read' : 'Write or other action'} · {dataLabels(tool.hints.dataAccess)}</small>
+              {'outbound' in tool && <small>Sends {tool.outbound.fields.join(', ')} to {tool.outbound.destination}</small>}
+              {'profile' in tool && <small>With a Phabricator profile · {dataLabels(tool.profile.hints.dataAccess)}</small>}
+              {'profile' in tool && 'outbound' in tool.profile && <small>Sends {tool.profile.outbound.fields.join(', ')} to {tool.profile.outbound.destination}</small>}
+              {'requirement' in tool && <small>{tool.requirement}</small>}
+            </div>
+          )) : '—'}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</command-catalog>
+
+<script>
+  class CommandCatalog extends HTMLElement {
+    connectedCallback() {
+      const controls = this.querySelector<HTMLElement>('.filters')!;
+      const query = this.querySelector<HTMLInputElement>('input')!;
+      const selectors = [...this.querySelectorAll<HTMLSelectElement>('select[data-filter]')];
+      const rows = [...this.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+      const count = this.querySelector<HTMLElement>('.count')!;
+      const empty = this.querySelector<HTMLElement>('[data-empty]')!;
+      const filter = () => {
+        const words = query.value.toLowerCase().trim().split(/\s+/);
+        let matches = 0;
+        for (const row of rows) {
+          const enabled = selectors.every((select) => !select.value || row.dataset[select.dataset.filter!] === select.value)
+            && words.every((word) => row.dataset.search!.includes(word));
+          row.hidden = !enabled;
+          if (enabled) matches++;
+        }
+        empty.hidden = matches > 0;
+        count.textContent = `${matches.toLocaleString('en')} of ${rows.length.toLocaleString('en')} commands`;
+      };
+      controls.hidden = false;
+      controls.addEventListener('input', filter);
+    }
+  }
+  customElements.define('command-catalog', CommandCatalog);
+</script>
+
+<style>
+  command-catalog { display: block; }
+  [hidden] { display: none !important; }
+  .filters { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-block: 1.5rem 0.5rem; }
+  .filters > div { display: grid; gap: 0.2rem; }
+  label { font-size: var(--sl-text-sm); }
+  input, select {
+    padding: 0.35rem 0.5rem;
+    color: var(--sl-color-text);
+    background: var(--sl-color-bg);
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.25rem;
+  }
+  .count, small { color: var(--sl-color-gray-3); }
+  th, td { vertical-align: top; }
+  tbody th { text-align: start; font-weight: normal; }
+  small, strong { display: block; }
+</style>

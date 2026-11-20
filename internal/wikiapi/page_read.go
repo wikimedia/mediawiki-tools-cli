@@ -59,6 +59,64 @@ func (c *Client) PageInfo(ctx context.Context, title string, followRedirects boo
 	return page, err
 }
 
+type PageSource struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+func (c *Client) PageSource(ctx context.Context, title string) (PageSource, error) {
+	if title == "" {
+		data, err := c.Action(ctx, http.MethodGet, url.Values{"action": {"query"}, "meta": {"siteinfo"}, "siprop": {"general"}})
+		if err != nil {
+			return PageSource{}, fmt.Errorf("discover main page: %w", err)
+		}
+		var result struct {
+			Query struct{ General struct{ MainPage string } }
+		}
+		if err := json.Unmarshal(data, &result); err != nil || result.Query.General.MainPage == "" {
+			return PageSource{}, fmt.Errorf("wiki did not report a main-page title; specify --title")
+		}
+		title = result.Query.General.MainPage
+	}
+	data, err := c.Action(ctx, http.MethodGet, url.Values{
+		"action": {"query"}, "prop": {"revisions"}, "titles": {apiList([]string{title})},
+		"rvprop": {"content"}, "rvslots": {"main"},
+	})
+	if err != nil {
+		return PageSource{}, fmt.Errorf("read page %q: %w", title, err)
+	}
+	var result struct {
+		Query struct {
+			Pages []struct {
+				Title     string
+				Missing   bool
+				Invalid   bool
+				Revisions []struct {
+					Slots struct{ Main struct{ Content *string } }
+				}
+			}
+		}
+	}
+	if err := json.Unmarshal(data, &result); err != nil || len(result.Query.Pages) != 1 {
+		return PageSource{}, fmt.Errorf("wiki did not return page %q", title)
+	}
+	page := result.Query.Pages[0]
+	if page.Missing || page.Invalid {
+		return PageSource{}, fmt.Errorf("page %q does not exist", title)
+	}
+	if len(page.Revisions) == 0 {
+		return PageSource{}, fmt.Errorf("page %q has no readable revision", title)
+	}
+	content := page.Revisions[0].Slots.Main.Content
+	if content == nil {
+		return PageSource{}, fmt.Errorf("page %q has no readable main-slot content", title)
+	}
+	if page.Title != "" {
+		title = page.Title
+	}
+	return PageSource{Title: title, Content: *content}, nil
+}
+
 type Revision struct {
 	ID            int64    `json:"revid"`
 	ParentID      int64    `json:"parentid"`

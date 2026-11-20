@@ -27,3 +27,17 @@ Commands can opt out using `mwcli-lint-skip`, or skip embedded third-party comma
 ```go
 cmd.Annotations["mwcli-lint-skip-children"] = "Embedded third-party CLI"
 ```
+
+## Command capability hints
+
+`make linti` counts all executable commands, including hidden and imported
+commands. Missing hints warn. Invalid or incomplete hints fail the check.
+Commands skipped by other lint rules still count toward coverage.
+
+Declare `commandmeta.Hints` beside each Cobra command with
+`commandmeta.Annotations`, or use `commandmeta.Set` for shared constructors.
+Hints apply to one command and describe its full capabilities, including
+overwrites as destructive changes. Use the four MCP behavior fields plus
+`dataAccess`, `secretInput`, and `highRisk`. Use `none` and `unknown` alone.
+The [hint definitions](../../internal/commandmeta/hints.go) list the data
+categories. Hints describe command behavior for the catalog and MCP clients.

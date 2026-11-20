@@ -20,6 +20,18 @@ type authTransport func(*http.Request) (*http.Response, error)
 func (f authTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 func isolatedAuthConfig(t *testing.T) {
 	t.Helper()
+	for _, name := range []string{
+		"AI_AGENT", "COPILOT_AGENT_SESSION_ID", "COPILOT_MODEL", "COPILOT_ALLOW_ALL", "COPILOT_GITHUB_TOKEN",
+		"CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_IS_COWORK", "GEMINI_CLI", "CLINE_ACTIVE",
+		"CODEX_THREAD_ID", "CODEX_SANDBOX", "CODEX_CI", "CODEX_SANDBOX_NETWORK_DISABLED",
+		"CURSOR_TRACE_ID", "CURSOR_AGENT", "CURSOR_EXTENSION_HOST_ROLE",
+		"KIMI_PLUGIN_ROOT", "GROK_PLUGIN_ROOT", "GROK_PLUGIN_DATA",
+		"ANTIGRAVITY_AGENT", "ANTIGRAVITY_CLI_ALIAS", "AUGMENT_AGENT",
+		"OPENCODE_CLIENT", "OPENCODE", "GOOSE_PROVIDER", "JUNIE_DATA", "JUNIE_SHIM_PATH",
+		"REPL_ID", "TERM_PROGRAM", "OPENCLAW_SHELL",
+	} {
+		t.Setenv(name, "")
+	}
 	t.Setenv("GITLAB_CI", "true")
 	t.Setenv("CI_PROJECT_DIR", t.TempDir())
 	mwconfig.State()
@@ -84,7 +96,7 @@ func TestLoginIgnoresProjectDestinationAndRemovalDoesNotUseLegacy(t *testing.T) 
 	}
 	remove := NewPhabricatorCmd()
 	remove.SetOut(out)
-	remove.SetArgs([]string{"auth", "remove"})
+	remove.SetArgs([]string{"auth", "remove", "--yes"})
 	if err := remove.Execute(); err != nil {
 		t.Fatal(err)
 	}

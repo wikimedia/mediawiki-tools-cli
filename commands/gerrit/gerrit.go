@@ -149,7 +149,10 @@ func sshGerritCommand(args []string) *exec.Cmd {
 
 // Clone the default client to preserve its settings without changing other services.
 func newGerritClient(ctx context.Context) (*gerrit.Client, error) {
-	httpClient := *http.DefaultClient
+	return newGerritClientWithHTTP(ctx, *http.DefaultClient)
+}
+
+func newGerritClientWithHTTP(ctx context.Context, httpClient http.Client) (*gerrit.Client, error) {
 	transport := httpClient.Transport
 	if transport == nil {
 		transport = http.DefaultTransport

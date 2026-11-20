@@ -6,6 +6,7 @@ import DevOverview from './DevOverview.astro';
 import DocsFeedback from './DocsFeedback.astro';
 import ServiceGrid from './ServiceGrid.astro';
 import MarkdownActions from './MarkdownActions.astro';
+import CommandCatalog from './CommandCatalog.astro';
 import { normalizeRoutePath, pageHref } from '../route-path.mjs';
 const pathname = normalizeRoutePath(Astro.url.pathname);
 const guideCandidate = pathname.startsWith('/manual/help/guides/') ? pathname.replace('/manual/help/guides/', '/guides/') : undefined;
@@ -32,6 +33,7 @@ const isDevelopmentOverview = pathname === '/manual/dev/';
       </details>
     </>
   ) : <slot />}
+  {pathname === '/manual/catalog/' && <CommandCatalog />}
 </DefaultMarkdownContent>
 {pathname === '/' && <ServiceGrid />}
 <DocsFeedback />

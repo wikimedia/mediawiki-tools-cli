@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,7 @@ import (
 	versioncmd "gitlab.wikimedia.org/repos/releng/cli/commands/version"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/wiki"
 	zikicmd "gitlab.wikimedia.org/repos/releng/cli/commands/ziki"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/updater"
@@ -156,12 +158,7 @@ func NewRootCmd(name string) *cobra.Command {
 		defaultHelpFunc(c, a)
 	})
 
-	// We use the default logrus level of 4(info). And will add up to 2 to that for debug and trace...
-	mwcliCmd.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
-
-	mwcliCmd.PersistentFlags().BoolVarP(&cli.Opts.NoInteraction, "no-interaction", "", false, "Do not ask any interactive questions")
-	// Remove the -h help shorthand, as gitlab auth login uses it for hostname
-	mwcliCmd.PersistentFlags().BoolP("help", "", false, "Help for this command")
+	addRootFlags(mwcliCmd)
 
 	mwcliCmd.AddCommand([]*cobra.Command{
 		// Core CLI command
@@ -169,6 +166,7 @@ func NewRootCmd(name string) *cobra.Command {
 		updatecmd.Cmd(),
 		configcmd.Cmd(),
 		debugcmd.Cmd(),
+		newMCPCmd(),
 
 		// Built in sub commands
 		cobrautil.WithServiceInfo(enterprisecmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Enterprise", URL: "https://enterprise.wikimedia.com", Logo: "https://upload.wikimedia.org/wikipedia/commons/8/84/Wikimedia_Enterprise_squirrel.svg"}),
@@ -237,8 +235,15 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
-	// Shell completion reads local metadata only. Bypass migrations, timers
-	// and background update checks before constructing the command tree.
+	if root := minimalMCPCommand(cli.InvocationName(os.Args[0]), os.Args[1:]); root != nil {
+		if err := root.Execute(); err != nil {
+			logrus.Error(err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Shell completion bypasses migrations, timers and background update checks.
 	if isCompletionRequest(os.Args[1:]) {
 		cli.Opts.NoInteraction = true
 		root := NewRootCmd(cli.InvocationName(os.Args[0]))
@@ -346,6 +351,9 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
+	if c.EffectiveKoanf.Exists(accesspolicy.ConfigKey) || slices.ContainsFunc(os.Args[1:], isPublicOnlyFlag) {
+		guardPublicOnlyCommands(rootCmd)
+	}
 	// Override the UsageTemplate so that:
 	// - Indenting of usage examples is consistent automatically
 	// - Commands can be split into sections based on annotations
@@ -406,6 +414,73 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		logrus.Errorf("%s", err)
 		os.Exit(1)
 	}
+}
+
+func addRootFlags(root *cobra.Command) {
+	accesspolicy.AddFlag(root)
+	root.PersistentFlags().CountVarP(&cli.Opts.Verbosity, "verbose", "v", "Increase output verbosity. Example: --verbose=2 or -vv")
+	root.PersistentFlags().BoolVar(&cli.Opts.NoInteraction, "no-interaction", false, "Do not ask any interactive questions")
+	// GitLab auth login uses -h for hostname.
+	root.PersistentFlags().Bool("help", false, "Help for this command")
+}
+
+func isPublicOnlyFlag(arg string) bool {
+	return arg == "--"+accesspolicy.Flag || strings.HasPrefix(arg, "--"+accesspolicy.Flag+"=")
+}
+
+// Check unsupported operations during argument validation, before service hooks
+// can load credentials. Local configuration and help remain available.
+func guardPublicOnlyCommands(root *cobra.Command) {
+	for _, service := range root.Commands() {
+		switch service.Name() {
+		case "config", "help", "version":
+			continue
+		}
+		cobrautil.VisitAllSubCommands(service, func(cmd *cobra.Command) {
+			if !cmd.Runnable() || cmd.Annotations[accesspolicy.SupportedAnnotation] == "true" {
+				return
+			}
+			validate := cmd.Args
+			cmd.Args = func(cmd *cobra.Command, args []string) error {
+				if cmd.DisableFlagParsing && slices.ContainsFunc(args, isPublicOnlyFlag) {
+					return fmt.Errorf("%s does not support --public-only", cmd.CommandPath())
+				}
+				publicOnly, err := accesspolicy.CLI(cmd, "")
+				if err != nil {
+					return err
+				}
+				if publicOnly {
+					return fmt.Errorf("%s does not support --public-only", cmd.CommandPath())
+				}
+				if validate != nil {
+					return validate(cmd, args)
+				}
+				return nil
+			}
+		})
+	}
+}
+
+// Resolve stdio servers before starting update checks or loading local settings.
+func minimalMCPCommand(name string, args []string) *cobra.Command {
+	if !slices.Contains(args, "mcp") {
+		return nil
+	}
+	root := newMinimalCommandTree(name)
+	selected, _, err := root.Find(args)
+	if err != nil || selected == nil || selected.Annotations[cli.SkipConfigAnnotation] != "true" {
+		return nil
+	}
+	root.SetArgs(args)
+	return root
+}
+
+func newMinimalCommandTree(name string) *cobra.Command {
+	root := &cobra.Command{Use: name, SilenceErrors: true, SilenceUsage: true}
+	addRootFlags(root)
+	root.AddGroup(&cobra.Group{ID: "service", Title: "Service Commands"})
+	root.AddCommand(newMCPCmd(), phabricatorcmd.NewPhabricatorCmd())
+	return root
 }
 
 func isCompletionRequest(args []string) bool {

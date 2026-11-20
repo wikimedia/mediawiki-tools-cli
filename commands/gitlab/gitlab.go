@@ -73,13 +73,15 @@ func newCommand(options ...mwcli.FactoryOption) *cobra.Command {
 		})
 	})
 
-	// Hide various built in glab commands
+	// Remove upstream commands that are unsupported through mw.
 	toHide := []string{
 		// glab does not need to be updated itself, instead the CLI would need to be updated
 		"check-update",
 		"update",
 		// issues will not be used on the Wikimedia gitlab instance
 		"issue",
+		// The curated server is available via mw mcp --services gitlab.
+		"mcp",
 	}
 
 	for _, command := range glabCommand.Commands() {

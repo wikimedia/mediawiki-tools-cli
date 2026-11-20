@@ -37,6 +37,9 @@ const Description = "Explore Wikimedia data, work with services, and develop Med
 // DefaultCommandName is used for generated documentation and unnamed invocations.
 const DefaultCommandName = "mw"
 
+// SkipConfigAnnotation marks commands that run without normal CLI startup.
+const SkipConfigAnnotation = "a-wikimedia-cli/skip-config"
+
 // APPNAME is the stable configuration identity, independent of branding or argv[0].
 // TODO: migrate the mwcli configuration directory separately, preserving existing
 // credentials and supporting users who run old and new executables side by side.

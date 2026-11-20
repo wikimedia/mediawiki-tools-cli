@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"io"
 
-	mwclient "cgt.name/pkg/go-mwclient"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 )
 
 func NewWikiPageGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "get [TITLE]",
-		Short: "Print a page's source (defaults to the wiki's main page)",
-		Args:  cobra.MaximumNArgs(1),
+		Annotations: commandmeta.Annotations(mcpserver.ReadHints(commandmeta.DataPublic, commandmeta.DataPrivateContent)),
+		Use:         "get [TITLE]",
+		Short:       "Print a page's source (defaults to the wiki's main page)",
+		Args:        cobra.MaximumNArgs(1),
 		Example: "  get --profile wikibase-world/addshore\n" +
 			"  get --profile wikimedia/addshore --title 'User:Addshore'",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -24,49 +26,19 @@ func NewWikiPageGetCmd() *cobra.Command {
 				}
 				title = args[0]
 			}
-			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
+			client, err := wikiPageReadClient(cmd)
 			if err != nil {
 				return err
 			}
-			if err := loginIfCredentialsProvided(w); err != nil {
+			page, err := client.PageSource(cmd.Context(), title)
+			if err != nil {
 				return err
 			}
-			if title == "" {
-				result, err := w.Get(map[string]string{"action": "query", "meta": "siteinfo", "siprop": "general"})
-				if err != nil {
-					return fmt.Errorf("discover main page: %w", err)
-				}
-				title, err = result.GetString("query", "general", "mainpage")
-				if err != nil || title == "" {
-					return fmt.Errorf("wiki did not report a main-page title; specify --title")
-				}
-			}
-			result, err := w.Get(map[string]string{
-				"action": "query", "prop": "revisions", "titles": title,
-				"rvprop": "content", "rvslots": "main", "formatversion": "2",
-			})
-			if err != nil {
-				return fmt.Errorf("read page %q: %w", title, err)
-			}
-			pages, err := result.GetObjectArray("query", "pages")
-			if err != nil || len(pages) != 1 {
-				return fmt.Errorf("wiki did not return page %q", title)
-			}
-			if missing, _ := pages[0].GetBoolean("missing"); missing {
-				return fmt.Errorf("page %q does not exist", title)
-			}
-			revisions, err := pages[0].GetObjectArray("revisions")
-			if err != nil || len(revisions) == 0 {
-				return fmt.Errorf("page %q has no readable revision", title)
-			}
-			content, err := revisions[0].GetString("slots", "main", "content")
-			if err != nil {
-				return fmt.Errorf("page %q has no readable main-slot content", title)
-			}
-			_, err = io.WriteString(cmd.OutOrStdout(), content)
+			_, err = io.WriteString(cmd.OutOrStdout(), page.Content)
 			return err
 		},
 	}
 	cmd.Flags().StringVar(&wikiPageTitle, "title", "", "Title of the page (defaults to the wiki's main page)")
+	accesspolicy.Support(cmd)
 	return cmd
 }

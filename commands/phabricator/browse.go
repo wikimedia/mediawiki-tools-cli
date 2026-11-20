@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"golang.org/x/term"
 )
 
@@ -302,6 +303,10 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			if !ok {
 				return m, nil
 			}
+			if item.key == "" {
+				m.err = fmt.Errorf("non-public task: ask a human to rerun the specific operation outside agent mode")
+				return m, nil
+			}
 			if m.screen == "projects" {
 				m.screen = "tasks"
 				m.projectName = item.title
@@ -318,6 +323,10 @@ func (m browseModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.load()
 		case "o":
 			if item, ok := m.currentItem(); ok {
+				if item.url == "" {
+					m.err = fmt.Errorf("non-public task: browser access is unavailable in this mode")
+					return m, nil
+				}
 				url := item.url
 				return m, func() tea.Msg { return browseOpened{m.source.open(url)} }
 			}
@@ -420,6 +429,10 @@ func browseLine(value string, width int) string {
 func newPhabricatorBrowseCmd(site *string) *cobra.Command {
 	var project, view string
 	cmd := &cobra.Command{
+		Annotations: commandmeta.Annotations(commandmeta.Hints{
+			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
+			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
+		}),
 		Use: "browse", Short: "Browse projects and tasks interactively",
 		Long:    "Browse Phabricator projects, task lists and descriptions/comments in a read-only terminal interface. Search with /, use b to toggle board/list view, and press o to open the selected object in your browser. Task changes use the normal task commands.",
 		Example: "browse\nbrowse --project a_wikimedia_cli\nbrowse --project a_wikimedia_cli --view list", Args: cobra.NoArgs,
@@ -432,7 +445,7 @@ func newPhabricatorBrowseCmd(site *string) *cobra.Command {
 			if !cli.CanAskForInput() || !inOK || !outOK || !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(out.Fd())) || os.Getenv("TERM") == "dumb" {
 				return fmt.Errorf("browse requires an interactive terminal; use task list or project list for scripts")
 			}
-			client, _, err := clientFromSite(*site)
+			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
 			}

@@ -1,48 +1,22 @@
 package wiki
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/wikiapi"
 )
 
-func newWikiPageInfoCmd() *cobra.Command {
-	var follow bool
-	out := apiOutput{}
-	cmd := &cobra.Command{
-		Use: "info TITLE", Short: "Read page identity, URLs and protection metadata", Args: cobra.ExactArgs(1), ValidArgsFunction: cobra.NoFileCompletions,
-		Long:    "Read metadata for one page without downloading its source. Redirect pages are inspected as pages by default; --follow-redirects asks the selected wiki to resolve them. Missing or invalid titles return an error.",
-		Example: "  info Earth\n  info Earth --output jq --format .fullurl",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := out.validate(); err != nil {
-				return err
-			}
-			if strings.TrimSpace(args[0]) == "" {
-				return fmt.Errorf("page title cannot be empty")
-			}
-			client, err := wikiAPIClient(false)
-			if err != nil {
-				return err
-			}
-			page, err := client.PageInfo(cmd.Context(), args[0], follow)
-			if err != nil {
-				return err
-			}
-			data, err := json.Marshal(page)
-			if err != nil {
-				return err
-			}
-			return out.print(cmd, data)
-		},
+func wikiPageReadClient(cmd *cobra.Command) (*wikiapi.Client, error) {
+	publicOnly, err := accesspolicy.CLI(cmd, "")
+	if err != nil {
+		return nil, err
 	}
-	cmd.Flags().BoolVar(&follow, "follow-redirects", false, "Resolve redirects within the selected wiki before reading metadata")
-	out.flags(cmd)
-	return cmd
+	return wikiAPIClient(publicOnly)
 }
 
 func newWikiPageHistoryCmd() *cobra.Command {
