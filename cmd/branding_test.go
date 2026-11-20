@@ -63,7 +63,7 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 					t.Fatalf("example is not copyable: %s", text)
 				}
 				if strings.HasPrefix(command.CommandPath(), name+" grafana") {
-					want := name + " grafana dashboard query 'CDN Frontend Traffic' 'Varnish status' --since 15m --var site=eqiad --var cache_type=text --var status_type=2"
+					want := name + " grafana dashboard query 'CDN Frontend Traffic' 'Varnish status' --since 15m --var site=eqiad --var cache_type=text --var status_type=2 --output graph"
 					if !strings.Contains(text, want) {
 						t.Fatalf("Grafana help did not include the CDN traffic example: %s", text)
 					}

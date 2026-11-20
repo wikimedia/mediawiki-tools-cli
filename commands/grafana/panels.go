@@ -14,6 +14,7 @@ import (
 )
 
 type dashboardModel struct {
+	UID        string           `json:"uid"`
 	Panels     []dashboardPanel `json:"panels"`
 	Templating struct {
 		List []struct {

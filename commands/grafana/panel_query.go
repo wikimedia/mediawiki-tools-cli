@@ -47,17 +47,28 @@ const cdnPanelQueryArgs = "'CDN Frontend Traffic' 'Varnish status' --since 15m -
 
 var panelVariable = regexp.MustCompile(`\$([a-zA-Z_][a-zA-Z_0-9]*)|\$\{([a-zA-Z_][a-zA-Z_0-9]*)(?::([^}]+))?\}|\[\[([a-zA-Z_][a-zA-Z_0-9]*)(?::([^\]]+))?\]\]`)
 
-func newDashboardQueryCmd(baseURL string) *cobra.Command {
+func newDashboardQueryCmd(baseURL string, openURL func(string) error) *cobra.Command {
 	var datasource string
 	var overrides []string
 	var since, step, timeout time.Duration
+	var graphWidth int
+	const graphOutput = output.Type("graph")
 	out := output.Output{}
 	cmd := &cobra.Command{
 		Use: "query <dashboard> <panel>", Short: "Retrieve data from a dashboard's Prometheus panel", Args: cobra.ExactArgs(2),
-		Long:    "Run the visible Prometheus queries saved on a panel and return Grafana's data frames. Use titles or IDs for the dashboard and panel. Use --var name=value to set dashboard variables, --datasource to select a Prometheus data source, and --since and --step to set the time range and sample interval.",
-		Example: "query " + cdnPanelQueryArgs + "\nquery 'MediaWiki LinksUpdate' 'RefreshLinksJob good outcome' --since 15m",
+		Long:    "Run the visible Prometheus queries saved on a panel and return Grafana's data frames. Use --output graph to plot numeric time series or --output web to open the panel in Grafana with the requested time range and variables. Use titles or IDs for the dashboard and panel.",
+		Example: "query " + cdnPanelQueryArgs + " --output graph\nquery " + cdnPanelQueryArgs + " --output web\nquery 'MediaWiki LinksUpdate' 'RefreshLinksJob good outcome' --since 15m",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateJSONOutput(out); err != nil {
+			graph := out.Type == string(graphOutput)
+			web := out.Type == string(output.WebType)
+			if graph || web {
+				if out.Format != "" {
+					return fmt.Errorf("--format requires JSON or jq output")
+				}
+			} else if err := validateJSONOutput(out); err != nil {
+				return err
+			}
+			if err := output.ValidateGraphWidth(graphWidth); err != nil {
 				return err
 			}
 			if since < time.Millisecond || step < time.Millisecond || timeout <= 0 {
@@ -65,6 +76,13 @@ func newDashboardQueryCmd(baseURL string) *cobra.Command {
 			}
 			if datasource != "" && !validUID(datasource) {
 				return fmt.Errorf("--datasource must be a data source UID")
+			}
+			if web && datasource != "" {
+				return fmt.Errorf("--output web uses the dashboard's data source; use --var to set a dashboard data source variable")
+			}
+			selectedVars, err := parseVariableOverrides(overrides)
+			if err != nil {
+				return err
 			}
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
@@ -76,13 +94,29 @@ func newDashboardQueryCmd(baseURL string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			vars, err := panelVariables(dashboard, overrides)
-			if err != nil {
-				return err
+			if web {
+				link, err := panelWebURL(baseURL, dashboard.UID, panel.ID, since, selectedVars)
+				if err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintln(cmd.OutOrStdout(), "Opening", link); err != nil {
+					return err
+				}
+				return openURL(link)
 			}
+			vars := panelVariables(dashboard, selectedVars)
 			result, err := queryPanel(ctx, baseURL, panel, datasource, vars, since, step)
 			if err != nil {
 				return err
+			}
+			if graph {
+				title := panel.Title
+				if title == "" {
+					title = fmt.Sprintf("Panel %d", panel.ID)
+				} else if expanded, err := expandPanelVariables(title, vars); err == nil {
+					title = expanded
+				}
+				return printPanelGraphs(cmd.OutOrStdout(), title, result, graphWidth)
 			}
 			return output.PrintJSONChecked(result, out.Format, out.Type == string(output.JQType), cmd.OutOrStdout())
 		},
@@ -92,11 +126,33 @@ func newDashboardQueryCmd(baseURL string) *cobra.Command {
 	cmd.Flags().DurationVar(&since, "since", time.Hour, "Time range ending now")
 	cmd.Flags().DurationVar(&step, "step", time.Minute, "Interval between range-query samples")
 	cmd.Flags().DurationVar(&timeout, "timeout", 20*time.Second, "Timeout for fetching and querying the panel")
-	out.AddFlagsWithOpts(cmd, output.WithFilterFlagDisabled())
+	cmd.Flags().IntVar(&graphWidth, "graph-width", 0, "Graph width in columns (0 detects the terminal; otherwise 24–1000)")
+	out.AddFlagsWithOpts(cmd, output.WithAdditionalTypes(graphOutput, output.WebType), output.WithFilterFlagDisabled())
 	return cmd
 }
 
-func panelVariables(dashboard dashboardModel, overrides []string) (map[string]string, error) {
+func panelWebURL(baseURL, uid string, panelID int, since time.Duration, vars map[string]string) (string, error) {
+	if !validUID(uid) || panelID < 1 {
+		return "", fmt.Errorf("Grafana did not return a valid dashboard UID and panel ID")
+	}
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return "", err
+	}
+	link := base.JoinPath("d", url.PathEscape(uid))
+	now := time.Now()
+	params := link.Query()
+	params.Set("viewPanel", strconv.Itoa(panelID))
+	params.Set("from", strconv.FormatInt(now.Add(-since).UnixMilli(), 10))
+	params.Set("to", strconv.FormatInt(now.UnixMilli(), 10))
+	for name, value := range vars {
+		params.Set("var-"+name, value)
+	}
+	link.RawQuery = params.Encode()
+	return link.String(), nil
+}
+
+func panelVariables(dashboard dashboardModel, overrides map[string]string) map[string]string {
 	values := map[string]string{}
 	for _, variable := range dashboard.Templating.List {
 		var value string
@@ -110,6 +166,14 @@ func panelVariables(dashboard dashboardModel, overrides []string) (map[string]st
 			values[variable.Name] = value
 		}
 	}
+	for name, value := range overrides {
+		values[name] = value
+	}
+	return values
+}
+
+func parseVariableOverrides(overrides []string) (map[string]string, error) {
+	values := map[string]string{}
 	for _, override := range overrides {
 		name, value, ok := strings.Cut(override, "=")
 		if !ok || !validVariableName.MatchString(name) || strings.HasPrefix(name, "__") {

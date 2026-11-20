@@ -62,7 +62,7 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 		cmd.Args = cobra.MaximumNArgs(1)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if err := validateGraphWidth(opts.graphWidth); err != nil {
+		if err := output.ValidateGraphWidth(opts.graphWidth); err != nil {
 			return err
 		}
 		if err := validateMetricOutput(out); err != nil {

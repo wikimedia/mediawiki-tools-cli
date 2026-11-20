@@ -27,7 +27,16 @@ Titles are case-insensitive. Use a full title or an unambiguous fragment. If sev
 
 ```sh
 mw grafana dashboard query 'CDN Frontend Traffic' 'Varnish status' --since 15m \
-  --var site=eqiad --var cache_type=text --var status_type=2
+  --var site=eqiad --var cache_type=text --var status_type=2 --output graph
+```
+
+Graph output draws a separate terminal chart for each numeric time series and labels the horizontal axis in UTC. Use `--graph-width` to set the width or `--output json` to get the underlying data frames.
+
+Use `--output web` to open the panel in Grafana with the same time range and variable filters. Grafana handles the queries and sample interval in the browser.
+
+```sh
+mw grafana dashboard query 'CDN Frontend Traffic' 'Varnish status' --since 15m \
+  --var site=eqiad --var cache_type=text --var status_type=2 --output web
 ```
 
 If the panel uses another kind of data source or a Grafana-specific variable format, copy its request from **Inspect → Query** in the browser and send it with `mw grafana api /api/ds/query --input query.json`.

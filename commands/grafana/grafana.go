@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	apicmd "gitlab.wikimedia.org/repos/releng/cli/commands/api"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/restapi"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -29,11 +30,11 @@ func newCmd(baseURL string) *cobra.Command {
 		Use: "grafana", GroupID: "service",
 		Short:   "Read dashboards and metrics from Wikimedia Grafana",
 		Long:    "Read public Grafana dashboards, discover data sources, and run PromQL queries. The public endpoints work without credentials.",
-		Example: "grafana dashboard query " + cdnPanelQueryArgs + "\ngrafana dashboard list 'MediaWiki'\ngrafana datasource list\ngrafana api /api/health",
+		Example: "grafana dashboard query " + cdnPanelQueryArgs + " --output graph\ngrafana dashboard list 'MediaWiki'\ngrafana datasource list\ngrafana api /api/health",
 	}
 
 	dashboard := &cobra.Command{Use: "dashboard", Short: "Find dashboards, inspect panels, and download JSON"}
-	dashboard.AddCommand(newDashboardListCmd(baseURL), newDashboardGetCmd(baseURL), newDashboardPanelsCmd(baseURL), newDashboardQueryCmd(baseURL))
+	dashboard.AddCommand(newDashboardListCmd(baseURL), newDashboardGetCmd(baseURL), newDashboardPanelsCmd(baseURL), newDashboardQueryCmd(baseURL, browser.OpenURL))
 
 	datasource := &cobra.Command{Use: "datasource", Short: "Discover Grafana data sources"}
 	datasource.AddCommand(readCommand(baseURL, &cobra.Command{

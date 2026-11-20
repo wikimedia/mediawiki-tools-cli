@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 
 const panelFixture = `{
   "dashboard": {
+    "uid": "example",
     "panels": [
       {"type":"row","id":99,"title":"Row","panels":[
         {"id":7,"title":"Requests","datasource":{"uid":"prom","type":"prometheus"},"targets":[
@@ -70,15 +72,56 @@ func TestInspectDashboardPanels(t *testing.T) {
 	}
 }
 
+func TestDashboardPanelWebOutput(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/dashboards/uid/example" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = io.WriteString(w, panelFixture)
+	}))
+	defer server.Close()
+	var opened string
+	cmd := newDashboardQueryCmd(server.URL, func(link string) error {
+		opened = link
+		return nil
+	})
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"example", "Requests", "--since", "15m", "--var", "site=eqiad & codfw", "--output", "web"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	link, err := url.Parse(opened)
+	if err != nil || link.Path != "/d/example" || !strings.HasPrefix(opened, server.URL+"/") {
+		t.Fatalf("unexpected browser URL %q: %v", opened, err)
+	}
+	params := link.Query()
+	from, fromErr := strconv.ParseInt(params.Get("from"), 10, 64)
+	to, toErr := strconv.ParseInt(params.Get("to"), 10, 64)
+	if params.Get("viewPanel") != "7" || params.Get("var-site") != "eqiad & codfw" || fromErr != nil || toErr != nil || to-from != (15*time.Minute).Milliseconds() {
+		t.Fatalf("unexpected panel URL parameters: %v", params)
+	}
+	if out.String() != "Opening "+opened+"\n" {
+		t.Fatalf("unexpected output: %q", out.String())
+	}
+}
+
 func TestQueryDashboardPanel(t *testing.T) {
 	for _, tc := range []struct {
 		name, result, wantError string
 		args                    []string
 		wantSite                string
+		wantOutput              string
 	}{
 		{name: "saved variable", result: `{"results":{"A":{"frames":[]},"B":{"frames":[]}}}`, wantSite: "eqiad"},
 		{name: "override", result: `{"results":{"A":{"frames":[]},"B":{"frames":[]}}}`, args: []string{"--var", "site=codfw"}, wantSite: "codfw"},
 		{name: "backend error", result: `{"results":{"A":{"status":400,"error":"bad expression"},"B":{"frames":[]}}}`, wantError: "Grafana query A: bad expression", wantSite: "eqiad"},
+		{
+			name: "graph", args: []string{"--output", "graph", "--graph-width", "50"}, wantSite: "eqiad", wantOutput: "2 observations",
+			result: `{"results":{"A":{"frames":[{"schema":{"fields":[{"name":"Time","type":"time"},{"name":"Value","type":"number","labels":{"site":"eqiad"}}]},"data":{"values":[[1700000000000,1700000060000,1700000120000],[4,null,12]]}}]},"B":{"frames":[]}}}`,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			called := false
@@ -121,12 +164,16 @@ func TestQueryDashboardPanel(t *testing.T) {
 			}))
 			defer server.Close()
 			cmd := newCmd(server.URL)
-			cmd.SetOut(io.Discard)
+			var out bytes.Buffer
+			cmd.SetOut(&out)
 			cmd.SetErr(io.Discard)
 			cmd.SetArgs(append([]string{"dashboard", "query", "Requests Dashboard", "Requests", "--since", "15m"}, tc.args...))
 			err := cmd.Execute()
 			if !called || (tc.wantError == "" && err != nil) || (tc.wantError != "" && (err == nil || !strings.Contains(err.Error(), tc.wantError))) {
 				t.Fatalf("query called = %v, error = %v", called, err)
+			}
+			if !strings.Contains(out.String(), tc.wantOutput) {
+				t.Fatalf("expected %q in output %q", tc.wantOutput, out.String())
 			}
 		})
 	}

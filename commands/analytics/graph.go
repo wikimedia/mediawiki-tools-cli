@@ -9,13 +9,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
-func validateGraphWidth(width int) error {
-	if width != 0 && (width < 24 || width > 1000) {
-		return fmt.Errorf("--graph-width must be 0 (automatic), or between 24 and 1000")
-	}
-	return nil
-}
-
 func metricGraphTime(value string) (time.Time, error) {
 	for _, layout := range []string{time.RFC3339Nano, "2006010215", "20060102", "2006-01-02"} {
 		if date, err := time.Parse(layout, value); err == nil {
