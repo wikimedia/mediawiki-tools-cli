@@ -123,7 +123,7 @@ func TestPhabricatorHelpExplainsDataAndEffects(t *testing.T) {
 		{"auth status", []string{"user.whoami", "masked", "not task or paste content"}},
 		{"task create", []string{"printed before creation", "Existing task content is not fetched", "public-only"}},
 		{"paste create", []string{"preview prints", "may be public"}},
-		{"paste edit", []string{"without fetching", "preview prints", "visibility, are left unchanged", "not covered"}},
+		{"paste edit", []string{"without fetching", "preview prints", "visibility, are left unchanged", "Saving a paste requires public-only mode to be off"}},
 		{"shell", []string{"update task", "immediately", "without a separate confirmation"}},
 	} {
 		t.Run(test.path, func(t *testing.T) {
