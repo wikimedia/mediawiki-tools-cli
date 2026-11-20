@@ -18,7 +18,7 @@ require (
 	github.com/docker/cli v29.10.0+incompatible
 	github.com/fatih/color v1.19.0
 	github.com/go-mysql-org/go-mysql v1.16.0
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/gofrs/flock v0.13.2
 	github.com/google/go-cmp v0.7.0
 	github.com/gophercloud/gophercloud/v2 v2.16.0
