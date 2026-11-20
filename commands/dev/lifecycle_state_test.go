@@ -68,7 +68,7 @@ func TestSuspendResumePreservesIntent(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.exited = []string{"mysql", "mediawiki", "manually-stopped", "one-shot"}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mediawiki", "mysql"}) {
@@ -78,7 +78,7 @@ func TestSuspendResumePreservesIntent(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.started = nil
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mediawiki"}) {
@@ -93,7 +93,7 @@ func TestLifecycleEmptyTargetsNeverMeanAll(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.exited = []string{"one-shot"}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if err := restartDevelopmentServices(p); err != nil {
@@ -108,7 +108,9 @@ func TestLifecycleEnumerationErrorsDoNotMutate(t *testing.T) {
 	m := lifecycleTestEnvironment(t)
 	failure := errors.New("enumeration failed")
 	p := &fakeLifecycleProject{failure: failure}
-	for _, err := range []error{suspendDevelopmentServices(m, p), resumeDevelopmentServices(m, p), restartDevelopmentServices(p)} {
+	suspendErr := suspendDevelopmentServices(m, p)
+	_, resumeErr := resumeDevelopmentServices(m, p)
+	for _, err := range []error{suspendErr, resumeErr, restartDevelopmentServices(p)} {
 		if !errors.Is(err, failure) {
 			t.Fatal(err)
 		}
@@ -139,7 +141,7 @@ func TestSuspendRetryPreservesPartlyStoppedServices(t *testing.T) {
 			}
 			p.running = nil
 			p.exited = []string{"mediawiki", "mysql", "one-shot"}
-			if err := resumeDevelopmentServices(m, p); err != nil {
+			if _, err := resumeDevelopmentServices(m, p); err != nil {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(p.started, []string{"mediawiki", "mysql"}) {
@@ -161,7 +163,7 @@ func TestSuspendRetryPreservesPartlyStoppedServices(t *testing.T) {
 func TestLegacyResumeAndRunningOnlyRestart(t *testing.T) {
 	m := lifecycleTestEnvironment(t)
 	p := &fakeLifecycleProject{running: []string{"running"}, exited: []string{"existing"}, created: []string{"created"}}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"created", "existing"}) {
@@ -183,7 +185,7 @@ func TestResumeAfterFailedStopEndsPendingSuspension(t *testing.T) {
 	}
 	p.running = []string{"mysql"}
 	p.exited = []string{"mediawiki", "one-shot"}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mediawiki"}) {
@@ -210,7 +212,7 @@ func TestStopThenStartDoesNotReopenTunnel(t *testing.T) {
 	}
 	p.exited = append([]string(nil), p.running...)
 	p.running = nil
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mysql", "traefik"}) {
@@ -221,7 +223,7 @@ func TestStopThenStartDoesNotReopenTunnel(t *testing.T) {
 func TestLegacyResumeWithoutSnapshotExcludesTunnels(t *testing.T) {
 	m := lifecycleTestEnvironment(t)
 	p := &fakeLifecycleProject{exited: []string{"traefik", "gateway-auth", "cloudflared"}, created: []string{"holesail", "mysql"}}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mysql", "traefik"}) {

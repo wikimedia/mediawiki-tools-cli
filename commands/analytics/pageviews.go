@@ -51,7 +51,7 @@ func NewPageviewsCmd() *cobra.Command {
 		Example: "pageviews --project en.wikipedia.org\npageviews 'Main Page' --project en.wikipedia.org\npageviews 'Wikidata' --project en.wikipedia.org --start 20261001 --end 20261017\npageviews 'Albert Einstein' --output graph\npageviews 'Albert Einstein' --output csv\npageviews 'Albert Einstein' --output jq --format '.[].views'",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateGraphWidth(graphWidth); err != nil {
+			if err := output.ValidateGraphWidth(graphWidth); err != nil {
 				return err
 			}
 			if err := validateMetricOutput(out); err != nil {

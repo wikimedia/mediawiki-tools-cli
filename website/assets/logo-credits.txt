@@ -36,6 +36,10 @@ Quip favicon: supplied by the Quip tool, unchanged.
 https://bash.toolforge.org/favicon.ico
 https://bash.toolforge.org
 
+Grafana icon: Grafana Labs, unchanged.
+https://github.com/grafana/grafana/blob/main/public/img/grafana_icon.svg
+https://grafana.com/trademark-policy/
+
 Remaining SVG logos are unmodified Simple Icons assets (CC0 1.0).
 The original source for each is:
 https://github.com/simple-icons/simple-icons/blob/develop/icons/FILENAME.svg

@@ -31,20 +31,20 @@ func suspendDevelopmentServices(m devenv.Environment, p lifecycleProject) error 
 	return m.CompleteSuspendServices()
 }
 
-func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
+func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) (bool, error) {
 	wanted, hasSnapshot, err := m.ResumeServices()
 	if err != nil {
-		return err
+		return false, err
 	}
 	// Compose calls this state exited, not stopped. Include created containers for
 	// legacy contexts that have never recorded a suspend set.
 	stopped, err := p.ServicesWithStatus("exited")
 	if err != nil {
-		return fmt.Errorf("list exited containers: %w", err)
+		return false, fmt.Errorf("list exited containers: %w", err)
 	}
 	created, err := p.ServicesWithStatus("created")
 	if err != nil {
-		return fmt.Errorf("list created containers: %w", err)
+		return false, fmt.Errorf("list created containers: %w", err)
 	}
 	available := devenv.WithoutTunnelServices(append(stopped, created...))
 	selected := map[string]bool{}
@@ -64,12 +64,12 @@ func resumeDevelopmentServices(m devenv.Environment, p lifecycleProject) error {
 	sort.Strings(targets)
 	// Empty Compose arguments mean ALL services, so never start with none.
 	if len(targets) == 0 {
-		return m.CompleteSuspendServices()
+		return false, m.CompleteSuspendServices()
 	}
 	if err := p.StartContainers(targets); err != nil {
-		return lifecycleError("start", err)
+		return false, lifecycleError("start", err)
 	}
-	return m.CompleteSuspendServices()
+	return true, m.CompleteSuspendServices()
 }
 
 func restartDevelopmentServices(p lifecycleProject) error {

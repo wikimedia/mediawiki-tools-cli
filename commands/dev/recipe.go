@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	osexec "os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -25,8 +27,11 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv/recipe"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 	filesutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/paths"
+	"gitlab.wikimedia.org/repos/releng/cli/mount"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -42,8 +47,6 @@ type recipeRuntimeState struct {
 	ComposeFiles   []string `json:"composeFiles"`
 	JobRunnerSites []string `json:"jobRunnerSites"`
 }
-
-const recipeStatusCommand = "mw dev compose ps"
 
 func NewRecipeCmd() *cobra.Command {
 	var recipeFile string
@@ -63,7 +66,9 @@ func NewRecipeCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			m.EnsureReady()
+			if !dryRun {
+				m.EnsureReady()
+			}
 
 			if len(args) > 0 {
 				recipeName = args[0]
@@ -74,39 +79,52 @@ func NewRecipeCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Applying recipe %q (%s)\n", spec.Name, spec.Version)
+			var previewEnv map[string]string
 			if dryRun {
-				fmt.Println("Dry run mode enabled. No changes will be made.")
+				fmt.Printf("Previewing recipe %q (%s)\n", spec.Name, spec.Version)
+				previewEnv, err = m.Env().Read()
+				if err != nil {
+					return err
+				}
+			} else {
+				fmt.Printf("Applying recipe %q (%s)\n", spec.Name, spec.Version)
 			}
 
-			// Ensure recipe-scoped state from previous runs does not leak into this run.
-			if err := cleanupRecipeRuntimeState(m, dryRun); err != nil {
+			if err := cleanupRecipeRuntimeState(m, previewEnv); err != nil {
 				return err
 			}
 
+			env := previewEnv
+			if !dryRun {
+				env = m.Env().List()
+			}
 			appliedEnvKeys := []string{}
-
-			for k, v := range spec.Env {
-				appliedEnvKeys = append(appliedEnvKeys, k)
+			for _, key := range slices.Sorted(maps.Keys(spec.Env)) {
+				value := spec.Env[key]
+				appliedEnvKeys = append(appliedEnvKeys, key)
+				env[key] = value
 				if dryRun {
-					fmt.Printf("[dry-run] set env %s=%s\n", k, v)
-					continue
-				}
-				m.Env().Set(k, v)
-			}
-
-			if m.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
-				guess := mediawiki.GuessMediaWikiDirectoryBasedOnContext()
-				if dryRun {
-					fmt.Printf("[dry-run] set MEDIAWIKI_VOLUMES_CODE=%s\n", guess)
+					fmt.Printf("[dry-run] set env %s\n", key)
 				} else {
-					m.Env().Set("MEDIAWIKI_VOLUMES_CODE", guess)
+					m.Env().Set(key, value)
 				}
 			}
 
-			spec = expandRecipeTemplateVars(spec, m.Env().List())
+			if _, configured := env["MEDIAWIKI_VOLUMES_CODE"]; !configured {
+				checkout := paths.FullifyUserProvidedPath(mediawiki.GuessMediaWikiDirectoryBasedOnContext())
+				env["MEDIAWIKI_VOLUMES_CODE"] = checkout
+				if dryRun {
+					fmt.Printf("[dry-run] set MEDIAWIKI_VOLUMES_CODE=%s\n", checkout)
+				} else {
+					m.Env().Set("MEDIAWIKI_VOLUMES_CODE", checkout)
+				}
+			}
+			if dryRun && env["PORT"] == "" {
+				env["PORT"] = "8080"
+			}
+			spec = expandRecipeTemplateVars(spec, env)
 
-			mediaWikiPath := m.Env().Get("MEDIAWIKI_VOLUMES_CODE")
+			mediaWikiPath := env["MEDIAWIKI_VOLUMES_CODE"]
 			if mediaWikiPath == "" {
 				return fmt.Errorf("MEDIAWIKI_VOLUMES_CODE is empty")
 			}
@@ -152,7 +170,7 @@ func NewRecipeCmd() *cobra.Command {
 			}
 
 			if !skipServices {
-				if err := applyServices(spec.Services, m, dryRun); err != nil {
+				if err := applyServices(spec.Services, spec.CustomCompose, m, dryRun); err != nil {
 					return err
 				}
 			}
@@ -185,7 +203,7 @@ func NewRecipeCmd() *cobra.Command {
 				}
 			}
 
-			if err := applyContent(m, spec.Sites, spec.Content, dryRun); err != nil {
+			if err := applyContent(env["PORT"], spec.Sites, spec.Content, dryRun); err != nil {
 				return err
 			}
 
@@ -195,13 +213,20 @@ func NewRecipeCmd() *cobra.Command {
 				}
 			}
 
+			if dryRun {
+				fmt.Println("Recipe preview complete. No development environment changes were made.")
+				return nil
+			}
 			outputDetails := map[string]string{
 				"Recipe": spec.Name,
+			}
+			if url := m.RunningDashboardURL(); url != "" {
+				outputDetails["Dashboard"] = url
 			}
 			if len(spec.Sites) > 0 {
 				siteURLs := []string{}
 				for _, site := range spec.Sites {
-					siteURLs = append(siteURLs, "http://"+site.DBName+".mediawiki.local.wmftest.net:"+m.Env().Get("PORT")+"/wiki/Main_Page")
+					siteURLs = append(siteURLs, "http://"+site.DBName+".mediawiki.local.wmftest.net:"+env["PORT"]+"/wiki/Main_Page")
 				}
 				outputDetails["Sites"] = strings.Join(siteURLs, "\n")
 			}
@@ -211,7 +236,7 @@ func NewRecipeCmd() *cobra.Command {
 			cmdgloss.PrintThreePartBlock(
 				cmdgloss.SuccessHeading("Recipe applied successfully"),
 				outputDetails,
-				"Run `"+recipeStatusCommand+"` to see running services.",
+				"Run `"+devContextCommand(cmd, "status")+"` to check the environment.",
 			)
 			return nil
 		},
@@ -219,7 +244,7 @@ func NewRecipeCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&recipeFile, "file", "f", "", "Path to recipe YAML file")
 	cmd.Flags().StringVar(&recipeURL, "url", "", "URL to recipe YAML file")
-	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a recipe in the local extracted recipes directory")
+	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a bundled or local recipe")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show planned operations without changing anything")
 	cmd.Flags().BoolVar(&skipCode, "skip-code", false, "Skip code checkout phase")
 	cmd.Flags().BoolVar(&skipServices, "skip-services", false, "Skip service create/start phase")
@@ -263,7 +288,8 @@ func saveRecipeRuntimeState(m devenv.Environment, state recipeRuntimeState) erro
 	return os.WriteFile(path, b, 0o644)
 }
 
-func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
+func cleanupRecipeRuntimeState(m devenv.Environment, previewEnv map[string]string) error {
+	dryRun := previewEnv != nil
 	state, err := loadRecipeRuntimeState(m)
 	if err != nil {
 		return err
@@ -271,6 +297,7 @@ func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
 
 	for _, key := range uniqueStrings(nonEmptyStrings(state.EnvKeys)) {
 		if dryRun {
+			delete(previewEnv, key)
 			fmt.Printf("[dry-run] unset env %s\n", key)
 			continue
 		}
@@ -306,6 +333,7 @@ func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
 	if legacyComposeCleaned {
 		for _, key := range []string{"MEDIAWIKI_DEFAULT_DBNAME", "CXSERVER_VOLUMES_CODE"} {
 			if dryRun {
+				delete(previewEnv, key)
 				fmt.Printf("[dry-run] unset legacy env %s\n", key)
 				continue
 			}
@@ -325,6 +353,9 @@ func cleanupRecipeRuntimeState(m devenv.Environment, dryRun bool) error {
 
 func cleanupLegacyRecipeComposeFiles(m devenv.Environment, dryRun bool) (bool, error) {
 	entries, err := os.ReadDir(m.Directory())
+	if os.IsNotExist(err) && dryRun {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}
@@ -399,7 +430,6 @@ func newRecipeValidateCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := devenv.DefaultForUser()
-			m.EnsureReady()
 
 			if len(args) > 0 {
 				recipeName = args[0]
@@ -418,7 +448,7 @@ func newRecipeValidateCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&recipeFile, "file", "f", "", "Path to recipe YAML file")
 	cmd.Flags().StringVar(&recipeURL, "url", "", "URL to recipe YAML file")
-	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a recipe in the local extracted recipes directory")
+	cmd.Flags().StringVarP(&recipeName, "name", "n", "", "Name of a bundled or local recipe")
 	cmd.MarkFlagsMutuallyExclusive("file", "url", "name")
 	return cmd
 }
@@ -473,6 +503,12 @@ func loadRecipe(recipeFile string, recipeURL string, recipeName string, m devenv
 			if err == nil {
 				content = b
 				break
+			}
+			if os.IsNotExist(err) && filepath.IsLocal(candidate) {
+				if b, embeddedErr := mount.DevContent.ReadFile(path.Join(mount.DevEmbedPath, "recipes", filepath.ToSlash(candidate))); embeddedErr == nil {
+					content = b
+					break
+				}
 			}
 			if firstErr == nil {
 				firstErr = err
@@ -663,8 +699,8 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 		}
 	}
 
-	// Fall back to HTTP when SSH is required but no username is available.
-	if gerritInteractionType == "ssh" && gerritUsername == "" {
+	// HTTP needs no Gerrit account for a fresh environment.
+	if gerritInteractionType == "" || (gerritInteractionType == "ssh" && gerritUsername == "") {
 		gerritInteractionType = "http"
 	}
 
@@ -792,13 +828,32 @@ func uniqueStrings(in []string) []string {
 	return out
 }
 
-func applyServices(services []recipe.Service, m devenv.Environment, dryRun bool) error {
+func applyServices(services []recipe.Service, custom recipe.CustomCompose, m devenv.Environment, dryRun bool) error {
 	for _, svc := range services {
 		f := m.DockerCompose().File(svc.Name)
-		if !f.Exists() {
-			return fmt.Errorf("service file %s does not exist", f.String())
+		var data []byte
+		var err error
+		switch {
+		case dryRun && strings.TrimSpace(custom.Content) != "" && svc.Name+".yml" == customComposeFileName(custom):
+			data = []byte(custom.Content)
+		case dryRun:
+			data, err = mount.DevContent.ReadFile(path.Join(mount.DevEmbedPath, "compose", svc.Name, "compose.yml"))
+			if os.IsNotExist(err) {
+				data, err = os.ReadFile(filepath.Clean(f.String()))
+			}
+		default:
+			data, err = os.ReadFile(filepath.Clean(f.String()))
 		}
-		names := f.Contents().ServiceNames()
+		if err != nil {
+			return fmt.Errorf("read service %q: %w", svc.Name, err)
+		}
+		var contents struct {
+			Services map[string]struct{} `yaml:"services"`
+		}
+		if err := yaml.Unmarshal(data, &contents); err != nil {
+			return fmt.Errorf("parse service %q: %w", svc.Name, err)
+		}
+		names := slices.Sorted(maps.Keys(contents.Services))
 		if len(names) == 0 {
 			return fmt.Errorf("service file %s does not define any services", f.String())
 		}
@@ -1375,9 +1430,13 @@ func runMaintenanceSteps(m devenv.Environment, steps []recipe.ContainerCommandSt
 		return nil
 	}
 
-	containerID, err := m.DockerCompose().ContainerID("mediawiki")
-	if err != nil {
-		return err
+	var containerID string
+	if !dryRun {
+		var err error
+		containerID, err = m.DockerCompose().ContainerID("mediawiki")
+		if err != nil {
+			return err
+		}
 	}
 
 	for i, step := range steps {
@@ -1519,12 +1578,11 @@ func waitForSiteURL(siteName string, apiURL string, client *http.Client, attempt
 	return fmt.Errorf("%s", message)
 }
 
-func applyContent(m devenv.Environment, sites []recipe.Site, content recipe.Content, dryRun bool) error {
+func applyContent(port string, sites []recipe.Site, content recipe.Content, dryRun bool) error {
 	if len(content.Wikibase.Properties) == 0 && len(content.Wikibase.Items) == 0 && len(content.Pages) == 0 {
 		return nil
 	}
 
-	port := m.Env().Get("PORT")
 	if err := waitForSites(sites, port, dryRun); err != nil {
 		return err
 	}

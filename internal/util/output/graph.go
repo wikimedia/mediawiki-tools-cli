@@ -30,6 +30,16 @@ type Graph struct {
 	Bars   bool
 	// Width is measured in terminal columns; zero detects the terminal size.
 	Width int
+	// TimeFormat controls the line graph's time labels. The default displays dates.
+	TimeFormat string
+}
+
+// ValidateGraphWidth checks a requested width before fetching graph data.
+func ValidateGraphWidth(width int) error {
+	if width != 0 && (width < 24 || width > 1000) {
+		return fmt.Errorf("--graph-width must be 0 (automatic), or between 24 and 1000")
+	}
+	return nil
 }
 
 // Print writes a labelled graph. Empty datasets produce a message, not fake zeros.
@@ -184,7 +194,11 @@ func (g Graph) lineGraph(result *strings.Builder, width int, paint func(string) 
 	}
 	prefix := strings.Repeat(" ", labelWidth+2)
 	fmt.Fprintf(result, "%s└%s\n", strings.Repeat(" ", labelWidth+1), strings.Repeat("─", plotWidth))
-	start, end := first.Format("2006-01-02"), last.Format("2006-01-02")
+	layout := g.TimeFormat
+	if layout == "" {
+		layout = "2006-01-02"
+	}
+	start, end := first.Format(layout), last.Format(layout)
 	switch {
 	case first.Equal(last):
 		fmt.Fprintln(result, prefix+start)
@@ -192,7 +206,7 @@ func (g Graph) lineGraph(result *strings.Builder, width int, paint func(string) 
 		fmt.Fprintln(result, prefix+start+strings.Repeat(" ", plotWidth-len(start)-len(end))+end)
 	default:
 		fmt.Fprintln(result, prefix+start)
-		fmt.Fprintln(result, prefix+strings.Repeat(" ", plotWidth-len(end))+end)
+		fmt.Fprintln(result, prefix+strings.Repeat(" ", max(0, plotWidth-len(end)))+end)
 	}
 	// Multiple observations in a terminal column retain their range through the
 	// vertical segments above. Missing dates are never replaced with zero.

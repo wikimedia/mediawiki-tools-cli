@@ -21,6 +21,9 @@
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Pageviews"
     },
     {
+      "source": "guides/grafana.md"
+    },
+    {
       "source": "guides/authentication.md",
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Authentication"
     },

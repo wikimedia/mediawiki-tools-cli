@@ -19,7 +19,16 @@ import (
 )
 
 func NewCmd() *cobra.Command {
-	var baseURL, method, input string
+	return newCmd(restapi.BaseURL, nil)
+}
+
+// NewScopedCmd reuses the API request flags with a fixed base and request policy.
+func NewScopedCmd(baseURL string, validate func(method, endpoint string) error) *cobra.Command {
+	return newCmd(baseURL, validate)
+}
+
+func newCmd(baseURL string, validate func(method, endpoint string) error) *cobra.Command {
+	var method, input string
 	var headers, fields []string
 	var raw, include bool
 	var timeout time.Duration
@@ -68,6 +77,11 @@ func NewCmd() *cobra.Command {
 				verb = http.MethodGet
 				if input != "" || len(fields) > 0 {
 					verb = http.MethodPost
+				}
+			}
+			if validate != nil {
+				if err := validate(verb, args[0]); err != nil {
+					return err
 				}
 			}
 			var body io.Reader
@@ -155,7 +169,9 @@ func NewCmd() *cobra.Command {
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&baseURL, "base-url", restapi.BaseURL, "Base URL for relative endpoints")
+	if validate == nil {
+		flags.StringVar(&baseURL, "base-url", baseURL, "Base URL for relative endpoints")
+	}
 	flags.StringVarP(&method, "method", "X", "", "HTTP method (GET, or POST when --field/--input is provided)")
 	flags.StringArrayVarP(&headers, "header", "H", nil, "Request header as 'Name: value' (repeatable)")
 	flags.StringArrayVarP(&fields, "field", "f", nil, "String field as name=value (repeatable)")
