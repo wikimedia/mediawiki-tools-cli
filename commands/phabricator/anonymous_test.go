@@ -163,7 +163,6 @@ func TestAnonymousPhabricatorCommands(t *testing.T) {
 	for _, args := range [][]string{
 		{"task", "view", "T123", "--profile", "missing"},
 		{"task", "view", "https://other.example/T123"},
-		{"task", "view", "T123", "--allow-non-public"},
 		{"task", "status", "T123", "resolved"},
 		{"paste", "view", "P123"},
 		{"api", "conduit.ping"},
@@ -183,6 +182,24 @@ func TestAnonymousPhabricatorCommands(t *testing.T) {
 	}
 	if calls != before {
 		t.Fatalf("unsupported or authenticated commands made %d requests", calls-before)
+	}
+	for _, args := range [][]string{
+		{"view", "T123", "--public-only"},
+		{"task", "view", "T123", "--public-only"},
+		{"project", "view", "12", "--public-only"},
+	} {
+		if _, err := executeSafetyCommand(args...); err != nil {
+			t.Errorf("%v failed with a logged-out default profile: %v", args, err)
+		}
+	}
+	for _, args := range [][]string{
+		{"view", "T123", "--public-only", "--profile", "unselected"},
+		{"view", "P123", "--public-only"},
+		{"paste", "view", "P123", "--public-only"},
+	} {
+		if _, err := executeSafetyCommand(args...); err == nil || !strings.Contains(err.Error(), "--public-only") {
+			t.Errorf("%v did not reject unsupported public-only access: %v", args, err)
+		}
 	}
 }
 

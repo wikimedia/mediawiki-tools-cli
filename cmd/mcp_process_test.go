@@ -83,30 +83,12 @@ func TestMCPProcessRequiresExplicitPasteProfile(t *testing.T) {
 		{"mcp", "--services", "phab", "--allow-paste"},
 		{"phab", "mcp", "--allow-paste"},
 		{"mcp", "--services", "phab", "--profile", "phab=missing"},
+		{"mcp", "--services", "phab", "--profile", "phab=missing", "--public-only=false"},
 	} {
 		output, err := cliTestProcess(t, ctx, dir, args...).CombinedOutput()
 		if err == nil || !strings.Contains(string(output), "profile") {
 			t.Fatalf("%v: expected profile error, got %s (%v)", args, output, err)
 		}
-	}
-}
-
-func TestPhabricatorPreviewProcessSkipsStartup(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-	defer cancel()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.json")
-	before := `{"telemetry":"yes"}`
-	if err := os.WriteFile(path, []byte(before), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	output, err := cliTestProcess(t, ctx, dir, "phab", "task", "status", "T123", "resolved", "--dry-run=true").CombinedOutput()
-	if err != nil || !strings.Contains(string(output), "Preview only") {
-		t.Fatalf("preview failed: %s (%v)", output, err)
-	}
-	after, err := os.ReadFile(path)
-	if err != nil || string(after) != before {
-		t.Fatalf("preview modified configuration: %q (%v)", after, err)
 	}
 }
 

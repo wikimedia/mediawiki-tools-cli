@@ -3,8 +3,7 @@
 `mw mcp` lets an MCP client read public Phabricator tasks, Gerrit changes,
 GitLab merge requests, and wiki pages. The client launches `mw` as a local
 stdio server. By default, it uses anonymous access even if you have saved
-profiles. MCP uses public-only mode even when you bind a profile. Queries
-and identifiers go to the Wikimedia service you select.
+profiles. Queries and identifiers go to the Wikimedia service you select.
 
 ## Connect a client
 
@@ -71,13 +70,13 @@ refresh its tool list. `mw phab mcp` is a shortcut for a Phabricator-only server
 
 ## Use a Phabricator account
 
-Pass `--profile phab=work` to use the saved `work` profile for task search.
-Public-only search masks restricted titles and omits tasks whose visibility is
-unknown. Task details, comments, and project lookup stay public.
+Pass `--profile phab=work` with `--public-only=false` to use the saved `work` profile
+for task search. Results can include summaries of restricted tasks visible to the
+account. Task details, comments, and project lookup stay anonymous.
 
 ```sh
-mw mcp --services phab --profile phab=work
+mw mcp --services phab --profile phab=work --public-only=false
 ```
 
-Launch with `--public-only=false` to return account-visible task summaries. Paste
-reads also require `--allow-paste`. See [Phabricator login](authentication.md#phabricator-login-and-account-profiles).
+Add `--allow-paste` to expose account-visible paste reads. See
+[Phabricator login](authentication.md#phabricator-login-and-account-profiles).

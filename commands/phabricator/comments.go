@@ -2,11 +2,12 @@ package phabricator
 
 import (
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 )
 
 func addCommentsCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
@@ -16,7 +17,11 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 		Short:   "Show comments on a Phabricator task",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if useAnonymousPhabricator(cmd, *site) {
+			anonymous, err := anonymousPhabricatorRead(cmd, *site)
+			if err != nil {
+				return err
+			}
+			if anonymous {
 				return readAnonymousTask(cmd, args, true)
 			}
 			client, _, err := clientFromCommand(cmd, *site)
@@ -39,5 +44,7 @@ func addCommentsCmd(parent *cobra.Command, site *string) {
 			client.cache.flush()
 			return nil
 		},
-	})
+	}
+	accesspolicy.Support(cmd)
+	parent.AddCommand(cmd)
 }

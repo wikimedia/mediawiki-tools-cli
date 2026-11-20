@@ -40,5 +40,4 @@ Hints apply to one command and describe its full capabilities, including
 overwrites as destructive changes. Use the four MCP behavior fields plus
 `dataAccess`, `secretInput`, and `highRisk`. Use `none` and `unknown` alone.
 The [hint definitions](../../internal/commandmeta/hints.go) list the data
-categories. See the [Phabricator access guide](../../docs/guides/phabricator/access.md)
-for approval rules.
+categories. Hints describe command behavior for the catalog and MCP clients.

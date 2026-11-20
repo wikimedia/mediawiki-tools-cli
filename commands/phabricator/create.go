@@ -22,7 +22,7 @@ func newPhabricatorCreateCmd(site *string) *cobra.Command {
 		}),
 		Use:     "create",
 		Short:   "Create a Phabricator task",
-		Long:    "Create a task using a saved Phabricator profile. Confirm interactively or pass --yes. The supplied title, description and projects are printed before creation. Projects are exact project slugs (as used in hashtags) or project PHIDs; slugs are resolved through project.search. Existing task content is not fetched. Server and project defaults determine visibility, so creation is blocked in public-only mode, including agent mode even with --yes. Use --dry-run to preview without accessing credentials or contacting Phabricator. Agents follow agent.policy for approval; approval does not override visibility checks.",
+		Long:    "Create a task using a saved Phabricator profile. Confirm interactively or pass --yes. The preview prints the supplied title, description and projects, including text from a file or stdin. Projects are exact project slugs (as used in hashtags) or project PHIDs. Existing task content is not fetched. Use --dry-run to show the submitted fields without contacting Phabricator.",
 		Example: "create --title 'Clarify development setup' --description-file issue.txt --project a_wikimedia_cli\ncreate --title 'Documentation issue' --description-file - --yes",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -92,8 +92,8 @@ func newPhabricatorCreateCmd(site *string) *cobra.Command {
 	for _, flag := range []string{"title", "description", "description-file", "project"} {
 		cmd.MarkFlagsMutuallyExclusive("input", flag)
 	}
-	cmd.Flags().Bool("yes", false, "Confirm task creation and assert user approval when agent policy requires it")
-	addOfflinePreviewFlag(cmd, &dryRun, "Preview without accessing credentials or creating a task")
+	cmd.Flags().Bool("yes", false, "Confirm task creation without prompting")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or creating a task")
 	return cmd
 }
 
@@ -112,9 +112,6 @@ func readTaskFile(cmd *cobra.Command, path string) ([]byte, error) {
 }
 
 func (c *conduitClient) createTask(title, description string, projects []string) (int, error) {
-	if c.access.publicOnly {
-		return 0, fmt.Errorf("task creation uses server and project default policies, so public visibility cannot be verified before creation: %w", c.access.denied())
-	}
 	transactions := []map[string]interface{}{
 		{"type": "title", "value": title},
 		{"type": "description", "value": description},

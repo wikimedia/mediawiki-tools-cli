@@ -2,6 +2,7 @@ package phabricator
 
 import (
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mcpserver"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -24,7 +25,11 @@ func newTaskListCmd(site *string) *cobra.Command {
 				return err
 			}
 			var run taskSearch
-			if useAnonymousPhabricator(cmd, *site) {
+			anonymous, err := anonymousPhabricatorRead(cmd, *site)
+			if err != nil {
+				return err
+			}
+			if anonymous {
 				run = newAnonymousPhabricator().searchTasks
 			} else {
 				client, _, loadErr := clientFromCommand(cmd, *site)
@@ -56,6 +61,7 @@ func newTaskListCmd(site *string) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.Unassigned, "unassigned", false, "Only show unassigned tasks")
 	addPageFlags(cmd, &opts.Limit, &opts.After, &opts.Before)
 	cmd.Flags().BoolVar(&opts.All, "all", false, "Fetch all matching pages")
+	accesspolicy.Support(cmd)
 	addPhabOutput(cmd, out)
 	return cmd
 }

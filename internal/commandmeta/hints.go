@@ -48,8 +48,8 @@ type Hints struct {
 	HighRisk    bool         `json:"highRisk"`
 }
 
-// AlwaysRequiresApproval reports whether even the permissive policy asks.
-func (h Hints) AlwaysRequiresApproval() bool {
+// IsHighRisk reports whether the operation handles sensitive or unknown data or is explicitly marked high risk.
+func (h Hints) IsHighRisk() bool {
 	if h.HighRisk || h.SecretInput {
 		return true
 	}

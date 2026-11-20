@@ -25,7 +25,6 @@ type conduitClient struct {
 	username   string
 	cache      *PhabCache
 	httpClient *http.Client
-	access     taskAccess
 }
 
 func newConduitClient(cfg *PhabConfig) *conduitClient {
@@ -101,13 +100,16 @@ func (c *conduitClient) postContext(ctx context.Context, method string, params m
 	return cr.Result, nil
 }
 
+func taskReference(task phabTask) string {
+	return fmt.Sprintf("T%d", task.ID)
+}
+
 // ---- Data types ----
 
 type phabTask struct {
-	Redacted bool   `json:"redacted,omitempty"`
-	ID       int    `json:"id"`
-	PHID     string `json:"phid"`
-	Fields   struct {
+	ID     int    `json:"id"`
+	PHID   string `json:"phid"`
+	Fields struct {
 		Name        string `json:"name"`
 		Description struct {
 			Raw string `json:"raw"`
@@ -192,13 +194,6 @@ type searchResult struct {
 
 // lookupTaskPHID resolves a task number like "T12345" to its PHID.
 func (c *conduitClient) lookupTaskPHID(taskNumber string) (string, error) {
-	if c.access.publicOnly {
-		task, err := c.getTaskContext(c.requestContext(), taskNumber)
-		if err != nil {
-			return "", err
-		}
-		return task.PHID, nil
-	}
 	cacheKey := "task:" + strings.ToUpper(taskNumber)
 	if c.cache != nil {
 		var phid string
@@ -241,9 +236,6 @@ func (c *conduitClient) lookupTaskPHID(taskNumber string) (string, error) {
 
 // getTask fetches full task details for a task number like "T12345".
 func (c *conduitClient) getTask(taskNumber string) (*phabTask, error) {
-	if c.access.publicOnly {
-		return c.getTaskContext(c.requestContext(), taskNumber)
-	}
 	phid, err := c.lookupTaskPHID(taskNumber)
 	if err != nil {
 		return nil, err
@@ -277,9 +269,6 @@ func (c *conduitClient) getTaskByPHIDContext(ctx context.Context, phid string) (
 	}
 	if len(tasks) == 0 {
 		return nil, fmt.Errorf("task PHID %s not found", phid)
-	}
-	if err := c.requirePublicTask(tasks[0]); err != nil {
-		return nil, err
 	}
 	return &tasks[0], nil
 }
@@ -580,7 +569,6 @@ func (c *conduitClient) listTasksInColumn(projectPHID, columnPHID string, limit 
 		}
 
 		for _, t := range tasks {
-			t = c.taskForList(t)
 			results = append(results, taskSummary{
 				ID:           taskReference(t),
 				Title:        t.Fields.Name,
@@ -631,7 +619,6 @@ func (c *conduitClient) listTasksGlobal(limit int) ([]taskSummary, error) {
 
 	results := make([]taskSummary, 0, len(tasks))
 	for _, t := range tasks {
-		t = c.taskForList(t)
 		results = append(results, taskSummary{
 			ID:           taskReference(t),
 			Title:        t.Fields.Name,
@@ -647,10 +634,6 @@ func (c *conduitClient) listTasksGlobal(limit int) ([]taskSummary, error) {
 
 // getTransactions fetches all transactions for a task PHID.
 func (c *conduitClient) getTransactions(taskPHID string) ([]phabTransaction, error) {
-	if c.access.publicOnly {
-		// Never reuse comments fetched before the task's current visibility check.
-		return c.taskTransactions(c.requestContext(), taskPHID)
-	}
 	cacheKey := "tx:" + taskPHID
 	if c.cache != nil {
 		var cached []phabTransaction
@@ -677,11 +660,6 @@ func (c *conduitClient) editTask(taskPHID string, transactions []map[string]inte
 }
 
 func (c *conduitClient) editTaskContext(ctx context.Context, taskPHID string, transactions []map[string]interface{}) error {
-	if c.access.publicOnly {
-		if _, err := c.getTaskByPHIDContext(ctx, taskPHID); err != nil {
-			return err
-		}
-	}
 	_, err := c.postContext(ctx, "maniphest.edit", map[string]interface{}{
 		"objectIdentifier": taskPHID,
 		"transactions":     transactions,

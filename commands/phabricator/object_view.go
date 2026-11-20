@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
@@ -90,7 +91,11 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 			if out.Type == "jq" && out.Format == "" {
 				return fmt.Errorf("--output jq requires --format")
 			}
-			if ref.Ref[0] == 'T' && useAnonymousPhabricator(cmd, *site) {
+			anonymous, err := anonymousPhabricatorRead(cmd, *site)
+			if err != nil {
+				return err
+			}
+			if ref.Ref[0] == 'T' && anonymous {
 				task, _, err := newAnonymousPhabricator().publicTask(cmd.Context(), ref)
 				if err != nil {
 					return err
@@ -147,6 +152,9 @@ func newPhabricatorObjectViewCmd(site *string, kind string) *cobra.Command {
 		cmd.Short = "View a Phabricator task"
 		cmd.Long = "View a task by its T-prefixed identifier or a URL belonging to the selected profile. Use --output json for structured task fields and attachments."
 		cmd.Example = "view T123\nview T123 --output json"
+	}
+	if kind != "P" {
+		accesspolicy.Support(cmd)
 	}
 	if kind != "T" {
 		cmd.Flags().BoolVar(&raw, "raw", false, "Print only the exact paste content")

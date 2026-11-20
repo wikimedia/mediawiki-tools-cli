@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
+	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -99,7 +100,11 @@ func newProjectCmd(site *string) *cobra.Command {
 			if err := validatePhabOutput(viewOut); err != nil {
 				return err
 			}
-			if useAnonymousPhabricator(cmd, *site) {
+			anonymous, err := anonymousPhabricatorRead(cmd, *site)
+			if err != nil {
+				return err
+			}
+			if anonymous {
 				p, err := newAnonymousPhabricator().project(cmd.Context(), args[0])
 				if err != nil {
 					return err
@@ -119,6 +124,7 @@ func newProjectCmd(site *string) *cobra.Command {
 			return nil
 		},
 	}
+	accesspolicy.Support(view)
 	addPhabOutput(view, viewOut)
 	root.AddCommand(list, view)
 	return root
@@ -170,20 +176,15 @@ func newTaskCmd(site *string) *cobra.Command {
 	addSetStatusCmd(root, site)
 	for _, cmd := range root.Commands() {
 		switch cmd.Name() {
-		case "list", "create", "edit", "view", "read", "comments", "assign":
-			accesspolicy.Support(cmd)
 		case "mv":
-			accesspolicy.Support(cmd)
 			cmd.Use = "move <T12345> <column>"
 			cmd.Aliases = []string{"mv"}
 			cmd.Example = strings.ReplaceAll(cmd.Example, "mv ", "move ")
 		case "setprio":
-			accesspolicy.Support(cmd)
 			cmd.Use = "priority <T12345> <priority>"
 			cmd.Aliases = []string{"setprio", "prio"}
 			cmd.Example = strings.ReplaceAll(cmd.Example, "setprio ", "priority ")
 		case "setstatus":
-			accesspolicy.Support(cmd)
 			cmd.Use = "status <T12345> <status>"
 			cmd.Aliases = []string{"setstatus"}
 			cmd.Example = strings.ReplaceAll(cmd.Example, "setstatus ", "status ")
@@ -192,26 +193,45 @@ func newTaskCmd(site *string) *cobra.Command {
 	return root
 }
 
+func publicOnlyPhabricator(cmd *cobra.Command) (bool, error) {
+	return accesspolicy.CLI(cmd, "phabricator.public_only")
+}
+
+func anonymousPhabricatorRead(cmd *cobra.Command, site string) (bool, error) {
+	publicOnly, err := publicOnlyPhabricator(cmd)
+	if err != nil {
+		return false, err
+	}
+	if publicOnly {
+		if cmd.Flags().Changed("site") || cmd.Flags().Changed("profile") {
+			return false, fmt.Errorf("--public-only reads Wikimedia Phabricator anonymously; remove --profile or use --public-only=false")
+		}
+		return true, nil
+	}
+	return strings.TrimSpace(site) == "" && phabProfiles.Default() == "" && !mwconfig.HasCredential("phabricator.key"), nil
+}
+
 func clientFromCommand(cmd *cobra.Command, site string) (*conduitClient, *PhabConfig, error) {
-	access, err := taskAccessFromCommand(cmd, "")
+	publicOnly, err := publicOnlyPhabricator(cmd)
 	if err != nil {
 		return nil, nil, err
 	}
-	return loadClientWithAccess(cmd.Context(), site, true, access)
+	if publicOnly {
+		return nil, nil, fmt.Errorf("%s does not support --public-only", cmd.CommandPath())
+	}
+	return loadPhabricatorClient(cmd.Context(), site, true)
 }
 
-func loadClientWithAccess(ctx context.Context, site string, useCache bool, access taskAccess) (*conduitClient, *PhabConfig, error) {
+func loadPhabricatorClient(ctx context.Context, site string, useCache bool) (*conduitClient, *PhabConfig, error) {
 	cfg, err := loadConfig(site)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading config: %w", err)
 	}
-	access.endpoint = strings.TrimRight(cfg.URL, "/")
 	clientConfig := *cfg
-	if access.publicOnly || !useCache {
+	if !useCache {
 		clientConfig.CachePath = ""
 	}
 	client := newConduitClient(&clientConfig)
 	client.context = ctx
-	client.access = access
 	return client, cfg, nil
 }

@@ -235,7 +235,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	cli.VersionDetails.BuildDate = BuildDate
 	cli.VersionDetails.Version = Version
 
-	if root := minimalStartupCommand(cli.InvocationName(os.Args[0]), os.Args[1:]); root != nil {
+	if root := minimalMCPCommand(cli.InvocationName(os.Args[0]), os.Args[1:]); root != nil {
 		if err := root.Execute(); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
@@ -461,29 +461,15 @@ func guardPublicOnlyCommands(root *cobra.Command) {
 	}
 }
 
-// Resolve stdio servers and offline previews before initializing the full CLI.
-func minimalStartupCommand(name string, args []string) *cobra.Command {
-	mayBeMCP := slices.Contains(args, "mcp")
-	mayBePreview := slices.ContainsFunc(args, func(arg string) bool {
-		return arg == "--dry-run" || strings.HasPrefix(arg, "--dry-run=")
-	})
-	if !mayBeMCP && !mayBePreview {
+// Resolve stdio servers before starting update checks or loading local settings.
+func minimalMCPCommand(name string, args []string) *cobra.Command {
+	if !slices.Contains(args, "mcp") {
 		return nil
 	}
 	root := newMinimalCommandTree(name)
-	selected, remaining, err := root.Find(args)
-	if err != nil || selected == nil {
+	selected, _, err := root.Find(args)
+	if err != nil || selected == nil || selected.Annotations[cli.SkipConfigAnnotation] != "true" {
 		return nil
-	}
-	if selected.Annotations[cli.SkipConfigAnnotation] != "true" {
-		if selected.Annotations[cli.OfflinePreviewAnnotation] != "true" || selected.ParseFlags(remaining) != nil {
-			return nil
-		}
-		if dryRun, _ := selected.Flags().GetBool("dry-run"); !dryRun {
-			return nil
-		}
-		// Let execution parse the original flags on a fresh tree.
-		root = newMinimalCommandTree(name)
 	}
 	root.SetArgs(args)
 	return root

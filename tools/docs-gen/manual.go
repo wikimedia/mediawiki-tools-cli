@@ -136,7 +136,7 @@ func writeManual(root *cobra.Command, directory string, version documentationVer
 			hints, err := commandmeta.Read(command)
 			if err == nil {
 				entry.Hints = &hints
-				entry.HighRisk = hints.AlwaysRequiresApproval()
+				entry.HighRisk = hints.IsHighRisk()
 			} else if !errors.Is(err, commandmeta.ErrMissingHints) && catalogErr == nil {
 				catalogErr = fmt.Errorf("%s: %w", entry.Title, err)
 			}

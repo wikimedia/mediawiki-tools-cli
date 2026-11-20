@@ -112,7 +112,7 @@ as a root for these separate caches. Older shared cache files are left in place
 but are no longer read. `auth status` checks that the token belongs to the saved
 username, allowing differences in letter case.
 
-See [Phabricator access](phabricator/access.md) for public reads and agent rules.
+See [Phabricator access](phabricator/access.md) for public reads and previews.
 
 To copy credentials from the Python `phab` tool, explicitly import its configuration:
 

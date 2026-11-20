@@ -13,16 +13,8 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
-
-// A configured account keeps the authenticated path, including its errors.
-func useAnonymousPhabricator(cmd *cobra.Command, site string) bool {
-	return !commandFlagEnabled(cmd, "allow-non-public") && strings.TrimSpace(site) == "" &&
-		phabProfiles.Default() == "" && !mwconfig.HasCredential("phabricator.key")
-}
 
 var errAnonymousNotVisible = errors.New("not found or not publicly visible")
 

@@ -62,9 +62,8 @@ func TestTaskSearchAuthorAndOrdering(t *testing.T) {
 					return ""
 				}
 			})
-			client.access = publicTaskAccess()
 			page, err := client.searchTasks(context.Background(), searchOptions{Author: author, Order: "newest", Limit: 20, Statuses: []string{"all"}})
-			if err != nil || len(page.Data) != 2 || page.Data[0].ID != 1 || !page.Data[1].Redacted {
+			if err != nil || len(page.Data) != 2 || page.Data[0].ID != 1 {
 				t.Fatalf("page = %+v, error = %v", page, err)
 			}
 			wantIdentity := 0
@@ -413,4 +412,30 @@ func TestTaskListDefaultOpenAndStatusOverrides(t *testing.T) {
 			}
 		})
 	}
+}
+
+func accessTask(id int, view, space string) phabTask {
+	task := phabTask{ID: id, PHID: fmt.Sprintf("PHID-TASK-%d", id)}
+	task.Fields.Name = fmt.Sprintf("fixture-title-%d", id)
+	task.Fields.Description.Raw = "fixture-description"
+	task.Fields.AuthorPHID = "fixture-author"
+	task.Fields.OwnerPHID = "fixture-owner"
+	task.Fields.DateCreated = 123
+	task.Fields.DateModified = 456
+	task.Fields.Status.Name = "fixture-status"
+	task.Fields.Priority.Name = "fixture-priority"
+	task.Fields.SpacePHID = space
+	task.Fields.Policy = map[string]string{"view": view}
+	task.Attachments.Projects.ProjectPHIDs = []string{"fixture-project"}
+	task.Attachments.Columns = json.RawMessage(`{"fixture-column":true}`)
+	return task
+}
+
+func accessPage(t *testing.T, tasks ...phabTask) string {
+	t.Helper()
+	data, err := json.Marshal(taskPage{Data: tasks})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
 }

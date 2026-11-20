@@ -12,7 +12,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
-	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
 // NewPhabricatorCmd returns the "phabricator" cobra command.
@@ -24,10 +23,6 @@ func NewPhabricatorCmd() *cobra.Command {
 		Aliases: []string{"phab"},
 		GroupID: "service",
 		Short:   "Interact with Wikimedia Phabricator",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cobrautil.CallAllPersistentPreRun(cmd, args)
-			return checkPhabricatorAgentPolicy(cmd)
-		},
 		Long: `Interact with Wikimedia Phabricator.
 
 Without a selected or default profile or a legacy CLI token, task list, task
@@ -42,22 +37,9 @@ Use login --url to explicitly choose the endpoint.
 Use auth login --method phab-cfg to validate and copy credentials from phab.cfg.
 Commands use saved CLI profiles; external credential files are never used directly.
 
-Use --public-only (or set access.public_only to true) to restrict data access.
---agent and detected agent environments require a human rerun outside agent mode
-for non-public task access. These are local guardrails, not credential isolation.
-Only explicitly public tasks in Wikimedia's known public S1 Space pass the
-initial filter; other Spaces and missing policies are treated as unknown.
-Public-only mode rejects raw API and other unsupported operations.
-Agent approvals follow the CLI-wide agent.policy setting, initially enforced
-only for Phabricator: permissive requires approval for high-risk operations,
-balanced (default) for writes and high-risk operations, and cautious for all calls.
-Supported offline --dry-run previews never require approval. When approval is
-required, explain the operation and ask the user before rerunning with --yes.
-Raw API calls are high-risk.
-Task creation, paste creation or editing, and profile removal require
-interactive confirmation or --yes. Targeted changes to existing tasks
-apply directly outside agent mode.
---yes is a cooperative assertion of user approval, not a bypass of task visibility checks.
+Use --public-only to read without an account, even when a default profile is saved.
+Task creation, task edit, paste creation or editing, and profile removal require
+interactive confirmation or --yes. One-shot task updates apply directly.
 For task access controls, see "mw help guides phabricator access".
 
 For storage options and password managers, see "mw help guides authentication".`,
@@ -67,9 +49,6 @@ For storage options and password managers, see "mw help guides authentication".`
 	phabProfiles.AddFlag(cmd, &site)
 	cmd.MarkFlagsMutuallyExclusive("site", "profile")
 	accesspolicy.AddFlag(cmd)
-	cmd.PersistentFlags().Bool("agent", false, "Enforce agent restrictions on task access, mutations, login, raw API and shell")
-	cmd.PersistentFlags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
-	cmd.PersistentFlags().Bool("allow-non-public", false, "Approve non-public task access for this invocation outside agent mode")
 	// TODO(early 2027): remove the legacy --site flag after the profile migration window.
 	_ = cmd.PersistentFlags().MarkHidden("site")
 
@@ -91,12 +70,6 @@ For storage options and password managers, see "mw help guides authentication".`
 	addSetPrioCmd(cmd, &site)
 	addSetStatusCmd(cmd, &site)
 
-	for _, child := range cmd.Commands() {
-		switch child.Name() {
-		case "read", "comments", "create", "assign", "mv", "rmtag", "setprio", "setstatus":
-			accesspolicy.Support(child)
-		}
-	}
 	return cmd
 }
 
@@ -114,7 +87,7 @@ func requireTaskArg(args []string) (string, error) {
 }
 
 func addReadCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
@@ -124,7 +97,11 @@ func addReadCmd(parent *cobra.Command, site *string) {
 		Short:   "View a task and all its comments",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if useAnonymousPhabricator(cmd, *site) {
+			anonymous, err := anonymousPhabricatorRead(cmd, *site)
+			if err != nil {
+				return err
+			}
+			if anonymous {
 				return readAnonymousTask(cmd, args, false)
 			}
 			client, _, err := clientFromCommand(cmd, *site)
@@ -148,18 +125,20 @@ func addReadCmd(parent *cobra.Command, site *string) {
 			client.cache.flush()
 			return nil
 		},
-	})
+	}
+	accesspolicy.Support(cmd)
+	parent.AddCommand(cmd)
 }
 
 func addAssignCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(taskMutationCommand(&cobra.Command{
+	parent.AddCommand(&cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
 		}),
 		Use:     "assign <T12345> <username|me>",
 		Short:   "Assign a task to a Phabricator user",
-		Example: "assign T12345 me --dry-run\nassign T12345 me",
+		Example: "assign T12345 me",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -185,7 +164,7 @@ func addAssignCmd(parent *cobra.Command, site *string) {
 			client.cache.flush()
 			return nil
 		},
-	}, nil))
+	})
 }
 
 func addShellCmd(parent *cobra.Command, site *string) {
@@ -201,7 +180,7 @@ func addShellCmd(parent *cobra.Command, site *string) {
 		}),
 		Aliases: []string{"sh"},
 		Short:   "Start an interactive Phabricator shell",
-		Long:    "Browse projects, tasks and comments, and update task assignment, columns, tags, priority or status. Changes run immediately without a separate confirmation. Existing task access guardrails also apply inside the shell. All agent policies require user approval (--yes) for this high-risk session, covering its subsequent actions. An interactive terminal is required; --no-interaction refuses the shell. Prefer one-shot task commands for narrowly scoped approval.",
+		Long:    "Browse projects, tasks and comments, and update task assignment, columns, tags, priority or status. Changes run immediately without a separate confirmation. An interactive terminal is required; --no-interaction refuses the shell. Use one-shot task commands to make individual changes.",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if commandFlagEnabled(cmd, "no-interaction") || !cli.CanAskForInput() {
@@ -232,6 +211,7 @@ func addShellCmd(parent *cobra.Command, site *string) {
 
 func addMVCmd(parent *cobra.Command, site *string) {
 	var project string
+	var dryRun bool
 	c := &cobra.Command{
 		Use: "mv <T12345> <column>",
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
@@ -239,6 +219,7 @@ func addMVCmd(parent *cobra.Command, site *string) {
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
 		}),
 		Short:   "Move a task to a workboard column",
+		Long:    "Move a task to the selected workboard column. Use --dry-run to look up the task, project and column with the selected profile and print the destination without moving the task.",
 		Example: "mv T12345 Backlog --project a_wikimedia_cli --dry-run\nmv T12345 Backlog --project a_wikimedia_cli",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -257,24 +238,39 @@ func addMVCmd(parent *cobra.Command, site *string) {
 			if proj == "" {
 				return fmt.Errorf("--project or default_project in config required")
 			}
-			projectPHID, err := client.lookupProjectPHID(proj)
+			targetProject, err := client.exactProject(cmd.Context(), proj)
 			if err != nil {
 				return err
 			}
-			columns, err := client.getColumns(projectPHID)
+			columns, err := client.listProjectColumns(cmd.Context(), targetProject.PHID)
 			if err != nil {
 				return err
 			}
 			colName := normaliseColumnKey(args[1])
-			colPHID, ok := columns[colName]
-			if !ok {
+			var targetColumn *phabColumn
+			for i := range columns.Data {
+				column := &columns.Data[i]
+				if normaliseColumnKey(column.Fields.Name) != colName {
+					continue
+				}
+				if targetColumn != nil {
+					return fmt.Errorf("multiple columns normalize to %q in project %s", colName, proj)
+				}
+				targetColumn = column
+			}
+			if targetColumn == nil {
 				return fmt.Errorf("column %q not found in project %s", args[1], proj)
 			}
-			taskPHID, err := client.lookupTaskPHID(taskRef)
+			task, err := client.getTaskContext(cmd.Context(), taskRef)
 			if err != nil {
 				return err
 			}
-			if err := client.moveTaskToColumn(taskPHID, colPHID); err != nil {
+			if dryRun {
+				cmd.Printf("Would move %s (%s) to %q on %s (%s), column %s\n",
+					taskReference(*task), task.Fields.Name, targetColumn.Fields.Name, targetProject.Fields.Name, targetProject.PHID, targetColumn.PHID)
+				return nil
+			}
+			if err := client.moveTaskToColumn(task.PHID, targetColumn.PHID); err != nil {
 				return err
 			}
 			fmt.Fprintf(os.Stdout, "Moved %s to %s\n", taskRef, colName)
@@ -283,11 +279,12 @@ func addMVCmd(parent *cobra.Command, site *string) {
 		},
 	}
 	c.Flags().StringVarP(&project, "project", "p", "", "Project name (overrides default_project)")
-	parent.AddCommand(taskMutationCommand(c, nil))
+	c.Flags().BoolVar(&dryRun, "dry-run", false, "Resolve and show the move without changing the task")
+	parent.AddCommand(c)
 }
 
 func addRMTagCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(taskMutationCommand(&cobra.Command{
+	parent.AddCommand(&cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
@@ -295,7 +292,7 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 		Use:     "rmtag <T12345> <project>",
 		Aliases: []string{"rm"},
 		Short:   "Remove a project tag from a task",
-		Example: "rmtag T12345 a_wikimedia_cli --dry-run\nrmtag T12345 a_wikimedia_cli",
+		Example: "rmtag T12345 a_wikimedia_cli",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -335,11 +332,11 @@ func addRMTagCmd(parent *cobra.Command, site *string) {
 			client.cache.flush()
 			return nil
 		},
-	}, nil))
+	})
 }
 
 func addSetPrioCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(taskMutationCommand(&cobra.Command{
+	parent.AddCommand(&cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
@@ -347,7 +344,7 @@ func addSetPrioCmd(parent *cobra.Command, site *string) {
 		Use:     "setprio <T12345> <priority>",
 		Aliases: []string{"sp", "prio"},
 		Short:   "Set priority: u=unbreak t=triage h=high n=normal l=low ll=lowest",
-		Example: "setprio T12345 high --dry-run\nsetprio T12345 high",
+		Example: "setprio T12345 high",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -377,16 +374,11 @@ func addSetPrioCmd(parent *cobra.Command, site *string) {
 			client.cache.flush()
 			return nil
 		},
-	}, func(value string) error {
-		if _, ok := priorityMap[strings.ToLower(value)]; !ok {
-			return fmt.Errorf("unknown priority %q; valid: u=unbreak t=triage h=high n=normal l=low ll=lowest", value)
-		}
-		return nil
-	}))
+	})
 }
 
 func addSetStatusCmd(parent *cobra.Command, site *string) {
-	parent.AddCommand(taskMutationCommand(&cobra.Command{
+	parent.AddCommand(&cobra.Command{
 		Annotations: commandmeta.Annotations(commandmeta.Hints{
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata},
@@ -394,7 +386,7 @@ func addSetStatusCmd(parent *cobra.Command, site *string) {
 		Use:     "setstatus <T12345> <status>",
 		Aliases: []string{"st"},
 		Short:   "Set status: o=open r=resolved p=progress s=stalled d=declined dup=duplicate i=invalid",
-		Example: "setstatus T12345 resolved --dry-run\nsetstatus T12345 resolved",
+		Example: "setstatus T12345 resolved",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, _, err := clientFromCommand(cmd, *site)
@@ -424,10 +416,5 @@ func addSetStatusCmd(parent *cobra.Command, site *string) {
 			client.cache.flush()
 			return nil
 		},
-	}, func(value string) error {
-		if _, ok := statusMap[strings.ToLower(value)]; !ok {
-			return fmt.Errorf("unknown status %q; valid: o=open r=resolved p=progress s=stalled d=declined dup=duplicate i=invalid", value)
-		}
-		return nil
-	}))
+	})
 }

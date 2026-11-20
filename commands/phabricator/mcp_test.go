@@ -306,7 +306,7 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 	cliCmd := NewPhabricatorCmd()
 	cliCmd.SetOut(&stdout)
 	cliCmd.SetArgs([]string{
-		"task", "list", "--public-only", "--profile", "work", "--search", "example", "--priority", "80", "--unassigned", "--project", "ci,team",
+		"task", "list", "--profile", "work", "--search", "example", "--priority", "80", "--unassigned", "--project", "ci,team",
 		"--author", "me", "--status", "resolved", "--order", "newest", "--output", "json",
 	})
 	if err := cliCmd.Execute(); err != nil {
@@ -317,6 +317,13 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 	server := mcpserver.New("test-server")
 	cmd := &cobra.Command{Use: "mcp"}
 	cmd.SetContext(ctx)
+	cmd.Flags().Bool("public-only", false, "")
+	if _, err := MCPTools(cmd, "work"); err == nil || !strings.Contains(err.Error(), "--public-only=false") || searches != 1 {
+		t.Fatalf("public-only server accepted a profile: %v (searches %d)", err, searches)
+	}
+	if err := cmd.Flags().Set("public-only", "false"); err != nil {
+		t.Fatal(err)
+	}
 	tools, err := MCPTools(cmd, "work")
 	if err != nil {
 		t.Fatal(err)
@@ -340,12 +347,12 @@ func TestPhabricatorMCPBindsNamedProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	var page taskPage
-	if err := json.Unmarshal(raw, &page); err != nil || len(page.Data) != 2 || !page.Data[1].Redacted || page.Data[1].Fields.Name != nonPublicLabel ||
+	if err := json.Unmarshal(raw, &page); err != nil || len(page.Data) != 3 || page.Data[1].Fields.Name != "fixture-title-124" || page.Data[2].Fields.Name != "fixture-title-125" ||
 		page.Data[1].Fields.DateCreated != 0 || page.Data[1].Fields.DateModified != 0 {
-		t.Fatalf("profile search did not apply the default public-only policy: %s, %v", raw, err)
+		t.Fatalf("profile search did not apply the account-visible summary scope: %s, %v", raw, err)
 	}
 	var cliPage taskPage
-	if err := json.Unmarshal(stdout.Bytes(), &cliPage); err != nil || len(cliPage.Data) != 2 || !reflect.DeepEqual(cliPage.Data[0], page.Data[0]) || searches != 2 {
+	if err := json.Unmarshal(stdout.Bytes(), &cliPage); err != nil || len(cliPage.Data) != 3 || !reflect.DeepEqual(cliPage.Data[0], page.Data[0]) || searches != 2 {
 		t.Fatalf("public task JSON or request count differs: CLI %s, MCP %s, searches %d, error %v", stdout.Bytes(), raw, searches, err)
 	}
 }

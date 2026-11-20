@@ -17,7 +17,7 @@ func newTaskEditCmd(site *string) *cobra.Command {
 			ToolAnnotations: commandmeta.ToolAnnotations{DestructiveHint: true, OpenWorldHint: true},
 			DataAccess:      []commandmeta.DataAccess{commandmeta.DataPrivateContent, commandmeta.DataPrivateMetadata, commandmeta.DataSuppliedContent},
 		}),
-		Use: "edit <T12345>", Short: "Preview and update a task", Long: "Update selected task fields in one transaction request without a confirmation prompt. Projects add tags without replacing existing tags. Preview changes with --dry-run without accessing credentials or resolving user/project names. Agents follow agent.policy; when approval is required, show the preview and ask the user before rerunning with --yes. Task visibility checks still apply.", Example: "edit T12345 --title 'Improve CLI documentation' --dry-run\nedit T12345 --status resolved --comment 'Fixed in the latest release'\nedit T12345 --assigned-to me --project a_wikimedia_cli", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		Use: "edit <T12345>", Short: "Preview and update a task", Long: "Update selected task fields in one transaction request after confirmation. Pass --yes to apply without prompting. Projects add tags without replacing existing tags. Preview changes with --dry-run without accessing credentials or resolving user/project names.", Example: "edit T12345 --title 'Improve CLI documentation' --dry-run\nedit T12345 --status resolved --comment 'Fixed in the latest release'\nedit T12345 --assigned-to me --project a_wikimedia_cli --yes", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 			ref, err := requireTaskArg(args)
 			if err != nil {
 				return err
@@ -91,6 +91,10 @@ func newTaskEditCmd(site *string) *cobra.Command {
 				cmd.Println("Preview only; no task changed.")
 				return nil
 			}
+			approved, err := confirmPhabricatorChange(cmd)
+			if err != nil || !approved {
+				return err
+			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
 				return err
@@ -134,7 +138,7 @@ func newTaskEditCmd(site *string) *cobra.Command {
 	cmd.Flags().StringVar(&assignee, "assigned-to", "", "Assignee username or me")
 	cmd.Flags().StringSliceVar(&projects, "project", nil, "Project hashtag, exact name, ID or PHID to add (repeatable)")
 	cmd.Flags().StringVar(&comment, "comment", "", "Add a comment (Phabricator Remarkup)")
-	cmd.Flags().Bool("yes", false, "Assert user approval when agent policy requires it; does not override task visibility checks")
-	addOfflinePreviewFlag(cmd, &dryRun, "Preview without accessing credentials or changing a task")
+	cmd.Flags().Bool("yes", false, "Assert user; does not override task visibility checks")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview without accessing credentials or changing a task")
 	return cmd
 }

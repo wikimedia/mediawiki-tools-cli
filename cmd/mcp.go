@@ -32,8 +32,8 @@ func newMCPCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "mcp",
 		Short:       "Serve selected Wikimedia services over MCP",
-		Long:        "Start a local stdio MCP server for public Phabricator, Gerrit, GitLab, and wiki reads. Select services with --services or --deferred-services. Bind --profile phab=NAME for account-backed search. Public-only access is the default. Add --public-only=false and --allow-paste to expose account-visible paste content.",
-		Example:     "mcp --services phab,wiki\nmcp --services phab --deferred-services wiki\nmcp --services phab --profile phab=work",
+		Long:        "Start a local stdio MCP server for public Phabricator, Gerrit, GitLab, and wiki reads. Select services with --services or --deferred-services. Public-only access is the default. Use --profile phab=NAME with --public-only=false for account-backed search. Add --allow-paste to expose account-visible paste content.",
+		Example:     "mcp --services phab,wiki\nmcp --services phab --deferred-services wiki\nmcp --services phab --profile phab=work --public-only=false",
 		Args:        cobra.NoArgs,
 		Annotations: annotations,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -79,7 +79,6 @@ func newMCPCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&services, "services", defaultServices, "Comma-separated MCP services to expose immediately ("+serviceList+")")
 	cmd.Flags().StringSliceVar(&deferredServices, "deferred-services", nil, "Comma-separated MCP services eligible for on-demand activation ("+serviceList+")")
 	cmd.Flags().StringArrayVar(&profileBindings, "profile", nil, "Bind a saved profile to a service as SERVICE=NAME (currently phab only)")
-	cmd.Flags().Bool("yes", false, "Assert user approval if a profiled service requires it")
 	cmd.Flags().Bool(phabricator.MCPAllowPasteFlag, false, "Expose account-visible pastes with a Phabricator profile and --public-only=false")
 	return cmd
 }

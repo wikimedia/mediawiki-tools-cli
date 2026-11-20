@@ -287,7 +287,6 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 	}
 	params["attachments"] = map[string]interface{}{"projects": true, "columns": true}
 	seen := map[string]bool{}
-	hidden := false
 	for {
 		raw, e := c.postContext(ctx, "maniphest.search", params)
 		if e != nil {
@@ -297,18 +296,8 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 		if e = json.Unmarshal(raw, &next); e != nil {
 			return page, e
 		}
-		for _, task := range next.Data {
-			if !c.access.canList(task) {
-				hidden = true
-				continue
-			}
-			page.Data = append(page.Data, c.taskForList(task))
-		}
+		page.Data = append(page.Data, next.Data...)
 		page.Cursor = next.Cursor
-		if hidden {
-			// A backend cursor can identify an omitted task.
-			page.Cursor.After, page.Cursor.Before = nil, nil
-		}
 		if !all || next.Cursor.After == nil {
 			break
 		}
@@ -323,11 +312,6 @@ func (c *conduitClient) searchTaskPages(ctx context.Context, params map[string]i
 }
 
 func (c *conduitClient) taskTransactions(ctx context.Context, phid string) ([]phabTransaction, error) {
-	if c.access.publicOnly {
-		if _, err := c.getTaskByPHIDContext(ctx, phid); err != nil {
-			return nil, err
-		}
-	}
 	txs := []phabTransaction{}
 	after := ""
 	seen := map[string]bool{}
@@ -372,11 +356,8 @@ func (c *conduitClient) getTaskContext(ctx context.Context, ref string) (*phabTa
 	if err = json.Unmarshal(raw, &page); err != nil {
 		return nil, err
 	}
-	if len(page.Data) != 1 {
+	if len(page.Data) != 1 || page.Data[0].ID != id || page.Data[0].PHID == "" {
 		return nil, fmt.Errorf("task T%d not found", id)
-	}
-	if err := c.requirePublicTask(page.Data[0]); err != nil {
-		return nil, err
 	}
 	return &page.Data[0], nil
 }

@@ -16,11 +16,6 @@ type Config struct {
 	Gerrit   GerritConfig   `koanf:"gerrit" json:"gerrit"`
 	CloudVPS CloudVPSConfig `koanf:"cloud_vps" json:"cloud_vps"`
 	MwDev    MwDevConfig    `koanf:"mw_dev" json:"mw_dev"`
-	Agent    AgentConfig    `koanf:"agent" json:"agent"`
-}
-
-type AgentConfig struct {
-	Policy string `koanf:"policy" json:"policy"`
 }
 
 type GerritConfig struct {
@@ -71,7 +66,6 @@ type MwDevDockerConfig struct {
 
 func defaultConfig() Config {
 	return Config{
-		Agent:                  AgentConfig{Policy: "balanced"},
 		TimerLastEmittedEvent:  timers.String(timers.NowUTC()),
 		TimerLastUpdateChecked: timers.String(timers.NowUTC()),
 		Gerrit: GerritConfig{

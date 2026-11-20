@@ -19,16 +19,13 @@ func newPhabricatorMCPCmd(site *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "mcp",
 		Short:       "Serve Phabricator reads over MCP",
-		Long:        "Start a local stdio MCP server. Task and comment details are public. Bind --profile to search with an account. Public-only access is the default. Add --public-only=false and --allow-paste to expose account-visible paste content.",
-		Example:     "mcp\nmcp --profile personal",
+		Long:        "Start a local stdio MCP server. Task and comment details are public. Public-only access is the default. Use --profile with --public-only=false to search with an account. Add --allow-paste to expose account-visible paste content.",
+		Example:     "mcp\nmcp --profile personal --public-only=false",
 		Annotations: annotations,
 		Args:        cobra.NoArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if (cmd.Flags().Changed("profile") || cmd.Flags().Changed("site")) && strings.TrimSpace(*site) == "" {
 				return fmt.Errorf("provide a saved Phabricator profile name")
-			}
-			if commandFlagEnabled(cmd, "allow-non-public") {
-				return fmt.Errorf("use --public-only=false to allow account-visible MCP results")
 			}
 			return nil
 		},
@@ -66,18 +63,15 @@ func MCPTools(cmd *cobra.Command, profile string) ([]mcpserver.Operation, error)
 	if err != nil {
 		return nil, err
 	}
-	if publicOnly && allowPaste {
-		return nil, fmt.Errorf("--allow-paste requires --public-only=false and an explicit Phabricator profile")
-	}
-	if err := checkPhabricatorAgentPolicy(cmd); err != nil {
-		return nil, err
-	}
 
+	if publicOnly {
+		return nil, fmt.Errorf("an explicit Phabricator profile requires --public-only=false")
+	}
 	selected, err := phabProfiles.Selected(strings.TrimSpace(profile))
 	if err != nil {
 		return nil, err
 	}
-	client, _, err := loadClientWithAccess(cmd.Context(), selected, false, taskAccess{publicOnly: publicOnly})
+	client, _, err := loadPhabricatorClient(cmd.Context(), selected, false)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +81,7 @@ func MCPTools(cmd *cobra.Command, profile string) ([]mcpserver.Operation, error)
 // MCPCommandTools documents the public and account-backed tools without opening a profile.
 func MCPCommandTools() []mcpserver.CommandTool {
 	operations := phabricatorMCPTools(nil, true)
-	profile := taskSearchTool(false, false, nil).CommandTool()
+	profile := taskSearchTool(false, nil).CommandTool()
 	tools := make([]mcpserver.CommandTool, 0, len(operations))
 	for _, operation := range operations {
 		tool := operation.CommandTool()
@@ -106,7 +100,7 @@ func phabricatorMCPTools(profile *conduitClient, allowPaste bool) []mcpserver.Op
 		search = limitedProfileTaskSearch(profile)
 	}
 	tools := []mcpserver.Operation{
-		taskSearchTool(profile == nil, profile == nil || profile.access.publicOnly, search),
+		taskSearchTool(profile == nil, search),
 		readTaskTool(public),
 		readCommentsTool(public, "phabricator_get_comments"),
 		readCommentsTool(public, "phabricator_get_task_comments"),
