@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release
 notes will be missed.
 
+## v0.37.0
+
+- MCP:
+    - Added `mw mcp`, a local read-only MCP server for Phabricator tasks, Gerrit changes, GitLab merge requests and wiki pages. It uses public access by default and supports enabling selected services on demand.
+    - Added a searchable command catalog to the manual with MCP availability and information about what each command reads or changes.
+    - MCP index also appears on the docs site, along with tool attributes and hints.
+
+- New services:
+    - Added `mw dumps` to browse and download Wikimedia datasets, including MediaWiki Content File Exports, SQL dumps and Wikidata JSON and RDF.
+    - Added `mw toolforge replicas sql` and `mw toolforge toolsdb sql` to run the MariaDB client over SSH using credentials on Toolforge, with support for interactive sessions and piped SQL.
+    - Added `mw grafana` to search public Wikimedia dashboards, export dashboard JSON, list data sources, run PromQL and call the Grafana API. Also added panel inspection and queries by dashboard and panel title.
+
+- Service changes:
+    - Added `mw phab api` for authenticated Conduit calls with JSON or jq output.
+    - Improved phab previews for task and paste changes, added dry runs for task moves, and made profile removal require confirmation.
+    - Added anonymous reads for public Phabricator tasks, comments and projects. Use `--public-only` to force public access for supported Phabricator and wiki commands even when credentials are configured.
+
+- Development environment (`mw dev`):
+    - Added `mw dev dashboard --open` and `mw dev status`. MediaWiki creation and installation, recipe runs and environment startup now print the dashboard URL when it’s available.
+    - Made `mw dev mediawiki get-code` the explicit step for fetching MediaWiki and Vector, and improved guidance when either is missing.
+    - Fixed recipe dry runs so they leave the development environment untouched.
+    - Updated MediaWiki and the job runner to `1.0.0-s13`, Quibble to `1.22.0-s15`, and all five Shellbox images to `2026-11-19-141815` for the PHP 8.3.37 security release.
+    - Updated Adminer from 6.1.2 to 6.3.0, with PHP 8.4.28.
+    - Updated MariaDB from 11.4 to 11.8 for the primary and replica.
+    - Updated Cloudflared from 2026.11.0 to 2026.11.1.
+
 ## v0.36.0
 
 - Toolforge database access:
