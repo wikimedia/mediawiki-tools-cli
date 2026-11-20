@@ -1,8 +1,14 @@
 # Use the development gateway
 
-Traefik serves your local development services on one port, usually 8080. Open `http://localhost:8080/proxy/dashboard/` to see services and installed wikis.
+Traefik serves your local development services on one port, usually 8080. Open the dashboard to see services and installed wikis:
 
-## Sign in
+```sh
+mw dev dashboard --open
+```
+
+Run `mw dev dashboard` to print the URL for the selected development context. You can open the local dashboard without signing in.
+
+## Sign in over a tunnel
 
 ```sh
 mw dev traefik credentials

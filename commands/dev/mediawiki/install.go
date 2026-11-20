@@ -379,6 +379,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			outputDetails["User"] = adminUser
 			outputDetails["Pass"] = adminPass
 			outputDetails["Link"] = serverLink
+			if url, err := devenv.DefaultForUser().DashboardURL(); err == nil {
+				outputDetails["Dashboard"] = url
+			}
 			cmdgloss.PrintThreePartBlock(
 				cmdgloss.SuccessHeading("Installation successful"),
 				outputDetails,

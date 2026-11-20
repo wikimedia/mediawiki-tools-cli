@@ -83,6 +83,9 @@ func NewCmd() *cobra.Command {
 		RunE:    nil,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
+			if cobrautil.ExecutingCommand(cmd).Name() == "dashboard" {
+				return
+			}
 			// These file-only command groups mark themselves before calling parent hooks.
 			if os.Getenv("MWCLI_MEDIAWIKI_ENV_COMMAND") == "" && os.Getenv("MW_DOCKER_MEDIAWIKI_GET_CODE") == "" {
 				if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
@@ -183,6 +186,7 @@ func NewCmd() *cobra.Command {
 	}
 
 	// High level commands
+	cmd.AddCommand(newDashboardCmd())
 	cmd.AddCommand(devenv.NewWhereCmd(
 		"the working directory for the environment",
 		func() string { return devenv.DefaultForUser().Directory() },

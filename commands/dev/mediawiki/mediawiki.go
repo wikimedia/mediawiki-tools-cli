@@ -124,8 +124,17 @@ func NewMediaWikiCmd() *cobra.Command {
 	cmd.AddCommand(NewMediaWikiNPXCmd())
 	cmd.AddCommand(NewMediaWikiQuibbleCmd())
 	cmd.AddCommand(devenv.NewImageCmd("mediawiki"))
-	cmd.AddCommand(devenv.NewServiceCreateCmd("mediawiki", ""))
-	cmd.AddCommand(devenv.NewServiceRebuildCmd("mediawiki", ""))
+	for _, serviceUp := range []*cobra.Command{
+		devenv.NewServiceCreateCmd("mediawiki", ""),
+		devenv.NewServiceRebuildCmd("mediawiki", ""),
+	} {
+		serviceUp.PostRun = func(cmd *cobra.Command, args []string) {
+			if url, err := devenv.DefaultForUser().DashboardURL(); err == nil {
+				fmt.Fprintf(cmd.OutOrStdout(), "Dashboard: %s\n", url)
+			}
+		}
+		cmd.AddCommand(serviceUp)
+	}
 	cmd.AddCommand(devenv.NewServiceDestroyCmd("mediawiki"))
 	cmd.AddCommand(devenv.NewServiceStopCmd("mediawiki"))
 	cmd.AddCommand(devenv.NewServiceStartCmd("mediawiki"))

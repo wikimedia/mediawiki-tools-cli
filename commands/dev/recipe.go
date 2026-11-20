@@ -198,6 +198,11 @@ func NewRecipeCmd() *cobra.Command {
 			outputDetails := map[string]string{
 				"Recipe": spec.Name,
 			}
+			if !dryRun {
+				if url := m.RunningDashboardURL(); url != "" {
+					outputDetails["Dashboard"] = url
+				}
+			}
 			if len(spec.Sites) > 0 {
 				siteURLs := []string{}
 				for _, site := range spec.Sites {

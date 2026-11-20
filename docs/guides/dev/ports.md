@@ -28,10 +28,10 @@ Recreate Traefik and the dashboard to apply their new port settings:
 
 ```sh
 mw dev compose up -- -d --force-recreate traefik dashboard
-mw dev traefik credentials
+mw dev dashboard --open
 ```
 
-Open the new login link or `http://default.mediawiki.local.wmftest.net:8088/wiki/Main_Page`. The gateway dashboard is at `http://localhost:8088/proxy/dashboard/`. Changing `.env` alone does not change a running container's port bindings.
+The dashboard URL now uses port 8088. Changing `.env` alone does not change a running container's port bindings.
 
 Use the same `--context NAME` for each command when targeting another [context](contexts.md). To choose a port before initial setup, set it before `mw dev mediawiki create`.
 

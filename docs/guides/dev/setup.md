@@ -24,17 +24,17 @@ mw dev compose ps
 
 Use the wiki credentials printed by the installer to sign into MediaWiki. They are separate from the gateway login.
 
-## Open the wiki
+## Open the wiki or dashboard
 
-The default port is 8080. Open `http://default.mediawiki.local.wmftest.net:8080/wiki/Main_Page`, or use `http://localhost:8080/proxy/default/wiki/Main_Page` through the gateway. Substitute the port and database name you selected.
+Open the wiki link printed by the installer. You can also reach the default wiki through the gateway at `http://localhost:8080/proxy/default/wiki/Main_Page`. Substitute the port and database name you selected.
 
-Generate a gateway login link:
+Open the development dashboard to see installed wikis and running services:
 
 ```sh
-mw dev traefik credentials
+mw dev dashboard --open
 ```
 
-Open its `Login` link, then visit `http://localhost:8080/proxy/dashboard/` to find the running services. The [gateway guide](gateway.md) explains login sessions, service URLs and tunnels.
+Run `mw dev dashboard` to copy the dashboard URL. See the [gateway guide](gateway.md) for service URLs and signing in over a tunnel.
 
 ## Add code and inspect services
 

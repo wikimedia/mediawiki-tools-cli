@@ -3,11 +3,14 @@ package cmd
 import (
 	"bytes"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 )
 
@@ -94,5 +97,33 @@ func TestDevelopmentCommandAliases(t *testing.T) {
 		if !strings.Contains(out.String(), "development environment") || !strings.Contains(out.String(), name+" dev mediawiki create") {
 			t.Fatalf("help does not use the new environment name: %s", out.String())
 		}
+	}
+}
+
+func TestDevDashboardUsesSelectedContextWithoutDocker(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("GITLAB_CI", "true")
+	t.Setenv("CI_PROJECT_DIR", dir)
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("PORT", "")
+	t.Setenv("MWCLI_CONTEXT_TEST", "1")
+	previousOptions, previousContext := cli.Opts, devenv.Context
+	t.Cleanup(func() { cli.Opts, devenv.Context = previousOptions, previousContext })
+	contextDir := filepath.Join(dir, "mwdd", "work")
+	if err := os.MkdirAll(contextDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(contextDir, ".env"), []byte("PORT=8181\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	root := NewRootCmd("mw")
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetArgs([]string{"dev", "dashboard", "--context", "work", "--no-interaction"})
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "http://localhost:8181/proxy/dashboard/\n" {
+		t.Fatalf("dashboard output = %q", got)
 	}
 }

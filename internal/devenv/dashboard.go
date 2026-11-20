@@ -3,15 +3,49 @@ package devenv
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/docker/cli/cli/compose/template"
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
 )
+
+// DashboardURL returns the configured local dashboard URL without starting Docker.
+func (m Environment) DashboardURL() (string, error) {
+	port := os.Getenv("PORT")
+	if port == "" {
+		values, err := godotenv.Read(m.Env().Path())
+		if err != nil && !os.IsNotExist(err) {
+			return "", fmt.Errorf("read development context %q: %w", Context, err)
+		}
+		port = values["PORT"]
+	}
+	if port == "" {
+		return "", fmt.Errorf("no dashboard port configured for development context %q", Context)
+	}
+	portNumber, err := strconv.ParseUint(port, 10, 16)
+	if err != nil || portNumber == 0 {
+		return "", fmt.Errorf("invalid dashboard port %q for development context %q", port, Context)
+	}
+	return "http://" + net.JoinHostPort("localhost", strconv.FormatUint(portNumber, 10)) + "/proxy/dashboard/", nil
+}
+
+// RunningDashboardURL supplies an optional link for commands that may leave the gateway stopped.
+func (m Environment) RunningDashboardURL() string {
+	running, err := m.DockerCompose().ServicesWithStatus("running")
+	if err != nil || !slices.Contains(running, "traefik") || !slices.Contains(running, "dashboard") {
+		return ""
+	}
+	url, _ := m.DashboardURL()
+	return url
+}
 
 // dashboardService contains display metadata only, never the full environment.
 type dashboardService struct {

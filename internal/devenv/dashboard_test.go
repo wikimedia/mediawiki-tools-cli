@@ -10,6 +10,32 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
+func TestDashboardURLUsesSelectedContext(t *testing.T) {
+	t.Setenv("PORT", "")
+	original := Context
+	t.Cleanup(func() { Context = original })
+	m := Environment{BaseDir: t.TempDir()}
+	Context = "default"
+	m.Env().Set("PORT", "8080")
+	Context = "work"
+	m.Env().Set("PORT", "8181")
+	if url, err := m.DashboardURL(); err != nil || url != "http://localhost:8181/proxy/dashboard/" {
+		t.Fatalf("DashboardURL() = %q, %v", url, err)
+	}
+	t.Setenv("PORT", "8282")
+	if url, err := m.DashboardURL(); err != nil || url != "http://localhost:8282/proxy/dashboard/" {
+		t.Fatalf("DashboardURL() with a shell port = %q, %v", url, err)
+	}
+	t.Setenv("PORT", "")
+	Context = "missing"
+	if _, err := m.DashboardURL(); err == nil {
+		t.Fatal("DashboardURL() succeeded for an unconfigured context")
+	}
+	if _, err := os.Stat(m.Directory()); !os.IsNotExist(err) {
+		t.Fatalf("lookup touched unconfigured context: %v", err)
+	}
+}
+
 func TestCustomDashboardMetadata(t *testing.T) {
 	original := Context
 	Context = "test"
