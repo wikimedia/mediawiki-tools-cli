@@ -32,6 +32,8 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 `mw grafana` reads public Wikimedia Grafana dashboards, runs PromQL queries, and sends read requests to the Grafana API. See the [Grafana guide](docs/guides/grafana.md).
 
+`mw quarry results 541 --format csv` downloads the latest public [Quarry](https://quarry.wmcloud.org/) query result to standard output. Use `mw quarry results --run 1534` to download a specific run as JSON.
+
 ### Installation
 
 Follow the [installation guide](https://a-wikimedia-cli.toolforge.org/guides/installation/).
