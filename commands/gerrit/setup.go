@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	gerritapi "gitlab.wikimedia.org/repos/releng/cli/internal/gerrit"
@@ -67,9 +66,9 @@ func newSetupCmd() *cobra.Command {
 				username, err = checkGerritHTTP(cmd.Context(), username, password)
 			}
 			if err != nil {
-				printSetupCheck(cmd, false, "HTTP credentials: %v", err)
+				output.PrintCheck(cmd.OutOrStdout(), false, "HTTP credentials: %v", err)
 			} else {
-				printSetupCheck(cmd, true, "HTTP credentials: authenticated as %s", username)
+				output.PrintCheck(cmd.OutOrStdout(), true, "HTTP credentials: authenticated as %s", username)
 				if sshNeedsKey {
 					showRegisteredKeys(cmd, username, password)
 				}
@@ -100,11 +99,11 @@ func checkGerritCheckout(cmd *cobra.Command) []gerritSSHTarget {
 		return strings.TrimSpace(string(output)), err
 	}
 	if _, err := osexec.LookPath("git"); err != nil {
-		printSetupCheck(cmd, false, "Git checkout: Git is unavailable")
+		output.PrintCheck(cmd.OutOrStdout(), false, "Git checkout: Git is unavailable")
 		return nil
 	}
 	if inside, _ := git("rev-parse", "--is-inside-work-tree"); inside != "true" {
-		printSetupCheck(cmd, false, "Git checkout: run inside a Git worktree to check its remotes and commit-msg hook")
+		output.PrintCheck(cmd.OutOrStdout(), false, "Git checkout: run inside a Git worktree to check its remotes and commit-msg hook")
 		return nil
 	}
 
@@ -112,7 +111,7 @@ func checkGerritCheckout(cmd *cobra.Command) []gerritSSHTarget {
 	seen := make(map[gerritSSHTarget]bool)
 	found := false
 	if remotes, err := git("remote"); err != nil {
-		printSetupCheck(cmd, false, "Git remotes: could not list remotes (%v)", err)
+		output.PrintCheck(cmd.OutOrStdout(), false, "Git remotes: could not list remotes (%v)", err)
 	} else {
 		for _, name := range strings.Fields(remotes) {
 			for _, kind := range []string{"fetch", "push"} {
@@ -122,7 +121,7 @@ func checkGerritCheckout(cmd *cobra.Command) []gerritSSHTarget {
 				}
 				urls, err := git(append(args, "--", name)...)
 				if err != nil {
-					printSetupCheck(cmd, false, "Git remote %s (%s): could not resolve URL (%v)", name, kind, err)
+					output.PrintCheck(cmd.OutOrStdout(), false, "Git remote %s (%s): could not resolve URL (%v)", name, kind, err)
 					continue
 				}
 				for address := range strings.SplitSeq(urls, "\n") {
@@ -131,7 +130,7 @@ func checkGerritCheckout(cmd *cobra.Command) []gerritSSHTarget {
 						continue
 					}
 					found = true
-					printSetupCheck(cmd, true, "Git remote %s (%s): %s", name, kind, remote)
+					output.PrintCheck(cmd.OutOrStdout(), true, "Git remote %s (%s): %s", name, kind, remote)
 					if kind != "push" || remote.Scheme != "ssh" {
 						continue
 					}
@@ -144,48 +143,48 @@ func checkGerritCheckout(cmd *cobra.Command) []gerritSSHTarget {
 			}
 		}
 		if !found {
-			printSetupCheck(cmd, false, "Git remotes: no effective URL points directly to gerrit.wikimedia.org")
+			output.PrintCheck(cmd.OutOrStdout(), false, "Git remotes: no effective URL points directly to gerrit.wikimedia.org")
 		}
 	}
 	if author, err := git("var", "GIT_AUTHOR_IDENT"); err == nil {
 		if i, j := strings.LastIndex(author, "<"), strings.LastIndex(author, ">"); i >= 0 && j > i {
-			printSetupCheck(cmd, true, "Git author email: %s", author[i+1:j])
+			output.PrintCheck(cmd.OutOrStdout(), true, "Git author email: %s", author[i+1:j])
 		}
 	} else {
-		printSetupCheck(cmd, false, "Git author email: check git config user.email")
+		output.PrintCheck(cmd.OutOrStdout(), false, "Git author email: check git config user.email")
 	}
 	checkGerritHook(cmd)
 	if sshCommand, _ := git("config", "--get", "core.sshCommand"); sshCommand != "" ||
 		os.Getenv("GIT_SSH_COMMAND") != "" || os.Getenv("GIT_SSH") != "" {
-		printSetupCheck(cmd, false, "Git uses a custom SSH command. The authentication check below uses OpenSSH directly.")
+		output.PrintCheck(cmd.OutOrStdout(), false, "Git uses a custom SSH command. The authentication check below uses OpenSSH directly.")
 	}
 	return targets
 }
 
 func checkGerritHook(cmd *cobra.Command) bool {
 	if hooksPath, err := gitOutput(cmd.Context(), "", "config", "--get", "core.hooksPath"); err == nil && hooksPath == "" {
-		printSetupCheck(cmd, false, "commit-msg hook: disabled by empty core.hooksPath")
+		output.PrintCheck(cmd.OutOrStdout(), false, "commit-msg hook: disabled by empty core.hooksPath")
 		return false
 	}
 	hook, err := gitOutput(cmd.Context(), "", "rev-parse", "--git-path", "hooks/commit-msg")
 	if err != nil {
-		printSetupCheck(cmd, false, "commit-msg hook: could not resolve path (%v)", err)
+		output.PrintCheck(cmd.OutOrStdout(), false, "commit-msg hook: could not resolve path (%v)", err)
 		return false
 	}
 	switch info, err := os.Stat(hook); {
 	case os.IsNotExist(err):
-		printSetupCheck(cmd, false, "commit-msg hook: missing at %s", hook)
+		output.PrintCheck(cmd.OutOrStdout(), false, "commit-msg hook: missing at %s", hook)
 		if _, err := gitOutput(cmd.Context(), "", "config", "--get", "core.hooksPath"); err == nil {
 			fmt.Fprintf(cmd.OutOrStdout(), "  Configure the hook at your managed hooks path: %s\n", gerritapi.CommitHookURL)
 		} else {
 			fmt.Fprintln(cmd.OutOrStdout(), "  Install it with mw gerrit setup --install-hook")
 		}
 	case err != nil:
-		printSetupCheck(cmd, false, "commit-msg hook: %v", err)
+		output.PrintCheck(cmd.OutOrStdout(), false, "commit-msg hook: %v", err)
 	case !info.Mode().IsRegular() || (runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0):
-		printSetupCheck(cmd, false, "commit-msg hook: %s is not executable", hook)
+		output.PrintCheck(cmd.OutOrStdout(), false, "commit-msg hook: %s is not executable", hook)
 	default:
-		printSetupCheck(cmd, true, "commit-msg hook: found at %s", hook)
+		output.PrintCheck(cmd.OutOrStdout(), true, "commit-msg hook: found at %s", hook)
 		return true
 	}
 	return false
@@ -256,7 +255,7 @@ func checkGerritSSH(cmd *cobra.Command, target gerritSSHTarget) bool {
 	probe := osexec.CommandContext(ctx, "ssh", append(args, gerritSSHHost, "gerrit", "version")...)
 	_, err := probe.Output()
 	if err == nil {
-		printSetupCheck(cmd, true, "SSH (%s): authenticated", address)
+		output.PrintCheck(cmd.OutOrStdout(), true, "SSH (%s): authenticated", address)
 		return false
 	}
 	if ctx.Err() != nil {
@@ -264,7 +263,7 @@ func checkGerritSSH(cmd *cobra.Command, target gerritSSHTarget) bool {
 	} else if failure, ok := err.(*osexec.ExitError); ok && len(failure.Stderr) != 0 {
 		err = fmt.Errorf("%s", strings.TrimSpace(string(failure.Stderr)))
 	}
-	printSetupCheck(cmd, false, "SSH (%s): %v", address, err)
+	output.PrintCheck(cmd.OutOrStdout(), false, "SSH (%s): %v", address, err)
 	message := strings.ToLower(err.Error())
 	out := cmd.OutOrStdout()
 	switch {
@@ -292,7 +291,7 @@ func showRegisteredKeys(cmd *cobra.Command, username, password string) {
 		if response != nil {
 			response.Body.Close()
 		}
-		printSetupCheck(cmd, false, "Registered SSH keys: %v", err)
+		output.PrintCheck(cmd.OutOrStdout(), false, "Registered SSH keys: %v", err)
 		return
 	}
 	out := cmd.OutOrStdout()
@@ -315,21 +314,4 @@ func showRegisteredKeys(cmd *cobra.Command, username, password string) {
 		}
 		fmt.Fprintf(out, "    Key %d (%s) could not be fingerprinted\n", entry.Seq, entry.Algorithm)
 	}
-}
-
-func printSetupCheck(cmd *cobra.Command, passed bool, format string, args ...any) {
-	out := cmd.OutOrStdout()
-	message := fmt.Sprintf(format, args...)
-	if output.ColorEnabled(out) {
-		marker, shade := "⚠️", color.FgYellow
-		if passed {
-			marker, shade = "✅", color.FgGreen
-		}
-		label, detail, _ := strings.Cut(message, ": ")
-		message = marker + " " + output.StyledText(out, label, shade, color.Bold)
-		if detail != "" {
-			message += ": " + detail
-		}
-	}
-	fmt.Fprintln(out, message)
 }
