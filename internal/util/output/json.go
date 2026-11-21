@@ -25,5 +25,5 @@ func (j *JSON) Print(writer io.Writer) error {
 	if j.parseError != nil {
 		return j.parseError
 	}
-	return PrintJSONChecked(j.Objects, j.Format, false, writer)
+	return printJSONStream(j.Objects, j.Format, false, writer)
 }

@@ -2,6 +2,7 @@ package cloudvps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -42,6 +43,9 @@ func newComputeCreateCmd(provider providerFactory) *cobra.Command {
 			if timeout <= 0 {
 				return fmt.Errorf("--timeout must be positive")
 			}
+			if err := out.Validate(); err != nil {
+				return err
+			}
 			opts := servers.CreateOpts{
 				Name: args[0], ImageRef: image, FlavorRef: flavor,
 				Networks:       []servers.Network{{UUID: network}},
@@ -70,8 +74,9 @@ func newComputeCreateCmd(provider providerFactory) *cobra.Command {
 			}
 			// Creation may return an admin password; do not include it in output.
 			server.AdminPass = ""
-			if err := out.Print(cmd, server); err != nil {
-				return err
+			printErr := out.Print(cmd, server)
+			if printErr != nil {
+				printErr = fmt.Errorf("instance %s was created but writing its output failed: %w", server.ID, printErr)
 			}
 			if wait {
 				ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -83,10 +88,10 @@ func newComputeCreateCmd(provider providerFactory) *cobra.Command {
 					}
 					return current.Status, nil
 				}); err != nil {
-					return fmt.Errorf("instance %s was created but did not become ACTIVE: %w", server.ID, err)
+					return errors.Join(printErr, fmt.Errorf("instance %s was created but did not become ACTIVE: %w", server.ID, err))
 				}
 			}
-			return nil
+			return printErr
 		},
 	}
 	addProjectFlag(cmd)

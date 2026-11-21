@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -281,5 +282,53 @@ func TestInstanceSSHArgs(t *testing.T) {
 	}
 	if _, err := instanceSSHArgs("-oProxyCommand=bad", "mwcli", "", "", false, nil); err == nil {
 		t.Fatal("unsafe hostname accepted")
+	}
+}
+
+func TestProvisioningValidatesOutputBeforeRequests(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		command func(providerFactory) *cobra.Command
+		args    []string
+	}{
+		{"instance", newComputeCreateCmd, []string{"test-server", "--image", "img", "--flavor", "flv", "--network", "net"}},
+		{"volume", newVolumeCmd, []string{"create", "test-volume", "--size", "1"}},
+		{"attachment", newVolumeCmd, []string{"attach", "test-volume", "--server", "test-server"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, flags := range [][]string{{"--output", "jq", "--format", "["}, {"--output", "table"}} {
+				provider := func(*cobra.Command) (*gophercloud.ProviderClient, error) {
+					t.Fatal("provider called before validating output options")
+					return nil, nil
+				}
+				_, err := executeTestCommand(tc.command(provider), append(tc.args, flags...)...)
+				if err == nil {
+					t.Fatalf("invalid output options accepted: %v", flags)
+				}
+			}
+		})
+	}
+}
+
+func TestComputeCreateReportsInstanceAndWaitsOnOutputFailure(t *testing.T) {
+	var polled atomic.Bool
+	provider := testProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method + " " + r.URL.Path {
+		case "POST /compute/servers":
+			w.WriteHeader(http.StatusAccepted)
+			fmt.Fprint(w, `{"server":{"id":"server-id"}}`)
+		case "GET /compute/servers/server-id":
+			polled.Store(true)
+			fmt.Fprint(w, `{"server":{"id":"server-id","status":"ACTIVE"}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	_, err := executeTestCommand(newComputeCreateCmd(provider), "test-server", "--image", "img", "--flavor", "flv", "--network", "net",
+		"--wait", "--output", "jq", "--format", `error("fixture error")`)
+	if err == nil || !strings.Contains(err.Error(), "instance server-id was created") || !polled.Load() {
+		t.Fatalf("expected instance ID and completed wait after an output failure, got polled=%v, error=%v", polled.Load(), err)
 	}
 }

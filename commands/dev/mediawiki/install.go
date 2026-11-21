@@ -1,6 +1,7 @@
 package mediawiki
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -56,7 +58,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) (runErr error) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if dbType != "sqlite" && dbType != "mysql" && dbType != "postgres" {
 				return fmt.Errorf("invalid database type %q: use --dbtype=mysql, postgres or sqlite, or run `%s config set mw_dev.docker.db_type mysql`", dbType, cmd.Root().Name())
 			}
@@ -230,10 +232,17 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 
 			// Run install.php
-			runInstall := func() error {
+			runInstall := func() (runErr error) {
 				installStartTime := time.Now().Format("20060102150405")
 
+				var restoreMu sync.Mutex
+				restored := false
 				moveLocalSettingsBack := func() error {
+					restoreMu.Lock()
+					defer restoreMu.Unlock()
+					if restored {
+						return nil
+					}
 					// Move the LocalSettings.php back after install (or SIGTERM cancellation)
 					// TODO Don't do this in docker, do it on disk...
 					// TODO Check that the file we are moving does indeed exist, and we are not overwriting what we actually want!
@@ -245,24 +254,12 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							"/var/www/html/w/LocalSettings.php",
 						},
 					})
+					restored = err == nil
 					return err
 				}
 
-				// Set up signal handling for graceful shutdown while LocalSettings.php is moved
-				c := make(chan os.Signal, 1)
-				signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-				go func() {
-					<-c
-					err := moveLocalSettingsBack()
-					if err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "failed to move LocalSettings.php back after install %v\n", err)
-					}
-				}()
-				defer func() {
-					if err := moveLocalSettingsBack(); err != nil {
-						runErr = errors.Join(runErr, fmt.Errorf("restore LocalSettings.php after install: %w", err))
-					}
-				}()
+				interrupt, stopSignals := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+				defer stopSignals()
 
 				// Move the current LocalSettings "somewhere safe", incase someone needs to restore it
 				err := devenv.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
@@ -276,6 +273,16 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+
+				// Register recovery only after the backup exists. The deferred call
+				// waits for any recovery that an interrupt has already started.
+				stopRestore := context.AfterFunc(interrupt, func() { _ = moveLocalSettingsBack() })
+				defer func() {
+					stopRestore()
+					if err := moveLocalSettingsBack(); err != nil {
+						runErr = errors.Join(runErr, fmt.Errorf("restore LocalSettings.php after install: %w", err))
+					}
+				}()
 
 				// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
 				if dbType == "sqlite" {

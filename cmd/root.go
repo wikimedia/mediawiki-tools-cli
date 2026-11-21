@@ -158,8 +158,10 @@ func NewRootCmd(name string) *cobra.Command {
 		}
 
 		// Help bypasses PersistentPreRun, so load the telemetry preference here too.
-		cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
-		events.AddCommandHelpEvent(c, cli.VersionDetails.Version)
+		if c.Root().Annotations[cli.TelemetrySkipAnnotation] != "true" {
+			cli.Opts.Telemetry = config.State().Effective.Telemetry == "yes"
+			events.AddCommandHelpEvent(c, cli.VersionDetails.Version)
+		}
 		originalExample, originalLong := c.Example, c.Long
 		c.Example = cobrautil.CommandExamples(c)
 		if c == mwcliCmd && rootBanner(c) {
@@ -312,17 +314,14 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 	cli.ConfigureLogging(os.Stderr, verbosity)
 
-	if err := config.Initialize(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
-	}
-	c := config.State()
+	configErr := config.Initialize()
 
 	// Check various timers and execute tasks if needed
 	// The update check hits the network and can take a couple of seconds, so it
 	// runs concurrently with the command, and any notice is printed at the end.
 	var updateMessageChan chan string
-	{
+	if configErr == nil {
+		c := config.State()
 		shouldCheckForUpdates := false
 
 		// If the timer is not stored, store it now, and check for updates now
@@ -362,7 +361,9 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
-	if c.EffectiveKoanf.Exists(accesspolicy.ConfigKey) || slices.ContainsFunc(os.Args[1:], isPublicOnlyFlag) {
+	if configErr != nil {
+		allowConfigRecoveryCommands(rootCmd, configErr)
+	} else if config.State().EffectiveKoanf.Exists(accesspolicy.ConfigKey) || slices.ContainsFunc(os.Args[1:], isPublicOnlyFlag) {
 		guardPublicOnlyCommands(rootCmd)
 	}
 	// Override the UsageTemplate so that:
@@ -425,6 +426,26 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
+	if configErr != nil {
+		fmt.Fprintln(os.Stderr, "Warning:", configErr)
+	}
+}
+
+func allowConfigRecoveryCommands(root *cobra.Command, configErr error) {
+	root.Annotations = map[string]string{cli.TelemetrySkipAnnotation: "true"}
+	root.PersistentPreRunE = nil
+	// Cobra handles --help before argument validation. Reject other commands
+	// before their setup hooks can read or change a partially loaded config.
+	cobrautil.VisitAllSubCommands(root, func(cmd *cobra.Command) {
+		if !cmd.Runnable() {
+			return
+		}
+		switch cmd.CommandPath() {
+		case root.Name() + " help", root.Name() + " version", root.Name() + " config where":
+			return
+		}
+		cmd.Args = func(*cobra.Command, []string) error { return configErr }
+	})
 }
 
 func addRootFlags(root *cobra.Command) {

@@ -2,6 +2,7 @@ package cloudvps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -56,6 +57,9 @@ func newVolumeActionCmd(action string, provider providerFactory) *cobra.Command 
 		if timeout <= 0 {
 			return fmt.Errorf("--timeout must be positive")
 		}
+		if err := out.Validate(); err != nil {
+			return err
+		}
 		p, err := provider(cmd)
 		if err != nil {
 			return err
@@ -103,8 +107,9 @@ func newVolumeActionCmd(action string, provider providerFactory) *cobra.Command 
 			volumeID, target = args[0], "in-use"
 		}
 		// Print the resource ID before waiting so interrupted operations can be inspected.
-		if err := out.Print(cmd, result); err != nil {
-			return err
+		printErr := out.Print(cmd, result)
+		if printErr != nil && volumeID != "" {
+			printErr = fmt.Errorf("volume %s: %s request succeeded but writing its output failed: %w", volumeID, action, printErr)
 		}
 		if wait && volumeID != "" {
 			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
@@ -116,10 +121,10 @@ func newVolumeActionCmd(action string, provider providerFactory) *cobra.Command 
 				}
 				return current.Status, nil
 			}); err != nil {
-				return fmt.Errorf("volume %s: %s request succeeded but waiting for %s failed: %w", volumeID, action, target, err)
+				return errors.Join(printErr, fmt.Errorf("volume %s: %s request succeeded but waiting for %s failed: %w", volumeID, action, target, err))
 			}
 		}
-		return nil
+		return printErr
 	}
 	addProjectFlag(cmd)
 	if action == "create" {

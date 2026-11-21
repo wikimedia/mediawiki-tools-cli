@@ -6,7 +6,7 @@ import (
 )
 
 func printJQ(objects interface{}, format string, writer io.Writer) error {
-	return PrintJSONChecked(objects, format, true, writer)
+	return printJSONStream(objects, format, true, writer)
 }
 
 // normalizeInput recursively converts maps with non-string keys into
