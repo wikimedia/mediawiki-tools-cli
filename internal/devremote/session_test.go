@@ -165,6 +165,12 @@ func TestLocalDevRoutingUsesSSHAndPreservesExitCode(t *testing.T) {
 	if !handled || code != 42 || stdout.String() != "remote output\n" || stderr.String() != "remote diagnostic\n" {
 		t.Fatalf("handled=%v code=%d stdout=%q stderr=%q", handled, code, &stdout, &stderr)
 	}
+	stdout.Reset()
+	stderr.Reset()
+	handled, code = Early([]string{"--public-only", "dev", "--context", "calm-otter", "dc", "ps"}, stdin, &stdout, &stderr)
+	if !handled || code != 1 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "do not support --public-only") {
+		t.Fatalf("public-only remote call proceeded: handled=%v code=%d stdout=%q stderr=%q", handled, code, &stdout, &stderr)
+	}
 	if handled, _ := Early([]string{"dev", "--context", "local", "dc", "ps"}, stdin, io.Discard, io.Discard); handled {
 		t.Fatal("captured local context")
 	}
