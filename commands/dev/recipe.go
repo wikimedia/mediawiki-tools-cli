@@ -762,6 +762,13 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 			destPath = filepath.Join(thisMW.Path(""), destPath)
 		}
 		if _, err := os.Stat(destPath); err == nil {
+			if co.Commit != "" {
+				cmd := osexec.Command("git", "-C", destPath, "rev-parse", "HEAD") // #nosec G204 -- destination is the selected recipe checkout.
+				head, err := cmd.Output()
+				if err != nil || strings.TrimSpace(string(head)) != co.Commit {
+					return fmt.Errorf("checkout %s must be at %s to apply this recipe", destPath, co.Commit)
+				}
+			}
 			fmt.Printf("Skipping already-present repo at %s\n", co.Path)
 			continue
 		}
@@ -772,6 +779,12 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 			return fmt.Errorf("creating parent directory for %s: %w", co.Path, err)
 		}
+		if co.Commit != "" {
+			if err := cloneRecipeCommit(co, destPath); err != nil {
+				return fmt.Errorf("checking out %s at %s: %w", co.URL, co.Commit, err)
+			}
+			continue
+		}
 		cmd := osexec.Command("git", "clone", co.URL, destPath)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -781,6 +794,28 @@ func applyCodeCheckout(spec recipe.Spec, thisMW mediawiki.MediaWiki, dryRun bool
 	}
 
 	return nil
+}
+
+func cloneRecipeCommit(checkout recipe.Checkout, destination string) error {
+	staging, err := os.MkdirTemp(filepath.Dir(destination), ".recipe-checkout-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(staging) // #nosec G104 -- the staging directory is temporary.
+	for _, args := range [][]string{
+		{"init", "--quiet"},
+		{"remote", "add", "--", "origin", checkout.URL},
+		{"fetch", "--depth=1", "origin", checkout.Commit},
+		{"checkout", "--quiet", "--detach", "FETCH_HEAD"},
+	} {
+		if err := runGit(staging, args...); err != nil {
+			return err
+		}
+	}
+	if err := os.Chmod(staging, 0o755); err != nil { // #nosec G302 -- the checkout is shared with the development containers.
+		return err
+	}
+	return os.Rename(staging, destination)
 }
 
 func filterMissingRepos(thisMW mediawiki.MediaWiki, kind string, names []string) []string {

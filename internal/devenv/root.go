@@ -1,6 +1,7 @@
 package devenv
 
 import (
+	"crypto/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -39,6 +40,9 @@ func (m Environment) Directory() string {
 func (m Environment) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
+	if m.Env().Get("SHELLBOX_SECRET_KEY") == "" {
+		m.Env().Set("SHELLBOX_SECRET_KEY", rand.Text())
+	}
 	m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion())
 	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
 	m.Env().Set("TRAEFIK_DOCKER_PROJECT", strings.ToLower(m.DockerCompose().Name))

@@ -3,11 +3,38 @@ package dev
 import (
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv/recipe"
 )
+
+func TestCloneRecipeCommitChecksOutRequestedRevision(t *testing.T) {
+	source := t.TempDir()
+	git := func(dir string, args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	git(source, "init", "--quiet")
+	git(source, "-c", "user.name=Recipe Test", "-c", "user.email=recipe@example.test", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "Initial commit")
+	commit := git(source, "rev-parse", "HEAD")
+	git(source, "-c", "user.name=Recipe Test", "-c", "user.email=recipe@example.test", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "Newer commit")
+
+	destination := filepath.Join(t.TempDir(), "checkout")
+	if err := cloneRecipeCommit(recipe.Checkout{URL: source, Commit: commit}, destination); err != nil {
+		t.Fatal(err)
+	}
+	if got := git(destination, "rev-parse", "HEAD"); got != commit {
+		t.Errorf("checked out %s, want %s", got, commit)
+	}
+}
 
 func TestExpandRecipeTemplateVars_ReplacesPortAcrossRelevantSections(t *testing.T) {
 	spec := recipe.Spec{
