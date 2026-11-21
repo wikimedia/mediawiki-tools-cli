@@ -176,15 +176,15 @@ interactive provider choice and remote authentication checks remain in the CLI.
 It retains the explicit migration path from `main`'s plaintext configuration:
 
 ```sh
-./bin/mw config secrets migrate --dry-run --provider keepassxc
-./bin/mw config secrets migrate --provider keepassxc
+./bin/wm config secrets migrate --dry-run --provider keepassxc
+./bin/wm config secrets migrate --provider keepassxc
 ```
 
 If a linked destination already differs, the ordinary command preserves both
 copies. To explicitly replace one linked credential with its plaintext value:
 
 ```sh
-./bin/mw config secrets migrate phabricator.profiles.wikimedia.key --replace
+./bin/wm config secrets migrate phabricator.profiles.wikimedia.key --replace
 ```
 
 Plaintext is removed only after a verified save and a successful config write.

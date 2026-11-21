@@ -2,7 +2,7 @@
 
 # Install a Wikimedia CLI
 
-Download the binary and matching `.sha256` file for your operating system and CPU from the [latest release](https://gitlab.wikimedia.org/repos/releng/cli/-/releases/permalink/latest), or use the commands below. Release assets currently use the `mw_` prefix. On Windows, use the `.exe` asset; for the development environment, use a Linux installation inside WSL2.
+Download the `wm_` binary and matching `.sha256` file for your operating system and CPU from the [latest release](https://gitlab.wikimedia.org/repos/releng/cli/-/releases/permalink/latest), or use the commands below. On Windows, save the `.exe` asset as `wm.exe`. For the development environment, use a Linux installation inside WSL2.
 
 ## Verify and install on Linux or macOS
 
@@ -21,39 +21,45 @@ UA='a-wikimedia-cli-docs/1.0 (https://a-wikimedia-cli.toolforge.org/)'
 RELEASE_URL=$(curl -fsSL -A "$UA" -o /dev/null -w '%{url_effective}' \
   https://gitlab.wikimedia.org/repos/releng/cli/-/releases/permalink/latest)
 VER=${RELEASE_URL##*/}
-ASSET="mw_${VER}_${PLATFORM}_${ARCH}"
-curl -fL -A "$UA" "$RELEASE_URL/downloads/binaries/$ASSET" -o mw
-curl -fL -A "$UA" "$RELEASE_URL/downloads/binaries/$ASSET.sha256" -o mw.sha256
-printf '%s  mw\n' "$(cat mw.sha256)" | shasum -a 256 -c -
+ASSET="wm_${VER}_${PLATFORM}_${ARCH}"
+STATUS=$(curl -sSIL -A "$UA" -o /dev/null -w '%{http_code}' "$RELEASE_URL/downloads/binaries/$ASSET")
+case "$STATUS" in
+  200) ;;
+  404) ASSET="mw_${VER}_${PLATFORM}_${ARCH}" ;;
+  *) echo "Could not check the release asset (HTTP $STATUS)" >&2; exit 1 ;;
+esac
+curl -fL -A "$UA" "$RELEASE_URL/downloads/binaries/$ASSET" -o wm
+curl -fL -A "$UA" "$RELEASE_URL/downloads/binaries/$ASSET.sha256" -o wm.sha256
+printf '%s  wm\n' "$(cat wm.sha256)" | shasum -a 256 -c -
 )
 ```
 
-The release version is discovered automatically. A successful checksum check prints `mw: OK`. For other CPUs or manually downloaded files, save the binary as `mw` and the matching checksum as `mw.sha256`, then verify them before installing:
+The script discovers the release version and can use an older `mw_` asset if the `wm_` asset is missing. A successful checksum check prints `wm: OK`. For other CPUs or manually downloaded files, save the binary as `wm` and the matching checksum as `wm.sha256`, then verify them before installing:
 
 ```sh
-printf '%s  mw\n' "$(cat mw.sha256)" | shasum -a 256 -c -
+printf '%s  wm\n' "$(cat wm.sha256)" | shasum -a 256 -c -
 ```
 
 For an installation in your home directory:
 
 ```sh
 mkdir -p "$HOME/.local/bin"
-install -m 0755 mw "$HOME/.local/bin/mw"
+install -m 0755 wm "$HOME/.local/bin/wm"
 ```
 
-Add `$HOME/.local/bin` to your shell's `PATH` if needed. To install for all users instead, run `sudo install -m 0755 mw /usr/local/bin/mw`.
+Add `$HOME/.local/bin` to your shell's `PATH` if needed. To install for all users instead, run `sudo install -m 0755 wm /usr/local/bin/wm`.
 
 Check the installation:
 
 ```sh
-mw version
-mw --help
+wm version
+wm --help
 ```
 
 After checking the installation, remove the downloaded copies from your working directory:
 
 ```sh
-rm mw mw.sha256
+rm wm wm.sha256
 ```
 
 ## Community packages
@@ -62,7 +68,13 @@ Arch Linux users can also use the community-maintained [mwcli package in the Arc
 
 ## Command names and configuration
 
-The project is called **a Wikimedia CLI**. The default command remains `mw`; the same executable also works when renamed or symlinked as `wm`. Help and completion use the name you invoke. Both names use the existing `mwcli` configuration directory and saved credentials.
+The default command is `wm`. Help and completion use the name you invoke, and both names share the existing `mwcli` configuration and saved credentials.
+
+If you already have `mw`, run `mw update` to update that installation in place. Scripts and MCP clients can keep using its existing path. On Linux or macOS, you can add `wm` as a symlink to the same executable. If `mw` is installed in `$HOME/.local/bin`, run:
+
+```sh
+ln -s mw "$HOME/.local/bin/wm"
+```
 
 Docker is needed for the [development environment](dev/setup.md); the commands for Wikimedia data and remote services do not require it.
 

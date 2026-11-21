@@ -100,7 +100,7 @@ Install the workflows and helpers on the official GitHub repository's `main` bra
 Create tokens in [GitLab settings](https://gitlab.wikimedia.org/repos/releng/cli/-/settings/access_tokens) or with the command below. Replace `YYYY-MM-DD` with an allowed expiry; record it above when rotating. For the reader, use a separate name, `access_level: 20` and `read_api`:
 
 ```sh
-mw gl api projects/16/access_tokens --hostname gitlab.wikimedia.org --method POST --input - <<'JSON'
+wm gl api projects/16/access_tokens --hostname gitlab.wikimedia.org --method POST --input - <<'JSON'
 {"name":"mwcli native GitHub results","access_level":40,"scopes":["api"],"expires_at":"YYYY-MM-DD"}
 JSON
 ```
@@ -120,7 +120,7 @@ Enable **Pipelines must succeed** in GitLab's merge checks.
 Verify an MR pipeline's external results and waiting job, then test `main`:
 
 ```sh
-mw gl api projects/16/pipeline --hostname gitlab.wikimedia.org --method POST --raw-field ref=main
+wm gl api projects/16/pipeline --hostname gitlab.wikimedia.org --method POST --raw-field ref=main
 ```
 
 ### Waiting pools
@@ -130,7 +130,7 @@ Each VM provides 50 slots tagged `mwcli-wait`, locked to this project. Services:
 Set `INSTANCE_NAME`, `INSTANCE_ID` and `SSH_USER` from the [inventory](#cloud-vps-workers), or [create a VM](#add-a-cloud-vps-worker). On a new VM, install packages:
 
 ```sh
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
   --script tools/ci/runner.sh --sudo -- install
 ```
@@ -138,7 +138,7 @@ mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
 On your workstation, create a runner (skip for existing pools):
 
 ```sh
-mw gl api user/runners --hostname gitlab.wikimedia.org --method POST \
+wm gl api user/runners --hostname gitlab.wikimedia.org --method POST \
   --raw-field runner_type=project_type --field project_id=16 \
   --raw-field description="${INSTANCE_NAME}-wait" --raw-field tag_list=mwcli-wait \
   --field locked=true --field run_untagged=false --field maximum_timeout=3600
@@ -147,17 +147,17 @@ mw gl api user/runners --hostname gitlab.wikimedia.org --method POST \
 Keep the returned `glrt-...` token for registration. From the repository root, copy files and connect:
 
 ```sh
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
   -- sudo install -d -m 0755 /opt/mwcli-wait
 
 tar -C tools/ci -cf - github_status.py wait-github.py wait-status.py \
   wait-runner.toml gitlab-runner-wait.service mwcli-wait-status.service | \
-  mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+  wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
     --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
     -- sudo tar --no-same-owner -xf - -C /opt/mwcli-wait
 
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org --tty
 ```
 
@@ -238,17 +238,17 @@ Run from the repository root in one Bash session. Skip resources that already ex
 
 ### 1. Authenticate
 
-Use an `mw` build with `cloudvps` commands; see [development builds](README.md#using-a-development-build).
+Use a `wm` build with `cloudvps` commands. See [development builds](README.md#using-a-development-build).
 
 In [Horizon](https://horizon.wikimedia.org/), select `mwcli`, then **Identity → Application Credentials → Create Application Credential**. Save its ID and secret.
 
 ```sh
-mw cloudvps auth add --project mwcli
-mw cloudvps auth check --project mwcli
-mw gitlab auth status --hostname gitlab.wikimedia.org
+wm cloudvps auth add --project mwcli
+wm cloudvps auth check --project mwcli
+wm gitlab auth status --hostname gitlab.wikimedia.org
 ```
 
-Skip `auth add` if configured. Use `mw gitlab auth login --hostname gitlab.wikimedia.org` if needed. Runner creation requires `create_runner`; editing requires `manage_runner`.
+Skip `auth add` if configured. Use `wm gitlab auth login --hostname gitlab.wikimedia.org` if needed. Runner creation requires `create_runner`; editing requires `manage_runner`.
 
 Cloud VPS credentials are stored in an owner-only plaintext config. `--secret` also exposes them in shell history and process arguments.
 
@@ -257,20 +257,20 @@ Cloud VPS credentials are stored in an owner-only plaintext config. `--secret` a
 Check resources and choose unused names:
 
 ```sh
-mw cloudvps compute list --project mwcli
-mw cloudvps volume list --project mwcli
+wm cloudvps compute list --project mwcli
+wm cloudvps volume list --project mwcli
 
 INSTANCE_NAME=gitlab-runner-addshore-1020
 VOLUME_NAME=mwcli-ci-0003
 SSH_USER=addshore
 ```
 
-Set `SSH_USER` to your Wikimedia shell username. Check example IDs with `mw cloudvps image list`, `flavor list` and `network list`, each using `--project mwcli`. This example uses Debian 13, 4 CPUs and 8 GiB RAM.
+Set `SSH_USER` to your Wikimedia shell username. Check example IDs with `wm cloudvps image list`, `flavor list` and `network list`, each using `--project mwcli`. This example uses Debian 13, 4 CPUs and 8 GiB RAM.
 
 Create the VM:
 
 ```sh
-INSTANCE_ID=$(mw cloudvps compute create "$INSTANCE_NAME" --project mwcli \
+INSTANCE_ID=$(wm cloudvps compute create "$INSTANCE_NAME" --project mwcli \
   --image 09ac7914-8b26-41c2-b5ab-9c2319ca9e9b \
   --flavor acdad2e5-6221-4f3c-ac17-ec6fa13bf523 \
   --network d8a16ddf-c01f-4f22-8b67-8ed18b4b1b45 \
@@ -280,14 +280,14 @@ INSTANCE_ID=$(mw cloudvps compute create "$INSTANCE_NAME" --project mwcli \
 For fresh storage:
 
 ```sh
-VOLUME_ID=$(mw cloudvps volume create "$VOLUME_NAME" --project mwcli \
+VOLUME_ID=$(wm cloudvps volume create "$VOLUME_NAME" --project mwcli \
   --size 40 --wait --output jq --format .id)
 ```
 
 For reused storage, skip creation and set `VOLUME_ID` to an **available** volume's ID. Its existing data will be preserved.
 
 ```sh
-mw cloudvps volume attach "$VOLUME_ID" --project mwcli --server "$INSTANCE_ID" --wait
+wm cloudvps volume attach "$VOLUME_ID" --project mwcli --server "$INSTANCE_ID" --wait
 ```
 
 `--wait` does not wait for SSH or cloud-init. If creation fails, inspect existing resources before retrying to avoid duplicates.
@@ -297,11 +297,11 @@ mw cloudvps volume attach "$VOLUME_ID" --project mwcli --server "$INSTANCE_ID" -
 From your workstation, prepare the volume and check its mount:
 
 ```sh
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
   --tty -- sudo wmcs-prepare-cinder-volume
 
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
   -- findmnt /var/lib/docker
 ```
@@ -315,11 +315,11 @@ Continue with [waiting-pool setup](#waiting-pools).
 Set `INSTANCE_ID` from the inventory and `SSH_USER` to your shell username:
 
 ```sh
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
   -- sudo systemctl status gitlab-runner-wait mwcli-wait-status
 
-mw cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
+wm cloudvps compute ssh "$INSTANCE_ID" --project mwcli \
   --user "$SSH_USER" --jump primary.bastion.wmcloud.org \
   -- sudo journalctl -u mwcli-wait-status -n 30 --no-pager
 ```

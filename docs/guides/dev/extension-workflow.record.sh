@@ -6,11 +6,11 @@ repo_root=$(cd -- "$script_dir/../../.." && pwd)
 cd "$repo_root"
 
 context=${CONTEXT:?Set CONTEXT to an initialized disposable wiki checkout without Cite}
-GOFLAGS=-buildvcs=false make build BINARY_NAME=mw
-export MWCLI_RECORD_BIN="$repo_root/bin/mw"
+GOFLAGS=-buildvcs=false make build BINARY_NAME=wm
+export MWCLI_RECORD_BIN="$repo_root/bin/wm"
 export MWCLI_RECORD_CONTEXT="$context"
 export PATH="$repo_root/bin:$PATH"
-code_dir=$(./bin/mw --no-interaction dev --context "$context" mediawiki where)
+code_dir=$(./bin/wm --no-interaction dev --context "$context" mediawiki where)
 if [[ -e "$code_dir/extensions/Cite" ]] || grep -q "wfLoadExtension( 'Cite' );" "$code_dir/LocalSettings.php"; then
     echo "Cite is already present in $code_dir; use a clean disposable checkout to record this workflow." >&2
     exit 1

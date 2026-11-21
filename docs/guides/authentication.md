@@ -5,25 +5,25 @@ On the first interactive Gerrit, Cloud VPS, Phabricator, GitLab, wiki or Enterpr
 On native Windows, the storage picker shows Windows Credential Manager once. In WSL, OS keyring means Linux Secret Service and Windows Credential Manager means the Windows store, so both remain available when detected.
 
 ```sh
-mw gerrit auth login
-mw cloudvps auth login
-mw phabricator auth login
-mw enterprise auth login
+wm gerrit auth login
+wm cloudvps auth login
+wm phabricator auth login
+wm enterprise auth login
 ```
 
-Wikimedia Enterprise uses its own account from [the Enterprise dashboard](https://dashboard.enterprise.wikimedia.com/). `mw enterprise auth login` reads the username and password, exchanges them for access and refresh tokens, and saves the tokens with the selected credential provider. The password is not saved. Use `--username ACCOUNT --password-stdin` for noninteractive login and `--profile NAME` for separate accounts. Commands refresh expiring access tokens under the credential lock; when the refresh token expires or reaches its refresh limit, log in again. Token bundles can exceed Windows Credential Manager's size limit; choose KeePassXC if the provider rejects the bundle.
+Wikimedia Enterprise uses its own account from [the Enterprise dashboard](https://dashboard.enterprise.wikimedia.com/). `wm enterprise auth login` reads the username and password, exchanges them for access and refresh tokens, and saves the tokens with the selected credential provider. The password is not saved. Use `--username ACCOUNT --password-stdin` for noninteractive login and `--profile NAME` for separate accounts. Commands refresh expiring access tokens under the credential lock; when the refresh token expires or reaches its refresh limit, log in again. Token bundles can exceed Windows Credential Manager's size limit; choose KeePassXC if the provider rejects the bundle.
 
-`mw enterprise auth status` displays local metadata without unlocking storage. Add `--check` to check API access without refreshing tokens. `auth profiles`, `auth default --profile NAME`, and `auth remove --profile NAME` follow the other services' profile conventions. `auth revoke --profile NAME` revokes the remote session before removing its local profile. Enterprise credentials participate in `mw config secrets list`, verification, transfer, and cleanup as `enterprise.profiles.NAME.token`.
+`wm enterprise auth status` displays local metadata without unlocking storage. Add `--check` to check API access without refreshing tokens. `auth profiles`, `auth default --profile NAME`, and `auth remove --profile NAME` follow the other services' profile conventions. `auth revoke --profile NAME` revokes the remote session before removing its local profile. Enterprise credentials participate in `wm config secrets list`, verification, transfer, and cleanup as `enterprise.profiles.NAME.token`.
 
 ```sh
-mw enterprise articles get 'Albert Einstein' --wiki enwiki
-mw enterprise projects list --filter code=wikidata
-mw enterprise snapshots list --wiki enwiki --output table
-mw enterprise snapshots download enwiki_namespace_0 --file enwiki.tar.gz
-mw enterprise snapshots download enwiki_namespace_0 --file enwiki.tar.gz --resume
-mw enterprise api projects
-mw enterprise api articles/Squirrel --input query.json
-mw enterprise stream articles --wiki enwiki --checkpoint enterprise-checkpoint.json
+wm enterprise articles get 'Albert Einstein' --wiki enwiki
+wm enterprise projects list --filter code=wikidata
+wm enterprise snapshots list --wiki enwiki --output table
+wm enterprise snapshots download enwiki_namespace_0 --file enwiki.tar.gz
+wm enterprise snapshots download enwiki_namespace_0 --file enwiki.tar.gz --resume
+wm enterprise api projects
+wm enterprise api articles/Squirrel --input query.json
+wm enterprise stream articles --wiki enwiki --checkpoint enterprise-checkpoint.json
 ```
 
 `enterprise api` accepts paths relative to `/v2`, GET/POST/HEAD methods, and a JSON body from `--input FILE` or `--input -`. Downloads retain compressed tarballs and preserve interrupted transfers as `.part` files with resume metadata. Streaming writes NDJSON, reconnects using per-partition timestamps, and can replay events; downstream consumers should deduplicate event identifiers. Stream checkpoint files are bound to the endpoint, fields, filters, and partitions. Structured Contents and Wikidata endpoints are beta. Realtime streams and hourly batches require the appropriate Enterprise subscription; batch dates and hours are UTC.
@@ -35,11 +35,11 @@ Use hidden prompts or `--password-stdin`, `--secret-stdin` and `--token-stdin` r
 Inspect saved credential metadata and storage locations without unlocking providers or revealing values:
 
 ```sh
-mw config secrets list
-mw config secrets list --json
-mw config secrets list --check
-mw config secrets list --verify
-mw config secrets list phabricator.profiles.wikimedia.key --check --verify
+wm config secrets list
+wm config secrets list --json
+wm config secrets list --check
+wm config secrets list --verify
+wm config secrets list phabricator.profiles.wikimedia.key --check --verify
 ```
 
 The inventory includes known credential references, plaintext config secrets, and the local KeePassXC pairing file. The compact table shows key, provider, comparison and authentication results. Add `--details` to show service, account, endpoint, status and storage location below the table. Account mismatches and missing references remain visible in the summary. A credential with both a vault link and a retained plaintext value has a separate row for each copy; their values are not compared. JSON rows include a `source` field distinguishing credential references, plaintext configuration, and the pairing file. Linked external entries are not verified; orphaned references are shown explicitly. It does not enumerate unrelated vault entries, the external glab authentication store, or external `phab.cfg` files.
@@ -53,8 +53,8 @@ After `--check` or `--verify`, text output suggests commands when the results su
 Existing plaintext credentials continue to work. Review and migrate supported entries explicitly:
 
 ```sh
-mw config secrets migrate --dry-run
-mw config secrets migrate
+wm config secrets migrate --dry-run
+wm config secrets migrate
 ```
 
 Migration verifies each saved value before removing its plaintext copy from configuration. This includes tokens already saved in CLI GitLab profiles. It does not import external `phab.cfg` files or upstream glab credentials; use the service login import options for those. Existing backups may still contain the old values.
@@ -62,8 +62,8 @@ Migration verifies each saved value before removing its plaintext copy from conf
 When a plaintext value and a vault link both exist, ordinary migration refuses to change differing values. If you know the plaintext value is the one to keep, explicitly replace one named vault credential:
 
 ```sh
-mw config secrets migrate phabricator.profiles.wikimedia.key --replace --dry-run
-mw config secrets migrate phabricator.profiles.wikimedia.key --replace
+wm config secrets migrate phabricator.profiles.wikimedia.key --replace --dry-run
+wm config secrets migrate phabricator.profiles.wikimedia.key --replace
 ```
 
 This replaces the linked provider's value using plaintext from config, verifies the destination, then removes the plaintext copy. It does not verify that the token is accepted by the remote service. The saved account and endpoint must still match. `--replace` requires exactly one explicit key and a secure destination; it cannot replace multiple entries in a bulk migration.
@@ -73,14 +73,14 @@ This replaces the linked provider's value using plaintext from config, verifies 
 Gerrit and Phabricator expose the same `auth login`, `auth profiles` (`list` alias), `auth status`, `auth remove`, and `auth default` commands. Each accepts the service's persistent `--profile` flag; profile names have shell completion.
 
 ```sh
-mw gerrit auth login --username addshore
-mw gerrit auth login --username addbot --profile bot
-mw gerrit auth profiles
-mw gerrit auth status --profile bot
-mw gerrit auth default --profile addshore
-mw gerrit changes list --profile bot
-mw gerrit ssh --profile bot version
-mw gerrit auth remove --profile bot
+wm gerrit auth login --username addshore
+wm gerrit auth login --username addbot --profile bot
+wm gerrit auth profiles
+wm gerrit auth status --profile bot
+wm gerrit auth default --profile addshore
+wm gerrit changes list --profile bot
+wm gerrit ssh --profile bot version
+wm gerrit auth remove --profile bot
 ```
 
 Login validates the username with Gerrit's authenticated account endpoint. Without `--profile`, it uses that verified username in lowercase. The first login becomes the default; later logins ask before changing an existing default, with “no” selected initially. Non-interactive logins retain the existing default. `login --default` switches explicitly, and `--default=false` keeps the current default without prompting. You can also change it independently with `auth default --profile NAME`; Phabricator uses the same command.
@@ -94,12 +94,12 @@ Existing flat `gerrit.username` and `gerrit.password` configuration migrates aut
 Browser login is the default. The CLI opens `/conduit/login/` in your browser (the Windows browser in WSL), where you can sign in with your Wikimedia or developer account. Paste the resulting token into the hidden terminal prompt. If KeePassXC is closed, the CLI attempts to launch it beside its configured proxy and waits up to two minutes for you to open and unlock it; connection attempts resume automatically. An unused command-line token initially expires after one hour; its first authenticated API request makes it permanent until revoked. The CLI verifies your identity before saving it in your selected credential provider.
 
 ```sh
-mw phabricator auth login --profile personal
-mw phabricator auth login --profile bot --method token
-mw phabricator auth profiles
-mw phabricator auth status --profile personal
-mw phabricator view T12345 --profile bot
-mw phabricator auth remove --profile bot
+wm phabricator auth login --profile personal
+wm phabricator auth login --profile bot --method token
+wm phabricator auth profiles
+wm phabricator auth status --profile personal
+wm phabricator view T12345 --profile bot
+wm phabricator auth remove --profile bot
 ```
 
 Use `--method token` to paste an existing API token without opening the browser. `--token-stdin` also skips browser launch and is suitable for automation. Add `--username Addbot` to reject a token belonging to another account. `--no-browser` prints the browser-login URL for you to open manually. `--url` explicitly selects a different HTTPS server; project-local `phab.cfg` never selects the destination for a newly entered token.
@@ -117,8 +117,8 @@ See [Phabricator access](phabricator/access.md) for public reads and previews.
 To copy credentials from the Python `phab` tool, explicitly import its configuration:
 
 ```sh
-mw phab auth login --method phab-cfg --profile personal
-mw phab auth login --method phab-cfg --config-file ~/.config/phab/phab.cfg --config-section bot --profile bot
+wm phab auth login --method phab-cfg --profile personal
+wm phab auth login --method phab-cfg --config-file ~/.config/phab/phab.cfg --config-section bot --profile bot
 ```
 
 The importer uses the specified section or the file's `[main] default`, verifies the configured identity on that section's HTTPS server, and saves its token in your chosen credential provider. It also copies `default_project`. The source file is left unchanged, including its plaintext token; the saved profile no longer depends on it. Normal commands never use credentials directly from `phab.cfg`. Detection in standard locations only suggests importing; it does not retrieve or test the token. Browser and existing-token login never take their destination from a detected file.
@@ -136,13 +136,13 @@ The CLI's secure storage uses the reusable `pkg/secretstore` package. Provider a
 GitLab supports the shared profile commands and secret providers:
 
 ```sh
-mw gitlab auth login --profile addshore
-mw gitlab auth login --profile addbot
-mw gitlab auth profiles
-mw gitlab auth default --profile addshore
-mw gitlab auth status --profile addbot
-mw gitlab mr list --profile addbot
-mw gitlab auth remove --profile addbot
+wm gitlab auth login --profile addshore
+wm gitlab auth login --profile addbot
+wm gitlab auth profiles
+wm gitlab auth default --profile addshore
+wm gitlab auth status --profile addbot
+wm gitlab mr list --profile addbot
+wm gitlab auth remove --profile addbot
 ```
 
 Login validates a personal access token with `/api/v4/user` before saving it. Without `--profile`, the verified username becomes the profile name. `--hostname` defaults to `gitlab.wikimedia.org`; HTTPS hosts without a subpath are supported. Choose the permissions you need when creating the token: `read_api` for read-only API operations, or `api` for API writes; Git over HTTPS also requires suitable repository access. Tokens keep their server-defined expiry; this implementation does not refresh OAuth sessions.
@@ -152,7 +152,7 @@ Use `--token-stdin` for piped input, or the hidden interactive prompt. `--provid
 To explicitly import an existing glab personal access token:
 
 ```sh
-mw gitlab auth login --from-glab --profile addshore
+wm gitlab auth login --from-glab --profile addshore
 ```
 
 Import validates and copies the saved token from glab configuration or its keyring. Environment tokens and OAuth sessions are not imported. The original glab credential is retained. Without a selected or default profile, existing GitLab operations retain upstream glab authentication. Once a profile is selected, it takes precedence over environment tokens and upstream credentials; a missing or locked profile never falls back to another account.
@@ -166,9 +166,9 @@ A wiki profile combines an identity, an authentication method, and one or more t
 Use `--profile REALM/NAME`, or a short name with `--realm` or an explicitly selected wiki. Login without a name uses the verified username in lowercase (spaces become hyphens); supply a name explicitly for identities that need another spelling. For Wikimedia, the bundled CentralAuth site list supplies the full farm scope without configuring individual domains. This is a built-in allowlist, not runtime discovery from arbitrary wiki responses.
 
 ```sh
-mw wiki auth login --realm wikimedia --profile addshore --provider keyring
-mw wiki auth status --profile wikimedia/addshore
-mw wiki page list --wiki commons.wikimedia.org --limit 5
+wm wiki auth login --realm wikimedia --profile addshore --provider keyring
+wm wiki auth status --profile wikimedia/addshore
+wm wiki page list --wiki commons.wikimedia.org --limit 5
 ```
 
 OAuth opens a browser for authorization and uses PKCE without an embedded client secret. In WSL, links open in the Windows browser using `wslview` or PowerShell. Use `--no-browser` to open the displayed URL yourself. Access and refresh tokens are stored together in the selected credential provider. Configuration stores the account identity, default wiki, public client settings and credential reference. Expired access tokens refresh automatically; unavailable credentials or a failed refresh stop the command. Authorization may eventually need renewing if it expires or is revoked.
@@ -177,7 +177,7 @@ The default is the public **a-wikimedia-cli** OAuth 2 client, `b54c7ed6be6d2dc96
 
 To skip the listener from the start, use manual mode:
 ```sh
-mw wiki auth login --realm wikimedia --profile addshore --provider keyring --manual --no-browser
+wm wiki auth login --realm wikimedia --profile addshore --provider keyring --manual --no-browser
 ```
 
 Open the printed authorization URL, approve the application, then paste the complete resulting localhost URL into the terminal. An error page at localhost is expected if another service owns the port. The CLI validates the callback and state before exchanging the code with its private PKCE verifier. Callback input is hidden on terminals, and a pasted URL must match the state and redirect of the current login. The waiting input reader is cancelled when the browser callback succeeds. Do not put callback URLs or tokens in command arguments or logs.
@@ -185,7 +185,7 @@ Open the printed authorization URL, approve the application, then paste the comp
 To test another public client, supply both its client ID and its exact registered callback, for example `--client-id CLIENT_ID --redirect-uri http://localhost:3000/auth/mediawiki/callback`. Refresh can be checked explicitly without displaying tokens:
 
 ```sh
-mw wiki auth status --profile wikimedia/addshore --refresh
+wm wiki auth status --profile wikimedia/addshore --refresh
 ```
 
 Status reports each stage: reading the saved credential, refreshing with
@@ -218,9 +218,9 @@ restricted token's effective permissions.
 The built-in `wikibase-world` realm uses the public a-wikimedia-cli 1.1 client `8546b3108b91bd9ec7292c0aab4bb158`, with the same `http://localhost:8765/auth/login` callback:
 
 ```sh
-mw wiki auth login --profile wikibase-world/addshore --scope basic,editpage
-mw wiki auth status --profile wikibase-world/addshore
-mw wiki auth status --profile wikibase-world/addshore --refresh
+wm wiki auth login --profile wikibase-world/addshore --scope basic,editpage
+wm wiki auth status --profile wikibase-world/addshore
+wm wiki auth status --profile wikibase-world/addshore --refresh
 ```
 
 `--wiki https://wikibase.world/w/api.php` also selects this realm and client automatically. Authorization, exchange and refresh use wikibase.world's own `/w/rest.php/oauth2/` endpoints. The preset trusts only its exact API endpoint and cannot include Wikimedia or other sites. Tokens are stored under `wiki.profiles.wikibase-world.<name>.token` using the configured secret provider; the public client ID is metadata, not part of the secret key. Wikimedia profiles and credentials remain separate. All clients use the same shared permission catalogue; explicit `--scope` values and `--all-scopes` also work.
@@ -232,23 +232,23 @@ Other MediaWiki sites can use a registered public client with explicit `--client
 For an arbitrary wiki, save its username/password using the same providers. Bot passwords such as `Addshore@cli` are also accepted. Supplying username/password options selects the password method unless `--method` was explicit:
 
 ```sh
-mw wiki auth login --wiki https://wikibase.world/w/api.php --username Addshore --password-stdin
+wm wiki auth login --wiki https://wikibase.world/w/api.php --username Addshore --password-stdin
 ```
 
 The realm is inferred from the endpoint (for example `wikibase-world`), and a new independent profile initially trusts only that endpoint. You can explicitly name the realm/profile:
 
 ```sh
-mw wiki auth login --realm wikimedia --profile addbot --method password --username 'Addbot@cli' --password-stdin --provider keyring
-mw wiki auth login --realm wikibase-world --profile addshore --wiki https://wikibase.world/w/api.php --method password --username 'Addshore@cli' --password-stdin --provider keyring
+wm wiki auth login --realm wikimedia --profile addbot --method password --username 'Addbot@cli' --password-stdin --provider keyring
+wm wiki auth login --realm wikibase-world --profile addshore --wiki https://wikibase.world/w/api.php --method password --username 'Addshore@cli' --password-stdin --provider keyring
 ```
 
 The first profile becomes the default. Later logins ask before switching the global default, with “no” selected initially; non-interactive logins preserve it. `--default` explicitly switches it, while `--default=false` avoids assigning either a global or realm default. Each realm also remembers a default profile for commands that explicitly select a wiki in that farm. `auth default --profile REALM/NAME` selects both that realm's default and the global default. The global setting is `wiki.default_profile`, and per-realm settings are `wiki.realms.REALM.default_profile`.
 
 List profiles without unlocking a credential provider, select a default, or remove a local profile:
 ```sh
-mw wiki auth profiles
-mw wiki auth default --profile wikimedia/addbot
-mw wiki auth remove --profile wikimedia/addshore
+wm wiki auth profiles
+wm wiki auth default --profile wikimedia/addbot
+wm wiki auth remove --profile wikimedia/addshore
 ```
 
 Shell completion suggests saved `--profile` names, `--realm` names, and
@@ -256,7 +256,7 @@ Shell completion suggests saved `--profile` names, `--realm` names, and
 methods. Site suggestions use the bundled Wikimedia list and configured custom
 realms; selecting a realm or account restricts the suggested sites accordingly.
 Completion does not open credential stores or contact a wiki. For Bash, enable
-completion in the current terminal with `source <(mw completion bash)`.
+completion in the current terminal with `source <(wm completion bash)`.
 
 `auth remove` deletes the local profile and keyring credential or KeePassXC reference, clearing matching defaults. It does not revoke server-side OAuth authorization, change wiki passwords, or delete external KeePassXC entries. There is no wiki `auth logout` command.
 
@@ -265,13 +265,13 @@ Existing `wiki.accounts` and `default_account` settings migrate automatically to
 Use repeated `--site API_URL` options at login to authorize an explicit set of sites for a profile. The login's `--wiki` endpoint is included. On Wikimedia this restricts the profile to the specified Wikimedia sites; it never authorizes unrelated sites. Reauthorization with `--replace` preserves an existing site restriction unless you explicitly supply new `--site` values.
 
 ```sh
-mw wiki auth login --realm example-farm --profile personal --wiki https://one.example/w/api.php --site https://two.example/w/api.php --method password --username Example --password-stdin
+wm wiki auth login --realm example-farm --profile personal --wiki https://one.example/w/api.php --site https://two.example/w/api.php --method password --username Example --password-stdin
 ```
 
 Sites must actually accept the same credentials; adding an endpoint grants permission to use them there, it does not synchronize accounts. For a farm-wide shared scope, define the realm before login and omit `--site`:
 
 ```sh
-mw wiki realm add example-farm --endpoint https://one.example/w/api.php --endpoint https://two.example/w/api.php
+wm wiki realm add example-farm --endpoint https://one.example/w/api.php --endpoint https://two.example/w/api.php
 ```
 
 Credentials never cross realm boundaries based on matching usernames, similar hostnames, or redirects. On normal wiki commands, saved profiles cannot be combined with explicit `--username`, password flags, or `--anon`; omit the profile selection to use those one-off options. `--anon` bypasses saved accounts.
@@ -279,7 +279,7 @@ Credentials never cross realm boundaries based on matching usernames, similar ho
 Wiki credentials participate in provider transfers and plaintext migration. Their keys are `wiki.profiles.REALM.NAME.token` for the OAuth token bundle and `wiki.profiles.REALM.NAME.password` for wiki passwords. For example:
 
 ```sh
-mw config secrets transfer wiki.profiles.wikimedia.addshore.token --provider keepassxc
+wm config secrets transfer wiki.profiles.wikimedia.addshore.token --provider keepassxc
 ```
 
 ## Choosing storage
@@ -287,22 +287,22 @@ mw config secrets transfer wiki.profiles.wikimedia.addshore.token --provider kee
 Select or change the default for new credentials and plaintext migrations:
 
 ```sh
-mw config secrets provider keepassxc
-mw config secrets provider
+wm config secrets provider keepassxc
+wm config secrets provider
 ```
 
 Available defaults are `keyring`, `keepassxc` and `plaintext`. Existing credentials keep their saved provider. Override the default for an individual login, configuration write or migration:
 
 ```sh
-mw gerrit auth login --provider keyring
-mw config set gerrit.profiles.addshore.password --stdin --provider keyring
-mw config secrets migrate gerrit.profiles.addshore.password --provider keyring
+wm gerrit auth login --provider keyring
+wm config set gerrit.profiles.addshore.password --stdin --provider keyring
+wm config secrets migrate gerrit.profiles.addshore.password --provider keyring
 ```
 
 To change an already linked credential’s provider, transfer it explicitly:
 
 ```sh
-mw config secrets transfer gerrit.profiles.addshore.password --provider keyring
+wm config secrets transfer gerrit.profiles.addshore.password --provider keyring
 ```
 
 Transfer verifies and persists the destination before switching the reference, then removes the source if no current reference still uses it. KeePassXC requests GUI deletion approval. Use `--keep-source` to retain and track a backup copy; failed source cleanup keeps its record and leaves the verified destination active. A plaintext source is removed after verified secure storage unless `--keep-source` is set. Retained plaintext stays in config.json and is shown by `config secrets list`; it is not an external detached entry. It refuses to overwrite a different destination value. The default provider is unchanged. Pairing KeePassXC alone does not select it as the default. Discovery does not read credentials, unlock vaults or launch KeePassXC; selecting an unpaired KeePassXC installation starts its pairing flow.
@@ -318,9 +318,9 @@ KeePassXC GUI access suits an existing shared vault, including Windows KeePassXC
 Transfers remove unused source entries after destination verification by default. With `--keep-source`, or when cleanup fails, the original copy is retained. Retained transfers, KeePassXC relinking, and profile removal record the old provider's public identifiers in configuration; no credential values are stored in this record. List those retained entries with:
 
 ```sh
-mw config secrets detached
-mw config secrets detached --details
-mw config secrets detached --json
+wm config secrets detached
+wm config secrets detached --details
+wm config secrets detached --json
 ```
 
 Only entries not referenced by the current configuration are shown. Tracked entries are not checked for existence during listing. `--details` shows native target names or KeePassXC database and entry UUIDs, so they can also be located manually.
@@ -328,8 +328,8 @@ Only entries not referenced by the current configuration are shown. Tracked entr
 Use `--provider` to select a provider and discover older entries as well as its tracked copies:
 
 ```sh
-mw config secrets detached --provider windows-credential-manager --details
-mw config secrets detached --provider keepassxc --details
+wm config secrets detached --provider windows-credential-manager --details
+wm config secrets detached --provider keepassxc --details
 ```
 
 The Windows bridge restricts the native enumeration to `a-wikimedia-cli:` and the CLI's encoded `a-wikimedia-cli` secretstore namespace. Only metadata is returned across the WSL bridge. Known current profiles are matched to their older Windows slots where possible; others are marked unmapped. This scan does not modify the configuration or retrieve secret values into the Linux CLI.
@@ -337,10 +337,10 @@ The Windows bridge restricts the native enumeration to `a-wikimedia-cli:` and th
 Review the list, then explicitly select one ID to delete:
 
 ```sh
-mw config secrets cleanup ID --yes
+wm config secrets cleanup ID --yes
 # Provider selection also rediscovers untracked entries when needed:
-mw config secrets cleanup ID --provider windows-credential-manager --yes
-mw config secrets cleanup ID --provider keepassxc --yes
+wm config secrets cleanup ID --provider windows-credential-manager --yes
+wm config secrets cleanup ID --provider keepassxc --yes
 ```
 
 The ID may be the 12-character value shown in the table or its full value from details/JSON. Cleanup rechecks current references under the credential mutation lock and refuses linked or ambiguous entries. Native deletion is verified before forgetting the retained record. KeePassXC verifies the database and UUID (and username when known), asks for GUI confirmation, and recycles the selected entry. Denial or failure keeps the retained record. No server-side token is revoked. Other configurations and applications may still use an unlinked entry; the scope is this configuration only.
@@ -354,9 +354,9 @@ Native credentials use the `a-wikimedia-cli` namespace. For example, Gerrit uses
 `keyring` uses the platform running the CLI: Linux Secret Service (also in WSL), macOS Keychain, or Windows Credential Manager. `windows-credential-manager` explicitly uses Windows storage, either natively or through Windows PowerShell launched from WSL. These providers never silently fall back to each other. Native storage follows the OS access rules; Windows generic credentials and Linux Secret Service do not provide KeePassXC-style per-entry application approvals.
 
 ```sh
-mw config secrets status
-mw config secrets status keyring
-mw config secrets status keyring --check
+wm config secrets status
+wm config secrets status keyring
+wm config secrets status keyring --check
 ```
 
 Status reports availability without unlocking or retrieving saved credentials. `--check` explicitly writes, reads back, and deletes a uniquely named temporary test item; unlock your Linux keyring in the desktop password manager if prompted. If the default persistent collection is absent, create a default/login keyring using Passwords and Keys (Seahorse) or your desktop's password manager. A WSL Secret Service is independent of the Windows desktop.
@@ -373,7 +373,7 @@ read -r -s -p 'Linux keyring password: ' mwcli_keyring_password
 printf '\n'
 printf '%s' "$mwcli_keyring_password" | gnome-keyring-daemon --unlock
 unset mwcli_keyring_password
-./bin/mw config secrets status keyring --check
+./bin/wm config secrets status keyring --check
 ```
 
 The clean Bash shell prevents startup scripts from restoring stale session variables. This is a temporary D-Bus session, not a permanent WSL desktop-service setup. For persistent user-session infrastructure, see [Microsoft's WSL systemd setup](https://learn.microsoft.com/en-us/windows/wsl/systemd); GNOME Keyring still needs to be installed and unlocked. Stored credentials remain encrypted on disk, but accessing them later requires a running Secret Service and unlocking the same keyring.
@@ -381,10 +381,10 @@ The clean Bash shell prevents startup scripts from restoring stale session varia
 For Windows storage from WSL, the CLI automatically launches the system `powershell.exe` with an embedded bridge script. No Windows CLI installation or additional PowerShell module is required. WSL interoperability must be enabled and Windows PowerShell must be available. Native Windows builds access Credential Manager directly.
 
 ```sh
-mw config secrets status windows-credential-manager
-mw config secrets status windows-credential-manager --check
-mw config secrets transfer gerrit.profiles.addshore.password --provider windows-credential-manager
-mw config secrets list gerrit.profiles.addshore.password --check --verify --details
+wm config secrets status windows-credential-manager
+wm config secrets status windows-credential-manager --check
+wm config secrets transfer gerrit.profiles.addshore.password --provider windows-credential-manager
+wm config secrets list gerrit.profiles.addshore.password --check --verify --details
 ```
 
 The bridge uses bounded JSON over stdin/stdout, with secret bytes encoded in the pipe payload and no secrets in command arguments, logs, or temporary files. It accepts explicit Get/Set/Delete operations on CLI-owned service namespaces and a metadata-list operation restricted to CLI-owned target prefixes. Windows may supply credential blobs internally with enumeration; the bridge discards them and returns only names and account identifiers. These restrictions describe the bridge protocol; Windows Credential Manager itself follows the current user's logon-session permissions. PowerShell runs without loading user profiles or prompting. Credential requests are data passed through stdin, never executed as PowerShell code. Windows PowerShell policy and logon-session permissions still apply.
@@ -398,16 +398,16 @@ Windows generic credentials are limited to 2,560 bytes, including UTF-8 encoding
 Enable Browser Integration in KeePassXC and unlock the intended database. Pair the CLI, select it as the default, then preview and migrate existing plaintext credentials. Approve requests in KeePassXC:
 
 ```sh
-mw config secrets keepassxc connect
-mw config secrets provider keepassxc
-mw config secrets migrate --dry-run
-mw config secrets migrate
+wm config secrets keepassxc connect
+wm config secrets provider keepassxc
+wm config secrets migrate --dry-run
+wm config secrets migrate
 ```
 
 For Windows KeePassXC from WSL, put its installation directory on PATH or select its proxy once:
 
 ```sh
-mw config secrets keepassxc connect --proxy '/mnt/c/Program Files/KeePassXC/keepassxc-proxy.exe'
+wm config secrets keepassxc connect --proxy '/mnt/c/Program Files/KeePassXC/keepassxc-proxy.exe'
 ```
 
 KeePassXC handles database unlocking and entry approvals. Select the paired database before running a command. Credential operations request its unlock dialog and wait up to two minutes, bounded by the caller's deadline. Enable the Browser Integration setting allowing database unlock requests; otherwise unlock the database manually while the command waits. Timeout, denied access, a wrong database, or revoked pairing stops the operation. Credentials never fall back to plaintext or direct file access. KeePassXC may show entry-access dialogs according to its permissions settings.
@@ -418,13 +418,13 @@ New credentials are created directly in the `a-wikimedia-cli` group. A credentia
 
 Existing linked entries retain their UUID and location, including older nested groups. You can move them into the flat group and rename them manually without re-linking. Conflicting unlinked entries are never overwritten. Each write is read back and verified before plaintext is removed. A dry run opens no GUI dialogs. KeePassXC records creation and modification timestamps itself; its browser API does not expose custom notes.
 
-To link an entry you created yourself, use `mw config secrets use-keepassxc KEY --entry PATH`. Create it with the same username and password as the configured CLI account. `use-keepassxc KEY` reuses the entry path from an existing direct-access link; otherwise it uses `a-wikimedia-cli/KEY`. Use `--entry 'Wikimedia/Gerrit'` to select another path. The entry username must match the configured account. Linking verifies any retained plaintext before removing it, then pins the database ID and entry UUID so renaming the entry does not break access. Older direct-access links must be relinked with this command; their saved entry paths are reused.
+To link an entry you created yourself, use `wm config secrets use-keepassxc KEY --entry PATH`. Create it with the same username and password as the configured CLI account. `use-keepassxc KEY` reuses the entry path from an existing direct-access link; otherwise it uses `a-wikimedia-cli/KEY`. Use `--entry 'Wikimedia/Gerrit'` to select another path. The entry username must match the configured account. Linking verifies any retained plaintext before removing it, then pins the database ID and entry UUID so renaming the entry does not break access. Older direct-access links must be relinked with this command; their saved entry paths are reused.
 
 Pairing credentials are stored unencrypted in `secrets/keepassxc-pairing.json` beside `config.json`, separate from normal configuration output. On Linux and WSL, the directory is private (`0700`) and the file is `0600`; Windows relies on the user profile's ACLs. Treat the pairing file as a secret: it grants access through KeePassXC while the database is unlocked, subject to its entry permissions. It contains neither your master password nor saved API passwords. One database pairing is supported at a time.
 
 ```sh
-mw config secrets keepassxc status
-mw config secrets keepassxc disconnect
+wm config secrets keepassxc status
+wm config secrets keepassxc disconnect
 ```
 
 `status` shows the pairing location and public metadata without contacting the GUI. `disconnect` removes the local pairing; also revoke its stored key in KeePassXC under **Database Settings → Browser Integration**. `auth remove --profile NAME` forgets an individual profile and its entry reference while retaining the shared pairing.
@@ -434,20 +434,20 @@ mw config secrets keepassxc disconnect
 List profiles across all supported services in one place:
 
 ```sh
-mw config profiles
-mw config profiles --details
-mw config profiles --service wiki
-mw config profiles --json
+wm config profiles
+wm config profiles --details
+wm config profiles --service wiki
+wm config profiles --json
 ```
 
-The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `mw config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. External glab storage is managed separately.
+The summary shows service, profile, account, provider, and default status. Details add authentication methods, site scopes, and matching secret keys. `wm config profiles list` is also accepted. These commands read public metadata only and do not open credential providers or check authentication. External glab storage is managed separately.
 
-Use `mw phab auth profiles`, `mw wiki auth profiles`, `mw gerrit auth profiles`, or `mw cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS, Gerrit and Phabricator share the same profile commands and default-selection behavior.
+Use `wm phab auth profiles`, `wm wiki auth profiles`, `wm gerrit auth profiles`, or `wm cloudvps auth profiles` to inspect saved account metadata without retrieving secrets or checking authentication. `auth list` remains an alias. Cloud VPS, Gerrit and Phabricator share the same profile commands and default-selection behavior.
 
 To rotate a Cloud VPS application credential while keeping the same profile, run:
 
 ```sh
-mw cloudvps auth login --profile mwcli --id NEW_APPLICATION_CREDENTIAL_ID --secret-stdin --replace
+wm cloudvps auth login --profile mwcli --id NEW_APPLICATION_CREDENTIAL_ID --secret-stdin --replace
 ```
 
 The CLI checks that the replacement authenticates to the profile's existing
@@ -462,13 +462,13 @@ profile for a different project, and `config secrets transfer` to change provide
 Cloud VPS profiles each hold one application credential and its project. Login defaults the profile name to the project; use `--profile` to keep multiple credentials with different permissions for the same project:
 
 ```sh
-mw cloudvps auth login --project mwcli --profile mwcli-readonly
-mw cloudvps auth login --project mwcli --profile mwcli-admin
-mw cloudvps auth profiles
-mw cloudvps auth default --profile mwcli-readonly
-mw cloudvps auth status --profile mwcli-readonly
-mw cloudvps compute list --project mwcli --profile mwcli-readonly
-mw cloudvps auth remove --profile mwcli-admin
+wm cloudvps auth login --project mwcli --profile mwcli-readonly
+wm cloudvps auth login --project mwcli --profile mwcli-admin
+wm cloudvps auth profiles
+wm cloudvps auth default --profile mwcli-readonly
+wm cloudvps auth status --profile mwcli-readonly
+wm cloudvps compute list --project mwcli --profile mwcli-readonly
+wm cloudvps auth remove --profile mwcli-admin
 ```
 
 The first saved profile becomes the default. Later logins ask before switching the default in an interactive terminal; use `--default` to select it explicitly. Resource commands use an explicit `--profile`, otherwise a matching default or the project's only saved profile. Multiple profiles without a matching default require `--profile`. An explicit `--profile` supplies its project unless `--project` is also given. Otherwise the project comes from `--project`, `cloud_vps.default_project`, or the default profile. A project/profile mismatch fails before credentials are read. SSH configuration and project selection remain separate from credentials.

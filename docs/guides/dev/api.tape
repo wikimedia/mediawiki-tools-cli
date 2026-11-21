@@ -4,7 +4,7 @@ Output "_recordings/dev-api.mp4"
 Output "_recordings/dev-api.webm"
 Output "_recordings/dev-api.txt"
 
-Require mw
+Require wm
 
 Set Shell "bash"
 Set Theme "Dracula"
@@ -17,7 +17,7 @@ Set Framerate 15
 Set TypingSpeed 31ms
 
 Hide
-Type 'mw() { if [[ "$1" == api ]]; then shift; docker run --rm --network "$MWCLI_RECORD_NETWORK" -v "$MWCLI_RECORD_BIN:/mw:ro" --entrypoint /mw "$MWCLI_RECORD_IMAGE" --no-interaction api "$@"; else "$MWCLI_RECORD_BIN" --no-interaction "$@"; fi; }'
+Type 'wm() { if [[ "$1" == api ]]; then shift; docker run --rm --network "$MWCLI_RECORD_NETWORK" -v "$MWCLI_RECORD_BIN:/wm:ro" --entrypoint /wm "$MWCLI_RECORD_IMAGE" --no-interaction api "$@"; else "$MWCLI_RECORD_BIN" --no-interaction "$@"; fi; }'
 Enter
 Type 'export LOCAL_WIKI=http://mediawiki-web:8080'
 Enter
@@ -27,7 +27,7 @@ Show
 
 Type '# Read a page with the REST API'
 Enter
-Type 'mw api "$LOCAL_WIKI/w/rest.php/v1/page/Main_Page" --output jq --format "{title, latest: .latest.timestamp}"'
+Type 'wm api "$LOCAL_WIKI/w/rest.php/v1/page/Main_Page" --output jq --format "{title, latest: .latest.timestamp}"'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/
@@ -36,7 +36,7 @@ Ctrl+L
 
 Type '# Ask the Action API about this wiki'
 Enter
-Type 'mw api "$LOCAL_WIKI/w/api.php?action=query&meta=siteinfo&format=json&formatversion=2" --output jq --format ".query.general | {sitename, mainpage, dbtype, generator}"'
+Type 'wm api "$LOCAL_WIKI/w/api.php?action=query&meta=siteinfo&format=json&formatversion=2" --output jq --format ".query.general | {sitename, mainpage, dbtype, generator}"'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/

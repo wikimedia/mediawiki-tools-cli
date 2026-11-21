@@ -8,8 +8,8 @@ Each development context stores `PORT` in its own `.env` file. Show the saved
 value and the location of that file with:
 
 ```sh
-mw dev env get PORT
-mw dev env where
+wm dev env get PORT
+wm dev env where
 ```
 
 Destroying containers preserves this file. Recreating them reuses the saved port,
@@ -20,28 +20,28 @@ so the initial port prompt does not appear again.
 For an existing environment, choose an unused port and inspect the configuration:
 
 ```sh
-mw dev env set PORT 8088
-mw dev compose config
+wm dev env set PORT 8088
+wm dev compose config
 ```
 
 Recreate Traefik and the dashboard to apply their new port settings:
 
 ```sh
-mw dev compose up -- -d --force-recreate traefik dashboard
-mw dev dashboard --open
+wm dev compose up -- -d --force-recreate traefik dashboard
+wm dev dashboard --open
 ```
 
-The dashboard URL now uses port 8088. Until the containers are recreated, `mw dev dashboard` uses the port published by the running gateway.
+The dashboard URL now uses port 8088. Until the containers are recreated, `wm dev dashboard` uses the port published by the running gateway.
 
-Use the same `--context NAME` for each command when targeting another [context](contexts.md). To choose a port before initial setup, set it before `mw dev mediawiki create`.
+Use the same `--context NAME` for each command when targeting another [context](contexts.md). To choose a port before initial setup, set it before `wm dev mediawiki create`.
 
 ## Update tunnels and custom URLs
 
 Restart any running [tunnel](gateway.md) so it targets the new gateway port:
 
 ```sh
-mw dev tunnel stop
-mw dev tunnel start
+wm dev tunnel stop
+wm dev tunnel start
 ```
 
 A temporary public tunnel can receive a different URL after restarting. Update manually configured URLs or application settings that contain the previous port. Fresh browser tests use the internal MediaWiki service address and do not need a new `MW_SERVER` merely because the host port changed.

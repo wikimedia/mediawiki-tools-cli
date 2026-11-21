@@ -7,11 +7,11 @@ cd "$repo_root"
 
 context=${CONTEXT:-recording}
 spec=${SPEC:-tests/selenium/specs/recentchanges.js}
-GOFLAGS=-buildvcs=false make build BINARY_NAME=mw
-bin="$repo_root/bin/mw"
+GOFLAGS=-buildvcs=false make build BINARY_NAME=wm
+bin="$repo_root/bin/wm"
 code_dir=$("$bin" --no-interaction dev --context "$context" env get MEDIAWIKI_VOLUMES_CODE)
 if [[ ! -x $code_dir/node_modules/.bin/wdio ]]; then
-    echo "Fresh dependencies are missing; run 'mw dev --context $context mediawiki fresh npm ci' first." >&2
+    echo "Fresh dependencies are missing; run 'wm dev --context $context mediawiki fresh npm ci' first." >&2
     exit 1
 fi
 

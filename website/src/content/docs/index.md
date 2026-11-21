@@ -24,7 +24,7 @@ The manual covers command behaviour, examples and available options. Each page
 identifies the release or development checkout it describes.
 
 For project information and installation, visit [MediaWiki.org](https://www.mediawiki.org/wiki/Cli).
-For help with your installed version, run `mw --help` or add `--help` to any command.
+For help with your installed version, run `wm --help` or add `--help` to any command.
 
 See [releases and release notes](https://gitlab.wikimedia.org/repos/releng/cli/-/releases) for downloads and what changed.
 

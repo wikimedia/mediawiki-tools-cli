@@ -134,7 +134,8 @@ func newServiceUpCmdP(name *string, onCreateText string, opts *dockercompose.UpO
 				return err
 			}
 			if len(onCreateText) > 0 {
-				fmt.Print(cli.RenderMarkdown(onCreateText))
+				text := strings.ReplaceAll(onCreateText, "`wm dev ", "`"+cmd.Root().Name()+" dev ")
+				fmt.Print(cli.RenderMarkdown(text))
 			}
 			return DefaultForUser().MergeRunningResumeServices()
 		},

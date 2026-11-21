@@ -24,13 +24,13 @@ class CleanRecordingTextTest(unittest.TestCase):
                     self.assertNotIn('MWCLI_RECORD_', line, f'{tape}: {line}')
 
     def test_removes_harness_and_wrapped_setup_but_preserves_output(self):
-        text = ('> mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }\n'
+        text = ('> wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }\n'
                 'wrapped setup\n> export CONTEXT="$MWCLI_RECORD_CONTEXT"\n'
                 'clear\n──────────\n'
-                '> mw dev --context "$MWCLI_RECORD_CONTEXT" stop\n'
+                '> wm dev --context "$MWCLI_RECORD_CONTEXT" stop\n'
                 'Container mysql Stopped\n')
         self.assertEqual(module.clean_text(text),
-                         '──────────\n> mw dev stop\nContainer mysql Stopped\n')
+                         '──────────\n> wm dev stop\nContainer mysql Stopped\n')
 
     def test_preserves_real_contexts_credentials_and_shell_examples(self):
         text = ('> mw dev --context staging mysql cli -- --password=custom\n'

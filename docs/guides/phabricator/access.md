@@ -8,8 +8,8 @@ anonymously. Writes, paste reads, and raw API calls need credentials. See
 [Phabricator login](../authentication.md#phabricator-login-and-account-profiles).
 
 ```sh
-mw phab task view T440478
-mw phab task list --project a_wikimedia_cli --column Backlog
+wm phab task view T440478
+wm phab task list --project a_wikimedia_cli --column Backlog
 ```
 
 Repeat `--project` or use comma-separated values to match every project. Column
@@ -23,7 +23,7 @@ a default profile. This works with task list, task view, read, comments, and
 project view. For example:
 
 ```sh
-mw --public-only phab task list --project a_wikimedia_cli
+wm --public-only phab task list --project a_wikimedia_cli
 ```
 
 Set `access.public_only` to `true` to make public-only access the CLI default.
@@ -40,7 +40,7 @@ uses the selected profile to look up the task, project, and destination column
 without performing the move.
 
 ```sh
-mw phab task move T12345 Backlog --project a_wikimedia_cli --dry-run
+wm phab task move T12345 Backlog --project a_wikimedia_cli --dry-run
 ```
 
 Task creation, multi-field task edits, paste writes, and profile removal prompt

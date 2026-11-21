@@ -35,7 +35,7 @@ func HTTPUserAgent() string {
 const Description = "Explore Wikimedia data, work with services, and develop MediaWiki."
 
 // DefaultCommandName is used for generated documentation and unnamed invocations.
-const DefaultCommandName = "mw"
+const DefaultCommandName = "wm"
 
 // SkipConfigAnnotation marks commands that run without normal CLI startup.
 const SkipConfigAnnotation = "a-wikimedia-cli/skip-config"

@@ -20,7 +20,7 @@ var phabProfiles = authprofile.Manager{Service: "phabricator", Label: "Phabricat
 func newPhabricatorAuthCmd(site *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
-		Short: "Authenticate mw with Wikimedia Phabricator",
+		Short: "Authenticate with Wikimedia Phabricator",
 	}
 	profiles := authprofile.Commands{Label: "Phabricator", Selected: site, Backend: phabProfiles}
 	cmd.AddCommand(newPhabricatorAuthLoginCmd(site))

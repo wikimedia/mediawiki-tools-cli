@@ -13,8 +13,8 @@ PHPMyAdmin & Adminer are web interfaces for various database backends.
 You can easily run these as part of the development environment.
 
 ```
-mw dev phpmyadmin create
-mw dev adminer create
+wm dev phpmyadmin create
+wm dev adminer create
 ```
 
 ## MySQL Replication
@@ -22,7 +22,7 @@ mw dev adminer create
 You can choose to add a mysql replica at any time. Replication will be handled automatically (but may take some time to catch up if you have already performed lots of actions).
 
 ```
-mw dev mysql-replica create
+wm dev mysql-replica create
 ```
 
 ## Import and export SQL
@@ -34,8 +34,8 @@ See [MySQL dumps](mysql-dumps.md) for import and export commands, including term
 Use the bundled client or the [dump commands](mysql-dumps.md) without exposing a port. To connect a host database tool on port 3306:
 
 ```sh
-mw dev env set MYSQL_PORT_3306 3306
-mw dev mysql create --force-recreate
+wm dev env set MYSQL_PORT_3306 3306
+wm dev mysql create --force-recreate
 ```
 
 Choose an unused host port. The HTTP gateway's [PORT setting](ports.md) is separate.

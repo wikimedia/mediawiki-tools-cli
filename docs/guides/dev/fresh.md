@@ -5,39 +5,39 @@ Fresh runs Node.js and browser tools in a container, with your MediaWiki checkou
 ## Install dependencies and run a test
 
 ```sh
-mw dev mediawiki fresh npm ci
-mw dev mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
+wm dev mediawiki fresh npm ci
+wm dev mediawiki fresh npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
 ```
 
 For connection defaults, argument forwarding, and recording behavior, read
-`mw dev mediawiki fresh --help`. Override the development account when testing
+`wm dev mediawiki fresh --help`. Override the development account when testing
 another user, as shown below.
 
 To inspect the container or override an environment variable for one command:
 
 ```sh
-mw dev mediawiki fresh bash
-mw dev mediawiki fresh MEDIAWIKI_USER=OtherAdmin npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
+wm dev mediawiki fresh bash
+wm dev mediawiki fresh MEDIAWIKI_USER=OtherAdmin npm run selenium-test -- -- --spec tests/selenium/specs/recentchanges.js
 ```
 
 ## Record a Selenium video
 
-With a checkout that supports `wdio-mediawiki` video recording, use the shortcut after installing dependencies with `mw dev mediawiki fresh npm ci`:
+With a checkout that supports `wdio-mediawiki` video recording, use the shortcut after installing dependencies with `wm dev mediawiki fresh npm ci`:
 
 ```sh
-mw dev mediawiki fresh record tests/selenium/specs/recentchanges.js
+wm dev mediawiki fresh record tests/selenium/specs/recentchanges.js
 ```
 
 Omit the spec to record the full Selenium suite, running one spec at a time:
 
 ```sh
-mw dev mediawiki fresh record
+wm dev mediawiki fresh record
 ```
 
 The explicit equivalent for a single spec is:
 
 ```sh
-mw dev mediawiki fresh npm run selenium-test -- -- --recordVideo --useBrowserHeadless=false --maxInstances=1 --spec tests/selenium/specs/recentchanges.js
+wm dev mediawiki fresh npm run selenium-test -- -- --recordVideo --useBrowserHeadless=false --maxInstances=1 --spec tests/selenium/specs/recentchanges.js
 ```
 
 The bundled browser image provides Xvfb and ffmpeg. The runner starts its virtual display and recorder automatically; no manual Xvfb session is needed. Recording needs a non-headless browser inside that virtual display, so keep `--useBrowserHeadless=false`.

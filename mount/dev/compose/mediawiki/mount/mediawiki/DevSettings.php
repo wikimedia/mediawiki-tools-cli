@@ -242,9 +242,10 @@ if(!isset($dockerDbType)){
 	$message .= "<h1>a Wikimedia CLI: Unable to find database</h1>" . PHP_EOL;
 	$message .= '<p>Could not find a running database for the database name: <pre>' . $dockerDb . '</pre></p>' . PHP_EOL;
 	$message .= '<p>Please ensure that the site is installed and the database service chosen is running.</p>' . PHP_EOL;
-	$message .= '<p>You can check running services with: <pre>mw dev docker-compose ps</pre></p>' . PHP_EOL;
-	$message .= '<p>You can check installed sites with: <pre>mw dev mediawiki sites</pre></p>' . PHP_EOL;
-	$message .= '<p>You can install a new site with: <pre>mw dev mediawiki install</pre></p>' . PHP_EOL;
+	$message .= '<p>You can check running services with: <pre>wm dev docker-compose ps</pre></p>' . PHP_EOL;
+	$message .= '<p>You can check installed sites with: <pre>wm dev mediawiki sites</pre></p>' . PHP_EOL;
+	$message .= '<p>You can install a new site with: <pre>wm dev mediawiki install</pre></p>' . PHP_EOL;
+	$message .= '<p>Use <code>mw</code> if that is your installed command.</p>' . PHP_EOL;
 	$message .= '</body></html>' . PHP_EOL;
 	die($message);
 }

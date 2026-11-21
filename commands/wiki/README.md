@@ -1,6 +1,6 @@
 # Wiki resources and explicit edits
 
-All commands reuse `mw wiki --wiki SITE --profile REALM/NAME`. `--anon` bypasses
+All commands reuse `wm wiki --wiki SITE --profile REALM/NAME`. `--anon` bypasses
 saved credentials and cookies while retaining site selection. Examples below
 use dry-run for writes; choose your own test wiki and entity IDs before applying.
 
@@ -10,17 +10,17 @@ Items and properties expose the same commands under `ext wikibase item` and
 `ext wikibase property`:
 
 ```sh
-mw wiki ext wikibase item statement list Q1 --property P31
-mw wiki ext wikibase item statement get Q1 STATEMENT_ID
-mw wiki ext wikibase item statement add Q1 P31 --datatype wikibase-item --value Q5 --dry-run
-mw wiki ext wikibase item statement update Q1 STATEMENT_ID P31 --datatype wikibase-item --value Q6 --dry-run
-mw wiki ext wikibase item statement remove Q1 STATEMENT_ID --dry-run
-mw wiki ext wikibase item statement qualifier list Q1 STATEMENT_ID
-mw wiki ext wikibase item statement qualifier add Q1 STATEMENT_ID P1 --datatype string --value Example --dry-run
-mw wiki ext wikibase item statement qualifier remove Q1 STATEMENT_ID QUALIFIER_HASH --dry-run
-mw wiki ext wikibase item statement reference list Q1 STATEMENT_ID
-mw wiki ext wikibase item statement reference add Q1 STATEMENT_ID --input reference.json --dry-run
-mw wiki ext wikibase item statement reference remove Q1 STATEMENT_ID REFERENCE_HASH --dry-run
+wm wiki ext wikibase item statement list Q1 --property P31
+wm wiki ext wikibase item statement get Q1 STATEMENT_ID
+wm wiki ext wikibase item statement add Q1 P31 --datatype wikibase-item --value Q5 --dry-run
+wm wiki ext wikibase item statement update Q1 STATEMENT_ID P31 --datatype wikibase-item --value Q6 --dry-run
+wm wiki ext wikibase item statement remove Q1 STATEMENT_ID --dry-run
+wm wiki ext wikibase item statement qualifier list Q1 STATEMENT_ID
+wm wiki ext wikibase item statement qualifier add Q1 STATEMENT_ID P1 --datatype string --value Example --dry-run
+wm wiki ext wikibase item statement qualifier remove Q1 STATEMENT_ID QUALIFIER_HASH --dry-run
+wm wiki ext wikibase item statement reference list Q1 STATEMENT_ID
+wm wiki ext wikibase item statement reference add Q1 STATEMENT_ID --input reference.json --dry-run
+wm wiki ext wikibase item statement reference remove Q1 STATEMENT_ID REFERENCE_HASH --dry-run
 ```
 
 Statement IDs and hashes are opaque values obtained from reads. Membership is
@@ -89,11 +89,11 @@ from exported input does not turn `add` into an update.
 ## Page comparisons and file reads
 
 ```sh
-mw wiki page diff Earth
-mw wiki page diff rev:123 rev:124
-mw wiki page diff title:123 title:Earth --output json
-mw wiki file info Example.jpg --extended
-mw wiki file usage Example.jpg --namespace 0 --limit 20 --output titles
+wm wiki page diff Earth
+wm wiki page diff rev:123 rev:124
+wm wiki page diff title:123 title:Earth --output json
+wm wiki file info Example.jpg --extended
+wm wiki file usage Example.jpg --namespace 0 --limit 20 --output titles
 ```
 
 A single diff selector compares the selected page/revision with its predecessor;
@@ -116,8 +116,8 @@ upload history.
 ## Explicit JSONL bulk edits
 
 ```sh
-mw wiki bulk apply --input edits.jsonl --dry-run
-mw wiki bulk apply --input edits.jsonl --stop-on-error
+wm wiki bulk apply --input edits.jsonl --dry-run
+wm wiki bulk apply --input edits.jsonl --stop-on-error
 ```
 
 Use `--input -` for stdin. Each nonblank line is one JSON object (maximum 8 MiB).
@@ -181,13 +181,13 @@ implementations, Python/JavaScript runners, or a separate `wb` executable.
 ## Sitelinks and statement ranks
 
 ```sh
-mw wiki ext wikibase item sitelink list Q42
-mw wiki ext wikibase item sitelink get Q42 enwiki
-mw wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --dry-run
-mw wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --badge Q17437796 --dry-run
-mw wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --clear-badges --dry-run
-mw wiki ext wikibase item sitelink remove Q42 enwiki --dry-run
-mw wiki ext wikibase item statement update Q42 STATEMENT_ID --rank preferred --dry-run
+wm wiki ext wikibase item sitelink list Q42
+wm wiki ext wikibase item sitelink get Q42 enwiki
+wm wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --dry-run
+wm wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --badge Q17437796 --dry-run
+wm wiki ext wikibase item sitelink set Q42 enwiki 'Douglas Adams' --clear-badges --dry-run
+wm wiki ext wikibase item sitelink remove Q42 enwiki --dry-run
+wm wiki ext wikibase item statement update Q42 STATEMENT_ID --rank preferred --dry-run
 ```
 
 Sitelinks belong to items. `set` preserves badges unless repeated `--badge` replaces
@@ -203,9 +203,9 @@ is unchanged.
 ## Composable page selections
 
 ```sh
-mw wiki page list --select category:Physics --select search:gravity --combine intersection --depth 1 --namespace 0 --limit 20
-mw wiki page list --select backlinks:Earth --select transclusions:Template:Planet --combine union
-mw wiki page list --select titles:pages.txt --select search:planet --combine intersection
+wm wiki page list --select category:Physics --select search:gravity --combine intersection --depth 1 --namespace 0 --limit 20
+wm wiki page list --select backlinks:Earth --select transclusions:Template:Planet --combine union
+wm wiki page list --select titles:pages.txt --select search:planet --combine intersection
 ```
 
 `--select SOURCE:VALUE` is repeatable; supported sources are `search`, `category`,

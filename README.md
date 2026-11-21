@@ -1,6 +1,6 @@
 # a Wikimedia CLI
 
-Explore Wikimedia data, work with services, and develop MediaWiki from your terminal. The default command is `mw`.
+Explore Wikimedia data, work with services, and develop MediaWiki from your terminal. The default command is `wm`.
 
 ## Key Features
 
@@ -8,7 +8,7 @@ Explore Wikimedia data, work with services, and develop MediaWiki from your term
 - **Wikis:** Read and edit pages on MediaWiki wikis.
 - **Cloud VPS:** Find instances, connect over SSH, and manage compute and storage.
 - **Code and collaboration:** Work with GitLab and Gerrit, and search Wikimedia code.
-- **Development environments:** Run MediaWiki and supporting services with `mw dev` and Docker Compose, on your machine or a remote host.
+- **Development environments:** Run MediaWiki and supporting services with `wm dev` and Docker Compose, on your machine or a remote host.
 - **Updates:** Update the CLI from releases or CI builds.
 
 ## Getting Started
@@ -19,20 +19,20 @@ Read the [guides in this repository](docs/index.md), or visit the [published doc
 
 ### Analytics and REST APIs
 
-`mw analytics` queries the [Wikimedia Analytics API](https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/) for pageviews, edits, editors, new pages, unique devices, and media requests. Omit the article from `pageviews` or `edits` for project totals. Rankings support `--date YYYYMMDD`, `--month YYYYMM`, and `--limit`; `--offset` skips leading results before applying the limit. Without a date, they find the latest available day within the past week. Tables are the default in a terminal; pipes receive JSON. Use `--output json|table|jq|csv|graph` to choose explicitly. Graphs show time series as lines and rankings as horizontal bars; `--graph-width` overrides the detected terminal width. Page names in ranking tables and graphs are clickable in terminals that support hyperlinks.
+`wm analytics` queries the [Wikimedia Analytics API](https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/) for pageviews, edits, editors, new pages, unique devices, and media requests. Omit the article from `pageviews` or `edits` for project totals. Rankings support `--date YYYYMMDD`, `--month YYYYMM`, and `--limit`; `--offset` skips leading results before applying the limit. Without a date, they find the latest available day within the past week. Tables are the default in a terminal; pipes receive JSON. Use `--output json|table|jq|csv|graph` to choose explicitly. Graphs show time series as lines and rankings as horizontal bars; `--graph-width` overrides the detected terminal width. Page names in ranking tables and graphs are clickable in terminals that support hyperlinks.
 
 ```sh
-mw analytics pageviews 'Albert Einstein' --agent user --output graph
-mw analytics top-pages --project en.wikipedia.org --date 20250101 --offset 1 --limit 10 --output graph
-mw analytics mediarequests top --month 202501
-mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output jq --format '.items[0].articles[:5]'
+wm analytics pageviews 'Albert Einstein' --agent user --output graph
+wm analytics top-pages --project en.wikipedia.org --date 20250101 --offset 1 --limit 10 --output graph
+wm analytics mediarequests top --month 202501
+wm api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output jq --format '.items[0].articles[:5]'
 ```
 
-`mw api` accepts REST endpoints relative to `https://wikimedia.org/api/rest_v1/`, an alternative `--base-url`, or an absolute URL. Use `--method` (`-X`), repeatable `--header` (`-H`) and `--field` (`-f`) flags, or `--input FILE` (`-` for stdin). Fields become a JSON POST body by default, or query parameters with `--method GET`. `--include` prints response headers; `--raw` preserves the response body.
+`wm api` accepts REST endpoints relative to `https://wikimedia.org/api/rest_v1/`, an alternative `--base-url`, or an absolute URL. Use `--method` (`-X`), repeatable `--header` (`-H`) and `--field` (`-f`) flags, or `--input FILE` (`-` for stdin). Fields become a JSON POST body by default, or query parameters with `--method GET`. `--include` prints response headers; `--raw` preserves the response body.
 
-`mw grafana` reads public Wikimedia Grafana dashboards, runs PromQL queries, and sends read requests to the Grafana API. See the [Grafana guide](docs/guides/grafana.md).
+`wm grafana` reads public Wikimedia Grafana dashboards, runs PromQL queries, and sends read requests to the Grafana API. See the [Grafana guide](docs/guides/grafana.md).
 
-`mw quarry results 541 --format csv` downloads the latest public [Quarry](https://quarry.wmcloud.org/) query result to standard output. Use `mw quarry results --run 1534` to download a specific run as JSON.
+`wm quarry results 541 --format csv` downloads the latest public [Quarry](https://quarry.wmcloud.org/) query result to standard output. Use `wm quarry results --run 1534` to download a specific run as JSON.
 
 ### Installation
 
@@ -47,7 +47,7 @@ To contribute, see:
 
 ### Executable names
 
-`mw` remains the default. The same executable can be renamed or symlinked as `wm` (or another name); help, examples, and generated shell completion follow its invocation name. Both names use the existing `mwcli` configuration and credentials. Build another name with `make BINARY_NAME=wm build`, then run `./bin/wm`.
+`make build` produces `bin/wm`. Existing `mw` installations can update in place and keep using `mw`. Both names use the same configuration and credentials. Help and shell completion follow the invoked name. See the [installation guide](docs/guides/installation.md#command-names-and-configuration) for using both names.
 
 ### Using a development build
 
@@ -55,7 +55,7 @@ The checkout can live anywhere. In Bash, build the CLI and select it for the cur
 
 ```sh
 eval "$(make -s dev)"
-command -v mw
+command -v wm
 ```
 
 From another directory, replace `/path/to/cli` with your checkout location:
@@ -67,12 +67,12 @@ eval "$(make -s -C "/path/to/cli" dev)"
 For convenience, add an alias to your Bash configuration, using your checkout's absolute path:
 
 ```sh
-alias mw-dev='eval "$(make -s -C "/path/to/cli" dev)"'
+alias wm-dev='eval "$(make -s -C "/path/to/cli" dev)"'
 ```
 
-Run `mw-dev` to build and activate it. Repeating activation avoids duplicate PATH entries. This affects only the current shell; rerun after changing code or branches. You can also use `make build` and run `./bin/mw` directly.
+Run `wm-dev` to build and activate it. Repeating activation avoids duplicate PATH entries. This affects only the current shell; rerun after changing code or branches. You can also use `make build` and run `./bin/wm` directly.
 
-Existing Bash completion follows the selected binary. To load it explicitly, run `source <(mw completion bash)`.
+Existing Bash completion follows the selected binary. To load it explicitly, run `source <(wm completion bash)`.
 
 ## Support
 

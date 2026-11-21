@@ -110,6 +110,16 @@ func TestGuideMarkdown(t *testing.T) {
 	if strings.Contains(got, "Imported metadata") {
 		t.Fatal("metadata retained")
 	}
+	if got := guideMarkdown("wm dev --help", guide, manifest, "mw"); got != "mw dev --help" {
+		t.Fatalf("guide commands should follow the invoked name, got %q", got)
+	}
+	if got := guideMarkdown(`"command": "wm"`, guide, manifest, "mw"); got != `"command": "mw"` {
+		t.Fatalf("guide MCP configuration should follow the invoked name, got %q", got)
+	}
+	installation := docs.Guide{Source: "guides/installation.md"}
+	if got := guideMarkdown(`install -m 0755 wm "$HOME/.local/bin/wm"`, installation, manifest, "mw"); !strings.Contains(got, `0755 wm `) {
+		t.Fatalf("guide installation filename should stay wm, got %q", got)
+	}
 	if got := guideURL(manifest, guide); got != "https://a-wikimedia-cli.toolforge.org/guides/dev/setup/" {
 		t.Fatal(got)
 	}

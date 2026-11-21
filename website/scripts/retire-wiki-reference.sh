@@ -3,7 +3,7 @@ set -euo pipefail
 
 repository=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 plan=$repository/_docs/reference-retirement.json
-mw=${MW_BIN:-$repository/bin/mw}
+binary=${MW_BIN:-$repository/bin/wm}
 profile=
 title=
 all=false
@@ -14,7 +14,7 @@ usage() {
 Usage: bash website/scripts/retire-wiki-reference.sh (--title TITLE | --all) [options]
 
 Preview a reviewed retirement plan, or delete its mapped mediawiki.org reference
-pages using mw wiki page delete and each entry's deletionReason.
+pages using wm wiki page delete and each entry's deletionReason.
 
   --title TITLE     Select exactly one page from the plan
   --all             Select all mapped reference pages (unmapped entries are skipped)
@@ -49,8 +49,8 @@ if [[ $apply == true && -z $profile ]]; then
     exit 1
 fi
 command -v jq >/dev/null || { echo 'jq is required.' >&2; exit 1; }
-if [[ $apply == true ]] && ! command -v "$mw" >/dev/null; then
-    echo "CLI executable not found: $mw; run make build first." >&2
+if [[ $apply == true ]] && ! command -v "$binary" >/dev/null; then
+    echo "CLI executable not found: $binary; run make build first." >&2
     exit 1
 fi
 # Materialize and validate the selection before running any destructive command.
@@ -81,7 +81,7 @@ count=0
 while IFS= read -r entry; do
     page=$(jq -r '.title' <<< "$entry")
     reason=$(jq -r '.deletionReason' <<< "$entry")
-    command=("$mw" --no-interaction wiki page delete --wiki https://www.mediawiki.org/w/api.php --title "$page" --reason "$reason")
+    command=("$binary" --no-interaction wiki page delete --wiki https://www.mediawiki.org/w/api.php --title "$page" --reason "$reason")
     if [[ -n $profile ]]; then command+=(--profile "$profile"); fi
     printf '$ '; printf '%q ' "${command[@]}"; printf '\n'
     if [[ $apply == true ]]; then

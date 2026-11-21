@@ -17,7 +17,7 @@ make manual
 
 The site lives in `website/`. Commands are generated from Cobra help under
 `/manual`; Markdown guides from this directory appear under `/guides` and are
-also bundled for offline reading with `mw help guides`. `--web` opens the same
+also bundled for offline reading with `wm help guides`. `--web` opens the same
 guide on the documentation site.
 
 `make manual` writes the complete static site, search index and available media
@@ -47,7 +47,7 @@ From a clean checkout of the release tag, with Toolforge SSH access configured:
 make manual-install
 make manual-check
 make manual
-./bin/mw toolforge cp --tool a-wikimedia-cli website/dist/ public_html/
+./bin/wm toolforge cp --tool a-wikimedia-cli website/dist/ public_html/
 ```
 
 Check https://a-wikimedia-cli.toolforge.org/ after uploading. No restart is
@@ -56,13 +56,13 @@ needed for content updates; the copy retains stale remote files.
 First-time server setup only:
 
 ```sh
-./bin/mw toolforge shell --tool a-wikimedia-cli -- sh -s < website/scripts/setup-toolforge.sh
+./bin/wm toolforge shell --tool a-wikimedia-cli -- sh -s < website/scripts/setup-toolforge.sh
 ```
 
 To apply server configuration changes to an existing deployment:
 
 ```sh
-./bin/mw toolforge shell --tool a-wikimedia-cli -- sh -s -- restart < website/scripts/setup-toolforge.sh
+./bin/wm toolforge shell --tool a-wikimedia-cli -- sh -s -- restart < website/scripts/setup-toolforge.sh
 ```
 
 The script downloads Caddy and runs it in Toolforge's `trixie` image, with a
@@ -107,8 +107,8 @@ After reviewing the plan, preview and test one deletion using its planned reason
 
 ```sh
 make build
-bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put'
-bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/mw wiki page put' --profile wikimedia/addshore --apply
+bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/wm wiki page put'
+bash website/scripts/retire-wiki-reference.sh --title 'Cli/ref/wm wiki page put' --profile wikimedia/addshore --apply
 ```
 
 The script requires `jq`. The profile needs wiki deletion permission and, for OAuth, a grant allowing deletion. The script previews by default and stops at the first failed deletion. After checking the result, regenerate the plan to exclude deleted pages; use `--all` instead of `--title` for the reviewed batch. Unmapped entries are skipped.
@@ -163,7 +163,7 @@ CONTEXT=recording-clean ./docs/guides/dev/extension-workflow.record.sh
 CONTEXT=recording-setup-final ./docs/guides/dev/tunnel.record.sh
 ```
 
-The Fresh recording also requires `mw dev --context recording-setup mediawiki fresh npm ci` first. To record the initial setup flow, point it at a disposable MediaWiki checkout; the script creates a fresh context, installs the wiki and leaves its services running:
+The Fresh recording also requires `wm dev --context recording-setup mediawiki fresh npm ci` first. To record the initial setup flow, point it at a disposable MediaWiki checkout; the script creates a fresh context, installs the wiki and leaves its services running:
 
 ```sh
 MEDIAWIKI_CODE=/path/to/disposable-mediawiki CONTEXT=recording-setup \

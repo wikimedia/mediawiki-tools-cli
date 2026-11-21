@@ -5,8 +5,8 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$script_dir/../../.." && pwd)
 cd "$repo_root"
 
-GOFLAGS=-buildvcs=false make build BINARY_NAME=mw
-export MWCLI_RECORD_BIN="$repo_root/bin/mw"
+GOFLAGS=-buildvcs=false make build BINARY_NAME=wm
+export MWCLI_RECORD_BIN="$repo_root/bin/wm"
 export PATH="$repo_root/bin:$PATH"
 mkdir -p _recordings
 

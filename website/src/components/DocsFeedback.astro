@@ -118,7 +118,7 @@ const fallbackURL = taskURL(taskContent({ page, title, version: manualVersion, q
         try {
           await navigator.clipboard.writeText(command);
           fallback.hidden = true;
-          status.textContent = 'Command copied. Run it with a CLI version that includes mw phab create.';
+          status.textContent = 'Command copied. Run it with a CLI version that includes wm phab create.';
         } catch {
           fallback.hidden = false;
           const input = field('command') as HTMLTextAreaElement;

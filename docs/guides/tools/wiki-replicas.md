@@ -6,11 +6,11 @@ Run the MariaDB client on Toolforge over SSH, using your account's
 `~/replica.my.cnf`:
 
 ```sh
-mw toolforge replicas sql enwiki
-mw toolforge replicas sql enwiki --service web -- -e 'SELECT COUNT(*) FROM page'
-printf 'SELECT 1;\n' | mw toolforge replicas sql enwiki
-mw toolforge toolsdb sql s12345__mydb --tool mytool
-mw toolforge toolsdb sql s12345__mydb --tool mytool --read-only -- -e 'SELECT 1'
+wm toolforge replicas sql enwiki
+wm toolforge replicas sql enwiki --service web -- -e 'SELECT COUNT(*) FROM page'
+printf 'SELECT 1;\n' | wm toolforge replicas sql enwiki
+wm toolforge toolsdb sql s12345__mydb --tool mytool
+wm toolforge toolsdb sql s12345__mydb --tool mytool --read-only -- -e 'SELECT 1'
 ```
 
 Use `--tool` for a tool account's credentials. Client options go after `--`;
@@ -29,7 +29,7 @@ databases from a local SQL client. Run this command on your own computer, with
 OpenSSH installed and your Toolforge login configured in your SSH config:
 
 ```sh
-mw toolforge replicas tunnel enwiki dewiki commonswiki
+wm toolforge replicas tunnel enwiki dewiki commonswiki
 ```
 
 The command requests these forwards through `login.toolforge.org`:
@@ -41,7 +41,7 @@ The command requests these forwards through `login.toolforge.org`:
 | `commonswiki_p` | `127.0.0.1:4713` | `commonswiki.analytics.db.svc.wikimedia.cloud:3306` |
 
 SSH may ask you to verify the bastion's host key or unlock your SSH key, just as
-with `mw toolforge shell`. Keep the command running and press **Ctrl+C** to close
+with `wm toolforge shell`. Keep the command running and press **Ctrl+C** to close
 all its forwards. It starts one local foreground SSH process, with no remote
 shell, bastion daemon or automatic reconnection.
 
@@ -57,7 +57,7 @@ An occupied local port causes SSH to exit rather than silently leave a partial
 tunnel. Choose another starting port and retry:
 
 ```sh
-mw toolforge replicas tunnel enwiki dewiki --port 13306
+wm toolforge replicas tunnel enwiki dewiki --port 13306
 ```
 
 This maps `enwiki_p` to port 13306 and `dewiki_p` to 13307. Ports are consecutive
@@ -94,8 +94,8 @@ connection; this command never logs into MariaDB or manages SQL connections.
 To print only the username from your Toolforge account's `~/replica.my.cnf`:
 
 ```sh
-mw toolforge replicas username
-mw toolforge replicas username --tool mytool
+wm toolforge replicas username
+wm toolforge replicas username --tool mytool
 ```
 
 The helper extracts the `[client]` user on Toolforge using Python 3. Only the
@@ -108,7 +108,7 @@ Use the username directly in a local SQL client with shell command substitution:
 
 ```sh
 mariadb --host=127.0.0.1 --port=4711 --password enwiki_p \
-  --user="$(mw --no-interaction toolforge replicas username)"
+  --user="$(wm --no-interaction toolforge replicas username)"
 ```
 
 Keep the tunnel running in another terminal. For a tool account, add
@@ -119,7 +119,7 @@ Keep the tunnel running in another terminal. For a tool account, add
 To let a local SQL client connect without receiving your real replica password:
 
 ```sh
-mw toolforge replicas proxy enwiki
+wm toolforge replicas proxy enwiki
 ```
 
 The proxy retrieves the replica username and password over your existing
@@ -149,7 +149,7 @@ The default is **user `wmuser` with a new random password** each time the proxy
 starts. To accept the same credentials as the selected Toolforge replica account:
 
 ```sh
-mw toolforge replicas proxy enwiki --tool mytool --use-replica-credentials
+wm toolforge replicas proxy enwiki --tool mytool --use-replica-credentials
 ```
 
 `--user` and `--password` override either local value independently. Explicit
@@ -157,13 +157,13 @@ values take precedence over `--use-replica-credentials`:
 
 ```sh
 # Custom username; password stays random.
-mw toolforge replicas proxy enwiki --user mylocaluser
+wm toolforge replicas proxy enwiki --user mylocaluser
 
 # Keep the replica password, with a different local username.
-mw toolforge replicas proxy enwiki --tool mytool --use-replica-credentials --user wmuser
+wm toolforge replicas proxy enwiki --tool mytool --use-replica-credentials --user wmuser
 
 # Override both local values.
-mw toolforge replicas proxy enwiki --user mylocaluser --password 'example-password'
+wm toolforge replicas proxy enwiki --user mylocaluser --password 'example-password'
 ```
 
 These options affect only the login accepted by the local proxy. Upstream
@@ -177,10 +177,10 @@ Both commands use **`--port`, default 4711**:
 
 ```sh
 # One proxy listener on 127.0.0.1:13306.
-mw toolforge replicas proxy enwiki --port 13306
+wm toolforge replicas proxy enwiki --port 13306
 
 # Consecutive tunnel ports: enwiki on 13306, dewiki on 13307.
-mw toolforge replicas tunnel enwiki dewiki --port 13306
+wm toolforge replicas tunnel enwiki dewiki --port 13306
 ```
 
 ### Connection lifetime
@@ -225,8 +225,8 @@ for the latency-sensitive queries described in
 [Wikitech's naming conventions](https://wikitech.wikimedia.org/wiki/Help:Wiki_Replicas#Naming_conventions):
 
 ```sh
-mw toolforge replicas tunnel enwiki --service web
-mw toolforge replicas tunnel enwiki dewiki --port 13306 --dry-run
+wm toolforge replicas tunnel enwiki --service web
+wm toolforge replicas tunnel enwiki dewiki --port 13306 --dry-run
 ```
 
 `--dry-run` prints mappings and the equivalent SSH command without opening a
@@ -246,7 +246,7 @@ ToolsDB uses a shared server and full database names such as `s12345__mydb`.
 List the selected account's visible databases before choosing one:
 
 ```sh
-mw toolforge toolsdb list --tool mytool
+wm toolforge toolsdb list --tool mytool
 ```
 
 The list command briefly connects to ToolsDB using the account's credentials
@@ -255,9 +255,9 @@ It produces no output when there are no matches. Use `--read-only` to query
 the read-only replica, which can lag behind the primary. Then use a full name:
 
 ```sh
-mw toolforge toolsdb tunnel s12345__mydb
+wm toolforge toolsdb tunnel s12345__mydb
 # Or use the experimental local authentication proxy:
-mw toolforge toolsdb proxy s12345__mydb --tool mytool
+wm toolforge toolsdb proxy s12345__mydb --tool mytool
 ```
 
 Connect your SQL client to `127.0.0.1:4711` and select `s12345__mydb`.

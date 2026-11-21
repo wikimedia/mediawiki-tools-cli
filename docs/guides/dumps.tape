@@ -4,7 +4,7 @@ Output "_recordings/dumps.mp4"
 Output "_recordings/dumps.webm"
 Output "_recordings/dumps.txt"
 
-Require mw
+Require wm
 Require grep
 Set Shell "bash"
 Set Theme "Dracula"
@@ -24,12 +24,12 @@ Show
 
 Type '# Find a smaller Wikidata dump'
 Enter
-Type 'mw dumps datasets'
+Type 'wm dumps datasets'
 Enter
 Sleep 250ms
 Wait+Line@15s /^> ?$/
 Sleep 3s
-Type "mw dumps list sql/wikidatawiki/20261101 | grep -E 'Path|iwlinks.sql.gz '"
+Type "wm dumps list sql/wikidatawiki/20261101 | grep -E 'Path|iwlinks.sql.gz '"
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/
@@ -41,7 +41,7 @@ Ctrl+L
 
 Type '# Compare the same file on Wikimedia and Umea (up to 32 MiB / 10s each)'
 Enter
-Type 'mw dumps mirrors test "$dump" wikimedia umu --yes'
+Type 'wm dumps mirrors test "$dump" wikimedia umu --yes'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/
@@ -50,7 +50,7 @@ Ctrl+L
 
 Type '# Download the 21 MiB SQL dump, then interrupt it'
 Enter
-Type 'mw dumps download "$dump" --file wikidata-iwlinks.sql.gz'
+Type 'wm dumps download "$dump" --file wikidata-iwlinks.sql.gz'
 Enter
 Wait+Screen@45s /\/ 22447993 bytes/
 Sleep 700ms
@@ -67,7 +67,7 @@ Show
 
 Type '# Resume from the saved partial file instead of starting again'
 Enter
-Type 'mw dumps download "$dump" --file wikidata-iwlinks.sql.gz --resume'
+Type 'wm dumps download "$dump" --file wikidata-iwlinks.sql.gz --resume'
 Enter
 Sleep 250ms
 Wait+Line@90s /^> ?$/

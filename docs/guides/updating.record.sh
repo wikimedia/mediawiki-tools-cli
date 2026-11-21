@@ -8,8 +8,8 @@ cd "$repo_root"
 demo_dir=${MWCLI_UPDATE_DEMO_DIR:-/tmp/mwcli-update-demo}
 mkdir -p "$demo_dir"
 GOCACHE=${GOCACHE:-/tmp/mwcli-recording-gocache} GOFLAGS=-buildvcs=false \
-  go build -ldflags '-X main.Version=0.32.0' -o "$demo_dir/mw" .
-export MWCLI_RECORD_BIN="$demo_dir/mw"
+  go build -ldflags '-X main.Version=0.32.0' -o "$demo_dir/wm" .
+export MWCLI_RECORD_BIN="$demo_dir/wm"
 export PATH="$demo_dir:$PATH"
 mkdir -p _recordings
 

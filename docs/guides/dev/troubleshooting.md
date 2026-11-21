@@ -7,16 +7,16 @@
 Clear the saved code directory to let the setup wizard ask for it again:
 
 ```sh
-mw dev env delete MEDIAWIKI_VOLUMES_CODE
-mw dev mediawiki create
+wm dev env delete MEDIAWIKI_VOLUMES_CODE
+wm dev mediawiki create
 ```
 
-`mw dev env clear` clears all context variables instead. Use it only when you want to configure the entire context again. Neither command is a substitute for destroying service containers or volumes.
+`wm dev env clear` clears all context variables instead. Use it only when you want to configure the entire context again. Neither command is a substitute for destroying service containers or volumes.
 
 To keep another checkout as a separate environment, use a different context:
 
 ```sh
-mw dev --context another mediawiki create
+wm dev --context another mediawiki create
 ```
 
 ## Docker reports missing cgroup support

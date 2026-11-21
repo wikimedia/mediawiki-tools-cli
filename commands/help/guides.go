@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -129,5 +130,12 @@ func guideMarkdown(source string, guide docs.Guide, manifest docs.Manifest, exec
 		}
 		return token
 	})
-	return strings.ReplaceAll(result, "mw ", executable+" ")
+	if guide.Source == "guides/installation.md" {
+		return result
+	}
+	return strings.NewReplacer(
+		"wm ", executable+" ",
+		"mw ", executable+" ",
+		`"command": "wm"`, `"command": `+strconv.Quote(executable),
+	).Replace(result)
 }

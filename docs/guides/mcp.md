@@ -1,24 +1,24 @@
 # Use Wikimedia CLI tools over MCP
 
-`mw mcp` lets an MCP client read public Phabricator tasks, Gerrit changes,
-GitLab merge requests, and wiki pages. The client launches `mw` as a local
+`wm mcp` lets an MCP client read public Phabricator tasks, Gerrit changes,
+GitLab merge requests, and wiki pages. The client launches `wm` as a local
 stdio server. By default, it uses anonymous access even if you have saved
 profiles. Queries and identifiers go to the Wikimedia service you select.
 
 ## Connect a client
 
-Run the line for your client. Use the full path to `mw` if the client cannot
-find it on its PATH.
+Run the line for your client. Use the full path to `wm` if the client cannot
+find it on its PATH. If your installation is named `mw`, use `mw` in the same configuration.
 
 ```sh
 # GitHub Copilot CLI
-copilot mcp add wikimedia -- mw mcp
+copilot mcp add wikimedia -- wm mcp
 
 # Codex CLI
-codex mcp add wikimedia -- mw mcp
+codex mcp add wikimedia -- wm mcp
 
 # Claude Code
-claude mcp add --transport stdio wikimedia -- mw mcp
+claude mcp add --transport stdio wikimedia -- wm mcp
 ```
 
 For Copilot in VS Code, add the server to `~/.copilot/mcp-config.json`
@@ -29,7 +29,7 @@ For Copilot in VS Code, add the server to `~/.copilot/mcp-config.json`
   "mcpServers": {
     "wikimedia": {
       "type": "stdio",
-      "command": "mw",
+      "command": "wm",
       "args": ["mcp"]
     }
   }
@@ -60,13 +60,13 @@ Use `--services` in the client's launch command to select from `phab`, `gerrit`,
 `gitlab`, and `wiki`.
 
 ```sh
-mw mcp --services phab,gerrit
-mw mcp --services phab --deferred-services wiki
+wm mcp --services phab,gerrit
+wm mcp --services phab --deferred-services wiki
 ```
 
 With the second example, `mw_discover_tools` lists wiki tools and
 `mw_enable_service` enables them during the session. The client may need to
-refresh its tool list. `mw phab mcp` is a shortcut for a Phabricator-only server.
+refresh its tool list. `wm phab mcp` is a shortcut for a Phabricator-only server.
 
 ## Use a Phabricator account
 
@@ -75,7 +75,7 @@ for task search. Results can include summaries of restricted tasks visible to th
 account. Task details, comments, and project lookup stay anonymous.
 
 ```sh
-mw mcp --services phab --profile phab=work --public-only=false
+wm mcp --services phab --profile phab=work --public-only=false
 ```
 
 Add `--allow-paste` to expose account-visible paste reads. See

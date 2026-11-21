@@ -9,7 +9,7 @@
 If you need a MediaWiki checkout, run the code wizard first. It can fetch MediaWiki core and the Vector skin:
 
 ```sh
-mw dev mediawiki get-code
+wm dev mediawiki get-code
 ```
 
 If you already have core and Vector, skip the code wizard and select your checkout when prompted. For an existing `LocalSettings.php`, read the [configuration guide](configuration.md) before reusing it.
@@ -17,15 +17,15 @@ If you already have core and Vector, skip the code wizard and select your checko
 Start the MediaWiki containers:
 
 ```sh
-mw dev mediawiki create
+wm dev mediawiki create
 ```
 
 Start MySQL and install the wiki:
 
 ```sh
-mw dev mysql create
-mw dev mediawiki install --dbtype=mysql
-mw dev status
+wm dev mysql create
+wm dev mediawiki install --dbtype=mysql
+wm dev status
 ```
 
 Use the wiki credentials printed by the installer to sign into MediaWiki. They are separate from the gateway login.
@@ -37,20 +37,20 @@ Open the wiki link printed by the installer. You can also reach the default wiki
 Open the development dashboard to see installed wikis and running services:
 
 ```sh
-mw dev dashboard --open
+wm dev dashboard --open
 ```
 
-Run `mw dev dashboard` to copy the dashboard URL. See the [gateway guide](gateway.md) for service URLs and signing in over a tunnel.
+Run `wm dev dashboard` to copy the dashboard URL. See the [gateway guide](gateway.md) for service URLs and signing in over a tunnel.
 
 ## Add code and inspect services
 
 ```sh
-mw dev mediawiki get-code --extension VisualEditor
-mw dev mediawiki get-code --skin MinervaNeue
+wm dev mediawiki get-code --extension VisualEditor
+wm dev mediawiki get-code --skin MinervaNeue
 ```
 
 Fetching an extension or skin does not enable it. Configure it in your checkout's `LocalSettings.php` and run any required MediaWiki updates.
 
-Use `mw dev SERVICE --help` for service commands. See the existing [service interaction](services.md), [MediaWiki](mediawiki.md) and [database](databases.md) guides for more workflows.
+Use `wm dev SERVICE --help` for service commands. See the existing [service interaction](services.md), [MediaWiki](mediawiki.md) and [database](databases.md) guides for more workflows.
 
 Use [contexts](contexts.md) for separate environments, or [change the HTTP port](ports.md) of an existing environment.

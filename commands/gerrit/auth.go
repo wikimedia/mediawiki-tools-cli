@@ -8,7 +8,7 @@ import (
 func NewGerritAuthCmd(profile *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
-		Short: "Authenticate mw with Wikimedia Gerrit",
+		Short: "Authenticate with Wikimedia Gerrit",
 	}
 	profiles := authprofile.Commands{Label: "Gerrit", Selected: profile, Backend: gerritProfiles}
 	cmd.AddCommand(NewGerritAuthLoginCmd())

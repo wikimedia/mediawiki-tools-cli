@@ -6,12 +6,12 @@ repo_root=$(cd -- "$script_dir/../../.." && pwd)
 cd "$repo_root"
 
 context=${CONTEXT:-recording}
-GOFLAGS=-buildvcs=false make build BINARY_NAME=mw
+GOFLAGS=-buildvcs=false make build BINARY_NAME=wm
 export PATH="$repo_root/bin:$PATH"
-export MWCLI_RECORD_BIN="$repo_root/bin/mw"
+export MWCLI_RECORD_BIN="$repo_root/bin/wm"
 export MWCLI_RECORD_CONTEXT="$context"
 
-mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }
+wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }
 if ! docker ps --filter "label=com.docker.compose.project=mwcli-mwdd-$context" --filter status=running --format '{{.Names}}' | rg -q 'mysql-1$'; then
     echo "MySQL is not running in context '$context'. Start a local wiki and database first." >&2
     exit 1
@@ -25,8 +25,8 @@ if [[ -e $dump_file ]]; then
 fi
 cleanup() {
     rm -f "$dump_file"
-    mw dev --context "$context" compose exec -- -T mysql mariadb -uroot -ptoor -e 'DROP DATABASE IF EXISTS recording_restore' >/dev/null 2>&1 || true
-    mw dev --context "$context" compose exec -- -T mysql rm -f /tmp/mw-default.sql >/dev/null 2>&1 || true
+    wm dev --context "$context" compose exec -- -T mysql mariadb -uroot -ptoor -e 'DROP DATABASE IF EXISTS recording_restore' >/dev/null 2>&1 || true
+    wm dev --context "$context" compose exec -- -T mysql rm -f /tmp/mw-default.sql >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

@@ -1,4 +1,4 @@
-BINARY_NAME ?= mw
+BINARY_NAME ?= wm
 MISE ?= mise
 GOEXE := $(shell go env GOEXE)
 

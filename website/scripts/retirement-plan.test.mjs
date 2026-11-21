@@ -3,17 +3,17 @@ import test from 'node:test';
 import { referenceDestination, referenceTitles, retirementPlan } from './retirement-plan.mjs';
 
 const commands = [
-  { name: 'mw', title: 'mw', link: '/manual/' },
-  { name: 'dev', aliases: ['docker'], title: 'mw dev', link: '/manual/dev/', parent: '/manual/' },
-  { name: 'mysql', title: 'mw dev mysql', link: '/manual/dev/mysql/', parent: '/manual/dev/' },
-  { name: 'start', title: 'mw dev mysql start', link: '/manual/dev/mysql/start/', parent: '/manual/dev/mysql/' },
-  { name: 'tools', title: 'mw tools', link: '/manual/tools/', parent: '/manual/' },
-  { name: 'quip', title: 'mw tools quip', link: '/manual/tools/quip/', parent: '/manual/tools/' },
-  { name: 'toolforge', title: 'mw toolforge', link: '/manual/toolforge/', parent: '/manual/' },
-  { name: 'job', title: 'mw toolforge job', link: '/manual/toolforge/job/', parent: '/manual/toolforge/' },
-  { name: 'cloudvps', title: 'mw cloudvps', link: '/manual/cloudvps/', parent: '/manual/' },
-  { name: 'auth', title: 'mw cloudvps auth', link: '/manual/cloudvps/auth/', parent: '/manual/cloudvps/' },
-  { name: 'status', title: 'mw cloudvps auth status', link: '/manual/cloudvps/auth/status/', parent: '/manual/cloudvps/auth/' },
+  { name: 'wm', title: 'wm', link: '/manual/' },
+  { name: 'dev', aliases: ['docker'], title: 'wm dev', link: '/manual/dev/', parent: '/manual/' },
+  { name: 'mysql', title: 'wm dev mysql', link: '/manual/dev/mysql/', parent: '/manual/dev/' },
+  { name: 'start', title: 'wm dev mysql start', link: '/manual/dev/mysql/start/', parent: '/manual/dev/mysql/' },
+  { name: 'tools', title: 'wm tools', link: '/manual/tools/', parent: '/manual/' },
+  { name: 'quip', title: 'wm tools quip', link: '/manual/tools/quip/', parent: '/manual/tools/' },
+  { name: 'toolforge', title: 'wm toolforge', link: '/manual/toolforge/', parent: '/manual/' },
+  { name: 'job', title: 'wm toolforge job', link: '/manual/toolforge/job/', parent: '/manual/toolforge/' },
+  { name: 'cloudvps', title: 'wm cloudvps', link: '/manual/cloudvps/', parent: '/manual/' },
+  { name: 'auth', title: 'wm cloudvps auth', link: '/manual/cloudvps/auth/', parent: '/manual/cloudvps/' },
+  { name: 'status', title: 'wm cloudvps auth status', link: '/manual/cloudvps/auth/status/', parent: '/manual/cloudvps/auth/' },
 ];
 
 test('retirement destinations use current paths, aliases, known renames and ancestors', () => {

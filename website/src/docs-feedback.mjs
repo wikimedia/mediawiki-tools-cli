@@ -33,7 +33,7 @@ export function taskCommand(task, shell = 'posix') {
   if (shell === 'powershell') {
     const input = JSON.stringify({ ...task, projects: ['a_wikimedia_cli'] });
     // A temporary UTF-8 file avoids native argument quoting and leaves stdin free for confirmation.
-    return `& { $mwDocsTaskFile = [System.IO.Path]::GetTempFileName(); try { [System.IO.File]::WriteAllText($mwDocsTaskFile, ${shellQuote(input, shell)}, [System.Text.UTF8Encoding]::new($false)); mw phab create --input $mwDocsTaskFile } finally { Remove-Item -LiteralPath $mwDocsTaskFile } }`;
+    return `& { $mwDocsTaskFile = [System.IO.Path]::GetTempFileName(); try { [System.IO.File]::WriteAllText($mwDocsTaskFile, ${shellQuote(input, shell)}, [System.Text.UTF8Encoding]::new($false)); wm phab create --input $mwDocsTaskFile } finally { Remove-Item -LiteralPath $mwDocsTaskFile } }`;
   }
-  return `mw phab create --title ${shellQuote(task.title, shell)} --project a_wikimedia_cli --description ${shellQuote(task.description, shell)}`;
+  return `wm phab create --title ${shellQuote(task.title, shell)} --project a_wikimedia_cli --description ${shellQuote(task.description, shell)}`;
 }

@@ -25,10 +25,10 @@ wfLoadExtension( 'BoilerPlate' );
 $wgEnableParserCache = false;
 ```
 
-Download extensions and skins with `mw dev mediawiki get-code` before enabling them. Run any required schema updates afterward:
+Download extensions and skins with `wm dev mediawiki get-code` before enabling them. Run any required schema updates afterward:
 
 ```sh
-mw dev mediawiki mwscript update
+wm dev mediawiki mwscript update
 ```
 
 ## Reuse an existing checkout

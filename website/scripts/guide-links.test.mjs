@@ -15,6 +15,7 @@ test('guide links resolve from their original source, including index pages and 
     ['../gitlab/index.md#merge-requests', '/guides/gitlab/#merge-requests'],
     ['https://www.mediawiki.org/wiki/Cli/guide/First_Setup', '/guides/dev/setup/'],
     ['https://www.mediawiki.org/wiki/Cli/ref/mw_wiki_page_put#options', '/manual/wiki/page/put/#options'],
+    ['https://www.mediawiki.org/wiki/Cli/ref/wm_wiki_page_put#options', '/manual/wiki/page/put/#options'],
     ['https://www.mediawiki.org/wiki/Cli/ref', '/manual/'],
     ['https://a-wikimedia-cli.toolforge.org/manual/gitlab/#options', '/manual/gitlab/#options'],
     ['https://a-wikimedia-cli.toolforge.org/guides/installation/', '/guides/installation/'],

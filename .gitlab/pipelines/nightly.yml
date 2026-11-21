@@ -29,8 +29,7 @@ build-release:
   script:
     - git fetch --no-tags origin "$CI_DEFAULT_BRANCH"
     - git checkout --detach FETCH_HEAD
-    # Older clients only look for mw_nightly_*.
-    - bash tools/ci/release-build.sh VERSION=nightly BINARY_NAME=mw
+    - bash tools/ci/release-build.sh VERSION=nightly
   artifacts:
     expire_in: 2 days
     paths: [_release/]

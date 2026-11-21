@@ -21,7 +21,8 @@ export function referenceDestination(title, commands) {
   const raw = title.slice(referenceRoot.length).replace(/^\//, '').replaceAll('_', ' ').trim();
   if (raw.includes('/')) return { match: 'translation-or-subpage' };
   const words = raw ? raw.split(/\s+/) : [root.name];
-  if (![root.name, 'wm', ...(root.aliases ?? [])].includes(words.shift())) return { match: 'unrecognized-title' };
+  if (![root.name, 'mw', 'wm', ...(root.aliases ?? [])].includes(words.shift())) return { match: 'unrecognized-title' };
+  const commandTitle = [root.name, ...words].join(' ');
   let name = words.join(' ');
   let changed = false;
   for (const [before, after] of renamed) {
@@ -45,7 +46,7 @@ export function referenceDestination(title, commands) {
     remaining.shift();
   }
   return {
-    match: remaining.length ? 'ancestor' : changed ? 'renamed' : raw && raw !== current.title ? 'alias' : 'exact',
+    match: remaining.length ? 'ancestor' : changed ? 'renamed' : raw && commandTitle !== current.title ? 'alias' : 'exact',
     canonicalCommand: current.title, path: pageHref(current.link),
     ...(remaining.length ? { unmatched: remaining.join(' ') } : {}),
   };

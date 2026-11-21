@@ -46,8 +46,9 @@ export function rewriteGuideLink(raw, source, sources, wikiPages, siteURL) {
   if (wiki && !url.search) return wiki + url.hash;
   if (url.origin === 'https://www.mediawiki.org' && !url.search && url.pathname.startsWith('/wiki/Cli/ref')) {
     const command = url.pathname.slice('/wiki/Cli/ref'.length);
-    if (!command) return '/manual/' + url.hash;
-    if (command.startsWith('/mw_')) return `/manual/${command.slice('/mw_'.length).replaceAll('_', '/')}/${url.hash}`;
+    const legacy = /^\/(?:mw|wm)(?:_(.+))?$/.exec(command);
+    if (!command || (legacy && !legacy[1])) return '/manual/' + url.hash;
+    if (legacy) return `/manual/${legacy[1].replaceAll('_', '/')}/${url.hash}`;
   }
   return raw;
 }

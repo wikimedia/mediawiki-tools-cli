@@ -5,7 +5,7 @@
 You can get a shell as your current user in the main MediaWiki container easily:
 
 ```
-mw dev mediawiki exec bash
+wm dev mediawiki exec bash
 ```
 
 You can use the exec command to perform actions inside the MediaWiki container as a one off...
@@ -13,7 +13,7 @@ You can use the exec command to perform actions inside the MediaWiki container a
 Such as, watching logs
 
 ```
-mw dev mediawiki exec -- tail -f /var/log/mediawiki/debug.log
+wm dev mediawiki exec -- tail -f /var/log/mediawiki/debug.log
 ```
 
 ## Composer download failures
@@ -27,7 +27,7 @@ requests internally.
 Dependency conflicts, invalid configuration and script failures still stop the
 operation. A failed Composer update stops installation before the database stage.
 If network failures persist, check DNS and connectivity inside the MediaWiki
-container before rerunning the command. The explicit `mw dev mediawiki composer`
+container before rerunning the command. The explicit `wm dev mediawiki composer`
 command passes through to Composer without this additional retry policy.
 
 ## PHPUnit tests
@@ -35,13 +35,13 @@ command passes through to Composer without this additional retry policy.
 You can run PHPUnit tests in the MediaWiki container easily:
 
 ```
-mw dev mediawiki exec -- composer phpunit tests/phpunit/unit/includes/XmlTest.php
+wm dev mediawiki exec -- composer phpunit tests/phpunit/unit/includes/XmlTest.php
 ```
 
 You may still need to use the old phpunit.php test running for some PHPUnit tests!
 
 ```
-mw dev mediawiki exec -- php tests/phpunit/phpunit.php tests/phpunit/unit/includes/xml/XmlTest.php
+wm dev mediawiki exec -- php tests/phpunit/phpunit.php tests/phpunit/unit/includes/xml/XmlTest.php
 ```
 
 If you want to run tests with the debugger, see the XDebug section below.

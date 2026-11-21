@@ -6,27 +6,27 @@ and select the [development context](contexts.md) you want to update. Review or
 back up any development data you need before running schema changes.
 
 For update modes, skipped repositories, saved changes, and failure behavior,
-read `mw dev mediawiki update-code --help`.
+read `wm dev mediawiki update-code --help`.
 
 ## Preview and update the source
 
 Preview which checkouts are eligible without fetching or changing them:
 
 ```sh
-mw dev mediawiki update-code --dry-run
+wm dev mediawiki update-code --dry-run
 ```
 
 Check the reported branches and skipped repositories. Then fast-forward eligible
 clean checkouts:
 
 ```sh
-mw dev mediawiki update-code
+wm dev mediawiki update-code
 ```
 
 For uncommitted work you want reapplied after updating, use this instead:
 
 ```sh
-mw dev mediawiki update-code --mode=stash
+wm dev mediawiki update-code --mode=stash
 ```
 
 Review the results before continuing. In the core checkout and any extensions
@@ -49,17 +49,17 @@ With the environment running, update PHP dependencies after reviewing the
 source changes:
 
 ```sh
-mw dev mediawiki composer update --no-interaction
+wm dev mediawiki composer update --no-interaction
 ```
 
-Alternatively, `mw dev mediawiki update-code --composer` combines source and
+Alternatively, `wm dev mediawiki update-code --composer` combines source and
 Composer updates, running Composer only when all checkouts succeed with none
 skipped. Review its output before proceeding to database maintenance.
 
 Update the configured development wikis:
 
 ```sh
-mw dev mediawiki foreachwiki update.php -- --quick
+wm dev mediawiki foreachwiki update.php -- --quick
 ```
 
 Check the maintenance output, then open your wiki and verify the features you
@@ -72,8 +72,8 @@ If you deliberately want to switch to the remote default branch and leave local
 changes saved, preview mop mode before using it:
 
 ```sh
-mw dev mediawiki update-code --mode=mop --dry-run
-mw dev mediawiki update-code --mode=mop
+wm dev mediawiki update-code --mode=mop --dry-run
+wm dev mediawiki update-code --mode=mop
 ```
 
 In each affected repository, use the exact refs printed by the command. The

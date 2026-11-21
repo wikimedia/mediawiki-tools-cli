@@ -469,7 +469,7 @@ const dashboardHTML = `<!DOCTYPE html>
                         </div>
                     </li>
                     {{else}}
-                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>mw dev mediawiki install</code> to add your first site.</span></div></li>
+                    <li class="cdx-card"><div class="cdx-card__text"><span class="cdx-card__text__title">No sites installed</span><span class="cdx-card__text__description">Run <code>wm dev mediawiki install</code> to add your first site. Use <code>mw</code> if that is your installed command.</span></div></li>
                     {{end}}
                 </ul>
             </section>

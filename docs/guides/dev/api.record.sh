@@ -7,11 +7,11 @@ cd "$repo_root"
 
 context=${CONTEXT:-recording}
 image=${MWCLI_RECORD_IMAGE:-ubuntu:24.04}
-GOFLAGS=-buildvcs=false make build BINARY_NAME=mw
+GOFLAGS=-buildvcs=false make build BINARY_NAME=wm
 export PATH="$repo_root/bin:$PATH"
-export MWCLI_RECORD_BIN="$repo_root/bin/mw"
+export MWCLI_RECORD_BIN="$repo_root/bin/wm"
 export MWCLI_RECORD_IMAGE="$image"
-export MWCLI_RECORD_NETWORK=$("$repo_root/bin/mw" --no-interaction dev --context "$context" env get TRAEFIK_DOCKER_NETWORK)
+export MWCLI_RECORD_NETWORK=$("$repo_root/bin/wm" --no-interaction dev --context "$context" env get TRAEFIK_DOCKER_NETWORK)
 
 if ! docker network inspect "$MWCLI_RECORD_NETWORK" >/dev/null 2>&1; then
     echo "Docker network '$MWCLI_RECORD_NETWORK' is not running; start the MediaWiki context first." >&2

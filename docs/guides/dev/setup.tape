@@ -5,7 +5,7 @@ Output "_recordings/dev-setup.mp4"
 Output "_recordings/dev-setup.webm"
 Output "_recordings/dev-setup.txt"
 
-Require mw
+Require wm
 
 Set Shell "bash"
 Set Theme "Dracula"
@@ -20,7 +20,7 @@ Set TypingSpeed 30ms
 Hide
 Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
 Enter
-Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
+Type 'wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
 Enter
@@ -28,26 +28,26 @@ Show
 
 Type '# Start a local MediaWiki environment'
 Enter
-Type 'mw dev mediawiki create'
+Type 'wm dev mediawiki create'
 Enter
 Sleep 250ms
 Wait+Line@180s /^> ?$/
 Sleep 3s
 Ctrl+L
-Type 'mw dev mysql create'
+Type 'wm dev mysql create'
 Enter
 Sleep 250ms
 Wait+Line@180s /^> ?$/
 Sleep 3s
 Ctrl+L
-Type 'mw dev mediawiki install --dbtype=mysql'
+Type 'wm dev mediawiki install --dbtype=mysql'
 Enter
 Sleep 250ms
 Wait+Line@240s /^> ?$/
 Sleep 3s
 Ctrl+L
 
-Type 'mw dev compose ps'
+Type 'wm dev compose ps'
 Enter
 Sleep 250ms
 Wait+Line@60s /^> ?$/

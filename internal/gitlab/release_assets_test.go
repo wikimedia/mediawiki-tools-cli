@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -238,8 +239,9 @@ func TestReleaseRegeneratesOnlyBinaryChecksums(t *testing.T) {
 					t.Fatal(err)
 				}
 				cmd := exec.Command("make", "-o", "generate", "release", "GOX="+stub, "GOVVV="+stub,
-					"RELEASE_DIR="+outputDir, "BINARY_NAME=wm", "VERSION="+version)
+					"RELEASE_DIR="+outputDir, "VERSION="+version)
 				cmd.Dir = dir
+				cmd.Env = slices.DeleteFunc(os.Environ(), func(value string) bool { return strings.HasPrefix(value, "BINARY_NAME=") })
 				if output, err := cmd.CombinedOutput(); err != nil {
 					t.Fatalf("make release: %v: %s", err, output)
 				}

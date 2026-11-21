@@ -5,7 +5,7 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$script_dir/../../.." && pwd)
 cd "$repo_root"
 
-# Replay the supplied terminal output; never invoke mw or connect to Toolforge.
+# Replay the supplied terminal output; never invoke the CLI or connect to Toolforge.
 record_bin=$(mktemp -d)
 trap 'rm -rf -- "$record_bin"' EXIT
 export MWCLI_RECORD_BASH
@@ -16,7 +16,7 @@ unset BASH_ENV ENV PROMPT_COMMAND
 export PS1='> '
 exec "$MWCLI_RECORD_BASH" --noprofile --norc "$@"
 SHELL
-cat > "$record_bin/mw" <<'REPLAY'
+cat > "$record_bin/wm" <<'REPLAY'
 #!/bin/sh
 sleep 0.7
 case "$*" in
@@ -68,7 +68,7 @@ OUTPUT
         ;;
 esac
 REPLAY
-chmod +x "$record_bin/bash" "$record_bin/mw"
+chmod +x "$record_bin/bash" "$record_bin/wm"
 export PATH="$record_bin:$PATH"
 
 mkdir -p _recordings

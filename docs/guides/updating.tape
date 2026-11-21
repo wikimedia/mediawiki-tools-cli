@@ -4,7 +4,7 @@ Output "_recordings/update.mp4"
 Output "_recordings/update.webm"
 Output "_recordings/update.txt"
 
-Require mw
+Require wm
 Set Shell "bash"
 Set Theme "Dracula"
 Set FontFamily "DejaVu Sans Mono"
@@ -16,7 +16,7 @@ Set Framerate 15
 Set TypingSpeed 25ms
 
 Hide
-Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
+Type 'wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
 Enter
@@ -24,14 +24,14 @@ Show
 
 Type '# Check the installed version'
 Enter
-Type 'mw version'
+Type 'wm version'
 Enter
 Sleep 3s
 Ctrl+L
 
 Type '# Preview v0.33.0 and its changelog without installing it'
 Enter
-Type 'mw update --dry-run --version v0.33.0'
+Type 'wm update --dry-run --version v0.33.0'
 Enter
 Sleep 250ms
 Wait+Line@90s /^> ?$/

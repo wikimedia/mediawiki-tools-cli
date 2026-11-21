@@ -3,7 +3,7 @@
 Connect a development wiki to Keycloak using OpenID Connect. This workflow
 combines service creation, identity configuration, and MediaWiki settings.
 For Keycloak command behavior and direct administration, read
-`mw dev keycloak --help`.
+`wm dev keycloak --help`.
 
 ## Create a realm, client, and user
 
@@ -12,10 +12,10 @@ OpenIDConnect extensions before enabling them in MediaWiki. Create a realm, a
 client, and at least one user:
 
 ```bash
-mw dev keycloak create
-mw dev keycloak add realm <realmname>
-mw dev keycloak add client <clientname> <realmname>
-mw dev keycloak add user <username> <temporarypassword> <realmname>
+wm dev keycloak create
+wm dev keycloak add realm <realmname>
+wm dev keycloak add client <clientname> <realmname>
+wm dev keycloak add user <username> <temporarypassword> <realmname>
 ```
 
 where &lt;realmname&gt; is the name you choose for your realm, &lt;clientname&gt; is the name
@@ -26,7 +26,7 @@ first login.
 Then, you will need to get the client secret that was assigned to your client:
 
 ```bash
-mw dev keycloak get clientsecret <clientname> <realmname>
+wm dev keycloak get clientsecret <clientname> <realmname>
 ```
 
 ## Configure MediaWiki

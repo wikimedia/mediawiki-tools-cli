@@ -1,13 +1,13 @@
 # Browse local logs
 
-`mw dev logs` collects container stdout/stderr and MediaWiki `.log` files for the
+`wm dev logs` collects container stdout/stderr and MediaWiki `.log` files for the
 current development context. Browse the copies in OpenSearch Dashboards; normal
 Docker logging and original log files stay unchanged, even while collection runs.
 
 ## Start browsing
 
 ```sh
-mw dev logs create
+wm dev logs create
 ```
 
 Open [the MediaWiki log view](http://logs.local.wmftest.net:8080/proxy/logs/app/discover#/view/mwcli-mediawiki-logs),
@@ -44,9 +44,9 @@ container logging; it does not capture the mwcli binary's host-terminal output.
 ## Stop or remove
 
 ```sh
-mw dev logs stop    # Keep collected logs and file checkpoints
-mw dev logs start
-mw dev logs destroy # Delete collected data; preserve original logs
+wm dev logs stop    # Keep collected logs and file checkpoints
+wm dev logs start
+wm dev logs destroy # Delete collected data; preserve original logs
 ```
 
 Container collection is live; output produced while the collector is stopped may
@@ -60,10 +60,10 @@ Allow several GiB of spare Docker memory. Linux hosts may need
 Inspect startup or collection errors with:
 
 ```sh
-mw dev compose logs -- --tail=100 logs-setup logs-opensearch logs-collector opensearch-dashboards
+wm dev compose logs -- --tail=100 logs-setup logs-opensearch logs-collector opensearch-dashboards
 ```
 
 If startup failed, check `logs-setup` first. After fixing the cause, rerun
-`mw dev logs create`. It fills in missing setup without overwriting saved-view
+`wm dev logs create`. It fills in missing setup without overwriting saved-view
 edits or user preferences. To reopen the supplied view after choosing another
 homepage, use `/proxy/logs/app/discover#/view/mwcli-mediawiki-logs`.

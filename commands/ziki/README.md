@@ -1,7 +1,7 @@
 # Ziki: The Search for Merge
 
 A Wikimedia adventure in 16 assignments: from first patch to incident commander.
-Start with `mw ziki`. Use `--level 13` to try the expert round directly.
+Start with `wm ziki`. Use `--level 13` to try the expert round directly.
 Nothing connects to real services; progress and input history last for this game.
 
 ## How to play

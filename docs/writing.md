@@ -58,7 +58,7 @@ or instructions to move command details out of help.
 Edit command help in its command package, including embedded `.long.md` and
 `.example` files. Put user guides in `docs/guides/`, list their source paths
 in `docs/guides.json`, and link them from `docs/index.md`. Link help to relevant
-guides with `mw help guides <topic>`; mapped guides are bundled offline and can
+guides with `wm help guides <topic>`; mapped guides are bundled offline and can
 be opened on the documentation site with `--web`. Contributor documentation such as this file
 lives outside the published user guides.
 

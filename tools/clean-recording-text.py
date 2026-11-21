@@ -12,11 +12,9 @@ def clean_text(text):
     for line in text.splitlines(keepends=True):
         # VHS text exports can include setup frames even inside Hide/Show.
         # Keep their output format, but discard the shell harness and its wraps.
-        if (line.startswith('> mw() {') and 'MWCLI_RECORD_' in line) or line.startswith(
-            ('> export CONTEXT="$MWCLI_RECORD_CONTEXT"',
-             '> cd "$(mw dev mediawiki where)"',
-             '> cd "$(mw dev --context "$MWCLI_RECORD_CONTEXT" mediawiki where)"')
-        ):
+        if ((line.startswith(('> wm() {', '> mw() {')) and 'MWCLI_RECORD_' in line)
+                or line.startswith('> export CONTEXT="$MWCLI_RECORD_CONTEXT"')
+                or re.match(r'^> cd "\$\((?:wm|mw) dev (?:--context "\$MWCLI_RECORD_CONTEXT" )?mediawiki where\)"', line)):
             hidden_setup = True
             continue
         if hidden_setup:
@@ -24,12 +22,12 @@ def clean_text(text):
                 hidden_setup = False
             else:
                 continue
-        line = line.replace('mw dev --context "$MWCLI_RECORD_CONTEXT" ', 'mw dev ')
+        line = re.sub(r'\b(wm|mw) dev --context "\$MWCLI_RECORD_CONTEXT" ', r'\1 dev ', line)
         recording_password = '-e MYSQL_PWD="$MWCLI_RECORD_DB_PASSWORD" ' in line
         line = line.replace('-e MYSQL_PWD="$MWCLI_RECORD_DB_PASSWORD" ', '')
         # Older dump recordings use a recording-only variable for the standard
         # local development password; make the displayed commands self-contained.
-        if recording_password and line.startswith('> mw dev ') and 'mariadb' in line and '-uroot' in line:
+        if recording_password and line.startswith(('> wm dev ', '> mw dev ')) and 'mariadb' in line and '-uroot' in line:
             line = re.sub(r'-uroot(?! -ptoor)', '-uroot -ptoor', line)
         lines.append(line)
     return ''.join(lines)

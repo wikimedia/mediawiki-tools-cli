@@ -4,7 +4,7 @@ Output "_recordings/dev-extension-workflow.mp4"
 Output "_recordings/dev-extension-workflow.webm"
 Output "_recordings/dev-extension-workflow.txt"
 
-Require mw
+Require wm
 Set Shell "bash"
 Set Theme "Dracula"
 Set FontFamily "DejaVu Sans Mono"
@@ -18,9 +18,9 @@ Set TypingSpeed 25ms
 Hide
 Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
 Enter
-Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
+Type 'wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
-Type 'cd "$(mw dev mediawiki where)"'
+Type 'cd "$(wm dev mediawiki where)"'
 Enter
 Type 'clear'
 Enter
@@ -28,7 +28,7 @@ Show
 
 Type '# Get an extension into this checkout'
 Enter
-Type 'mw dev mediawiki get-code --extension Cite --gerrit-interaction-type http --no-commit-hook'
+Type 'wm dev mediawiki get-code --extension Cite --gerrit-interaction-type http --no-commit-hook'
 Enter
 Sleep 250ms
 Wait+Line@90s /^> ?$/
@@ -44,7 +44,7 @@ Enter
 Type 'EOF'
 Enter
 Sleep 1s
-Type 'mw dev mediawiki mwscript update'
+Type 'wm dev mediawiki mwscript update'
 Enter
 Sleep 250ms
 Wait+Line@90s /^> ?$/
@@ -53,7 +53,7 @@ Ctrl+L
 
 Type '# Run a focused extension test'
 Enter
-Type 'mw dev mediawiki composer phpunit extensions/Cite/tests/phpunit/unit/CiteParserTagHooksTest.php'
+Type 'wm dev mediawiki composer phpunit extensions/Cite/tests/phpunit/unit/CiteParserTagHooksTest.php'
 Enter
 Sleep 250ms
 Wait+Line@90s /^> ?$/

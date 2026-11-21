@@ -4,7 +4,7 @@ Output "_recordings/pageviews.mp4"
 Output "_recordings/pageviews.webm"
 Output "_recordings/pageviews.txt"
 
-Require mw
+Require wm
 Set Shell "bash"
 Set Theme "Dracula"
 Set FontFamily "DejaVu Sans Mono"
@@ -16,7 +16,7 @@ Set Framerate 15
 Set TypingSpeed 31ms
 
 Hide
-Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
+Type 'wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
 Enter
@@ -24,7 +24,7 @@ Show
 
 Type '# Graph the same Wikimedia pageview data'
 Enter
-Type 'mw analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output graph'
+Type 'wm analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output graph'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/
@@ -33,7 +33,7 @@ Ctrl+L
 
 Type '# Use JSON in a script or jq'
 Enter
-Type 'mw analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output json'
+Type 'wm analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output json'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/
@@ -42,7 +42,7 @@ Ctrl+L
 
 Type '# Export rows for a spreadsheet'
 Enter
-Type 'mw analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output csv'
+Type 'wm analytics pageviews "Albert Einstein" --start 20261001 --end 20261003 --output csv'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/

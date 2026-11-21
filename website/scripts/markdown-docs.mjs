@@ -77,7 +77,7 @@ export function renderMarkdown(page, context) {
 export function llmsIndex({ documents, siteURL }, scope = '/') {
   const link = (page) => `- [${page.title}](${new URL(markdownPath(page.pathname), siteURL).href})${page.description ? `: ${page.description.replace(/\s+/g, ' ')}` : ''}`;
   let body = '# a Wikimedia CLI\n\n> Command reference and workflow guides for working with Wikimedia from your terminal.\n\n';
-  body += 'Pages describe the documentation version printed in each document. For a different installed version, use `mw --help` or append `--help` to a command.\n\n';
+  body += 'Pages describe the documentation version printed in each document. For a different installed version, use `wm --help` or append `--help` to a command.\n\n';
   body += 'Each HTML page links to its Markdown representation. Request `Accept: text/markdown` on the published site, or follow the explicit `.md` links below.\n\n';
   if (scope === '/') {
     const start = ['/', '/guides/installation/', '/guides/', '/manual/'].map((path) => documents.find((page) => page.pathname === path)).filter(Boolean);

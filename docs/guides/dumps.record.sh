@@ -6,14 +6,14 @@ repo_root=$(cd -- "$script_dir/../.." && pwd)
 cd "$repo_root"
 
 # Live requests: two samples and one resumed 21 MiB download, about 65 MiB total.
-GOFLAGS=-buildvcs=false make build BINARY_NAME=mw
+GOFLAGS=-buildvcs=false make build BINARY_NAME=wm
 record_work=$(mktemp -d)
 trap 'rm -rf -- "$record_work"' EXIT
 mkdir -p "$record_work/bin" _recordings
 export MWCLI_RECORD_BASH MWCLI_RECORD_WORK MWCLI_RECORD_BIN
 MWCLI_RECORD_BASH=$(command -v bash)
 MWCLI_RECORD_WORK=$record_work
-MWCLI_RECORD_BIN="$repo_root/bin/mw"
+MWCLI_RECORD_BIN="$repo_root/bin/wm"
 cat > "$record_work/bin/bash" <<'SHELL'
 #!/bin/sh
 unset BASH_ENV ENV PROMPT_COMMAND
@@ -21,7 +21,7 @@ export PS1='> '
 cd "$MWCLI_RECORD_WORK"
 exec "$MWCLI_RECORD_BASH" --noprofile --norc "$@"
 SHELL
-ln -s "$MWCLI_RECORD_BIN" "$record_work/bin/mw"
+ln -s "$MWCLI_RECORD_BIN" "$record_work/bin/wm"
 chmod +x "$record_work/bin/bash"
 export PATH="$record_work/bin:$PATH"
 

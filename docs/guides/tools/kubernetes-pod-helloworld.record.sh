@@ -10,11 +10,11 @@ export TOOL
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd "$script_dir/../../.."
 
-# The tape types mw, so build and select that executable explicitly.
-make build BINARY_NAME=mw
+# The tape types wm, so build and select that executable explicitly.
+make build BINARY_NAME=wm
 export PATH="$PWD/bin:$PATH"
 
-existing=$(bin/mw toolforge kubernetes get pod cli-guide-hello --ignore-not-found -o name --tool "$TOOL")
+existing=$(bin/wm toolforge kubernetes get pod cli-guide-hello --ignore-not-found -o name --tool "$TOOL")
 if [[ -n $existing ]]; then
     echo 'cli-guide-hello already exists; choose another tool or finish that demo first.' >&2
     exit 1

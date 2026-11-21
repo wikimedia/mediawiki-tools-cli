@@ -20,7 +20,7 @@ export function generateGuides(repository, website) {
     if (!heading) throw new Error(`Guide has no title: ${guide.source}`);
     const url = guideURL(guide.source);
     const topic = url.slice('/guides/'.length).replace(/\/$/, '');
-    const command = `mw help guides${topic ? ` ${topic.replaceAll('/', ' ')}` : ''}`;
+    const command = `wm help guides${topic ? ` ${topic.replaceAll('/', ' ')}` : ''}`;
     const wikiURL = guide.legacy_url;
     const imported = /<!-- Imported from (\S+) \(CC BY-SA 4\.0\)/.exec(content);
     const attribution = imported ? `\n\nAdapted from [MediaWiki.org](${imported[1]}) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); see the linked page history for contributors.` : '';

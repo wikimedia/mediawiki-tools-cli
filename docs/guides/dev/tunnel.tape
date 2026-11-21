@@ -4,7 +4,7 @@ Output "_recordings/dev-tunnel.mp4"
 Output "_recordings/dev-tunnel.webm"
 Output "_recordings/dev-tunnel.txt"
 
-Require mw
+Require wm
 Set Shell "bash"
 Set Theme "Dracula"
 Set FontFamily "DejaVu Sans Mono"
@@ -18,7 +18,7 @@ Set TypingSpeed 25ms
 Hide
 Type 'export CONTEXT="$MWCLI_RECORD_CONTEXT"'
 Enter
-Type 'mw() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
+Type 'wm() { "$MWCLI_RECORD_BIN" --no-interaction "$@"; }'
 Enter
 Type 'clear'
 Enter
@@ -26,7 +26,7 @@ Show
 
 Type '# Open a temporary HTTPS tunnel to the local gateway'
 Enter
-Type 'mw dev tunnel start'
+Type 'wm dev tunnel start'
 Enter
 Sleep 250ms
 Wait+Line@180s /^> ?$/
@@ -35,11 +35,11 @@ Ctrl+L
 
 Type '# Check the tunnel and copy its URL'
 Enter
-Type 'mw dev tunnel status'
+Type 'wm dev tunnel status'
 Enter
 Sleep 250ms
 Wait+Line@45s /^> ?$/
-Type 'mw dev tunnel url'
+Type 'wm dev tunnel url'
 Enter
 Sleep 3s
 Ctrl+L
@@ -48,7 +48,7 @@ Type '# Copy the HTTPS URL and sign in through the gateway'
 Enter
 Type '# Stop the public tunnel when finished'
 Enter
-Type 'mw dev tunnel stop'
+Type 'wm dev tunnel stop'
 Enter
 Sleep 250ms
 Wait+Line@90s /^> ?$/
