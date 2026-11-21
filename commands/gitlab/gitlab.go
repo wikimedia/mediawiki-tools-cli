@@ -104,6 +104,7 @@ func newCommand(options ...mwcli.FactoryOption) *cobra.Command {
 		_ = glabCommand.PersistentFlags().Lookup("profile").Value.Set(inherited)
 	}
 	installProfileCommands(glabCommand, cmdFactory, session)
+	glabCommand.AddCommand(newGitlabSetupCmd(session))
 	return glabCommand
 }
 

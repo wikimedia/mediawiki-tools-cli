@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -121,18 +122,25 @@ func newGitlabStatusCmd(session *profileSession) *cobra.Command {
 			return err
 		}
 		cmd.Println("Reading saved GitLab credentials; unlock your password manager and approve access if prompted.")
-		token, err := profile.Token()
-		if err != nil {
+		if err := checkGitlabProfile(cmd.Context(), profile); err != nil {
 			return err
 		}
-		checked := credentialcheck.Check(cmd.Context(), credentialcheck.Request{Service: "gitlab", Endpoint: "https://" + profile.Host, Account: profile.Username, Value: token})
-		if checked.Status != "valid" {
-			if checked.Status == "wrong-account" {
-				return fmt.Errorf("authenticated as %s, expected %s", checked.Identity, profile.Username)
-			}
-			return fmt.Errorf("GitLab authentication check: %s", checked.Status)
-		}
-		cmd.Printf("Authenticated as %s on https://%s using profile %s.\n", checked.Identity, profile.Host, name)
+		cmd.Printf("Authenticated as %s on https://%s using profile %s.\n", profile.Username, profile.Host, name)
 		return nil
 	}}
+}
+
+func checkGitlabProfile(ctx context.Context, profile *mwcli.ProfileCredentials) error {
+	token, err := profile.Token()
+	if err != nil {
+		return err
+	}
+	checked := credentialcheck.Check(ctx, credentialcheck.Request{Service: "gitlab", Endpoint: "https://" + profile.Host, Account: profile.Username, Value: token})
+	if checked.Status != "valid" {
+		if checked.Status == "wrong-account" {
+			return fmt.Errorf("authenticated as %s, expected %s", checked.Identity, profile.Username)
+		}
+		return fmt.Errorf("GitLab authentication check: %s", checked.Status)
+	}
+	return nil
 }
