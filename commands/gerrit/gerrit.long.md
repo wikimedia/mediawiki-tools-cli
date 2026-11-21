@@ -31,15 +31,20 @@ to use your Gerrit HTTP password.
 SSH for pushes, and installs the `commit-msg` hook. Pass
 `--push-protocol https` to use HTTPS for both fetch and push.
 
-## Preview a push
+## Push for review
 
-`mw gerrit push --dry-run` uses the checkout's effective push remote and shows
-the target branch and outgoing commits. It looks up existing public Gerrit
-reviews by Change-Id and prints their links. Use `--branch NAME` to choose
-the target or `--remote NAME` to choose a remote. Otherwise it uses the branch's
-upstream when it tracks that remote, or the project's default branch. With a
-detached HEAD, it looks up the current commit in Gerrit and uses the review's
-branch when there is an exact match. The preview uploads nothing.
+`mw gerrit push` uploads the current commit stack to `refs/for/<branch>` on the
+checkout's effective push remote. Use `--dry-run` to list outgoing commits and
+matching public Gerrit reviews without uploading. Use `--branch NAME` to choose
+the target or `--remote NAME` to choose a remote. A tracking branch uses its upstream
+when the fetch and push URLs identify the same project, even with different
+remote names. If the upstream is ambiguous, specify `--branch`. An untracked
+branch uses the project's default branch. With a detached HEAD, the command uses the target of a matching public Gerrit
+patchset or a unique open review matching the commit's Change-Id.
+
+`mw gerrit push --https --profile NAME` selects HTTPS and uses the saved Gerrit
+HTTP password. A Gerrit HTTPS push URL also selects HTTPS. The helper supplies
+credentials to that Git invocation without changing the repository configuration.
 
 ## Check out a change
 

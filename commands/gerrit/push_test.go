@@ -92,3 +92,60 @@ func TestGerritPushPreviewWithDetachedHEADAndRemoteTipMissingLocally(t *testing.
 		t.Error("preview changed the local or remote branch")
 	}
 }
+
+func TestGerritPushUsesUpstreamBranchWithSeparatePushRemote(t *testing.T) {
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	server, worktree := t.TempDir(), t.TempDir()
+	git := func(dir string, args ...string) string {
+		t.Helper()
+		result, err := gitOutput(t.Context(), dir, args...)
+		if err != nil {
+			t.Fatalf("git %v: %v", args, err)
+		}
+		return result
+	}
+	git(server, "init", "--quiet", "--initial-branch=master")
+	git(server, "config", "user.name", "Reviewer")
+	git(server, "config", "user.email", "reviewer@example.test")
+	git(server, "commit", "--quiet", "--allow-empty", "-m", "master base")
+	git(server, "switch", "--quiet", "-c", "REL1_43")
+	git(server, "commit", "--quiet", "--allow-empty", "-m", "release-only base")
+	tip := git(server, "rev-parse", "HEAD")
+	git(server, "switch", "--quiet", "master")
+	git(worktree, "clone", "--quiet", server, ".")
+	git(worktree, "switch", "--quiet", "-c", "backport", "--track", "origin/REL1_43")
+	t.Chdir(worktree)
+
+	const project = "mediawiki/extensions/WSOAuth"
+	fetch := gerritPushURL(project, "https", "")
+	push := gerritPushURL(project, "ssh", "fixture")
+	git(worktree, "remote", "add", "gerrit", push)
+	git(worktree, "config", "remote.pushDefault", "gerrit")
+	git(worktree, "config", "url."+server+".insteadOf", fetch)
+	for _, address := range []string{
+		"https://gerrit.wikimedia.org/r/" + project,
+		"https://github.com/wikimedia/mediawiki-extensions-WSOAuth.git",
+	} {
+		git(worktree, "remote", "set-url", "origin", address)
+		plan, err := planGerritPush(t.Context(), "", "", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if plan.branch != "REL1_43" || plan.tip != tip || plan.remote != "gerrit" {
+			t.Fatalf("unexpected plan for %s: %+v", address, plan)
+		}
+	}
+
+	git(worktree, "remote", "set-url", "origin", "https://gerrit.wikimedia.org/r/mediawiki/core")
+	// A mismatched fetch URL is ambiguous even when the same remote name is used.
+	git(worktree, "remote", "set-url", "--push", "origin", push)
+	for _, remote := range []string{"origin", "gerrit"} {
+		if _, err := planGerritPush(t.Context(), remote, "", false); err == nil || !strings.Contains(err.Error(), "specify --branch") {
+			t.Fatalf("%s should require an explicit branch, got %v", remote, err)
+		}
+	}
+	if plan, err := planGerritPush(t.Context(), "", "REL1_43", false); err != nil || plan.branch != "REL1_43" {
+		t.Fatalf("explicit branch did not override ambiguous upstream: %+v, %v", plan, err)
+	}
+}

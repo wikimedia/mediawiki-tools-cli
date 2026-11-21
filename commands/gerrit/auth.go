@@ -13,7 +13,7 @@ func NewGerritAuthCmd(profile *string) *cobra.Command {
 	profiles := authprofile.Commands{Label: "Gerrit", Selected: profile, Backend: gerritProfiles}
 	cmd.AddCommand(NewGerritAuthLoginCmd())
 	cmd.AddCommand(profiles.RemoveCmd())
-	cmd.AddCommand(NewGerritAuthStatusCmd())
+	cmd.AddCommand(NewGerritAuthStatusCmd(), newGerritGitCredentialCmd())
 	cmd.AddCommand(profiles.ProfilesCmd())
 	cmd.AddCommand(profiles.DefaultCmd())
 	return cmd
