@@ -66,7 +66,7 @@ def main():
                 raise RuntimeError(f"mw {args} failed:\n{result.stdout}{result.stderr}")
             return result.stdout.strip()
 
-        mw("config", "set", "gerrit.username", "before-update")
+        mw("config", "set", "gerrit.profiles.update-test.username", "before-update")
         mw("update", "--version", str(replacement))
         # Windows stages replacement until the original process releases its
         # executable; Unix completes it before the update command returns.
@@ -82,10 +82,10 @@ def main():
                 raise RuntimeError("self-update did not install the replacement binary")
             time.sleep(0.2)
         mw("config", "show")
-        if mw("config", "get", "gerrit.username") != "before-update":
+        if mw("config", "get", "gerrit.profiles.update-test.username") != "before-update":
             raise RuntimeError("self-update did not preserve existing config")
-        mw("config", "set", "gerrit.username", "after-update")
-        if mw("config", "get", "gerrit.username") != "after-update":
+        mw("config", "set", "gerrit.profiles.update-test.username", "after-update")
+        if mw("config", "get", "gerrit.profiles.update-test.username") != "after-update":
             raise RuntimeError("updated binary cannot write user config")
         print("PASS: native update replaced the binary and preserved readable/writable config")
 

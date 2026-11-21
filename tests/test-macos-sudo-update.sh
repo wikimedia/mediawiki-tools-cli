@@ -40,7 +40,7 @@ for scenario in fresh-config existing-config; do
     config_file="$config_dir/config.json"
     before_hash=""
     if [[ "$scenario" == existing-config ]]; then
-        user_mw --no-interaction config set gerrit.username before-update
+        user_mw --no-interaction config set gerrit.profiles.update-test.username before-update
         before_hash="$(shasum -a 256 "$config_file" | cut -d ' ' -f 1)"
     else
         [[ ! -e "$config_dir" ]]
@@ -70,10 +70,10 @@ for scenario in fresh-config existing-config; do
         continue
     fi
     if [[ "$scenario" == existing-config ]]; then
-        [[ "$(user_mw --no-interaction config get gerrit.username)" == before-update ]]
+        [[ "$(user_mw --no-interaction config get gerrit.profiles.update-test.username)" == before-update ]]
     fi
-    user_mw --no-interaction config set gerrit.username after-update
-    [[ "$(user_mw --no-interaction config get gerrit.username)" == after-update ]]
+    user_mw --no-interaction config set gerrit.profiles.update-test.username after-update
+    [[ "$(user_mw --no-interaction config get gerrit.profiles.update-test.username)" == after-update ]]
     [[ "$(stat -f '%u' "$config_dir")" == "$(id -u)" ]]
     [[ "$(stat -f '%u' "$config_file")" == "$(id -u)" ]]
     echo "PASS: user-owned config remains readable and writable ($scenario)"
