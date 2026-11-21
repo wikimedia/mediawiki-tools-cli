@@ -73,6 +73,14 @@ to compare two patchsets, or omit `--base-patchset` to diff against the first
 parent. Both commands accept a Gerrit change URL and infer the review and
 patchset from Git HEAD when you omit the change.
 
+## Try a patch in Patch Demo
+
+Run `wm gerrit demo 1370181` to see ready wikis for a public change and which
+patchsets they run. Omit the change to use the uploaded patchset matching Git
+HEAD, or use `--patchset` to select an older revision. Pass `--new` to open the
+Patch Demo form and print the exact patchset URL to paste. Pass `--no-browser`
+with `--new` to print both links. Sign in and create the wiki in Patch Demo.
+
 ## Continuous integration
 
 `mw gerrit ci status 1372985` shows public Jenkins results reported in Gerrit

@@ -14,6 +14,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
 	sshutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/ssh"
 )
@@ -39,7 +40,7 @@ func NewGerritCmd() *cobra.Command {
 			if parent := cmd.Parent(); parent != nil {
 				if parent.Name() == "gerrit" {
 					switch cmd.Name() {
-					case "checkout", "fetch", "setup", "clone", "push", "list", "view", "diff":
+					case "checkout", "fetch", "setup", "clone", "push", "list", "view", "diff", "demo":
 						return nil
 					}
 				}
@@ -70,7 +71,7 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAuthCmd(&profile))
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
 	cmd.AddCommand(newCICmd())
-	cmd.AddCommand(newCheckoutCmd(), newFetchCmd(), newListCmd(), newViewCmd(), newDiffCmd())
+	cmd.AddCommand(newCheckoutCmd(), newFetchCmd(), newListCmd(), newViewCmd(), newDiffCmd(), newDemoCmd(browser.OpenURL))
 	cmd.AddCommand(newSetupCmd())
 	cmd.AddCommand(newCloneCmd())
 	cmd.AddCommand(newPushCmd())
