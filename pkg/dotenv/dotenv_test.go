@@ -175,3 +175,15 @@ func TestReadAndWritesReportInvalidFile(t *testing.T) {
 		t.Fatalf("invalid file was altered: %q %v", data, err)
 	}
 }
+
+func TestFileReadRedactsMalformedValues(t *testing.T) {
+	file := FileForDirectory(t.TempDir())
+	const secret = "synthetic-secret-value"
+	if err := os.WriteFile(file.Path(), []byte("TOKEN=\""+secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := file.Read()
+	if err == nil || !strings.Contains(err.Error(), ".env") || strings.Contains(err.Error(), secret) {
+		t.Fatalf("expected a safe diagnostic identifying the file, got %v", err)
+	}
+}

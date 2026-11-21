@@ -42,11 +42,12 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 			dataJSON := mustMarshalJSON(data)
 
 			if dryRun {
-				cmd.Println("Dry run mode: Creating Wikibase property with the following parameters:")
-				cmd.Printf("wiki: %s, user: %s, summary: %s, datatype: %s, label: %s, expect-id: %s, bot: %t\n",
-					wiki, wikiUser, summary, datatype, label, expectID, bot)
-				cmd.Printf("data: %s\n", dataJSON)
-				return nil
+				_, err := fmt.Fprintf(cmd.OutOrStdout(),
+					"Dry run mode: Creating Wikibase property with the following parameters:\n"+
+						"wiki: %s, user: %s, summary: %s, datatype: %s, label: %s, expect-id: %s, bot: %t\n"+
+						"data: %s\n",
+					wiki, wikiUser, summary, datatype, label, expectID, bot, dataJSON)
+				return err
 			}
 
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
@@ -77,8 +78,8 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 			if expectID != "" && id != expectID {
 				return fmt.Errorf("property %s was created, but expected ID was %q; do not retry creation", id, expectID)
 			}
-			cmd.Println(id)
-			return nil
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), id)
+			return err
 		},
 	}
 

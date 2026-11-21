@@ -1,6 +1,7 @@
 package dotenv
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -43,11 +44,19 @@ func (f File) EnsureExists() error {
 
 // Read loads the environment without creating a missing file.
 func (f File) Read() (map[string]string, error) {
-	values, err := godotenv.Read(f.Path())
+	data, err := os.ReadFile(f.Path())
 	if os.IsNotExist(err) {
 		return map[string]string{}, nil
 	}
-	return values, err
+	if err != nil {
+		return nil, err
+	}
+	values, err := godotenv.UnmarshalBytes(data)
+	if err != nil {
+		// Parser errors can quote values from the file.
+		return nil, fmt.Errorf("invalid dotenv syntax in %q", f.Path())
+	}
+	return values, nil
 }
 
 func (f File) read() map[string]string {

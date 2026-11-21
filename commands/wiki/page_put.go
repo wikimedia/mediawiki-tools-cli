@@ -41,10 +41,11 @@ put --profile wikimedia/addshore --wiki https://test.wikipedia.org/w/api.php --t
 				return fmt.Errorf("title is not set")
 			}
 			if dryRun {
-				cmd.Println("Dry run mode: Putting page with the following parameters:")
-				cmd.Printf("wiki: %s, user: %s, title: %s, summary: %s, minor: %t, bot: %t, recreate: %t, nocreate: %t, createonly: %t\n",
+				_, err := fmt.Fprintf(cmd.OutOrStdout(),
+					"Dry run mode: Putting page with the following parameters:\n"+
+						"wiki: %s, user: %s, title: %s, summary: %s, minor: %t, bot: %t, recreate: %t, nocreate: %t, createonly: %t\n",
 					wiki, wikiUser, wikiPageTitle, summary, minor, bot, recreate, nocreate, createonly)
-				return nil
+				return err
 			}
 
 			bytes, err := io.ReadAll(cmd.InOrStdin())
