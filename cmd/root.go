@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -250,6 +251,15 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 				os.Exit(1)
 			}
 			return
+		}
+	}
+
+	if !isSudoInvocation(os.Geteuid(), os.Getenv("SUDO_UID")) {
+		pluginDir := filepath.Join(cli.XDGUserDirectoryPath(), "plugins")
+		if code, handled := runPlugin(os.Args[1:], pluginDir, func() *cobra.Command {
+			return NewRootCmd(cli.InvocationName(os.Args[0]))
+		}); handled {
+			os.Exit(code)
 		}
 	}
 

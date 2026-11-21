@@ -146,6 +146,47 @@ to put `bin/mw` first on your PATH. This lets you copy documentation examples
 using `mw` without changing the command name. You can also run `./bin/mw` directly
 from the repository root.
 
+### Local commit subject plugin
+
+Put the `wm-suggest-commit` executable in `$XDG_CONFIG_HOME/mwcli/plugins`
+(`~/.config/mwcli/plugins` by default on Linux). Both `mw` and `wm` look for
+`wm-<command>` executables in this directory when the command is the first
+argument. Built-in commands and their aliases take precedence.
+
+On Linux, build and install llama.cpp b9000 from its source directory with
+static, CPU-only libraries, then build the plugin from the CLI checkout:
+
+```sh
+llama_prefix=/absolute/path/to/llama-install
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$llama_prefix" -DCMAKE_INSTALL_LIBDIR=lib \
+  -DBUILD_SHARED_LIBS=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_TESTS=OFF \
+  -DLLAMA_BUILD_TOOLS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF \
+  -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
+cmake --build build --parallel
+cmake --install build
+
+cd /path/to/cli
+plugin_dir="${XDG_CONFIG_HOME:-$HOME/.config}/mwcli/plugins"
+mkdir -p "$plugin_dir"
+PKG_CONFIG_PATH="$llama_prefix/lib/pkgconfig" \
+  CGO_LDFLAGS="-Wl,--start-group -L$llama_prefix/lib -lllama -lggml -lggml-cpu -lggml-base -Wl,--end-group -lstdc++ -lm" \
+  go build -tags llama -o "$plugin_dir/wm-suggest-commit" ./plugins/suggest-commit
+```
+
+From a Git checkout with staged changes, run
+`wm suggest-commit --model /path/to/model.gguf`. Use `--last` to draft a subject
+for `HEAD`, using the first parent for a merge commit. You can set
+`WM_COMMIT_MODEL` to skip `--model`. The plugin accepts ChatML instruct models
+and prints an editable subject to stdout. It asks for a short, specific subject
+in the imperative mood, drawing on the
+[Wikimedia Gerrit subject guidelines](https://www.mediawiki.org/wiki/Gerrit/Commit_message_guidelines#Subject).
+The command works in any Git repository. Git hooks handle trailers such as
+`Change-Id` where configured. Use `--count 3` for three alternative subjects,
+one per line. The default is one, and the maximum is five.
+Staged diffs are limited to 8 KiB.
+For larger commits, `--last` uses a file summary and a diff excerpt.
+
 ### Makefile commands
 
 Many Makefile commands exist that you might find useful:
