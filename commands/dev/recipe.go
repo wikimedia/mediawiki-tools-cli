@@ -133,10 +133,8 @@ func NewRecipeCmd() *cobra.Command {
 				return fmt.Errorf("MEDIAWIKI_VOLUMES_CODE is empty")
 			}
 
-			thisMW, err := mediawiki.ForDirectory(mediaWikiPath)
-			if err != nil {
-				return err
-			}
+			// A recipe can clone MediaWiki into a checkout that does not exist yet.
+			thisMW := mediawiki.MediaWiki(mediaWikiPath)
 
 			customComposeFile := ""
 			if strings.TrimSpace(spec.CustomCompose.Content) != "" {
