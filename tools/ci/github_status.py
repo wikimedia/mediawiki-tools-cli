@@ -12,6 +12,7 @@ HTTP_USER_AGENT = "a-wikimedia-cli-ci (https://a-wikimedia-cli.toolforge.org/)"
 
 API = "https://gitlab.wikimedia.org/api/v4"
 PROJECT = 16
+LEGACY_CLONE_URL = "https://gitlab.wikimedia.org/repos/releng/cli.git"
 REPOSITORY = "wikimedia/mediawiki-tools-cli"
 REQUEST_JOB = "integration-github-request"
 GATE_JOB = "integration-github"
@@ -103,6 +104,22 @@ class GitLab:
 
     def get(self, path):
         return self.request(path)
+
+    def project_clone_url(self):
+        try:
+            project = self.get(f"/projects/{PROJECT}")
+        except urllib.error.HTTPError as error:
+            if error.code not in {404, 429, 500, 502, 503, 504}:
+                raise
+            error.close()
+            return LEGACY_CLONE_URL
+        except (urllib.error.URLError, TimeoutError):
+            return LEGACY_CLONE_URL
+        url = project.get("http_url_to_repo") if isinstance(project, dict) else None
+        if (not isinstance(url, str) or project.get("id") != PROJECT
+                or not re.fullmatch(r"https://gitlab\.wikimedia\.org/(?:[\w.-]+/)+[\w.-]+\.git", url, re.ASCII)):
+            raise ValueError("unexpected clone URL for the Wikimedia CLI project")
+        return url
 
     def post(self, path, data):
         return self.request(path, data=data)

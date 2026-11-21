@@ -18,7 +18,7 @@ image-update:
       - echo ${COMMAND}
       - ${COMMAND}
       - git diff
-      - bash tools/image-update/push.sh "https://project_16_bot:${TOKEN_IMAGE_UPDATE_CI}@gitlab.wikimedia.org/repos/releng/cli.git"
+      - bash tools/image-update/push.sh "https://project_16_bot:${TOKEN_IMAGE_UPDATE_CI}@gitlab.wikimedia.org/${CI_PROJECT_PATH}.git"
     parallel:
       matrix:
 # This MUST remain the end of the file and MUST have a newline below it.

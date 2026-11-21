@@ -17,9 +17,6 @@ jobs:
   sync-main:
     runs-on: ubuntu-latest
 
-    env:
-      GITLAB_DEFAULT_URL: https://gitlab.wikimedia.org/repos/releng/cli.git
-
     steps:
       - name: Check out GitHub main
         uses: actions/checkout@v4
@@ -32,23 +29,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Configure GitLab remote URL
-        shell: bash
-        run: |
-          if [[ -n "${{ secrets.GITLAB_TOKEN }}" ]]; then
-            gitlab_url="https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.wikimedia.org/repos/releng/cli.git"
-          else
-            gitlab_url="$GITLAB_DEFAULT_URL"
-          fi
-
-          if git remote get-url gitlab >/dev/null 2>&1; then
-            git remote set-url gitlab "$gitlab_url"
-          else
-            git remote add gitlab "$gitlab_url"
-          fi
-
       - name: Fetch GitLab main
-        run: git fetch --prune gitlab main
+        shell: bash
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          gitlab_url=$(PYTHONPATH=tools/ci python3 -c 'from github_status import GitLab; print(GitLab().project_clone_url())')
+          if [[ -n "$GITLAB_TOKEN" ]]; then
+            gitlab_url="https://oauth2:${GITLAB_TOKEN}@${gitlab_url#https://}"
+          fi
+          git fetch "$gitlab_url" main
 
       - name: Sync GitHub main to GitLab main
         shell: bash

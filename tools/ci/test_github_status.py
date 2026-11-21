@@ -17,7 +17,8 @@ import urllib.request
 from unittest.mock import patch
 
 from github_status import (
-    API, SUMMARY_CONTEXT, GitLab, SafeRedirect, description, integration_repository, latest_jobs, verify_summary,
+    API, LEGACY_CLONE_URL, SUMMARY_CONTEXT, GitLab, SafeRedirect, description, integration_repository, latest_jobs,
+    verify_summary,
 )
 
 SHA = "a" * 40
@@ -91,6 +92,34 @@ class StatusTests(unittest.TestCase):
         self.assertEqual(same_host.get_header("Private-token"), "test-token")
         with self.assertRaises(ValueError):
             SafeRedirect().redirect_request(request, None, 302, "Found", {}, "http://storage.example/file")
+
+    def test_clone_url_follows_project_id_across_a_transfer(self):
+        api = GitLab()
+        for url in (LEGACY_CLONE_URL, "https://gitlab.wikimedia.org/repos/a-wikimedia-cli/wm.git"):
+            with self.subTest(url=url), patch.object(api, "get", return_value={
+                "id": 16, "http_url_to_repo": url,
+            }) as get:
+                self.assertEqual(api.project_clone_url(), url)
+                get.assert_called_once_with("/projects/16")
+
+    def test_clone_url_falls_back_when_project_metadata_is_unavailable(self):
+        api = GitLab()
+        for error in (urllib.error.HTTPError(API, 404, "Not found", {}, None),
+                      urllib.error.HTTPError(API, 503, "Unavailable", {}, None),
+                      urllib.error.URLError("Timed out")):
+            with self.subTest(error=error), patch.object(api, "get", side_effect=error):
+                self.assertEqual(api.project_clone_url(), LEGACY_CLONE_URL)
+
+    def test_clone_url_rejects_unexpected_project_metadata(self):
+        api = GitLab()
+        for project in (
+            {"id": 6, "http_url_to_repo": LEGACY_CLONE_URL},
+            {"id": 16, "http_url_to_repo": "https://storage.example/cli.git"},
+            {"id": 16, "http_url_to_repo": "https://gitlab.wikimedia.org@storage.example/cli.git"},
+        ):
+            with self.subTest(project=project), patch.object(api, "get", return_value=project):
+                with self.assertRaisesRegex(ValueError, "unexpected clone URL"):
+                    api.project_clone_url()
 
 
 class NativeExecutionTests(unittest.TestCase):

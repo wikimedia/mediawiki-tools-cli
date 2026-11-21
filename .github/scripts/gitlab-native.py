@@ -117,12 +117,18 @@ def prepare(api, job_id, directory):
         if jobs.get(name, {}).get("status") != "success":
             raise ValueError(f"{name} has not succeeded")
     directory.mkdir(parents=True, exist_ok=True)
-    for job_name, artifact, filename in (
-        ("build", "bin/mw", "mw"),
-        ("prepare-mediawiki", ".cache/mediawiki-snapshot.txt", "mediawiki-snapshot.txt"),
-    ):
-        api.request(f"/projects/{PROJECT}/jobs/{jobs[job_name]['id']}/artifacts/{artifact}",
-                    destination=directory / filename)
+    binary_artifacts = f"/projects/{PROJECT}/jobs/{jobs['build']['id']}/artifacts/bin"
+    # Older source snapshots expect inputs/mw regardless of the upstream filename.
+    try:
+        api.request(f"{binary_artifacts}/wm", destination=directory / "mw")
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+        error.close()
+        api.request(f"{binary_artifacts}/mw", destination=directory / "mw")
+    snapshot_job = jobs["prepare-mediawiki"]["id"]
+    api.request(f"/projects/{PROJECT}/jobs/{snapshot_job}/artifacts/.cache/mediawiki-snapshot.txt",
+                destination=directory / "mediawiki-snapshot.txt")
     prepare_source(api, plan, jobs, directory)
     plan["tests"] = test_plan(api, plan, jobs)
     output("test_matrix", json.dumps({"include": plan["tests"]}, separators=(",", ":")))
@@ -150,7 +156,7 @@ def prepare_source(api, plan, jobs, directory):
                     destination=directory / "source.bundle")
         git("fetch", str((directory / "source.bundle").resolve()), "HEAD", cwd=source)
     else:
-        git("fetch", "https://gitlab.wikimedia.org/repos/releng/cli.git", plan["source_sha"], cwd=source)
+        git("fetch", api.project_clone_url(), plan["source_sha"], cwd=source)
     plan["tested_sha"] = commit_sha(git("rev-parse", "FETCH_HEAD", cwd=source))
     git("merge-base", "--is-ancestor", plan["source_sha"], plan["tested_sha"], cwd=source)
     if "prepare-merge" not in jobs:

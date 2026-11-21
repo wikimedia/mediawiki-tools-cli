@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import urllib.error
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("native", Path(__file__).with_name("gitlab-native.py"))
@@ -30,6 +31,7 @@ class FakeGitLab:
         self.matrix = []
         self.test_plan = None
         self.downloaded = []
+        self.binary_name = "mw"
 
     def get(self, path):
         if path == "/projects/16/jobs/19":
@@ -61,6 +63,8 @@ class FakeGitLab:
 
     def request(self, path, destination):
         self.downloaded.append(path)
+        if "/artifacts/bin/" in path and not path.endswith(f"/{self.binary_name}"):
+            raise urllib.error.HTTPError(path, 404, "Artifact not found", {}, None)
         if path.endswith("mediawiki-snapshot.txt"):
             checksum = "b" * 64
             Path(destination).write_text(
@@ -212,8 +216,23 @@ class CallbackTests(unittest.TestCase):
             self.assertEqual(plan["source_sha"], api.sha)
             self.assertEqual(plan["tested_sha"], tested_sha)
             self.assertEqual(len(api.posted), len(native.TESTS) + 1)
+            self.assertEqual(api.downloaded[:2], [
+                "/projects/16/jobs/17/artifacts/bin/wm", "/projects/16/jobs/17/artifacts/bin/mw",
+            ])
             self.assertEqual(api.posted[-1][1]["name"], native.SUMMARY_CONTEXT)
             self.assertTrue(all(body["state"] == "pending" for _, body in api.posted))
+
+    def test_branch_snapshot_fetches_the_exact_commit_from_the_resolved_clone_url(self):
+        url = "https://gitlab.wikimedia.org/repos/a-wikimedia-cli/wm.git"
+        api = native.GitLab()
+        plan = {"source_sha": SHA}
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            api, "project_clone_url", return_value=url
+        ), patch.object(native, "git", return_value=SHA) as git:
+            directory = Path(temporary)
+            native.prepare_source(api, plan, {}, directory)
+            git.assert_any_call("fetch", url, SHA, cwd=directory / "repository.git")
+            self.assertEqual(plan["tested_sha"], SHA)
 
     def test_new_workflow_jobs_are_discovered_without_a_test_registry_entry(self):
         jobs = {"jobs": [
@@ -235,6 +254,7 @@ class CallbackTests(unittest.TestCase):
 
     def test_preparation_expands_the_single_request_artifact_without_github_main_test_entries(self):
         api = FakeGitLab()
+        api.binary_name = "wm"
         api.test_plan = [{"platform": "windows-amd64", "test": "future-test"}]
         def source(api, plan, jobs, directory):
             plan["tested_sha"] = SHA
@@ -245,6 +265,9 @@ class CallbackTests(unittest.TestCase):
         }):
             directory = Path(temporary) / "inputs"
             native.prepare(api, 19, directory)
+            self.assertEqual((directory / "mw").read_bytes(), b"fixture")
+            self.assertEqual([path for path in api.downloaded if "/artifacts/bin/" in path],
+                             ["/projects/16/jobs/17/artifacts/bin/wm"])
             self.assertTrue((directory / "mediawiki-snapshot.txt").exists())
             self.assertFalse(any(path.endswith("mediawiki.tar.gz") for path in api.downloaded))
             plan = json.loads((directory / "plan.json").read_text())
@@ -254,6 +277,18 @@ class CallbackTests(unittest.TestCase):
             self.assertEqual(json.loads(values["test_matrix"]), {"include": plan["tests"]})
         self.assertEqual({body["name"] for _, body in api.posted},
                          {"github/windows-amd64/future-test", native.SUMMARY_CONTEXT})
+
+    def test_preparation_surfaces_binary_download_errors_other_than_not_found(self):
+        api = FakeGitLab()
+        denied = urllib.error.HTTPError("", 403, "Forbidden", {}, None)
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"GITHUB_RUN_ATTEMPT": "1"}
+        ), patch.object(api, "request", side_effect=denied) as request:
+            directory = Path(temporary)
+            with self.assertRaises(urllib.error.HTTPError) as error:
+                native.prepare(api, 19, directory)
+            self.assertIs(error.exception, denied)
+            request.assert_called_once_with("/projects/16/jobs/17/artifacts/bin/wm", destination=directory / "mw")
 
     def test_request_plan_selects_new_platforms_and_missing_tests_fail_closed(self):
         api = FakeGitLab()
