@@ -116,6 +116,9 @@
     {
       "source": "guides/wiki/files.md",
       "legacy_url": "https://www.mediawiki.org/wiki/Cli/guide/Upload_files"
+    },
+    {
+      "source": "guides/wiki/translatewiki-gerrit-onboarding.md"
     }
   ]
 }

@@ -339,9 +339,9 @@ Subject under ~72 characters, imperative mood, body wrapped at ~72. Omit the
   in isolation (see Determinism).
 - Reuse existing internals rather than reimplementing:
     - `cli.NewHTTPClient()` for Gerrit HTTPS reads (consistent User-Agent).
-    - The pattern in `commands/gerrit` for anything needing authenticated Gerrit
-      access; `git review` is invoked as a subprocess in the config repo, matching
-      how other commands shell out.
+    - The named-profile and credential helpers used by `commands/gerrit` for
+      any authenticated Gerrit requests. Invoke `git review` in the config
+      repository using its configured Git and SSH credentials.
     - `internal/util/...` helpers for running subprocesses and prompting, honoring
       `--no-interaction`.
 - The `.txt` parser/writer must round-trip existing files without reformatting
