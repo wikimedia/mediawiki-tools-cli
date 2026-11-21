@@ -121,7 +121,7 @@ func (r binaryResolver) resolve(ctx context.Context, machine string, stdout io.W
 	if err != nil {
 		return nil, "", err
 	}
-	request.Header.Set("User-Agent", cli.HTTPUserAgent)
+	request.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := r.client.Do(request)
 	if err != nil {
 		return nil, "", err
@@ -171,7 +171,7 @@ func (r binaryResolver) get(ctx context.Context, url string, limit int64) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("User-Agent", cli.HTTPUserAgent)
+	request.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := r.client.Do(request)
 	if err != nil {
 		return nil, err

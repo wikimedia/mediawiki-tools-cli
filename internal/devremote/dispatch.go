@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
 	"golang.org/x/term"
 )
 
@@ -70,6 +72,9 @@ func Early(args []string, stdin *os.File, stdout, stderr io.Writer) (bool, int) 
 	if err != nil {
 		return true, report(err, stderr)
 	}
+	if err := checkRemoteAccessPolicy(args); err != nil {
+		return true, report(err, stderr)
+	}
 	if c.Directory != "" {
 		if err := controlRequest(ctx, name, "/sync", nil); err != nil {
 			return true, report(fmt.Errorf("synchronize the context before running the command; reopen the remote session: %w", err), stderr)
@@ -91,6 +96,36 @@ func Early(args []string, stdin *os.File, stdout, stderr io.Writer) (bool, int) 
 	child := t.command(ctx, extra, command)
 	child.Stdin, child.Stdout = stdin, stdout
 	return true, report(child.Run(), stderr)
+}
+
+// Remote dispatch happens before Cobra applies the local access policy.
+func checkRemoteAccessPolicy(args []string) error {
+	command := &cobra.Command{}
+	accesspolicy.AddFlag(command)
+	for _, arg := range args {
+		if arg == "--" {
+			break
+		}
+		name, value, explicit := strings.Cut(arg, "=")
+		if name != "--"+accesspolicy.Flag {
+			continue
+		}
+		if !explicit {
+			value = "true"
+		}
+		if err := command.PersistentFlags().Set(accesspolicy.Flag, value); err != nil {
+			return err
+		}
+	}
+
+	publicOnly, err := accesspolicy.CLI(command, "")
+	if err != nil {
+		return err
+	}
+	if publicOnly {
+		return errors.New("remote development commands do not support --public-only")
+	}
+	return nil
 }
 
 func routeArguments(args []string) (root, name string, control bool) {

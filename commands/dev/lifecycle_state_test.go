@@ -268,7 +268,7 @@ func TestRememberRunningServicesAvoidsCompletedSetupContainers(t *testing.T) {
 	if err := rememberRunningDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if len(p.started) != 0 {
@@ -280,7 +280,7 @@ func TestRememberRunningServicesAvoidsCompletedSetupContainers(t *testing.T) {
 	if err := rememberRunningDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mediawiki", "mysql"}) {
