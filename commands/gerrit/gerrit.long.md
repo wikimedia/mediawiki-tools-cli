@@ -8,6 +8,15 @@ default, and `--profile NAME` on any Gerrit command to select another account.
 SSH commands use the selected profile's username and your configured SSH keys.
 Your SSH agent/config must support connecting to `gerrit.wikimedia.org`.
 
+## Check out a change
+
+From a clean Git checkout of the project, run `mw gerrit checkout 1370181`
+to check out the latest patchset as a detached HEAD. Pass `--patchset 4` to
+select an older revision, or pass a Gerrit URL for that patchset. The command
+requires a matching Git remote and works without a Gerrit account for public
+changes. To clone missing repos or apply dependencies across a MediaWiki
+development environment, use `mw dev mediawiki apply-patches`.
+
 ## Continuous integration
 
 `mw gerrit ci status 1372985` shows public Jenkins results reported in Gerrit

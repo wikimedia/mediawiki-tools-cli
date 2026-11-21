@@ -12,6 +12,7 @@ import (
 	"github.com/andygrunwald/go-gerrit"
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	gerritapi "gitlab.wikimedia.org/repos/releng/cli/internal/gerrit"
 )
 
 // GerritChangeInfo holds the relevant details extracted from a Gerrit change.
@@ -164,21 +165,12 @@ func FetchGerritChangeInfo(ctx context.Context, changeID, preferredBranch, prefe
 		return nil, fmt.Errorf("change %s: revision %s not found in revisions map", changeID, change.CurrentRevision)
 	}
 
-	fetchURL := ""
-	ref := revision.Ref
+	fetchURL, ref := gerritapi.RevisionFetch(change.Project, revision)
 	message := revision.Commit.Message
 	if message == "" {
 		message = revision.MessageWithFooter
 	}
 	dependsOn := extractDependsOnChangeIDs(message)
-	if fetchInfo, ok := revision.Fetch["anonymous http"]; ok {
-		fetchURL = fetchInfo.URL
-		if fetchInfo.Ref != "" {
-			ref = fetchInfo.Ref
-		}
-	} else {
-		fetchURL = "https://gerrit.wikimedia.org/r/" + change.Project
-	}
 
 	return &GerritChangeInfo{
 		Number:    change.Number,

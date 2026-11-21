@@ -37,6 +37,9 @@ func NewGerritCmd() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			if parent := cmd.Parent(); parent != nil {
+				if parent.Name() == "gerrit" && cmd.Name() == "checkout" {
+					return nil
+				}
 				switch parent.Name() {
 				case "dotgitreview", "ci":
 					return nil
@@ -118,6 +121,7 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAuthCmd(&profile))
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
 	cmd.AddCommand(newCICmd())
+	cmd.AddCommand(newCheckoutCmd())
 
 	// Generated command trees are documented and exercised by their generator's
 	// fixtures. Keep linti focused on the handwritten Gerrit commands here.
