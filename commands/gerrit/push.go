@@ -21,20 +21,21 @@ import (
 var changeIDPattern = regexp.MustCompile(`^I[0-9a-fA-F]{40}$`)
 
 func newPushCmd() *cobra.Command {
-	var dryRun, https bool
+	var dryRun, https, wip bool
 	var branch, remote string
 	cmd := &cobra.Command{
 		Use:     "push",
 		Short:   "Upload commits from this Git checkout for Gerrit review",
-		Long:    "Push the current commit stack to refs/for/<branch>. Use --dry-run to show the outgoing commits and matching public reviews without uploading. --https uses the selected Gerrit profile’s saved HTTP password.",
-		Example: "push --dry-run\npush --remote origin --branch master\npush --https",
+		Long:    "Push the current commit stack to refs/for/<branch>. Use --dry-run to show the outgoing commits and matching public reviews without uploading. --https uses the selected Gerrit profile’s saved HTTP password. --wip marks the uploaded reviews work in progress.",
+		Example: "push --dry-run\npush --remote origin --branch master\npush --wip\npush --https",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			plan, err := planGerritPush(cmd.Context(), remote, branch, https)
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Remote %s: %s\nTarget: refs/for/%s\n", plan.remote, gerritSetupURL(plan.address), plan.branch)
+			plan.wip = wip
+			fmt.Fprintf(cmd.OutOrStdout(), "Remote %s: %s\nTarget: %s\n", plan.remote, gerritSetupURL(plan.address), plan.targetRef())
 			if dryRun {
 				return previewGerritPush(cmd, plan)
 			}
@@ -42,6 +43,7 @@ func newPushCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview the upload without pushing")
+	cmd.Flags().BoolVar(&wip, "wip", false, "Mark uploaded reviews as work in progress")
 	cmd.Flags().BoolVar(&https, "https", false, "Use HTTPS and the selected profile’s saved HTTP password")
 	cmd.Flags().StringVar(&branch, "branch", "", "Target branch in Gerrit")
 	cmd.Flags().StringVar(&remote, "remote", "", "Git remote to use (default: Git's push remote)")
@@ -53,6 +55,15 @@ func newPushCmd() *cobra.Command {
 
 type gerritPushPlan struct {
 	remote, address, project, head, branch, tip string
+	wip                                         bool
+}
+
+func (plan gerritPushPlan) targetRef() string {
+	ref := "refs/for/" + plan.branch
+	if plan.wip {
+		ref += "%wip"
+	}
+	return ref
 }
 
 func planGerritPush(ctx context.Context, remote, branch string, forceHTTPS bool) (gerritPushPlan, error) {
@@ -339,7 +350,7 @@ func uploadGerritPush(cmd *cobra.Command, plan gerritPushPlan) error {
 		return fmt.Errorf("Git would rewrite the resolved push URL again; check your Git URL rewrites or select another remote")
 	}
 	args := append(options, "-c", "push.pushOption=", "push", "--no-follow-tags", "--no-mirror", "--recurse-submodules=no",
-		"--", plan.address, plan.head+":refs/for/"+plan.branch)
+		"--", plan.address, plan.head+":"+plan.targetRef())
 	git := gerritGit(ctx, "", args...)
 	git.Stdin, git.Stdout, git.Stderr = cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()
 	if isHTTPS {

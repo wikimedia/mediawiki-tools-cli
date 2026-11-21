@@ -70,12 +70,12 @@ func TestGerritPushPreviewWithDetachedHEADAndRemoteTipMissingLocally(t *testing.
 	cmd := NewGerritCmd()
 	cmd.SetOut(&out)
 	cmd.SetErr(&out)
-	cmd.SetArgs([]string{"push", "--dry-run"})
+	cmd.SetArgs([]string{"push", "--dry-run", "--wip"})
 	if err := cmd.ExecuteContext(t.Context()); err != nil {
 		t.Fatalf("%v\n%s", err, out.String())
 	}
 	for _, want := range []string{
-		push, "Target: refs/for/main", "First proposed change", id,
+		push, "Target: refs/for/main%wip", "First proposed change", id,
 		"Would update review 42: https://gerrit.wikimedia.org/r/42", "Second proposed change", "Missing Change-Id",
 	} {
 		if !strings.Contains(out.String(), want) {

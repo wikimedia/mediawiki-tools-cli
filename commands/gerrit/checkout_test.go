@@ -63,7 +63,7 @@ func TestGerritCheckout(t *testing.T) {
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body)), Request: req}, nil
 	})
 
-	run := func(args ...string) (string, error) {
+	runTransfer := func(command string, args ...string) (string, error) {
 		t.Helper()
 		cmd := &cobra.Command{Use: "wm"}
 		cmd.AddGroup(&cobra.Group{ID: "service", Title: "Service commands"})
@@ -71,9 +71,12 @@ func TestGerritCheckout(t *testing.T) {
 		var output bytes.Buffer
 		cmd.SetOut(&output)
 		cmd.SetErr(&output)
-		cmd.SetArgs(append([]string{"gerrit", "checkout"}, args...))
+		cmd.SetArgs(append([]string{"gerrit", command}, args...))
 		err := cmd.ExecuteContext(t.Context())
 		return output.String(), err
+	}
+	run := func(args ...string) (string, error) {
+		return runTransfer("checkout", args...)
 	}
 	for _, test := range []struct {
 		args []string
@@ -116,5 +119,46 @@ func TestGerritCheckout(t *testing.T) {
 	}
 	if _, err := run("1370181"); err == nil || !strings.Contains(err.Error(), "uncommitted changes") {
 		t.Fatalf("expected dirty worktree error, got %v", err)
+	}
+
+	// Fetch works with a dirty worktree and updates only FETCH_HEAD and objects.
+	git(worktree, "switch", "--quiet", "main")
+	git(worktree, "add", "local.txt")
+	if err := os.WriteFile(filepath.Join(worktree, "local.txt"), []byte("unstaged edit"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	base := git(worktree, "rev-parse", "HEAD")
+	status := git(worktree, "status", "--porcelain")
+	refs := git(worktree, "for-each-ref")
+	git(worktree, "remote", "set-url", "origin", "https::"+canonical)
+	for _, test := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"1370181"}, latest},
+		{[]string{"https://gerrit.wikimedia.org/r/c/mediawiki/extensions/WSOAuth/+/1370181/4"}, older},
+	} {
+		out, err := runTransfer("fetch", test.args...)
+		if err != nil || !strings.Contains(out, "into FETCH_HEAD") {
+			t.Fatalf("fetch %v: %v\n%s", test.args, err, out)
+		}
+		if fetched := git(worktree, "rev-parse", "FETCH_HEAD"); fetched != test.want {
+			t.Fatalf("fetch %v wrote %s to FETCH_HEAD, want %s", test.args, fetched, test.want)
+		}
+		if git(worktree, "rev-parse", "HEAD") != base || git(worktree, "branch", "--show-current") != "main" ||
+			git(worktree, "status", "--porcelain") != status || git(worktree, "for-each-ref") != refs {
+			t.Fatal("fetch changed the checked-out branch, worktree, index or named refs")
+		}
+		data, err := os.ReadFile(filepath.Join(worktree, "local.txt"))
+		if err != nil || string(data) != "unstaged edit" || git(worktree, "show", ":local.txt") != "local work" {
+			t.Fatalf("fetch changed staged or unstaged file contents: %v", err)
+		}
+	}
+	git(worktree, "remote", "set-url", "origin", "https://gerrit.wikimedia.org/r/mediawiki/core")
+	if _, err := runTransfer("fetch", "1370181"); err == nil || !strings.Contains(err.Error(), "no matching remote") {
+		t.Fatalf("expected wrong repository fetch error, got %v", err)
+	}
+	if got := git(worktree, "rev-parse", "FETCH_HEAD"); got != older {
+		t.Fatalf("rejected fetch changed FETCH_HEAD to %s", got)
 	}
 }

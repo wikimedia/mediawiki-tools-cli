@@ -40,13 +40,15 @@ the target or `--remote NAME` to choose a remote. A tracking branch uses its ups
 when the fetch and push URLs identify the same project, even with different
 remote names. If the upstream is ambiguous, specify `--branch`. An untracked
 branch uses the project's default branch. With a detached HEAD, the command uses the target of a matching public Gerrit
-patchset or a unique open review matching the commit's Change-Id.
+patchset or a unique open review matching the commit's Change-Id. Pass
+`--wip` to mark changes as work in progress, including when you upload a new
+patchset to an existing review.
 
 `mw gerrit push --https --profile NAME` selects HTTPS and uses the saved Gerrit
 HTTP password. A Gerrit HTTPS push URL also selects HTTPS. The helper supplies
 credentials to that Git invocation without changing the repository configuration.
 
-## Check out a change
+## Fetch or check out a change
 
 From a clean Git checkout of the project, run `mw gerrit checkout 1370181`
 to check out the latest patchset as a detached HEAD. Pass `--patchset 4` to
@@ -54,6 +56,10 @@ select an older revision, or pass a Gerrit URL for that patchset. The command
 requires a matching Git remote and works without a Gerrit account for public
 changes. To clone missing repos or apply dependencies across a MediaWiki
 development environment, use `mw dev mediawiki apply-patches`.
+
+Use `mw gerrit fetch 1370181 --patchset 4` to download a patchset into
+`FETCH_HEAD` from a matching checkout. Then use `git show FETCH_HEAD` to inspect
+it or `git cherry-pick FETCH_HEAD` to apply it to your branch.
 
 ## Find and inspect reviews
 
