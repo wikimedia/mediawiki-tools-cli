@@ -40,6 +40,8 @@ func TestSuspendResumeIntegration(t *testing.T) {
     stop_grace_period: 1s
     command: [sleep, '600']
   one-shot:
+    labels:
+      org.wikimedia.cli.lifecycle: oneshot
     image: golang:1.23-alpine
     network_mode: none
     command: ['true']

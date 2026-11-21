@@ -283,7 +283,7 @@ func TestResumeAndRestartExcludeProvisioningJobs(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := &fakeLifecycleProject{exited: []string{"mysql", "setup"}, oneShot: map[string]bool{"setup": true}}
-	if err := resumeDevelopmentServices(m, p); err != nil {
+	if _, err := resumeDevelopmentServices(m, p); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(p.started, []string{"mysql"}) {
