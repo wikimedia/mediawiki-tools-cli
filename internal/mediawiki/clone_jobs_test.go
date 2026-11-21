@@ -3,7 +3,7 @@ package mediawiki
 import (
 	"errors"
 	"fmt"
-	"os/exec"
+	osexec "os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -72,12 +72,15 @@ func TestCloneJobsEmptyAndInvalid(t *testing.T) {
 }
 
 func TestCloneLocalRepoAndSetRemote(t *testing.T) {
-	repo := hookTestRepo(t)
+	repo := t.TempDir()
+	if output, err := osexec.Command("git", "init", repo).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %s %v", output, err)
+	}
 	destination := filepath.Join(t.TempDir(), "clone")
 	if err := cloneAndSetRemote(destination, repo, "https://example.invalid/review.git", false, false, false, false); err != nil {
 		t.Fatal(err)
 	}
-	output, err := exec.Command("git", "-C", destination, "remote", "get-url", "origin").Output()
+	output, err := osexec.Command("git", "-C", destination, "remote", "get-url", "origin").Output()
 	if err != nil || strings.TrimSpace(string(output)) != "https://example.invalid/review.git" {
 		t.Fatalf("remote=%q err=%v", output, err)
 	}

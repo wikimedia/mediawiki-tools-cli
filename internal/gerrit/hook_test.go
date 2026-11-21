@@ -1,4 +1,4 @@
-package mediawiki
+package gerrit
 
 import (
 	"net/http"
@@ -48,7 +48,7 @@ func TestInstallGerritCommitHook(t *testing.T) {
 				_, _ = w.Write([]byte(tc.body))
 			}))
 			defer server.Close()
-			err := installGerritCommitHook(dir, server.URL)
+			err := InstallCommitHook(t.Context(), dir, server.URL)
 			if (err != nil) != tc.wantErr {
 				t.Fatalf("err=%v", err)
 			}
@@ -67,7 +67,7 @@ func TestInstallGerritCommitHook(t *testing.T) {
 			if runtime.GOOS != "windows" && info.Mode()&0o100 == 0 {
 				t.Fatal("hook is not executable")
 			}
-			if err := installGerritCommitHook(dir, "http://127.0.0.1:1"); err != nil {
+			if err := InstallCommitHook(t.Context(), dir, "http://127.0.0.1:1"); err != nil {
 				t.Fatalf("existing hook must not trigger download: %v", err)
 			}
 		})
@@ -79,7 +79,7 @@ func TestGerritHookRespectsHooksPath(t *testing.T) {
 	if output, err := osexec.Command("git", "-C", dir, "config", "core.hooksPath", "managed-hooks").CombinedOutput(); err != nil {
 		t.Fatalf("%s: %v", output, err)
 	}
-	if err := installGerritCommitHook(dir, "http://127.0.0.1:1"); err != nil {
+	if err := InstallCommitHook(t.Context(), dir, "http://127.0.0.1:1"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "managed-hooks")); !os.IsNotExist(err) {

@@ -1,6 +1,7 @@
 package mediawiki
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/exec"
+	gerritapi "gitlab.wikimedia.org/repos/releng/cli/internal/gerrit"
 	stringsutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/strings"
 )
 
@@ -217,7 +219,7 @@ func cloneAndSetRemote(directory string, startRemote string, endRemote string, u
 		}
 	}
 	if installHook {
-		if err := installGerritCommitHook(directory, gerritCommitHookURL); err != nil {
+		if err := gerritapi.InstallCommitHook(context.Background(), directory, gerritapi.CommitHookURL); err != nil {
 			logrus.Warnf("Repository cloned, but commit-msg hook setup failed: %v. See https://gerrit.wikimedia.org/r/Documentation/cmd-hook-commit-msg.html", err)
 		}
 	}

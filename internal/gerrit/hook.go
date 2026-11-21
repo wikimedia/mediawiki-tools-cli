@@ -1,6 +1,7 @@
-package mediawiki
+package gerrit
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,14 +11,18 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
 
-const gerritCommitHookURL = "https://gerrit.wikimedia.org/r/tools/hooks/commit-msg"
+const CommitHookURL = secrets.GerritEndpoint + "/tools/hooks/commit-msg"
 
-func installGerritCommitHook(directory, source string) error {
+// InstallCommitHook installs the Gerrit hook while preserving existing and managed hooks.
+func InstallCommitHook(ctx context.Context, directory, source string) error {
 	// A configured hooksPath may be shared or managed by the user: leave it alone,
 	// including an explicitly empty value used to disable hooks.
-	if _, err := osexec.Command("git", "-C", directory, "config", "--get", "core.hooksPath").Output(); err == nil {
+	if _, err := osexec.CommandContext(ctx, "git", "-C", directory, "config", "--get", "core.hooksPath").Output(); err == nil {
 		return nil
 	} else {
 		var exitErr *osexec.ExitError
@@ -25,7 +30,7 @@ func installGerritCommitHook(directory, source string) error {
 			return fmt.Errorf("read core.hooksPath: %w", err)
 		}
 	}
-	output, err := osexec.Command("git", "-C", directory, "rev-parse", "--git-path", "hooks/commit-msg").Output()
+	output, err := osexec.CommandContext(ctx, "git", "-C", directory, "rev-parse", "--git-path", "hooks/commit-msg").Output()
 	if err != nil {
 		return fmt.Errorf("locate Git hooks: %w", err)
 	}
@@ -39,11 +44,11 @@ func installGerritCommitHook(directory, source string) error {
 		return err
 	}
 	client := &http.Client{Timeout: 15 * time.Second}
-	request, err := http.NewRequest(http.MethodGet, source, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, source, nil)
 	if err != nil {
 		return fmt.Errorf("create hook download request: %w", err)
 	}
-	request.Header.Set("User-Agent", mwcliUserAgent())
+	request.Header.Set("User-Agent", cli.HTTPUserAgent())
 	response, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("download commit-msg hook: %w", err)
