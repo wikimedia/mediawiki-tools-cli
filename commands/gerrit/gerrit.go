@@ -36,9 +36,11 @@ func NewGerritCmd() *cobra.Command {
 		RunE:    nil,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
-			// Local .gitreview commands do not need HTTP credentials.
-			if cmd.Parent() != nil && cmd.Parent().Name() == "dotgitreview" {
-				return nil
+			if parent := cmd.Parent(); parent != nil {
+				switch parent.Name() {
+				case "dotgitreview", "ci":
+					return nil
+				}
 			}
 			// Credential management must work even if an old keyring is locked.
 			if cmd.Parent() != nil && cmd.Parent().Name() == "auth" && cmd.Name() != "status" {
@@ -115,6 +117,7 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritSSHCmd())
 	cmd.AddCommand(NewGerritAuthCmd(&profile))
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
+	cmd.AddCommand(newCICmd())
 
 	// Generated command trees are documented and exercised by their generator's
 	// fixtures. Keep linti focused on the handwritten Gerrit commands here.
