@@ -38,10 +38,18 @@ dev:
 release: $(GOX) $(GOVVV) generate
 	$(GOX) -parallel=$(RELEASE_PARALLEL) -output="$(RELEASE_DIR)/$(SEMVER)/$(BINARY_NAME)_$(VERSION)_{{.OS}}_{{.Arch}}" -osarch='$(TARGETS)' -ldflags '$(shell $(GOVVV) -flags -version $(SEMVER))' $(GO_PACKAGES)
 	cp LICENSE "$(RELEASE_DIR)"
-	rm -f ./_release/latest/*.sha256
-	for f in "$(RELEASE_DIR)"/$(SEMVER)/$(BINARY_NAME)_*; do \
-		shasum -a 256 "$${f}" | awk '{print $$1}' > "$${f}.sha256"; \
-	done
+	set -e; shopt -s nullglob; \
+	found_binary=0; \
+	for f in "$(RELEASE_DIR)/$(SEMVER)/$(BINARY_NAME)_$(VERSION)_"*; do \
+		[[ -f "$$f" && "$$f" != *.sha256 ]] || continue; \
+		digest=$$(shasum -a 256 "$$f"); \
+		printf '%s\n' "$${digest%% *}" > "$$f.sha256"; \
+		found_binary=1; \
+	done; \
+	if [[ $$found_binary == 0 ]]; then \
+		echo "No release binaries found for $(BINARY_NAME) $(VERSION)" >&2; \
+		exit 1; \
+	fi
 
 .PHONY: generate
 generate:
