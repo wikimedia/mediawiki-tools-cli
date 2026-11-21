@@ -180,7 +180,7 @@ func runCloudVPSSSH(cmd *cobra.Command, args []string, opts sshOptions) error {
 		var exit *osexec.ExitError
 		if errors.As(err, &exit) && exit.ExitCode() >= 0 {
 			if exit.ExitCode() == 255 {
-				cmd.PrintErrln("SSH connection failed. Check your developer shell username, project membership and key at https://idm.wikimedia.org; use mw -vv cloudvps ssh for SSH diagnostics.")
+				cmd.PrintErrf("SSH connection failed. Check your developer shell username, project membership and key at https://idm.wikimedia.org. Use %s -vv cloudvps ssh for SSH diagnostics.\n", cmd.Root().Name())
 			}
 			root := cmd.Root()
 			if root.Annotations == nil {

@@ -18,12 +18,15 @@ import (
 func TestNightlyDiscoverySelectsOnlyItsSuccessfulScheduledPipeline(t *testing.T) {
 	previousURL, previousOS, previousArch := wikimediav4ApiURL, outOs, arch
 	t.Cleanup(func() { wikimediav4ApiURL, outOs, arch = previousURL, previousOS, previousArch })
-	for _, scenario := range []string{"linux", "windows", "no nightly", "wrong pipeline", "expired", "missing artifact"} {
+	for _, scenario := range []string{"linux", "windows fallback", "no nightly", "wrong pipeline", "expired", "missing artifact", "missing executable", "forbidden"} {
 		t.Run(scenario, func(t *testing.T) {
 			outOs, arch = "linux", "amd64"
-			if scenario == "windows" {
+			name := cli.BinaryNames()[0]
+			if scenario == "windows fallback" {
 				outOs = "windows"
+				name = cli.BinaryNames()[1]
 			}
+			artifactPath := "/api/v4/projects/16/jobs/99/artifacts/_release/nightly/"
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				switch r.URL.Path {
@@ -51,6 +54,23 @@ func TestNightlyDiscoverySelectsOnlyItsSuccessfulScheduledPipeline(t *testing.T)
 					}
 					_ = json.NewEncoder(w).Encode([]map[string]any{{"id": 99, "name": "build-release", "status": "success", "ref": "scheduled", "artifacts_file": map[string]any{"size": size}, "artifacts_expire_at": expiry}})
 				default:
+					for _, prefix := range cli.BinaryNames() {
+						if r.URL.Path != artifactPath+releaseBinaryName(prefix, "nightly", outOs, arch) {
+							continue
+						}
+						if r.Method != http.MethodHead {
+							t.Errorf("artifact probe used %s, want HEAD", r.Method)
+						}
+						switch {
+						case scenario == "forbidden" && prefix == cli.BinaryNames()[0]:
+							w.WriteHeader(http.StatusForbidden)
+						case scenario == "missing executable" || prefix != name && scenario != "forbidden":
+							w.WriteHeader(http.StatusNotFound)
+						default:
+							w.WriteHeader(http.StatusOK)
+						}
+						return
+					}
 					t.Errorf("unexpected API path %s", r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
 				}
@@ -58,13 +78,13 @@ func TestNightlyDiscoverySelectsOnlyItsSuccessfulScheduledPipeline(t *testing.T)
 			defer server.Close()
 			wikimediav4ApiURL = server.URL + "/api/v4/"
 			got, err := RelengCliNightlyBinaryURL()
-			if scenario != "linux" && scenario != "windows" {
+			if scenario != "linux" && scenario != "windows fallback" {
 				if err == nil {
 					t.Fatalf("unexpected nightly selected: %s", got)
 				}
 				return
 			}
-			want := server.URL + "/api/v4/projects/16/jobs/99/artifacts/_release/nightly/" + releaseBinaryName(cli.BinaryNames()[0], "nightly", outOs, arch)
+			want := server.URL + artifactPath + releaseBinaryName(name, "nightly", outOs, arch)
 			if err != nil || got != want {
 				t.Fatalf("nightly URL=%q, %v; want %q", got, err, want)
 			}

@@ -115,9 +115,9 @@ func newCloneCmd() *cobra.Command {
 				return fmt.Errorf("cloned to %s; push URL setup failed: %w", directory, err)
 			}
 			if err := gerritapi.InstallCommitHook(cmd.Context(), directory, gerritapi.CommitHookURL); err != nil {
-				return fmt.Errorf("cloned to %s; run mw gerrit setup --install-hook there to retry: %w", directory, err)
+				return fmt.Errorf("cloned to %s; run %s gerrit setup --install-hook there to retry: %w", directory, cmd.Root().Name(), err)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Cloned %s to %s. Run mw gerrit setup --check inside the checkout.\n", project, directory)
+			fmt.Fprintf(cmd.OutOrStdout(), "Cloned %s to %s. Run %s gerrit setup --check inside the checkout.\n", project, directory, cmd.Root().Name())
 			return nil
 		},
 	}

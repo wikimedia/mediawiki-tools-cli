@@ -216,8 +216,22 @@ func RelengCliNightlyBinaryURL() (string, error) {
 		if job.ArtifactsExpireAt != nil && job.ArtifactsExpireAt.Before(time.Now()) {
 			return "", fmt.Errorf("the latest successful nightly artifact has expired; wait for the next nightly build")
 		}
-		filename := releaseBinaryName(cli.BinaryNames()[0], "nightly", outOs, arch)
-		return fmt.Sprintf("%sprojects/%d/jobs/%d/artifacts/_release/nightly/%s", wikimediav4ApiURL, projectID, job.ID, filename), nil
+		for _, name := range cli.BinaryNames() {
+			filename := releaseBinaryName(name, "nightly", outOs, arch)
+			path := fmt.Sprintf("projects/%d/jobs/%d/artifacts/_release/nightly/%s", projectID, job.ID, filename)
+			request, err := client.NewRequest(http.MethodHead, path, nil, nil)
+			if err != nil {
+				return "", err
+			}
+			response, err := client.Do(request, nil)
+			if err == nil {
+				return strings.TrimRight(wikimediav4ApiURL, "/") + "/" + path, nil
+			}
+			if response == nil || response.StatusCode != http.StatusNotFound {
+				return "", fmt.Errorf("check nightly artifact %s: %w", filename, err)
+			}
+		}
+		return "", fmt.Errorf("the latest successful nightly build has no executable for %s/%s", outOs, arch)
 	}
 	return "", fmt.Errorf("the latest successful nightly pipeline has no downloadable build-release artifact")
 }

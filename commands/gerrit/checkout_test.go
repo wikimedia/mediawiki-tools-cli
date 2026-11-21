@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestGerritCheckout(t *testing.T) {
@@ -63,11 +65,13 @@ func TestGerritCheckout(t *testing.T) {
 
 	run := func(args ...string) (string, error) {
 		t.Helper()
-		cmd := NewGerritCmd()
+		cmd := &cobra.Command{Use: "wm"}
+		cmd.AddGroup(&cobra.Group{ID: "service", Title: "Service commands"})
+		cmd.AddCommand(NewGerritCmd())
 		var output bytes.Buffer
 		cmd.SetOut(&output)
 		cmd.SetErr(&output)
-		cmd.SetArgs(append([]string{"checkout"}, args...))
+		cmd.SetArgs(append([]string{"gerrit", "checkout"}, args...))
 		err := cmd.ExecuteContext(t.Context())
 		return output.String(), err
 	}
@@ -101,7 +105,7 @@ func TestGerritCheckout(t *testing.T) {
 		t.Fatalf("checkout landed on %s, want %s", head, older)
 	}
 	git(worktree, "remote", "set-url", "origin", "https://gerrit.wikimedia.org/r/mediawiki/core")
-	if _, err := run("1370181"); err == nil || !strings.Contains(err.Error(), "mw dev mediawiki apply-patches --change 1370181 --clone-missing") {
+	if _, err := run("1370181"); err == nil || !strings.Contains(err.Error(), "wm dev mediawiki apply-patches --change 1370181 --clone-missing") {
 		t.Fatalf("expected wrong repository error, got %v", err)
 	}
 	if head := git(worktree, "rev-parse", "HEAD"); head != older {

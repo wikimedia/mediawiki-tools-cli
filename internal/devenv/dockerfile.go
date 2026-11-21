@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/mount"
 	"gopkg.in/yaml.v2"
 )
@@ -107,7 +108,7 @@ func starterDockerfileContent(service string) string {
 	}
 	return fmt.Sprintf(`# Custom Dockerfile for the %s service.
 # Edit this file to customise the image (e.g. add packages), then run:
-#   mw dev %s rebuild
+#   %s dev %s rebuild
 
 %s
 
@@ -130,7 +131,7 @@ func starterDockerfileContent(service string) string {
 #
 # # 4. Switch back to the default non-root user
 # USER www-data
-`, service, service, fromLine)
+`, service, cli.InvocationName(os.Args[0]), service, fromLine)
 }
 
 // defaultImageForService reads the embedded compose file for the service and returns

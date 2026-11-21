@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	mwconfig "gitlab.wikimedia.org/repos/releng/cli/internal/config"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gopkg.in/ini.v1"
@@ -40,10 +41,11 @@ func loadConfig(profile string) (*PhabConfig, error) {
 	if (selected != "" && mwconfig.HasCredential("phabricator.profiles."+selected+".key")) || mwconfig.HasCredential("phabricator.key") {
 		return nil, err
 	}
+	name := cli.InvocationName(os.Args[0])
 	if path := detectPhabConfig(); path != "" {
-		return nil, fmt.Errorf("no saved Phabricator credentials; found %s. Import and validate it with: mw phab auth login --method phab-cfg --profile <name>", path)
+		return nil, fmt.Errorf("no saved Phabricator credentials; found %s. Import and validate it with: %s phab auth login --method phab-cfg --profile <name>", path, name)
 	}
-	return nil, fmt.Errorf("no saved Phabricator credentials; use mw phab auth login --profile <name>")
+	return nil, fmt.Errorf("no saved Phabricator credentials; use %s phab auth login --profile <name>", name)
 }
 
 // Detection checks file metadata only; it never retrieves or tests a token.

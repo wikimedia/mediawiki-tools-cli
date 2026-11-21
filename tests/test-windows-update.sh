@@ -6,6 +6,8 @@ if [[ "${RUNNER_OS:-}" != "Windows" ]]; then
     echo "This test requires a native Windows runner"
     exit 1
 fi
+source "$(dirname -- "${BASH_SOURCE[0]}")/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 export MWCLI_CONTEXT_TEST=1
 
 TEST_ROOT="$(mktemp -d)"
@@ -14,7 +16,7 @@ mkdir -p "$TEST_ROOT/installed cli" "$TEST_ROOT/update artifact" "$TEST_ROOT/con
 export APPDATA="$(cygpath -w "$TEST_ROOT/config home")"
 INSTALLED="$TEST_ROOT/installed cli/mw.exe"
 REPLACEMENT="$TEST_ROOT/update artifact/mw.exe"
-cp ./bin/mw.exe "$INSTALLED"
+cp "$MW_BIN" "$INSTALLED"
 
 # Distinct bytes let us prove the delayed replacement actually completed.
 go build -ldflags='-X main.GitCommit=windows-update-fixture' -o "$REPLACEMENT" .

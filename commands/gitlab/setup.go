@@ -33,7 +33,7 @@ func newGitlabSetupCmd(session *profileSession) *cobra.Command {
 			out := cmd.OutOrStdout()
 			profile, err := session.credentials()
 			if err == nil && profile == nil {
-				err = fmt.Errorf("no saved GitLab profile; use mw gitlab auth login")
+				err = fmt.Errorf("no saved GitLab profile; use %s gitlab auth login", cmd.Root().Name())
 			}
 			if err == nil {
 				ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)

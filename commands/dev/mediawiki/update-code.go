@@ -49,7 +49,7 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 			}
 			directory := env["MEDIAWIKI_VOLUMES_CODE"]
 			if directory == "" {
-				return fmt.Errorf("MEDIAWIKI_VOLUMES_CODE is not configured; run mw dev mediawiki get-code first")
+				return fmt.Errorf("MEDIAWIKI_VOLUMES_CODE is not configured; run %s dev mediawiki get-code first", cmd.Root().Name())
 			}
 			code, err := mediawiki.ForDirectory(directory)
 			if err != nil {

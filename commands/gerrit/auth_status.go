@@ -10,7 +10,7 @@ import (
 
 func NewGerritAuthStatusCmd() *cobra.Command {
 	return &cobra.Command{Use: "status", Short: "Check the selected Gerrit account's HTTP credentials", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		username, err := checkGerritHTTP(cmd.Context(), gerritUsername, gerritPassword)
+		username, err := checkGerritHTTP(cmd.Context(), gerritUsername, gerritPassword, cmd.Root().Name())
 		if err != nil {
 			return err
 		}
@@ -22,9 +22,9 @@ func NewGerritAuthStatusCmd() *cobra.Command {
 	}}
 }
 
-func checkGerritHTTP(ctx context.Context, username, password string) (string, error) {
+func checkGerritHTTP(ctx context.Context, username, password, commandName string) (string, error) {
 	if username == "" || password == "" {
-		return "", fmt.Errorf("no credentials found; use mw gerrit auth login")
+		return "", fmt.Errorf("no credentials found; use %s gerrit auth login", commandName)
 	}
 	ctx, cancel := context.WithTimeout(ctx, gerritRequestTimeout)
 	defer cancel()

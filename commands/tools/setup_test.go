@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
 	toolforge "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/cli"
 )
 
@@ -21,7 +22,7 @@ func TestToolforgeSetupChecksLoginBeforeToolAccess(t *testing.T) {
 	}{
 		{
 			name: "login only", wantCalls: 1,
-			want: []string{"SSH (login.toolforge.org): authenticated as developer", "mw toolforge create"},
+			want: []string{"SSH (login.toolforge.org): authenticated as developer", "wm toolforge create"},
 		},
 		{
 			name: "SSH rejected", tool: "mytool", loginErr: errors.New("Permission denied (publickey)"), wantCalls: 1,
@@ -54,11 +55,13 @@ func TestToolforgeSetupChecksLoginBeforeToolAccess(t *testing.T) {
 				}
 				return connection.ToolUser, tt.toolErr
 			}
-			cmd := newToolforgeSetupCmd(probe)
-			cmd.Flags().String("tool", "", "Tool account to check")
+			cmd := &cobra.Command{Use: "wm"}
+			setup := newToolforgeSetupCmd(probe)
+			setup.Flags().String("tool", "", "Tool account to check")
+			cmd.AddCommand(setup)
 			var out bytes.Buffer
 			cmd.SetOut(&out)
-			cmd.SetArgs([]string{"--check", "--username", "developer", "--tool", tt.tool})
+			cmd.SetArgs([]string{"setup", "--check", "--username", "developer", "--tool", tt.tool})
 			if err := cmd.ExecuteContext(t.Context()); err != nil {
 				t.Fatal(err)
 			}

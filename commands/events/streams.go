@@ -140,7 +140,7 @@ func NewInfoCmd() *cobra.Command {
 				}
 				return output.PrintJSONEvent(cmd.OutOrStdout(), data)
 			}
-			return fmt.Errorf("unknown public stream %q; use mw events list to see available streams", args[0])
+			return fmt.Errorf("unknown public stream %q; use %s events list to see available streams", args[0], cmd.Root().Name())
 		},
 	}
 }

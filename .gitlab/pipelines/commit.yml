@@ -324,7 +324,13 @@ release-upload:
     - apt -y install curl
   # https://docs.gitlab.com/ee/user/packages/generic_packages/#publish-a-generic-package-by-using-cicd
   script:
-    - echo "Placeholder job, as a conditional upload currently happens as part of release-build awaiting decision on https://phabricator.wikimedia.org/T292372"
+    - |
+      mw_artifact=$(find ./_release -type f -name 'mw_*' -print -quit)
+      wm_artifact=$(find ./_release -type f -name 'wm_*' -print -quit)
+      if [ -n "$mw_artifact" ] && [ -n "$wm_artifact" ]; then
+        echo "Release output contains both mw_ and wm_ files. Rebuild with one prefix in a clean release directory." >&2
+        exit 1
+      fi
     - >
       for release_path in  $(find ./_release -type f); do
         release_file=$(echo $release_path | sed "s/.*\///")

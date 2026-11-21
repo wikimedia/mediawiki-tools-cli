@@ -124,7 +124,7 @@ func addPushViaAPIFlag(glabCommand *cobra.Command) {
 
 	originalRunE := createCommand.RunE
 	var pushViaAPI bool
-	createCommand.Flags().BoolVar(&pushViaAPI, "push-via-api", false, "Push with Git over HTTPS using your mw gl token credentials.")
+	createCommand.Flags().BoolVar(&pushViaAPI, "push-via-api", false, "Push with Git over HTTPS using your saved GitLab token.")
 
 	createCommand.RunE = func(cmd *cobra.Command, args []string) error {
 		if !pushViaAPI {

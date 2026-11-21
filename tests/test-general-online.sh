@@ -3,17 +3,18 @@
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 
 export MWCLI_CONTEXT_TEST=1
 
-test_command_success_or_matching_failure 'quip service returned HTTP 503:' ./bin/mw quip
+test_command_success_or_matching_failure 'quip service returned HTTP 503:' "$MW_BIN" quip
 
-test_command_success_with_retries 3 2 ./bin/mw codesearch search addshore
+test_command_success_with_retries 3 2 "$MW_BIN" codesearch search addshore
 
-test_command_success_with_retries 3 2 ./bin/mw toolhub tools list
-test_command_success_with_retries 3 2 ./bin/mw toolhub tools search addshore
-test_command_success_with_retries 3 2 ./bin/mw toolhub tools get toolforge-bash
+test_command_success_with_retries 3 2 "$MW_BIN" toolhub tools list
+test_command_success_with_retries 3 2 "$MW_BIN" toolhub tools search addshore
+test_command_success_with_retries 3 2 "$MW_BIN" toolhub tools get toolforge-bash
 
 # Ignore linting e2e suggestions for some commands that are too involved with online things for now
 # SUGGEST cmd: mw tools: (end-to-end-test) End to end tests are suggested, none found

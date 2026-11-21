@@ -119,16 +119,17 @@ networks:
             env["GATEWAY_TEST_BIND_ADDR"] = "0.0.0.0"
         context = "gateway-test-" + secrets.token_hex(4)
         base = ["docker", "compose", "-p", "mwcli-mwdd-" + context, "-f", str(work / "compose.yml")]
-        binary = Path(os.environ.get("MW_BIN", ROOT / "bin/mw")).resolve()
-        if not binary.is_file():
-            raise RuntimeError("Build ./bin/mw before running the gateway integration check")
+        binary = subprocess.check_output(
+            ["bash", "-c", 'source "$1"; test_cli_binary "${MW_BIN:-}"',
+             "gateway-test", str(ROOT / "tests/functions.sh")], text=True,
+        ).strip()
         state = work / "state"
         state.mkdir()
         (state / "config.json").write_text(json.dumps({"telemetry": "no", "timer_last_update_checked": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}))
         cli_env = dict(env, GITLAB_CI="true", CI_PROJECT_DIR=str(state), MWCLI_CONTEXT_TEST="1", PORT="8080", NETWORK_SUBNET_PREFIX="192.168.249", MEDIAWIKI_VOLUMES_CODE=str(work))
 
         def mw(*args):
-            result = subprocess.run([str(binary), "--no-interaction", "dev", "--context", context, *args], text=True, capture_output=True, timeout=60, env=cli_env)
+            result = subprocess.run([binary, "--no-interaction", "dev", "--context", context, *args], text=True, capture_output=True, timeout=60, env=cli_env)
             if result.returncode:
                 raise RuntimeError(result.stdout + result.stderr)
             return result.stdout.strip()

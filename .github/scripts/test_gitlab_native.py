@@ -214,6 +214,7 @@ class CallbackTests(unittest.TestCase):
                 native.prepare(api, 19, root / "inputs")
             plan = json.loads((root / "inputs/plan.json").read_text())
             self.assertEqual(plan["source_sha"], api.sha)
+            self.assertEqual(plan["binary_name"], "mw")
             self.assertEqual(plan["tested_sha"], tested_sha)
             self.assertEqual(len(api.posted), len(native.TESTS) + 1)
             self.assertEqual(api.downloaded[:2], [
@@ -271,6 +272,7 @@ class CallbackTests(unittest.TestCase):
             self.assertTrue((directory / "mediawiki-snapshot.txt").exists())
             self.assertFalse(any(path.endswith("mediawiki.tar.gz") for path in api.downloaded))
             plan = json.loads((directory / "plan.json").read_text())
+            self.assertEqual(plan["binary_name"], "wm")
             self.assertEqual(plan["tests"], [{"platform": "windows-amd64", "test": "future-test",
                                               "name": "windows-amd64/future-test"}])
             values = dict(call.args for call in output.call_args_list)

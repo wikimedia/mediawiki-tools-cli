@@ -63,7 +63,7 @@ func newSetupCmd() *cobra.Command {
 				}
 			}
 			if err == nil {
-				username, err = checkGerritHTTP(cmd.Context(), username, password)
+				username, err = checkGerritHTTP(cmd.Context(), username, password, cmd.Root().Name())
 			}
 			if err != nil {
 				output.PrintCheck(cmd.OutOrStdout(), false, "HTTP credentials: %v", err)
@@ -177,7 +177,7 @@ func checkGerritHook(cmd *cobra.Command) bool {
 		if _, err := gitOutput(cmd.Context(), "", "config", "--get", "core.hooksPath"); err == nil {
 			fmt.Fprintf(cmd.OutOrStdout(), "  Configure the hook at your managed hooks path: %s\n", gerritapi.CommitHookURL)
 		} else {
-			fmt.Fprintln(cmd.OutOrStdout(), "  Install it with mw gerrit setup --install-hook")
+			fmt.Fprintf(cmd.OutOrStdout(), "  Install it with %s gerrit setup --install-hook\n", cmd.Root().Name())
 		}
 	case err != nil:
 		output.PrintCheck(cmd.OutOrStdout(), false, "commit-msg hook: %v", err)
@@ -270,7 +270,7 @@ func checkGerritSSH(cmd *cobra.Command, target gerritSSHTarget) bool {
 	case strings.Contains(message, "remote host identification has changed"), strings.Contains(message, "host key verification failed"):
 		fmt.Fprintln(out, "  Verify the Gerrit host key: https://www.mediawiki.org/wiki/Gerrit/Tutorial#Set_Up_SSH_Keys_in_Gerrit")
 	case strings.Contains(message, "permission denied") || strings.Contains(message, "no supported authentication methods"):
-		fmt.Fprintln(out, "  Check ssh-add -l and the SSH username above. Register a public key with mw gerrit ssh-key add <public-key-file>.")
+		fmt.Fprintf(out, "  Check ssh-add -l and the SSH username above. Register a public key with %s gerrit ssh-key add <public-key-file>.\n", cmd.Root().Name())
 		return true
 	case ctx.Err() != nil || strings.Contains(message, "connect to host") || strings.Contains(message, "resolve hostname"):
 		fmt.Fprintln(out, "  Check network access to the SSH host and port above. Gerrit also supports Git over HTTPS.")

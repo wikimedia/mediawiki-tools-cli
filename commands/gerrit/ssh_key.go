@@ -25,7 +25,7 @@ func newSSHKeyCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if gerritUsername == "" || gerritPassword == "" {
-				return fmt.Errorf("no credentials found; use mw gerrit auth login")
+				return fmt.Errorf("no credentials found; use %s gerrit auth login", cmd.Root().Name())
 			}
 			key, err := readGerritPublicKey(args[0])
 			if err != nil {

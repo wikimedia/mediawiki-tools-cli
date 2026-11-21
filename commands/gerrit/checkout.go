@@ -66,7 +66,7 @@ func checkoutChange(cmd *cobra.Command, number, patchset int) error {
 		}
 		return fmt.Errorf("patchset %d is unavailable for Gerrit change %d", patchset, number)
 	}
-	if err := verifyCheckoutRepository(ctx, change.Project, number); err != nil {
+	if err := verifyCheckoutRepository(ctx, change.Project, cmd.Root().Name(), number); err != nil {
 		return err
 	}
 	address, ref, err := verifiedRevisionFetch(change.Project, number, commit, revision)
@@ -122,7 +122,7 @@ func checkoutChangeInfo(ctx context.Context, number, patchset int) (*gogerrit.Ch
 	return change, nil
 }
 
-func verifyCheckoutRepository(ctx context.Context, project string, number int) error {
+func verifyCheckoutRepository(ctx context.Context, project, commandName string, number int) error {
 	// Read the configured URLs before Git applies any insteadOf rewrites.
 	git := osexec.CommandContext(ctx, "git", "config", "--get-regexp", `^remote\..*\.(url|pushurl)$`)
 	remotes, err := git.Output()
@@ -139,7 +139,7 @@ func verifyCheckoutRepository(ctx context.Context, project string, number int) e
 	}
 	message := fmt.Sprintf("change belongs to %s, but the current Git repository has no matching remote. Run this command in that repository", project)
 	if project == "mediawiki/core" || strings.HasPrefix(project, "mediawiki/extensions/") || strings.HasPrefix(project, "mediawiki/skins/") {
-		message += fmt.Sprintf(", or run mw dev mediawiki apply-patches --change %d --clone-missing", number)
+		message += fmt.Sprintf(", or run %s dev mediawiki apply-patches --change %d --clone-missing", commandName, number)
 	}
 	return fmt.Errorf("%s", message)
 }

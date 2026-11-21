@@ -9,6 +9,31 @@ GREEN='\033[0;32m'
 # NO_FINISH=1 - prevents the finish function from doing anything
 # Note: FINISH=1 is handled after all sourcing completes (see _handle_finish_if_needed)
 
+test_cli_binary() {
+    local binary="${1:-}"
+    local bin_dir suffix= legacy
+    if [[ -z "$binary" ]]; then
+        bin_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)" || return 1
+        case "${OSTYPE:-}" in
+            msys*|cygwin*|win32*) suffix=.exe ;;
+        esac
+        binary="$bin_dir/bin/wm$suffix"
+        legacy="$bin_dir/bin/mw$suffix"
+        if [[ ! -f "$binary" || ! -x "$binary" ]]; then
+            binary="$legacy"
+        elif [[ -f "$legacy" && -x "$legacy" && "$legacy" -nt "$binary" ]]; then
+            binary="$legacy"
+        fi
+    fi
+    if [[ ! -f "$binary" || ! -x "$binary" ]]; then
+        printf 'Build wm or mw, or set MW_BIN to an executable (checked %s).\n' "$binary" >&2
+        return 1
+    fi
+    # Preserve the executable's invocation name, including for symlinks.
+    bin_dir="$(cd -- "$(dirname -- "$binary")" && pwd)" || return 1
+    printf '%s/%s\n' "$bin_dir" "${binary##*/}"
+}
+
 test_file_contains() {
     local file="$1"
     local expected_match="$2"
@@ -30,7 +55,7 @@ test_file_contains() {
 test_gateway_auth_args() {
 	if [ -z "${MWCLI_TEST_GATEWAY_PASSWORD:-}" ] || [ -z "${MWCLI_TEST_GATEWAY_USER:-}" ]; then
 		local credentials
-		credentials=$("$SCRIPT_DIR/../bin/mw" dev traefik credentials)
+		credentials=$("$MW_BIN" dev traefik credentials)
 		MWCLI_TEST_GATEWAY_PASSWORD=$(echo "$credentials" | sed -n 's/^Password: //p' | tail -n 1)
 		MWCLI_TEST_GATEWAY_USER=$(echo "$credentials" | sed -n 's/^Username: //p' | tail -n 1)
 	fi

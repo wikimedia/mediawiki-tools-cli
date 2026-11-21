@@ -20,31 +20,52 @@ func TestReleaseMetadataReusesUploadedFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var pipeline map[string]interface{}
+	type releaseJob struct{ Script []string }
+	var pipeline struct {
+		Upload  releaseJob `yaml:"release-upload"`
+		Publish releaseJob `yaml:"release-publish"`
+	}
 	if err := yaml.Unmarshal(source, &pipeline); err != nil {
 		t.Fatal(err)
 	}
-	job := pipeline["release-publish"].(map[string]interface{})
 	loop := ""
-	for _, script := range job["script"].([]interface{}) {
-		if text, ok := script.(string); ok && strings.Contains(text, "for release_path") {
-			loop = text
+	for _, script := range pipeline.Publish.Script {
+		if strings.Contains(script, "for release_path") {
+			loop = script
 		}
 	}
 	if loop == "" {
 		t.Fatal("release asset loop missing")
 	}
-	for _, prefix := range []string{"mw", "wm"} {
+	for _, prefix := range []string{"mw", "wm", "mixed"} {
 		t.Run(prefix, func(t *testing.T) {
 			dir := t.TempDir()
 			releaseDir := filepath.Join(dir, "_release", "1.2.3")
 			if err := os.MkdirAll(releaseDir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			for _, file := range []string{prefix + "_v1.2.3_linux_amd64", prefix + "_v1.2.3_linux_amd64.sha256", "LICENSE"} {
+			filesToUpload := []string{prefix + "_v1.2.3_linux_amd64", prefix + "_v1.2.3_linux_amd64.sha256", "LICENSE"}
+			if prefix == "mixed" {
+				filesToUpload = []string{"mw_v1.2.3_linux_amd64", "wm_v1.2.3_linux_amd64"}
+			}
+			for _, file := range filesToUpload {
 				if err := os.WriteFile(filepath.Join(releaseDir, file), []byte("fixture"), 0o600); err != nil {
 					t.Fatal(err)
 				}
+			}
+			upload := "set -eu\ncurl() { echo upload; }\n" + strings.Join(pipeline.Upload.Script, "\n")
+			uploadCmd := exec.Command(shell, "-c", upload)
+			uploadCmd.Dir = dir
+			uploadCmd.Env = append(os.Environ(), "CI_API_V4_URL=https://gitlab.example/api/v4", "CI_PROJECT_ID=16", "CI_COMMIT_TAG=v1.2.3", "CI_JOB_TOKEN=fixture")
+			uploaded, err := uploadCmd.CombinedOutput()
+			if prefix == "mixed" {
+				if err == nil || !strings.Contains(string(uploaded), "both mw_ and wm_ files") || strings.Contains(string(uploaded), "upload\n") {
+					t.Fatalf("mixed release must fail before uploads: %v: %s", err, uploaded)
+				}
+				return
+			}
+			if err != nil || strings.Count(string(uploaded), "upload\n") != len(filesToUpload) {
+				t.Fatalf("release upload: %v: %s", err, uploaded)
 			}
 			script := "set -eu\nassets_links=\"\"\n" + loop + "\nprintf '%s\\n' ${assets_links}\n"
 			cmd := exec.Command(shell, "-c", script)

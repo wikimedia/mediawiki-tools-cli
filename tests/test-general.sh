@@ -3,32 +3,33 @@
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 
 export MWCLI_CONTEXT_TEST=1
 
-test_command_success ./bin/mw version
+test_command_success "$MW_BIN" version
 
-test_command_success ./bin/mw debug
-test_command_success ./bin/mw debug events
-test_command_success ./bin/mw debug events cat
-test_command_success ./bin/mw debug events submit
+test_command_success "$MW_BIN" debug
+test_command_success "$MW_BIN" debug events
+test_command_success "$MW_BIN" debug events cat
+test_command_success "$MW_BIN" debug events submit
 
-test_command_success ./bin/mw config
-test_command_success ./bin/mw config show
-test_command_success ./bin/mw config where
+test_command_success "$MW_BIN" config
+test_command_success "$MW_BIN" config show
+test_command_success "$MW_BIN" config where
 # Roundtrip setting a single value
-PREVIOUS_TELEMETRY_VAL=$(./bin/mw config get telemetry)
-test_command_success ./bin/mw config set telemetry foo
-test_command ./bin/mw config get telemetry "foo"
-./bin/mw config set telemetry "$PREVIOUS_TELEMETRY_VAL"
+PREVIOUS_TELEMETRY_VAL=$("$MW_BIN" config get telemetry)
+test_command_success "$MW_BIN" config set telemetry foo
+test_command "$MW_BIN" config get telemetry "foo"
+"$MW_BIN" config set telemetry "$PREVIOUS_TELEMETRY_VAL"
 
 # Help topics...
-test_command_success ./bin/mw output
+test_command_success "$MW_BIN" output
 
 # gitlab: Test command is registered and generally works
-test_command_success ./bin/mw gitlab
-test_command_success ./bin/mw gitlab alias list
+test_command_success "$MW_BIN" gitlab
+test_command_success "$MW_BIN" gitlab alias list
 
 # cloudvps ssh: exercise command parsing and exit status without keys or network.
 SSH_TEST_DIR=$(mktemp -d)
@@ -44,10 +45,10 @@ printf '%s\n' "$@"
 exit "${MWCLI_TEST_SSH_EXIT_STATUS:-0}"
 SSH_FIXTURE
 chmod +x "$SSH_TEST_DIR/ssh"
-test_command env PATH="$SSH_TEST_DIR:$PATH" ./bin/mw --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 --dry-run "developer@bastion.wmcloud.org"
-test_command env PATH="$SSH_TEST_DIR:$PATH" ./bin/mw --no-interaction cloudvps connect --project project --name vm --user developer --region eqiad1 --dry-run "vm.project.eqiad1.wikimedia.cloud"
-test_command env PATH="$SSH_TEST_DIR:$PATH" ./bin/mw --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 -- printf '%s' 'two words' "'printf' '%s' 'two words'"
-if env PATH="$SSH_TEST_DIR:$PATH" MWCLI_TEST_SSH_EXIT_STATUS=42 ./bin/mw --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 -- false; then
+test_command env PATH="$SSH_TEST_DIR:$PATH" "$MW_BIN" --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 --dry-run "developer@bastion.wmcloud.org"
+test_command env PATH="$SSH_TEST_DIR:$PATH" "$MW_BIN" --no-interaction cloudvps connect --project project --name vm --user developer --region eqiad1 --dry-run "vm.project.eqiad1.wikimedia.cloud"
+test_command env PATH="$SSH_TEST_DIR:$PATH" "$MW_BIN" --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 -- printf '%s' 'two words' "'printf' '%s' 'two words'"
+if env PATH="$SSH_TEST_DIR:$PATH" MWCLI_TEST_SSH_EXIT_STATUS=42 "$MW_BIN" --no-interaction cloudvps ssh vm --project project --user developer --region eqiad1 -- false; then
     echo "FAIL: cloudvps ssh did not propagate the remote exit status"
     exit 1
 else
@@ -65,10 +66,10 @@ TEST_BINARY_DIR=$(mktemp -d)
 TEST_BINARY_PATH="$TEST_BINARY_DIR/mw"
 
 # Copy the current binary to temp location
-cp ./bin/mw "$TEST_BINARY_PATH"
+cp "$MW_BIN" "$TEST_BINARY_PATH"
 
 # Test updating with local file path (non-interactive)
-test_command_success ./bin/mw update -vv --version "$TEST_BINARY_PATH" --no-interaction
+test_command_success "$MW_BIN" update -vv --version "$TEST_BINARY_PATH" --no-interaction
 
 # Cleanup (skip in CI since container is ephemeral)
 if [ -z "$CI" ] && [ -z "$GITLAB_CI" ]; then
@@ -76,4 +77,4 @@ if [ -z "$CI" ] && [ -z "$GITLAB_CI" ]; then
 fi
 
 # Source updates must work offline without invoking Docker.
-bash "$SCRIPT_DIR/test-mediawiki-update-code.sh" "$PWD/bin/mw"
+bash "$SCRIPT_DIR/test-mediawiki-update-code.sh" "$MW_BIN"

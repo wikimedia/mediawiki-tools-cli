@@ -84,7 +84,7 @@ func authenticateReviewList(cmd *cobra.Command, client *gogerrit.Client) error {
 		return err
 	}
 	if username == "" || password == "" {
-		return fmt.Errorf("no Gerrit credentials found; use mw gerrit auth login")
+		return fmt.Errorf("no Gerrit credentials found; use %s gerrit auth login", cmd.Root().Name())
 	}
 	client.Authentication.SetBasicAuth(username, password)
 	return nil

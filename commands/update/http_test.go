@@ -183,6 +183,7 @@ func TestUpdateCommandDownloads(t *testing.T) {
 		{"wrong-archive", server.URL + "/wrong-archive", "no supported executable"},
 		{"local", local, ""},
 		{"file-url", fileURL, ""},
+		{"legacy-symlink", server.URL + "/release-archive", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if runtime.GOOS == "windows" && tc.name == "file-url" {
@@ -192,13 +193,27 @@ func TestUpdateCommandDownloads(t *testing.T) {
 			if runtime.GOOS == "windows" {
 				name += ".exe"
 			}
-			path := filepath.Join(t.TempDir(), name)
+			directory := t.TempDir()
+			if tc.name == "legacy-symlink" {
+				if runtime.GOOS == "windows" {
+					t.Skip("the legacy symlink migration is for Unix installs")
+				}
+				name = "wm"
+			}
+			path := filepath.Join(directory, name)
 			if err := os.WriteFile(path, original, 0o755); err != nil {
 				t.Fatal(err)
 			}
+			invocation := path
+			if tc.name == "legacy-symlink" {
+				invocation = filepath.Join(directory, "mw")
+				if err := os.Symlink(name, invocation); err != nil {
+					t.Fatal(err)
+				}
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			process := exec.CommandContext(ctx, path, "-test.run=^TestUpdateCommandProcess$")
+			process := exec.CommandContext(ctx, invocation, "-test.run=^TestUpdateCommandProcess$")
 			process.Env = append(os.Environ(), "MWCLI_UPDATE_COMMAND_HELPER=1", "MWCLI_UPDATE_TEST_SOURCE="+tc.source)
 			output, err := process.CombinedOutput()
 			if tc.status != "" {
@@ -235,6 +250,12 @@ func TestUpdateCommandDownloads(t *testing.T) {
 					t.Fatalf("successful update did not install the expected bytes: %v", readErr)
 				}
 				time.Sleep(100 * time.Millisecond)
+			}
+			if tc.name == "legacy-symlink" {
+				target, err := os.Readlink(invocation)
+				if err != nil || target != name {
+					t.Fatalf("legacy alias changed after update: %q, %v", target, err)
+				}
 			}
 		})
 	}

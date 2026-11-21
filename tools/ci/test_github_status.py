@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -123,6 +124,27 @@ class StatusTests(unittest.TestCase):
 
 
 class NativeExecutionTests(unittest.TestCase):
+    def test_local_integration_tests_prefer_the_fresh_build(self):
+        functions = Path(__file__).resolve().parents[2] / "tests/functions.sh"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests").mkdir()
+            (root / "bin").mkdir()
+            local_functions = root / "tests/functions.sh"
+            shutil.copyfile(functions, local_functions)
+            wm = root / "bin/wm"
+            mw = root / "bin/mw"
+            for binary, timestamp in ((wm, 10), (mw, 20)):
+                binary.touch()
+                binary.chmod(0o755)
+                os.utime(binary, (timestamp, timestamp))
+            command = ["bash", "-c", 'OSTYPE=linux-gnu; source "$1"; test_cli_binary "$2"',
+                       "fixture", str(local_functions)]
+            self.assertEqual(Path(subprocess.check_output(command + [""], text=True).strip()).name, "mw")
+            self.assertEqual(Path(subprocess.check_output(command + [str(wm)], text=True).strip()).name, "wm")
+            os.utime(wm, (30, 30))
+            self.assertEqual(Path(subprocess.check_output(command + [""], text=True).strip()).name, "wm")
+
     def test_windows_selects_git_bash_instead_of_the_wsl_launcher(self):
         spec = importlib.util.spec_from_file_location(
             "worker", Path(__file__).with_name("run-github-integration.py"))
@@ -169,7 +191,7 @@ class NativeExecutionTests(unittest.TestCase):
             (repo / "tests/test-docker-general.sh").write_text(
                 'test "$MWCLI_CI_MEDIAWIKI_SNAPSHOT" = 1\n'
                 'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
-                'test -f .mediawiki/fixture\n./bin/mw\n'
+                'test -f .mediawiki/fixture\n"$MW_BIN"\n'
             )
             git("add", ".")
             git("commit", "-m", "Fixture")
@@ -177,15 +199,18 @@ class NativeExecutionTests(unittest.TestCase):
             media = root / "mediawiki"
             media.mkdir()
             (media / "fixture").write_text("clean snapshot")
-            for code in (0, 23):
-                with self.subTest(exit_code=code):
+            for code, binary_name in ((0, None), (23, "wm")):
+                with self.subTest(exit_code=code, binary_name=binary_name):
                     work = root / str(code)
                     inputs = work / "inputs"
                     inputs.mkdir(parents=True)
                     git("bundle", "create", str(inputs / "source.bundle"), "HEAD")
-                    (inputs / "plan.json").write_text(json.dumps({
+                    plan = {
                         "tested_sha": sha, "pipeline_id": 23, "request_id": 19,
-                    }))
+                    }
+                    if binary_name is not None:
+                        plan["binary_name"] = binary_name
+                    (inputs / "plan.json").write_text(json.dumps(plan))
                     (inputs / "mw").write_text(f"#!/bin/sh\nexit {code}\n")
                     snapshot = work / "snapshot.tar.gz"
                     with tarfile.open(snapshot, "w:gz") as archive:
@@ -202,6 +227,7 @@ class NativeExecutionTests(unittest.TestCase):
                     ), patch.object(worker.GitLab, "request", side_effect=lambda path, destination:
                                     destination.write_bytes(snapshot.read_bytes())):
                         self.assertEqual(worker.main(), code)
+                    self.assertTrue((source / "bin" / (binary_name or "mw")).is_file())
 
 
 if __name__ == "__main__":

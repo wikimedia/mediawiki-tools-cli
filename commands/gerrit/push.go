@@ -12,6 +12,7 @@ import (
 
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/gitconfig"
@@ -74,7 +75,7 @@ func planGerritPush(ctx context.Context, remote, branch string, forceHTTPS bool)
 	destination := gerritSetupURL(address)
 	project := gerritRemoteProject(destination)
 	if project == "" || (destination.Scheme != "https" && destination.Scheme != "ssh") {
-		return plan, fmt.Errorf("Git remote %q has no Wikimedia Gerrit SSH or HTTPS push URL; use mw gerrit setup --push-protocol", remote)
+		return plan, fmt.Errorf("Git remote %q has no Wikimedia Gerrit SSH or HTTPS push URL; use %s gerrit setup --push-protocol", remote, cli.InvocationName(os.Args[0]))
 	}
 
 	client, err := newGerritClient(ctx)
@@ -265,7 +266,7 @@ func printGerritPushCommit(cmd *cobra.Command, client *gogerrit.Client, project,
 	fmt.Fprintf(out, "\n%s  %s\n", commit[:12], subject)
 	id := gerritTrailerID(trailers)
 	if id == "" {
-		fmt.Fprintln(out, "  Missing Change-Id. Run mw gerrit setup --install-hook, then amend the commit.")
+		fmt.Fprintf(out, "  Missing Change-Id. Run %s gerrit setup --install-hook, then amend the commit.\n", cmd.Root().Name())
 		return nil
 	}
 	fmt.Fprintf(out, "  Change-Id: %s\n", id)

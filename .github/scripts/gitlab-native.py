@@ -121,11 +121,13 @@ def prepare(api, job_id, directory):
     # Older source snapshots expect inputs/mw regardless of the upstream filename.
     try:
         api.request(f"{binary_artifacts}/wm", destination=directory / "mw")
+        plan["binary_name"] = "wm"
     except urllib.error.HTTPError as error:
         if error.code != 404:
             raise
         error.close()
         api.request(f"{binary_artifacts}/mw", destination=directory / "mw")
+        plan["binary_name"] = "mw"
     snapshot_job = jobs["prepare-mediawiki"]["id"]
     api.request(f"/projects/{PROJECT}/jobs/{snapshot_job}/artifacts/.cache/mediawiki-snapshot.txt",
                 destination=directory / "mediawiki-snapshot.txt")

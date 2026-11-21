@@ -56,7 +56,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dbType != "sqlite" && dbType != "mysql" && dbType != "postgres" {
 				fmt.Println("You must specify a valid dbtype (mysql, postgres, sqlite)")
-				fmt.Println("You can also set the default in the CLI config file, for example `mw config set mw_dev.docker.db_type mysql`")
+				fmt.Printf("You can also set the default in the CLI config file, for example `%s config set mw_dev.docker.db_type mysql`\n", cmd.Root().Name())
 				return fmt.Errorf("invalid dbtype")
 			}
 

@@ -44,9 +44,14 @@ def main():
     (source / "bin").mkdir(exist_ok=True)
     env = os.environ.copy()
     env["MWCLI_CONTEXT_TEST"] = "1"
+    binary_name = plan.get("binary_name", "mw")
+    if binary_name not in ("mw", "wm"):
+        raise ValueError("invalid integration binary name")
+    binary = f"bin/{binary_name}" + (".exe" if os.name == "nt" else "")
+    env["MW_BIN"] = binary
     if sys.platform == "linux" and platform.machine().lower() in {"amd64", "x86_64"}:
-        shutil.copyfile(inputs / "mw", source / "bin/mw")
-        (source / "bin/mw").chmod(0o755)
+        shutil.copyfile(inputs / "mw", source / binary)
+        (source / binary).chmod(0o755)
         download_snapshot(GitLab(), inputs)
         subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
         env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
@@ -55,7 +60,6 @@ def main():
         compose.chmod(0o755)
         env["PATH"] = str(source / "bin") + os.pathsep + env["PATH"]
     else:
-        binary = "bin/mw.exe" if os.name == "nt" else "bin/mw"
         subprocess.run(["go", "build", "-o", binary, "."], cwd=source, env=env, check=True)
     process = subprocess.Popen([shell, f"tests/{script}"], cwd=source, env=env,
                                start_new_session=os.name != "nt")

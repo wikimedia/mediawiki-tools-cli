@@ -6,7 +6,8 @@
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 
 export MWCLI_CONTEXT_TEST=1
 
@@ -16,8 +17,8 @@ export MWCLI_CONTEXT_TEST=1
 # TODO check they are shallow clones...
 TEST_DIR=$(mktemp -d)
 TEST_TIMESTAMP=$(date +%s)
-test_command_success ./bin/mw dev --context test-${TEST_TIMESTAMP}-just-core env set MEDIAWIKI_VOLUMES_CODE ${TEST_DIR}
-test_command_success ./bin/mw dev --context test-${TEST_TIMESTAMP}-just-core mediawiki get-code --no-interaction --core --shallow --use-github --gerrit-interaction-type http
+test_command_success "$MW_BIN" dev --context test-${TEST_TIMESTAMP}-just-core env set MEDIAWIKI_VOLUMES_CODE ${TEST_DIR}
+test_command_success "$MW_BIN" dev --context test-${TEST_TIMESTAMP}-just-core mediawiki get-code --no-interaction --core --shallow --use-github --gerrit-interaction-type http
 test_command_success cat ${TEST_DIR}/index.php
 test_command sh -c "ls -lahrt ${TEST_DIR}/extensions | grep drwx | wc -l" 2
 test_command sh -c "ls -lahrt ${TEST_DIR}/skins | grep drwx | wc -l" 2
@@ -26,8 +27,8 @@ test_command sh -c "ls -lahrt ${TEST_DIR}/skins | grep drwx | wc -l" 2
 # mirrors for the initial clones so this smoke test can run during Gerrit outages;
 # get-code still configures Gerrit as each repository's origin.
 TEST_DIR=$(mktemp -d)
-test_command_success ./bin/mw dev --context test-${TEST_TIMESTAMP}-core-plus env set MEDIAWIKI_VOLUMES_CODE ${TEST_DIR}
-test_command_success ./bin/mw dev --context test-${TEST_TIMESTAMP}-core-plus mediawiki get-code --no-interaction --core --skin Vector --skin Timeless --extension Nuke --extension Cognate --shallow --use-github --gerrit-interaction-type http
+test_command_success "$MW_BIN" dev --context test-${TEST_TIMESTAMP}-core-plus env set MEDIAWIKI_VOLUMES_CODE ${TEST_DIR}
+test_command_success "$MW_BIN" dev --context test-${TEST_TIMESTAMP}-core-plus mediawiki get-code --no-interaction --core --skin Vector --skin Timeless --extension Nuke --extension Cognate --shallow --use-github --gerrit-interaction-type http
 test_command_success cat ${TEST_DIR}/index.php
 test_command sh -c "ls -lahrt ${TEST_DIR}/extensions | grep drwx | wc -l" 4
 test_command ls -lahrt ${TEST_DIR}/extensions "Nuke"

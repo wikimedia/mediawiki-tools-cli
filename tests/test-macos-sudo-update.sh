@@ -7,6 +7,8 @@ if [[ "$(uname -s)" != Darwin || "$(id -u)" == 0 ]]; then
     exit 1
 fi
 sudo -n true
+source "$(dirname -- "${BASH_SOURCE[0]}")/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 export MWCLI_CONTEXT_TEST=1
 
 TEST_ROOT="$(mktemp -d)"
@@ -15,7 +17,7 @@ REPLACEMENT="$TEST_ROOT/update artifact/mw"
 mkdir -p "$(dirname "$REPLACEMENT")"
 go build -ldflags='-X main.GitCommit=macos-sudo-update-fixture' -o "$REPLACEMENT" .
 EXPECTED_HASH="$(shasum -a 256 "$REPLACEMENT" | cut -d ' ' -f 1)"
-ORIGINAL_HASH="$(shasum -a 256 ./bin/mw | cut -d ' ' -f 1)"
+ORIGINAL_HASH="$(shasum -a 256 "$MW_BIN" | cut -d ' ' -f 1)"
 [[ "$EXPECTED_HASH" != "$ORIGINAL_HASH" ]]
 
 failures=0
@@ -24,7 +26,7 @@ for scenario in fresh-config existing-config; do
     case_root="$TEST_ROOT/$scenario"
     mkdir -p "$case_root/installed cli" "$case_root/home/Library/Application Support"
     installed="$case_root/installed cli/mw"
-    cp ./bin/mw "$installed"
+    cp "$MW_BIN" "$installed"
     chmod 755 "$installed"
     sudo -n chown -R root:wheel "$case_root/installed cli"
     case_home="$case_root/home"

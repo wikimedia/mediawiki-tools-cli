@@ -18,10 +18,10 @@ func gerritHTTPSOptions(cmd *cobra.Command, address string) ([]string, error) {
 		return nil, err
 	}
 	if username == "" {
-		return nil, fmt.Errorf("no Gerrit HTTP credentials configured; use mw gerrit auth login")
+		return nil, fmt.Errorf("no Gerrit HTTP credentials configured; use %s gerrit auth login", cmd.Root().Name())
 	}
 	if cmd.Flags().Changed("password") || cmd.Flags().Changed("password-stdin") {
-		return nil, fmt.Errorf("HTTPS push uses saved Gerrit credentials; use mw gerrit auth login to save a password")
+		return nil, fmt.Errorf("HTTPS push uses saved Gerrit credentials; use %s gerrit auth login to save a password", cmd.Root().Name())
 	}
 	executable, err := os.Executable()
 	if err != nil {
@@ -92,7 +92,7 @@ func newGerritGitCredentialCmd() *cobra.Command {
 				return err
 			}
 			if username == "" || password == "" {
-				return fmt.Errorf("no Gerrit HTTP credentials configured; use mw gerrit auth login")
+				return fmt.Errorf("no Gerrit HTTP credentials configured; use %s gerrit auth login", cmd.Root().Name())
 			}
 			if requested := fields["username"]; requested != "" && requested != username {
 				return fmt.Errorf("Git requested credentials for a different Gerrit account")

@@ -6,7 +6,8 @@
 
 set -e # Fail on errors
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source $SCRIPT_DIR/functions.sh
+source "$SCRIPT_DIR/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 source "$SCRIPT_DIR/mysql-replication.sh"
 source $SCRIPT_DIR/pretest-mediawiki.sh
 
@@ -22,17 +23,17 @@ function finish {
     docker ps
 
     # Destroy it all
-    test_command_success ./bin/mw dev destroy --no-interaction
+    test_command_success "$MW_BIN" dev destroy --no-interaction
 
     # Clean up & make sure no services are running
     test_docker_ps_service_count 0
-    if ./bin/mw dev hosts writable --no-interaction; then
-        test_command_success ./bin/mw dev hosts remove --no-interaction
+    if "$MW_BIN" dev hosts writable --no-interaction; then
+        test_command_success "$MW_BIN" dev hosts remove --no-interaction
     else
         echo "sudo needed for hosts file modification!"
-        test_command_success sudo -E ./bin/mw dev hosts remove --no-interaction
+        test_command_success sudo -E "$MW_BIN" dev hosts remove --no-interaction
     fi
-    test_command_success ./bin/mw dev env clear --no-interaction
+    test_command_success "$MW_BIN" dev env clear --no-interaction
 }
 
 # Handle FINISH=1 environment variable
@@ -43,41 +44,41 @@ trap _finish_wrapper EXIT
 # Change into the mediawiki directory, so we can auto detect the code!
 cd ./.mediawiki
 
-test_command_success ./../bin/mw dev env clear
+test_command_success "$MW_BIN" dev env clear
 
 # Setup the default hosts in hosts file
-if ./../bin/mw dev hosts writable --no-interaction; then
-    test_command_success ./../bin/mw dev hosts add --no-interaction
+if "$MW_BIN" dev hosts writable --no-interaction; then
+    test_command_success "$MW_BIN" dev hosts add --no-interaction
 else
     echo "sudo needed for hosts file modification!"
-    test_command_success sudo -E ./../bin/mw dev hosts add --no-interaction
+    test_command_success sudo -E "$MW_BIN" dev hosts add --no-interaction
 fi
 
 # Create, from the mediawiki dir, to allow --no-interaction to detect the existing mediawiki directory, setting the volume path
-test_command_success ./../bin/mw dev mediawiki create --no-interaction
+test_command_success "$MW_BIN" dev mediawiki create --no-interaction
 cd ./..
 
 # Get the port in use
-PORT=$(./bin/mw dev env get PORT)
+PORT=$("$MW_BIN" dev env get PORT)
 
 # Make sure a site is running and not connected to a db
 test_wget_eventually_contains http://default.mediawiki.local.wmftest.net:$PORT "Could not find a running database for the database name" 60 1
 
 # Turn on all of the services
-test_command_success ./bin/mw dev mysql-replica create
-test_command_success ./bin/mw dev postgres create
-test_command_success ./bin/mw dev postgres create
-test_command_success ./bin/mw dev phpmyadmin create
-test_command_success ./bin/mw dev adminer create
+test_command_success "$MW_BIN" dev mysql-replica create
+test_command_success "$MW_BIN" dev postgres create
+test_command_success "$MW_BIN" dev postgres create
+test_command_success "$MW_BIN" dev phpmyadmin create
+test_command_success "$MW_BIN" dev adminer create
 
 # Install everything (mysql, postgres, sqlite)
-test_command_success ./bin/mw dev mediawiki install --dbname mysqlwiki --dbtype mysql
-test_command_success ./bin/mw dev mediawiki install --dbname postgreswiki --dbtype postgres
+test_command_success "$MW_BIN" dev mediawiki install --dbname mysqlwiki --dbtype mysql
+test_command_success "$MW_BIN" dev mediawiki install --dbname postgreswiki --dbtype postgres
 # foreachwiki's read-only maintenance commands may use the MySQL replica. Wait
 # for the newly installed MySQL schema to replicate before exercising it.
 replica_wait_attempt=0
 while [ "$replica_wait_attempt" -lt 60 ]; do
-    if replica_site_stats_table=$(./bin/mw dev mysql-replica exec -- mariadb -uroot -ptoor -Nse "SHOW TABLES FROM mysqlwiki LIKE 'site_stats'" 2>/dev/null | tr -d '\r') && [ "$replica_site_stats_table" = "site_stats" ]; then
+    if replica_site_stats_table=$("$MW_BIN" dev mysql-replica exec -- mariadb -uroot -ptoor -Nse "SHOW TABLES FROM mysqlwiki LIKE 'site_stats'" 2>/dev/null | tr -d '\r') && [ "$replica_site_stats_table" = "site_stats" ]; then
         break
     fi
     replica_wait_attempt=$((replica_wait_attempt + 1))
@@ -90,27 +91,27 @@ fi
 echo "PASS: mysqlwiki.site_stats replicated to mysql-replica"
 
 # The bundled bookworm PHP image has a supported SQLite version.
-test_command_success ./bin/mw dev mediawiki install --dbname sqlitewiki --dbtype sqlite
+test_command_success "$MW_BIN" dev mediawiki install --dbname sqlitewiki --dbtype sqlite
 # Version loads database-backed language messages (T364085), not only connection setup.
-test_command_success ./bin/mw dev mediawiki mwscript MW_DB=sqlitewiki Version
-test_command ./bin/mw dev mediawiki mwscript MW_DB=sqlitewiki Version "MediaWiki version:"
+test_command_success "$MW_BIN" dev mediawiki mwscript MW_DB=sqlitewiki Version
+test_command "$MW_BIN" dev mediawiki mwscript MW_DB=sqlitewiki Version "MediaWiki version:"
 
 
 # Test foreachwiki
-test_command_success ./bin/mw dev mediawiki foreachwiki showSiteStats.php
-test_command_success ./bin/mw dev mediawiki foreachwiki sql.php -- --query 'SELECT 1'
+test_command_success "$MW_BIN" dev mediawiki foreachwiki showSiteStats.php
+test_command_success "$MW_BIN" dev mediawiki foreachwiki sql.php -- --query 'SELECT 1'
 
 # Make sure mediawiki exec works for alternative db name
 # Commented out 03/05/2024 as these not longer outputs a nice error https://phabricator.wikimedia.org/P61819
-# test_command_success ./bin/mw dev mediawiki exec -- MW_DB=mysqlwiki composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'OK '
-#test_command_success ./bin/mw dev mediawiki exec -- MW_DB=ddsadsadsaefault composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'Unable to find database'
+# test_command_success "$MW_BIN" dev mediawiki exec -- MW_DB=mysqlwiki composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'OK '
+#test_command_success "$MW_BIN" dev mediawiki exec -- MW_DB=ddsadsadsaefault composer phpunit tests/phpunit/unit/includes/xml/XmlTest.php | grep 'Unable to find database'
 
 # Update the hosts file as we used new wiki names
-if ./bin/mw dev hosts writable; then
-    test_command_success ./bin/mw dev hosts add
+if "$MW_BIN" dev hosts writable; then
+    test_command_success "$MW_BIN" dev hosts add
 else
     echo "sudo needed for hosts file modification!"
-    test_command_success sudo -E ./bin/mw dev hosts add
+    test_command_success sudo -E "$MW_BIN" dev hosts add
 fi
 
 # Check the DB tools (phpmyadmin, adminer)
@@ -123,8 +124,8 @@ test_http_status http://127.0.0.1:$PORT/ 200
 
 # Requests from MediaWiki must resolve through DPS and reach the same listener
 # port as host requests, without requiring the public gateway login.
-test_command_success ./bin/mw dev mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://adminer.local.wmftest.net:$PORT/
-test_command_success ./bin/mw dev mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://mysqlwiki.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page
+test_command_success "$MW_BIN" dev mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://adminer.local.wmftest.net:$PORT/
+test_command_success "$MW_BIN" dev mediawiki exec -- curl --noproxy '*' --connect-timeout 5 --max-time 10 -fsS -o /dev/null http://mysqlwiki.mediawiki.local.wmftest.net:$PORT/wiki/Main_Page
 
 # And check the installed sites (mysql, postgres, sqlite)
 test_wget http://sqlitewiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed"
@@ -140,20 +141,20 @@ test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=ski
 test_wget "http://127.0.0.1:$PORT/proxy/mysqlwiki/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022" 'mw.loader'
 
 # Exercise the tunnel ingress separately, without requiring a public tunnel.
-test_command_success python3 "$SCRIPT_DIR/test-docker-gateway.py"
+MW_BIN="$MW_BIN" test_command_success python3 "$SCRIPT_DIR/test-docker-gateway.py"
 
 # Make sure the expected number of services appear
 test_docker_ps_service_count 11
 
 # Try other DB related commands
-test_command_success ./bin/mw dev postgres stop
-test_command_success ./bin/mw dev postgres start
+test_command_success "$MW_BIN" dev postgres stop
+test_command_success "$MW_BIN" dev postgres start
 sleep 1
-test_command_success ./bin/mw dev postgres exec echo foo
-test_mysql_replication_lifecycle ./bin/mw
+test_command_success "$MW_BIN" dev postgres exec echo foo
+test_mysql_replication_lifecycle "$MW_BIN"
 test_wget_eventually_contains http://mysqlwiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed" 60 1
 test_wget_eventually_contains http://postgreswiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed" 60 1
 test_wget_eventually_contains http://sqlitewiki.mediawiki.local.wmftest.net:$PORT "MediaWiki has been installed" 60 1
-test_command_success ./bin/mw dev mysql-replica exec echo foo
+test_command_success "$MW_BIN" dev mysql-replica exec echo foo
 # TODO test the mysql and replica "mysql" commands (cli)
-test_command_success ./bin/mw dev mysql exec echo foo
+test_command_success "$MW_BIN" dev mysql exec echo foo

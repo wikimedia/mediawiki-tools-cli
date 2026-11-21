@@ -90,7 +90,8 @@ func cobraCommandDetectorList() []func(*cobra.Command, string) *issue.Issue {
 
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
-					if strings.Contains(scanner.Text(), cmdStirng) {
+					line := strings.ReplaceAll(scanner.Text(), `"$MW_BIN" `, theCmd.Root().Name()+" ")
+					if strings.Contains(line, cmdStirng) {
 						testFound = true
 					}
 				}

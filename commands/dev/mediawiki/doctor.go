@@ -20,12 +20,13 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 		Short: "Helps you identify possible issues with your MediaWiki setup",
 		Long:  "Inspect code, dependencies, configured sites and Git branches. Known release/development branch mismatches are warnings only: feature branches and detached checkouts require manual compatibility review. This command does not fetch, switch branches, or update source code.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			name := cmd.Root().Name()
 			m := devenv.DefaultForUser()
 			m.EnsureReady()
 
 			mw, err := mediawiki.ForDirectory(m.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
 			if err != nil {
-				return fmt.Errorf("MediaWiki code is unavailable: %w; set MEDIAWIKI_VOLUMES_CODE with mw dev env set or run get-code", err)
+				return fmt.Errorf("MediaWiki code is unavailable: %w; set MEDIAWIKI_VOLUMES_CODE with %s dev env set or run get-code", err, name)
 			}
 
 			if branches, err := mw.CheckoutBranches(); err != nil {
@@ -53,14 +54,14 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			if !mw.VendorDirectoryIsPresent() {
 				logrus.Warn("⚠️ The vendor directory is not present in the code volume")
 				logrus.Warn("You may not yet have done a composer install")
-				logrus.Warn("✨ You can do this with `mw dev mediawiki composer install`")
+				logrus.Warnf("✨ You can do this with `%s dev mediawiki composer install`", name)
 			} else {
 				logrus.Info("✅ The vendor directory is present in the code volume")
 			}
 
 			if len(mw.SkinsCheckedOut()) == 0 || !strings.Contains(settingsContents, "wfLoadSkin") {
 				logrus.Warn("⚠️ You have no skins checked out or loaded in LocalSettings.php")
-				logrus.Warn("✨ You can checkout the Vector skin with `mw dev mediawiki get-code --skin Vector`")
+				logrus.Warnf("✨ You can checkout the Vector skin with `%s dev mediawiki get-code --skin Vector`", name)
 			} else {
 				logrus.Info("✅ A Skin is checked out and loaded in LocalSettings.php")
 			}
@@ -74,7 +75,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				logrus.Warn("⚠️ You have extensions or skins checked out & loaded, but you have not created a composer.local.json file.")
 				logrus.Warn("If the extensions or skins require additional dependencies, they may not function correctly.")
 				logrus.Warn("See https://www.mediawiki.org/wiki/Composer#Using_composer-merge-plugin for more information.")
-				logrus.Warn("✨ You can create a default composer.local.json file with `mw dev mediawiki exec cp /var/www/html/w/composer.local.json-sample /var/www/html/w/composer.local.json`")
+				logrus.Warnf("✨ You can create a default composer.local.json file with `%s dev mediawiki exec cp /var/www/html/w/composer.local.json-sample /var/www/html/w/composer.local.json`", name)
 			} else {
 				logrus.Info("✅ composer.local.json file exists or is likely not needed")
 			}
@@ -90,7 +91,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			}
 			if installedSite == "" {
 				logrus.Warn("⚠️ You have not installed a site yet")
-				logrus.Warn("✨ You can install a site with `mw dev mediawiki install`")
+				logrus.Warnf("✨ You can install a site with `%s dev mediawiki install`", name)
 			} else {
 				logrus.Info("✅ You have installed a site (" + installedSite + ")")
 
@@ -113,7 +114,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 				}
 				if err != nil || res.StatusCode != 200 {
 					logrus.Warn("⚠️ That site is not accessible at " + url)
-					logrus.Warn("✨ You likely need to use the `mw dev hosts` command to add the site to your hosts file")
+					logrus.Warnf("✨ You likely need to use the `%s dev hosts` command to add the site to your hosts file", name)
 				} else {
 					logrus.Info("✅ That site is accessible at " + url)
 				}
@@ -127,7 +128,7 @@ func NewMediaWikiDoctorCmd() *cobra.Command {
 			for _, v := range varsToCheck {
 				if m.Env().Get(v) != "" {
 					logrus.Warn("⚠️ You have an override for " + v + " set that might change expected behaviour")
-					logrus.Warn("✨ You can remove this override with `mw dev env delete " + v + "`")
+					logrus.Warnf("✨ You can remove this override with `%s dev env delete %s`", name, v)
 				} else {
 					logrus.Info("✅ You do not have an override for " + v + " set")
 				}

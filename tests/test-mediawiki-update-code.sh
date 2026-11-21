@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Offline end-to-end checks for mw dev mediawiki update-code.
 set -euo pipefail
-MWCLI_TEST_BINARY=$(realpath "${1:-./bin/mw}")
+source "$(dirname -- "${BASH_SOURCE[0]}")/functions.sh"
+MWCLI_TEST_BINARY=$(test_cli_binary "${1:-${MW_BIN:-}}")
 MWCLI_UPDATE_TEST_DIR=$(mktemp -d)
 trap 'rm -rf "$MWCLI_UPDATE_TEST_DIR"' EXIT
 unset GITLAB_CI CI_PROJECT_DIR GIT_DIR GIT_WORK_TREE

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Run against an installed wiki in a disposable context:
-# CONTEXT=logs-test MWCLI_BIN=./bin/mw bash tests/test-docker-logs.sh
+# CONTEXT=logs-test bash tests/test-docker-logs.sh
 set -euo pipefail
 
-MWCLI_BIN=${MWCLI_BIN:-./bin/mw}
+source "$(dirname -- "${BASH_SOURCE[0]}")/functions.sh"
+MWCLI_BIN=$(test_cli_binary "${MWCLI_BIN:-${MW_BIN:-}}")
 : "${CONTEXT:?Select a disposable development context with an installed default wiki}"
 
 mw() { "$MWCLI_BIN" --no-interaction --context "$CONTEXT" "$@"; }

@@ -69,7 +69,7 @@ func newToolforgeSetupCmd(probe func(context.Context, toolforge.Connection, stri
 			output.PrintCheck(out, true, "SSH (%s): authenticated as %s", login.Host, shellUser)
 
 			if tool == "" {
-				fmt.Fprintln(out, "  Add --tool <name> to check access to a tool account, or use mw toolforge create to create one.")
+				fmt.Fprintf(out, "  Add --tool <name> to check access to a tool account, or use %s toolforge create to create one.\n", cmd.Root().Name())
 				return nil
 			}
 

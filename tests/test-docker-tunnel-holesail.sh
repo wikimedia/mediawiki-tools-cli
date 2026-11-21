@@ -5,7 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-MW_BIN=${MW_BIN:-./bin/mw}
+source "$SCRIPT_DIR/functions.sh"
+MW_BIN=$(test_cli_binary "${MW_BIN:-}")
 ci_bootstrap=${MWCLI_CI_HOLESAIL_BOOTSTRAP:-${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-0}}
 if [ "$ci_bootstrap" = "1" ]; then
     TUNNEL_CONTEXT=${TUNNEL_CONTEXT:-ci-holesail}
