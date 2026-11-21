@@ -11,6 +11,13 @@ TESTS = {
 }
 
 
+# Run these variants on the GitHub runner VM using a per-user engine socket.
+ENGINE_TESTS = {
+    "docker-general-rootless": ("docker-rootless", TESTS["docker-general"]),
+    "docker-podman": ("podman", "test-docker-podman.sh"),
+}
+
+
 def download_snapshot(api, directory):
     path, checksum = (directory / "mediawiki-snapshot.txt").read_text().split()
     pattern = (r"/projects/16/packages/generic/mediawiki-ci-snapshot/"

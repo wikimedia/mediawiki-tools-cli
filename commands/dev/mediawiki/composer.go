@@ -35,7 +35,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 						// Composer requires $HOME to be set: Default it to / if we must
 						Command: composerCommand(command...),
 						Env:     env,
-						User:    User,
+						User:    docker.ContainerUser(User),
 					},
 					"/var/www/html/w",
 				),
@@ -47,7 +47,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	return cmd
 }
 

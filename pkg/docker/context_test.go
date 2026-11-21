@@ -221,3 +221,30 @@ func TestDockerAPIVersionNegotiation(t *testing.T) {
 		}
 	}
 }
+
+func TestContainerUserWithRootlessDocker(t *testing.T) {
+	dockerTestConfig(t)
+	for _, tc := range []struct {
+		name, securityOptions, want string
+	}{
+		{"rootful", `["name=seccomp,profile=builtin"]`, CurrentUserAndGroupForDockerExecution()},
+		{"rootless", `["name=seccomp,profile=builtin","name=rootless"]`, "0:0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("API-Version", "1.45")
+				if strings.HasSuffix(r.URL.Path, "/info") {
+					_, _ = fmt.Fprintf(w, `{"SecurityOptions":%s}`, tc.securityOptions)
+				}
+			}))
+			defer server.Close()
+			t.Setenv("DOCKER_HOST", "tcp://"+strings.TrimPrefix(server.URL, "http://"))
+			if got := ContainerUser(""); got != tc.want {
+				t.Errorf("default container user = %q, want %q", got, tc.want)
+			}
+			if got := ContainerUser("www-data"); got != "www-data" {
+				t.Errorf("explicit container user = %q, want www-data", got)
+			}
+		})
+	}
+}

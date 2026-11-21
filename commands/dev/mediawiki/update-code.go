@@ -100,7 +100,7 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 			codeStatus := composerutil.RunWithRetry(func(output, _ io.Writer) int {
 				return docker.Exec(containerID, docker.ExecOptions{
 					Output: output, Command: composerCommand("update", "--no-interaction"),
-					WorkingDir: "/var/www/html/w", User: User,
+					WorkingDir: "/var/www/html/w", User: docker.ContainerUser(User),
 				})
 			}, cmd.OutOrStdout(), cmd.ErrOrStderr())
 			if codeStatus != 0 {
@@ -112,6 +112,6 @@ func NewMediaWikiUpdateCodeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&mode, "mode", "ff-only", "Update mode: ff-only, stash (reapply changes), or mop (save changes and reset to the default branch)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show eligible/skipped repositories without fetching or updating")
 	cmd.Flags().BoolVar(&composer, "composer", false, "Run Composer update in the PHP container after all source checkouts succeed")
-	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User for the optional Composer command")
+	cmd.Flags().StringVarP(&User, "user", "u", "", "Container user for the optional Composer command")
 	return cmd
 }

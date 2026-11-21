@@ -24,7 +24,7 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample("fresh bash\nfresh npm ci\nfresh record tests/selenium/specs/recentchanges.js"),
 		RunE:    runMediaWikiFresh,
 	}
-	cmd.PersistentFlags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.PersistentFlags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	cmd.AddCommand(&cobra.Command{
 		Use:     "record [spec]",
 		Short:   "Record a Selenium test run as video",
@@ -70,7 +70,7 @@ func runMediaWikiFresh(cmd *cobra.Command, args []string) error {
 			docker.ExecOptions{
 				Command: command,
 				Env:     env,
-				User:    User,
+				User:    docker.ContainerUser(User),
 			},
 			"/var/www/html/w",
 		),

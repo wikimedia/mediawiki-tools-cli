@@ -1379,7 +1379,7 @@ func syncComposerLocalAndUpdate(m devenv.Environment, thisMW mediawiki.MediaWiki
 	var composerErr error
 	exitCode := composerutil.RunWithRetry(func(stdout, stderr io.Writer) int {
 		composerErr = m.DockerCompose().ExecCommand("mediawiki", dockercompose.ExecOptions{
-			User:           docker.CurrentUserAndGroupForDockerExecution(),
+			User:           docker.ContainerUser(""),
 			CommandAndArgs: []string{"sh", "-lc", composerCmd},
 		}).RunAttachedWithOutput(stdout, stderr)
 		if exitErr, ok := composerErr.(*osexec.ExitError); ok {
@@ -1550,7 +1550,7 @@ func runMaintenanceSteps(m devenv.Environment, steps []recipe.ContainerCommandSt
 			Output:     stderr,
 			Command:    step.Command,
 			Env:        env,
-			User:       defaultUser(step.User),
+			User:       docker.ContainerUser(step.User),
 			WorkingDir: defaultWorkingDir(step.WorkingDir),
 		})
 		if exitCode != 0 {
@@ -1559,13 +1559,6 @@ func runMaintenanceSteps(m devenv.Environment, steps []recipe.ContainerCommandSt
 	}
 
 	return nil
-}
-
-func defaultUser(user string) string {
-	if user != "" {
-		return user
-	}
-	return docker.CurrentUserAndGroupForDockerExecution()
 }
 
 func defaultWorkingDir(workingDir string) string {

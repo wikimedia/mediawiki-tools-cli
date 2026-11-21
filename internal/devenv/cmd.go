@@ -294,7 +294,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 				docker.ExecOptions{
 					Command: command,
 					Env:     env,
-					User:    User,
+					User:    docker.ContainerUser(User),
 				},
 			)
 			if exitCode != 0 {
@@ -304,7 +304,7 @@ func NewServiceExecCmdP(name *string, service *string) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	return cmd
 }
 

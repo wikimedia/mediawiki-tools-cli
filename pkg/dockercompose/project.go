@@ -13,6 +13,7 @@ import (
 
 	"github.com/moby/moby/client"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/docker"
+	"gitlab.wikimedia.org/repos/releng/cli/pkg/dotenv"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
@@ -47,15 +48,30 @@ func (p Project) Cmd(commandAndArgs []string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	// If we have docker and a compose sub command, we can run it
+	var cmd *exec.Cmd
 	if _, err := lookpath.NeedCommands([]string{"docker compose"}); err == nil {
-		return exec.Command("docker", append([]string{"compose"}, args...)...), nil // #nosec G204
+		cmd = exec.Command("docker", append([]string{"compose"}, args...)...) // #nosec G204
+	} else if _, err := lookpath.NeedExecutables([]string{"docker-compose"}); err == nil {
+		cmd = exec.Command("docker-compose", args...) // #nosec G204
+	} else {
+		return nil, fmt.Errorf("neither docker compose nor docker-compose is available in PATH")
 	}
-	// If we have docker-compose, we can run it
-	if _, err := lookpath.NeedExecutables([]string{"docker-compose"}); err == nil {
-		return exec.Command("docker-compose", args...), nil // #nosec G204
+	if socket := p.dockerSocketOverride(); socket != "" {
+		cmd.Env = append(cmd.Environ(), "MWCLI_DOCKER_SOCKET="+socket)
 	}
-	return nil, fmt.Errorf("neither docker compose nor docker-compose is available in PATH")
+	return cmd, nil
+}
+
+func (p Project) dockerSocketOverride() string {
+	const key = "MWCLI_DOCKER_SOCKET"
+	if _, exists := os.LookupEnv(key); exists {
+		return ""
+	}
+	values, err := dotenv.FileForDirectory(p.Directory).Read()
+	if err != nil || values[key] != "" {
+		return ""
+	}
+	return docker.LocalUnixSocket()
 }
 
 func (p Project) argsForExec(commandAndArgs []string) ([]string, error) {

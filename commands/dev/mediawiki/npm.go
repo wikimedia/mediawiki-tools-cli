@@ -35,7 +35,7 @@ func NewMediaWikiNPMCmd() *cobra.Command {
 					docker.ExecOptions{
 						Command: append([]string{"npm"}, command...),
 						Env:     env,
-						User:    User,
+						User:    docker.ContainerUser(User),
 					},
 					"/var/www/html/w",
 				),
@@ -47,6 +47,6 @@ func NewMediaWikiNPMCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	return cmd
 }

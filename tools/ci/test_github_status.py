@@ -188,9 +188,11 @@ class NativeExecutionTests(unittest.TestCase):
             git("config", "user.name", "CI test")
             git("config", "user.email", "ci@example.invalid")
             (repo / "tests").mkdir()
-            (repo / "tests/test-docker-general.sh").write_text(
+            test_script = (
+                "set -eu\n"
                 'test "$MWCLI_CI_MEDIAWIKI_SNAPSHOT" = 1\n'
                 'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
+                'test "${TEST_ENGINE:-}" = "$EXPECTED_ENGINE"\n'
                 'test -f .mediawiki/fixture\n"$MW_BIN"\n'
             )
             (repo / "tests/run-platform-smoke.sh").write_text(
@@ -200,20 +202,33 @@ class NativeExecutionTests(unittest.TestCase):
                 'test -z "${GITLAB_STATUS_TOKEN:-}" || exit 98\n'
                 'case "$*" in "") exit 0;; rootful) exit 25;; rootless) exit 24;; *) exit 98;; esac\n'
             )
+            (repo / "tests/test-docker-general.sh").write_text(test_script)
+            (repo / "tests/test-docker-podman.sh").write_text(
+                "set -eu\n"
+                'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
+                'test "$TEST_ENGINE" = podman\n'
+                'test ! -e .mediawiki\n"$MW_BIN"\n'
+            )
+            (repo / "tools/ci").mkdir(parents=True)
+            (repo / "tools/ci/use-rootless-engine.sh").write_text(
+                'test "$1" = "$EXPECTED_ENGINE" || exit 1\nexport TEST_ENGINE="$1"\nshift\nexec "$@"\n'
+            )
             git("add", ".")
             git("commit", "-m", "Fixture")
             sha = git("rev-parse", "HEAD")
             media = root / "mediawiki"
             media.mkdir()
             (media / "fixture").write_text("clean snapshot")
-            for test, code, binary_name in (
-                ("docker-general", 0, None),
-                ("docker-general", 23, "wm"),
-                ("smoke", 0, None),
-                ("smoke-selinux", 25, None),
-                ("smoke-podman-rootless", 24, None),
+            for test, code, binary_name, engine in (
+                ("docker-general", 0, None, ""),
+                ("docker-general", 23, "wm", ""),
+                ("docker-general-rootless", 0, None, "docker-rootless"),
+                ("docker-podman", 0, "wm", "podman"),
+                ("smoke", 0, None, ""),
+                ("smoke-selinux", 25, None, ""),
+                ("smoke-podman-rootless", 24, None, ""),
             ):
-                with self.subTest(test=test, exit_code=code, binary_name=binary_name):
+                with self.subTest(test=test, exit_code=code, binary_name=binary_name, engine=engine):
                     work = root / f"{test}-{code}"
                     inputs = work / "inputs"
                     inputs.mkdir(parents=True)
@@ -235,6 +250,7 @@ class NativeExecutionTests(unittest.TestCase):
                     subprocess.run(["git", "clone", str(inputs / "source.bundle"), str(source)],
                                    check=True, capture_output=True)
                     env = {key: value for key, value in os.environ.items() if key != "GITLAB_STATUS_TOKEN"}
+                    env["EXPECTED_ENGINE"] = engine
                     with chdir(source), patch.dict(os.environ, env, clear=True), patch.object(
                         worker.sys, "argv", ["worker", test]
                     ), patch.object(worker.GitLab, "request", side_effect=lambda path, destination:

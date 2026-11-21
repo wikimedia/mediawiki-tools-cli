@@ -78,7 +78,7 @@ func (c Command) run() error {
 		// If we are a linux arm machine, we need to force the default platform to linux/amd64
 		// As we don't have arm images for all services https://phabricator.wikimedia.org/T355341
 		slog.Debug(fmt.Sprint("Forcing DOCKER_DEFAULT_PLATFORM to linux/amd64"))
-		c.Cmd.Env = append(c.Cmd.Env, "DOCKER_DEFAULT_PLATFORM=linux/amd64")
+		c.Cmd.Env = append(c.Cmd.Environ(), "DOCKER_DEFAULT_PLATFORM=linux/amd64")
 	}
 	return c.Cmd.Run()
 }

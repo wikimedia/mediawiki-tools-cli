@@ -160,10 +160,11 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 			// Check composer dependencies are up to date
 			checkComposer := func() error {
+				user := docker.ContainerUser("")
 				// overrideConfig is a hack https://phabricator.wikimedia.org/T291613
 				// If this gets merged into Mediawiki we can remove it here https://gerrit.wikimedia.org/r/c/mediawiki/core/+/723308/
 				composerStdout, composerStderr, composerErr := devenv.DefaultForUser().DockerCompose().ExecCommand("mediawiki", dockercompose.ExecOptions{
-					User: User,
+					User: user,
 					CommandAndArgs: []string{
 						"php", "-r", "define( 'MW_CONFIG_CALLBACK', 'MediaWiki\\Installer\\Installer::overrideConfig' ); require_once('/var/www/html/w/maintenance/checkComposerLockUpToDate.php');",
 					},
@@ -212,7 +213,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 								return docker.Exec(containerID, docker.ExecOptions{
 									Output:     output,
 									Command:    command,
-									User:       User,
+									User:       user,
 									WorkingDir: "/var/www/html/w",
 								})
 							}, cmd.OutOrStdout(), cmd.ErrOrStderr())

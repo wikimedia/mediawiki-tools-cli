@@ -29,7 +29,7 @@ func NewMediaWikiQuibbleCmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample(mediawikiQuibbleExample),
 		RunE:    runMediaWikiQuibble,
 	}
-	cmd.PersistentFlags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.PersistentFlags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	cmd.AddCommand(&cobra.Command{
 		Use:     "record [env...] [spec]",
 		Short:   "Record a Selenium test run as video",
@@ -100,7 +100,7 @@ func runMediaWikiQuibble(cmd *cobra.Command, args []string) error {
 			docker.ExecOptions{
 				Command: command,
 				Env:     env,
-				User:    User,
+				User:    docker.ContainerUser(User),
 			},
 			"/workspace/src",
 		),

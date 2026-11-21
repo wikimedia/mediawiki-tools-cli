@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 from github_status import GitLab, PROJECT, REQUEST_JOB, pipeline_jobs
-from integration_tests import TESTS, download_snapshot
+from integration_tests import ENGINE_TESTS, TESTS, download_snapshot
 
 
 def test_shell():
@@ -36,7 +36,11 @@ def main():
     shell = test_shell()
     modes = {"smoke-selinux": "rootful", "smoke-podman-rootless": "rootless"}
     smoke = name == "smoke" or name in modes
-    script = "run-platform-smoke.sh" if smoke else TESTS.get(name, f"test-{name}.sh")
+    engine, script = ENGINE_TESTS.get(name, (None, TESTS.get(name, f"test-{name}.sh")))
+    if engine and sys.platform != "linux":
+        raise ValueError("the rootless engine tests require Linux")
+    if smoke:
+        script = "run-platform-smoke.sh"
     script_args = [modes[name]] if name in modes else []
     source = Path.cwd()
     inputs = source.parent / "inputs"
@@ -55,7 +59,7 @@ def main():
     if sys.platform == "linux" and platform.machine().lower() in {"amd64", "x86_64"}:
         shutil.copyfile(inputs / "mw", source / binary)
         (source / binary).chmod(0o755)
-        if not smoke:
+        if not smoke and engine != "podman":
             download_snapshot(GitLab(), inputs)
             subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
             env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
@@ -68,7 +72,10 @@ def main():
     if smoke:
         download_snapshot(GitLab(), inputs)
         env["MWCLI_SMOKE_SNAPSHOT"] = "../inputs/mediawiki.tar.gz"
-    process = subprocess.Popen([shell, f"tests/{script}", *script_args], cwd=source, env=env,
+    command = [shell, f"tests/{script}", *script_args]
+    if engine:
+        command = [shell, "tools/ci/use-rootless-engine.sh", engine, *command]
+    process = subprocess.Popen(command, cwd=source, env=env,
                                start_new_session=os.name != "nt")
     api = GitLab()  # This job has no GitLab token or GitHub write token.
     try:

@@ -34,7 +34,7 @@ func NewMediaWikiMWScriptCmd() *cobra.Command {
 				docker.ExecOptions{
 					Command:    append([]string{"php", "maintenance/run.php"}, command...),
 					Env:        env,
-					User:       User,
+					User:       docker.ContainerUser(User),
 					WorkingDir: "/var/www/html/w",
 				},
 			)
@@ -45,6 +45,6 @@ func NewMediaWikiMWScriptCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	return cmd
 }

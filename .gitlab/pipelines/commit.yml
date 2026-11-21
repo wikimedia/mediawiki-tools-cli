@@ -195,6 +195,8 @@ integration-github-request:
       # macos-amd64/smoke is disabled pending investigation of Colima MediaWiki API timeouts.
       INTEGRATION_TEST_PLAN: >-
         [{"platform":"linux-amd64","test":"docker-general"},
+         {"platform":"linux-amd64","test":"docker-general-rootless"},
+         {"platform":"linux-amd64","test":"docker-podman"},
          {"platform":"linux-amd64","test":"all-databases"},
          {"platform":"linux-amd64","test":"mysql-cycle"},
          {"platform":"linux-amd64","test":"repoclient"},

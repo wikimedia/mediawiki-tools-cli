@@ -35,6 +35,7 @@ func NewMediaWikiForeachwikiCmd() *cobra.Command {
 				return containerIDErr
 			}
 			var dbNames []string
+			user := docker.ContainerUser(User)
 			usedHosts, err := devenv.DefaultForUser().UsedHosts()
 			if err != nil {
 				return err
@@ -60,7 +61,7 @@ func NewMediaWikiForeachwikiCmd() *cobra.Command {
 							},
 							command[1:]...),
 						Env:        env,
-						User:       User,
+						User:       user,
 						WorkingDir: "/var/www/html/w",
 					})
 				if maxExitCode < exitCode {
@@ -74,6 +75,6 @@ func NewMediaWikiForeachwikiCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
+	cmd.Flags().StringVarP(&User, "user", "u", "", docker.ContainerUserHelp)
 	return cmd
 }

@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
+	"slices"
+	"strings"
 	"time"
 
 	dockerconfig "github.com/docker/cli/cli/config"
@@ -85,4 +88,48 @@ func CurrentUserAndGroupForDockerExecution() string {
 		return "2000:2000"
 	}
 	return fmt.Sprint(os.Getuid(), ":", os.Getgid())
+}
+
+// ContainerUserHelp describes the default for commands with a --user flag.
+const ContainerUserHelp = "Container user (defaults to the host uid:gid, or 0:0 with rootless Docker)"
+
+// ContainerUser resolves the default user at execution time. Rootless Docker
+// maps container UID/GID 0 to the unprivileged user that owns the daemon and
+// the bind-mounted source files.
+func ContainerUser(requested string) string {
+	if requested != "" {
+		return requested
+	}
+	cli, err := NewClientFromEnv()
+	if err == nil {
+		defer cli.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		info, err := cli.Info(ctx, client.InfoOptions{})
+		if err == nil && slices.Contains(info.Info.SecurityOptions, "name=rootless") {
+			return "0:0"
+		}
+	}
+	return CurrentUserAndGroupForDockerExecution()
+}
+
+// LocalUnixSocket returns the selected Docker socket if it exists on Linux.
+// Docker Desktop and non-Unix endpoints use the Compose file's default.
+func LocalUnixSocket() string {
+	if runtime.GOOS != "linux" {
+		return ""
+	}
+	cli, err := NewClientFromEnv()
+	if err != nil {
+		return ""
+	}
+	defer cli.Close()
+	socket, ok := strings.CutPrefix(cli.DaemonHost(), "unix://")
+	if !ok || !filepath.IsAbs(socket) || socket == "/var/run/docker.sock" {
+		return ""
+	}
+	if info, err := os.Stat(socket); err == nil && info.Mode().Type() == os.ModeSocket {
+		return socket
+	}
+	return ""
 }
