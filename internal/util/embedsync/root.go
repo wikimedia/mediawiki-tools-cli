@@ -54,16 +54,19 @@ func (e EmbeddingDiskSync) EnsureFilesOnDisk() error {
 		if readErr != nil && !os.IsNotExist(readErr) {
 			return readErr
 		}
+		mode := getAssumedFilePerms(diskFile)
 		if !bytes.Equal(previous, data) || readErr != nil {
 			if err = os.MkdirAll(filepath.Dir(diskFile), 0o755); err != nil {
 				return err
 			}
-			if err = os.WriteFile(diskFile, data, getAssumedFilePerms(diskFile)); err != nil {
+			if err = os.WriteFile(diskFile, data, mode); err != nil {
 				return err
 			}
 		}
-		if err = os.Chmod(diskFile, getAssumedFilePerms(diskFile)); err != nil {
-			return err
+		if info == nil || readErr != nil || info.Mode() != mode {
+			if err = os.Chmod(diskFile, mode); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

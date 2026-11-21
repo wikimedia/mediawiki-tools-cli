@@ -78,8 +78,10 @@ func NewWikiExtWikibasePropertyPutCmd() *cobra.Command {
 			if expectID != "" && id != expectID {
 				return fmt.Errorf("property %s was created, but expected ID was %q; do not retry creation", id, expectID)
 			}
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), id)
-			return err
+			if _, err := fmt.Fprintln(cmd.OutOrStdout(), id); err != nil {
+				return fmt.Errorf("property %s was created, but its ID could not be written; do not retry creation: %w", id, err)
+			}
+			return nil
 		},
 	}
 
