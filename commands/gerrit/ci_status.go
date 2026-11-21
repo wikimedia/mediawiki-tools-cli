@@ -7,15 +7,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	osexec "os/exec"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
-	gerritapi "gitlab.wikimedia.org/repos/releng/cli/internal/gerrit"
 )
 
 const (
@@ -28,12 +25,6 @@ var (
 	ciBuildPath  = regexp.MustCompile(`^/ci/(?:job/([A-Za-z0-9_.-]+)/)+([0-9]+)(?:/console(?:Full)?)?/?$`)
 	ciReportLine = regexp.MustCompile(`^\s*-\s+(\S+)\s+:\s+(\S+)(?: in ([^(]+?))?(?: (\(non-voting\)))?\s*$`)
 )
-
-type ciTarget struct {
-	change   int
-	patchset int
-	commit   string
-}
 
 type ciSnapshot struct {
 	Change         int     `json:"change"`
@@ -51,72 +42,6 @@ type ciJob struct {
 	NonVoting bool   `json:"non_voting"`
 	Duration  string `json:"duration,omitempty"`
 	BuildURL  string `json:"build_url,omitempty"`
-}
-
-func selectCITarget(ctx context.Context, args []string, patchset int) (ciTarget, error) {
-	target := ciTarget{patchset: patchset}
-	var err error
-	if len(args) == 0 {
-		head, err := osexec.CommandContext(ctx, "git", "rev-parse", "--verify", "HEAD").Output()
-		if err != nil {
-			return target, fmt.Errorf("cannot read Git HEAD. Pass a Gerrit change number or URL")
-		}
-		target.commit = strings.TrimSpace(string(head))
-		return target, nil
-	}
-	target.change, target.patchset, err = parseGerritChange(args[0], patchset)
-	return target, err
-}
-
-func (target *ciTarget) resolveChange(ctx context.Context, client *gogerrit.Client) error {
-	if target.change != 0 {
-		return nil
-	}
-	changes, _, err := client.Changes.QueryChanges(ctx, &gogerrit.QueryChangeOptions{
-		QueryOptions: gogerrit.QueryOptions{Query: []string{"commit:" + target.commit}, Limit: 2},
-	})
-	if err != nil {
-		return fmt.Errorf("look up Git HEAD in Gerrit: %w", err)
-	}
-	if len(*changes) != 1 || (*changes)[0].MoreChanges {
-		return fmt.Errorf("Git HEAD did not match exactly one public Gerrit change. Pass a change number or URL")
-	}
-	target.change = (*changes)[0].Number
-	return nil
-}
-
-func (target ciTarget) readChange(ctx context.Context, client *gogerrit.Client) (*gogerrit.ChangeInfo, int, error) {
-	field := "CURRENT_REVISION"
-	if target.patchset != 0 || target.commit != "" {
-		field = "ALL_REVISIONS"
-	}
-	change, _, err := client.Changes.GetChangeDetail(ctx, strconv.Itoa(target.change), &gogerrit.ChangeOptions{
-		AdditionalFields: []string{field},
-	})
-	if err != nil {
-		return nil, 0, fmt.Errorf("read Gerrit change %d: %w", target.change, err)
-	}
-	patchset := target.patchset
-	if patchset == 0 && target.commit != "" {
-		patchset = change.Revisions[target.commit].Number
-		if patchset == 0 {
-			return nil, 0, fmt.Errorf("Git HEAD is not a patchset of Gerrit change %d. Pass a change number or URL", target.change)
-		}
-	}
-	if patchset == 0 {
-		patchset = change.CurrentRevisionNumber
-		if patchset == 0 {
-			_, revision, _ := gerritapi.Revision(change, 0)
-			patchset = revision.Number
-		}
-	}
-	if patchset > 0 && patchset == change.CurrentRevisionNumber {
-		return change, patchset, nil
-	}
-	if _, _, ok := gerritapi.Revision(change, patchset); patchset > 0 && ok {
-		return change, patchset, nil
-	}
-	return nil, 0, fmt.Errorf("patchset %d is unavailable for Gerrit change %d", patchset, target.change)
 }
 
 func ciBuild(raw string) (string, string) {
@@ -263,7 +188,7 @@ func getCIIntegration(ctx context.Context, address string) (*http.Response, erro
 	return resp, nil
 }
 
-func captureCIStatus(ctx context.Context, client *gogerrit.Client, target ciTarget) (ciSnapshot, error, error) {
+func captureCIStatus(ctx context.Context, client *gogerrit.Client, target changeTarget) (ciSnapshot, error, error) {
 	change, patchset, err := target.readChange(ctx, client)
 	if err != nil {
 		return ciSnapshot{}, nil, err

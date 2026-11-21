@@ -55,6 +55,18 @@ requires a matching Git remote and works without a Gerrit account for public
 changes. To clone missing repos or apply dependencies across a MediaWiki
 development environment, use `mw dev mediawiki apply-patches`.
 
+## Find and inspect reviews
+
+Use `mw gerrit list --mine` for your open changes and `--reviewing` for open
+changes where you are a reviewer. Both use the selected Gerrit profile.
+Pass a Gerrit search query to `mw gerrit list` to search public changes.
+
+`mw gerrit view 1370181` shows the patchset, current votes, submit requirements,
+and unresolved threads. Run `mw gerrit diff 1370181 --base-patchset 3 --patchset 4`
+to compare two patchsets, or omit `--base-patchset` to diff against the first
+parent. Both commands accept a Gerrit change URL and infer the review and
+patchset from Git HEAD when you omit the change.
+
 ## Continuous integration
 
 `mw gerrit ci status 1372985` shows public Jenkins results reported in Gerrit

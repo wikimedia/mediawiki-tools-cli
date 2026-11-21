@@ -319,17 +319,7 @@ func gerritTrailerID(trailers string) string {
 func queryPushChanges(ctx context.Context, client *gogerrit.Client, query string) ([]gogerrit.ChangeInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, gerritRequestTimeout)
 	defer cancel()
-	changes, resp, err := client.Changes.QueryChanges(ctx, &gogerrit.QueryChangeOptions{
-		QueryOptions:  gogerrit.QueryOptions{Query: []string{query}, Limit: 2},
-		ChangeOptions: gogerrit.ChangeOptions{AdditionalFields: []string{"CURRENT_REVISION"}},
-	})
-	if err != nil {
-		if resp != nil {
-			resp.Body.Close()
-		}
-		return nil, err
-	}
-	return *changes, nil
+	return readGerritChanges(ctx, client, query, 2, "CURRENT_REVISION")
 }
 
 func uploadGerritPush(cmd *cobra.Command, plan gerritPushPlan) error {

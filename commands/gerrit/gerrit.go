@@ -37,8 +37,11 @@ func NewGerritCmd() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			if parent := cmd.Parent(); parent != nil {
-				if parent.Name() == "gerrit" && (cmd.Name() == "checkout" || cmd.Name() == "setup" || cmd.Name() == "clone" || cmd.Name() == "push") {
-					return nil
+				if parent.Name() == "gerrit" {
+					switch cmd.Name() {
+					case "checkout", "setup", "clone", "push", "list", "view", "diff":
+						return nil
+					}
 				}
 				switch parent.Name() {
 				case "dotgitreview", "ci":
@@ -67,7 +70,7 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritAuthCmd(&profile))
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
 	cmd.AddCommand(newCICmd())
-	cmd.AddCommand(newCheckoutCmd())
+	cmd.AddCommand(newCheckoutCmd(), newListCmd(), newViewCmd(), newDiffCmd())
 	cmd.AddCommand(newSetupCmd())
 	cmd.AddCommand(newCloneCmd())
 	cmd.AddCommand(newPushCmd())

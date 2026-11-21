@@ -69,11 +69,9 @@ func checkoutChange(cmd *cobra.Command, number, patchset int) error {
 	if err := verifyCheckoutRepository(ctx, change.Project, number); err != nil {
 		return err
 	}
-	address, ref := gerritapi.RevisionFetch(change.Project, revision)
-	expectedRef := fmt.Sprintf("refs/changes/%02d/%d/%d", number%100, number, revision.Number)
-	if _, err := hex.DecodeString(commit); err != nil || len(commit) != 40 || ref != expectedRef ||
-		!checkoutRemoteMatches(address, change.Project, false) {
-		return fmt.Errorf("Gerrit returned unexpected fetch details for change %d, patchset %d", number, revision.Number)
+	address, ref, err := verifiedRevisionFetch(change.Project, number, commit, revision)
+	if err != nil {
+		return err
 	}
 
 	runGit := func(args ...string) error {
@@ -83,7 +81,7 @@ func checkoutChange(cmd *cobra.Command, number, patchset int) error {
 	}
 	// Select the HTTPS transport explicitly so an HTTPS-to-SSH insteadOf rule
 	// cannot make an anonymous checkout require SSH credentials.
-	if err := runGit("fetch", "--no-tags", "--no-recurse-submodules", "--no-write-fetch-head", "--", "https::"+address, ref); err != nil {
+	if err := runGit("fetch", "--no-tags", "--no-recurse-submodules", "--no-write-fetch-head", "--", address, ref); err != nil {
 		return fmt.Errorf("fetch Gerrit change %d, patchset %d: %w", number, revision.Number, err)
 	}
 	// Use the selected commit so a concurrent fetch cannot redirect this checkout.
@@ -92,6 +90,16 @@ func checkoutChange(cmd *cobra.Command, number, patchset int) error {
 	}
 	_, err = fmt.Fprintf(cmd.OutOrStdout(), "Checked out change %d, patchset %d (%s)\n", number, revision.Number, change.Project)
 	return err
+}
+
+func verifiedRevisionFetch(project string, number int, commit string, revision gogerrit.RevisionInfo) (string, string, error) {
+	address, ref := gerritapi.RevisionFetch(project, revision)
+	expectedRef := fmt.Sprintf("refs/changes/%02d/%d/%d", number%100, number, revision.Number)
+	if _, err := hex.DecodeString(commit); err != nil || len(commit) != 40 || ref != expectedRef ||
+		!checkoutRemoteMatches(address, project, false) {
+		return "", "", fmt.Errorf("Gerrit returned unexpected fetch details for change %d, patchset %d", number, revision.Number)
+	}
+	return "https::" + address, ref, nil
 }
 
 func checkoutChangeInfo(ctx context.Context, number, patchset int) (*gogerrit.ChangeInfo, error) {

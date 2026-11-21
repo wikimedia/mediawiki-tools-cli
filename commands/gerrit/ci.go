@@ -12,8 +12,6 @@ import (
 
 	gogerrit "github.com/andygrunwald/go-gerrit"
 	"github.com/spf13/cobra"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/accesspolicy"
-	"gitlab.wikimedia.org/repos/releng/cli/internal/commandmeta"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
 )
 
@@ -24,17 +22,6 @@ func newCICmd() *cobra.Command {
 		Example: "ci status 1372985\nci logs 1372985 --job mediawiki-core-phan-only-php83",
 	}
 	cmd.AddCommand(newCIStatusCmd(), newCILogsCmd())
-	return cmd
-}
-
-func ciReadCommand(cmd *cobra.Command, patchset *int) *cobra.Command {
-	accesspolicy.Support(cmd)
-	commandmeta.Set(cmd, commandmeta.Hints{
-		ToolAnnotations: commandmeta.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: true},
-		DataAccess:      []commandmeta.DataAccess{commandmeta.DataPublic},
-	})
-	cmd.Flags().IntVar(patchset, "patchset", 0, "Inspect this patchset")
-	cmd.ValidArgsFunction = cobra.NoFileCompletions
 	return cmd
 }
 
@@ -58,7 +45,7 @@ func newCIStatusCmd() *cobra.Command {
 				ctx, stop = ossignal.NotifyContext(ctx, os.Interrupt)
 				defer stop()
 			}
-			client, target, err := prepareCI(ctx, cmd, args, patchset)
+			client, target, err := preparePublicChange(ctx, cmd, args, patchset)
 			if err != nil {
 				return err
 			}
@@ -68,7 +55,7 @@ func newCIStatusCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&watch, "watch", false, "Print status changes until interrupted")
 	out.AddFlagsWithOpts(cmd, output.WithDefaultOutput(output.TableType), output.WithFilterFlagDisabled(),
 		output.WithTableBinding(&output.TableBinding{}))
-	return ciReadCommand(cmd, &patchset)
+	return publicPatchsetCommand(cmd, &patchset)
 }
 
 func validateCIOutput(out output.Output) error {
@@ -85,27 +72,7 @@ func validateCIOutput(out output.Output) error {
 	return nil
 }
 
-func prepareCI(ctx context.Context, cmd *cobra.Command, args []string, patchset int) (*gogerrit.Client, ciTarget, error) {
-	ctx, cancel := context.WithTimeout(ctx, gerritRequestTimeout)
-	defer cancel()
-	if cmd.Flags().Changed("patchset") && patchset < 1 {
-		return nil, ciTarget{}, fmt.Errorf("--patchset must be positive")
-	}
-	target, err := selectCITarget(ctx, args, patchset)
-	if err != nil {
-		return nil, ciTarget{}, err
-	}
-	client, err := newGerritClient(ctx)
-	if err != nil {
-		return nil, ciTarget{}, err
-	}
-	if err := target.resolveChange(ctx, client); err != nil {
-		return nil, ciTarget{}, err
-	}
-	return client, target, nil
-}
-
-func printCIStatus(ctx context.Context, cmd *cobra.Command, client *gogerrit.Client, target ciTarget, out output.Output, watch bool) error {
+func printCIStatus(ctx context.Context, cmd *cobra.Command, client *gogerrit.Client, target changeTarget, out output.Output, watch bool) error {
 	var previous ciSnapshot
 	var ticker *time.Ticker
 	if watch {
@@ -187,7 +154,7 @@ func newCILogsCmd() *cobra.Command {
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			client, target, err := prepareCI(ctx, cmd, args, patchset)
+			client, target, err := preparePublicChange(ctx, cmd, args, patchset)
 			if err != nil {
 				return err
 			}
@@ -217,7 +184,7 @@ func newCILogsCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&jobName, "job", "", "Jenkins job name")
 	cmd.Flags().StringVar(&pipeline, "pipeline", "", "Zuul pipeline name")
-	return ciReadCommand(cmd, &patchset)
+	return publicPatchsetCommand(cmd, &patchset)
 }
 
 func chooseCILog(snapshot ciSnapshot, name, pipeline string) (ciJob, error) {
