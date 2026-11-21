@@ -37,7 +37,7 @@ func NewGerritCmd() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			if parent := cmd.Parent(); parent != nil {
-				if parent.Name() == "gerrit" && (cmd.Name() == "checkout" || cmd.Name() == "setup" || cmd.Name() == "clone") {
+				if parent.Name() == "gerrit" && (cmd.Name() == "checkout" || cmd.Name() == "setup" || cmd.Name() == "clone" || cmd.Name() == "push") {
 					return nil
 				}
 				switch parent.Name() {
@@ -70,6 +70,7 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(newCheckoutCmd())
 	cmd.AddCommand(newSetupCmd())
 	cmd.AddCommand(newCloneCmd())
+	cmd.AddCommand(newPushCmd())
 	cmd.AddCommand(newSSHKeyCmd())
 
 	// Generated command trees are documented and exercised by their generator's
