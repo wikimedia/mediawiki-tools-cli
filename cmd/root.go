@@ -255,6 +255,7 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	if isCompletionRequest(os.Args[1:]) {
 		cli.Opts.NoInteraction = true
 		root := NewRootCmd(cli.InvocationName(os.Args[0]))
+		root.SetArgs(resolveServiceTargetArgs(root, os.Args[1:]))
 		if err := root.Execute(); err != nil {
 			logrus.Error(err)
 			os.Exit(1)
@@ -359,6 +360,8 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 	}
 
 	rootCmd := NewRootCmd(cli.InvocationName(os.Args[0]))
+	// Add target-specific commands before applying the public-only policy.
+	rootCmd.SetArgs(resolveServiceTargetArgs(rootCmd, os.Args[1:]))
 	if c.EffectiveKoanf.Exists(accesspolicy.ConfigKey) || slices.ContainsFunc(os.Args[1:], isPublicOnlyFlag) {
 		guardPublicOnlyCommands(rootCmd)
 	}
@@ -394,11 +397,6 @@ func Execute(GitCommit string, GitBranch string, GitState string, GitSummary str
 		}
 		return groups
 	})
-
-	// Resolve a service target prefix (for example, @gerrit.wikimedia.org) to
-	// its service command group or combined wiki capabilities before Cobra
-	// parses the command tree, keeping nested completions reusable.
-	rootCmd.SetArgs(resolveServiceTargetArgs(rootCmd, os.Args[1:]))
 
 	// Execute the root command
 	err := rootCmd.Execute()
@@ -480,6 +478,7 @@ func minimalMCPCommand(name string, args []string) *cobra.Command {
 		return nil
 	}
 	root := newMinimalCommandTree(name)
+	args = resolveServiceTargetArgs(root, args)
 	selected, _, err := root.Find(args)
 	if err != nil || selected == nil || selected.Annotations[cli.SkipConfigAnnotation] != "true" {
 		return nil

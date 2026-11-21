@@ -101,6 +101,7 @@ func TestGlobalPublicOnlyRejectsUnsupportedProcessCommands(t *testing.T) {
 		args     []string
 	}{
 		{"flag before service", "", []string{"--public-only", "wiki", "api", "query"}},
+		{"flag before target", "", []string{"--public-only", "@en.wikipedia.org", "api", "query"}},
 		{"flag after command", "", []string{"phab", "api", "maniphest.search", "--public-only"}},
 		{"config default", `,"access":{"public_only":true}`, []string{"wiki", "api", "query"}},
 	} {

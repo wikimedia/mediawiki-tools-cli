@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"reflect"
 	"strings"
@@ -140,5 +141,13 @@ func TestServiceTargetExecution(t *testing.T) {
 	}
 	if endpoint, _ := page.Flags().GetString("wiki"); endpoint != "https://en.wikipedia.org/w/api.php" {
 		t.Errorf("endpoint = %q", endpoint)
+	}
+}
+
+func TestTargetCompletionThroughCLI(t *testing.T) {
+	dir := t.TempDir()
+	output, err := cliTestProcess(t, context.Background(), dir, "__complete", "@en.wiki", "").CombinedOutput()
+	if err != nil || !strings.Contains(string(output), "page\t") {
+		t.Fatalf("expected wiki subcommands, got %s (%v)", output, err)
 	}
 }
