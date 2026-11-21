@@ -20,11 +20,12 @@ import (
 func NewRemoteCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "remote", Short: "Manage remote development contexts and background sessions"}
 	var opts devremote.Options
-	var host, project, instance, user, jump, directory, sourceName, gitRemote string
+	var host, project, instance, user, jump, directory, sourceName, gitRemote, lima string
 	var forwarded []string
 	open := &cobra.Command{
 		Use: "open [context]", Short: "Prepare or reconnect a background remote development session",
 		Long: `Keep code and containers on a Linux VM, with browser access maintained by a background SSH session.
+Use --lima NAME to start or create a Lima Docker VM using an installed limactl.
 New contexts receive a two-word name and use ~/wm/CONTEXT/mediawiki by default. Reopen a saved context without supplying its SSH target again.
 Use --directory for continuous local-to-remote source synchronization. Git metadata, dotenv files and dependency directories are excluded; overwritten remote files are retained under .wm/sync-backup. Local-folder mode defaults to no recipe.
 Use --editor web for a browser editor on the VM or --editor code for desktop VS Code. Editor access is authenticated and forwarded through SSH. Wiki links are printed by default. Use --open-browser to open the wiki.
@@ -32,6 +33,7 @@ Stable releases download the exact release’s Linux build for the VM. Developme
 Phabricator commands can execute on this machine through the active session bridge (--forward phab, the default). Credential management and shell commands are not delegated; file arguments are transferred as stdin. --forward none disables delegation.
 --git-remote selects an authenticated Git destination on this machine. Fetch/push transfer objects through a local mirror; no service credentials or SSH agents are copied to the VM.`,
 		Example: cobrautil.NormalizeExample(`open --ssh awm-1.boxd --recipe mediawiki
+open farm --lima my-vm --recipe wmf-wikifarm --editor none
 open --project mwcli --instance ea86a663-eee4-4ed7-9962-d7f339800b5c --editor web
 open calm-otter
 open --ssh my-vm --directory . --recipe none --editor none`),
@@ -46,7 +48,10 @@ open --ssh my-vm --directory . --recipe none --editor none`),
 				name = args[0]
 				explicit = true
 			}
-			target := host != "" || instance != ""
+			if lima != "" && (host != "" || instance != "" || project != "" || user != "" || jump != "") {
+				return fmt.Errorf("--lima cannot be combined with SSH or Cloud VPS target options")
+			}
+			target := host != "" || instance != "" || lima != ""
 			if !explicit && target {
 				var err error
 				name, err = devremote.NewContextName()
@@ -78,7 +83,14 @@ open --ssh my-vm --directory . --recipe none --editor none`),
 				c = devremote.Context{Options: opts, SourceName: "mediawiki", Forward: []string{"phab"}}
 				c.Context = name
 			}
-			if target {
+			if lima != "" || c.Lima != "" {
+				if !fresh && (host != "" || instance != "" || (lima != "" && c.Lima != lima)) {
+					return fmt.Errorf("this context already belongs to another target; create another context")
+				}
+				if fresh {
+					c.Lima = lima
+				}
+			} else if target {
 				if host != "" && instance != "" {
 					return fmt.Errorf("provide either --ssh or --project with --instance")
 				}
@@ -112,7 +124,7 @@ open --ssh my-vm --directory . --recipe none --editor none`),
 				}
 				c.SSHArgs = sshArgs
 			} else if fresh {
-				return fmt.Errorf("a new context needs --ssh or --project with --instance")
+				return fmt.Errorf("a new context needs --lima, --ssh or --project with --instance")
 			}
 			previousEditor := c.Editor
 			previousGit := c.GitRemote
@@ -188,9 +200,20 @@ open --ssh my-vm --directory . --recipe none --editor none`),
 					time.Sleep(100 * time.Millisecond)
 				}
 			}
+			if c.Lima != "" {
+				if err := c.Options.ValidateSettings(); err != nil {
+					return err
+				}
+				var err error
+				c.SSHArgs, err = devremote.LimaSSH(cmd.Context(), c.Lima, fresh, cmd.OutOrStdout(), cmd.ErrOrStderr())
+				if err != nil {
+					return err
+				}
+			}
 			return devremote.StartSession(cmd.Context(), c, cmd.OutOrStdout(), cmd.ErrOrStderr())
 		},
 	}
+	open.Flags().StringVar(&lima, "lima", "", "Start or create a named Lima Docker VM")
 	open.Flags().StringVar(&host, "ssh", "", "SSH host or configured alias")
 	open.Flags().StringVar(&project, "project", "", "Cloud VPS project (with --instance)")
 	open.Flags().StringVar(&instance, "instance", "", "Cloud VPS instance ID")

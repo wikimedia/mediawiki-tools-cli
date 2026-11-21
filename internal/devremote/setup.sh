@@ -41,6 +41,13 @@ umask 022
 "$mw" --no-interaction dev env set PORT "$port"
 "$mw" --no-interaction dev env set TRAEFIK_BIND_ADDR 127.0.0.1
 "$mw" --no-interaction dev env set MEDIAWIKI_VOLUMES_CODE "$source"
+docker_endpoint=${DOCKER_HOST:-}
+if [[ -n ${DOCKER_CONTEXT:-} || -z $docker_endpoint ]]; then
+    docker_endpoint=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+fi
+if [[ $docker_endpoint == unix:///* ]]; then
+    "$mw" --no-interaction dev env set WM_DEV_DOCKER_SOCKET "${docker_endpoint#unix://}"
+fi
 if [[ $git_bridge == yes ]]; then
     real_git=$(command -v git)
     printf '#!/bin/bash\nexport MW_REMOTE_BRIDGE=%q\nargs=("$@")\nwhile (($#)); do\n case "$1" in\n -C|-c|--git-dir|--work-tree) shift 2;;\n -*) shift;;\n fetch|push|pull|clone) exec %q __remote-git "${args[@]}";;\n *) break;;\n esac\ndone\nexec %q "${args[@]}"\n' "$bridge" "$binary" "$real_git" > "$workspace/bin/git"

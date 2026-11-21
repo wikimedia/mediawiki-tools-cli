@@ -134,8 +134,16 @@ func openSessionUI(ctx context.Context, c Context, stdout, stderr io.Writer) err
 			}
 		}
 	}
-	if c.Recipe != "none" {
-		showRemoteURL(fmt.Sprintf("http://default.mediawiki.local.wmftest.net:%d/wiki/Main_Page", c.Port), c.OpenBrowser && !c.NoBrowser, stdout, stderr)
+	if c.Recipe == farmRecipe {
+		directory, err := contextDirectory(c.Context)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(stdout, "Farm HTTPS CA: %s\n", filepath.Join(directory, "farm-ca.crt"))
+		fmt.Fprintf(stdout, "Dashboard: http://127.0.0.1:%d/proxy/dashboard/\n", c.Port)
+	}
+	if site := recipeSiteURL(c.Recipe, c.Port); site != "" {
+		showRemoteURL(site, c.OpenBrowser && !c.NoBrowser, stdout, stderr)
 	}
 	if c.Editor == "web" {
 		showRemoteURL(fmt.Sprintf("http://127.0.0.1:%d/", c.WebPort), !c.NoBrowser, stdout, stderr)

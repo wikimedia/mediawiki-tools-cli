@@ -29,6 +29,23 @@ Local `mw dev` commands targeting a registered remote context run on its VM, wit
 
 The VM needs Git and Docker Compose with permission to use Docker. `--install-deps` installs dependencies using passwordless sudo on supported Debian/Ubuntu systems. Stable clients download and checksum-verify the exact same release for the VM’s Linux architecture, then cache and upload it. Development and nightly clients only copy their running executable and require a matching Linux OS and architecture; they never download a different build. A missing matching release stops setup. The `mediawiki` recipe installs core, Vector and MariaDB; `--recipe none` prepares a workspace without installing an application.
 
+### Use a Lima VM
+
+With [Lima](https://lima-vm.io/docs/installation/) installed, open a remote
+context against a named instance. The first run creates the instance from
+Lima's Docker template and downloads the guest image if needed. An existing
+instance is started or reused.
+
+```sh
+wm dev remote open farm --lima wikimedia-dev --recipe wmf-wikifarm --editor none
+wm dev --context farm compose ps
+```
+
+The farm uses local HTTPS port `8443`. The CLI prints the forwarded wiki and
+dashboard URLs and the path to the farm's public HTTPS certificate. Trust that certificate in your development
+browser to use the farm's HTTPS sites. The checkout and Docker volumes
+live in the guest. Reopen the saved context with `wm dev remote open farm`.
+
 To edit an existing local project while running it remotely:
 
 ```sh

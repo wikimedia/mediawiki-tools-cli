@@ -19,6 +19,7 @@ import (
 // Context records development location and capabilities, never service credentials.
 type Context struct {
 	Options
+	Lima       string   `json:"lima,omitempty"`
 	Workspace  string   `json:"workspace"`
 	Metadata   string   `json:"metadata"`
 	Source     string   `json:"source"`
@@ -98,7 +99,8 @@ func SaveContext(c Context) error {
 		return err
 	}
 	defer lock.Unlock()
-	if existing, err := LoadContext(c.Context); err == nil && !slices.Equal(existing.SSHArgs, c.SSHArgs) {
+	if existing, err := LoadContext(c.Context); err == nil &&
+		(existing.Lima != c.Lima || !slices.Equal(existing.SSHArgs, c.SSHArgs)) {
 		return fmt.Errorf("context %s is already registered for another SSH target", c.Context)
 	} else if err != nil && !os.IsNotExist(err) {
 		return err

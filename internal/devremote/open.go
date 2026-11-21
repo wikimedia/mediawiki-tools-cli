@@ -4,6 +4,8 @@ package devremote
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"debug/elf"
 	_ "embed"
 	"encoding/json"
@@ -12,6 +14,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	osexec "os/exec"
 	ossignal "os/signal"
@@ -53,7 +56,8 @@ func ValidateHost(host string) error {
 	return nil
 }
 
-func (o Options) validate() error {
+// ValidateSettings checks arguments that do not depend on a resolved SSH target.
+func (o Options) ValidateSettings() error {
 	if !safeName.MatchString(o.Context) || !safeName.MatchString(o.Recipe) {
 		return fmt.Errorf("context and recipe names must contain only letters, digits, underscores and hyphens (maximum 64 characters)")
 	}
@@ -65,6 +69,13 @@ func (o Options) validate() error {
 	}
 	if _, err := mount.DevContent.ReadFile("dev/recipes/" + o.Recipe + ".yml"); o.Recipe != "none" && err != nil {
 		return fmt.Errorf("unknown built-in recipe %q", o.Recipe)
+	}
+	return nil
+}
+
+func (o Options) validate() error {
+	if err := o.ValidateSettings(); err != nil {
+		return err
 	}
 	if len(o.SSHArgs) == 0 {
 		return fmt.Errorf("missing SSH connection")
@@ -149,6 +160,13 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 	if err != nil {
 		return err
 	}
+	busy := listeningPorts(listening)
+	if o.Recipe == farmRecipe {
+		busy[farmHTTPSPort] = true
+		if o.Port == farmHTTPSPort || strings.TrimSpace(stored) == strconv.Itoa(farmHTTPSPort) {
+			return fmt.Errorf("port %d is reserved for wiki farm HTTPS; select a different gateway port", farmHTTPSPort)
+		}
+	}
 	if err := t.run(ctx, "umask 077; mkdir -p "+quote(metadata), nil, stdout); err != nil {
 		return err
 	}
@@ -157,18 +175,25 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 		return err
 	}
 	defer portLock.Close()
-	port, err := selectPort(strings.TrimSpace(stored), o.Port, listeningPorts(listening))
+	port, err := selectPort(strings.TrimSpace(stored), o.Port, busy)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(stdout, "Connecting local port %d to the remote environment...\n", port)
 	forward := []string{"-N", "-o", "ExitOnForwardFailure=yes", "-L", fmt.Sprintf("127.0.0.1:%d:127.0.0.1:%d", port, port)}
+	if o.Recipe == farmRecipe {
+		forward = append(forward, "-L", fmt.Sprintf("127.0.0.1:%d:127.0.0.1:%d", farmHTTPSPort, farmHTTPSPort))
+	}
 	bridgeFile := ""
 	webPort := c.WebPort
 	webForwardPort, remoteEditorPort := 0, 0
 	var editorListener net.Listener
 	if o.Editor == "web" {
-		webPort, err = selectPort("", webPort, map[int]bool{port: true})
+		editorBusy := map[int]bool{port: true}
+		if o.Recipe == farmRecipe {
+			editorBusy[farmHTTPSPort] = true
+		}
+		webPort, err = selectPort("", webPort, editorBusy)
 		if err != nil {
 			return err
 		}
@@ -276,9 +301,31 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 	if err := t.script(ctx, setupScript, args, stdout); err != nil {
 		return fmt.Errorf("remote setup failed; rerun the command to retry: %w", err)
 	}
-	url := fmt.Sprintf("http://default.mediawiki.local.wmftest.net:%d/wiki/Main_Page", port)
-	if o.Recipe != "none" {
-		if err := waitSite(ctx, port); err != nil {
+	site := recipeSiteURL(o.Recipe, port)
+	var roots *x509.CertPool
+	if o.Recipe == farmRecipe {
+		launcher := quote(path.Join(metadata, "bin", "mw"))
+		certificate, err := t.output(ctx, launcher+" --no-interaction dev compose exec -- -T farm-https cat /data/caddy/pki/authorities/local/root.crt")
+		if err != nil {
+			return fmt.Errorf("read wiki farm certificate from the guest: %w", err)
+		}
+		roots = x509.NewCertPool()
+		if !roots.AppendCertsFromPEM([]byte(certificate)) {
+			return errors.New("guest returned an invalid wiki farm certificate")
+		}
+		directory, err := contextDirectory(o.Context)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(directory, "farm-ca.crt"), []byte(certificate), 0o600); err != nil {
+			return err
+		}
+	}
+	if site != "" {
+		if err := waitSiteURL(ctx, site, roots); err != nil {
 			return err
 		}
 	}
@@ -299,8 +346,8 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 		defer server.Close()
 	}
 	fmt.Fprintln(stdout, "Remote environment ready.")
-	if o.Recipe != "none" {
-		fmt.Fprintf(stdout, "  Site: %s\n", url)
+	if site != "" {
+		fmt.Fprintf(stdout, "  Site: %s\n", site)
 	}
 	fmt.Fprintf(stdout, "  Source: %s\n", source)
 	if hooks.ready != nil {
@@ -491,17 +538,46 @@ func waitTunnel(ctx context.Context, port int, done chan error) error {
 	}
 }
 
-func waitSite(ctx context.Context, port int) error {
+const (
+	farmRecipe    = "wmf-wikifarm"
+	farmHTTPSPort = 8443
+)
+
+func recipeSiteURL(recipe string, port int) string {
+	switch recipe {
+	case "none":
+		return ""
+	case farmRecipe:
+		return fmt.Sprintf("https://en.wikipedia.localhost:%d/wiki/Main_Page", farmHTTPSPort)
+	default:
+		return fmt.Sprintf("http://default.mediawiki.local.wmftest.net:%d/wiki/Main_Page", port)
+	}
+}
+
+func waitSiteURL(ctx context.Context, site string, roots *x509.CertPool) error {
+	u, err := url.Parse(site)
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	client := &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{Proxy: nil}, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
+			DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, network, net.JoinHostPort("127.0.0.1", u.Port()))
+			},
+		},
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
 	defer client.CloseIdleConnections()
 	for {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/wiki/Main_Page", port), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, site, nil)
 		if err != nil {
 			return err
 		}
-		req.Host = fmt.Sprintf("default.mediawiki.local.wmftest.net:%d", port)
 		resp, err := client.Do(req)
 		if err == nil {
 			resp.Body.Close()
@@ -511,7 +587,7 @@ func waitSite(ctx context.Context, port int) error {
 		}
 		select {
 		case <-ctx.Done():
-			return errors.New("wiki did not become ready through the SSH tunnel; inspect the remote containers and retry")
+			return fmt.Errorf("%s did not become ready through SSH; inspect the remote containers and retry", site)
 		case <-time.After(time.Second):
 		}
 	}

@@ -2,6 +2,7 @@ package devremote
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -87,6 +88,26 @@ func TestSavedPortIsPreservedAndConflictsFail(t *testing.T) {
 	}
 }
 
+func TestWaitSiteURLTrustsGuestCertificate(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/wiki/Main_Page" {
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	roots := x509.NewCertPool()
+	roots.AddCert(server.Certificate())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := waitSiteURL(ctx, server.URL+"/wiki/Main_Page", roots); err != nil {
+		t.Fatal(err)
+	}
+	if got := recipeSiteURL("wmf-wikifarm", 19080); got != "https://en.wikipedia.localhost:8443/wiki/Main_Page" {
+		t.Errorf("unexpected wiki farm URL %s", got)
+	}
+}
+
 func TestRemoteListeningPorts(t *testing.T) {
 	ports := listeningPorts("LISTEN 0 4096 127.0.0.1:6195 0.0.0.0:*\nLISTEN 0 4096 [::]:8080 [::]:*\nLISTEN 0 128 *:22 *:*\n")
 	if len(ports) != 3 || !ports[6195] || !ports[8080] || !ports[22] {
@@ -118,7 +139,7 @@ func TestReadinessPreservesVirtualHostAndDoesNotFollowRedirects(t *testing.T) {
 		w.WriteHeader(http.StatusFound)
 	}))
 	defer server.Close()
-	if err := waitSite(context.Background(), server.Listener.Addr().(*net.TCPAddr).Port); err != nil {
+	if err := waitSiteURL(context.Background(), recipeSiteURL("mediawiki", server.Listener.Addr().(*net.TCPAddr).Port), nil); err != nil {
 		t.Fatal(err)
 	}
 }
