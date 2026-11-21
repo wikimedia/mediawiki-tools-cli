@@ -26,6 +26,7 @@ linters:
     - unused # Default
     # Custom enabled linters
     - bodyclose
+    - depguard
     - gci
     - gofmt
     - gofumpt
@@ -41,6 +42,15 @@ linters:
 
 # all available settings of specific linters
 linters-settings:
+  depguard:
+    rules:
+      main:
+        files:
+          - $all
+        list-mode: lax
+        deny:
+          - pkg: github.com/sirupsen/logrus$
+            desc: use log/slog for logging
   revive:
     rules:
       # Ignore blank imports, as "embed" is a valid blank import
