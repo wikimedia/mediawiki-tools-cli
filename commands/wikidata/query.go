@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"golang.org/x/term"
 )
 
@@ -96,8 +97,7 @@ func submit(parent context.Context, endpoint, query, accept string, timeout time
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", accept)
-	req.Header.Set("User-Agent", "mwcli WikidataQuery/1.0 (https://www.mediawiki.org/wiki/CLI)")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := cli.NewHTTPClient().Do(req)
 	if err != nil {
 		return err
 	}
