@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/knadh/koanf"
 	koanfjson "github.com/knadh/koanf/parsers/json"
@@ -24,7 +26,7 @@ func Path() string {
 }
 
 func ensureExists() {
-	if err := secureConfigPath(); err != nil {
+	if err := secureConfigPath(false); err != nil {
 		logrus.Fatal(err)
 	}
 	if _, err := os.Lstat(Path()); os.IsNotExist(err) {
@@ -128,24 +130,32 @@ func load() *koanf.Koanf {
 	if kLoaded {
 		return k
 	}
-	if !isConfigCompletion() {
+	canWrite := !isConfigCompletion()
+	if canWrite {
 		unlock, err := lockConfigFile(context.Background())
-		if err != nil {
+		switch {
+		case err == nil:
+			defer unlock()
+		case errors.Is(err, syscall.EROFS), errors.Is(err, os.ErrPermission):
+			// The config is replaced atomically, so an existing file can be
+			// read when the filesystem does not let us take the writer lock.
+			canWrite = false
+		default:
 			logrus.Fatal(err)
 		}
-		defer unlock()
 	}
 	ensureExists()
 
-	preload()
+	if canWrite {
+		preload()
+	}
 
 	logrus.Trace("loading config")
 	logrus.Trace("loading defaults")
 	loadDefaults()
 	logrus.Trace("loading json")
-	f := file.Provider(Path())
-	loadJson(k, f)
-	loadJson(kOnDisk, f)
+	loadJson(kOnDisk, file.Provider(Path()))
+	_ = k.Merge(kOnDisk)
 	migrated, changed, err := migratePhabricatorProfiles(kOnDisk)
 	if err != nil {
 		logrus.Fatal(err)
@@ -169,8 +179,7 @@ func load() *koanf.Koanf {
 	migrated = cloudMigrated
 	changed = changed || cloudChanged
 	if changed {
-		// Completion may translate metadata in memory, but must not write config.
-		if !isConfigCompletion() {
+		if canWrite {
 			if err := putDiskConfig(migrated); err != nil {
 				logrus.Fatalf("could not migrate account profiles: %v", err)
 			}

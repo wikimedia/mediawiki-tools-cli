@@ -18,7 +18,7 @@ func lockConfigFile(ctx context.Context) (func(), error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if err := secureConfigPath(); err != nil {
+	if err := secureConfigPath(true); err != nil {
 		return nil, err
 	}
 	path := Path() + ".credentials.lock"
@@ -32,6 +32,9 @@ func lockConfigFile(ctx context.Context) (func(), error) {
 	if err != nil || !ok {
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("waiting for credential mutation lock: %w", ctx.Err())
+		}
+		if err != nil {
+			return nil, fmt.Errorf("could not acquire credential mutation lock: %w", err)
 		}
 		return nil, fmt.Errorf("could not acquire credential mutation lock")
 	}
