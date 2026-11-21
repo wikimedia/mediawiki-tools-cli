@@ -42,14 +42,15 @@ type StyledCell struct {
 
 func (c StyledCell) String() string { return c.Text }
 
-func tableColorEnabled(writer io.Writer) bool {
+// ColorEnabled reports whether the writer is a terminal with colour enabled.
+func ColorEnabled(writer io.Writer) bool {
 	file, ok := writer.(*os.File)
 	return ok && isTerminal(file) && os.Getenv("NO_COLOR") == "" && os.Getenv("CLICOLOR") != "0" && os.Getenv("TERM") != "dumb"
 }
 
 // StyledText uses the same terminal and colour preferences as table cells.
 func StyledText(writer io.Writer, text string, attributes ...color.Attribute) string {
-	if !tableColorEnabled(writer) {
+	if !ColorEnabled(writer) {
 		return text
 	}
 	style := color.New(attributes...)
@@ -91,7 +92,7 @@ func (t *Table) AddRowS(rowValues ...string) {
 func (t *Table) Print(writer io.Writer) {
 	var headerFmt table.Formatter
 	var columnFmt table.Formatter
-	colors := tableColorEnabled(writer)
+	colors := ColorEnabled(writer)
 	if colors {
 		headerColor := color.New(color.FgGreen, color.Underline)
 		columnColor := color.New(color.FgYellow)

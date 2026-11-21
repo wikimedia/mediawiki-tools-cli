@@ -8,6 +8,29 @@ default, and `--profile NAME` on any Gerrit command to select another account.
 SSH commands use the selected profile's username and your configured SSH keys.
 Your SSH agent/config must support connecting to `gerrit.wikimedia.org`.
 
+## Check your setup
+
+Run `mw gerrit setup --check` to check Gerrit HTTP credentials and SSH
+authentication separately. Inside a Git checkout, it also shows the effective
+Gerrit fetch and push URLs, Git author email, and active `commit-msg` hook.
+The check does not upload anything or change Git or SSH configuration.
+
+Use `mw gerrit ssh-key add ~/.ssh/id_ed25519.pub` to register an existing public
+key with the selected profile. This uses the profile’s Gerrit HTTP credentials.
+
+Install the standard hook in an existing checkout with
+`mw gerrit setup --install-hook`. Existing hooks and custom hooks directories
+are preserved. Use `mw gerrit setup --push-protocol https` to change the push
+URL for `origin`, or pass `--remote NAME` to configure another remote.
+SSH uses the selected Gerrit username when available. For HTTPS, configure Git
+to use your Gerrit HTTP password.
+
+## Clone a project
+
+`mw gerrit clone mediawiki/extensions/WSOAuth` fetches over HTTPS, configures
+SSH for pushes, and installs the `commit-msg` hook. Pass
+`--push-protocol https` to use HTTPS for both fetch and push.
+
 ## Check out a change
 
 From a clean Git checkout of the project, run `mw gerrit checkout 1370181`

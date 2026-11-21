@@ -37,7 +37,7 @@ func NewGerritCmd() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cobrautil.CallAllPersistentPreRun(cmd, args)
 			if parent := cmd.Parent(); parent != nil {
-				if parent.Name() == "gerrit" && cmd.Name() == "checkout" {
+				if parent.Name() == "gerrit" && (cmd.Name() == "checkout" || cmd.Name() == "setup" || cmd.Name() == "clone") {
 					return nil
 				}
 				switch parent.Name() {
@@ -49,63 +49,9 @@ func NewGerritCmd() *cobra.Command {
 			if cmd.Parent() != nil && cmd.Parent().Name() == "auth" && cmd.Name() != "status" {
 				return nil
 			}
-			username, _ := cmd.Flags().GetString("username")
-			password, _ := cmd.Flags().GetString("password")
-			if cmd.Name() == "api" {
-				if user, _ := cmd.Flags().GetString("auth-user"); user != "" {
-					username = user
-				}
-				if value, _ := cmd.Flags().GetString("auth-password"); value != "" {
-					password = value
-				}
-			}
-			selected, _ := cmd.Flags().GetString("profile")
-			if selected == "" {
-				selected = gerritProfiles.Default()
-			}
-			if selected != "" {
-				if _, err := gerritProfiles.Selected(selected); err != nil {
-					return err
-				}
-				if username == "" {
-					username = config.State().EffectiveKoanf.String(gerritProfiles.Prefix(selected) + ".username")
-				}
-			} else if username == "" {
-				username = config.State().Effective.Gerrit.Username
-			}
-			// SSH uses the selected public identity and its SSH agent/config, without
-			// unlocking unrelated HTTP credentials.
-			if cmd.Name() == "ssh" {
-				gerritUsername, gerritPassword = username, ""
-				return nil
-			}
-
-			stdin, _ := cmd.Flags().GetBool("password-stdin")
-			if stdin {
-				if password != "" {
-					return fmt.Errorf("--password-stdin cannot be combined with a password argument")
-				}
-				var err error
-				password, err = secrets.ReadInput(cmd.InOrStdin())
-				if err != nil {
-					return err
-				}
-			}
-			if password == "" {
-				credential := config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: username}
-				if selected != "" {
-					credential = gerritProfileCredential(selected)
-					credential.Account = username
-				}
-				var err error
-				password, err = credential.Read()
-				if err != nil {
-					return err
-				}
-			}
-
-			gerritUsername, gerritPassword = username, password
-			return nil
+			var err error
+			gerritUsername, gerritPassword, err = resolveGerritCredentials(cmd)
+			return err
 		},
 	}
 
@@ -122,6 +68,9 @@ func NewGerritCmd() *cobra.Command {
 	cmd.AddCommand(NewGerritDotGitReviewCmd())
 	cmd.AddCommand(newCICmd())
 	cmd.AddCommand(newCheckoutCmd())
+	cmd.AddCommand(newSetupCmd())
+	cmd.AddCommand(newCloneCmd())
+	cmd.AddCommand(newSSHKeyCmd())
 
 	// Generated command trees are documented and exercised by their generator's
 	// fixtures. Keep linti focused on the handwritten Gerrit commands here.
@@ -145,8 +94,74 @@ func NewGerritCmd() *cobra.Command {
 	return cmd
 }
 
+func resolveGerritCredentials(cmd *cobra.Command) (string, string, error) {
+	username, selected, err := gerritIdentity(cmd)
+	if err != nil {
+		return username, "", err
+	}
+	password, _ := cmd.Flags().GetString("password")
+	if cmd.Name() == "api" {
+		if user, _ := cmd.Flags().GetString("auth-user"); user != "" {
+			username = user
+		}
+		if value, _ := cmd.Flags().GetString("auth-password"); value != "" {
+			password = value
+		}
+	}
+	// SSH uses the selected public identity and its SSH agent/config, without
+	// unlocking unrelated HTTP credentials.
+	if cmd.Name() == "ssh" {
+		return username, "", nil
+	}
+
+	stdin, _ := cmd.Flags().GetBool("password-stdin")
+	if stdin {
+		if password != "" {
+			return username, "", fmt.Errorf("--password-stdin cannot be combined with a password argument")
+		}
+		var err error
+		password, err = secrets.ReadInput(cmd.InOrStdin())
+		if err != nil {
+			return username, "", err
+		}
+	}
+	if password == "" {
+		credential := config.Credential{Key: "gerrit.password", Service: "gerrit", Endpoint: secrets.GerritEndpoint, Account: username}
+		if selected != "" {
+			credential = gerritProfileCredential(selected)
+			credential.Account = username
+		}
+		var err error
+		password, err = credential.ReadContext(cmd.Context())
+		if err != nil {
+			return username, "", err
+		}
+	}
+
+	return username, password, nil
+}
+
+func gerritIdentity(cmd *cobra.Command) (username, selected string, err error) {
+	username, _ = cmd.Flags().GetString("username")
+	selected, _ = cmd.Flags().GetString("profile")
+	if selected == "" {
+		selected = gerritProfiles.Default()
+	}
+	if selected != "" {
+		if _, err := gerritProfiles.Selected(selected); err != nil {
+			return username, selected, err
+		}
+		if username == "" {
+			username = config.State().EffectiveKoanf.String(gerritProfiles.Prefix(selected) + ".username")
+		}
+	} else if username == "" {
+		username = config.State().Effective.Gerrit.Username
+	}
+	return username, selected, nil
+}
+
 func sshGerritCommand(args []string) *exec.Cmd {
-	ssh := sshutil.CommandOnSSHHost("gerrit.wikimedia.org", "29418", append([]string{"gerrit"}, args...))
+	ssh := sshutil.CommandOnSSHHost(gerritSSHHost, gerritSSHPort, append([]string{"gerrit"}, args...))
 	if gerritUsername != "" {
 		// Pass usernames as an option value, never as a host/options string.
 		ssh.Args = append(ssh.Args[:1], append([]string{"-l", gerritUsername}, ssh.Args[1:]...)...)
