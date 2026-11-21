@@ -10,6 +10,10 @@ shell metacharacters, are preserved literally. To use a pipeline or redirection,
 invoke `sh -c` explicitly. SSH and remote-command failures produce a nonzero exit
 status.
 
+Use `mw toolforge setup --check --tool NAME` to verify your SSH login and access
+to the tool account before opening a shell. Omit `--tool` to check your SSH login
+alone.
+
 Toolforge SSH access must already be configured. `--beta` selects toolsbeta;
 `--lima` uses the local lima-kilo SSH configuration.
 
