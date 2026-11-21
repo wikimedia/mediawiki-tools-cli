@@ -92,6 +92,14 @@ func TestGerritCheckout(t *testing.T) {
 	if _, err := run("1370181", "--patchset", "3"); err == nil || !strings.Contains(err.Error(), "patchset 3 is unavailable") {
 		t.Fatalf("expected missing patchset error, got %v", err)
 	}
+	// A clone configured for HTTPS stores the explicit Git transport as its remote.
+	git(worktree, "remote", "set-url", "origin", "https::"+canonical)
+	if out, err := run("1370181", "--patchset", "4"); err != nil {
+		t.Fatalf("checkout with an explicit HTTPS remote: %v\n%s", err, out)
+	}
+	if head := git(worktree, "rev-parse", "HEAD"); head != older {
+		t.Fatalf("checkout landed on %s, want %s", head, older)
+	}
 	git(worktree, "remote", "set-url", "origin", "https://gerrit.wikimedia.org/r/mediawiki/core")
 	if _, err := run("1370181"); err == nil || !strings.Contains(err.Error(), "mw dev mediawiki apply-patches --change 1370181 --clone-missing") {
 		t.Fatalf("expected wrong repository error, got %v", err)

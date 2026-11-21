@@ -137,6 +137,10 @@ func verifyCheckoutRepository(ctx context.Context, project string, number int) e
 }
 
 func checkoutRemoteMatches(address, project string, localRemote bool) bool {
+	// Clones configured for HTTPS use Git’s explicit transport syntax.
+	if localRemote && strings.HasPrefix(address, "https::https://") {
+		address = strings.TrimPrefix(address, "https::")
+	}
 	if host, path, ok := strings.Cut(address, ":"); localRemote && ok && !strings.Contains(address, "://") {
 		host = host[strings.LastIndexByte(host, '@')+1:]
 		if host == "gerrit.wikimedia.org" || host == "github.com" {
