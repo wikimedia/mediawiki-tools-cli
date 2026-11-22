@@ -13,6 +13,7 @@ func TestGatewayIngressIsSeparateFromLocalProxy(t *testing.T) {
 	type service struct {
 		Ports, Networks, Command, Environment []string
 		Restart                               string
+		SecurityOpt                           []string `yaml:"security_opt"`
 	}
 	read := func(name string) map[string]service {
 		t.Helper()
@@ -43,6 +44,9 @@ func TestGatewayIngressIsSeparateFromLocalProxy(t *testing.T) {
 	}
 	if !slices.Contains(proxy["gateway-auth"].Networks, "gateway-access") {
 		t.Fatal("auth ingress is unreachable from tunnel network")
+	}
+	if !slices.Contains(proxy["docker-socket-proxy"].SecurityOpt, "label:disable") {
+		t.Error("Docker socket proxy needs label:disable to access the socket on SELinux hosts")
 	}
 	if slices.Contains(proxy["docker-socket-proxy"].Networks, "gateway-access") {
 		t.Fatal("tunnels can reach the Docker socket proxy directly")

@@ -193,15 +193,24 @@ class NativeExecutionTests(unittest.TestCase):
                 'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
                 'test -f .mediawiki/fixture\n"$MW_BIN"\n'
             )
+            (repo / "tests/test-selinux-traefik.sh").write_text(
+                'test -z "${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-}"\n'
+                'test ! -e .mediawiki\n'
+                'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
+            )
             git("add", ".")
             git("commit", "-m", "Fixture")
             sha = git("rev-parse", "HEAD")
             media = root / "mediawiki"
             media.mkdir()
             (media / "fixture").write_text("clean snapshot")
-            for code, binary_name in ((0, None), (23, "wm")):
-                with self.subTest(exit_code=code, binary_name=binary_name):
-                    work = root / str(code)
+            for test, code, binary_name in (
+                ("docker-general", 0, None),
+                ("docker-general", 23, "wm"),
+                ("selinux-traefik", 0, None),
+            ):
+                with self.subTest(test=test, exit_code=code, binary_name=binary_name):
+                    work = root / f"{test}-{code}"
                     inputs = work / "inputs"
                     inputs.mkdir(parents=True)
                     git("bundle", "create", str(inputs / "source.bundle"), "HEAD")
@@ -213,17 +222,18 @@ class NativeExecutionTests(unittest.TestCase):
                     (inputs / "plan.json").write_text(json.dumps(plan))
                     (inputs / "mw").write_text(f"#!/bin/sh\nexit {code}\n")
                     snapshot = work / "snapshot.tar.gz"
-                    with tarfile.open(snapshot, "w:gz") as archive:
-                        archive.add(media, arcname=".mediawiki")
-                    checksum = hashlib.sha256(snapshot.read_bytes()).hexdigest()
-                    path = f"/projects/16/packages/generic/mediawiki-ci-snapshot/2026-44-{'a' * 64}/{checksum}.tar.gz"
-                    (inputs / "mediawiki-snapshot.txt").write_text(f"{path} {checksum}\n")
+                    if test == "docker-general":
+                        with tarfile.open(snapshot, "w:gz") as archive:
+                            archive.add(media, arcname=".mediawiki")
+                        checksum = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+                        path = f"/projects/16/packages/generic/mediawiki-ci-snapshot/2026-44-{'a' * 64}/{checksum}.tar.gz"
+                        (inputs / "mediawiki-snapshot.txt").write_text(f"{path} {checksum}\n")
                     source = work / "source"
                     subprocess.run(["git", "clone", str(inputs / "source.bundle"), str(source)],
                                    check=True, capture_output=True)
                     env = {key: value for key, value in os.environ.items() if key != "GITLAB_STATUS_TOKEN"}
                     with chdir(source), patch.dict(os.environ, env, clear=True), patch.object(
-                        worker.sys, "argv", ["worker", "docker-general"]
+                        worker.sys, "argv", ["worker", test]
                     ), patch.object(worker.GitLab, "request", side_effect=lambda path, destination:
                                     destination.write_bytes(snapshot.read_bytes())):
                         self.assertEqual(worker.main(), code)

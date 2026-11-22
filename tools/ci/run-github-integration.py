@@ -52,9 +52,10 @@ def main():
     if sys.platform == "linux" and platform.machine().lower() in {"amd64", "x86_64"}:
         shutil.copyfile(inputs / "mw", source / binary)
         (source / binary).chmod(0o755)
-        download_snapshot(GitLab(), inputs)
-        subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
-        env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
+        if name != "selinux-traefik":
+            download_snapshot(GitLab(), inputs)
+            subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
+            env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
         compose = source / "bin/docker-compose"
         compose.write_text('#!/bin/sh\nexec docker compose "$@"\n')
         compose.chmod(0o755)
