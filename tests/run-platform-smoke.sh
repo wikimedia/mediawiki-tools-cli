@@ -42,6 +42,9 @@ docker info --format '{{.OSType}}' | grep -x linux
 bin_dir=$(mktemp -d)
 trap 'rm -rf -- "$bin_dir"' EXIT
 install -m 0755 ../inputs/mw "$bin_dir/mw"
+export MWCLI_CONTEXT_TEST=1
+"$bin_dir/mw" --no-interaction update --dry-run
+echo 'PASS: checked for a CLI update inside WSL'
 bash tests/test-platform-stack.sh "$bin_dir/mw" "$1"
 WSL
         ;;
