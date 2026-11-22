@@ -38,7 +38,8 @@ port=$(dev env get PORT)
 
 probe() {
     local url=$1 expected=$2
-    for ((attempt = 0; attempt < 60; attempt++)); do
+    local deadline=$((SECONDS + ${3:-120}))
+    while ((SECONDS < deadline)); do
         if curl --noproxy '*' --max-time 3 -fsS "$url" > "$response" &&
             grep -Fq -- "$expected" "$response"; then
             printf 'PASS %s\n' "$url"
@@ -46,12 +47,13 @@ probe() {
         fi
         sleep 2
     done
+    printf 'Timed out waiting for %s to return %s\n' "$url" "$expected" >&2
     return 1
 }
 
-probe "http://127.0.0.1:$port/proxy/dashboard/health" '"status":"ok"'
+probe "http://127.0.0.1:$port/proxy/dashboard/health" '"status":"ok"' "${MWCLI_SMOKE_STARTUP_TIMEOUT:-120}"
 probe "http://127.0.0.1:$port/proxy/smokewiki/w/probe.php" 'PHP bind mount works'
-probe "http://127.0.0.1:$port/_wm/login" 'Sign in to the gateway'
+probe "http://127.0.0.1:$port/_wm/login" 'Sign in to the gateway' "${MWCLI_SMOKE_STARTUP_TIMEOUT:-120}"
 probe "http://127.0.0.1:$port/_wm/assets/tokens.css" 'Codex Design Tokens'
 probe "http://127.0.0.1:$port/proxy/dashboard/assets/tokens.css" 'Codex Design Tokens'
 

@@ -16,7 +16,7 @@ trap 'rm -rf -- "$work"' EXIT
 
 if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
     sudo apt-get update -q
-    sudo apt-get install -y --no-install-recommends qemu-system-x86 genisoimage
+    sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils genisoimage
 fi
 
 image_name=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2

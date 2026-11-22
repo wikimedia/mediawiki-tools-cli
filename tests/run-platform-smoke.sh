@@ -21,6 +21,7 @@ case "$(uname -s)" in
         ln -sf "$(brew --prefix docker-compose)/bin/docker-compose" "$HOME/.docker/cli-plugins/docker-compose"
         colima start --runtime docker --vm-type qemu --mount-type sshfs --mount "$HOME:w"
         export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+        export MWCLI_SMOKE_STARTUP_TIMEOUT=600
         docker info --format '{{.OSType}}' | grep -x linux
         bash tests/test-platform-stack.sh "$cli" "$snapshot"
         ;;
