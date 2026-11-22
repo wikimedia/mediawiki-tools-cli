@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 Each tagged release MUST have a section 2 heading starting at the time of release `## TAG-NAME...` or Gitlab release
 notes will be missed.
 
+## v0.37.1
+
+- Development environment (`mw dev`):
+    - `mw dev traefik`: Disable SELinux isolation for `docker-socket-proxy`.
+
 ## v0.37.0
 
 - MCP:
