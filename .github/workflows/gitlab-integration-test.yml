@@ -34,7 +34,7 @@ env:
 jobs:
   test:
     name: Test
-    runs-on: ${{ fromJSON('{"linux-amd64":"ubuntu-24.04","windows-amd64":"windows-2025","macos-arm64":"macos-15","linux-arm64":"ubuntu-24.04-arm"}')[inputs.platform] }}
+    runs-on: ${{ fromJSON('{"linux-amd64":"ubuntu-24.04","windows-amd64":"windows-2025","macos-arm64":"macos-15","macos-amd64":"macos-15-intel","linux-arm64":"ubuntu-24.04-arm"}')[inputs.platform] }}
     timeout-minutes: 35
     permissions:
       contents: read
@@ -51,7 +51,7 @@ jobs:
           mkdir source
           git -C source init -q
           git -C source fetch -q "$GITHUB_WORKSPACE/inputs/source.bundle" HEAD
-          git -C source checkout -q --detach FETCH_HEAD
+          git -C source -c core.autocrlf=false checkout -q --detach FETCH_HEAD
           test "$(git -C source rev-parse HEAD)" = "$TESTED_SHA"
       - uses: actions/setup-go@v6
         with:

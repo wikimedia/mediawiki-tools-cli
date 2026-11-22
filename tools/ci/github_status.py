@@ -19,7 +19,7 @@ GATE_JOB = "integration-github"
 SUMMARY_CONTEXT = "github/integration"
 
 
-SUPPORTED_PLATFORMS = {"linux-amd64", "linux-arm64", "macos-arm64", "windows-amd64"}
+SUPPORTED_PLATFORMS = {"linux-amd64", "linux-arm64", "macos-arm64", "macos-amd64", "windows-amd64"}
 
 
 def gate_test(name):
