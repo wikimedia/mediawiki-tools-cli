@@ -138,8 +138,7 @@ func newMetricCmd(def metricDefinition) *cobra.Command {
 			writer.Flush()
 			return writer.Error()
 		}
-		out.Print(cmd, rows)
-		return nil
+		return out.Print(cmd, rows)
 	}
 	flags := cmd.Flags()
 	if def.name != "mediarequests" && def.name != "top" {

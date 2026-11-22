@@ -20,15 +20,15 @@ func TestFilter(t *testing.T) {
 		{
 			name: "no filters means no change",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{},
 			},
-			want: provideMap("test1.json"),
+			want: provideMap(t, "test1.json"),
 		},
 		{
 			name: "filter on non existent keys and value shows returns nothing",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"xxx=yyy"},
 			},
 			want: emptyMap(),
@@ -36,7 +36,7 @@ func TestFilter(t *testing.T) {
 		{
 			name: "filter single matching top level string",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelString=aString"},
 			},
 			wantTopKeys: []string{"EntryOne"},
@@ -44,7 +44,7 @@ func TestFilter(t *testing.T) {
 		{
 			name: "filter single matching second level string",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelStruct.SecondLevelString=aString"},
 			},
 			wantTopKeys: []string{"EntryOne"},
@@ -52,15 +52,15 @@ func TestFilter(t *testing.T) {
 		{
 			name: "filter simple *n* regex matching all top level strings",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelString=*String*"},
 			},
-			want: provideMap("test1.json"),
+			want: provideMap(t, "test1.json"),
 		},
 		{
 			name: "filter simple *n* regex matching one top level string",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelString=*aString*"},
 			},
 			wantTopKeys: []string{"EntryOne"},
@@ -68,7 +68,7 @@ func TestFilter(t *testing.T) {
 		{
 			name: "filter simple n* regex matching one top level string",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelString=a*"},
 			},
 			wantTopKeys: []string{"EntryOne"},
@@ -76,31 +76,31 @@ func TestFilter(t *testing.T) {
 		{
 			name: "filter simple *n regex matching one top level string",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelString=*String"},
 			},
-			want: provideMap("test1.json"),
+			want: provideMap(t, "test1.json"),
 		},
 		{
 			name: "filter all matching top level string",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelMatchingString=match"},
 			},
-			want: provideMap("test1.json"),
+			want: provideMap(t, "test1.json"),
 		},
 		{
 			name: "filter all matching top level int",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelMatchingInt=99"},
 			},
-			want: provideMap("test1.json"),
+			want: provideMap(t, "test1.json"),
 		},
 		{
 			name: "filter none matching top level int",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelMatchingInt=999"},
 			},
 			want: emptyMap(),
@@ -108,7 +108,7 @@ func TestFilter(t *testing.T) {
 		{
 			name: "filter int with value that is not parseable",
 			args: args{
-				objects:      provideMap("test1.json"),
+				objects:      provideMap(t, "test1.json"),
 				outputFilter: []string{"TopLevelMatchingInt=xx"},
 			},
 			want: emptyMap(),

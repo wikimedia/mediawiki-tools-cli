@@ -66,8 +66,7 @@ func newResourceListCmd(resource string, provider providerFactory) *cobra.Comman
 					return err
 				}
 			}
-			out.Print(cmd, result)
-			return nil
+			return out.Print(cmd, result)
 		},
 	}
 	addProjectFlag(cmd)

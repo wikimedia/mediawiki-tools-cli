@@ -133,7 +133,11 @@ func TestLines(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Lines(tt.args.fileName); !reflect.DeepEqual(got, tt.want) {
+			got, err := Lines(tt.args.fileName)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				// Special case for empty splits which DeepEqual doesn't like
 				if len(got) != 0 && len(tt.want) != 0 {
 					t.Errorf("Lines() = %v, want %v", got, tt.want)

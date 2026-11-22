@@ -28,8 +28,16 @@ func ValidateJSONFormat(format string) error {
 // PrintJSONChecked preserves JSON versus jq raw-string output semantics while
 // returning filter/encoding/write failures to the command. Results are buffered
 // so a runtime filter error does not leave a misleading partial JSON stream.
-// Existing Print callers retain their historical logging behavior.
 func PrintJSONChecked(objects interface{}, format string, rawStrings bool, writer io.Writer) error {
+	var buffer bytes.Buffer
+	if err := printJSONStream(objects, format, rawStrings, &buffer); err != nil {
+		return err
+	}
+	_, err := buffer.WriteTo(writer)
+	return err
+}
+
+func printJSONStream(objects interface{}, format string, rawStrings bool, writer io.Writer) error {
 	if format == "" {
 		format = "."
 	}
@@ -51,7 +59,7 @@ func PrintJSONChecked(objects interface{}, format string, rawStrings bool, write
 	if err = decoder.Decode(&value); err != nil {
 		return err
 	}
-	var buffer bytes.Buffer
+	color := shouldColor()
 	iter := code.Run(value)
 	for {
 		item, ok := iter.Next()
@@ -62,22 +70,24 @@ func PrintJSONChecked(objects interface{}, format string, rawStrings bool, write
 			return fmt.Errorf("jq: %w", failure)
 		}
 		if text, ok := item.(string); ok && rawStrings {
-			fmt.Fprintln(&buffer, text)
+			if _, err := fmt.Fprintln(writer, text); err != nil {
+				return err
+			}
 			continue
 		}
 		encoded, err := json.Marshal(item)
 		if err != nil {
 			return err
 		}
-		if shouldColor() {
-			if err = jsoncolor.Write(&buffer, bytes.NewReader(encoded), "  "); err != nil {
+		if color {
+			if err := jsoncolor.Write(writer, bytes.NewReader(encoded), "  "); err != nil {
 				return err
 			}
-		} else {
-			buffer.Write(encoded)
+			encoded = nil
 		}
-		buffer.WriteByte('\n')
+		if _, err := writer.Write(append(encoded, '\n')); err != nil {
+			return err
+		}
 	}
-	_, err = buffer.WriteTo(writer)
-	return err
+	return nil
 }

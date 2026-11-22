@@ -1,11 +1,12 @@
 package output
 
 import (
+	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -222,8 +223,33 @@ func (o *Output) AddFlagsWithOpts(cmd *cobra.Command, opts ...AddFlagsOption) {
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
+// Validate checks the output format before a command performs a mutation.
+func (o *Output) Validate() error {
+	kind := o.effectiveType()
+	if !slices.Contains(o.ConfiguredOutputTypes(), kind) {
+		return fmt.Errorf("unsupported output type %q; supported types: %s", kind, o.ConfiguredOutputTypesString())
+	}
+	if kind == string(JSONType) || kind == string(JQType) {
+		return ValidateJSONFormat(o.Format)
+	}
+	return nil
+}
+
+func (o *Output) effectiveType() string {
+	if o.Type != string(AutoType) {
+		return o.Type
+	}
+	if isTerminal(os.Stdout) && o.ttyDefault != "" {
+		return string(o.ttyDefault)
+	}
+	if o.pipeDefault != "" {
+		return string(o.pipeDefault)
+	}
+	return string(JSONType)
+}
+
 // Print outputs objects using the configured output type.
-func (o *Output) Print(cmd *cobra.Command, objects any) {
+func (o *Output) Print(cmd *cobra.Command, objects any) error {
 	// Filtering only applies to maps with interface{} keys.
 	var filteredObjects interface{}
 	switch objs := objects.(type) {
@@ -233,28 +259,16 @@ func (o *Output) Print(cmd *cobra.Command, objects any) {
 		filteredObjects = objects
 	}
 
-	// Resolve "auto" to the appropriate concrete type.
-	effectiveType := o.Type
-	if effectiveType == string(AutoType) {
-		if isTerminal(os.Stdout) && o.ttyDefault != "" {
-			effectiveType = string(o.ttyDefault)
-		} else if o.pipeDefault != "" {
-			effectiveType = string(o.pipeDefault)
-		} else {
-			effectiveType = string(JSONType)
-		}
-	}
-
+	effectiveType := o.effectiveType()
 	writer := cmd.OutOrStdout()
 	switch effectiveType {
 	case string(JSONType):
-		NewJSON(filteredObjects, o.Format).Print(writer)
+		return NewJSON(filteredObjects, o.Format).Print(writer)
 	case string(JQType):
-		printJQ(filteredObjects, o.Format, writer)
+		return printJQ(filteredObjects, o.Format, writer)
 	case string(TableType):
 		if o.TableBinding == nil {
-			logrus.Error("Output type 'table' not supported for this command.")
-			return
+			return fmt.Errorf("output type table is not supported for this command")
 		}
 		tbl := &Table{
 			TrimSpace:       o.TableBinding.TrimSpace,
@@ -275,15 +289,15 @@ func (o *Output) Print(cmd *cobra.Command, objects any) {
 		tbl.Print(writer)
 	case string(PrettyType):
 		if o.PrettyBinding == nil {
-			logrus.Error("Output type 'pretty' not supported for this command.")
-			return
+			return fmt.Errorf("output type pretty is not supported for this command")
 		}
 		pretty := Pretty{}
 		o.PrettyBinding(filteredObjects, &pretty)
 		pretty.Print(writer)
 	default:
-		logrus.Errorf("Unknown output type: %v. Allowed types: %v", effectiveType, AllTypes)
+		return fmt.Errorf("unknown output type %q; allowed types: %v", effectiveType, AllTypes)
 	}
+	return nil
 }
 
 // iterateObjects calls fn for each element in the collection.

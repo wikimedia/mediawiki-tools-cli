@@ -28,12 +28,18 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 		sites --output names
 		sites --output jq --format '.[] | .Name'
 	`),
-		Run: func(cmd *cobra.Command, args []string) {
-			devenv.DefaultForUser().EnsureReady()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
 
 			// For now just retrieve the development hosts, and reverse engineer sites installed...
 			objects := make(map[interface{}]interface{})
-			for _, host := range devenv.DefaultForUser().UsedHosts() {
+			usedHosts, err := devenv.DefaultForUser().UsedHosts()
+			if err != nil {
+				return err
+			}
+			for _, host := range usedHosts {
 				if strings.Contains(host, "mediawiki.local.wmftest.net") {
 					// Make a horrible assumption that the bit before the first dot is the site name
 					name := strings.Split(host, ".")[0]
@@ -55,10 +61,10 @@ func NewMediaWikiSitesCmd() *cobra.Command {
 				for _, name := range names {
 					fmt.Fprintln(cmd.OutOrStdout(), name)
 				}
-				return
+				return nil
 			}
 
-			out.Print(cmd, objects)
+			return out.Print(cmd, objects)
 		},
 	}
 	out.AddFlagsWithOpts(

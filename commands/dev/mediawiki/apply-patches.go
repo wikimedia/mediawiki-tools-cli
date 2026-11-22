@@ -24,9 +24,14 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample(applyPatchesExample),
 		Short:   "ALPHA: Apply Gerrit patches to local MediaWiki code",
 		Long:    cli.RenderMarkdown(applyPatchesLong),
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1")
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1"); err != nil {
+				return err
+			}
+			if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			changes, _ := cmd.Flags().GetStringSlice("change")
@@ -41,8 +46,13 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 			}
 
 			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
-			thisMw, _ := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+			if err := devenv.EnsureReady(); err != nil {
+				return err
+			}
+			thisMw, err := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+			if err != nil {
+				return err
+			}
 
 			cli.NewEvents(cli.EventFilePath()).AddFeatureUsageEvent("mw_docker_mediawiki_apply-patches", cli.VersionDetails.Version)
 
@@ -53,6 +63,9 @@ func NewMediaWikiApplyPatchesCmd() *cobra.Command {
 				WithDependencies: withDeps,
 				CloneMissing:     cloneMissing,
 				StartBranch:      startBranch,
+				In:               cmd.InOrStdin(),
+				Out:              cmd.OutOrStdout(),
+				Err:              cmd.ErrOrStderr(),
 			}
 
 			return thisMw.ApplyGerritPatches(cmd.Context(), opts)

@@ -148,8 +148,7 @@ func newQueryCmd(profile *string, use, short, example string, argc int, limited 
 		if out.Type == "json" || out.Type == "jq" {
 			return output.PrintJSONChecked(value, out.Format, out.Type == "jq", cmd.OutOrStdout())
 		}
-		out.Print(cmd, value)
-		return nil
+		return out.Print(cmd, value)
 	}
 	return cmd
 }

@@ -86,7 +86,14 @@ func (p Project) Start(services []string) error {
 // StartContainers starts existing containers for the selected services without
 // allowing Compose to start their dependencies.
 func (p Project) StartContainers(services []string) error {
-	return p.StartContainersWithOutput(services, os.Stdout, os.Stderr)
+	stdout, stderr := p.Stdout, p.Stderr
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+	return p.StartContainersWithOutput(services, stdout, stderr)
 }
 
 // StartContainersWithOutput reports service names instead of Docker's raw IDs.

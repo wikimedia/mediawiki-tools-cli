@@ -33,7 +33,6 @@ require (
 	github.com/muesli/termenv v0.16.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/rodaine/table v1.4.1
-	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
@@ -48,7 +47,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require go.opentelemetry.io/otel/sdk v1.37.0 // indirect
+require (
+	github.com/sirupsen/logrus v1.10.2 // indirect
+	go.opentelemetry.io/otel/sdk v1.37.0 // indirect
+)
 
 require (
 	charm.land/lipgloss/v2 v2.0.0 // indirect

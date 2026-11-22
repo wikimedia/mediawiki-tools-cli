@@ -3,10 +3,9 @@ package toolhub
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 type Tools struct {
@@ -74,7 +73,7 @@ func (c *Client) SearchTools(ctx context.Context, searchString string, options *
 	}
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/search/tools?q=%s&format=json&page_size=%d&page=%d", c.BaseURL, searchString, limit, page), nil)
-	logrus.Trace(req.URL)
+	slog.Debug(fmt.Sprint(req.URL))
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +97,7 @@ func (c *Client) GetTools(ctx context.Context, options *ToolsOptions) (*Tools, e
 	}
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/tools?format=json&page_size=%d&page=%d", c.BaseURL, limit, page), nil)
-	logrus.Trace(req.URL)
+	slog.Debug(fmt.Sprint(req.URL))
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +114,7 @@ func (c *Client) GetTools(ctx context.Context, options *ToolsOptions) (*Tools, e
 
 func (c *Client) GetTool(ctx context.Context, name string, options *ToolsOptions) (*Tool, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/tools/%s/?format=json", c.BaseURL, name), nil)
-	logrus.Trace(req.URL)
+	slog.Debug(fmt.Sprint(req.URL))
 	if err != nil {
 		return nil, err
 	}

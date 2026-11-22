@@ -23,7 +23,10 @@ func TestCloudProfileCredentialRotation(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			before := config.PrettyPrint(config.State().OnDiskKoanf)
+			before, err := config.PrettyPrint(config.State().OnDiskKoanf)
+			if err != nil {
+				t.Fatal(err)
+			}
 			previous := loginCloudClient
 			t.Cleanup(func() { loginCloudClient = previous })
 			project := "demo"
@@ -59,7 +62,7 @@ func TestCloudProfileCredentialRotation(t *testing.T) {
 				args = append(args, "--replace")
 			}
 			cmd.SetArgs(args)
-			err := cmd.Execute()
+			err = cmd.Execute()
 			if mode == "replace" {
 				if err != nil {
 					t.Fatal(err)
@@ -82,7 +85,8 @@ func TestCloudProfileCredentialRotation(t *testing.T) {
 				if mode == "missing flag" && !strings.Contains(err.Error(), "--replace") {
 					t.Fatal("missing rotation instructions", err)
 				}
-				if config.PrettyPrint(config.State().OnDiskKoanf) != before {
+				after, err := config.PrettyPrint(config.State().OnDiskKoanf)
+				if err != nil || after != before {
 					t.Fatal("failed validation changed configuration")
 				}
 				if mode != "missing profile" {

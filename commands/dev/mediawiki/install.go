@@ -1,18 +1,20 @@
 package mediawiki
 
 import (
+	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cmdgloss"
@@ -43,8 +45,10 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 		Short:   "Installs a new MediaWiki site using install.php & update.php",
 		Long:    cli.RenderMarkdown(devMediawikiInstallLong),
 		Aliases: []string{"i"},
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
 			dbType, _ = cmd.Flags().GetString("dbtype")
 			dbName, _ = cmd.Flags().GetString("dbname")
 
@@ -52,19 +56,21 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				c := config.State()
 				dbType = c.Effective.MwDev.Docker.DBType
 			}
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dbType != "sqlite" && dbType != "mysql" && dbType != "postgres" {
-				fmt.Println("You must specify a valid dbtype (mysql, postgres, sqlite)")
-				fmt.Printf("You can also set the default in the CLI config file, for example `%s config set mw_dev.docker.db_type mysql`\n", cmd.Root().Name())
-				return fmt.Errorf("invalid dbtype")
+				return fmt.Errorf("invalid database type %q: use --dbtype=mysql, postgres or sqlite, or run `%s config set mw_dev.docker.db_type mysql`", dbType, cmd.Root().Name())
 			}
 
 			// TODO check that the required DB services is running? OR start it up?
 
-			cmdgloss.PrintStageHeading(cmd.OutOrStdout(), "Preparing MediaWiki configuration and writable directories")
+			cmdgloss.PrintStageHeading(cmd.ErrOrStderr(), "Preparing MediaWiki configuration and writable directories")
 
-			mediawiki, _ := mediawiki.ForDirectory(devenv.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+			mediawiki, err := mediawiki.ForDirectory(devenv.DefaultForUser().Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+			if err != nil {
+				return err
+			}
 			if !mediawiki.LocalSettingsIsPresent() {
 				createDefaultFile := false
 				if cli.CanAskForInput() {
@@ -105,12 +111,16 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				}
 			}
 
-			if !mediawiki.LocalSettingsContains("/mwdd/DevSettings.php") && !mediawiki.LocalSettingsContains("/wm-dev/DevSettings.php") && !mediawiki.LocalSettingsContains("/mwdd/MwddSettings.php") {
+			settingsContents, err := mediawiki.LocalSettingsContents()
+			if err != nil {
+				return err
+			}
+			if !strings.Contains(settingsContents, "/mwdd/DevSettings.php") && !strings.Contains(settingsContents, "/wm-dev/DevSettings.php") && !strings.Contains(settingsContents, "/mwdd/MwddSettings.php") {
 				return fmt.Errorf("LocalSettings.php file exists, but doesn't look right (missing the CLI development settings shim)")
 			}
 
 			// MediaWiki will only create the cache dir sometimes (on some web requests?), make sure it exists.
-			err := devenv.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
+			err = devenv.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
 				User:           "root",
 				CommandAndArgs: []string{"mkdir", "-p", "/var/www/html/w/cache/docker/" + dbName},
 			},
@@ -139,7 +149,9 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 
 			// Record the wiki domain that we are trying to create
 			domain := dbName + ".mediawiki.local.wmftest.net"
-			devenv.DefaultForUser().RecordHostUsageBySite(domain)
+			if err := devenv.DefaultForUser().RecordHostUsageBySite(domain); err != nil {
+				return err
+			}
 
 			// Figure out what and where we are installing
 			serverLink := "http://" + domain + ":" + devenv.DefaultForUser().Env().Get("PORT")
@@ -167,7 +179,7 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 					if composerErr != nil {
 						fmt.Fprintln(cmd.ErrOrStderr(), "Could not verify Composer dependencies in the MediaWiki container:", composerErr)
 						if output := strings.TrimSpace(composerStdout.String()); output != "" {
-							fmt.Fprintln(cmd.OutOrStdout(), output)
+							fmt.Fprintln(cmd.ErrOrStderr(), output)
 						}
 						if output := strings.TrimSpace(composerStderr.String()); output != "" {
 							fmt.Fprintln(cmd.ErrOrStderr(), output)
@@ -220,10 +232,17 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			}
 
 			// Run install.php
-			runInstall := func() error {
+			runInstall := func() (runErr error) {
 				installStartTime := time.Now().Format("20060102150405")
 
+				var restoreMu sync.Mutex
+				restored := false
 				moveLocalSettingsBack := func() error {
+					restoreMu.Lock()
+					defer restoreMu.Unlock()
+					if restored {
+						return nil
+					}
 					// Move the LocalSettings.php back after install (or SIGTERM cancellation)
 					// TODO Don't do this in docker, do it on disk...
 					// TODO Check that the file we are moving does indeed exist, and we are not overwriting what we actually want!
@@ -235,25 +254,12 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 							"/var/www/html/w/LocalSettings.php",
 						},
 					})
+					restored = err == nil
 					return err
 				}
 
-				// Set up signal handling for graceful shutdown while LocalSettings.php is moved
-				c := make(chan os.Signal, 1)
-				signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-				go func() {
-					<-c
-					err := moveLocalSettingsBack()
-					if err != nil {
-						logrus.Errorf("failed to move LocalSettings.php back after install %v", err)
-					}
-				}()
-				defer func() {
-					err := moveLocalSettingsBack()
-					if err != nil {
-						logrus.Errorf("failed to move LocalSettings.php back after install %v", err)
-					}
-				}()
+				interrupt, stopSignals := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+				defer stopSignals()
 
 				// Move the current LocalSettings "somewhere safe", incase someone needs to restore it
 				err := devenv.DefaultForUser().DockerCompose().Exec("mediawiki", dockercompose.ExecOptions{
@@ -267,6 +273,16 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+
+				// Register recovery only after the backup exists. The deferred call
+				// waits for any recovery that an interrupt has already started.
+				stopRestore := context.AfterFunc(interrupt, func() { _ = moveLocalSettingsBack() })
+				defer func() {
+					stopRestore()
+					if err := moveLocalSettingsBack(); err != nil {
+						runErr = errors.Join(runErr, fmt.Errorf("restore LocalSettings.php after install: %w", err))
+					}
+				}()
 
 				// Do a DB type dependant install, writing the output LocalSettings.php to /tmp
 				if dbType == "sqlite" {
@@ -382,13 +398,13 @@ func NewMediaWikiInstallCmd() *cobra.Command {
 			if url := devenv.DefaultForUser().RunningDashboardURL(); url != "" {
 				outputDetails["Dashboard"] = url
 			}
-			cmdgloss.PrintThreePartBlock(
+			_, printErr := fmt.Fprint(cmd.OutOrStdout(), cmdgloss.ThreePartBlock(
 				cmdgloss.SuccessHeading("Installation successful"),
 				outputDetails,
 				"If you want to access the wiki from your command line you may need to add it to your hosts file.\n"+
 					"You can do this with the `hosts add` command that is part of this development environment.",
-			)
-			return nil
+			))
+			return printErr
 		},
 	}
 	cmd.Annotations = make(map[string]string)

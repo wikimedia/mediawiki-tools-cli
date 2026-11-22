@@ -2,118 +2,69 @@ package files
 
 import (
 	"bufio"
-	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func ensureParentDir(fileName string) {
-	dir := filepath.Dir(filepath.Clean(fileName))
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		panic(err)
-	}
-}
-
-/*AddLinesUnique adds all lines to the file if each one will be the only occurrence of the string.*/
-func AddLinesUnique(lines []string, filename string) {
-	for _, line := range lines {
-		AddLineUnique(line, filename)
-	}
-}
-
-/*AddLineUnique adds the line to the file if it will be the only occurrence of the string.*/
-func AddLineUnique(line string, fileName string) {
-	ensureParentDir(fileName)
-	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+// AddLineUnique appends a complete line only if it is not already present.
+func AddLineUnique(line, fileName string) error {
+	lines, err := Lines(fileName)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer file.Close()
-
-	buf := new(bytes.Buffer)
-	_, bufErr := buf.ReadFrom(file)
-	if bufErr != nil {
-		panic(bufErr)
-	}
-	s := buf.String()
-
-	if !strings.Contains(s, line) {
-		if _, err := file.WriteString(line + "\n"); err != nil {
-			panic(err)
+	for _, existing := range lines {
+		if existing == line {
+			return nil
 		}
 	}
+	if err := os.MkdirAll(filepath.Dir(fileName), 0o755); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(filepath.Clean(fileName), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		return err
+	}
+	_, writeErr := file.WriteString(line + "\n")
+	return errors.Join(writeErr, file.Close())
 }
 
-func AddLine(line string, fileName string) {
-	ensureParentDir(fileName)
-	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+// RemoveAllLinesMatching removes complete matching lines, preserving other text.
+func RemoveAllLinesMatching(line, fileName string) error {
+	data, err := os.ReadFile(filepath.Clean(fileName))
+	if os.IsNotExist(err) {
+		return nil
+	}
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer file.Close()
-
-	if _, err := file.WriteString(line + "\n"); err != nil {
-		panic(err)
+	parts := strings.Split(string(data), "\n")
+	kept := parts[:0]
+	for _, part := range parts {
+		if part != line {
+			kept = append(kept, part)
+		}
 	}
+	return os.WriteFile(filepath.Clean(fileName), []byte(strings.Join(kept, "\n")), 0o600)
 }
 
-func RemoveAllLinesMatching(line string, fileName string) {
-	ensureParentDir(fileName)
-	file, err := os.OpenFile(filepath.Clean(fileName), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	buf := new(bytes.Buffer)
-	_, bufErr := buf.ReadFrom(file)
-	if bufErr != nil {
-		panic(bufErr)
-	}
-	s := buf.String()
-	s = strings.ReplaceAll(s, line+"\n", "")
-	truncErr := file.Truncate(0)
-	if truncErr != nil {
-		panic(truncErr)
-	}
-	_, seekErr := file.Seek(0, 0)
-	if seekErr != nil {
-		panic(seekErr)
-	}
-	_, writeErr := file.WriteString(s)
-	if writeErr != nil {
-		panic(writeErr)
-	}
-}
-
-/*Lines reads all lines from a file.*/
-func Lines(fileName string) []string {
-	_, err := os.Stat(fileName)
-	if err != nil {
-		return []string{}
-	}
+// Lines returns complete lines. An absent file represents an empty list.
+func Lines(fileName string) ([]string, error) {
 	file, err := os.Open(filepath.Clean(fileName))
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer file.Close()
-
-	var lines []string
+	lines := []string{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	return lines
-}
-
-/*Bytes gets bytes of a file or panics.*/
-func Bytes(fileName string) []byte {
-	bytes, err := os.ReadFile(filepath.Clean(fileName))
-	if err != nil {
-		panic(err)
-	}
-	return bytes
+	return lines, scanner.Err()
 }
 
 func Exists(fileName string) bool {
@@ -121,11 +72,19 @@ func Exists(fileName string) bool {
 	return !os.IsNotExist(err)
 }
 
-func RemoveIfExists(fileName string) {
-	if Exists(fileName) {
-		err := os.Remove(fileName)
-		if err != nil {
-			panic(err)
+func RemoveIfExists(fileName string) error {
+	err := os.Remove(fileName)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+func AddLinesUnique(lines []string, filename string) error {
+	for _, line := range lines {
+		if err := AddLineUnique(line, filename); err != nil {
+			return err
 		}
 	}
+	return nil
 }

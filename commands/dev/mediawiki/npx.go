@@ -17,15 +17,17 @@ func NewMediaWikiNPXCmd() *cobra.Command {
 		Short: "Runs commands in a `fresh` container which has 'npx'.",
 		Long:  "Runs `npx` in the MediaWiki fresh container, using the MediaWiki source directory as its working directory. Arguments after `--` are passed to npx. Use `--user` to select the container user.",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			devenv.DefaultForUser().EnsureReady()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
 			devenv.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{
 				Detached: true,
 			})
 			command, env := cobrautil.CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := devenv.DefaultForUser().DockerCompose().ContainerID("mediawiki-fresh")
 			if containerIDErr != nil {
-				panic(containerIDErr)
+				return containerIDErr
 			}
 			exitCode := docker.Exec(
 				containerID,
@@ -42,6 +44,7 @@ func NewMediaWikiNPXCmd() *cobra.Command {
 				cmd.Root().Annotations = make(map[string]string)
 				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")

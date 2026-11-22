@@ -27,11 +27,15 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 		Short:   "Delete pages by title or from stdin",
 		Long:    "Delete the page selected by --title, the titles supplied as arguments, or newline-separated titles from standard input. Use --dry-run to inspect the selected titles without deleting pages.",
 		Example: cobrautil.NormalizeExample(pageDeleteExample),
+		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if wiki == "" {
 				return fmt.Errorf("wiki is not set")
 			}
 
+			if wikiPageTitle != "" && len(args) > 0 {
+				return fmt.Errorf("use either --title or positional titles, not both")
+			}
 			var titles []string
 			if wikiPageTitle != "" {
 				titles = append(titles, wikiPageTitle)
@@ -40,28 +44,42 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 			} else {
 				bytes, err := io.ReadAll(cmd.InOrStdin())
 				if err != nil {
-					return err
+					return fmt.Errorf("read page titles: %w", err)
 				}
-				titles = strings.Split(strings.TrimSpace(string(bytes)), "\n")
+				if text := strings.TrimSpace(string(bytes)); text != "" {
+					titles = strings.Split(text, "\n")
+				}
+			}
+			for i := range titles {
+				titles[i] = strings.TrimSpace(titles[i])
+			}
+			if len(titles) == 0 {
+				return fmt.Errorf("no page titles supplied")
 			}
 
 			if dryRun {
-				fmt.Println("Dry run mode: Deleting pages with the following parameters:")
-				fmt.Printf("wiki: %s, user: %s, reason: %s\n", wiki, wikiUser, wikiPageDeleteReason)
+				if _, err := fmt.Fprintln(cmd.OutOrStdout(), "Dry run mode: Deleting pages with the following parameters:"); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "wiki: %s, user: %s, reason: %s\n", wiki, wikiUser, wikiPageDeleteReason); err != nil {
+					return err
+				}
 				for _, title := range titles {
-					fmt.Printf("title: %s\n", title)
+					if _, err := fmt.Fprintf(cmd.OutOrStdout(), "title: %s\n", title); err != nil {
+						return err
+					}
 				}
 				return nil
 			}
 
 			w, err := mwclient.New(normalizeWiki(wiki), cli.HTTPUserAgent())
 			if err != nil {
-				return err
+				return fmt.Errorf("connect to wiki: %w", err)
 			}
 
 			err = loginIfCredentialsProvided(w)
 			if err != nil {
-				return err
+				return fmt.Errorf("authenticate to wiki: %w", err)
 			}
 
 			for _, title := range titles {
@@ -75,8 +93,7 @@ func NewWikiPageDeleteCmd() *cobra.Command {
 					"reason": wikiPageDeleteReason,
 				}
 
-				deleteErr := wikiDelete(w, deleteParams)
-				if deleteErr != nil {
+				if deleteErr := wikiDelete(w, deleteParams); deleteErr != nil {
 					return fmt.Errorf("delete %q: %w", title, deleteErr)
 				}
 			}

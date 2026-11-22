@@ -20,12 +20,14 @@ func NewMediaWikiMWScriptCmd() *cobra.Command {
 		Short:   "Executes a MediaWiki script using run.php in the MediaWiki container",
 		Long:    "Runs a maintenance script through `php maintenance/run.php` in the MediaWiki container. Put script arguments after `--` so they are passed to the maintenance script. Use `--user` to select the container user.",
 		Args:    cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			devenv.DefaultForUser().EnsureReady()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
 			command, env := cobrautil.CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := devenv.DefaultForUser().DockerCompose().ContainerID("mediawiki")
 			if containerIDErr != nil {
-				panic(containerIDErr)
+				return containerIDErr
 			}
 			exitCode := docker.Exec(
 				containerID,
@@ -40,6 +42,7 @@ func NewMediaWikiMWScriptCmd() *cobra.Command {
 				cmd.Root().Annotations = make(map[string]string)
 				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")

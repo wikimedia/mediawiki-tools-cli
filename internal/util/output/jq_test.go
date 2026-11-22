@@ -89,3 +89,11 @@ func TestNormalizeInput_NestedSlice(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, 1, m["x"])
 }
+
+func TestPrintJQStreamsBeforeRuntimeError(t *testing.T) {
+	var out bytes.Buffer
+	err := printJQ(nil, `1, error("late failure")`, &out)
+	if out.String() != "1\n" || err == nil || !strings.Contains(err.Error(), "late failure") {
+		t.Fatalf("expected streamed result followed by the runtime error, got %q (%v)", out.String(), err)
+	}
+}

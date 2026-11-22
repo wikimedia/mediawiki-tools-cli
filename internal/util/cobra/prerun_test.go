@@ -38,7 +38,9 @@ func TestPersistentPreRunPreservesExecutingCommand(t *testing.T) {
 						if got := ExecutingCommand(received); got != executing {
 							t.Errorf("nested hook lost executing command: %q", got.Name())
 						}
-						CallAllPersistentPreRun(received, args)
+						if err := CallAllPersistentPreRunE(received, args); err != nil {
+							t.Errorf("parent hooks: %v", err)
+						}
 					}
 				}
 				parent.AddCommand(group)
@@ -46,7 +48,7 @@ func TestPersistentPreRunPreservesExecutingCommand(t *testing.T) {
 				path = append(path, alias)
 			}
 			for _, name := range []string{"first", "second"} {
-				leaf := &cobra.Command{Use: name, Aliases: []string{name + "-alias"}, PersistentPreRun: CallAllPersistentPreRun, Run: func(*cobra.Command, []string) {}}
+				leaf := &cobra.Command{Use: name, Aliases: []string{name + "-alias"}, PersistentPreRunE: CallAllPersistentPreRunE, Run: func(*cobra.Command, []string) {}}
 				parent.AddCommand(leaf)
 				executing = leaf
 				root.SetArgs(append(append([]string{}, path...), name+"-alias"))

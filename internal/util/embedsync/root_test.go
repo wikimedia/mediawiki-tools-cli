@@ -13,8 +13,6 @@ import (
 	"errors"
 	"os"
 	"testing"
-
-	"github.com/sirupsen/logrus"
 )
 
 //go:embed testembed
@@ -45,7 +43,7 @@ func writeFileContent(t *testing.T, file string, content string) {
 func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
 	dir, err := os.MkdirTemp("", "TestEmbeddingDiskSync_EnsureFilesOnDisk")
 	if err != nil {
-		logrus.Fatal(err)
+		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 
@@ -89,7 +87,7 @@ func TestEmbeddingDiskSync_EnsureFilesOnDisk(t *testing.T) {
 func TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk(t *testing.T) {
 	dir, err := os.MkdirTemp("", "TestEmbeddingDiskSync_EnsureNoExtraFilesOnDisk")
 	if err != nil {
-		logrus.Fatal(err)
+		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 

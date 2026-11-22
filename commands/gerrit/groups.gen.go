@@ -53,11 +53,10 @@ func NewGerritGroupsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Groups",
 		Use:   "list",
@@ -87,11 +86,10 @@ func NewGerritGroupsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group",
 		Use:   "get",
@@ -120,11 +118,10 @@ func NewGerritGroupsCreateCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Create Group",
 		Use:   "create",
@@ -153,11 +150,10 @@ func NewGerritGroupsDetailCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group Detail",
 		Use:   "detail",
@@ -197,11 +193,10 @@ func NewGerritGroupsNameGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group Name",
 		Use:   "get",
@@ -230,11 +225,10 @@ func NewGerritGroupsNameSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Rename Group",
 		Use:   "set",
@@ -275,11 +269,10 @@ func NewGerritGroupsDescriptionGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group Description",
 		Use:   "get",
@@ -308,11 +301,10 @@ func NewGerritGroupsDescriptionSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set Group Description",
 		Use:   "set",
@@ -341,11 +333,10 @@ func NewGerritGroupsDescriptionDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Delete Group Description",
 		Use:   "delete",
@@ -385,11 +376,10 @@ func NewGerritGroupsOptionsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group Options",
 		Use:   "get",
@@ -418,11 +408,10 @@ func NewGerritGroupsOptionsSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set Group Options",
 		Use:   "set",
@@ -462,11 +451,10 @@ func NewGerritGroupsOwnerGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group Owner",
 		Use:   "get",
@@ -495,11 +483,10 @@ func NewGerritGroupsOwnerSetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Set Group Owner",
 		Use:   "set",
@@ -538,11 +525,10 @@ func NewGerritGroupsLogAuditCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Audit Log",
 		Use:   "audit",
@@ -571,11 +557,10 @@ func NewGerritGroupsIndexCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Index Group",
 		Use:   "index",
@@ -618,11 +603,10 @@ func NewGerritGroupsMembersListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Group Members",
 		Use:   "list",
@@ -653,11 +637,10 @@ func NewGerritGroupsMembersGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Group Member",
 		Use:   "get",
@@ -689,11 +672,10 @@ func NewGerritGroupsMembersAddCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Add Group Member",
 		Use:   "add",
@@ -723,11 +705,10 @@ func NewGerritGroupsMembersAdd2Cmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Add Group Members",
 		Use:   "add-2",
@@ -758,11 +739,10 @@ func NewGerritGroupsMembersDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Remove Group Member",
 		Use:   "delete",
@@ -806,11 +786,10 @@ func NewGerritGroupsGroupsListCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "List Subgroups",
 		Use:   "list",
@@ -839,11 +818,10 @@ func NewGerritGroupsGroupsGetCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Get Subgroup",
 		Use:   "get",
@@ -872,11 +850,10 @@ func NewGerritGroupsGroupsAddCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Add Subgroup",
 		Use:   "add",
@@ -905,11 +882,10 @@ func NewGerritGroupsGroupsAdd2Cmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Add Subgroups",
 		Use:   "add-2",
@@ -938,11 +914,10 @@ func NewGerritGroupsGroupsDeleteCmd() *cobra.Command {
 			defer response.Body.Close()
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			body = gogerrit.RemoveMagicPrefixLine(body)
-			output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
-			return nil
+			return output.NewJSONFromString(string(body), "").Print(cmd.OutOrStdout())
 		},
 		Short: "Remove Subgroup",
 		Use:   "delete",

@@ -12,16 +12,20 @@ func NewHostsAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Adds development environment hosts into your system hosts fils",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if !cmd.Flags().Changed("ip") {
 				IP = hosts.LocalIP()
 			}
+			names, err := hostsToAdd(extraHosts)
+			if err != nil {
+				return err
+			}
 			changeResult := hosts.AddHosts(
 				IP,
-				hostsToAdd(extraHosts),
+				names,
 				true,
 			)
-			handleChangeResult(changeResult)
+			return handleChangeResult(cmd, changeResult)
 		},
 	}
 	cmd.Flags().StringVar(&IP, "ip", "", "IP address to use (automatically detected when omitted)")
@@ -29,7 +33,11 @@ func NewHostsAddCmd() *cobra.Command {
 	return cmd
 }
 
-func hostsToAdd(extraHosts []string) []string {
+func hostsToAdd(extraHosts []string) ([]string, error) {
+	usedHosts, err := devenv.DefaultForUser().UsedHosts()
+	if err != nil {
+		return nil, err
+	}
 	return append(
 		[]string{
 			// TODO generate these by reading the yml files?
@@ -42,6 +50,6 @@ func hostsToAdd(extraHosts []string) []string {
 			"phpmyadmin.local.wmftest.net",
 			"default.mediawiki.local.wmftest.net",
 		},
-		append(devenv.DefaultForUser().UsedHosts(), extraHosts...)...,
-	)
+		append(usedHosts, extraHosts...)...,
+	), nil
 }
