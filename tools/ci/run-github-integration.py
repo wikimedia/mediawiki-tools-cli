@@ -34,7 +34,9 @@ def main():
     if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", name):
         raise ValueError("invalid integration test name")
     shell = test_shell()
-    script = TESTS.get(name, f"test-{name}.sh")
+    rootless = name == "selinux-traefik-rootless"
+    script = "test-selinux-traefik.sh" if rootless else TESTS.get(name, f"test-{name}.sh")
+    script_args = ["rootless"] if rootless else []
     source = Path.cwd()
     inputs = source.parent / "inputs"
     plan = json.loads((inputs / "plan.json").read_text())
@@ -52,7 +54,7 @@ def main():
     if sys.platform == "linux" and platform.machine().lower() in {"amd64", "x86_64"}:
         shutil.copyfile(inputs / "mw", source / binary)
         (source / binary).chmod(0o755)
-        if name != "selinux-traefik":
+        if script != "test-selinux-traefik.sh":
             download_snapshot(GitLab(), inputs)
             subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
             env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
@@ -62,7 +64,7 @@ def main():
         env["PATH"] = str(source / "bin") + os.pathsep + env["PATH"]
     else:
         subprocess.run(["go", "build", "-o", binary, "."], cwd=source, env=env, check=True)
-    process = subprocess.Popen([shell, f"tests/{script}"], cwd=source, env=env,
+    process = subprocess.Popen([shell, f"tests/{script}", *script_args], cwd=source, env=env,
                                start_new_session=os.name != "nt")
     api = GitLab()  # This job has no GitLab token or GitHub write token.
     try:

@@ -4,6 +4,18 @@
 
 [Install the CLI](../installation.md) and Docker Engine 19.03 or newer (API 1.40+) with Docker Compose v2 first. Make sure `docker info` works for your user.
 
+## Use rootless Podman on Linux
+
+With Podman and the Docker CLI and Compose plugin installed, start the user socket and point both the Docker client and the development containers at it.
+
+```sh
+systemctl --user start podman.socket
+export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"
+mw dev env set MWCLI_DOCKER_SOCKET "${DOCKER_HOST#unix://}"
+```
+
+Keep `DOCKER_HOST` set when running `mw dev`. Set `MWCLI_DOCKER_SOCKET` in each development context that uses rootless Podman.
+
 ## Create MediaWiki and a database
 
 If you need a MediaWiki checkout, run the code wizard first. It can fetch MediaWiki core and the Vector skin:

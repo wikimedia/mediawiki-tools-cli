@@ -194,9 +194,10 @@ class NativeExecutionTests(unittest.TestCase):
                 'test -f .mediawiki/fixture\n"$MW_BIN"\n'
             )
             (repo / "tests/test-selinux-traefik.sh").write_text(
-                'test -z "${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-}"\n'
-                'test ! -e .mediawiki\n'
-                'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
+                'test -z "${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-}" || exit 98\n'
+                'test ! -e .mediawiki || exit 98\n'
+                'test -z "${GITLAB_STATUS_TOKEN:-}" || exit 98\n'
+                'case "$*" in "") exit 0;; rootless) exit 24;; *) exit 98;; esac\n'
             )
             git("add", ".")
             git("commit", "-m", "Fixture")
@@ -208,6 +209,7 @@ class NativeExecutionTests(unittest.TestCase):
                 ("docker-general", 0, None),
                 ("docker-general", 23, "wm"),
                 ("selinux-traefik", 0, None),
+                ("selinux-traefik-rootless", 24, None),
             ):
                 with self.subTest(test=test, exit_code=code, binary_name=binary_name):
                     work = root / f"{test}-{code}"

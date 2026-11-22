@@ -200,6 +200,7 @@ integration-github-request:
          {"platform":"windows-amd64","test":"windows-update"},
          {"platform":"linux-amd64","test":"docker-tunnel-holesail"},
          {"platform":"linux-amd64","test":"selinux-traefik"},
+         {"platform":"linux-amd64","test":"selinux-traefik-rootless"},
          {"platform":"macos-arm64","test":"macos-sudo-update"}]
     cache: []
     rules:
