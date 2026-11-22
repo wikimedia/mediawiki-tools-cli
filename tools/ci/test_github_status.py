@@ -193,11 +193,12 @@ class NativeExecutionTests(unittest.TestCase):
                 'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
                 'test -f .mediawiki/fixture\n"$MW_BIN"\n'
             )
-            (repo / "tests/test-selinux-traefik.sh").write_text(
+            (repo / "tests/run-platform-smoke.sh").write_text(
                 'test -z "${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-}" || exit 98\n'
                 'test ! -e .mediawiki || exit 98\n'
+                'test -f "$MWCLI_SMOKE_SNAPSHOT" || exit 98\n'
                 'test -z "${GITLAB_STATUS_TOKEN:-}" || exit 98\n'
-                'case "$*" in "") exit 0;; rootless) exit 24;; *) exit 98;; esac\n'
+                'case "$*" in "") exit 0;; rootful) exit 25;; rootless) exit 24;; *) exit 98;; esac\n'
             )
             git("add", ".")
             git("commit", "-m", "Fixture")
@@ -208,8 +209,9 @@ class NativeExecutionTests(unittest.TestCase):
             for test, code, binary_name in (
                 ("docker-general", 0, None),
                 ("docker-general", 23, "wm"),
-                ("selinux-traefik", 0, None),
-                ("selinux-traefik-rootless", 24, None),
+                ("smoke", 0, None),
+                ("smoke-selinux", 25, None),
+                ("smoke-podman-rootless", 24, None),
             ):
                 with self.subTest(test=test, exit_code=code, binary_name=binary_name):
                     work = root / f"{test}-{code}"
@@ -224,12 +226,11 @@ class NativeExecutionTests(unittest.TestCase):
                     (inputs / "plan.json").write_text(json.dumps(plan))
                     (inputs / "mw").write_text(f"#!/bin/sh\nexit {code}\n")
                     snapshot = work / "snapshot.tar.gz"
-                    if test == "docker-general":
-                        with tarfile.open(snapshot, "w:gz") as archive:
-                            archive.add(media, arcname=".mediawiki")
-                        checksum = hashlib.sha256(snapshot.read_bytes()).hexdigest()
-                        path = f"/projects/16/packages/generic/mediawiki-ci-snapshot/2026-44-{'a' * 64}/{checksum}.tar.gz"
-                        (inputs / "mediawiki-snapshot.txt").write_text(f"{path} {checksum}\n")
+                    with tarfile.open(snapshot, "w:gz") as archive:
+                        archive.add(media, arcname=".mediawiki")
+                    checksum = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+                    path = f"/projects/16/packages/generic/mediawiki-ci-snapshot/2026-44-{'a' * 64}/{checksum}.tar.gz"
+                    (inputs / "mediawiki-snapshot.txt").write_text(f"{path} {checksum}\n")
                     source = work / "source"
                     subprocess.run(["git", "clone", str(inputs / "source.bundle"), str(source)],
                                    check=True, capture_output=True)
