@@ -67,9 +67,24 @@ func TestRequestLoginLinkRejectsRedirectsAndForeignLinks(t *testing.T) {
 			t.Fatal("accepted a redirect or foreign login link")
 		}
 	}
-	for _, origin := range []string{"file:///tmp/gateway", "http://alice:secret@localhost:8080", "https://example.test/path", "https://example.test?secret=foo"} {
+	for _, origin := range []string{"file:///tmp/gateway", "http://alice:secret@localhost:8080", "http://gateway.example.test", "https://example.test/path", "https://example.test?secret=foo"} {
 		if _, err := requestLoginLink(origin, "Username: alice\nPassword: secret\n"); err == nil {
 			t.Fatalf("accepted invalid gateway origin %q", origin)
+		}
+	}
+}
+
+func TestGatewayRequestRequiresHTTPSOutsideLoopback(t *testing.T) {
+	credentials := "Username: alice\nPassword: secret\n"
+	for _, origin := range []string{"http://gateway.example.test", "http://192.0.2.1:8080"} {
+		if _, err := gatewayRequest(http.MethodPost, origin, "/_wm/login-link", credentials); err == nil {
+			t.Fatalf("accepted remote HTTP origin %q", origin)
+		}
+	}
+	for _, origin := range []string{"https://gateway.example.test", "http://localhost:8080", "http://127.0.0.1:8080"} {
+		req, err := gatewayRequest(http.MethodPost, origin, "/_wm/login-link", credentials)
+		if err != nil || req.Header.Get("Authorization") == "" {
+			t.Fatalf("rejected permitted origin %q: %v", origin, err)
 		}
 	}
 }

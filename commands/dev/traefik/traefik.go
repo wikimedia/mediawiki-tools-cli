@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
 )
 
@@ -93,6 +94,9 @@ func StartGatewayWithOutput(stderr io.Writer) error {
 }
 
 func gatewayRequest(method, origin, path, credentials string) (*http.Request, error) {
+	if _, err := secrets.Endpoint(origin); err != nil {
+		return nil, fmt.Errorf("gateway origin must use HTTPS (HTTP is only allowed on loopback): %w", err)
+	}
 	parsed, err := url.Parse(origin)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return nil, fmt.Errorf("expected a gateway origin such as http://localhost:8080")
