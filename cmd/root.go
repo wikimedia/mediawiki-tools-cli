@@ -26,6 +26,7 @@ import (
 	gitlabcmd "gitlab.wikimedia.org/repos/releng/cli/commands/gitlab"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/grafana"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/liftwing"
 	phabricatorcmd "gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/toolhub"
@@ -185,6 +186,8 @@ func NewRootCmd(name string) *cobra.Command {
 		cobrautil.WithServiceInfo(enterprisecmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Enterprise", URL: "https://enterprise.wikimedia.com", Logo: "https://upload.wikimedia.org/wikipedia/commons/8/84/Wikimedia_Enterprise_squirrel.svg"}),
 		cobrautil.WithServiceInfo(gitlabcmd.Cmd(), cobrautil.ServiceInfo{Name: "GitLab", URL: "https://gitlab.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/gitlab.svg"}),
 		zikicmd.Cmd(),
+
+		cobrautil.WithServiceInfo(liftwing.NewCmd(), cobrautil.ServiceInfo{Name: "Lift Wing", URL: "https://wikitech.wikimedia.org/wiki/Machine_Learning/LiftWing/API", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),
 
 		// Older commands, not yet moved to the /commands directory
 		cobrautil.WithServiceInfo(codesearch.NewCodeSearchCmd(), cobrautil.ServiceInfo{Name: "Code search", URL: "https://codesearch.wmcloud.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),

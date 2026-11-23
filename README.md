@@ -41,6 +41,19 @@ mw tools sal recent --project production --limit 10
 mw tools sal search CentralAuth --all
 ```
 
+### Lift Wing machine learning
+
+`wm liftwing` discovers prediction models and their request schemas from the public API specification, without credentials. Models have different inputs, availability and stability; anonymous API rate limits apply.
+
+```sh
+wm liftwing models list
+wm liftwing models info article-country
+echo '{"lang":"en","title":"Eiffel Tower"}' | wm liftwing predict article-country
+wm liftwing predict outlink-topic-model --file request.json
+```
+
+For the topic model example, `request.json` can contain `{"page_title":"Douglas Adams","wiki_id":"enwiki"}`. Use `--file -` to read JSON from stdin. Inspect `models info MODEL` for request examples and model cards.
+
 ### Installation
 
 Follow the [installation guide](https://a-wikimedia-cli.toolforge.org/guides/installation/).

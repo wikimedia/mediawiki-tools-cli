@@ -30,6 +30,8 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 			{"analytics", "pageviews", "--help"},
 			{"grafana", "--help"},
 			{"tools", "sal", "search", "--help"},
+			{"liftwing", "models", "list", "--help"},
+			{"liftwing", "predict", "--help"},
 			{"grafana", "dashboard", "query", "--help"},
 			{"--no-interaction", "grafana", "dashboard", "query", "--help"},
 		} {
