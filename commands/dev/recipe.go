@@ -8,6 +8,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"net/url"
 	"os"
 	osexec "os/exec"
 	"path"
@@ -27,6 +28,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv/recipe"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 	filesutil "gitlab.wikimedia.org/repos/releng/cli/internal/util/files"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/paths"
 	"gitlab.wikimedia.org/repos/releng/cli/mount"
@@ -483,7 +485,18 @@ func loadRecipe(recipeFile string, recipeURL string, recipeName string, m devenv
 	}
 
 	if recipeURL != "" {
-		resp, err := cli.NewHTTPClient().Get(recipeURL) // #nosec G107
+		if err := validateRecipeURL(recipeURL); err != nil {
+			return recipe.Spec{}, err
+		}
+		client := cli.NewHTTPClient()
+		client.Timeout = 30 * time.Second
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("recipe download redirected too many times")
+			}
+			return validateRecipeURL(req.URL.String())
+		}
+		resp, err := client.Get(recipeURL) // #nosec G107 -- URL and every redirect are validated above.
 		if err != nil {
 			return recipe.Spec{}, err
 		}
@@ -491,9 +504,13 @@ func loadRecipe(recipeFile string, recipeURL string, recipeName string, m devenv
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return recipe.Spec{}, fmt.Errorf("failed to download recipe: %s", resp.Status)
 		}
-		b, err := io.ReadAll(resp.Body)
+		const maxRecipeBytes = 8 << 20
+		b, err := io.ReadAll(io.LimitReader(resp.Body, maxRecipeBytes+1))
 		if err != nil {
 			return recipe.Spec{}, err
+		}
+		if len(b) > maxRecipeBytes {
+			return recipe.Spec{}, fmt.Errorf("recipe exceeds the 8 MiB download limit")
 		}
 		content = b
 	}
@@ -532,6 +549,17 @@ func loadRecipe(recipeFile string, recipeURL string, recipeName string, m devenv
 	}
 
 	return recipe.Parse(content)
+}
+
+func validateRecipeURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" || u.User != nil || u.Fragment != "" {
+		return fmt.Errorf("recipe URL must be an HTTP(S) URL without user information or a fragment")
+	}
+	if _, err := secrets.Endpoint((&url.URL{Scheme: u.Scheme, Host: u.Host}).String()); err != nil {
+		return fmt.Errorf("recipe URL must use HTTPS (HTTP is only allowed on loopback): %w", err)
+	}
+	return nil
 }
 
 func expandRecipeTemplateVars(spec recipe.Spec, env map[string]string) recipe.Spec {
