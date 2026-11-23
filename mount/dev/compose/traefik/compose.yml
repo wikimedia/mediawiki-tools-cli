@@ -24,7 +24,7 @@ services:
     ports:
       - "${TRAEFIK_BIND_ADDR:-127.0.0.1}:${PORT}:${PORT}"
     volumes:
-      - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./compose/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro,Z
     depends_on:
       dps:
         condition: service_started
@@ -51,9 +51,9 @@ services:
       start_period: 30s
       retries: 6
     volumes:
-      - ./compose/traefik/mount/auth:/app:ro
-      - ./compose/base/mount/ui:/ui:ro
-      - ./compose/traefik/auth:/auth:ro
+      - ./compose/traefik/mount/auth:/app:ro,Z
+      - ./compose/base/mount/ui:/ui:ro,z
+      - ./compose/traefik/auth:/auth:ro,Z
     networks:
       - gateway-control
       - gateway-access
@@ -71,7 +71,7 @@ services:
       - INFO=1
       - POST=0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - "${MWCLI_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro"
     networks:
       - gateway-control
 

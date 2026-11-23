@@ -193,15 +193,28 @@ class NativeExecutionTests(unittest.TestCase):
                 'test -z "${GITLAB_STATUS_TOKEN:-}"\n'
                 'test -f .mediawiki/fixture\n"$MW_BIN"\n'
             )
+            (repo / "tests/run-platform-smoke.sh").write_text(
+                'test -z "${MWCLI_CI_MEDIAWIKI_SNAPSHOT:-}" || exit 98\n'
+                'test ! -e .mediawiki || exit 98\n'
+                'test -f "$MWCLI_SMOKE_SNAPSHOT" || exit 98\n'
+                'test -z "${GITLAB_STATUS_TOKEN:-}" || exit 98\n'
+                'case "$*" in "") exit 0;; rootful) exit 25;; rootless) exit 24;; *) exit 98;; esac\n'
+            )
             git("add", ".")
             git("commit", "-m", "Fixture")
             sha = git("rev-parse", "HEAD")
             media = root / "mediawiki"
             media.mkdir()
             (media / "fixture").write_text("clean snapshot")
-            for code, binary_name in ((0, None), (23, "wm")):
-                with self.subTest(exit_code=code, binary_name=binary_name):
-                    work = root / str(code)
+            for test, code, binary_name in (
+                ("docker-general", 0, None),
+                ("docker-general", 23, "wm"),
+                ("smoke", 0, None),
+                ("smoke-selinux", 25, None),
+                ("smoke-podman-rootless", 24, None),
+            ):
+                with self.subTest(test=test, exit_code=code, binary_name=binary_name):
+                    work = root / f"{test}-{code}"
                     inputs = work / "inputs"
                     inputs.mkdir(parents=True)
                     git("bundle", "create", str(inputs / "source.bundle"), "HEAD")
@@ -223,7 +236,7 @@ class NativeExecutionTests(unittest.TestCase):
                                    check=True, capture_output=True)
                     env = {key: value for key, value in os.environ.items() if key != "GITLAB_STATUS_TOKEN"}
                     with chdir(source), patch.dict(os.environ, env, clear=True), patch.object(
-                        worker.sys, "argv", ["worker", "docker-general"]
+                        worker.sys, "argv", ["worker", test]
                     ), patch.object(worker.GitLab, "request", side_effect=lambda path, destination:
                                     destination.write_bytes(snapshot.read_bytes())):
                         self.assertEqual(worker.main(), code)
