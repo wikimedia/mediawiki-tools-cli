@@ -40,8 +40,10 @@ func (m Environment) Directory() string {
 func (m Environment) EnsureReady() {
 	files.EnsureReady(m.Directory())
 	m.Env().EnsureExists()
-	if m.Env().Get("SHELLBOX_SECRET_KEY") == "" {
-		m.Env().Set("SHELLBOX_SECRET_KEY", rand.Text())
+	for _, key := range []string{"SHELLBOX_SECRET_KEY", "SWIFT_MEDIA_KEY", "SWIFT_THUMBOR_KEY", "SWIFT_PRIVATE_KEY", "SWIFT_TEMP_URL_KEY", "THUMBOR_PRIVATE_SECRET"} {
+		if m.Env().Get(key) == "" {
+			m.Env().Set(key, rand.Text())
+		}
 	}
 	m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion())
 	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))

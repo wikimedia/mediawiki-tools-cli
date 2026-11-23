@@ -68,6 +68,8 @@ var (
 		{Name: "postgres", HasUI: false},
 		{Name: "redis", HasUI: false},
 		{Name: "memcached", HasUI: false},
+		{Name: "swift", HasUI: false},
+		{Name: "thumbor", HasUI: false},
 		{Name: "elasticsearch", HasUI: false},
 		{Name: "opensearch", HasUI: false},
 		{Name: "opensearch-dashboards", HasUI: true, UIHost: "logs.local.wmftest.net"},

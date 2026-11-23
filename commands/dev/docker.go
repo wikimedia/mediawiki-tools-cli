@@ -23,6 +23,8 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/mysqlreplica"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/redis"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/shellbox"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/swift"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/thumbor"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/traefik"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/tunnel"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/wdqs"
@@ -237,6 +239,8 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(cobrautil.WithServiceInfo(mysqlreplica.NewCmd(), cobrautil.ServiceInfo{Name: "MySQL replica", URL: "https://www.mysql.com", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/mysql.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(keycloak.NewCmd(), cobrautil.ServiceInfo{Name: "Keycloak", URL: "https://www.keycloak.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/keycloak.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(shellbox.NewCmd(), cobrautil.ServiceInfo{Name: "Shellbox", URL: "https://www.mediawiki.org/wiki/Shellbox", Logo: "https://upload.wikimedia.org/wikipedia/commons/a/a6/MediaWiki-2020-icon.svg"}))
+	cmd.AddCommand(cobrautil.WithServiceInfo(swift.NewCmd(), cobrautil.ServiceInfo{Name: "Swift", URL: "https://docs.openstack.org/swift/latest/"}))
+	cmd.AddCommand(cobrautil.WithServiceInfo(thumbor.NewCmd(), cobrautil.ServiceInfo{Name: "Thumbor", URL: "https://www.mediawiki.org/wiki/Thumbor"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(redis.NewCmd(), cobrautil.ServiceInfo{Name: "Redis", URL: "https://redis.io", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/redis.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(wdqs.NewCmd(), cobrautil.ServiceInfo{Name: "Wikidata Query Service", URL: "https://www.mediawiki.org/wiki/Wikidata_Query_Service", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikidata.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(wdqsUi.NewCmd(), cobrautil.ServiceInfo{Name: "Wikidata Query UI", URL: "https://query.wikidata.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikidata.svg"}))

@@ -53,6 +53,7 @@ integration-github-request:
          {"platform":"linux-amd64","test":"all-databases"},
          {"platform":"linux-amd64","test":"mysql-cycle"},
          {"platform":"linux-amd64","test":"repoclient"},
+         {"platform":"linux-amd64","test":"docker-recipes"},
          {"platform":"windows-amd64","test":"windows-update"}]
 ```
 
@@ -73,6 +74,14 @@ preparation can therefore be made in the GitLab MR alongside the test.
 Adding an entry to the plan in a GitLab MR runs that MR's script without
 changing or merging another GitHub workflow. Only adding a new runner type requires an executor infrastructure
 update. Invalid platforms, unsafe names and missing planned results fail closed.
+
+The `docker-recipes` test discovers every embedded recipe, validates and applies each
+in a separate context and MediaWiki checkout, and checks every site's API. It
+also runs the Wikimedia wiki farm smoke checks. Recipes run sequentially because
+they can publish fixed ports. To run locally on a disposable Docker host, build
+the CLI and run `bash tests/test-docker-recipes.sh`. It also exercises standalone
+Swift storage and Thumbor with public and private wikis. The job allows 100 minutes;
+keep the installed `wait-github.py` client updated for its longer wait deadline.
 
 ### Native platform workflows
 

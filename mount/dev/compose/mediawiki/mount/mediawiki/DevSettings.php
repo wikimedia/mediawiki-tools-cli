@@ -527,6 +527,8 @@ $wgSecretKey = "j8093j903j902jfr9j109j109jf1093jf09j190jfj09fj1jfknnccnmxnmx";
 $wgPhpCli = '/usr/local/bin/php';
 
 ## Load LocalSettings.d files
+require_once __DIR__ . '/DevSwiftSettings.php';
+
 ## Load all bottom level files on all wikis
 foreach ( glob( "$IP/LocalSettings.d/*.php" ) as $path ) {
     require_once $path;
