@@ -143,38 +143,14 @@ test_command_success "$MW_BIN" dev mediawiki create
 test_command_success "$MW_BIN" dev mediawiki doctor
 
 # Make sure the shellbox service commands work
-# TODO text exec command
 test_command_success "$MW_BIN" dev shellbox media create
 test_command_success "$MW_BIN" dev shellbox media exec echo foo
 test_command "$MW_BIN" dev shellbox media exec echo foo "foo"
 test_command_success "$MW_BIN" dev shellbox media stop
 test_command_success "$MW_BIN" dev shellbox media start
 test_command_success "$MW_BIN" dev shellbox media destroy
-# Internally these all work the same, so this tests "them all"
-# SUGGEST cmd: mw dev shellbox php-rpc: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox php-rpc create: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox php-rpc destroy: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox php-rpc exec: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox php-rpc start: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox php-rpc stop: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox score: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox score create: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox score destroy: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox score exec: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox score start: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox score stop: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox syntaxhighlight: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox syntaxhighlight create: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox syntaxhighlight destroy: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox syntaxhighlight exec: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox syntaxhighlight start: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox syntaxhighlight stop: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox timeline: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox timeline create: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox timeline destroy: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox timeline exec: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox timeline start: (end-to-end-test) End to end tests are suggested, none found
-# SUGGEST cmd: mw dev shellbox timeline stop: (end-to-end-test) End to end tests are suggested, none found
+# Exercise the authenticated HTTP path, one Shellbox flavour at a time.
+test_command_success env MW_BIN="$MW_BIN" bash "$SCRIPT_DIR/test-docker-shellbox.sh"
 
 # Make sure `docker update` works as expected
 test_command_success "$MW_BIN" dev shellbox media create

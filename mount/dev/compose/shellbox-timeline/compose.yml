@@ -5,10 +5,37 @@
 # TODO can we use the simply named images? or must we use the dated ones to stay up to date?
 
 services:
-  shellbox-timeline: 
+  shellbox-timeline:
     image: "${SHELLBOX_TIMELINE_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-19-141815-timeline83}"
     restart: unless-stopped
+    volumes:
+      - shellbox-timeline-run:/run/shared
+      - ./compose/shellbox-timeline/mount/shellbox/timeline/config.json:/srv/app/config/config.json:ro
+    environment:
+      - "FCGI_MODE=FCGI_UNIX"
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
     networks:
       - dps
+
+  shellbox-timeline-httpd:
+    image: docker-registry.wikimedia.org/httpd-fcgi:latest
+    security_opt:
+      - label:disable
+    volumes:
+      - shellbox-timeline-run:/run/shared
+      - ./compose/shellbox-media/mount/shellbox/php-fcgi-secret.conf:/etc/apache2/conf-enabled/55-wmcli-shellbox.conf:ro
+    environment:
+      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
+      - "FCGI_MODE=FCGI_UNIX"
+      - "SERVERGROUP=main"
+      - "APACHE_RUN_PORT=8000"
+    depends_on:
+      - shellbox-timeline
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  shellbox-timeline-run:
