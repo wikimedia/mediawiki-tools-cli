@@ -28,6 +28,7 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/help"
 	phabricatorcmd "gitlab.wikimedia.org/repos/releng/cli/commands/phabricator"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/sal"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/toolhub"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/tools"
 	updatecmd "gitlab.wikimedia.org/repos/releng/cli/commands/update"
@@ -177,6 +178,8 @@ func NewRootCmd(name string) *cobra.Command {
 		cobrautil.WithServiceInfo(enterprisecmd.NewCmd(), cobrautil.ServiceInfo{Name: "Wikimedia Enterprise", URL: "https://enterprise.wikimedia.com", Logo: "https://upload.wikimedia.org/wikipedia/commons/8/84/Wikimedia_Enterprise_squirrel.svg"}),
 		cobrautil.WithServiceInfo(gitlabcmd.Cmd(), cobrautil.ServiceInfo{Name: "GitLab", URL: "https://gitlab.wikimedia.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/gitlab.svg"}),
 		zikicmd.Cmd(),
+
+		cobrautil.WithServiceInfo(sal.NewCmd(), cobrautil.ServiceInfo{Name: "Server Admin Log", URL: "https://sal.toolforge.org/"}),
 
 		// Older commands, not yet moved to the /commands directory
 		cobrautil.WithServiceInfo(codesearch.NewCodeSearchCmd(), cobrautil.ServiceInfo{Name: "Code search", URL: "https://codesearch.wmcloud.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikimediafoundation.svg"}),

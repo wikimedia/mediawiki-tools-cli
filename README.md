@@ -32,6 +32,15 @@ mw api 'metrics/pageviews/top/en.wikipedia.org/all-access/2025/01/01' --output j
 
 `mw grafana` reads public Wikimedia Grafana dashboards, runs PromQL queries, and sends read requests to the Grafana API. See the [Grafana guide](docs/guides/grafana.md).
 
+### Server Admin Log
+
+`mw sal` reads public entries from [sal.toolforge.org](https://sal.toolforge.org/) without credentials. Recent entries use its Atom feed; search reads the public HTML archive. Search supports `--project`, `--all`, `--before YYYY-MM-DD` and `--page`.
+
+```sh
+mw sal recent --project production --limit 10
+mw sal search CentralAuth --all
+```
+
 ### Installation
 
 Follow the [installation guide](https://a-wikimedia-cli.toolforge.org/guides/installation/).
