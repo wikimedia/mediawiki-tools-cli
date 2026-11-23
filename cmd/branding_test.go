@@ -29,6 +29,7 @@ func TestRenamedHelpAndExamples(t *testing.T) {
 			{"cloudvps", "auth", "add", "--help"},
 			{"analytics", "pageviews", "--help"},
 			{"grafana", "--help"},
+			{"tools", "sal", "search", "--help"},
 			{"grafana", "dashboard", "query", "--help"},
 			{"--no-interaction", "grafana", "dashboard", "query", "--help"},
 		} {

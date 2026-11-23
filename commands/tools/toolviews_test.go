@@ -141,7 +141,7 @@ func TestToolviewsValidationBeforeRequest(t *testing.T) {
 func TestToolsAndToolforgeAreSeparate(t *testing.T) {
 	root := &cobra.Command{Use: "mw"}
 	root.AddCommand(NewToolsCmd(), NewToolforgeCmd())
-	for _, path := range [][]string{{"tools", "toolviews"}, {"tools", "views"}, {"tools", "setup"}, {"toolforge", "setup"}, {"toolforge", "shell"}, {"toolforge", "cp"}, {"toolforge", "job"}} {
+	for _, path := range [][]string{{"tools", "sal", "recent"}, {"tools", "sal", "search"}, {"tools", "toolviews"}, {"tools", "views"}, {"tools", "setup"}, {"toolforge", "setup"}, {"toolforge", "shell"}, {"toolforge", "cp"}, {"toolforge", "job"}} {
 		found, rest, err := root.Find(path)
 		if err != nil || len(rest) > 0 || found == root {
 			t.Fatalf("cannot resolve %v: %v %v", path, rest, err)
