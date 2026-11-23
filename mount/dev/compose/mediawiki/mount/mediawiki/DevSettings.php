@@ -13,7 +13,9 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit;
 }
 
-require_once "$IP/includes/PlatformSettings.php";
+if ( is_file( "$IP/includes/PlatformSettings.php" ) ) {
+	require_once "$IP/includes/PlatformSettings.php";
+}
 
 ################################
 # Development environment Setup
@@ -468,9 +470,7 @@ $wgShowHostnames = true;
 
 ## Site settings
 $wgScriptPath = "$dockerProxyPrefix/w";
-if ( $dockerProxyPrefix !== '' ) {
-	$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
-}
+$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
 $wgSitename = "Dev wiki - $dockerDb";
 $wgMetaNamespace = "Project"; // Set to "Project", instead of the default $wgSitename
 // TODO re add favicon (removed porting to go)
