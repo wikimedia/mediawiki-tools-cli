@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,7 +20,7 @@ type gatewayCommand func([]string) (string, error)
 
 // migrateLegacyProxy recreates running services with their new routing labels
 // before retiring nginx. Stopped applications are not selected for migration.
-func (m Environment) migrateLegacyProxy(docker, compose gatewayCommand) error {
+func (m Environment) migrateLegacyProxy(stderr io.Writer, docker, compose gatewayCommand) error {
 	projectFilter := "label=com.docker.compose.project=" + strings.ToLower(m.DockerCompose().Name)
 	output, err := docker([]string{"ps", "-aq", "--filter", projectFilter, "--filter", "label=com.docker.compose.service=nginx-proxy"})
 	if err != nil {
@@ -29,7 +30,7 @@ func (m Environment) migrateLegacyProxy(docker, compose gatewayCommand) error {
 	if len(containers) == 0 {
 		return nil
 	}
-	fmt.Println("Migrating the development proxy from nginx to Traefik...")
+	fmt.Fprintln(stderr, "Migrating the development proxy from nginx to Traefik...")
 	output, err = docker([]string{"ps", "--filter", projectFilter, "--format", `{{.Label "com.docker.compose.service"}}`})
 	if err != nil {
 		return fmt.Errorf("find running services for proxy migration: %w", err)
@@ -87,18 +88,32 @@ func (m Environment) migrateLegacyProxy(docker, compose gatewayCommand) error {
 // EnsureTraefikAuth creates private credentials for the default Traefik proxy.
 // Existing credentials are preserved across restarts and file syncs.
 func EnsureTraefikAuth() error {
+	return EnsureTraefikAuthWithOutput(os.Stderr)
+}
+
+// EnsureTraefikAuthWithOutput creates proxy credentials and reports them to the supplied writer.
+func EnsureTraefikAuthWithOutput(stderr io.Writer) error {
 	instance := DefaultForUser()
-	instance.EnsureReady()
-	return instance.ensureTraefikAuth()
+	if err := instance.EnsureReady(); err != nil {
+		return err
+	}
+	return instance.ensureTraefikAuth(stderr)
 }
 
 // PrepareGateway handles both fresh starts and upgrades of existing contexts.
 func (m Environment) PrepareGateway() error {
-	m.EnsureReady()
-	if err := m.ensureTraefikAuth(); err != nil {
+	return m.PrepareGatewayWithOutput(os.Stderr)
+}
+
+// PrepareGatewayWithOutput prepares gateway authentication and routes progress to stderr.
+func (m Environment) PrepareGatewayWithOutput(stderr io.Writer) error {
+	if err := m.EnsureReady(); err != nil {
 		return err
 	}
-	if err := m.migrateLegacyProxy(func(args []string) (string, error) {
+	if err := m.ensureTraefikAuth(stderr); err != nil {
+		return err
+	}
+	if err := m.migrateLegacyProxy(stderr, func(args []string) (string, error) {
 		output, err := exec.Command("docker", args...).CombinedOutput()
 		if err != nil {
 			return "", fmt.Errorf("%w: %s", err, output)
@@ -163,7 +178,7 @@ func (m Environment) stopGatewayAuthIfNoTunnel(project gatewayServices) error {
 	return nil
 }
 
-func (m Environment) ensureTraefikAuth() error {
+func (m Environment) ensureTraefikAuth(stderr io.Writer) error {
 	authDir := filepath.Join(m.Directory(), "compose", "traefik", "auth")
 	if err := os.MkdirAll(authDir, 0o700); err != nil {
 		return err
@@ -196,7 +211,7 @@ func (m Environment) ensureTraefikAuth() error {
 		_ = os.Remove(usersPath)
 		return err
 	}
-	fmt.Printf("Traefik proxy credentials generated and saved to %s\n%s", credentialsPath, strings.TrimSpace(credentials)+"\n")
+	fmt.Fprintf(stderr, "Traefik proxy credentials generated and saved to %s\n%s", credentialsPath, strings.TrimSpace(credentials)+"\n")
 	return nil
 }
 

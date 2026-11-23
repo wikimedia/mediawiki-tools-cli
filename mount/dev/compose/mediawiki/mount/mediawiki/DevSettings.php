@@ -13,7 +13,9 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit;
 }
 
-require_once "$IP/includes/PlatformSettings.php";
+if ( is_file( "$IP/includes/PlatformSettings.php" ) ) {
+	require_once "$IP/includes/PlatformSettings.php";
+}
 
 ################################
 # Development environment Setup
@@ -149,8 +151,8 @@ if ( $dashboardServicesCache !== null ) {
 			? 'http://shellbox-php-rpc-httpd:8000' : false,
 		'shellbox-score' => ( ( $dashboardServicesCache['shellbox-score'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-score-httpd:8000' : false,
-		'shellbox-syntaxhighlight' => ( $dashboardServicesCache['shellbox-syntaxhighlight'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
-		'shellbox-timeline' => ( $dashboardServicesCache['shellbox-timeline'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-syntaxhighlight' => ( ( $dashboardServicesCache['shellbox-syntaxhighlight'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) ) ? 'http://shellbox-syntaxhighlight-httpd:8000' : false,
+		'shellbox-timeline' => ( ( $dashboardServicesCache['shellbox-timeline'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ) ) ? 'http://shellbox-timeline-httpd:8000' : false,
 		'prometheus' => ( $dashboardServicesCache['prometheus'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 		'grafana' => ( $dashboardServicesCache['grafana'] ?? false ) && !defined( 'MW_PHPUNIT_TEST' ),
 	];
@@ -174,8 +176,8 @@ if ( $dashboardServicesCache !== null ) {
 			? 'http://shellbox-php-rpc-httpd:8000' : false,
 		'shellbox-score' => ( gethostbyname('shellbox-score') !== 'shellbox-score' && !defined( 'MW_PHPUNIT_TEST' ) )
 			? 'http://shellbox-score-httpd:8000' : false,
-		'shellbox-syntaxhighlight' => gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ),
-		'shellbox-timeline' => gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ),
+		'shellbox-syntaxhighlight' => ( gethostbyname('shellbox-syntaxhighlight') !== 'shellbox-syntaxhighlight' && !defined( 'MW_PHPUNIT_TEST' ) ) ? 'http://shellbox-syntaxhighlight-httpd:8000' : false,
+		'shellbox-timeline' => ( gethostbyname('shellbox-timeline') !== 'shellbox-timeline' && !defined( 'MW_PHPUNIT_TEST' ) ) ? 'http://shellbox-timeline-httpd:8000' : false,
 		'prometheus' => gethostbyname('prometheus') !== 'prometheus' && !defined( 'MW_PHPUNIT_TEST' ),
 		'grafana' => gethostbyname('grafana') !== 'grafana' && !defined( 'MW_PHPUNIT_TEST' ),
 	];
@@ -427,8 +429,10 @@ if(isset($_SERVER['SHELLBOX_SECRET_KEY'])) {
 	$wgShellboxSecretKey = $_SERVER['SHELLBOX_SECRET_KEY'];
 }
 if($dockerServices['shellbox-media']) {
+	$wgShellboxUrls['djvu'] = $dockerServices['shellbox-media'];
 	$wgShellboxUrls['pagedtiffhandler'] = $dockerServices['shellbox-media'];
 	$wgShellboxUrls['pdfhandler'] = $dockerServices['shellbox-media'];
+	$wgShellboxUrls['timedmediahandler'] = $dockerServices['shellbox-media'];
 }
 if($dockerServices['shellbox-php-rpc']) {
 	$wgShellboxUrls['constraint-regex-checker'] = $dockerServices['shellbox-php-rpc'];
@@ -437,10 +441,11 @@ if($dockerServices['shellbox-score']) {
 	$wgShellboxUrls['score'] = $dockerServices['shellbox-score'];
 }
 if($dockerServices['shellbox-syntaxhighlight']) {
-	$wgShellboxUrls['syntaxhighlight'] = $dockerServices['shellbox-syntaxhighlight']; // XXX: This won't work yet, as no http service is infront of the syntaxhighlight service
+	$wgShellboxUrls['syntaxhighlight'] = $dockerServices['shellbox-syntaxhighlight'];
+	$wgPygmentizePath = '/opt/lib/venv/bin/pygmentize';
 }
 if($dockerServices['shellbox-timeline']) {
-	$wgShellboxUrls['easytimeline'] = $dockerServices['shellbox-timeline']; // XXX: This won't work yet, as no http service is infront of the timeline service
+	$wgShellboxUrls['easytimeline'] = $dockerServices['shellbox-timeline'];
 }
 
 ################################
@@ -465,9 +470,7 @@ $wgShowHostnames = true;
 
 ## Site settings
 $wgScriptPath = "$dockerProxyPrefix/w";
-if ( $dockerProxyPrefix !== '' ) {
-	$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
-}
+$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
 $wgSitename = "Dev wiki - $dockerDb";
 $wgMetaNamespace = "Project"; // Set to "Project", instead of the default $wgSitename
 // TODO re add favicon (removed porting to go)
@@ -523,6 +526,8 @@ $wgSecretKey = "j8093j903j902jfr9j109j109jf1093jf09j190jfj09fj1jfknnccnmxnmx";
 $wgPhpCli = '/usr/local/bin/php';
 
 ## Load LocalSettings.d files
+require_once __DIR__ . '/DevSwiftSettings.php';
+
 ## Load all bottom level files on all wikis
 foreach ( glob( "$IP/LocalSettings.d/*.php" ) as $path ) {
     require_once $path;

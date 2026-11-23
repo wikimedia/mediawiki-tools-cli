@@ -171,7 +171,7 @@ func TestRedactionDoesNotMutateConfig(t *testing.T) {
 		}
 	}
 	redacted := Redacted(disk)
-	if strings.Contains(PrettyPrint(redacted), "test-secret") {
+	if text, err := PrettyPrint(redacted); err != nil || strings.Contains(text, "test-secret") {
 		t.Fatal("secret visible in redacted output")
 	}
 	if disk.String("gerrit.password") != "test-secret" {

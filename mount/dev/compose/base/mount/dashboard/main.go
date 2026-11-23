@@ -1,6 +1,5 @@
 // Development dashboard for a Wikimedia CLI
 // Run with: go run main.go
-// //nolint:depguard
 package main
 
 import (
@@ -9,7 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -68,6 +67,8 @@ var (
 		{Name: "postgres", HasUI: false},
 		{Name: "redis", HasUI: false},
 		{Name: "memcached", HasUI: false},
+		{Name: "swift", HasUI: false},
+		{Name: "thumbor", HasUI: false},
 		{Name: "elasticsearch", HasUI: false},
 		{Name: "opensearch", HasUI: false},
 		{Name: "opensearch-dashboards", HasUI: true, UIHost: "logs.local.wmftest.net"},
@@ -152,12 +153,12 @@ func serviceConfigs() []ServiceConfig {
 		return result
 	}
 	if err != nil {
-		log.Printf("Could not read custom services: %v", err)
+		slog.Warn("Could not read custom services", "error", err)
 		return result
 	}
 	var custom []ServiceConfig
 	if err := json.Unmarshal(data, &custom); err != nil {
-		log.Printf("Could not parse custom services: %v", err)
+		slog.Warn("Could not parse custom services", "error", err)
 		return result
 	}
 	positions := map[string]int{}
@@ -216,7 +217,7 @@ func getSites() []Site {
 	// The record-hosts file is mounted at /data/record-hosts
 	data, err := os.ReadFile("/data/record-hosts")
 	if err != nil {
-		log.Printf("Could not read record-hosts file: %v", err)
+		slog.Warn("Could not read record-hosts file", "error", err)
 		return []Site{}
 	}
 
@@ -508,13 +509,13 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.New("dashboard").Parse(dashboardHTML)
 	if err != nil {
 		http.Error(w, "Template error", http.StatusInternalServerError)
-		log.Printf("Template error: %v", err)
+		slog.Error("Template error", "error", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := tmpl.Execute(w, response); err != nil {
-		log.Printf("Template execution error: %v", err)
+		slog.Error("Template execution error", "error", err)
 	}
 }
 
@@ -554,7 +555,8 @@ func main() {
 		listenPort = "8080"
 	}
 	if _, err := strconv.Atoi(listenPort); err != nil {
-		log.Fatalf("Invalid dashboard port: %q", listenPort)
+		slog.Error("Invalid dashboard port", "port", listenPort)
+		os.Exit(1)
 	}
 
 	http.HandleFunc("/", dashboardHandler)
@@ -563,20 +565,21 @@ func main() {
 	http.HandleFunc("/api/sites", apiSitesHandler)
 	http.HandleFunc("/health", healthHandler)
 
-	log.Printf("Development dashboard starting on port %s", listenPort)
-	log.Printf("Dashboard: http://localhost:%s", listenPort)
-	log.Printf("API endpoints:")
-	log.Printf("  - GET /api/status   - Full status (services + sites)")
-	log.Printf("  - GET /api/services - Service status only")
-	log.Printf("  - GET /api/sites    - Installed sites only")
-	log.Printf("  - GET /health       - Health check")
+	slog.Info("Development dashboard starting", "port", listenPort)
+	slog.Info("Dashboard", "url", "http://localhost:"+listenPort)
+	slog.Info("API endpoints:")
+	slog.Info("  - GET /api/status   - Full status (services + sites)")
+	slog.Info("  - GET /api/services - Service status only")
+	slog.Info("  - GET /api/sites    - Installed sites only")
+	slog.Info("  - GET /health       - Health check")
 
 	server := &http.Server{
 		Addr:              ":" + listenPort,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slog.Error("Failed to start server", "error", err)
+		os.Exit(1)
 	}
 }
 

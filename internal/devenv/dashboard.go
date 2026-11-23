@@ -144,7 +144,10 @@ func (m Environment) refreshDashboardServices() error {
 	if err != nil {
 		return err
 	}
-	environment := m.Env().List()
+	environment, err := m.Env().Read()
+	if err != nil {
+		return err
+	}
 	lookup := func(key string) (string, bool) {
 		if value, ok := os.LookupEnv(key); ok {
 			return value, true

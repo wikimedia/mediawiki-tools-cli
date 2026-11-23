@@ -3,6 +3,7 @@ package dotenv
 import (
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -151,5 +152,38 @@ func TestFile_GeneralIntegration(t *testing.T) {
 				t.Errorf("%q failed "+envFile.Path(), tt.name)
 			}
 		})
+	}
+}
+
+func TestReadAndWritesReportInvalidFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("INVALID='unterminated"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file := File(path)
+	if _, err := file.Read(); err == nil {
+		t.Fatal("expected parse error")
+	}
+	if err := file.Set("NEW", "value"); err == nil {
+		t.Fatal("expected parse error before write")
+	}
+	if err := file.Delete("NEW"); err == nil {
+		t.Fatal("expected parse error before delete")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != "INVALID='unterminated" {
+		t.Fatalf("invalid file was altered: %q %v", data, err)
+	}
+}
+
+func TestFileReadRedactsMalformedValues(t *testing.T) {
+	file := FileForDirectory(t.TempDir())
+	const secret = "synthetic-secret-value"
+	if err := os.WriteFile(file.Path(), []byte("TOKEN=\""+secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := file.Read()
+	if err == nil || !strings.Contains(err.Error(), ".env") || strings.Contains(err.Error(), secret) {
+		t.Fatalf("expected a safe diagnostic identifying the file, got %v", err)
 	}
 }

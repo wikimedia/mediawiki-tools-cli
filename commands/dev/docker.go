@@ -1,18 +1,19 @@
 package dev
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/custom"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/dockercompose"
@@ -23,6 +24,8 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/mysqlreplica"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/redis"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/shellbox"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/swift"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/thumbor"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/traefik"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/tunnel"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/dev/wdqs"
@@ -36,7 +39,6 @@ import (
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/lookpath"
 )
 
-// Detach run docker command with -d.
 var Detach bool
 
 // Privileged run docker command with --privileged.
@@ -82,15 +84,17 @@ func NewCmd() *cobra.Command {
 		Long:    cli.RenderMarkdown(dockerLong),
 		Example: cobrautil.NormalizeExample("dev mediawiki get-code\ndev mediawiki create\ndev mysql create\ndev mediawiki install --dbtype=mysql\ndev status"),
 		RunE:    nil,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
 			executing := cobrautil.ExecutingCommand(cmd)
 			if executing == dashboard || executing == status || (executing.Parent() == recipeCmd && executing.Name() == "validate") {
-				return
+				return nil
 			}
 			if executing == recipeCmd {
 				if dryRun, _ := recipeCmd.Flags().GetBool("dry-run"); dryRun {
-					return
+					return nil
 				}
 			}
 			// These file-only command groups mark themselves before calling parent hooks.
@@ -98,54 +102,59 @@ func NewCmd() *cobra.Command {
 				if _, err := lookpath.NeedCommands([]string{"docker compose"}); err != nil {
 					// We can also allow docker-compose, if docker compose is not available
 					if _, err := lookpath.NeedCommands([]string{"docker-compose"}); err != nil {
-						fmt.Println("docker compose is not available. Please install it and try again.")
-						os.Exit(1)
+						return fmt.Errorf("docker compose is not available. Please install it and try again.")
 					}
-					fmt.Println(err)
-					os.Exit(1)
 				}
 
 				// Bail if Docker is unavailable through the selected context.
 				if err := docker.CheckDockerDaemon(); err != nil {
-					fmt.Fprintf(os.Stderr, "Docker is unavailable: %v\nCheck `docker context show` and `docker info` using the same environment.\n", err)
-					os.Exit(1)
+					return fmt.Errorf("Docker is unavailable: %w; check `docker context show` and `docker info` using the same environment", err)
 				}
 			}
 
 			thisDev := devenv.DefaultForUser()
-			thisDev.EnsureReady()
+			if err := thisDev.EnsureReady(); err != nil {
+				return err
+			}
+			if _, err := thisDev.Env().Read(); err != nil {
+				return err
+			}
 
 			// Skip the checks and wizard if "MWCLI_MEDIAWIKI_ENV_COMMAND" is defined as an env var
 			if _, envCommandDefined := os.LookupEnv("MWCLI_MEDIAWIKI_ENV_COMMAND"); envCommandDefined {
-				return
+				return nil
 			}
 			// Skip the checks and wizard for any destroy commands
 			if strings.Contains(cobrautil.FullCommandString(cmd), "destroy") {
-				return
+				return nil
 			}
 
 			// Different subnets are required for different "contexts" if used, so define them in the .env
 			if thisDev.Env().Missing("NETWORK_SUBNET_PREFIX") {
 				if devenv.Context == "default" {
-					logrus.Trace(".env NETWORK_SUBNET_PREFIX: ", "10.0.0", " (context: ", devenv.Context, ")")
-					thisDev.Env().Set("NETWORK_SUBNET_PREFIX", "10.0.0")
+					slog.Log(context.Background(), slog.Level(-8), fmt.Sprint(".env NETWORK_SUBNET_PREFIX: ", "10.0.0", " (context: ", devenv.Context, ")"))
+					if err := thisDev.Env().Set("NETWORK_SUBNET_PREFIX", "10.0.0"); err != nil {
+						return err
+					}
 				} else {
 					// Do some evil shit to come up with a kind of probably random subnet to use...
 					rand1, err := rand.Int(rand.Reader, big.NewInt(10))
 					if err != nil {
-						panic(err)
+						return err
 					}
 					rand2, err := rand.Int(rand.Reader, big.NewInt(10))
 					if err != nil {
-						panic(err)
+						return err
 					}
 					hash := sha256.Sum256([]byte(devenv.Context))
 					hex1 := hex.EncodeToString(hash[rand1.Int64() : rand1.Int64()+1])
 					hex2 := hex.EncodeToString(hash[rand2.Int64() : rand2.Int64()+1])
 					dec1, _ := strconv.ParseInt(hex1, 16, 32)
 					dec2, _ := strconv.ParseInt(hex2, 16, 32)
-					logrus.Trace(".env NETWORK_SUBNET_PREFIX: ", fmt.Sprintf("10.%d.%d", dec1, dec2), " (context: ", devenv.Context, ")")
-					thisDev.Env().Set("NETWORK_SUBNET_PREFIX", fmt.Sprintf("10.%d.%d", dec1, dec2))
+					slog.Log(context.Background(), slog.Level(-8), fmt.Sprint(".env NETWORK_SUBNET_PREFIX: ", fmt.Sprintf("10.%d.%d", dec1, dec2), " (context: ", devenv.Context, ")"))
+					if err := thisDev.Env().Set("NETWORK_SUBNET_PREFIX", fmt.Sprintf("10.%d.%d", dec1, dec2)); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -158,21 +167,24 @@ func NewCmd() *cobra.Command {
 					}
 					err := survey.AskOne(prompt, &port)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						return err
 					}
 					validityCheck := ports.IsValidAndFree(port)
 					if validityCheck != nil {
-						fmt.Println(validityCheck)
-						os.Exit(1)
+						return validityCheck
 					}
 
-					thisDev.Env().Set("PORT", port)
-					cmd.Printf("To change this later, see `%s help guides dev ports`.\n", cmd.Root().Name())
+					if err := thisDev.Env().Set("PORT", port); err != nil {
+						return err
+					}
+					fmt.Fprintf(cmd.ErrOrStderr(), "To change this later, see `%s help guides dev ports`.\n", cmd.Root().Name())
 				} else {
-					thisDev.Env().Set("PORT", ports.FreeUpFrom("8080"))
+					if err := thisDev.Env().Set("PORT", ports.FreeUpFrom("8080")); err != nil {
+						return err
+					}
 				}
 			}
+			return nil
 		},
 	}
 
@@ -189,7 +201,7 @@ func NewCmd() *cobra.Command {
 	// Parse PersistentFlags early so that the context is already known to other commands that are added
 	err := cmd.PersistentFlags().Parse(os.Args[1:])
 	if err != nil {
-		logrus.Tracef("Error parsing persistent flags in docker command: %s", err)
+		slog.Log(context.Background(), slog.Level(-8), fmt.Sprintf("Error parsing persistent flags in docker command: %s", err))
 	}
 
 	// High level commands
@@ -206,9 +218,14 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(recipeCmd)
 	cmd.AddCommand(dockercompose.NewCmd())
 	envCmd := env.Env("Interact with the environment variables", devenv.DefaultForUser().Directory)
-	envCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		os.Setenv("MWCLI_MEDIAWIKI_ENV_COMMAND", "1")
-		cobrautil.CallAllPersistentPreRun(cmd, args)
+	envCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if err := os.Setenv("MWCLI_MEDIAWIKI_ENV_COMMAND", "1"); err != nil {
+			return err
+		}
+		if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
+		return nil
 	}
 	cmd.AddCommand(envCmd)
 	cmd.AddCommand(hosts.NewHostsCmd())
@@ -237,6 +254,8 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(cobrautil.WithServiceInfo(mysqlreplica.NewCmd(), cobrautil.ServiceInfo{Name: "MySQL replica", URL: "https://www.mysql.com", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/mysql.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(keycloak.NewCmd(), cobrautil.ServiceInfo{Name: "Keycloak", URL: "https://www.keycloak.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/keycloak.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(shellbox.NewCmd(), cobrautil.ServiceInfo{Name: "Shellbox", URL: "https://www.mediawiki.org/wiki/Shellbox", Logo: "https://upload.wikimedia.org/wikipedia/commons/a/a6/MediaWiki-2020-icon.svg"}))
+	cmd.AddCommand(cobrautil.WithServiceInfo(swift.NewCmd(), cobrautil.ServiceInfo{Name: "Swift", URL: "https://docs.openstack.org/swift/latest/"}))
+	cmd.AddCommand(cobrautil.WithServiceInfo(thumbor.NewCmd(), cobrautil.ServiceInfo{Name: "Thumbor", URL: "https://www.mediawiki.org/wiki/Thumbor"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(redis.NewCmd(), cobrautil.ServiceInfo{Name: "Redis", URL: "https://redis.io", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/redis.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(wdqs.NewCmd(), cobrautil.ServiceInfo{Name: "Wikidata Query Service", URL: "https://www.mediawiki.org/wiki/Wikidata_Query_Service", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikidata.svg"}))
 	cmd.AddCommand(cobrautil.WithServiceInfo(wdqsUi.NewCmd(), cobrautil.ServiceInfo{Name: "Wikidata Query UI", URL: "https://query.wikidata.org", Logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wikidata.svg"}))

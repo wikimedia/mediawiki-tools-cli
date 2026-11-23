@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 )
 
@@ -45,7 +44,7 @@ func (c *Client) sendRequest(req *http.Request, v interface{}) error {
 	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
 		b, err := io.ReadAll(res.Body)
 		if err != nil {
-			logrus.Fatalln(err)
+			return err
 		}
 
 		return fmt.Errorf("unknown error, status code: %d, raw result: %s", res.StatusCode, string(b))

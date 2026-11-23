@@ -4,8 +4,34 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 )
+
+func TestStartGatewayDefaultsOutputForFreshContext(t *testing.T) {
+	t.Setenv("CI_PROJECT_DIR", t.TempDir())
+	t.Setenv("PATH", t.TempDir())
+	originalContext := devenv.Context
+	t.Cleanup(func() { devenv.Context = originalContext })
+	for _, tc := range []struct {
+		name string
+		run  func() error
+	}{
+		{"default", StartGateway},
+		{"nil writer", func() error { return StartGatewayWithOutput(nil) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			devenv.Context = strings.ReplaceAll(tc.name, " ", "-")
+			// Fresh credentials must be generated without a nil-writer panic.
+			// Stop before starting containers by deliberately omitting Docker.
+			if err := tc.run(); err == nil || !strings.Contains(err.Error(), "find the previous nginx proxy container") {
+				t.Fatalf("expected missing Docker error after gateway setup, got %v", err)
+			}
+		})
+	}
+}
 
 func TestRequestLoginLinkUsesAuthenticatedPOST(t *testing.T) {
 	var origin string

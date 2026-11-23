@@ -5,16 +5,14 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/sirupsen/logrus"
 )
 
-func provideMap(name string) map[interface{}]interface{} {
+func provideMap(t testing.TB, name string) map[interface{}]interface{} {
 	switch name {
 	case "empty":
 		return make(map[interface{}]interface{})
 	case "test1.json":
-		return mapFromFile("test1.json")
+		return mapFromFile(t, "test1.json")
 	case "simpleTable":
 		objects := make(map[interface{}]interface{}, 2)
 		objects["k1"] = "v1"
@@ -24,7 +22,7 @@ func provideMap(name string) map[interface{}]interface{} {
 	panic("Unexpected map name")
 }
 
-func mapFromFile(file string) map[interface{}]interface{} {
+func mapFromFile(t testing.TB, file string) map[interface{}]interface{} {
 	type ComplexObject struct {
 		TopLevelString         string `json:"TopLevelString"`
 		TopLevelMatchingInt    int    `json:"TopLevelMatchingInt"`
@@ -44,10 +42,10 @@ func mapFromFile(file string) map[interface{}]interface{} {
 	filterable := ComplexObjects{}
 	bytes, err := os.ReadFile(file)
 	if err != nil {
-		logrus.Fatal(err)
+		t.Fatal(err)
 	}
 	if err = json.NewDecoder(strings.NewReader(string(bytes))).Decode(&filterable); err != nil {
-		logrus.Fatal(err)
+		t.Fatal(err)
 	}
 	filterableMap := make(map[interface{}]interface{}, len(filterable))
 	for key, value := range filterable {
@@ -58,7 +56,7 @@ func mapFromFile(file string) map[interface{}]interface{} {
 }
 
 func emptyMap() map[interface{}]interface{} {
-	return provideMap("empty")
+	return map[interface{}]interface{}{}
 }
 
 func checkStringContainLinesInAnyOrder(t *testing.T, actual, expected string) {

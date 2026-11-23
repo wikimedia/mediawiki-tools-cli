@@ -13,9 +13,13 @@ func NewKeycloakListClientsCmd() *cobra.Command {
 		Use:   "clients <realmname>",
 		Short: "List keycloak clients in a realm",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			devenv.DefaultForUser().EnsureReady()
-			keycloakLogin()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
+			if err := keycloakLogin(); err != nil {
+				return err
+			}
 			err := devenv.DefaultForUser().DockerCompose().Exec("keycloak", dockercompose.ExecOptions{
 				User: "root",
 				CommandAndArgs: []string{
@@ -29,8 +33,9 @@ func NewKeycloakListClientsCmd() *cobra.Command {
 				},
 			})
 			if err != nil {
-				panic(err)
+				return err
 			}
+			return nil
 		},
 	}
 	return cmd

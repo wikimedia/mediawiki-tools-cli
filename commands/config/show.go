@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
 )
@@ -12,7 +14,7 @@ func NewConfigShowCmd() *cobra.Command {
 		Use:   "show",
 		Short: "Shows the config",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			s := config.State()
 			values := s.OnDiskKoanf
 			if effective {
@@ -21,7 +23,12 @@ func NewConfigShowCmd() *cobra.Command {
 			if !showSecrets {
 				values = config.Redacted(values)
 			}
-			cmd.Printf("%s\n", config.PrettyPrint(values))
+			text, err := config.PrettyPrint(values)
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), text)
+			return err
 		},
 	}
 

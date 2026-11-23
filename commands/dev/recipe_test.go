@@ -1,13 +1,75 @@
 package dev
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv/recipe"
+	"gitlab.wikimedia.org/repos/releng/cli/internal/mediawiki"
 )
+
+func TestCloneRecipeCommitChecksOutRequestedRevision(t *testing.T) {
+	source := t.TempDir()
+	git := func(dir string, args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	git(source, "init", "--quiet")
+	git(source, "-c", "user.name=Recipe Test", "-c", "user.email=recipe@example.test", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "Initial commit")
+	commit := git(source, "rev-parse", "HEAD")
+	git(source, "-c", "user.name=Recipe Test", "-c", "user.email=recipe@example.test", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "Newer commit")
+
+	destination := filepath.Join(t.TempDir(), "checkout")
+	if err := cloneRecipeCommit(io.Discard, recipe.Checkout{URL: source, Commit: commit}, destination); err != nil {
+		t.Fatal(err)
+	}
+	if got := git(destination, "rev-parse", "HEAD"); got != commit {
+		t.Errorf("checked out %s, want %s", got, commit)
+	}
+}
+
+func TestRecipeNamedCheckoutUsesProgressWriter(t *testing.T) {
+	t.Setenv("CI_PROJECT_DIR", t.TempDir())
+	spec := recipe.Spec{}
+	spec.Source.GerritInteractionType = "http"
+	spec.Code.Core = true
+	var progress bytes.Buffer
+	if err := applyCodeCheckout(spec, mediawiki.MediaWiki(t.TempDir()), true, &progress); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Previewing repository clones", "Would clone"} {
+		if !strings.Contains(progress.String(), want) {
+			t.Fatalf("missing %q from recipe progress: %q", want, progress.String())
+		}
+	}
+}
+
+func TestApplyContentWritesProgressToProvidedWriter(t *testing.T) {
+	previousContext := devenv.Context
+	devenv.Context = "recipe-stream-test"
+	t.Cleanup(func() { devenv.Context = previousContext })
+	m := devenv.Environment{BaseDir: t.TempDir()}
+	var stderr bytes.Buffer
+	content := recipe.Content{Pages: []recipe.PageContent{{Title: "Example", Wiki: "default", Text: "test"}}}
+	if err := applyContent(m.Env().Get("PORT"), nil, content, true, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := stderr.String(), "[dry-run] create page Example on default: test\n"; got != want {
+		t.Fatalf("stderr = %q, want %q", got, want)
+	}
+}
 
 func TestExpandRecipeTemplateVars_ReplacesPortAcrossRelevantSections(t *testing.T) {
 	spec := recipe.Spec{
@@ -61,7 +123,7 @@ func TestWaitForSiteURL_EventuallyReady(t *testing.T) {
 	defer server.Close()
 
 	client := server.Client()
-	if err := waitForSiteURL("client", server.URL, client, 5, 0); err != nil {
+	if err := waitForSiteURL(io.Discard, "client", server.URL, client, 5, 0); err != nil {
 		t.Fatalf("waitForSiteURL() unexpected error: %v", err)
 	}
 
@@ -77,7 +139,7 @@ func TestWaitForSiteURL_TimeoutIncludesLastStatus(t *testing.T) {
 	defer server.Close()
 
 	client := server.Client()
-	err := waitForSiteURL("client", server.URL, client, 3, 0)
+	err := waitForSiteURL(io.Discard, "client", server.URL, client, 3, 0)
 	if err == nil {
 		t.Fatal("waitForSiteURL() error = nil, want timeout error")
 	}

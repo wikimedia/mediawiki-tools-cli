@@ -1,0 +1,574 @@
+type: mwcli.dev/recipe
+version: 0.1
+name: wmf-wikifarm
+description: >-
+  A local Wikimedia-style wiki farm modeled on wmf-claude's Lima setup.
+  Open https://en.wikipedia.localhost:8443/wiki/Main_Page to try shared login.
+
+source:
+  useGithub: true
+  shallow: true
+
+env:
+  MEDIAWIKI_DEFAULT_DBNAME: enwiki
+  MEDIAWIKI_IMAGE: docker-registry.wikimedia.org/dev/bookworm-php85-fpm:1.0.1-s6
+  MEDIAWIKI_XDEBUG_MODE: 'off'
+  SWIFT_UPLOAD_HOST: upload.wikimedia.localhost
+  SWIFT_SHARDED_CONTAINERS: 'wikipedia-commons-local-public,wikipedia-commons-local-temp,wikipedia-commons-local-thumb,wikipedia-commons-local-transcoded,wikipedia-de-local-public,wikipedia-de-local-temp,wikipedia-de-local-thumb,wikipedia-de-local-transcoded,wikipedia-en-local-public,wikipedia-en-local-temp,wikipedia-en-local-thumb,wikipedia-en-local-transcoded,wikipedia-zh-local-public,wikipedia-zh-local-temp,wikipedia-zh-local-thumb,wikipedia-zh-local-transcoded'
+  SWIFT_PRIVATE_CONTAINERS: 'wikipedia-office-local-public,wikipedia-office-local-thumb,wikipedia-office-local-temp,wikipedia-office-local-transcoded'
+
+services:
+  - name: mediawiki
+  - name: mysql
+  - name: mysql-replica
+  - name: memcached
+  - name: opensearch
+  - name: mailhog
+  - name: shellbox-media
+  - name: shellbox-php-rpc
+  - name: shellbox-score
+  - name: shellbox-syntaxhighlight
+  - name: shellbox-timeline
+  - name: swift
+  - name: thumbor
+  - name: custom-wmf-wikifarm
+
+code:
+  core: true
+  skins:
+    - name: Vector
+  extensions:
+    - url: https://gitlab.wikimedia.org/repos/product-safety-and-integrity/wmf-claude.git
+      path: .wmf-wikifarm
+      commit: 003fa611cd670d030a0063986a876960f2ba7214
+    - name: AntiSpoof
+    - name: BetaFeatures
+    - name: CentralAuth
+    - name: Chart
+    - name: CheckUser
+    - name: Cite
+    - name: CirrusSearch
+    - name: ConfirmEdit
+    - name: ContentTranslation
+    - name: Echo
+    - name: Elastica
+    - name: GlobalPreferences
+    - name: JsonConfig
+    - name: ParserFunctions
+    - name: ParserMigration
+    - name: PdfHandler
+    - name: Score
+    - name: Scribunto
+    - name: SyntaxHighlight_GeSHi
+    - name: TemplateData
+    - name: TimedMediaHandler
+    - name: timeline
+    - name: UniversalLanguageSelector
+    - name: VisualEditor
+    - name: Wikibase
+    - name: WikimediaMessages
+
+customCompose:
+  name: custom-wmf-wikifarm
+  content: |
+    services:
+      farm-https:
+        image: caddy:2.10.2-alpine
+        ports:
+          - '127.0.0.1:8443:443'
+        networks:
+          dps:
+            aliases: [en.wikipedia.localhost, de.wikipedia.localhost, zh.wikipedia.localhost, ar.wikipedia.localhost, aa.wikipedia.localhost]
+        depends_on: [mediawiki-web]
+        volumes:
+          - farm-https-data:/data
+        environment:
+          FARM_CADDYFILE: |
+            {
+              auto_https disable_redirects
+              skip_install_trust
+            }
+            (farm-routes) {
+              @upload host upload.wikimedia.localhost
+              handle @upload {
+                reverse_proxy swift:8080
+              }
+              @translate host cxserver.wikimedia.localhost
+              handle @translate {
+                reverse_proxy cxserver:8080
+              }
+              @captcha host hcaptcha.wikimedia.localhost
+              handle @captcha {
+                reverse_proxy farm-hcaptcha:8080
+              }
+              @mail host mail.wikimedia.localhost
+              handle @mail {
+                reverse_proxy mailhog:8025
+              }
+              map {host} {farm_wiki} {
+                en.wikipedia.localhost enwiki
+                de.wikipedia.localhost dewiki
+                zh.wikipedia.localhost zhwiki
+                ar.wikipedia.localhost arwiki
+                aa.wikipedia.localhost aawiki
+                meta.wikimedia.localhost metawiki
+                login.wikimedia.localhost loginwiki
+                commons.wikimedia.localhost commonswiki
+                www.wikidata.localhost wikidatawiki
+                office.wikimedia.localhost officewiki
+                vote.wikimedia.localhost votewiki
+                default ""
+              }
+              @auth {
+                host auth.wikimedia.localhost
+                path_regexp auth ^/(enwiki|dewiki|zhwiki|arwiki|aawiki|metawiki|loginwiki|commonswiki|wikidatawiki)(/.*)$$
+              }
+              handle @auth {
+                uri strip_prefix /{re.auth.1}
+                reverse_proxy mediawiki-web:8080 {
+                  header_up Host {re.auth.1}.mediawiki.local.wmftest.net
+                  header_up X-Wm-Farm-Request auth
+                }
+              }
+              @wiki expression `{farm_wiki} != ""`
+              handle @wiki {
+                reverse_proxy mediawiki-web:8080 {
+                  header_up Host {farm_wiki}.mediawiki.local.wmftest.net
+                  header_up X-Wm-Farm-Request wiki
+                }
+              }
+              handle {
+                respond "Unknown wiki" 404
+              }
+            }
+            https://en.wikipedia.localhost, https://de.wikipedia.localhost, https://zh.wikipedia.localhost, https://ar.wikipedia.localhost, https://aa.wikipedia.localhost, https://meta.wikimedia.localhost, https://login.wikimedia.localhost, https://commons.wikimedia.localhost, https://www.wikidata.localhost, https://office.wikimedia.localhost, https://vote.wikimedia.localhost, https://auth.wikimedia.localhost, https://upload.wikimedia.localhost, https://cxserver.wikimedia.localhost, https://hcaptcha.wikimedia.localhost, https://mail.wikimedia.localhost {
+              tls internal
+              import farm-routes
+            }
+            http://:8180 {
+              handle /wmf-farm-ca.crt {
+                root * /data/caddy/pki/authorities/local
+                rewrite * /root.crt
+                file_server
+              }
+              import farm-routes
+            }
+        command:
+          - sh
+          - -ec
+          - |
+            printf '%s\n' "$$FARM_CADDYFILE" > /tmp/Caddyfile
+            exec caddy run --config /tmp/Caddyfile
+      farm-extension-db:
+        image: ${MYSQL_IMAGE:-mariadb:11.8}
+        environment:
+          MARIADB_ROOT_PASSWORD: toor
+          MARIADB_DATABASE: wikishared
+        volumes:
+          - farm-extension-data:/var/lib/mysql
+        networks: [dps]
+      chart-renderer:
+        image: docker-registry.wikimedia.org/repos/mediawiki/services/chart-renderer:2026-11-13-184026-production
+        networks: [dps]
+      cxserver:
+        image: docker-registry.wikimedia.org/wikimedia/mediawiki-services-cxserver:2026-11-17-160205-production
+        depends_on: [farm-https]
+        networks: [dps]
+        volumes:
+          - ${MEDIAWIKI_VOLUMES_CODE}/.wmf-wikifarm/templates/wikifarm/cxserver:/srv/cxserver:ro
+        environment:
+          NODE_EXTRA_CA_CERTS: /tmp/wmf-farm-ca.crt
+        entrypoint:
+          - sh
+          - -ec
+          - |
+            until node -e '
+              fetch("http://farm-https:8180/wmf-farm-ca.crt").then(async response => {
+                if (!response.ok) process.exit(1);
+                require("node:fs").writeFileSync(process.env.NODE_EXTRA_CA_CERTS, await response.text());
+              }).catch(() => process.exit(1));'; do sleep 1; done
+            exec node server.js -c /srv/cxserver/config.yaml
+      farm-hcaptcha:
+        image: ${MEDIAWIKI_IMAGE:-docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0-s13}
+        entrypoint: [php, -S, '0.0.0.0:8080', /srv/hcaptcha/standin.php]
+        volumes:
+          - ${MEDIAWIKI_VOLUMES_CODE}/.wmf-wikifarm/templates/wikifarm/hcaptcha:/srv/hcaptcha:ro
+        networks: [dps]
+    volumes:
+      farm-https-data:
+      farm-extension-data:
+
+sites:
+  - dbname: loginwiki
+  - dbname: metawiki
+  - dbname: enwiki
+  - dbname: dewiki
+  - dbname: zhwiki
+  - dbname: arwiki
+  - dbname: aawiki
+  - dbname: commonswiki
+  - dbname: wikidatawiki
+  - dbname: officewiki
+  - dbname: votewiki
+
+jobRunner:
+  sites: [loginwiki, metawiki, enwiki, dewiki, zhwiki, arwiki, aawiki, commonswiki, wikidatawiki, officewiki, votewiki]
+
+localSettings:
+  files:
+    shared:
+      - content: |
+          $farmSites = [
+              'enwiki' => [ 'English Wikipedia', 'en', 'en.wikipedia.localhost' ],
+              'dewiki' => [ 'German Wikipedia', 'de', 'de.wikipedia.localhost' ],
+              'zhwiki' => [ 'Chinese Wikipedia', 'zh', 'zh.wikipedia.localhost' ],
+              'arwiki' => [ 'Arabic Wikipedia', 'ar', 'ar.wikipedia.localhost' ],
+              'aawiki' => [ 'Afar Wikipedia', 'aa', 'aa.wikipedia.localhost' ],
+              'metawiki' => [ 'Meta-Wiki', 'en', 'meta.wikimedia.localhost' ],
+              'loginwiki' => [ 'Wikimedia Login Wiki', 'en', 'login.wikimedia.localhost' ],
+              'commonswiki' => [ 'Wikimedia Commons', 'en', 'commons.wikimedia.localhost' ],
+              'wikidatawiki' => [ 'Wikidata', 'en', 'www.wikidata.localhost' ],
+              'officewiki' => [ 'Wikimedia Office', 'en', 'office.wikimedia.localhost' ],
+              'votewiki' => [ 'Wikimedia Vote Wiki', 'en', 'vote.wikimedia.localhost' ],
+          ];
+          $wgLocalDatabases = array_keys( $farmSites );
+          $farmWikipediaWikis = [ 'enwiki', 'dewiki', 'zhwiki', 'arwiki', 'aawiki' ];
+          $farmUsesCentralAuth = !in_array( $wgDBname, [ 'officewiki', 'votewiki' ], true );
+          [ $wgSitename, $wgLanguageCode ] = $farmSites[$wgDBname] ?? $farmSites['enwiki'];
+          $farmOrigins = array_map( static fn ( $site ) => "https://{$site[2]}:8443", $farmSites );
+          $farmAuthOrigin = 'https://auth.wikimedia.localhost:8443';
+          $wgConf = new MediaWiki\Config\SiteConfiguration();
+          $wgConf->wikis = $wgLocalDatabases;
+          $wgConf->suffixes = [ 'wiki' ];
+          $wgConf->settings = [
+              'wgServer' => $farmOrigins,
+              'wgCanonicalServer' => $farmOrigins,
+              'wgArticlePath' => [ 'default' => '/wiki/$1' ],
+              'wgScriptPath' => [ 'default' => '/w' ],
+          ];
+          $wgLocalVirtualHosts = array_merge( array_column( $farmSites, 2 ), [ 'auth.wikimedia.localhost' ] );
+          $wgLocalHTTPProxy = 'http://farm-https:8180';
+
+          $farmRequest = $_SERVER['HTTP_X_WM_FARM_REQUEST'] ?? '';
+          $farmOrigin = $farmOrigins[$wgDBname] ?? $farmOrigins['enwiki'];
+          if ( $farmRequest === 'wiki' || PHP_SAPI === 'cli' ) {
+              $wgServer = $wgCanonicalServer = $farmOrigin;
+          } elseif ( $farmRequest === 'auth' ) {
+              $wgServer = $wgCanonicalServer = $farmAuthOrigin;
+              $wgArticlePath = "/$wgDBname/wiki/\$1";
+              $wgScriptPath = $wgResourceBasePath = "/$wgDBname/w";
+              $wgLoadScript = "$farmOrigin/w/load.php";
+              $_SERVER['REQUEST_URI'] = "/$wgDBname" . ( $_SERVER['REQUEST_URI'] ?? '/' );
+              $wgEnableSidebarCache = false;
+              $wgUseSiteCss = $wgUseSiteJs = $wgAllowUserCss = $wgAllowUserJs = false;
+          }
+          if ( $farmRequest !== '' ) {
+              $wgCookieSecure = true;
+              $wgCookieSameSite = 'None';
+          }
+
+          wfLoadSkin( 'Vector' );
+          $wgDefaultSkin = 'vector-2022';
+          wfLoadExtensions( [ 'CheckUser', 'Cite', 'CirrusSearch', 'Echo', 'Elastica', 'ParserFunctions', 'Scribunto', 'TemplateData', 'WikimediaMessages' ] );
+
+          $wgMainCacheType = $wgMessageCacheType = CACHE_MEMCACHED;
+          $wgJobRunRate = 0;
+          $wgSearchType = 'CirrusSearch';
+
+          wfLoadExtensions( [ 'PdfHandler', 'Score', 'SyntaxHighlight_GeSHi', 'TimedMediaHandler', 'timeline' ] );
+
+          wfLoadExtensions( [ 'Chart', 'ConfirmEdit', 'JsonConfig' ] );
+          wfLoadExtension( 'ConfirmEdit/hCaptcha' );
+          $wgHCaptchaSiteKey = '20000000-ffff-ffff-ffff-000000000002';
+          $wgHCaptchaSecretKey = '0x0000000000000000000000000000000000000000';
+          $wgHCaptchaApiUrl = 'https://hcaptcha.wikimedia.localhost:8443/1/api.js';
+          $wgHCaptchaVerifyUrl = 'http://farm-hcaptcha:8080/siteverify';
+          $wgHCaptchaCSPRules = [ 'https://hcaptcha.wikimedia.localhost:8443' ];
+          $wgHCaptchaEnterprise = $wgHCaptchaSecureEnclave = $wgHCaptchaInvisibleMode = $wgHCaptchaUseRiskScore = true;
+          $wgHCaptchaSendRemoteIP = false;
+          foreach ( [ 'createaccount', 'create', 'edit', 'badlogin', 'loginattempt' ] as $trigger ) {
+              $wgCaptchaTriggers[$trigger] = [ 'trigger' => $trigger !== 'loginattempt', 'class' => 'HCaptcha' ];
+          }
+          if ( $wgDBname === 'wikidatawiki' ) {
+              foreach ( [ NS_MAIN, 120 ] as $namespace ) {
+                  $wgCaptchaTriggersOnNamespace[$namespace] = [ 'addurl' => false, 'edit' => false, 'create' => false ];
+              }
+          }
+
+          if ( in_array( $wgDBname, $farmWikipediaWikis, true ) ) {
+              wfLoadExtensions( [ 'UniversalLanguageSelector', 'VisualEditor', 'ContentTranslation', 'ParserMigration' ] );
+              $farmParsoidReads = in_array( $wgDBname, [ 'enwiki', 'dewiki', 'arwiki' ], true );
+              $wgParserMigrationEnableParsoidArticlePages = $wgParserMigrationEnableParsoidTalkPages = $farmParsoidReads;
+              $wgParserMigrationEnableParsoidMobileArticlePages = $wgParserMigrationEnableParsoidMobileTalkPages = $farmParsoidReads;
+              $wgContentTranslationSiteTemplates = [
+                  'view' => 'https://$1.wikipedia.localhost:8443/wiki/$2',
+                  'action' => 'https://$1.wikipedia.localhost:8443/w/index.php?title=$2',
+                  'api' => 'https://$1.wikipedia.localhost:8443/w/api.php',
+                  'cx' => 'https://cxserver.wikimedia.localhost:8443/v1',
+                  'cookieDomain' => false,
+              ];
+              $wgContentTranslationCxServerHost = 'http://cxserver:8080/';
+          }
+
+          $farmCommonsOrigin = $farmOrigins['commonswiki'];
+          $farmDataMode = [ 'namespace' => 486, 'nsName' => 'Data', 'license' => 'CC0-1.0', 'isLocal' => false,
+              'cacheKey' => 'commonswiki' ] + ( $wgDBname === 'commonswiki'
+                  ? [ 'store' => true ] : [ 'remote' => [ 'url' => "$farmCommonsOrigin/w/api.php" ] ] );
+          $wgJsonConfigEnableLuaSupport = true;
+          $wgJsonConfigModels['Tabular.JsonConfig'] = 'JsonConfig\\JCTabularContent';
+          $wgJsonConfigs['Tabular.JsonConfig'] = [ 'pattern' => '/.\\.tab$/' ] + $farmDataMode;
+          $wgJsonConfigModels['Chart.JsonConfig'] = 'MediaWiki\\Extension\\Chart\\JCChartContent';
+          $wgJsonConfigs['Chart.JsonConfig'] = [ 'pattern' => '/.\\.chart$/' ] + $farmDataMode;
+          $wgChartServiceUrl = 'http://chart-renderer:6284/v1/chart/render';
+
+          if ( $farmUsesCentralAuth && $wgDBname !== 'loginwiki' && is_file( "$IP/cache/docker/wmf-farm-wikibase" ) ) {
+              $farmEntitySources = [ 'wikidata' => [
+                  'repoDatabase' => 'wikidatawiki', 'baseUri' => $farmOrigins['wikidatawiki'] . '/entity/',
+                  'entityNamespaces' => [ 'item' => 0, 'property' => 120 ],
+                  'rdfNodeNamespacePrefix' => 'wd', 'rdfPredicateNamespacePrefix' => 'wd',
+                  'interwikiPrefix' => 'd', 'type' => 'db',
+              ] ];
+              $farmSiteGroups = [ 'wikipedia', 'commons', 'meta', 'wikidata' ];
+              if ( $wgDBname === 'wikidatawiki' ) {
+                  wfLoadExtension( 'WikibaseRepository', "$IP/extensions/Wikibase/extension-repo.json" );
+                  $wgExtraNamespaces += [ 120 => 'Property', 121 => 'Property_talk' ];
+                  $wgWBRepoSettings['entitySources'] = $farmEntitySources;
+                  $wgWBRepoSettings['localEntitySourceName'] = 'wikidata';
+                  $wgWBRepoSettings['siteLinkGroups'] = $farmSiteGroups;
+                  $wgWBRepoSettings['localClientDatabases'] = array_combine( $farmWikipediaWikis, $farmWikipediaWikis );
+              }
+              wfLoadExtension( 'WikibaseClient', "$IP/extensions/Wikibase/extension-client.json" );
+              $wgWBClientSettings['repoUrl'] = $farmOrigins['wikidatawiki'];
+              $wgWBClientSettings['repoSiteName'] = 'wikidatawiki';
+              $wgWBClientSettings['repoArticlePath'] = '/wiki/$1';
+              $wgWBClientSettings['repoScriptPath'] = '/w';
+              $wgWBClientSettings['entitySources'] = $farmEntitySources;
+              $wgWBClientSettings['itemAndPropertySourceName'] = 'wikidata';
+              $wgWBClientSettings['siteLinkGroups'] = $farmSiteGroups;
+              $wgWBClientSettings['siteGlobalID'] = $wgDBname;
+              $wgWBClientSettings['siteGroup'] = [ 'commonswiki' => 'commons', 'metawiki' => 'meta',
+                  'wikidatawiki' => 'wikidata' ][$wgDBname] ?? 'wikipedia';
+          }
+
+          $wgEnableUploads = true;
+          if ( is_file( "$IP/cache/docker/wmf-farm-swift" ) && !defined( 'MW_PHPUNIT_TEST' ) ) {
+              $farmSwiftName = substr( $wgDBname, 0, -4 );
+              $farmPrivateFiles = $wgDBname === 'officewiki';
+              $farmUploadOrigin = 'https://upload.wikimedia.localhost:8443';
+              $farmSharded = in_array( $wgDBname, [ 'commonswiki', 'enwiki', 'dewiki', 'zhwiki' ], true );
+              foreach ( [ 'farm-local' => $farmSwiftName, 'farm-shared' => 'commons' ] as $name => $wiki ) {
+                  $levels = $name === 'farm-shared' || $farmSharded ? 2 : 0;
+                  $wgFileBackends[] = wmcliSwiftBackendConfig( $name, "wikipedia-$wiki", $levels );
+              }
+              $wgUploadPath = $farmPrivateFiles ? "$wgScriptPath/img_auth.php" : "$farmUploadOrigin/wikipedia/$farmSwiftName";
+              $wgLocalFileRepo = [
+                  'class' => MediaWiki\FileRepo\LocalRepo::class, 'name' => 'local', 'backend' => 'farm-local',
+                  'url' => $wgUploadPath, 'scriptDirUrl' => $wgScriptPath, 'hashLevels' => 2, 'deletedHashLevels' => 3,
+                  'disableLocalTransform' => true, 'transformVia404' => true, 'useJsonMetadata' => true,
+                  'isPrivate' => $farmPrivateFiles, 'thumbScriptUrl' => $wgThumbnailScriptPath,
+                  'thumbProxyUrl' => "http://thumbor:8800/wikipedia/$farmSwiftName/thumb/", 'thumbProxySecret' => getenv( 'THUMBOR_PRIVATE_SECRET' ),
+                  'zones' => $farmPrivateFiles ? [ 'thumb' => [ 'url' => "$wgScriptPath/thumb_handler.php" ] ] : [],
+              ];
+              if ( $wgDBname !== 'commonswiki' ) {
+                  $wgForeignFileRepos[] = [
+                      'class' => MediaWiki\FileRepo\ForeignDBViaLBRepo::class, 'name' => 'shared', 'backend' => 'farm-shared',
+                      'wiki' => 'commonswiki', 'url' => "$farmUploadOrigin/wikipedia/commons", 'hashLevels' => 2,
+                      'thumbUrl' => "$farmUploadOrigin/wikipedia/commons/thumb", 'transformVia404' => true,
+                      'descBaseUrl' => "$farmCommonsOrigin/wiki/File:", 'scriptDirUrl' => "$farmCommonsOrigin/w",
+                      'fetchDescription' => true, 'hasSharedCache' => true,
+                      'zones' => [ 'public' => [ 'container' => 'local-public' ], 'thumb' => [ 'container' => 'local-thumb' ],
+                          'temp' => [ 'container' => 'local-temp' ], 'deleted' => [ 'container' => 'local-deleted' ] ],
+                  ];
+              }
+          }
+
+          // Apply the farm's portable per-wiki settings. Service addresses are configured locally.
+          if ( !defined( 'MW_PHPUNIT_TEST' ) ) {
+              $farmSnapshot = json_decode( file_get_contents( "$IP/.wmf-wikifarm/templates/wikifarm/production-settings.json" ), true, flags: JSON_THROW_ON_ERROR );
+              $farmSettings = array_diff_key(
+                  ( $farmSnapshot['wikis'][$wgDBname]['settings'] ?? [] ) + $farmSnapshot['common'],
+                  array_flip( $farmSnapshot['wikis'][$wgDBname]['absent'] ?? [] )
+              );
+              foreach ( [ 'wgNamespacesWithSubpages', 'wgExtraNamespaces', 'wgNamespaceAliases', 'wgContentNamespaces', 'wgRestrictionLevels' ] as $setting ) {
+                  if ( isset( $farmSettings[$setting] ) ) {
+                      $GLOBALS[$setting] = $farmSettings[$setting];
+                  }
+              }
+              foreach ( [ 'groupOverrides2', 'groupOverrides' ] as $setting ) {
+                  foreach ( $farmSettings[$setting] ?? [] as $group => $rights ) {
+                      $wgGroupPermissions[$group] = $rights + ( $wgGroupPermissions[$group] ?? [] );
+                  }
+              }
+          }
+          if ( !$farmUsesCentralAuth ) {
+              $wgCheckUserWriteToCentralIndex = false;
+              $wgGroupPermissions['*']['edit'] = false;
+              $wgGroupPermissions['*']['createaccount'] = false;
+              if ( $wgDBname === 'officewiki' ) {
+                  $wgGroupPermissions['*']['read'] = false;
+                  $wgWhitelistRead = [ 'Special:UserLogin' ];
+              }
+          }
+
+          // Keep cross-wiki notification and CheckUser tables on the separate database server.
+          if ( is_file( "$IP/cache/docker/wmf-farm-extension-db" ) && !defined( 'MW_PHPUNIT_TEST' ) ) {
+              $wgExternalServers['extension1'] = [ [
+                  'host' => 'farm-extension-db', 'user' => 'root', 'password' => 'toor',
+                  'type' => 'mysql', 'flags' => DBO_DEFAULT, 'load' => 1,
+              ] ];
+              $wgVirtualDomainsMapping['virtual-checkuser'] = [ 'cluster' => 'extension1', 'db' => false ];
+              $wgVirtualDomainsMapping['virtual-checkuser-global'] = [ 'cluster' => 'extension1', 'db' => 'wikishared' ];
+              if ( !in_array( $wgDBname, [ 'metawiki', 'officewiki' ], true ) ) {
+                  $wgVirtualDomainsMapping['virtual-echo'] = [ 'cluster' => 'extension1', 'db' => false ];
+              }
+              if ( $farmUsesCentralAuth ) {
+                  $wgVirtualDomainsMapping['virtual-echo-shared'] = [ 'cluster' => 'extension1', 'db' => 'wikishared' ];
+              }
+          }
+
+          // The central database must exist before any site uses its virtual domain.
+          if ( is_file( "$IP/cache/docker/wmf-farm-secret.php" ) ) {
+              $wgSecretKey = require "$IP/cache/docker/wmf-farm-secret.php";
+          }
+          if ( $farmUsesCentralAuth && is_file( "$IP/cache/docker/wmf-farm-central-auth" ) ) {
+              wfLoadExtensions( [ 'AntiSpoof', 'CentralAuth', 'GlobalPreferences' ] );
+              $wgVirtualDomainsMapping['virtual-centralauth'] = [ 'db' => 'centralauth' ];
+              $wgGlobalPreferencesDB = 'centralauth';
+              $wgCentralAuthCookies = true;
+              $wgCentralAuthLoginWiki = 'loginwiki';
+              $wgCentralAuthCentralWiki = 'metawiki';
+              $wgCentralAuthAutoMigrate = true;
+              $wgCentralAuthAutoMigrateNonGlobalAccounts = true;
+              $wgCentralAuthStrict = true;
+              $wgCentralAuthAutoCreateWikis = [ 'loginwiki', 'metawiki' ];
+              $wgCentralAuthCookieDomain = in_array( $wgDBname, $farmWikipediaWikis, true ) && $farmRequest === 'wiki'
+                  ? '.wikipedia.localhost' : '';
+              $wgCentralAuthAutoLoginWikis = [
+                  '.wikipedia.localhost' => 'enwiki',
+                  'meta.wikimedia.localhost' => 'metawiki',
+                  'commons.wikimedia.localhost' => 'commonswiki',
+                  'www.wikidata.localhost' => 'wikidatawiki',
+              ];
+              $wgCentralAuthSharedDomainCallback = static fn ( string $dbname ): string => "$farmAuthOrigin/$dbname";
+              $wgCentralAuthRestrictSharedDomain = true;
+              $wgCentralAuthEnableSul3 = true;
+              $wgAutoCreateTempUser = [ 'enabled' => true, 'known' => true, 'reservedPattern' => '~2$1', 'matchPattern' => '~2$1',
+                  'serialProvider' => [ 'type' => 'centralauth', 'numShards' => 30, 'useYear' => true ],
+                  'serialMapping' => [ 'type' => 'readable-numeric', 'offset' => 1500 ] ] + $wgAutoCreateTempUser;
+              $wgImplicitGroups[] = 'temp';
+              if ( $farmRequest === 'auth' ) {
+                  $wgCookiePrefix = 'auth';
+                  $wgSessionName = 'authSession';
+              }
+          }
+
+maintenance:
+  - name: configure-extension-databases
+    command:
+      - bash
+      - -ec
+      - |
+        /wait-for-it.sh farm-extension-db:3306 -t 60
+        php -r '
+          $db = new PDO("mysql:host=farm-extension-db", "root", "toor");
+          foreach (array_slice($argv, 1) as $wiki) {
+              $db->exec("CREATE DATABASE IF NOT EXISTS `$wiki`");
+          }' -- loginwiki metawiki enwiki dewiki zhwiki arwiki aawiki commonswiki wikidatawiki officewiki votewiki
+        touch cache/docker/wmf-farm-extension-db
+  - name: configure-central-auth
+    command:
+      - bash
+      - -ec
+      - |
+        if [ ! -s cache/docker/wmf-farm-secret.php ]; then
+          php -r 'echo "<?php return ", var_export(bin2hex(random_bytes(32)), true), ";\n";' > cache/docker/wmf-farm-secret.php
+        fi
+        php maintenance/run.php sql --wiki loginwiki --query 'CREATE DATABASE IF NOT EXISTS centralauth'
+        touch cache/docker/wmf-farm-central-auth
+        php maintenance/run.php update --wiki loginwiki --quick --doshared
+        if ! php maintenance/run.php sql --wiki loginwiki --wikidb centralauth --query 'SHOW TABLES LIKE "spoofuser"' | grep -q spoofuser; then
+          php maintenance/run.php sql --wiki loginwiki --wikidb centralauth extensions/AntiSpoof/sql/mysql/tables-generated.sql
+        fi
+        if ! php maintenance/run.php sql --wiki loginwiki --wikidb centralauth --query 'SHOW TABLES LIKE "global_preferences"' | grep -q global_preferences; then
+          php maintenance/run.php sql --wiki loginwiki --wikidb centralauth extensions/GlobalPreferences/sql/mysql/tables-generated.sql
+        fi
+        for wiki in loginwiki metawiki enwiki dewiki zhwiki arwiki aawiki commonswiki wikidatawiki officewiki votewiki; do
+          php maintenance/run.php update --wiki "$wiki" --quick --doshared
+          php maintenance/run.php createAndPromote --wiki "$wiki" --force FarmUser wikifarm-demo
+          case "$wiki" in
+            officewiki|votewiki) ;;
+            *) php maintenance/run.php ./extensions/CentralAuth/maintenance/migratePass0.php --wiki "$wiki" ;;
+          esac
+        done
+        php maintenance/run.php ./extensions/CentralAuth/maintenance/migratePass1.php --wiki loginwiki
+        php maintenance/run.php ./extensions/CentralAuth/maintenance/attachAccount.php --wiki loginwiki --username FarmUser
+  - name: configure-wikibase-sites
+    command:
+      - bash
+      - -ec
+      - |
+        touch cache/docker/wmf-farm-wikibase
+        php maintenance/run.php update --wiki wikidatawiki --quick --doshared
+        sites=$(mktemp)
+        trap 'rm -f "$sites"' EXIT
+        {
+          echo '<sites version="1.1">'
+          while read -r wiki prefix group language host; do
+            origin="https://$host:8443"
+            printf '<site type="mediawiki"><globalid>%s</globalid><localid type="interwiki">%s</localid><group>%s</group><language>%s</language><path type="page_path">%s/wiki/$1</path><path type="file_path">%s/w/$1</path></site>\n' \
+              "$wiki" "$prefix" "$group" "$language" "$origin" "$origin"
+          done <<'SITES'
+        enwiki en wikipedia en en.wikipedia.localhost
+        dewiki de wikipedia de de.wikipedia.localhost
+        zhwiki zh wikipedia zh zh.wikipedia.localhost
+        arwiki ar wikipedia ar ar.wikipedia.localhost
+        aawiki aa wikipedia aa aa.wikipedia.localhost
+        metawiki m meta en meta.wikimedia.localhost
+        commonswiki c commons en commons.wikimedia.localhost
+        wikidatawiki d wikidata en www.wikidata.localhost
+        SITES
+          echo '</sites>'
+        } > "$sites"
+        for wiki in wikidatawiki enwiki dewiki zhwiki arwiki aawiki metawiki commonswiki; do
+          php maintenance/run.php update --wiki "$wiki" --quick
+          php maintenance/run.php importSites --wiki "$wiki" "$sites"
+        done
+  - name: configure-swift-storage
+    command:
+      - bash
+      - -ec
+      - |
+        /wait-for-it.sh swift:8080 -t 60
+        touch cache/docker/wmf-farm-swift
+        for wiki in enwiki dewiki zhwiki arwiki aawiki metawiki loginwiki commonswiki wikidatawiki officewiki votewiki; do
+          php maintenance/run.php /wm-swift/prepareSwift.php --wiki "$wiki"
+        done
+  - name: configure-search-indexes
+    command:
+      - bash
+      - -ec
+      - |
+        for wiki in enwiki dewiki zhwiki arwiki aawiki metawiki loginwiki commonswiki wikidatawiki officewiki votewiki; do
+          php maintenance/run.php ./extensions/CirrusSearch/maintenance/UpdateSearchIndexConfig.php --wiki "$wiki"
+        done
+  - name: seed-test-pages
+    command:
+      - bash
+      - -ec
+      - |
+        fixtures=$(mktemp -d)
+        trap 'rm -rf "$fixtures"' EXIT
+        seed() {
+          printf '%s\n' "$3" > "$fixtures/$2.txt"
+          php maintenance/run.php importTextFiles --wiki "$1" --user FarmUser --rc "$fixtures/$2.txt"
+        }
+        seed enwiki 'Wiki farm test page' 'Use this page to check that the English Wikipedia job runner updates search.'
+        seed dewiki 'Wiki-Farm-Testseite' 'Diese Seite dient zum Testen der lokalen Wiki-Farm.'
+        seed metawiki 'Wiki farm test page' 'This is the local Meta-Wiki.'
+        seed officewiki 'Private farm page' 'FARM-PRIVATE-MARKER'
+        seed votewiki 'Fishbowl farm page' 'This page is public. Only users of the vote wiki can edit it.'
+        seed commonswiki 'Data:Wiki farm test.tab' '{"license":"CC0-1.0","description":{"en":"Wiki farm test data"},"schema":{"fields":[{"name":"year","type":"number","title":{"en":"Year"}},{"name":"pages","type":"number","title":{"en":"Pages"}}]},"data":[[2021,3],[2022,5],[2023,8],[2024,13]]}'
+        seed commonswiki 'Data:Wiki farm test.chart' '{"license":"CC0-1.0","version":1,"type":"line","title":{"en":"Wiki farm test chart"},"xAxis":{"title":{"en":"Year"}},"yAxis":{"title":{"en":"Pages"}},"source":"Wiki farm test.tab"}'
+        seed enwiki 'Wiki farm test chart' '{{#chart:Wiki farm test.chart}}'
+        seed enwiki 'Module:Wiki farm test' 'local p = {}; function p.hello() return "Hello from Lua" end; return p'
+        seed enwiki 'Wiki farm rendering test' '{{#invoke:Wiki farm test|hello}} <syntaxhighlight lang="python">print("Hello from Shellbox")</syntaxhighlight>'

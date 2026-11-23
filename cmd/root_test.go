@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -51,13 +54,16 @@ func TestCommandTelemetry(t *testing.T) {
 			root := NewMwCliCmd()
 			root.SetOut(io.Discard)
 			root.SetErr(io.Discard)
-			probe := &cobra.Command{Use: "probe", PersistentPreRun: cobrautil.CallAllPersistentPreRun}
-			nested := &cobra.Command{Use: "nested", PersistentPreRun: func(c *cobra.Command, args []string) {
-				cobrautil.CallAllPersistentPreRun(c, args)
+			probe := &cobra.Command{Use: "probe", PersistentPreRunE: cobrautil.CallAllPersistentPreRunE}
+			nested := &cobra.Command{Use: "nested", PersistentPreRunE: func(c *cobra.Command, args []string) error {
+				if err := cobrautil.CallAllPersistentPreRunE(c, args); err != nil {
+					return err
+				}
 				// Parent setup hooks must still receive their own command.
 				if c.Name() != "run" && c.Name() != "nested" {
 					t.Errorf("unexpected hook command %q", c.Name())
 				}
+				return nil
 			}}
 			nested.AddCommand(&cobra.Command{Use: "run", Run: func(*cobra.Command, []string) {}})
 			probe.AddCommand(nested, &cobra.Command{Use: "plain", Run: func(*cobra.Command, []string) {}})
@@ -90,5 +96,64 @@ func TestCommandTelemetry(t *testing.T) {
 				t.Fatal("executing command leaked beyond setup hooks")
 			}
 		})
+	}
+}
+
+func TestConfigRecoveryCommands(t *testing.T) {
+	t.Setenv("MWCLI_CONTEXT_TEST", "1")
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"root help", []string{"--help"}, "Usage:"},
+		{"nested help", []string{"dev", "custom", "--help"}, "Usage:"},
+		{"version", []string{"version", "--output", "json"}, `"version"`},
+		{"config path", []string{"config", "where"}, "config.json"},
+		{"blocked command", []string{"config", "set", "telemetry", "no"}, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "config.json")
+			const invalidJSON = "{"
+			if err := os.WriteFile(path, []byte(invalidJSON), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			args := append([]string{"--no-interaction"}, tc.args...)
+			process := cliTestProcess(t, t.Context(), dir, args...)
+			var stderr bytes.Buffer
+			process.Stderr = &stderr
+			stdout, err := process.Output()
+			if tc.want == "" {
+				if err == nil || len(stdout) != 0 {
+					t.Fatalf("expected command to fail, got stdout %q and error %v", stdout, err)
+				}
+			} else if err != nil || !strings.Contains(string(stdout), tc.want) {
+				t.Fatalf("expected %q on stdout, got %q (%v)", tc.want, stdout, err)
+			}
+			if !strings.Contains(stderr.String(), "load configuration") {
+				t.Fatalf("missing configuration diagnostic: %q", stderr.String())
+			}
+			if data, err := os.ReadFile(path); err != nil || string(data) != invalidJSON {
+				t.Fatalf("configuration changed during recovery: %q (%v)", data, err)
+			}
+		})
+	}
+}
+
+func TestCustomWhereWithoutDocker(t *testing.T) {
+	t.Setenv("MWCLI_CONTEXT_TEST", "1")
+	t.Setenv("PATH", t.TempDir())
+	dir := t.TempDir()
+	process := cliTestProcess(t, t.Context(), dir,
+		"--no-interaction", "dev", "--context", "review", "custom", "--name", "custom-test", "where")
+	out, err := process.CombinedOutput()
+	want := filepath.Join(dir, "mwdd", "review", "custom-test.yml")
+	if err != nil || strings.TrimSpace(string(out)) != want {
+		t.Fatalf("expected %q, got %q (%v)", want, out, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "mwdd")); !os.IsNotExist(err) {
+		t.Fatalf("path lookup initialized a development environment: %v", err)
 	}
 }

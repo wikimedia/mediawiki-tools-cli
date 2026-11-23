@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/secrets"
 )
@@ -23,7 +22,7 @@ var (
 )
 
 func WarnPlaintextStorage() {
-	logrus.Warnf("Credentials will be stored unencrypted in %s.", Path())
+	fmt.Fprintf(os.Stderr, "Warning: credentials will be stored unencrypted in %s.\n", Path())
 }
 
 func promptCredentialProvider() (string, error) {

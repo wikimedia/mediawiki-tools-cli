@@ -1,9 +1,10 @@
 package dotenv
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -22,57 +23,75 @@ func (f File) Path() string {
 }
 
 /*EnsureExists ensures that the File exists, creating an empty one if not.*/
-func (f File) EnsureExists() {
-	if _, err := os.Stat(f.Path()); err != nil {
-		err := os.MkdirAll(strings.Replace(f.Path(), filepath.Base(f.Path()), "", -1), 0o700)
-		if err != nil {
-			panic(err)
-		}
-		_, err = os.OpenFile(f.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			panic(err)
-		}
+func (f File) EnsureExists() error {
+	if _, err := os.Stat(f.Path()); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
 	}
-}
-
-func (f File) read() map[string]string {
-	f.EnsureExists()
-	envMap, _ := f.Read()
-	return envMap
+	if err := os.MkdirAll(filepath.Dir(f.Path()), 0o700); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(f.Path(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if os.IsExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return file.Close()
 }
 
 // Read loads the environment without creating a missing file.
 func (f File) Read() (map[string]string, error) {
-	values, err := godotenv.Read(f.Path())
+	data, err := os.ReadFile(f.Path())
 	if os.IsNotExist(err) {
 		return map[string]string{}, nil
 	}
-	return values, err
-}
-
-func (f File) write(envMap map[string]string) {
-	// Override the regular gotdotenv Write method to avoid adding quotes
-	// https://github.com/joho/godotenv/issues/50#issuecomment-364873528
-	// https://github.com/moby/moby/issues/12997
-	// godotenv.Write(envMap, f.Path())
-	err := writeOverride(envMap, f.Path())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+	values, err := godotenv.UnmarshalBytes(data)
+	if err != nil {
+		// Parser errors can quote values from the file.
+		return nil, fmt.Errorf("invalid dotenv syntax in %q", f.Path())
+	}
+	return values, nil
 }
 
-/*Delete a value from the env.*/
-func (f File) Delete(name string) {
-	envMap := f.read()
-	delete(envMap, name)
-	f.write(envMap)
+func (f File) read() map[string]string {
+	values, err := f.Read()
+	if err != nil {
+		slog.Error("read dotenv file", "path", f.Path(), "error", err)
+		return map[string]string{}
+	}
+	return values
 }
 
-/*Set a value in the env.*/
-func (f File) Set(name string, value string) {
-	envMap := f.read()
-	envMap[name] = value
-	f.write(envMap)
+// Delete removes a setting, preserving other values.
+func (f File) Delete(name string) error {
+	if err := f.EnsureExists(); err != nil {
+		return err
+	}
+	values, err := f.Read()
+	if err != nil {
+		return err
+	}
+	delete(values, name)
+	return writeOverride(values, f.Path())
+}
+
+// Set changes a setting, preserving other values.
+func (f File) Set(name string, value string) error {
+	if err := f.EnsureExists(); err != nil {
+		return err
+	}
+	values, err := f.Read()
+	if err != nil {
+		return err
+	}
+	values[name] = value
+	return writeOverride(values, f.Path())
 }
 
 /*Get a value from the env.*/

@@ -43,7 +43,9 @@ func newTaskListCmd(site *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			out.Print(cmd, page)
+			if err := out.Print(cmd, page); err != nil {
+				return err
+			}
 			if out.Type == "table" || out.Type == "auto" {
 				printCursor(cmd, page.Cursor)
 			}

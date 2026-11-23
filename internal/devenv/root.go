@@ -1,11 +1,12 @@
 package devenv
 
 import (
+	"crypto/rand"
+	"log/slog"
 	"os"
 	"regexp"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/devenv/files"
 	"gitlab.wikimedia.org/repos/releng/cli/pkg/dockercompose"
@@ -36,16 +37,36 @@ func (m Environment) Directory() string {
 }
 
 /*EnsureReady ...*/
-func (m Environment) EnsureReady() {
-	files.EnsureReady(m.Directory())
-	m.Env().EnsureExists()
-	m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion())
-	m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps"))
-	m.Env().Set("TRAEFIK_DOCKER_PROJECT", strings.ToLower(m.DockerCompose().Name))
-	m.ensureDockerfileComposeFiles()
-	if err := m.refreshDashboardServices(); err != nil {
-		logrus.Warnf("Could not refresh custom dashboard services: %v", err)
+func (m Environment) EnsureReady() error {
+	if err := files.EnsureReady(m.Directory()); err != nil {
+		return err
 	}
+	if err := m.Env().EnsureExists(); err != nil {
+		return err
+	}
+	for _, key := range []string{"SHELLBOX_SECRET_KEY", "SWIFT_MEDIA_KEY", "SWIFT_THUMBOR_KEY", "SWIFT_PRIVATE_KEY", "SWIFT_TEMP_URL_KEY", "THUMBOR_PRIVATE_SECRET"} {
+		if m.Env().Get(key) == "" {
+			if err := m.Env().Set(key, rand.Text()); err != nil {
+				return err
+			}
+		}
+	}
+	if err := m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion()); err != nil {
+		return err
+	}
+	if err := m.Env().Set("TRAEFIK_DOCKER_NETWORK", m.DockerCompose().NetworkName("dps")); err != nil {
+		return err
+	}
+	if err := m.Env().Set("TRAEFIK_DOCKER_PROJECT", strings.ToLower(m.DockerCompose().Name)); err != nil {
+		return err
+	}
+	if err := m.ensureDockerfileComposeFiles(); err != nil {
+		return err
+	}
+	if err := m.refreshDashboardServices(); err != nil {
+		slog.Warn("could not refresh custom dashboard services", "error", err)
+	}
+	return nil
 }
 
 func (m Environment) DockerCompose() dockercompose.Project {

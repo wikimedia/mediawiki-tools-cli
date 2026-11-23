@@ -77,9 +77,7 @@ func NewComputeListCmd() *cobra.Command {
 				objects[key] = server
 			}
 
-			out.Print(cmd, objects)
-
-			return nil
+			return out.Print(cmd, objects)
 		},
 	}
 

@@ -22,7 +22,7 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		Long:    cli.RenderMarkdown(devMediawikiFreshLong),
 		Example: cobrautil.NormalizeExample("fresh bash\nfresh npm ci\nfresh record tests/selenium/specs/recentchanges.js"),
-		Run:     runMediaWikiFresh,
+		RunE:    runMediaWikiFresh,
 	}
 	cmd.PersistentFlags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")
 	cmd.AddCommand(&cobra.Command{
@@ -31,8 +31,8 @@ func NewMediaWikiFreshCmd() *cobra.Command {
 		Long:    "Run npm run selenium-test with video recording enabled, a non-headless browser, and one worker. Optionally select a spec; otherwise run the full suite. Run npm ci first to install dependencies. Videos normally appear in tests/selenium/log/ in the host checkout.",
 		Example: cobrautil.NormalizeExample("record\nrecord tests/selenium/specs/recentchanges.js"),
 		Args:    cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			runMediaWikiFresh(cmd, seleniumRecordingCommand(args))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runMediaWikiFresh(cmd, seleniumRecordingCommand(args))
 		},
 	})
 	return cmd
@@ -49,18 +49,20 @@ func seleniumRecordingCommand(spec []string) []string {
 	return command
 }
 
-func runMediaWikiFresh(cmd *cobra.Command, args []string) {
-	devenv.DefaultForUser().EnsureReady()
+func runMediaWikiFresh(cmd *cobra.Command, args []string) error {
+	if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+		return err
+	}
 	err := devenv.DefaultForUser().DockerCompose().Up([]string{"mediawiki-fresh"}, dockercompose.UpOptions{
 		Detached: true,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	command, env := cobrautil.CommandAndEnvFromArgs(args)
 	containerID, containerIDErr := devenv.DefaultForUser().DockerCompose().ContainerID("mediawiki-fresh")
 	if containerIDErr != nil {
-		panic(containerIDErr)
+		return containerIDErr
 	}
 	exitCode := docker.Exec(
 		containerID,
@@ -77,4 +79,5 @@ func runMediaWikiFresh(cmd *cobra.Command, args []string) {
 		cmd.Root().Annotations = make(map[string]string)
 		cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 	}
+	return nil
 }

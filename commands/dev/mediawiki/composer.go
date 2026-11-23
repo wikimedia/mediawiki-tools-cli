@@ -19,12 +19,14 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 		Short:   "Runs composer in a container in the context of MediaWiki",
 		Long:    "Runs Composer in the MediaWiki container with the MediaWiki source directory as its working directory. Composer receives a fallback HOME when the container user has no home directory. Use `--user` to select the container user.",
 		Example: cobrautil.NormalizeExample(composerExample),
-		Run: func(cmd *cobra.Command, args []string) {
-			devenv.DefaultForUser().EnsureReady()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := devenv.DefaultForUser().EnsureReady(); err != nil {
+				return err
+			}
 			command, env := cobrautil.CommandAndEnvFromArgs(args)
 			containerID, containerIDErr := devenv.DefaultForUser().DockerCompose().ContainerID("mediawiki")
 			if containerIDErr != nil {
-				panic(containerIDErr)
+				return containerIDErr
 			}
 			exitCode := docker.Exec(
 				containerID,
@@ -42,6 +44,7 @@ func NewMediaWikiComposerCmd() *cobra.Command {
 				cmd.Root().Annotations = make(map[string]string)
 				cmd.Root().Annotations["exitCode"] = strconv.Itoa(exitCode)
 			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&User, "user", "u", docker.CurrentUserAndGroupForDockerExecution(), "User to run as, defaults to current OS user uid:gid")

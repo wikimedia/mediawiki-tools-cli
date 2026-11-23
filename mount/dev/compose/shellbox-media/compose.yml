@@ -5,14 +5,13 @@
 # TODO can we use the simply named images? or must we use the dated ones to stay up to date?
 
 services:
-  shellbox-media: 
-    build: ./compose/shellbox-media/mount/shellbox/media
+  shellbox-media:
+    image: "${SHELLBOX_MEDIA_IMAGE:-docker-registry.wikimedia.org/wikimedia/mediawiki-libs-shellbox:2026-11-19-141815-media83}"
     restart: unless-stopped
     volumes:
       - shellbox-media-run:/run/shared
       - ./compose/shellbox-media/mount/shellbox/media/config.json:/srv/app/config/config.json:ro
     environment:
-      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
       - "FCGI_MODE=FCGI_UNIX"
     dns:
       - ${NETWORK_SUBNET_PREFIX}.10
@@ -25,7 +24,9 @@ services:
       - label:disable
     volumes:
       - shellbox-media-run:/run/shared
+      - ./compose/shellbox-media/mount/shellbox/php-fcgi-secret.conf:/etc/apache2/conf-enabled/55-wmcli-shellbox.conf:ro
     environment:
+      - "SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}"
       - "FCGI_MODE=FCGI_UNIX"
       - "SERVERGROUP=main"
       - "APACHE_RUN_PORT=8000"

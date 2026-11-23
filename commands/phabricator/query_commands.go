@@ -77,7 +77,9 @@ func newProjectCmd(site *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			out.Print(cmd, page)
+			if err := out.Print(cmd, page); err != nil {
+				return err
+			}
 			if out.Type == "table" || out.Type == "auto" {
 				printCursor(cmd, page.Cursor)
 			}
@@ -109,8 +111,7 @@ func newProjectCmd(site *string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				viewOut.Print(cmd, p)
-				return nil
+				return viewOut.Print(cmd, p)
 			}
 			client, _, err := clientFromCommand(cmd, *site)
 			if err != nil {
@@ -120,8 +121,7 @@ func newProjectCmd(site *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			viewOut.Print(cmd, p)
-			return nil
+			return viewOut.Print(cmd, p)
 		},
 	}
 	accesspolicy.Support(view)
@@ -154,8 +154,7 @@ func newBoardCmd(site *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			out.Print(cmd, page)
-			return nil
+			return out.Print(cmd, page)
 		},
 	}
 	addPhabOutput(cmd, out)

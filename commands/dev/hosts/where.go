@@ -11,8 +11,9 @@ func NewHostsWhereCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "where",
 		Short: "Tell you where your system hosts file is",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(hosts.FilePath())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Fprintln(cmd.OutOrStdout(), hosts.FilePath())
+			return nil
 		},
 	}
 }

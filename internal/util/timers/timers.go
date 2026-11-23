@@ -2,19 +2,13 @@ package timers
 
 import (
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
-var clockOverride = ""
+var clockOverride time.Time
 
 func NowUTC() time.Time {
-	if clockOverride != "" {
-		parsedOverride, err := Parse(clockOverride)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		return parsedOverride
+	if !clockOverride.IsZero() {
+		return clockOverride
 	}
 	return time.Now().UTC()
 }

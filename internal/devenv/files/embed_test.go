@@ -156,3 +156,13 @@ func TestEnsureReadyStillRemovesStaleAssets(t *testing.T) {
 		}
 	}
 }
+
+func TestEnsureReadyReturnsFilesystemError(t *testing.T) {
+	project := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(project, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := EnsureReady(project); err == nil {
+		t.Fatal("expected filesystem error")
+	}
+}

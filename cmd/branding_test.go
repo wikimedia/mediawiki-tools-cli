@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -153,8 +154,22 @@ func TestDevRecipePreviewAndValidationLeaveContextUntouched(t *testing.T) {
 	previousOptions, previousContext := cli.Opts, devenv.Context
 	t.Cleanup(func() { cli.Opts, devenv.Context = previousOptions, previousContext })
 
+	checkout := filepath.Join(dir, "fresh checkout")
+	recipePath := filepath.Join(dir, "fresh.yml")
+	recipe := `type: mwcli.dev/recipe
+version: 0.1
+name: fresh-checkout
+code:
+  core: true
+env:
+  MEDIAWIKI_VOLUMES_CODE: ` + strconv.Quote(filepath.ToSlash(checkout)) + "\n"
+	if err := os.WriteFile(recipePath, []byte(recipe), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
 	for _, args := range [][]string{
 		{"validate", "example-git-clone"},
+		{"--dry-run", "--file", recipePath},
 		{"--dry-run", "example-git-clone"},
 		{"--dry-run", "mediasearch"},
 	} {
@@ -166,5 +181,8 @@ func TestDevRecipePreviewAndValidationLeaveContextUntouched(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "mwdd")); !os.IsNotExist(err) {
 		t.Fatalf("recipe commands touched development contexts: %v", err)
+	}
+	if _, err := os.Stat(checkout); !os.IsNotExist(err) {
+		t.Fatalf("recipe preview touched the checkout destination: %v", err)
 	}
 }

@@ -2,9 +2,11 @@ package devenv
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -62,7 +64,10 @@ func TestTraefikAuthInitializesContexts(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			m := Environment{BaseDir: t.TempDir()}
 			m.EnsureReady()
-			contents := m.DockerCompose().File("traefik").Contents()
+			contents, err := m.DockerCompose().File("traefik").Contents()
+			if err != nil {
+				t.Fatal(err)
+			}
 			if _, ok := contents.Services["gateway-auth"]; !ok {
 				t.Fatal("embedded gateway manifest cannot be inspected")
 			}
@@ -79,7 +84,8 @@ func TestTraefikAuthInitializesContexts(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if err := m.ensureTraefikAuth(); err != nil {
+			var stderr bytes.Buffer
+			if err := m.ensureTraefikAuth(&stderr); err != nil {
 				t.Fatal(err)
 			}
 			credentials, err := os.ReadFile(filepath.Join(authDir, "credentials"))
@@ -92,11 +98,14 @@ func TestTraefikAuthInitializesContexts(t *testing.T) {
 			if !existing && !bytes.HasPrefix(credentials, []byte("Username: wm\n")) {
 				t.Fatal("fresh gateway uses the legacy username")
 			}
+			if !existing && !strings.Contains(stderr.String(), string(bytes.TrimSpace(credentials))) {
+				t.Fatal("generated credentials were not written to the supplied stderr")
+			}
 			key, err := os.ReadFile(filepath.Join(authDir, "session-key"))
 			if err != nil || len(key) != 32 {
 				t.Fatalf("session key not initialized: %v", err)
 			}
-			if err := m.ensureTraefikAuth(); err != nil {
+			if err := m.ensureTraefikAuth(io.Discard); err != nil {
 				t.Fatal(err)
 			}
 			saved, err := os.ReadFile(filepath.Join(authDir, "session-key"))

@@ -1,107 +1,59 @@
-// Package jsonfile is for interacting with a JSON file on disk.
+// Package jsonfile reads and writes JSON objects on disk.
 package jsonfile
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
-	"strings"
-
-	"github.com/sirupsen/logrus"
+	"path/filepath"
 )
 
-/*JSONFile representation of a json file.*/
 type JSONFile struct {
 	FilePath string
 	Contents map[string]interface{}
 }
 
-/*FileName the file name extracted from the full path.*/
 func (j JSONFile) FileName() string {
-	_, file := path.Split(j.FilePath)
-	return file
+	return filepath.Base(j.FilePath)
 }
 
-/*EnsureExists makes sure the file exists on disk, will be empty json if created.*/
-func (j JSONFile) EnsureExists() {
-	if _, err := os.Stat(j.FilePath); err != nil {
-		err := os.MkdirAll(strings.Replace(j.FilePath, j.FileName(), "", -1), 0o700)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		defer file.Close()
-		w := bufio.NewWriter(file)
-		_, err = w.WriteString("{}")
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		err = w.Flush()
-		if err != nil {
-			logrus.Fatal(err)
-		}
+func (j JSONFile) EnsureExists() error {
+	if _, err := os.Stat(j.FilePath); !os.IsNotExist(err) {
+		return err
 	}
+	if err := os.MkdirAll(filepath.Dir(j.FilePath), 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(j.FilePath, []byte("{}"), 0o600)
 }
 
-/*LoadFromDisk loads the config.json from disk.*/
-func LoadFromDisk(filePath string) JSONFile {
-	file := JSONFile{
-		FilePath: filePath,
+func LoadFromDisk(path string) (JSONFile, error) {
+	file := JSONFile{FilePath: path}
+	if err := file.EnsureExists(); err != nil {
+		return file, err
 	}
-	file.EnsureExists()
-
-	openedFile, err := os.Open(file.FilePath)
+	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Println(err.Error())
+		return file, err
 	}
-	defer openedFile.Close()
-	jsonParser := json.NewDecoder(openedFile)
-	jsonErr := jsonParser.Decode(&file.Contents)
-	if jsonErr != nil {
-		logrus.Fatal(jsonErr)
+	err = json.Unmarshal(data, &file.Contents)
+	if err == nil && file.Contents == nil {
+		err = fmt.Errorf("JSON file must contain an object")
 	}
-	return file
+	return file, err
 }
 
-/*WriteToDisk writers the config to disk.*/
-func (j JSONFile) WriteToDisk() {
-	file, err := os.OpenFile(j.FilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+func (j JSONFile) WriteToDisk() error {
+	data, err := json.Marshal(j.Contents)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
-	defer file.Close()
-	w := bufio.NewWriter(file)
-	jsonEncoder := json.NewEncoder(w)
-	jsonErr := jsonEncoder.Encode(j.Contents)
-	if jsonErr != nil {
-		logrus.Fatal(jsonErr)
-	}
-	flushErr := w.Flush()
-	if flushErr != nil {
-		logrus.Fatal(flushErr)
-	}
+	return os.WriteFile(j.FilePath, append(data, '\n'), 0o600)
 }
 
-/*PrettyPrint outputs the current config as a pretty string.*/
-func (j JSONFile) PrettyPrint() {
-	fmt.Printf("%s\n", j.String())
+func (j JSONFile) String() (string, error) {
+	data, err := json.MarshalIndent(j.Contents, "", "  ")
+	return string(data), err
 }
 
-/*String current content as a string.*/
-func (j JSONFile) String() string {
-	empJSON, err := json.MarshalIndent(j.Contents, "", "  ")
-	if err != nil {
-		logrus.Fatalf("%v", err)
-	}
-	return string(empJSON)
-}
-
-/*Clear the contents of the file, setting it to an empty json object.*/
-func (j *JSONFile) Clear() {
-	j.Contents = map[string]interface{}{}
-}
+func (j *JSONFile) Clear() { j.Contents = map[string]interface{}{} }

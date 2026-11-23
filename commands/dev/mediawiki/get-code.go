@@ -2,11 +2,12 @@ package mediawiki
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/config"
@@ -17,6 +18,7 @@ import (
 )
 
 //go:embed get-code.example
+
 var mediawikiGetCodeExample string
 
 //go:embed get-code.long
@@ -28,9 +30,14 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 		Example: cobrautil.NormalizeExample(mediawikiGetCodeExample),
 		Short:   "Gets MediaWiki code from Gerrit",
 		Long:    cli.RenderMarkdown(mediawikiGetCodeLong),
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1")
-			cobrautil.CallAllPersistentPreRun(cmd, args)
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := os.Setenv("MW_DOCKER_MEDIAWIKI_GET_CODE", "1"); err != nil {
+				return err
+			}
+			if err := cobrautil.CallAllPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			core, _ := cmd.Flags().GetBool("core")
@@ -57,8 +64,20 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 			}
 
 			devenv := devenv.DefaultForUser()
-			devenv.EnsureReady()
-			thisMw, _ := mediawiki.ForDirectory(devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE"))
+			if err := devenv.EnsureReady(); err != nil {
+				return err
+			}
+			codeDir := devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE")
+			thisMw, err := mediawiki.ForDirectory(codeDir)
+			if err != nil {
+				var notMediaWiki *mediawiki.NotMediaWikiDirectory
+				if !errors.As(err, &notMediaWiki) {
+					return err
+				}
+				// This command creates a checkout in a clean destination, so a
+				// directory without .gitreview means no core is present yet.
+				thisMw = mediawiki.MediaWiki(codeDir)
+			}
 			cloneOpts := mediawiki.CloneOpts{
 				GetMediaWiki:          core,
 				GetGerritExtensions:   extensions,
@@ -70,6 +89,9 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				DryRun:                dryRun,
 				SkipCommitHook:        skipCommitHook,
 				Jobs:                  jobs,
+				In:                    cmd.InOrStdin(),
+				Out:                   cmd.OutOrStdout(),
+				Err:                   cmd.ErrOrStderr(),
 			}
 
 			// If someone runs the command but doesn't ask for anything, run the wizard, or output help in no interaction mode
@@ -78,50 +100,48 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				if cli.Opts.NoInteraction {
 					err := cmd.Help()
 					if err != nil {
-						panic(err)
+						return err
 					}
-					os.Exit(1)
+					return fmt.Errorf("specify code to clone with --core, --extension or --skin")
 				}
 
 				// Otherwise do the wizard to acquire them...
 				if !thisMw.MediaWikiIsPresent() && !core {
-					logrus.Debug("MediaWiki is missing, and not yet requested")
+					slog.Debug(fmt.Sprint("MediaWiki is missing, and not yet requested"))
 					cloneMw := false
 					prompt := &survey.Confirm{
 						Message: "MediaWiki code not detected in " + devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now? (Negative answers will abort this command)",
 					}
 					err := survey.AskOne(prompt, &cloneMw)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						return err
 					}
 					cloneOpts.GetMediaWiki = cloneMw
 				} else {
-					fmt.Println("MediaWiki is already present")
+					fmt.Fprintln(cmd.ErrOrStderr(), "MediaWiki is already present")
 				}
 
 				if !thisMw.VectorIsPresent() && !stringsutil.StringInSlice("Vector", skins) {
-					logrus.Debug("Vector is missing, and not yet requested")
+					slog.Debug(fmt.Sprint("Vector is missing, and not yet requested"))
 					cloneVector := false
 					prompt := &survey.Confirm{
 						Message: "Vector skin is not detected in " + devenv.Env().Get("MEDIAWIKI_VOLUMES_CODE") + ". Do you want to clone it now?",
 					}
 					err := survey.AskOne(prompt, &cloneVector)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						return err
 					}
 					cloneOpts.GetVector = cloneVector
 				} else {
-					fmt.Println("The Vector skin is already present")
+					fmt.Fprintln(cmd.ErrOrStderr(), "The Vector skin is already present")
 				}
 
 				// TODO implement cloning of more skins and extensions in the wizard..
-				fmt.Println("If you want to clone more skins and extensions please use the --skin and --extension options...")
+				fmt.Fprintln(cmd.ErrOrStderr(), "If you want to clone more skins and extensions please use the --skin and --extension options...")
 
 				if !cloneOpts.AreThereThingsToClone() {
-					fmt.Println("Nothing to do")
-					os.Exit(0)
+					fmt.Fprintln(cmd.ErrOrStderr(), "Nothing to do")
+					return nil
 				}
 
 				finalRemoteType := ""
@@ -132,8 +152,7 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				}
 				err := survey.AskOne(prompt3, &finalRemoteType)
 				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
+					return err
 				}
 				cloneOpts.GerritInteractionType = finalRemoteType
 
@@ -144,13 +163,11 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 					}
 					err = survey.AskOne(prompt, &gerritUsername)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						return err
 					}
 
 					if len(gerritUsername) < 1 {
-						fmt.Println("Gerrit `Username` required for ssh interaction type.")
-						os.Exit(1)
+						return fmt.Errorf("Gerrit `Username` required for ssh interaction type.")
 					}
 					cloneOpts.GerritUsername = gerritUsername
 				}
@@ -162,26 +179,28 @@ func NewMediaWikiGetCodeCmd() *cobra.Command {
 				}
 				err = survey.AskOne(prompt2, &persist)
 				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
+					return err
 				}
 
 				if persist {
-					config.PutKeyValueOnDisk("gerrit.username", cloneOpts.GerritUsername)
-					config.PutKeyValueOnDisk("gerrit.interaction_type", cloneOpts.GerritInteractionType)
+					if err := config.PutKeyValueOnDisk("gerrit.username", cloneOpts.GerritUsername); err != nil {
+						return err
+					}
+					if err := config.PutKeyValueOnDisk("gerrit.interaction_type", cloneOpts.GerritInteractionType); err != nil {
+						return err
+					}
 				}
 			}
 
 			if !cloneOpts.AreThereThingsToClone() {
-				fmt.Println("Nothing to do")
-				os.Exit(0)
+				fmt.Fprintln(cmd.ErrOrStderr(), "Nothing to do")
+				return nil
 			}
 
 			// Validate some things that we need
 			// Such as IF we are using ssh, we need a username
 			if cloneOpts.GerritInteractionType == "ssh" && len(cloneOpts.GerritUsername) < 1 {
-				fmt.Println("Gerrit username required for ssh interaction type.")
-				os.Exit(1)
+				return fmt.Errorf("Gerrit username required for ssh interaction type.")
 			}
 
 			cli.NewEvents(cli.EventFilePath()).AddFeatureUsageEvent("mw_docker_mediawiki_get-code", cli.VersionDetails.Version)
