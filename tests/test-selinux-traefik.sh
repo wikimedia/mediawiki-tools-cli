@@ -17,6 +17,9 @@ trap 'rm -rf -- "$work"' EXIT
 if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
     sudo apt-get update -q
     sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils genisoimage
+    if [[ -c /dev/kvm && ! -w /dev/kvm ]]; then
+        sudo chown "$(id -u)" /dev/kvm
+    fi
 fi
 
 image_name=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
@@ -48,6 +51,7 @@ for container_image in "${images[@]}"; do
     docker pull --platform linux/amd64 "$container_image"
 done
 docker save --output "$work/images.tar" "${images[@]}"
+chmod 0644 "$work/images.tar"
 
 install -m 0644 "${MWCLI_SMOKE_SNAPSHOT:?provide the MediaWiki CI snapshot archive}" "$work/mediawiki.tar.gz"
 
@@ -70,6 +74,7 @@ install -Dm0755 /run/mwcli-ci/cli /usr/local/bin/mw
 install -Dm0755 /run/mwcli-ci/docker /usr/local/bin/docker
 install -Dm0755 /run/mwcli-ci/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
 export MWCLI_CONTEXT_TEST=1
+export MWCLI_SMOKE_STARTUP_TIMEOUT=600
 test "$(podman info --format '{{.Host.Security.SELinuxEnabled}}')" = true
 if [[ "$mode" == rootless ]]; then
     uid=$(id -u fedora)

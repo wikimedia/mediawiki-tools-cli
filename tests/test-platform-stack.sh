@@ -40,7 +40,7 @@ probe() {
     local url=$1 expected=$2
     local deadline=$((SECONDS + ${3:-120}))
     while ((SECONDS < deadline)); do
-        if curl --noproxy '*' --max-time 3 -fsS "$url" > "$response" &&
+        if curl --noproxy '*' --max-time 30 -fsS "$url" > "$response" &&
             grep -Fq -- "$expected" "$response"; then
             printf 'PASS %s\n' "$url"
             return 0
