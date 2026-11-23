@@ -34,7 +34,10 @@ def main():
     if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", name):
         raise ValueError("invalid integration test name")
     shell = test_shell()
-    script = TESTS.get(name, f"test-{name}.sh")
+    modes = {"smoke-selinux": "rootful", "smoke-podman-rootless": "rootless"}
+    smoke = name == "smoke" or name in modes
+    script = "run-platform-smoke.sh" if smoke else TESTS.get(name, f"test-{name}.sh")
+    script_args = [modes[name]] if name in modes else []
     source = Path.cwd()
     inputs = source.parent / "inputs"
     plan = json.loads((inputs / "plan.json").read_text())
@@ -52,16 +55,20 @@ def main():
     if sys.platform == "linux" and platform.machine().lower() in {"amd64", "x86_64"}:
         shutil.copyfile(inputs / "mw", source / binary)
         (source / binary).chmod(0o755)
-        download_snapshot(GitLab(), inputs)
-        subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
-        env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
+        if not smoke:
+            download_snapshot(GitLab(), inputs)
+            subprocess.run(["tar", "-xzf", str(inputs / "mediawiki.tar.gz")], cwd=source, check=True)
+            env["MWCLI_CI_MEDIAWIKI_SNAPSHOT"] = "1"
         compose = source / "bin/docker-compose"
         compose.write_text('#!/bin/sh\nexec docker compose "$@"\n')
         compose.chmod(0o755)
         env["PATH"] = str(source / "bin") + os.pathsep + env["PATH"]
     else:
         subprocess.run(["go", "build", "-o", binary, "."], cwd=source, env=env, check=True)
-    process = subprocess.Popen([shell, f"tests/{script}"], cwd=source, env=env,
+    if smoke:
+        download_snapshot(GitLab(), inputs)
+        env["MWCLI_SMOKE_SNAPSHOT"] = "../inputs/mediawiki.tar.gz"
+    process = subprocess.Popen([shell, f"tests/{script}", *script_args], cwd=source, env=env,
                                start_new_session=os.name != "nt")
     api = GitLab()  # This job has no GitLab token or GitHub write token.
     try:

@@ -7,7 +7,7 @@ services:
       - label:disable
     restart: unless-stopped
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "${MWCLI_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     networks:
       dps:
         ipv4_address: ${NETWORK_SUBNET_PREFIX}.10
