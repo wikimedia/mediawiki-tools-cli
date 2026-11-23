@@ -1,8 +1,6 @@
 package mediawiki
 
 import (
-	"crypto/rand"
-	"encoding/base32"
 	"fmt"
 	"log/slog"
 	"os"
@@ -23,16 +21,6 @@ import (
 // User run docker command with the specified -u.
 
 var User string
-
-func randomString() (string, error) {
-	length := 10
-	randomBytes := make([]byte, 32)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return "", err
-	}
-	return base32.StdEncoding.EncodeToString(randomBytes)[:length], nil
-}
 
 func NewMediaWikiCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -62,16 +50,6 @@ func NewMediaWikiCmd() *cobra.Command {
 			}
 			usrDir := usr.HomeDir
 
-			// TODO: Might be better placed as a PersistentPreRun of the shellbox commands
-			if environment.Env().Missing("SHELLBOX_SECRET_KEY") {
-				secret, err := randomString()
-				if err != nil {
-					return err
-				}
-				if err := environment.Env().Set("SHELLBOX_SECRET_KEY", secret); err != nil {
-					return err
-				}
-			}
 			if environment.Env().Missing("MEDIAWIKI_VOLUMES_CODE") {
 				slog.Debug(fmt.Sprint("MEDIAWIKI_VOLUMES_CODE is missing"))
 				if !cli.Opts.NoInteraction {

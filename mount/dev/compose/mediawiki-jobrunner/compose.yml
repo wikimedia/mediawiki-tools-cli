@@ -27,6 +27,7 @@ services:
       - XDEBUG_CONFIG=${MEDIAWIKI_XDEBUG_CONFIG:-client_host=xdebug://gateway}
       - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-debug}
       - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
+      - SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}
     depends_on:
       - mediawiki
     dns:

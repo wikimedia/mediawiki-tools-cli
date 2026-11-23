@@ -1,6 +1,7 @@
 package devenv
 
 import (
+	"crypto/rand"
 	"log/slog"
 	"os"
 	"regexp"
@@ -42,6 +43,11 @@ func (m Environment) EnsureReady() error {
 	}
 	if err := m.Env().EnsureExists(); err != nil {
 		return err
+	}
+	if m.Env().Get("SHELLBOX_SECRET_KEY") == "" {
+		if err := m.Env().Set("SHELLBOX_SECRET_KEY", rand.Text()); err != nil {
+			return err
+		}
 	}
 	if err := m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion()); err != nil {
 		return err
