@@ -1,0 +1,36 @@
+services:
+  thumbor:
+    image: "${THUMBOR_IMAGE:-docker-registry.wikimedia.org/wikimedia/operations-software-thumbor-plugins:2026-11-18-145504-production}"
+    entrypoint: "/srv/service/entrypoint-prod.sh 8800 '-l info'"
+    restart: unless-stopped
+    volumes:
+      - ./compose/thumbor/mount/thumbor/60-thumbor-server.conf:/etc/thumbor.d/60-thumbor-server.conf:ro
+      - ./compose/thumbor/mount/thumbor/80-thumbor-swift.conf:/etc/thumbor.d/80-thumbor-swift.conf:ro
+    environment:
+      - HOME=/tmp
+      - DEFAULT_EXPOSE_PORT=8800
+      - SWIFT_KEY=${SWIFT_THUMBOR_KEY}
+      - SWIFT_PRIVATE_KEY=${SWIFT_PRIVATE_KEY}
+      - SWIFT_PRIVATE_SECRET=${THUMBOR_PRIVATE_SECRET}
+      - SWIFT_SHARDED_CONTAINERS=${SWIFT_SHARDED_CONTAINERS:-}
+      - SWIFT_PRIVATE_CONTAINERS=${SWIFT_PRIVATE_CONTAINERS:-}
+      - MEDIAWIKI_SWIFT_PRIVATE_WIKIS=${MEDIAWIKI_SWIFT_PRIVATE_WIKIS:-}
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8800/healthcheck', timeout=3).close()"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    depends_on:
+      swift:
+        condition: service_healthy
+      memcached:
+        condition: service_started
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps

@@ -12,6 +12,7 @@ services:
       - ./compose/mediawiki/mount/mediawiki:/wm-dev:ro
       # Compatibility for existing LocalSettings.php files.
       - ./compose/mediawiki/mount/mediawiki:/mwdd:ro
+      - ./compose/swift/mount/prepareSwift.php:/wm-swift/prepareSwift.php:ro
       - "${MEDIAWIKI_VOLUMES_CODE}:/var/www/html/w:cached"
       - "${MEDIAWIKI_VOLUMES_DATA:-mediawiki-data}:/var/www/html/w/cache/docker:delegated"
       - "${MEDIAWIKI_VOLUMES_IMAGES:-mediawiki-images}:/var/www/html/w/images/docker:delegated"
@@ -29,6 +30,13 @@ services:
       - XDEBUG_MODE=${MEDIAWIKI_XDEBUG_MODE:-debug}
       - XDG_CONFIG_HOME=/var/www/html/w/cache/docker
       - SHELLBOX_SECRET_KEY=${SHELLBOX_SECRET_KEY}
+      - MEDIAWIKI_SWIFT_WIKIS=${MEDIAWIKI_SWIFT_WIKIS:-}
+      - MEDIAWIKI_THUMBOR_WIKIS=${MEDIAWIKI_THUMBOR_WIKIS:-}
+      - MEDIAWIKI_SWIFT_PRIVATE_WIKIS=${MEDIAWIKI_SWIFT_PRIVATE_WIKIS:-}
+      - MEDIAWIKI_SWIFT_PUBLIC_URL=${MEDIAWIKI_SWIFT_PUBLIC_URL:-/proxy/swift}
+      - SWIFT_MEDIA_KEY=${SWIFT_MEDIA_KEY}
+      - SWIFT_TEMP_URL_KEY=${SWIFT_TEMP_URL_KEY}
+      - THUMBOR_PRIVATE_SECRET=${THUMBOR_PRIVATE_SECRET}
     depends_on:
       - mediawiki-web
     dns:

@@ -44,9 +44,11 @@ func (m Environment) EnsureReady() error {
 	if err := m.Env().EnsureExists(); err != nil {
 		return err
 	}
-	if m.Env().Get("SHELLBOX_SECRET_KEY") == "" {
-		if err := m.Env().Set("SHELLBOX_SECRET_KEY", rand.Text()); err != nil {
-			return err
+	for _, key := range []string{"SHELLBOX_SECRET_KEY", "SWIFT_MEDIA_KEY", "SWIFT_THUMBOR_KEY", "SWIFT_PRIVATE_KEY", "SWIFT_TEMP_URL_KEY", "THUMBOR_PRIVATE_SECRET"} {
+		if m.Env().Get(key) == "" {
+			if err := m.Env().Set(key, rand.Text()); err != nil {
+				return err
+			}
 		}
 	}
 	if err := m.Env().Set("MWCLI_VERSION", cli.UserAgentVersion()); err != nil {

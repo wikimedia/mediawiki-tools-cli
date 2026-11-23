@@ -1,6 +1,7 @@
 package recipe
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -43,12 +44,12 @@ type Code struct {
 	Skins      []Checkout `yaml:"skins"`
 }
 
-// Checkout represents a code checkout. Either Name (a Gerrit extension/skin
-// short name) OR URL+Path (an arbitrary git repository) must be provided.
+// Checkout represents a named Gerrit extension or skin, or a Git repository at URL and Path.
 type Checkout struct {
-	Name string `yaml:"name"` // Gerrit short name, e.g. "VisualEditor"
-	URL  string `yaml:"url"`  // Arbitrary git clone URL
-	Path string `yaml:"path"` // Destination path relative to MediaWiki root
+	Name   string `yaml:"name"`   // Gerrit short name, e.g. "VisualEditor"
+	URL    string `yaml:"url"`    // Arbitrary git clone URL
+	Path   string `yaml:"path"`   // Destination path relative to MediaWiki root
+	Commit string `yaml:"commit"` // Optional full commit ID for a URL checkout
 }
 
 type Service struct {
@@ -203,16 +204,17 @@ func normalizeCheckouts(in []Checkout) []Checkout {
 		name := strings.TrimSpace(c.Name)
 		url := strings.TrimSpace(c.URL)
 		path := strings.TrimSpace(c.Path)
+		commit := strings.ToLower(strings.TrimSpace(c.Commit))
 		if name != "" {
 			if !seenNames[name] {
 				seenNames[name] = true
-				out = append(out, Checkout{Name: name})
+				out = append(out, Checkout{Name: name, Commit: commit})
 			}
 		} else if url != "" {
-			key := url + "\x00" + path
+			key := url + "\x00" + path + "\x00" + commit
 			if !seenURLPath[key] {
 				seenURLPath[key] = true
-				out = append(out, Checkout{URL: url, Path: path})
+				out = append(out, Checkout{URL: url, Path: path, Commit: commit})
 			}
 		}
 	}
@@ -249,6 +251,14 @@ func (s Spec) Validate() error {
 		}
 		if co.URL != "" && co.Path == "" {
 			return fmt.Errorf("checkout with url %q requires a path", co.URL)
+		}
+		if co.Commit != "" {
+			if co.URL == "" {
+				return fmt.Errorf("checkout commit requires a URL")
+			}
+			if _, err := hex.DecodeString(co.Commit); len(co.Commit) != 40 || err != nil {
+				return fmt.Errorf("checkout commit for %q must be a full Git commit ID", co.Path)
+			}
 		}
 	}
 
