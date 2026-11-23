@@ -12,7 +12,7 @@ mw dev remote open --ssh awm-1.boxd --recipe mediawiki
 mw dev remote open --project mwcli --instance <instance-id> --recipe mediawiki
 ```
 
-The session runs in the background, maintaining SSH tunnels and reconnecting when necessary. The command prints wiki links by default. Use `--open-browser` to open the wiki, `--editor code` for desktop VS Code Remote SSH, or `--editor web` to run [code-server](https://coder.com/docs/code-server) through an authenticated SSH tunnel. Use `--no-browser` to print the web editor link without opening it. Linux, macOS, native Windows and WSL clients are supported; WSL can launch Windows VS Code.
+The session runs in the background, maintaining SSH tunnels and reconnecting when necessary. New contexts start without an editor. Use `--editor code` for desktop VS Code and `--editor web` to run [code-server](https://coder.com/docs/code-server) on the VM through an authenticated SSH tunnel. Reopening a context uses its saved editor choice. `--editor none` clears that choice. Wiki URLs are printed by default. Use `--open-browser` to open the wiki when it is ready. The web editor opens its own tab when selected. Use `--no-browser` to suppress automatic tabs. Linux, macOS, native Windows and WSL clients are supported; WSL can launch Windows VS Code.
 
 ```sh
 mw dev remote list
@@ -29,22 +29,57 @@ Local `mw dev` commands targeting a registered remote context run on its VM, wit
 
 The VM needs Git and Docker Compose with permission to use Docker. `--install-deps` installs dependencies using passwordless sudo on supported Debian/Ubuntu systems. Stable clients download and checksum-verify the exact same release for the VM’s Linux architecture, then cache and upload it. Development and nightly clients only copy their running executable and require a matching Linux OS and architecture; they never download a different build. A missing matching release stops setup. The `mediawiki` recipe installs core, Vector and MariaDB; `--recipe none` prepares a workspace without installing an application.
 
-### Use a Lima VM
-
-With [Lima](https://lima-vm.io/docs/installation/) installed, open a remote
-context against a named instance. The first run creates the instance from
-Lima's Docker template and downloads the guest image if needed. An existing
-instance is started or reused.
+### Create or connect to a provider machine
 
 ```sh
-wm dev remote open farm --lima wikimedia-dev --recipe wmf-wikifarm --editor none
+wm dev remote create sandbox --provider lima --recipe mediawiki
+wm dev remote create farm --provider codespaces --recipe wmf-wikifarm --idle-timeout 30m
+wm dev remote create wiki --provider boxd --recipe mediawiki
+wm dev remote create cloud-wiki --provider cloudvps --project PROJECT --recipe mediawiki
+wm dev remote open existing --provider cloudvps --project PROJECT --target INSTANCE_ID
+wm dev remote open farm
 wm dev --context farm compose ps
 ```
 
-The farm uses local HTTPS port `8443`. The CLI prints the forwarded wiki and
-dashboard URLs and the path to the farm's public HTTPS certificate. Trust that certificate in your development
-browser to use the farm's HTTPS sites. The checkout and Docker volumes
-live in the guest. Reopen the saved context with `wm dev remote open farm`.
+Lima needs `limactl`. Codespaces and Boxd use a signed-in `gh` or `boxd` on
+the client. Cloud VPS uses the CLI's Cloud VPS credentials and SSH settings.
+Cloud VPS requires `--project`. It resolves the current IDs for Debian Trixie,
+`g4.cores2.ram4.disk20`, and `VXLAN/IPv6-dualstack` by name. Use `--image`,
+`--flavor`, or `--network` to override them by ID. Use `--key-name` for an
+image that needs an injected SSH key. `--user-data FILE` supplies optional
+cloud-init configuration.
+
+Boxd uses the organisation selected in the Boxd CLI. Codespaces (also
+spelled `github` in `--provider`) defaults to `github/codespaces-blank` with a
+32 GB machine, or a 64 GB machine for `wmf-wikifarm`. Use `--repo` and
+`--machine` to override those settings. GitHub applies the chosen
+repository’s billing policy.
+
+The gateway port is chosen automatically from ports free on both the local machine and the VM. Use `--port` to choose a specific port on first setup. Reopening reuses the saved port.
+
+Provider workspaces start without a recipe or credential forwarding.
+Add `--recipe` on first setup if you want an application installed. New
+machines created by the command can install missing dependencies on supported
+Debian or Ubuntu images using passwordless sudo. Use `--install-deps=false`
+to check dependencies only. Existing machines require an explicit
+`--install-deps` to make system changes.
+
+```sh
+wm dev remote list --all --running
+wm dev remote list --all --provider cloudvps --project PROJECT
+wm dev remote disconnect farm
+wm dev remote stop farm
+wm dev remote destroy farm
+```
+
+The list shows provider machine status separately from the SSH session.
+`disconnect` closes the session. `stop` leaves the disk in place, and
+`destroy` permanently deletes it after confirmation. Machine lifecycle
+commands are available for machines created by `wm`.
+
+The wiki farm uses local HTTPS port `8443`. The CLI prints the forwarded
+wiki and dashboard URLs and the path to the farm's public HTTPS certificate.
+Trust that certificate in your development browser to use the HTTPS sites.
 
 To edit an existing local project while running it remotely:
 

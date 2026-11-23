@@ -19,15 +19,16 @@ import (
 // Context records development location and capabilities, never service credentials.
 type Context struct {
 	Options
-	Lima       string   `json:"lima,omitempty"`
-	Workspace  string   `json:"workspace"`
-	Metadata   string   `json:"metadata"`
-	Source     string   `json:"source"`
-	SourceName string   `json:"source_name"`
-	Directory  string   `json:"directory,omitempty"`
-	Forward    []string `json:"forward,omitempty"`
-	GitRemote  string   `json:"git_remote,omitempty"`
-	WebPort    int      `json:"web_port,omitempty"`
+	Provider   *ProviderTarget `json:"provider,omitempty"`
+	Lima       string          `json:"lima,omitempty"`
+	Workspace  string          `json:"workspace"`
+	Metadata   string          `json:"metadata"`
+	Source     string          `json:"source"`
+	SourceName string          `json:"source_name"`
+	Directory  string          `json:"directory,omitempty"`
+	Forward    []string        `json:"forward,omitempty"`
+	GitRemote  string          `json:"git_remote,omitempty"`
+	WebPort    int             `json:"web_port,omitempty"`
 }
 
 type sessionState struct {
@@ -75,7 +76,7 @@ func LoadContext(name string) (Context, error) {
 	if err == nil && c.Context != name {
 		err = errors.New("saved remote context name does not match its directory")
 	}
-	if err == nil && (len(c.SSHArgs) == 0 || ValidateHost(c.SSHArgs[len(c.SSHArgs)-1]) != nil) {
+	if err == nil && ((len(c.SSHArgs) == 0 && c.Provider == nil) || (len(c.SSHArgs) != 0 && ValidateHost(c.SSHArgs[len(c.SSHArgs)-1]) != nil)) {
 		err = errors.New("invalid saved SSH target")
 	}
 	if err == nil && c.Workspace != "" && (!strings.HasPrefix(c.Metadata, c.Workspace+"/") || !strings.HasPrefix(c.Source, c.Workspace+"/")) {
@@ -100,7 +101,7 @@ func SaveContext(c Context) error {
 	}
 	defer lock.Unlock()
 	if existing, err := LoadContext(c.Context); err == nil &&
-		(existing.Lima != c.Lima || !slices.Equal(existing.SSHArgs, c.SSHArgs)) {
+		(existing.Lima != c.Lima || !sameProvider(existing.Provider, c.Provider) || (c.Provider == nil && !slices.Equal(existing.SSHArgs, c.SSHArgs))) {
 		return fmt.Errorf("context %s is already registered for another SSH target", c.Context)
 	} else if err != nil && !os.IsNotExist(err) {
 		return err
@@ -201,6 +202,13 @@ func saveSession(name string, s sessionState) error {
 	return atomicJSON(filepath.Join(dir, "session.json"), s)
 }
 
+func sameProvider(a, b *ProviderTarget) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
 // Keep port selection and SSH binding together across local remote sessions.
 func lockRemotePorts(ctx context.Context) (*flock.Flock, error) {
 	root := cli.UserDirectoryPathForCmd("remote")
@@ -218,4 +226,25 @@ func lockRemotePorts(ctx context.Context) (*flock.Flock, error) {
 		return nil, errors.New("could not lock remote port selection")
 	}
 	return lock, nil
+}
+
+// LockProvider holds the context registry entry across machine provisioning.
+func LockProvider(ctx context.Context, name string) (func(), error) {
+	dir, err := contextDirectory(name)
+	if err != nil {
+		return nil, err
+	}
+	root := filepath.Dir(dir)
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return nil, err
+	}
+	lock := flock.New(filepath.Join(root, name+".provider.lock"))
+	ok, err := lock.TryLockContext(ctx, 100*time.Millisecond)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("could not lock provider context %s", name)
+	}
+	return func() { _ = lock.Unlock() }, nil
 }

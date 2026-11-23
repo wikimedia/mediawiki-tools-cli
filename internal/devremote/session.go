@@ -350,14 +350,22 @@ func SessionStatus(ctx context.Context, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	status := "disconnected"
-	if err := controlRequest(ctx, name, "/status", nil); err == nil {
-		status = "connecting"
-		if s, err := loadSession(name); err == nil && s.Ready {
-			status = "connected"
-		}
+	host := ""
+	if len(c.SSHArgs) > 0 {
+		host = c.SSHArgs[len(c.SSHArgs)-1]
 	}
-	return fmt.Sprintf("%s: %s — %s — %s", name, status, c.SSHArgs[len(c.SSHArgs)-1], c.Source), nil
+	return fmt.Sprintf("%s: %s — %s — %s", name, ConnectionState(ctx, name), host, c.Source), nil
+}
+
+// ConnectionState reports session state without attempting to wake the machine.
+func ConnectionState(ctx context.Context, name string) string {
+	if err := controlRequest(ctx, name, "/status", nil); err != nil {
+		return "disconnected"
+	}
+	if s, err := loadSession(name); err == nil && s.Ready {
+		return "connected"
+	}
+	return "connecting"
 }
 
 func controlRequest(ctx context.Context, name, endpoint string, body io.Reader) error {

@@ -10,7 +10,6 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
-	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/spf13/cobra"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/output"
@@ -66,9 +65,7 @@ func newComputeCreateCmd(provider providerFactory) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			server, err := servers.Create(cmd.Context(), client, keypairs.CreateOptsExt{
-				CreateOptsBuilder: opts, KeyName: keyName,
-			}, nil).Extract()
+			server, err := createInstance(cmd.Context(), client, opts, keyName)
 			if err != nil {
 				return fmt.Errorf("create instance: %w", err)
 			}

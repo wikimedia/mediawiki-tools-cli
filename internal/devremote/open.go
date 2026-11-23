@@ -111,9 +111,38 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 	defer cancel()
 	t := transport{args: o.SSHArgs, stderr: stderr, control: hooks.sshControl}
 	fmt.Fprintln(stdout, "Checking the remote machine...")
-	probe, err := t.output(ctx, `printf 'MWREMOTE\t%s\t%s\t%s\n' "$(uname -s)" "$(uname -m)" "$HOME"`)
+	const probeCommand = `printf 'MWREMOTE\t%s\t%s\t%s\n' "$(uname -s)" "$(uname -m)" "$HOME"`
+	probe, err := t.output(ctx, probeCommand)
+	if err != nil && c.Provider != nil && c.Provider.Kind == "cloudvps" && c.Provider.Owned {
+		wait, done := context.WithTimeout(ctx, 8*time.Minute)
+		defer done()
+		for err != nil && wait.Err() == nil {
+			select {
+			case <-wait.Done():
+			case <-time.After(4 * time.Second):
+				probe, err = t.output(wait, probeCommand)
+			}
+		}
+	}
 	if err != nil {
 		return err
+	}
+	if c.Provider != nil && c.Provider.WaitCloudInit {
+		fmt.Fprintln(stdout, "Waiting for Cloud VPS first-boot user data...")
+		wait, done := context.WithTimeout(ctx, 10*time.Minute)
+		defer done()
+		// cloud-init exits 2 for completed runs with recoverable warnings.
+		// The dependency checks below still have to pass.
+		const waitForCloudInit = `cloud-init status --wait
+result=$?
+if [ "$result" -eq 2 ]; then
+    echo "Cloud-init reported recoverable warnings. Checking development dependencies."
+    exit 0
+fi
+exit "$result"`
+		if err := t.run(wait, waitForCloudInit, nil, stdout); err != nil {
+			return fmt.Errorf("wait for Cloud VPS user data: %w", err)
+		}
 	}
 	home, machine, err := parseProbe(probe)
 	if err != nil {
@@ -143,14 +172,18 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 		}
 		source = path.Join(workspace, name)
 	}
-	if o.InstallDeps {
-		fmt.Fprintln(stdout, "Installing remote dependencies using passwordless sudo...")
+	const requirements = `set -eu; command -v bash; command -v git; command -v flock; command -v ss; docker compose version; docker info >/dev/null`
+	if _, err := t.output(ctx, requirements); err != nil {
+		if !o.InstallDeps {
+			return fmt.Errorf("remote Git, Docker Compose and Docker access are required; on supported systems retry with --install-deps: %w", err)
+		}
+		fmt.Fprintln(stdout, "Installing missing remote dependencies using passwordless sudo...")
 		if err := t.script(ctx, dependenciesScript, nil, stdout); err != nil {
 			return err
 		}
-	}
-	if _, err := t.output(ctx, `set -eu; command -v bash; command -v git; command -v flock; command -v ss; docker compose version; docker info >/dev/null`); err != nil {
-		return fmt.Errorf("remote Git, Docker Compose and Docker access are required; on supported systems retry with --install-deps: %w", err)
+		if _, err := t.output(ctx, requirements); err != nil {
+			return fmt.Errorf("remote dependencies are still unavailable after setup: %w", err)
+		}
 	}
 	stored, err := t.output(ctx, "if test -f "+quote(metadata+"/port")+"; then cat "+quote(metadata+"/port")+"; fi")
 	if err != nil {
@@ -179,6 +212,7 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 	if err != nil {
 		return err
 	}
+	// Establish forwarding before installing the workspace.
 	fmt.Fprintf(stdout, "Connecting local port %d to the remote environment...\n", port)
 	forward := []string{"-N", "-o", "ExitOnForwardFailure=yes", "-L", fmt.Sprintf("127.0.0.1:%d:127.0.0.1:%d", port, port)}
 	if o.Recipe == farmRecipe {

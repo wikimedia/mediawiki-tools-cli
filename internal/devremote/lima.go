@@ -29,19 +29,16 @@ func LimaSSH(ctx context.Context, name string, create bool, stdout, stderr io.Wr
 	if err != nil {
 		return nil, fmt.Errorf("list Lima instances: %w", err)
 	}
-	args := []string{"start", "--tty=false"}
-	if slices.Contains(strings.Fields(string(data)), name) {
-		args = append(args, name)
-	} else {
+	if !slices.Contains(strings.Fields(string(data)), name) {
 		if !create {
 			return nil, fmt.Errorf("Lima instance %q is missing; recreate it or choose another remote context", name)
 		}
 		fmt.Fprintf(stdout, "Creating Lima instance %s with Docker. The first boot downloads a Linux VM image.\n", name)
-		// The remote session owns browser forwarding. The checkout stays in the VM.
-		args = append(args, "--name="+name, "--cpus=4", "--memory=8", "--disk=40", "--set",
-			`.mounts = [] | .portForwards = [{"guestIP":"0.0.0.0","guestIPMustBeZero":false,"proto":"any","ignore":true}]`, "template://docker-rootful")
+		if err := createLima(ctx, name, stderr); err != nil {
+			return nil, err
+		}
 	}
-	start := osexec.CommandContext(ctx, lima, args...) // #nosec G204 -- validated instance name.
+	start := osexec.CommandContext(ctx, lima, "start", "--tty=false", name) // #nosec G204 -- validated instance name.
 	start.Stdout, start.Stderr = stdout, stderr
 	if err := start.Run(); err != nil {
 		return nil, fmt.Errorf("start Lima instance %q: %w", name, err)
@@ -58,4 +55,11 @@ func LimaSSH(ctx context.Context, name string, create bool, stdout, stderr io.Wr
 		return nil, fmt.Errorf("Lima did not report a usable SSH configuration for %q", name)
 	}
 	return []string{"-F", filename, "lima-" + name}, nil
+}
+
+func createLima(ctx context.Context, name string, stderr io.Writer) error {
+	// The remote session owns browser forwarding. The checkout stays in the VM.
+	_, err := providerOutput(ctx, stderr, "limactl", "create", "--tty=false", "--name="+name, "--cpus=4", "--memory=8", "--disk=40", "--set",
+		`.mounts = [] | .portForwards = [{"guestIP":"0.0.0.0","guestIPMustBeZero":false,"proto":"any","ignore":true}]`, "template://docker-rootful")
+	return err
 }
