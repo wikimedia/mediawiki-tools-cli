@@ -10,6 +10,7 @@ import (
 	toolforge "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/cli"
 	toolforgeua "gitlab.wikimedia.org/repos/cloud/toolforge/toolforge-gen-cli/pkg/useragent"
 	"gitlab.wikimedia.org/repos/releng/cli/commands/quip"
+	"gitlab.wikimedia.org/repos/releng/cli/commands/sal"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/cli"
 	"gitlab.wikimedia.org/repos/releng/cli/internal/util/browser"
 	cobrautil "gitlab.wikimedia.org/repos/releng/cli/internal/util/cobra"
@@ -138,6 +139,7 @@ func NewToolsCmd() *cobra.Command {
 	setup.Flags().StringP("tool", "t", "", "Tool account to check")
 	command.AddCommand(
 		setup,
+		cobrautil.WithServiceInfo(sal.NewCmd(), cobrautil.ServiceInfo{Name: "Server Admin Log", URL: "https://sal.toolforge.org/"}),
 		cobrautil.WithServiceInfo(newToolcounterCmd(), cobrautil.ServiceInfo{Name: "Toolcounter", URL: "https://toolcounter.toolforge.org"}),
 		cobrautil.WithServiceInfo(newToolviewsCmd(), cobrautil.ServiceInfo{Name: "Toolviews", URL: "https://toolviews.toolforge.org"}),
 		cobrautil.WithServiceInfo(quip.NewQuipCmd(), cobrautil.ServiceInfo{Name: "Quip", URL: "https://bash.toolforge.org", Logo: "https://bash.toolforge.org/favicon.ico"}),
