@@ -12,7 +12,7 @@ mw dev remote open --ssh awm-1.boxd --recipe mediawiki
 mw dev remote open --project mwcli --instance <instance-id> --recipe mediawiki
 ```
 
-The session runs in the background, maintaining SSH tunnels and reconnecting when necessary. VS Code Remote SSH is the default editor; `--editor web` runs [code-server](https://coder.com/docs/code-server) on the VM and opens it through an authenticated SSH tunnel, requiring no local editor installation. Use `--editor none` to skip the editor or `--no-browser` to print URLs without opening them. Linux, macOS, native Windows and WSL clients are supported; WSL can launch Windows VS Code.
+The session runs in the background, maintaining SSH tunnels and reconnecting when necessary. The command prints wiki links by default. Use `--open-browser` to open the wiki, `--editor code` for desktop VS Code Remote SSH, or `--editor web` to run [code-server](https://coder.com/docs/code-server) through an authenticated SSH tunnel. Use `--no-browser` to print the web editor link without opening it. Linux, macOS, native Windows and WSL clients are supported; WSL can launch Windows VS Code.
 
 ```sh
 mw dev remote list
@@ -32,7 +32,7 @@ The VM needs Git and Docker Compose with permission to use Docker. `--install-de
 To edit an existing local project while running it remotely:
 
 ```sh
-mw dev remote open --ssh awm-1.boxd --directory . --source-name citoid --recipe none
+mw dev remote open --ssh awm-1.boxd --directory . --source-name citoid --recipe none --editor code
 mw dev remote sync calm-otter
 ```
 

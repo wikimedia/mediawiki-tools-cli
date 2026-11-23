@@ -31,7 +31,8 @@ type Options struct {
 	SSHArgs                 []string
 	Context, Recipe, Editor string
 	Port                    int
-	NoBrowser, InstallDeps  bool
+	NoBrowser, OpenBrowser  bool
+	InstallDeps             bool
 }
 
 //go:embed setup.sh

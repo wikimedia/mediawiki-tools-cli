@@ -87,6 +87,8 @@ func openEditor(ctx context.Context, t transport, c Context, stdout io.Writer) e
 		}
 		settings["remote.SSH.path"] = shim
 		settings["remote.SSH.configFile"] = windowsConfig
+		// Windows must start WSL SSH and register the forwarded port before the extension can connect.
+		settings["remote.SSH.connectTimeout"] = 45
 	}
 	if err := writeJSON(filepath.Join(directory, "vscode", "User", "settings.json"), settings); err != nil {
 		return err
@@ -132,23 +134,23 @@ func openSessionUI(ctx context.Context, c Context, stdout, stderr io.Writer) err
 			}
 		}
 	}
-	var urls []string
 	if c.Recipe != "none" {
-		urls = append(urls, fmt.Sprintf("http://default.mediawiki.local.wmftest.net:%d/wiki/Main_Page", c.Port))
+		showRemoteURL(fmt.Sprintf("http://default.mediawiki.local.wmftest.net:%d/wiki/Main_Page", c.Port), c.OpenBrowser && !c.NoBrowser, stdout, stderr)
 	}
 	if c.Editor == "web" {
-		urls = append(urls, fmt.Sprintf("http://127.0.0.1:%d/", c.WebPort))
-	}
-	for _, target := range urls {
-		fmt.Fprintln(stdout, target)
-		if !c.NoBrowser {
-			if err := browser.OpenURL(target); err != nil {
-				fmt.Fprintln(stderr, "Open the displayed URL manually:", err)
-			}
-		}
+		showRemoteURL(fmt.Sprintf("http://127.0.0.1:%d/", c.WebPort), !c.NoBrowser, stdout, stderr)
 	}
 	fmt.Fprintf(stdout, "Session is running in the background. Disconnect with: mw dev remote disconnect --context %s\n", c.Context)
 	return nil
+}
+
+func showRemoteURL(url string, open bool, stdout, stderr io.Writer) {
+	fmt.Fprintln(stdout, url)
+	if open {
+		if err := browser.OpenURL(url); err != nil {
+			fmt.Fprintln(stderr, "Open the displayed URL manually:", err)
+		}
+	}
 }
 
 func editorSSHConfig(alias, resolved, originalConfig string) string {

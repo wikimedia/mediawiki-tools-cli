@@ -26,8 +26,8 @@ func NewRemoteCmd() *cobra.Command {
 		Use: "open [context]", Short: "Prepare or reconnect a background remote development session",
 		Long: `Keep code and containers on a Linux VM, with browser access maintained by a background SSH session.
 New contexts receive a two-word name and use ~/wm/CONTEXT/mediawiki by default. Reopen a saved context without supplying its SSH target again.
-Use --directory for continuous local-to-remote source synchronization. Git metadata, dotenv files and dependency directories are excluded; overwritten remote files are retained under .wm/sync-backup. Local-folder mode defaults to no recipe and opens the local editor.
-Use --editor web for a browser editor on the VM, code for desktop VS Code, or none. Editor access is authenticated and forwarded through SSH.
+Use --directory for continuous local-to-remote source synchronization. Git metadata, dotenv files and dependency directories are excluded; overwritten remote files are retained under .wm/sync-backup. Local-folder mode defaults to no recipe.
+Use --editor web for a browser editor on the VM or --editor code for desktop VS Code. Editor access is authenticated and forwarded through SSH. Wiki links are printed by default. Use --open-browser to open the wiki.
 Stable releases download the exact release’s Linux build for the VM. Development and nightly builds copy this executable and require matching Linux OS/architecture. --install-deps installs Git and Docker on supported Debian/Ubuntu VMs using passwordless sudo.
 Phabricator commands can execute on this machine through the active session bridge (--forward phab, the default). Credential management and shell commands are not delegated; file arguments are transferred as stdin. --forward none disables delegation.
 --git-remote selects an authenticated Git destination on this machine. Fetch/push transfer objects through a local mirror; no service credentials or SSH agents are copied to the VM.`,
@@ -126,6 +126,7 @@ open --ssh my-vm --directory . --recipe none --editor none`),
 				c.Editor = opts.Editor
 			}
 			c.NoBrowser = opts.NoBrowser
+			c.OpenBrowser = opts.OpenBrowser
 			if fresh || cmd.Flags().Changed("port") {
 				c.Port = opts.Port
 			}
@@ -197,8 +198,9 @@ open --ssh my-vm --directory . --recipe none --editor none`),
 	open.Flags().StringVar(&jump, "jump-host", "", "Cloud VPS SSH bastion override")
 	open.Flags().StringVar(&opts.Recipe, "recipe", "mediawiki", "Built-in recipe, or none for an existing/arbitrary project")
 	open.Flags().IntVar(&opts.Port, "port", 0, "Environment port (first setup only; automatically selected by default)")
-	open.Flags().StringVar(&opts.Editor, "editor", "code", "Editor: code, web or none")
-	open.Flags().BoolVar(&opts.NoBrowser, "no-browser", false, "Print URLs without opening the browser")
+	open.Flags().StringVar(&opts.Editor, "editor", "none", "Editor to open (code, web or none)")
+	open.Flags().BoolVar(&opts.OpenBrowser, "open-browser", false, "Open the wiki URL in your browser when ready")
+	open.Flags().BoolVar(&opts.NoBrowser, "no-browser", false, "Suppress automatic browser tabs, including the web editor")
 	open.Flags().BoolVar(&opts.InstallDeps, "install-deps", false, "Install remote dependencies using passwordless sudo")
 	open.Flags().StringVar(&directory, "directory", "", "Continuously synchronize this local project directory to the VM")
 	open.Flags().StringVar(&sourceName, "source-name", "mediawiki", "Name of the codebase directory within the context")
