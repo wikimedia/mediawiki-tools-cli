@@ -149,15 +149,19 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 	if err != nil {
 		return err
 	}
+	if err := t.run(ctx, "umask 077; mkdir -p "+quote(metadata), nil, stdout); err != nil {
+		return err
+	}
+	portLock, err := lockRemotePorts(ctx)
+	if err != nil {
+		return err
+	}
+	defer portLock.Close()
 	port, err := selectPort(strings.TrimSpace(stored), o.Port, listeningPorts(listening))
 	if err != nil {
 		return err
 	}
-	// Establish forwarding before changing the VM, so occupied local ports fail early.
 	fmt.Fprintf(stdout, "Connecting local port %d to the remote environment...\n", port)
-	if err := t.run(ctx, "umask 077; mkdir -p "+quote(metadata), nil, stdout); err != nil {
-		return err
-	}
 	forward := []string{"-N", "-o", "ExitOnForwardFailure=yes", "-L", fmt.Sprintf("127.0.0.1:%d:127.0.0.1:%d", port, port)}
 	bridgeFile := ""
 	webPort := c.WebPort
@@ -215,6 +219,9 @@ func runConnection(parent context.Context, c Context, hooks connectionHooks, std
 	}()
 	if err := waitTunnel(ctx, port, done); err != nil {
 		return err
+	}
+	if err := portLock.Unlock(); err != nil {
+		return fmt.Errorf("release remote port selection lock: %w", err)
 	}
 	remoteCache := path.Join(home, ".cache/a-wikimedia-cli/bin")
 	remoteBinary := remoteCache + "/mw-" + digest

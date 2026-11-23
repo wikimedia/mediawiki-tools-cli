@@ -1,6 +1,7 @@
 package devremote
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -196,4 +197,23 @@ func saveSession(name string, s sessionState) error {
 		return err
 	}
 	return atomicJSON(filepath.Join(dir, "session.json"), s)
+}
+
+// Keep port selection and SSH binding together across local remote sessions.
+func lockRemotePorts(ctx context.Context) (*flock.Flock, error) {
+	root := cli.UserDirectoryPathForCmd("remote")
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return nil, err
+	}
+	lock := flock.New(filepath.Join(root, "ports.lock"))
+	locked, err := lock.TryLockContext(ctx, 100*time.Millisecond)
+	if err != nil {
+		_ = lock.Close()
+		return nil, fmt.Errorf("lock remote port selection: %w", err)
+	}
+	if !locked {
+		_ = lock.Close()
+		return nil, errors.New("could not lock remote port selection")
+	}
+	return lock, nil
 }

@@ -296,3 +296,30 @@ func TestWSLSSHWaitsForWindowsForwardingAndPreservesExitStatus(t *testing.T) {
 		t.Fatalf("missing Windows forwarding failure: %q, %v", out, err)
 	}
 }
+
+func TestRemotePortSelectionIsSerialized(t *testing.T) {
+	t.Setenv("GITLAB_CI", "true")
+	t.Setenv("CI_PROJECT_DIR", t.TempDir())
+
+	first, err := lockRemotePorts(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Close()
+
+	wait, cancel := context.WithTimeout(t.Context(), 75*time.Millisecond)
+	defer cancel()
+	if second, err := lockRemotePorts(wait); err == nil {
+		second.Close()
+		t.Fatal("another session selected ports before forwarding was bound")
+	}
+
+	if err := first.Unlock(); err != nil {
+		t.Fatal(err)
+	}
+	next, err := lockRemotePorts(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer next.Close()
+}
