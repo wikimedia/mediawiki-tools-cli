@@ -13,7 +13,9 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit;
 }
 
-require_once "$IP/includes/PlatformSettings.php";
+if ( is_file( "$IP/includes/PlatformSettings.php" ) ) {
+	require_once "$IP/includes/PlatformSettings.php";
+}
 
 ################################
 # Development environment Setup
@@ -468,9 +470,7 @@ $wgShowHostnames = true;
 
 ## Site settings
 $wgScriptPath = "$dockerProxyPrefix/w";
-if ( $dockerProxyPrefix !== '' ) {
-	$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
-}
+$wgArticlePath = $dockerProxyPrefix . '/wiki/$1';
 $wgSitename = "Dev wiki - $dockerDb";
 $wgMetaNamespace = "Project"; // Set to "Project", instead of the default $wgSitename
 // TODO re add favicon (removed porting to go)
@@ -526,6 +526,8 @@ $wgSecretKey = "j8093j903j902jfr9j109j109jf1093jf09j190jfj09fj1jfknnccnmxnmx";
 $wgPhpCli = '/usr/local/bin/php';
 
 ## Load LocalSettings.d files
+require_once __DIR__ . '/DevSwiftSettings.php';
+
 ## Load all bottom level files on all wikis
 foreach ( glob( "$IP/LocalSettings.d/*.php" ) as $path ) {
     require_once $path;

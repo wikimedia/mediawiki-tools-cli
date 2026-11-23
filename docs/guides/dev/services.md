@@ -15,6 +15,42 @@ mw dev memcached destroy
 
 For optional OpenSearch Dashboards log browsing, see [local logs](logs.md).
 
+## Swift storage and Thumbor thumbnails
+
+Swift and Thumbor are optional services. Starting either service leaves existing
+wikis on their configured storage. To use Swift for a new wiki named `default`:
+
+```sh
+wm dev swift create
+wm dev env set MEDIAWIKI_SWIFT_WIKIS default
+wm dev mediawiki create --force-recreate
+wm dev mediawiki exec -- php maintenance/run.php /wm-swift/prepareSwift.php --wiki default
+```
+
+The wiki can upload files and generate thumbnails with Swift alone. Public files
+are served through the gateway at `/proxy/swift/wikipedia/default/`. To render
+thumbnails with Thumbor instead:
+
+```sh
+wm dev thumbor create
+wm dev env set MEDIAWIKI_THUMBOR_WIKIS default
+wm dev mediawiki create --force-recreate
+```
+
+The wiki lists accept comma-separated database names. For private files, include
+the database name in `MEDIAWIKI_SWIFT_PRIVATE_WIKIS` as well as
+`MEDIAWIKI_SWIFT_WIKIS`, restrict anonymous wiki reading in LocalSettings, and
+recreate MediaWiki and Thumbor. Run `prepareSwift.php` for that wiki after changing
+its privacy setting so Swift's container permissions match. Private originals
+and thumbnails are served through MediaWiki's authenticated handlers.
+
+Use a fresh wiki when enabling Swift storage. Preparation is repeatable.
+
+Swift's first create builds its local image. Use `wm dev swift rebuild` after
+updating embedded build assets. Both services support the standard `image`
+commands; Thumbor uses Wikimedia's production image. Stopping services preserves
+objects; destroying Swift removes its storage volume.
+
 ## Inspect configuration
 
 Show the generated Compose configuration or inspect a service's source file:
