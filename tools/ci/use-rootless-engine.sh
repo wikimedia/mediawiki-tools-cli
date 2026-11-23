@@ -11,10 +11,13 @@ unset DOCKER_CONTEXT
 case $engine in
     docker-rootless)
         packages=(uidmap dbus-user-session slirp4netns)
+        sudo apt-get update
         if ! command -v dockerd-rootless-setuptool.sh >/dev/null; then
-            # The runner image installs Docker CE and removes its APT source.
+            # Check refreshed repository indexes. The runner can have stale
+            # Docker metadata even after its APT source has been removed.
             version=$(dpkg-query -W -f='${Version}' docker-ce)
-            if ! apt-cache show "docker-ce-rootless-extras=$version" >/dev/null 2>&1; then
+            if ! apt-cache madison docker-ce-rootless-extras |
+                awk -v version="$version" '$3 == version {found=1} END {exit !found}'; then
                 . /etc/os-release
                 sudo install -d -m 0755 /etc/apt/keyrings
                 curl -fsSL --proto '=https' https://download.docker.com/linux/ubuntu/gpg |
@@ -22,10 +25,10 @@ case $engine in
                 sudo chmod 0644 /etc/apt/keyrings/mw-ci-docker.asc
                 echo "deb [signed-by=/etc/apt/keyrings/mw-ci-docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" |
                     sudo tee /etc/apt/sources.list.d/mw-ci-docker.list >/dev/null
+                sudo apt-get update
             fi
             packages+=("docker-ce-rootless-extras=$version")
         fi
-        sudo apt-get update
         sudo apt-get install -y "${packages[@]}"
         dockerd-rootless-setuptool.sh install --force
         export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
