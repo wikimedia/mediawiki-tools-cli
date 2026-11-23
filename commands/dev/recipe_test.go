@@ -71,6 +71,56 @@ func TestApplyContentWritesProgressToProvidedWriter(t *testing.T) {
 	}
 }
 
+type recipeRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f recipeRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestLoadRecipeRejectsInsecureURLAndDowngrade(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	requests := 0
+	http.DefaultClient = &http.Client{Transport: recipeRoundTripper(func(r *http.Request) (*http.Response, error) {
+		requests++
+		if r.URL.Scheme != "https" {
+			t.Fatalf("sent request to insecure destination %s", r.URL)
+		}
+		return &http.Response{StatusCode: http.StatusFound, Header: http.Header{"Location": {"http://recipe.example.test/recipe.yml"}}, Body: io.NopCloser(strings.NewReader("")), Request: r}, nil
+	})}
+	for _, target := range []string{"http://recipe.example.test/recipe.yml", "https://user:pass@recipe.example.test/recipe.yml"} {
+		if _, err := loadRecipe("", target, "", devenv.Environment{}); err == nil {
+			t.Fatalf("accepted invalid recipe URL %q", target)
+		}
+	}
+	if requests != 0 {
+		t.Fatalf("made %d requests for invalid URLs", requests)
+	}
+	if _, err := loadRecipe("", "https://recipe.example.test/recipe.yml", "", devenv.Environment{}); err == nil {
+		t.Fatal("followed HTTPS-to-HTTP recipe redirect")
+	}
+	if requests != 1 {
+		t.Fatalf("made %d requests after redirect", requests)
+	}
+}
+
+func TestLoadRecipeLimitsDownloadAndAllowsLoopback(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	const valid = "type: mwcli/recipe\nversion: '1'\nservices:\n  - name: mysql\n    state: started\n"
+	http.DefaultClient = &http.Client{Transport: recipeRoundTripper(func(r *http.Request) (*http.Response, error) {
+		body := valid
+		if r.URL.Path == "/large" {
+			body = strings.Repeat("x", (8<<20)+1)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+	})}
+	if _, err := loadRecipe("", "http://localhost:8080/large", "", devenv.Environment{}); err == nil || !strings.Contains(err.Error(), "8 MiB") {
+		t.Fatalf("oversized recipe error = %v", err)
+	}
+	if _, err := loadRecipe("", "http://127.0.0.1:8080/recipe.yml", "", devenv.Environment{}); err != nil {
+		t.Fatalf("loopback recipe rejected: %v", err)
+	}
+}
+
 func TestExpandRecipeTemplateVars_ReplacesPortAcrossRelevantSections(t *testing.T) {
 	spec := recipe.Spec{
 		Name: "wikibase-repoclient",
