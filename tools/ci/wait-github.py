@@ -19,7 +19,7 @@ class LocalConnection(http.client.HTTPConnection):
 
 
 def main(dispatch=False):
-    deadline, previous = time.monotonic() + (5 * 60 if dispatch else 40 * 60), None
+    deadline, previous = time.monotonic() + (5 * 60 if dispatch else 120 * 60), None
     while time.monotonic() < deadline:
         try:
             with closing(LocalConnection("localhost", timeout=60)) as connection:

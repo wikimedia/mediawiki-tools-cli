@@ -197,6 +197,7 @@ integration-github-request:
          {"platform":"linux-amd64","test":"all-databases"},
          {"platform":"linux-amd64","test":"mysql-cycle"},
          {"platform":"linux-amd64","test":"repoclient"},
+         {"platform":"linux-amd64","test":"docker-recipes"},
          {"platform":"windows-amd64","test":"windows-update"},
          {"platform":"linux-amd64","test":"docker-tunnel-holesail"},
          {"platform":"macos-arm64","test":"macos-sudo-update"}]
@@ -225,7 +226,7 @@ integration-github:
     image: python:3.13-alpine
     tags: [mwcli-wait]
     stage: integration
-    timeout: 45m
+    timeout: 125m
     variables:
       GIT_STRATEGY: none
     cache: []

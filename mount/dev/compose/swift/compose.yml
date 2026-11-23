@@ -1,0 +1,42 @@
+services:
+  swift:
+    image: "${SWIFT_IMAGE:-mwcli-swift:dev}"
+    build: ./compose/swift/mount
+    restart: unless-stopped
+    volumes:
+      - swift-data:/srv/node
+    environment:
+      - "SWIFT_MEDIA_KEY=${SWIFT_MEDIA_KEY}"
+      - "SWIFT_THUMBOR_KEY=${SWIFT_THUMBOR_KEY}"
+      - "SWIFT_PRIVATE_KEY=${SWIFT_PRIVATE_KEY}"
+      - "SWIFT_TEMP_URL_KEY=${SWIFT_TEMP_URL_KEY}"
+      - "SWIFT_UPLOAD_HOST=${SWIFT_UPLOAD_HOST:-swift.local.wmftest.net}"
+      - "SWIFT_SHARDED_CONTAINERS=${SWIFT_SHARDED_CONTAINERS:-}"
+      - "VIRTUAL_HOST=${SWIFT_UPLOAD_HOST:-swift.local.wmftest.net}"
+      - "VIRTUAL_PORT=8080"
+      - "DEFAULT_EXPOSE_PORT=8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.swift-host.rule=Host(`${SWIFT_UPLOAD_HOST:-swift.local.wmftest.net}`) && !PathPrefix(`/proxy/`)"
+      - "traefik.http.routers.swift-host.entrypoints=web"
+      - "traefik.http.routers.swift-host.service=swift"
+      - "traefik.http.routers.swift.rule=Path(`/proxy/swift`) || PathPrefix(`/proxy/swift/`)"
+      - "traefik.http.routers.swift.entrypoints=web"
+      - "traefik.http.routers.swift.middlewares=strip-swift@docker"
+      - "traefik.http.middlewares.strip-swift.stripprefix.prefixes=/proxy/swift"
+      - "traefik.http.services.swift.loadbalancer.server.port=8080"
+    healthcheck:
+      test: [CMD, /usr/local/bin/healthcheck.sh]
+      interval: 10s
+      timeout: 6s
+      start_period: 90s
+      retries: 3
+    depends_on:
+      - traefik
+    dns:
+      - ${NETWORK_SUBNET_PREFIX}.10
+    networks:
+      - dps
+
+volumes:
+  swift-data:

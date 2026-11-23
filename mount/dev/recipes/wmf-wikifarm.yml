@@ -13,6 +13,9 @@ env:
   MEDIAWIKI_DEFAULT_DBNAME: enwiki
   MEDIAWIKI_IMAGE: docker-registry.wikimedia.org/dev/bookworm-php85-fpm:1.0.1-s6
   MEDIAWIKI_XDEBUG_MODE: 'off'
+  SWIFT_UPLOAD_HOST: upload.wikimedia.localhost
+  SWIFT_SHARDED_CONTAINERS: 'wikipedia-commons-local-public,wikipedia-commons-local-temp,wikipedia-commons-local-thumb,wikipedia-commons-local-transcoded,wikipedia-de-local-public,wikipedia-de-local-temp,wikipedia-de-local-thumb,wikipedia-de-local-transcoded,wikipedia-en-local-public,wikipedia-en-local-temp,wikipedia-en-local-thumb,wikipedia-en-local-transcoded,wikipedia-zh-local-public,wikipedia-zh-local-temp,wikipedia-zh-local-thumb,wikipedia-zh-local-transcoded'
+  SWIFT_PRIVATE_CONTAINERS: 'wikipedia-office-local-public,wikipedia-office-local-thumb,wikipedia-office-local-temp,wikipedia-office-local-transcoded'
 
 services:
   - name: mediawiki
@@ -26,6 +29,8 @@ services:
   - name: shellbox-score
   - name: shellbox-syntaxhighlight
   - name: shellbox-timeline
+  - name: swift
+  - name: thumbor
   - name: custom-wmf-wikifarm
 
 code:
@@ -189,28 +194,9 @@ customCompose:
         volumes:
           - ${MEDIAWIKI_VOLUMES_CODE}/.wmf-wikifarm/templates/wikifarm/hcaptcha:/srv/hcaptcha:ro
         networks: [dps]
-      swift:
-        build: ${MEDIAWIKI_VOLUMES_CODE}/.wmf-wikifarm/templates/wikifarm/swift
-        volumes:
-          - farm-swift-data:/srv/node
-        networks: [dps]
-      thumbor:
-        image: docker-registry.wikimedia.org/wikimedia/operations-software-thumbor-plugins:2026-11-18-145504-production
-        entrypoint: [/srv/service/entrypoint-prod.sh, '8800', '-l info --use-environment 1']
-        networks: [dps]
-        volumes:
-          - ${MEDIAWIKI_VOLUMES_CODE}/.wmf-wikifarm/templates/wikifarm/thumbor/60-thumbor-server.conf:/etc/thumbor.d/60-thumbor-server.conf:ro
-          - ${MEDIAWIKI_VOLUMES_CODE}/.wmf-wikifarm/templates/wikifarm/thumbor/80-thumbor-swift.conf:/etc/thumbor.d/80-thumbor-swift.conf:ro
-        environment:
-          HOME: /tmp
-          SWIFT_KEY: farm-thumbor
-          SWIFT_PRIVATE_KEY: farm-thumbor-private
-          SWIFT_PRIVATE_SECRET: farm-thumbor-secret
-        depends_on: [swift, memcached]
     volumes:
       farm-https-data:
       farm-extension-data:
-      farm-swift-data:
 
 sites:
   - dbname: loginwiki
@@ -372,19 +358,7 @@ localSettings:
               $farmSharded = in_array( $wgDBname, [ 'commonswiki', 'enwiki', 'dewiki', 'zhwiki' ], true );
               foreach ( [ 'farm-local' => $farmSwiftName, 'farm-shared' => 'commons' ] as $name => $wiki ) {
                   $levels = $name === 'farm-shared' || $farmSharded ? 2 : 0;
-                  $shards = array_fill_keys( [ 'local-public', 'local-thumb', 'local-temp', 'local-transcoded' ],
-                      [ 'levels' => $levels, 'base' => 16, 'repeat' => 1 ] );
-                  $shards['local-deleted'] = [ 'levels' => $levels, 'base' => 36, 'repeat' => 0 ];
-                  $wgFileBackends[] = [
-                      'class' => Wikimedia\FileBackend\SwiftFileBackend::class, 'name' => $name,
-                      'wikiId' => "wikipedia-$wiki", 'lockManager' => 'fsLockManager',
-                      'swiftAuthUrl' => 'http://swift:8080/auth', 'swiftStorageUrl' => 'http://swift:8080/v1/AUTH_mw',
-                      'swiftUser' => 'mw:media', 'swiftKey' => 'farm-media', 'swiftTempUrlKey' => 'farm-tempurl',
-                      'shardViaHashLevels' => $shards, 'parallelize' => 'implicit',
-                      'readUsers' => [ 'mw:thumbor' ], 'writeUsers' => [ 'mw:thumbor' ],
-                      'secureReadUsers' => [ 'mw:thumbor-private' ], 'secureWriteUsers' => [ 'mw:thumbor-private' ],
-                      'canShellboxGetTempUrl' => true,
-                  ];
+                  $wgFileBackends[] = wmcliSwiftBackendConfig( $name, "wikipedia-$wiki", $levels );
               }
               $wgUploadPath = $farmPrivateFiles ? "$wgScriptPath/img_auth.php" : "$farmUploadOrigin/wikipedia/$farmSwiftName";
               $wgLocalFileRepo = [
@@ -392,7 +366,7 @@ localSettings:
                   'url' => $wgUploadPath, 'scriptDirUrl' => $wgScriptPath, 'hashLevels' => 2, 'deletedHashLevels' => 3,
                   'disableLocalTransform' => true, 'transformVia404' => true, 'useJsonMetadata' => true,
                   'isPrivate' => $farmPrivateFiles, 'thumbScriptUrl' => $wgThumbnailScriptPath,
-                  'thumbProxyUrl' => "http://thumbor:8800/wikipedia/$farmSwiftName/thumb/", 'thumbProxySecret' => 'farm-thumbor-secret',
+                  'thumbProxyUrl' => "http://thumbor:8800/wikipedia/$farmSwiftName/thumb/", 'thumbProxySecret' => getenv( 'THUMBOR_PRIVATE_SECRET' ),
                   'zones' => $farmPrivateFiles ? [ 'thumb' => [ 'url' => "$wgScriptPath/thumb_handler.php" ] ] : [],
               ];
               if ( $wgDBname !== 'commonswiki' ) {
@@ -566,10 +540,8 @@ maintenance:
       - |
         /wait-for-it.sh swift:8080 -t 60
         touch cache/docker/wmf-farm-swift
-        cp .wmf-wikifarm/templates/wikifarm/swift/prepareSwift.php cache/wmf-farm-prepare-swift.php
-        trap 'rm -f cache/wmf-farm-prepare-swift.php' EXIT
         for wiki in enwiki dewiki zhwiki arwiki aawiki metawiki loginwiki commonswiki wikidatawiki officewiki votewiki; do
-          php maintenance/run.php ./cache/wmf-farm-prepare-swift.php --wiki "$wiki"
+          php maintenance/run.php /wm-swift/prepareSwift.php --wiki "$wiki"
         done
   - name: configure-search-indexes
     command:
