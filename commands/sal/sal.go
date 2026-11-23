@@ -20,7 +20,7 @@ var projectName = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
 // NewCmd exposes the public Server Admin Log, without requiring credentials.
 func NewCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "sal", GroupID: "service", Short: "Read and search public Wikimedia server admin logs"}
+	cmd := &cobra.Command{Use: "sal", Short: "Read and search public Wikimedia server admin logs"}
 	cmd.AddCommand(newReadCmd(false), newReadCmd(true))
 	return cmd
 }
