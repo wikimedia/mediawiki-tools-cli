@@ -22,7 +22,7 @@ images:
     noCheck: true
 
   # PHP-FPM image for the local MediaWiki service.
-  - image: docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0-s13
+  - image: docker-registry.wikimedia.org/dev/bookworm-php83-fpm:1.0.0-s9
 
   # Apache frontend for the local MediaWiki service.
   - image: docker-registry.wikimedia.org/dev/bookworm-apache2:1.0.1
