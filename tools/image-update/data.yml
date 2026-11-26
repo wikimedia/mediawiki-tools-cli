@@ -4,7 +4,7 @@ images:
     noCheck: true
 
   # Wikimedia thumbnail rendering service.
-  - image: docker-registry.wikimedia.org/wikimedia/operations-software-thumbor-plugins:2026-11-18-145504-production
+  - image: docker-registry.wikimedia.org/wikimedia/operations-software-thumbor-plugins:2026-11-23-130400-production
     requireRegex: ^\d{4}-\d{2}-\d{2}-\d{6}-production$
 
   # Local DNS proxy for the development Docker network.

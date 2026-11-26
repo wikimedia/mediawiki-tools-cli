@@ -1,6 +1,6 @@
 services:
   thumbor:
-    image: "${THUMBOR_IMAGE:-docker-registry.wikimedia.org/wikimedia/operations-software-thumbor-plugins:2026-11-18-145504-production}"
+    image: "${THUMBOR_IMAGE:-docker-registry.wikimedia.org/wikimedia/operations-software-thumbor-plugins:2026-11-23-130400-production}"
     entrypoint: "/srv/service/entrypoint-prod.sh 8800 '-l info'"
     restart: unless-stopped
     volumes:
