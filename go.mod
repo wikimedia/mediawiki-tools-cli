@@ -15,7 +15,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/x/ansi v0.11.10
 	github.com/cli/cli/v2 v2.97.0
-	github.com/docker/cli v29.10.0+incompatible
+	github.com/docker/cli v29.10.1+incompatible
 	github.com/fatih/color v1.19.0
 	github.com/go-mysql-org/go-mysql v1.16.0
 	github.com/go-sql-driver/mysql v1.10.2
